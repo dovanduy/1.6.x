@@ -1,4 +1,5 @@
 <?php
+die();
 if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: ".date("H:i:s")." artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
@@ -874,21 +875,13 @@ function testmail(){
 	echo "Connecting OK\n";
 	$random_hash = md5(date('r', time()));
 	$boundary="$random_hash/$instance";
-	$body[]="Return-Path: <$sender>";
+	$body[]="Return-Path: <$HotSpotAutoRegisterSMTPSender>";
 	$body[]="X-Original-To: $recipient";
 	$body[]="Date: ". date("D, d M Y H:i:s"). " +0100 (CET)";
-	$body[]="From: $sender (Mail Delivery System)";
+	$body[]="From: $HotSpotAutoRegisterSMTPSender (Mail Delivery System)";
 	$body[]="Subject: $Subject";
 	$body[]="To: $recipient";
-	$body[]="Auto-Submitted: auto-replied";
-	$body[]="MIME-Version: 1.0";
-	$body[]="Content-Type: multipart/mixed;";
-	$body[]="	boundary=\"$boundary\"";
-	$body[]="Content-Transfer-Encoding: 8bit";
-	$body[]="Message-Id: <$random_hash@$instance>";
-	$body[]="--$boundary";
-	$body[]="Content-Description: Notification";
-	$body[]="Content-Type: text/plain; charset=us-ascii";
+	$body[]="";
 	$body[]="";
 	$body[]="This is the mail system at host $instance.";
 	$body[]="";
@@ -903,9 +896,10 @@ function testmail(){
 	$body[]="                   The mail system";
 	$body[]="";
 	$body[]="";
+	
 	$finalbody=@implode("\r\n", $body);
 	
-	if(!$smtp->send(array("from"=>$sender,"recipients"=>$recipient,"body"=>$finalbody,"headers"=>null))){
+	if(!$smtp->send(array("from"=>$HotSpotAutoRegisterSMTPSender,"recipients"=>$recipient,"body"=>$finalbody,"headers"=>null))){
 		echo "Error $smtp->error_number: Could not send to `$HotSpotAutoRegisterSMTPSrv` $smtp->error_text\n";
 		$smtp->quit();
 		return;

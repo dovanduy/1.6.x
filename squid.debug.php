@@ -236,7 +236,7 @@ function support_tool(){
 	$title=$tpl->_ENGINE_parse_body("{build_support_package}");
 	$t=time();
 	$html="
-	<div class=explain style='font-size:18px'>{build_support_package_explain}</div>
+	<div class=text-info style='font-size:18px'>{build_support_package_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -305,7 +305,7 @@ function request_tool(){
 	$title=$tpl->_ENGINE_parse_body("{build_request_package}");
 	$t=time();
 	$html="
-<div class=explain style='font-size:18px'>{build_request_package_explain}</div>
+<div class=text-info style='font-size:18px'>{build_request_package_explain}</div>
 <div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -347,7 +347,7 @@ function website_tool(){
 	
 	$html="
 	<div style='font-size:32px;margin-bottom:20px' id='title-$t'>{website_analysis}</div>
-	<div class=explain style='font-size:18px'>{website_tool_explain}</div>	
+	<div class=text-info style='font-size:18px'>{website_tool_explain}</div>	
 	<div id='report-$t' style='margin:30px'></div>
 <div style='width:98%' class=form>
 	<table style='width:100%'>

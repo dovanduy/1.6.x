@@ -12,6 +12,12 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 
 
 
+$url="http://cdn.api.twitter.com/1/urls/count.json?url=http://www.dailymotion.com/video/x1aqcxp_maitre-gims-zombie-clip-officiel_music&callback=twttr.receiveCount)";
+
+$main=parse_url($url);
+if(preg_match("#\/video\/(.+?)&#", $main["query"],$re)){echo $re[1];}
+
+
 
 
 //$tpl=new templates();

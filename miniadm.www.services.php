@@ -115,7 +115,7 @@ function popup(){
 		if($ligne["groupware"]<>null){
 			
 			$explain="<div style='font-size:13px;font-weight:bold'>{{$TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}}</div>
-			<div class=explain>{{$TEXT_ARRAY[$ligne["groupware"]]["TEXT"]}}</div>";
+			<div class=text-info>{{$TEXT_ARRAY[$ligne["groupware"]]["TEXT"]}}</div>";
 			$img=$IMG_ARRAY_64[$ligne["groupware"]];
 		}
 		

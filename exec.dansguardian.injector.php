@@ -11,20 +11,42 @@ $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian-logger.debug";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--simulate#",implode(" ",$argv))){$GLOBALS["SIMULATE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+
+$unix=new unix();
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." instances:".count($pids)."\n";}
+if(count($pids)>3){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." starting squid, kill them!\n";
+	$mypid=getmypid();
+	while (list ($pid, $ligne) = each ($pids) ){
+		if($pid==$mypid){continue;}
+		echo "Starting......: ".date("H:i:s")." killing $pid\n";
+		unix_system_kill_force($pid);
+	}
+
+}
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>3){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." dying\n";
+	die();
+}
+
+
 if($argv[1]=="--import"){include_tpl_file($argv[2],$argv[3]);die();}
-if($argv[1]=="--sites-infos"){ParseSitesInfos();die();}
 if($argv[1]=="--streamget"){streamget();die();}
 if($argv[1]=="--notifs"){ufdguard_send_notifications();die();}
-if($argv[1]=="--blocked"){PaseUdfdbGuardnew();die();}
+if($argv[1]=="--blocked"){ParseAllUfdbs();die();}
+
 if($argv[1]=="--errors"){ufdbguard_blocks_errors();die();}
 
 
 
 
 $pid=getmypid();
-$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pid=@file_get_contents($pidfile);
-$unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
 if($unix->process_exists($pid)){
 	if($pid<>$pid){
@@ -45,17 +67,11 @@ file_put_contents($pidfile,$pid);
 events(basename(__FILE__).": running $pid");
 events_tail("running $pid");	
 $nohup=$unix->find_program("nohup");
-if(!is_dir("/var/log/artica-postfix/dansguardian-stats4")){@mkdir("/var/log/artica-postfix/dansguardian-stats4",660,true);}
-if(!is_dir("/var/log/artica-postfix/dansguardian-stats4-failed")){@mkdir("/var/log/artica-postfix/dansguardian-stats4-failed",660,true);}
 
-$cmdline=$nohup." ".$unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.squid-tail-injector.php --brut >/dev/null 2>&1 &";
-events_tail($cmdline);
-shell_exec($cmdline);
-ParseLogs();
-ParseLogsNew();
-ParseSitesInfos();
+
 PaseUdfdbGuard();
-PaseUdfdbGuardnew();
+PaseUdfdbGuardnew("/var/log/squid/ufdbguard-blocks");
+PaseUdfdbGuardnew("/var/log/artica-postfix/ufdbguard-blocks");
 ParseUdfdbGuard_failed();
 ufdbguard_blocks_errors();
 $t2=time();
@@ -65,33 +81,6 @@ events(basename(__FILE__).": finish in $distanceOfTimeInWords");
 $mem=round(((memory_get_usage()/1024)/1000),2);
 events_tail("finish in $distanceOfTimeInWords {$mem}MB");
 die();	
-
-function ParseLogs(){
-	$count=0;
-	events_tail("dansguardian-stats:: parsing /var/log/artica-postfix/dansguardian-stats");
-	foreach (glob("/var/log/artica-postfix/dansguardian-stats/*.sql") as $file) {
-		$q=new mysql_squid_builder();
-		usleep(20000);
-		$count=$count+1;
-		$sql=@file_get_contents($file);
-		if(trim($sql)==null){@unlink("$file");continue;}
-		$q->QUERY_SQL($sql,"artica_events");
-		if($q->ok){
-			events_tail("success Parse $file sql file","MAIN",__FILE__,__LINE__);
-			@unlink("$file");
-		}else{
-			events_tail("Failed Parse $file sql file $count");
-			writelogs("Failed Parse $file sql file $count","MAIN",__FILE__,__LINE__);
-			writelogs("$q->mysql_error","MAIN",__FILE__,__LINE__);
-			writelogs("SQL[\"$sql\"]","MAIN",__FILE__,__LINE__);
-		}
-		
-		$q->ok=true;
-		
-	}
-	events_tail("dansguardian-stats:: Deleted $count mysql files for proxy events");
-
-}
 
 
 function events($text){
@@ -111,6 +100,30 @@ function GetRuleName($filename){
 	while (list ($index, $ligne) = each ($tb) ){
 		if(preg_match("#^groupname.+?'(.+?)'#", $ligne,$re)){return $re[1];}
 	}
+}
+
+
+function ParseAllUfdbs(){
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidtime="/etc/artica-postfix/pids/exec.dansguardian.injector.php.ParseAllUfdbs.time";
+	
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){return;}
+	
+	@file_put_contents($pidfile, getmypid());
+	
+	$timeExec=$unix->file_time_min($pidtime);
+	if($timeExec<5){return;}
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	
+	PaseUdfdbGuardnew("/var/log/squid/ufdbguard-blocks");
+	PaseUdfdbGuardnew("/var/log/artica-postfix/ufdbguard-blocks");
+	
+	
+	
 }
 
 function streamget(){
@@ -173,106 +186,6 @@ function _LoadStatisticsSettings(){
 }
 
 
-function ParseLogsNew(){
-	_LoadStatisticsSettings();
-	$sock=new sockets();
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
-	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
-	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
-	
-	$GLOBALS["EnableRemoteStatisticsAppliance"]=$EnableRemoteStatisticsAppliance;
-
-	if($EnableRemoteStatisticsAppliance==1){
-		
-		writelogs("WARNING YOU MUST DEV THAT !!! ",__FUNCTION__,__FILE__,__LINE__);
-		return;
-		
-	}
-	foreach (glob("/etc/dansguardian/dansguardianf*.conf") as $file) {
-		$basename=basename($file);
-		preg_match("#dansguardianf([0-9]+)\.#", $basename,$re);
-		if($re[1]==1){$RULESD[1]="default";continue;}
-		$RULESD[$re[1]]=GetRuleName($file);
-		
-	}
-	
-	
-	
-	$failedir="/var/log/artica-postfix/dansguardian-stats4-failed";
-	events_tail("dansguardian-stats4:: parsing /var/log/artica-postfix/dansguardian-stats4 Line: ".__LINE__);
-	if (!$handle = opendir("/var/log/artica-postfix/dansguardian-stats4")) {
-		events_tail("dansguardian-stats2:: -> glob failed in Line: /var/log/artica-postfix/dansguardian-stats4 ".__LINE__);
-		return ;
-	}		
-	
-	$c=0;
-	$t=0;
-	$q=new mysql_squid_builder();
-	$q->CheckTables();
-	if($q->MysqlFailed){events_tail("dansguardian-stats2:: Mysql connection failed, aborting.... Line: ".__LINE__);return;}
-	
-	$tables=array();
-	
-	while (false !== ($filename = readdir($handle))) {
-		if($filename=="."){continue;}
-		if($filename==".."){continue;}
-		
-		$targetFile="/var/log/artica-postfix/dansguardian-stats4/$filename";
-		if(!is_file($targetFile)){events_tail("dansguardian-stats4:: $c -> $filename is not an sql file  Line: ".__LINE__);continue;}
-		$t++;
-		$array=unserialize(@file_get_contents($targetFile));
-		@unlink($targetFile);
-		if(!is_array($array)){events_tail("dansguardian-stats2:: $filename is not an array line:" .__LINE__);continue;}
-		$userid=$array["userid"];
-		if(trim($userid)=="-"){$userid=null;}
-		$ipaddr=$array["ipaddr"];
-		$uri=$array["uri"];
-		if(preg_match("#^(?:[^/]+://)?([^/:]+)#",$uri,$re)){$sitename=$re[1];if(preg_match("#^www\.(.+)#",$sitename,$ri)){$sitename=$ri[1];}}
-		if(!isset($GLOBALS["CATEGORIZED"][$sitename])){$GLOBALS["CATEGORIZED"][$sitename]=$q->GET_CATEGORIES($sitename);}
-		$EVENT=$array["EVENT"];
-		$WHY=$array["WHY"];
-		$EXPLAIN=$array["EXPLAIN"];
-		$BLOCKTYPE=$array["BLOCKTYPE"];
-		$RULEID=$array["RULEID"];
-		$TIME=$array["TIME"];;
-		$mtime=strtotime($TIME);
-		if($userid<>null){$ipaddr=$userid;}
-		$category=addslashes($GLOBALS["CATEGORIZED"][$sitename]);
-		if(!isset($RULESD[$RULEID])){events_tail("dansguardian-stats4:: Unable to find rule name for RuleID:`$RULEID` Line:".__LINE__);continue;}
-		$rulename=addslashes($RULESD[$RULEID]);
-		$uri=addslashes($uri);
-		$EVENT=addslashes($EVENT);
-		$WHY=addslashes($WHY);
-		$EXPLAIN=addslashes($EXPLAIN);
-		$BLOCKTYPE=addslashes($BLOCKTYPE);
-		$tableblock=date('Ymd',$mtime)."_blocked";
-		$tables[$tableblock][]="('$TIME','$ipaddr','$sitename','$category','$rulename','','$uri','$EVENT','$WHY','$EXPLAIN','$BLOCKTYPE')";
-		
-		
-	}
-	if($t==0){return;}
-	events_tail("dansguardian-stats4:: Parsed $t files Line: ".__LINE__);
-	if(count($tables)==0){events_tail("dansguardian-stats4:: tables is not an array Line: ".__LINE__);return;}
-	
-	
-	while (list ($tablename, $queries) = each ($tables) ){
-		events_tail("dansguardian-stats4:: $tablename -> " .count($queries). " queries Line: ".__LINE__);
-		$sql="INSERT IGNORE INTO $tablename (`zDate`, `client` , `website`, `category` , `rulename` , `public_ip` , `uri` , `event` , `why` , `explain` , `blocktype`)
-		VALUES ".@implode(",", $queries);
-		$q->QUERY_SQL($sql);
-		$data=array("ERROR"=>$q->mysql_error,"SQL"=>$sql);
-		if(!$q->ok){
-			events_tail("dansguardian-stats4:: $tablename -> $q->mysql_error Line: ".__LINE__);
-			@file_put_contents($failedir."/". md5($sql), serialize($data));}
-		
-		
-	}
-	
-  	
-}
-
 
 function ufdbguard_blocks_errors($nopid=false){
 	$unix=new unix();
@@ -334,7 +247,11 @@ function ToSyslog($text){
 	if(function_exists("closelog")){closelog();}
 }
 
-function PaseUdfdbGuardnew(){
+
+
+
+
+function PaseUdfdbGuardnew($DirLOGS){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
@@ -362,21 +279,21 @@ function PaseUdfdbGuardnew(){
 	}	
 
 	
-	if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){return;}
+	if(!is_dir($DirLOGS)){return;}
 	
-	if (!$handle = opendir("/var/log/artica-postfix/ufdbguard-blocks")) {
-		events_tail("PaseUdfdbGuardnew:: -> glob failed in Line: /var/log/artica-postfix/ufdbguard-blocks ".__LINE__);
+	if (!$handle = opendir($DirLOGS)) {
+		events_tail("PaseUdfdbGuardnew:: -> glob failed in Line: $DirLOGS ".__LINE__);
 		return ;
 	}
 	$smtp_notifications_body=array();
 	//$sql="INSERT INTO `$table` (`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`) VALUES";
 	
 	$c=0;
-	events_tail("PaseUdfdbGuardnew:: parsing  /var/log/artica-postfix/ufdbguard-blocks directory...");
+	events_tail("PaseUdfdbGuardnew:: parsing  $DirLOGS directory...");
 	while (false !== ($filename = readdir($handle))) {
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
-		$targetFile="/var/log/artica-postfix/ufdbguard-blocks/$filename";	
+		$targetFile="$DirLOGS/$filename";	
 		$array=unserialize(@file_get_contents($targetFile));
 		if(!is_array($array)){
 			events_tail("PaseUdfdbGuard:: $targetFile, not an array....");
@@ -657,27 +574,6 @@ function PaseUdfdbGuard_send_failed($sql){
 
 
 
-function ParseSitesInfos(){
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.'.pid';
-	$pid=@file_get_contents($pidfile);
-	$unix=new unix();
-	if($unix->process_exists($pid)){return null;}
-	@file_put_contents($pidfile,getmypid());	
-	
-	$count=0;
-	events_tail("dansguardian-stats:: parsing /var/log/artica-postfix/dansguardian-stats3");
-	foreach (glob("/var/log/artica-postfix/dansguardian-stats3/*") as $filename) {
-		if($GLOBALS["VERBOSE"]){echo "$filename\n";}
-		events_tail("dansguardian-stats:: parsing $filename Line: ".__LINE__);
-		$datas=unserialize(@file_get_contents("$filename"));
-		if(!is_array($datas)){events_tail(basename($filename))." is not an array";@unlink($filename);continue;}
-		usleep(20000);
-		@unlink($filename);
-		$count++;
-	}
-	events_tail("dansguardian-stats3:: $count analyzed files.");
-	
-}
 
 function include_tpl_file($path,$category){
 	$sock=new sockets();

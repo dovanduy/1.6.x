@@ -87,7 +87,6 @@ function ScanFoldders(){
 	ScanThis("/home/backup/postfix");
 	ScanThis($LogRotatePath);
 	ScanThis($SystemLogsPath);
-	ScanThis($BackupMaxDaysDir);
 	ScanThis($maillogStoragePath);
 }
 

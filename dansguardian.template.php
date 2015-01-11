@@ -232,7 +232,7 @@ function Dans2Save(){
 	}
 	
 	
-	
+	$_POST["DansGuardianHTMLTemplate"]=mysql_escape_string2($_POST["DansGuardianHTMLTemplate"]);
 	$sql="UPDATE webfilter_rules SET TemplateError='{$_POST["DansGuardianHTMLTemplate"]}' WHERE ID={$_POST["ruleid"]}";
 	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$q=new mysql_squid_builder();	

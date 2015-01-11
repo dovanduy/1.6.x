@@ -202,7 +202,7 @@ function popup(){
 	$page=CurrentPageName();
 	$html="<table style='width:100%'>
 	<tr>
-		<td valign='top' width=99%><div class=explain>{OPENVPN_SERVER_CONNECT_TEXT}</div></td>
+		<td valign='top' width=99%><div class=text-info>{OPENVPN_SERVER_CONNECT_TEXT}</div></td>
 		<td valign='top' width=1%>". imgtootltip("48-refresh.png","{refresh}","RefreshOpenVPNMasterList();")."</td>
 	</tr>
 	</table>
@@ -327,7 +327,7 @@ $html=$html."</table>";
 function up_iframe($error=null){
 $page=CurrentPageName();
 $html="
-<div class=explain>{OPENVPN_SERVER_CONNECT_EXPLAIN}</div>
+<div class=text-info>{OPENVPN_SERVER_CONNECT_EXPLAIN}</div>
 <div style='color:red;font-size:12px;font-family:arial'>$error</div>
 <form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 <p>

@@ -280,12 +280,12 @@ function tabs(){
 	
 	$array["members"]='{mysql_users}';
 	$array["ssl"]='{ssl}';
+	$array["phpMyadmin"]='PHPMyAdmin';
 	$array["globals"]='{globals_values}';
 	$array["events"]='{events}';
+	$array["watchdog"]='{watchdog}';
 	
-	if($users->MYSQLD_MULTI_INSTALLED){
-		$array["mysql-multi"]='{multiples_mysql}';
-	}
+	
 	
 	if($_GET["tabsize"]>10){$tabsize="style='font-size:{$_GET["tabsize"]}px'";}
 	
@@ -327,7 +327,17 @@ function tabs(){
 		if($num=="events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.mysql.events.php\"><span $tabsize>$ligne</span></a></li>\n");
 			continue;
-		}			
+		}
+		
+		if($num=="phpMyadmin"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.mysql.phpmyadmin.php\"><span $tabsize>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="watchdog"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"mysql.watchdog-events.php\"><span $tabsize>$ligne</span></a></li>\n");
+			continue;
+		}	
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span $tabsize>$ligne</span></a></li>\n");
 	}
@@ -814,7 +824,7 @@ function mysql_dir_popup(){
 	
 	$html="
 	<div id='ChangeMysqlDirDiv'>
-	<div class=explain>{ChangeMysqlDir_explain}</div>
+	<div class=text-info>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>

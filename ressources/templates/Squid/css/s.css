@@ -20,6 +20,10 @@ h1{
 h1.reverse {
 	background: transparent url('../i/logor.png') no-repeat;
 } 
+h1.mikrotik {
+	background: transparent url('../i/logoc.png') no-repeat;
+} 
+
 
 
 h1.lbalance{

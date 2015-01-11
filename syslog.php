@@ -15,12 +15,22 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["search"])){search();exit;}
-
+	if(isset($_GET["sjs"])){js_popup();exit;}
 js();
 
 
+
+function js_popup(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$syslogpath=urlencode($_GET["syslog-path"]);
+	echo "YahooWin6(1169,'$page?popup=yes&syslog-path=$syslogpath','Syslog')";
+	
+}
+
 function js(){
 	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
 	$html="
 	
 	
@@ -60,7 +70,7 @@ function popup(){
 	$TB_SERV="{display: '$service', name : 'zDate', width :97, sortable : false, align: 'left'},";
 	if($_GET["force-prefix"]<>null){$MasterTitle=$_GET["force-prefix"];$TB_SERV=null;$SE_SERV=null;}
 	if($_GET["prepend"]<>null){$MasterTitle=$MasterTitle."&raquo;{$_GET["prepend"]}";}
-	
+	$syslogpath=urlencode($_GET["syslog-path"]);
 	if($MasterTitle==null){$MasterTitle=$tpl->javascript_parse_text("{syslog_events}");}
 	
 	$buttons="
@@ -77,7 +87,7 @@ function popup(){
 
 $(document).ready(function(){
 $('#events-table-$t').flexigrid({
-	url: '$page?search=yes&prepend={$_GET["prepend"]}&force-prefix={$_GET["force-prefix"]}',
+	url: '$page?search=yes&prepend={$_GET["prepend"]}&force-prefix={$_GET["force-prefix"]}&syslog-path=$syslogpath',
 	dataType: 'json',
 	colModel : [
 		{display: '$date', name : 'zDate', width :93, sortable : true, align: 'left'},
@@ -155,17 +165,17 @@ $pattern=base64_encode($_GET["search"]);
 		$removeService=true;
 	}
 	
-
+	$syslogpath=urlencode($_GET["syslog-path"]);
 
 	if($_GET["query"]<>null){
 
 		$search=base64_encode($_POST["query"]);
-		$sock->getFrameWork("cmd.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");	
+		$sock->getFrameWork("cmd.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&syslog-path=$syslogpath");	
 		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 		
 	}else{
-		$sock->getFrameWork("cmd.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");
+		$sock->getFrameWork("cmd.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&syslog-path=$syslogpath");
 		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 	}
@@ -284,34 +294,6 @@ function Parse_haproxy($line){
 	}
 	return $line;
 	
-}
-
-
-
-function search_old(){
-	
-	
-	if(!is_array($array)){return null;}
-	
-	$html="<table class=TableView>";
-	
-	while (list ($key, $line) = each ($array) ){
-		if($line==null){continue;}
-		if($tr=="class=oddrow"){$tr=null;}else{$tr="class=oddrow";}
-		
-			$html=$html."
-			<tr $tr>
-			<td><code>$line</cod>
-			</tr>
-		
-		";
-		
-	}
-	
-	
-	$html=$html."</table>";
-
-	echo $html;
 }
 
 

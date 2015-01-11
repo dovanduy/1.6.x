@@ -21,16 +21,19 @@ function page(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$CORP_LICENSE=1;
-	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
+	
 	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
 	$ArticaProxyStatisticsBackHourTables=$sock->GET_INFO("ArticaProxyStatisticsBackHourTables");
 	if(!is_numeric($ArticaProxyStatisticsBackHourTables)){$ArticaProxyStatisticsBackHourTables=1;}
+	
+	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
 	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
 	$BackupSquidStatsUseNas=$sock->GET_INFO("BackupSquidStatsUseNas");
 	$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidStatsNASIpaddr");
 	$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidStatsNASFolder");
 	$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidStatsNASUser");
 	$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
+	$ArticaProxyStatisticsOpenWeb=intval($sock->GET_INFO("ArticaProxyStatisticsOpenWeb"));
 	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
 	if(!$users->CORP_LICENSE){$CORP_LICENSE=0;$ArticaProxyStatisticsBackupDays=5;}	
 	
@@ -38,6 +41,11 @@ function page(){
 	if(!is_numeric($ArticaProxyStatisticsMaxTime)){$ArticaProxyStatisticsMaxTime=420;}
 	if($ArticaProxyStatisticsMaxTime<5){$ArticaProxyStatisticsMaxTime=420;}
 	$t=time();
+	
+	if($ArticaProxyStatisticsOpenWeb==1){
+		$buttonB=button("{browse}...", "s_PopUp('/backup-stats',1024,800);",22)."&nbsp;|&nbsp;";
+		
+	}
 	
 	$html="
 	<div style='width:98%' class=form>
@@ -54,11 +62,18 @@ function page(){
 	</tr>
 				
 				
-	<tr>
-		<td valign='top' class=legend style='font-size:18px'>{backup_hourly_tables}:</td>
-		<td>". Field_checkbox("ArticaProxyStatisticsBackHourTables-$t",1,$ArticaProxyStatisticsBackHourTables)."</td>
-		<td>&nbsp;</td>
+	<tr><td colspan=3>
+				". Paragraphe_switch_img("{backup_hourly_tables}", 
+						"{backup_hourly_tables_text}","ArticaProxyStatisticsBackHourTables-$t",$ArticaProxyStatisticsBackHourTables,null,850)."
+
+		</td>
 	</tr>
+	<tr><td colspan=3>
+				". Paragraphe_switch_img("{open_www_to_backup_dir}", 
+						"{open_www_to_backup_dir_explain}","ArticaProxyStatisticsOpenWeb-$t",$ArticaProxyStatisticsOpenWeb,null,850)."
+
+		</td>
+	</tr>								
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{backup_folder}:</td>
 		<td>". Field_text("ArticaProxyStatisticsBackupFolder-$t",$ArticaProxyStatisticsBackupFolder,"font-size:18px;width:320px")."</td>
@@ -90,7 +105,7 @@ function page(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",22)."</td>
+		<td colspan=3 align='right' style='font-size:22px'><hr>$buttonB". button("{apply}","Save$t()",22)."</td>
 	</tr>
 	</table>
 	</div>
@@ -99,15 +114,20 @@ var x_Save$t= function (obj) {
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){alert(tempvalue)};
 	UnlockPage();
+	RefreshTab('squidarticadb');
 }
 
 function Save$t(){
 	var LICENSE=$CORP_LICENSE;
 	var XHR = new XHRConnection();	
-	if(document.getElementById('ArticaProxyStatisticsBackHourTables-$t').checked){ XHR.appendData('ArticaProxyStatisticsBackHourTables',1); }else{ XHR.appendData('ArticaProxyStatisticsBackHourTables',0); }
+	
 	if(document.getElementById('BackupSquidStatsUseNas-$t').checked){ XHR.appendData('BackupSquidStatsUseNas',1); }else{ XHR.appendData('BackupSquidStatsUseNas',0); }			
 	XHR.appendData('ArticaProxyStatisticsBackupFolder',document.getElementById('ArticaProxyStatisticsBackupFolder-$t').value);
+	XHR.appendData('ArticaProxyStatisticsOpenWeb',document.getElementById('ArticaProxyStatisticsOpenWeb-$t').value);
+	
+	
 	if(LICENSE==1){ XHR.appendData('ArticaProxyStatisticsBackupDays',document.getElementById('ArticaProxyStatisticsBackupDays-$t').value); }
+	XHR.appendData('ArticaProxyStatisticsBackHourTables',document.getElementById('ArticaProxyStatisticsBackHourTables-$t').value);
 	XHR.appendData('BackupSquidStatsNASIpaddr',document.getElementById('BackupSquidStatsNASIpaddr-$t').value);
 	XHR.appendData('BackupSquidStatsNASFolder',encodeURIComponent(document.getElementById('BackupSquidStatsNASFolder-$t').value));
 	XHR.appendData('BackupSquidStatsNASUser',encodeURIComponent(document.getElementById('BackupSquidStatsNASUser-$t').value));
@@ -156,7 +176,7 @@ function Save(){
 	$sock->SET_INFO("ArticaProxyStatisticsMaxTime", $_POST["ArticaProxyStatisticsMaxTime"]);
 	
 	
-	
+	$sock->SET_INFO("ArticaProxyStatisticsOpenWeb", $_POST["ArticaProxyStatisticsOpenWeb"]);
 	$sock->SET_INFO("BackupSquidStatsUseNas", $_POST["BackupSquidStatsUseNas"]);
 	$sock->SET_INFO("ArticaProxyStatisticsBackupFolder", $_POST["ArticaProxyStatisticsBackupFolder"]);
 	if(isset($_POST["ArticaProxyStatisticsBackupDays"])){$sock->SET_INFO("ArticaProxyStatisticsBackupDays", $_POST["ArticaProxyStatisticsBackupDays"]); }
@@ -164,4 +184,7 @@ function Save(){
 	$sock->SET_INFO("BackupSquidStatsNASFolder",url_decode_special_tool($_POST["BackupSquidStatsNASFolder"]));
 	$sock->SET_INFO("BackupSquidStatsNASUser", url_decode_special_tool($_POST["BackupSquidStatsNASUser"]));
 	$sock->SET_INFO("BackupSquidStatsNASPassword", url_decode_special_tool($_POST["BackupSquidStatsNASPassword"]));
+	
+	$sock->getFrameWork("services.php?restart-webconsole-scheduled=yes");
+	
 }

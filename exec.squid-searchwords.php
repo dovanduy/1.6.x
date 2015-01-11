@@ -354,7 +354,7 @@ function searchwords_hour($aspid=false){
 	$unix=new unix();
 	$GLOBALS["Q"]=new mysql_squid_builder();
 	
-	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidtime="/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time";
 	if($GLOBALS["VERBOSE"]){echo "PidTime: $pidtime\n";}
 	
 	
@@ -390,6 +390,11 @@ function searchwords_hour($aspid=false){
 		}
 	}
 	hour_SearchWordTEMP();
+	
+	
+	$mysqladmin=$unix->find_program("mysqladmin");
+	shell_exec("$mysqladmin -u root -S /var/run/mysqld/squid-db.sock flush-tables >/dev/null 2>&1 &");
+	
 }
 
 function searchwords_hour_to_day($sourcetable){

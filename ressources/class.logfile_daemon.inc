@@ -131,6 +131,9 @@ class logfile_daemon{
 		if(preg_match("#(.+?):(.+)#", $SquidCode,$re)){
 			$SquidCode=$re[1];
 		}
+		
+		if(preg_match("#_HIT$#", $SquidCode)){return 1;}
+		
 		switch ($SquidCode) {
 	
 			case "TCP_HIT":
@@ -161,13 +164,13 @@ class logfile_daemon{
 	
 			case "UDP_INVALID":
 	
-				return TRUE;
+				return 1;
 	
 				break;
 	
 			default:
 	
-				return FALSE;
+				return 0;
 	
 				break;
 	

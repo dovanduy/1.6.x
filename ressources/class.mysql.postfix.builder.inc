@@ -272,8 +272,8 @@ class mysql_postfix_builder{
 			PRIMARY KEY (`zmd5`),
 			KEY `zDate` (`zDate`),
 			KEY `messageid` (`messageid`),
-			KEY `hostname` (`mailfrom`),
-			KEY `domain` (`domainfrom`),
+			KEY `hostname` (`hostname`),
+			KEY `domain` (`domain`),
 			KEY `ipaddr` (`ipaddr`)
 			) ENGINE=MYISAM;";
 		
@@ -339,8 +339,8 @@ public function postfix_buildday_connections($curdate=null){
 	
 }
 	
-public function postfix_buildhour_connections(){
-	$curdate=date("YmdH");
+public function postfix_buildhour_connections($curdate=null){
+	if($curdate==null){$curdate=date("YmdH");}
 	if(isset($GLOBALS["postfix_buildhour_connections"][$curdate])){return;}
 	$tablename="{$curdate}_hcnx";
 	$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
@@ -355,9 +355,7 @@ public function postfix_buildhour_connections(){
 		KEY `domain` (`domain`),
 		KEY `ipaddr` (`ipaddr`)
 		) ENGINE=MEMORY;";
-	
-	
-	
+
 	
 	if(!$this->QUERY_SQL($sql)){
 		$this->events($q->mysql_error);
@@ -375,7 +373,7 @@ public function postfix_buildhour_connections(){
 			  `imap_server` varchar(255) NOT NULL,
 			  domain` varchar(255) NOT NULL,
 			 PRIMARY KEY (`zmd5`),
-			  KEY `zDate` (`zDate`)
+			  KEY `zDate` (`zDate`),
 			  KEY `mbx_service`(`mbx_service`),
 			  KEY `hostname` (`hostname`),
 			  KEY `ipaddr` (`client_name`),
@@ -420,7 +418,7 @@ private function events($text){
 	public function milter_BuildDayTable($tablename){
 		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
 		`zmd5` varchar(90) NOT NULL,
-		`hits` INT(10) NOT NULL,
+		`hits` BIGINT UNSIGNED NOT NULL,
 		`zhour` tinyint(2) NOT NULL,
 		`mailfrom` varchar(255) NOT NULL,
 		`instancename` varchar(255) NOT NULL,
@@ -448,7 +446,7 @@ private function events($text){
 	public function milter_BuildMonthTable($tablename){
 		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
 		`zmd5` varchar(90) NOT NULL,
-		`hits` INT(10) NOT NULL,
+		`hits` BIGINT UNSIGNED NOT NULL,
 		`zday` date NOT NULL,
 		`mailfrom` varchar(255) NOT NULL,
 		`instancename` varchar(255) NOT NULL,

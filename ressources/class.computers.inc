@@ -1,6 +1,7 @@
 <?php
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 if(!isset($GLOBALS["NORESOLVCOMP"])){$GLOBALS["NORESOLVCOMP"]=false;}
+if(!isset($GLOBALS["NODHCP"])){$GLOBALS["NODHCP"]=false;}
 include_once(dirname(__FILE__).'/class.templates.inc');
 include_once(dirname(__FILE__).'/class.ldap.inc');
 include_once(dirname(__FILE__).'/class.groups.inc');
@@ -69,6 +70,9 @@ function computers($uid=null){
 	    $uid=str_replace('$$','$',$uid);
 		$users=new usersMenus();
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$this->samba_installed=$users->SAMBA_INSTALLED;
 		$this->local_sid=$ldap->LOCAL_SID();
 		
@@ -103,6 +107,9 @@ function ChangeDisplayName(){
 	
 private function LoadDatas(){
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 		
 		if($this->uid==null){
 			writelogs("Resquest an uid null, aborting",__CLASS__.'/'.__FUNCTION__,__FILE__);return null;}
@@ -207,7 +214,7 @@ private function LoadDatas(){
 						if($GLOBALS["AS_ROOT"]){
 							$unix=new unix();
 							$ping="FALSE";
-							if($unix->PingHost($host)){$ping="TRUE";}
+							if($unix->PingHost($this->ComputerRealName)){$ping="TRUE";}
 						}else{
 							$sock=new sockets();
 							$ping=$sock->getFrameWork("network.php?ping=$ip");
@@ -249,6 +256,7 @@ private function LoadDatas(){
 		
 		if($GLOBALS["VERBOSE"]){writelogs( "->OcsPasserelle()",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		$this->OcsPasserelle();
+		
 		writelogs("ComputerIP (final): $this->ComputerIP ($this->ComputerMacAddress) uid:$this->uid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		
@@ -277,11 +285,26 @@ public function ComputerChangePassword($password){
 			$upd["sambaBadPasswordTime"][0]=0;
 			$upd["sambaLogonHours"][0]=-1;		
 			$ldap=new clladp();
+			if($ldap->ldap_host=="127.0.0.1"){
+				if(!$this->VerifyConnect()){return false;}
+			}
 			$res=$ldap->Ldap_modify($this->dn,$upd);
 			$this->ldap_error=$ldap->ldap_last_error;
 			$this->artica_meta();
 			return $res;
 	
+}
+
+function OcsEdit(){
+	if($this->ComputerMacAddress=="UnKnown"){return null;}
+	if($this->ComputerMacAddress==null){return null;}
+	$ipClass=new IP();
+	if(!$ipClass->IsvalidMAC($this->ComputerMacAddress)){return null;}
+	$ocs=new ocs($this->ComputerMacAddress);
+	$ocs->ComputerName=$this->ComputerRealName;
+	$ocs->ComputerIP=$this->ComputerIP;
+	$ocs->EditComputer();
+
 }
 		
 		
@@ -324,7 +347,7 @@ function OcsPasserelle(){
 }
 		
 		
-function Edit(){
+function Edit($source_script=null){
 	if(isset($GLOBALS["COMPUTEREDITED"][$this->uid])){writelogs("Fatal: $this->uid was already saved in this session...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
 	if($this->ComputerIP=="0.0.0.0"){writelogs("Fatal: 0.0.0.0 is not an supported IP address For $this->uid, MAC $this->ComputerMacAddress",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);echo "0.0.0.0 is not an supported IP address.\n";return;}
 	$upd["uid"][0]=$this->uid;
@@ -333,7 +356,10 @@ function Edit(){
 	$users=new usersMenus();
 	$group=new groups();
 	$ldap=new clladp();
-	$this->VerifyDefault();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
+	$this->VerifyDefault($source_script);
 	if($this->dhcpfixed==1){$this->VolatileIPAddress=0;}
 	if($this->DnsMXLength==null){$this->DnsMXLength=10;}
 	$trace=debug_backtrace();
@@ -350,14 +376,14 @@ function Edit(){
 	$upd["sambaPrimaryGroupSID"][0]=$group->samba_group_sid_from_gid('515');
 	$upd["sambaSID"][0]=$ldap->LOCAL_SID() .'-' . $uidNumber_c;	
 	$upd["VolatileIPAddress"][0]=$this->VolatileIPAddress;
-	$ldap=new clladp();
+	
 	$res=true;
 	$GLOBALS["COMPUTEREDITED"][$this->uid]=true;
 	
 	if(!$ldap->Ldap_modify($this->dn,$upd)){
 		writelogs("1) Modify DN $this->dn ERROR",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		writelogs("VolatileIPAddress=$this->VolatileIPAddress",__CLASS__.'/'.__FUNCTION__,__FILE__);
-		$res=FALSE;
+		$res=false;
 		
 	}
 	unset($upd);	
@@ -381,20 +407,19 @@ function Edit(){
 		$dns->EditIPName(strtolower($this->uid),$this->ComputerIP,$this->DnsType,$this->ComputerMacAddress);
 	}
 	
-	$ldap=new clladp();
-	
+	$this->ocsedit();
 	$this->EXPLODE_LDAP_ARRAY($upd);
-	
 	$this->SaveDHCPMode();
-	$sock=new sockets();
-	$sock->getfile("SetComputerBackupSchedule");
-	$this->artica_meta();	
 	return $res;
 	
 	}
 	
+	
 private function EXPLODE_LDAP_ARRAY($array){
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	$upd=array();
 	while (list ($num, $arr) = each ($array) ){
 		while (list ($i, $val) = each ($arr) ){
@@ -419,6 +444,7 @@ private function EXPLODE_LDAP_ARRAY($array){
 }
 	
 function SaveDHCPMode(){
+	if($GLOBALS["NODHCP"]){return;}
 	//writelogs("dhcpfixed: $this->dhcpfixed for $this->uid",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	if(($this->dhcpfixed==1) && ($this->ComputerIP<>null) && ($this->ComputerMacAddress<>null)){
 			include_once(dirname(__FILE__.'/class.dhcpd.inc'));
@@ -458,9 +484,19 @@ function SaveDHCPMode(){
 		
 		
 }
+
+function VerifyConnect(){
+	if(isset($GLOBALS["VerifyConnect"])){return $GLOBALS["VerifyConnect"];}
+	if(!$GLOBALS["AS_ROOT"]){return true;}
+	if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
+	$unix=new unix();
+	if(!$unix->is_socket("/var/run/slapd/slapd.sock")){$GLOBALS["VerifyConnect"]=false;return false;}
+	$GLOBALS["VerifyConnect"]=true;
+	return true;
+}
 	
 	
-function VerifyDefault(){
+function VerifyDefault($source_script=null){
 	$u=array();
 	$ip=new IP();
 	if($this->DnsType==null){$this->DnsType="A";}
@@ -486,6 +522,9 @@ function VerifyDefault(){
 	if($this->ComputerCPU==null){$this->ComputerCPU="Unknown";}
 	if(strpos($this->uid,'$')==0){$this->uid=$this->uid.'$';}
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){if(!$this->VerifyConnect()){return false;}}
+	
+	
 	
 		
 		$dn="dc=organizations,$ldap->suffix";
@@ -496,7 +535,7 @@ function VerifyDefault(){
 			$u["objectclass"][]="top";
 			$u["objectclass"][]="organization";
 			$u["objectclass"][]="dcObject";
-			if(!$ldap->ldap_add($dn,$u)){echo "Failed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";return null;}
+			if(!$ldap->ldap_add($dn,$u)){echo "by$source_script\nFailed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";return null;}
 			unset($u);
 		}
 
@@ -508,7 +547,7 @@ function VerifyDefault(){
 	 			$u["o"][]="samba";
 	 			$u["dc"][]="samba";
 	 			if(!$ldap->ldap_add($dn,$u)){
-	 				echo "Failed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";
+	 				echo "by$source_script\nFailed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";
 	 				return null;}
 	 			unset($u);
 	 		}
@@ -519,7 +558,7 @@ function VerifyDefault(){
 	 			$u["objectClass"][]="organizationalUnit";
 	 			$u["ou"][]="Computer";
 	 			if(!$ldap->ldap_add($dn,$u)){
-	 				echo "Failed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";
+	 				echo "by$source_script\nFailed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";
 	 				return null;}
 	 			unset($u);
 	 			}
@@ -551,6 +590,9 @@ function fixed_gethostbyname ($host) {
 function SaveCryptedInfos(){
 	$sock=new sockets();
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	
 	if($this->dn==null){
 		$this->dn="cn=$this->uid,ou=Computer,dc=samba,dc=organizations,$ldap->suffix";
@@ -573,8 +615,6 @@ function SaveCryptedInfos(){
 			}
 		
 	$sock=new sockets();
-	$sock->getfile("SetComputerBackupSchedule");	
-	$this->artica_meta();	
 	return true;
 	
 }
@@ -584,6 +624,9 @@ function ComputerIDFromMAC($mac){
 	$pattern="(&(objectclass=posixAccount)(ComputerMacAddress=$mac))";
 	$attr=array();
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return null;}
+	}
 	$sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,$pattern,$attr);
 	if(!$sr){return null;}
 	$hash=ldap_get_entries($ldap->ldap_connection,$sr);
@@ -610,9 +653,21 @@ function ComputerIDFromMAC($mac){
 	
 }
 
+function dhcpfixedFromMac($MAC){
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM dhcpd_fixed WHERE `mac`='$MAC'","artica_backup"));
+	if($ligne["ipaddr"]<>null){return true;}
+	return false;
+	
+}
+
+
 	function update_uid($uid){
 		$upd["uid"][0]=$uid;
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		if($ldap->Ldap_modify($this->dn, $upd)){$this->uid=$uid;}
 		
 	}
@@ -620,6 +675,9 @@ function ComputerIDFromMAC($mac){
 	function update_ipaddr($ipaddr){
 		$upd["ComputerIP"][0]=$ipaddr;
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		writelogs("Update ComputerIP = $ipaddr for $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		
 		$r=ldap_modify($ldap->ldap_connection,$ldap->dn_escape($this->dn),$upd);
@@ -644,6 +702,9 @@ function ComputerIDFromMAC($mac){
 	function UpdateComputerUpTime($data){
 		$upd["ComputerUpTime"][0]=$data;
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		if(!$ldap->Ldap_modify($this->dn, $upd)){return;}
 		
 	}
@@ -663,6 +724,9 @@ function ComputerIDFromMAC($mac){
 		if(preg_match("#Microsoft.+?Windows.+?7#i",$OS)){$OS="Windows 7";}
 		$upd["ComputerOS"][0]=$OS;
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		if($ldap->Ldap_modify($this->dn, $upd)){
 			if($this->ComputerMacAddress<>null){
 				$ocs=new ocs($this->ComputerMacAddress);
@@ -680,6 +744,9 @@ function ComputerIDFromMAC($mac){
 function Edit_ScanSchedule($cron){
 	writelogs("Set Antivirus scanner AT \"$cron\" for computer in $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	if($cron==null){
 		$upd["ComputerScanSchedule"]=$this->ComputerScanSchedule;
 		if($ldap->Ldap_del_mod($this->dn,$upd)){$this->artica_meta();}
@@ -694,12 +761,18 @@ function Edit_ScanSchedule($cron){
 
 function ComputerAddAlias($alias){
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	writelogs("adding computer aliase $alias in $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	$upd["DnsCname"]=$alias;
 	if($ldap->Ldap_add_mod($this->dn,$upd)){$this->artica_meta();}
 	}
 function ComputerDelAlias($alias){
-$ldap=new clladp();
+	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	writelogs("delete computer aliase $alias in $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	$upd["DnsCname"]=$alias;
 	$ldap->Ldap_del_mod($this->dn,$upd);
@@ -762,13 +835,20 @@ function Add(){
 	if($this->ComputerMacAddress<>null){
 		$uid_mac=$this->ComputerIDFromMAC($this->ComputerMacAddress);
 		if(trim($uid_mac)<>null){
+			$uid_mac=str_replace("$", "", $uid_mac);
 			writelogs("$this->ComputerMacAddress= $uid_mac, change to this uid",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			$this->uid=$uid_mac;
+			$this->uid="$uid_mac$";
 		}
 	}
-	
+	if($this->uid=="$"){
+		$this->UpdateOCSDB();
+		return;
+	}
 	$this->VerifyDefault();
 	$ldap=new clladp();
+	if($ldap->ldap_host=="127.0.0.1"){
+		if(!$this->VerifyConnect()){return false;}
+	}
 	
 	
 	$this->dn="cn=$this->uid,ou=Computer,dc=samba,dc=organizations,$ldap->suffix";
@@ -836,11 +916,7 @@ function Add(){
 		}else{
 			$this->SaveDHCPMode();
 			$this->UpdateOCSDB();
-			if($this->ComputerIP<>'0.0.0.0'){
-				$sock=new sockets();
-				$sock->getFrameWork('cmd.php?apply-bind=yes');
-				$this->artica_meta();
-			}
+			
 		}
 		
 		$this->ldap_error=$ldap->ldap_last_error;
@@ -875,6 +951,9 @@ function Add(){
 function UpdateComputerSID(){
 		$group=new  groups(null);
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$user=new user(null);
 		$upd=array();
 		$this->dn="cn=$this->uid,ou=Computer,dc=samba,dc=organizations,$ldap->suffix";
@@ -893,6 +972,9 @@ function UpdateComputerSID(){
 		
 	function DeleteComputer(){
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$ldap->ldap_delete($this->dn);
 		$hash=$this->Groups_list();
 		if(is_array($hash)){
@@ -907,16 +989,14 @@ function UpdateComputerSID(){
 		$dhcp->IP=$this->ComputerIP;
 		$dhcp->dds_domain=$this->DnsZoneName;			
 		$dhcp->DeleteFixed();	
-		
-		$sock=new sockets();
-		$sock->getfile("SetComputerBackupSchedule");	
-		
-		
 		}
 
 	function uidNumberCheck(){
 		if($this->uidNumber<>null){return null;}
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
       	$r =@ldap_search($ldap->ldapbind, $ldap->suffix, 'uidnumber=*');
       		if ($r){
          		ldap_sort($ldap->ldap_connection, $r, "uidnumber");
@@ -935,6 +1015,9 @@ function UpdateComputerSID(){
 	
 function Groups_list(){
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$attrs=array('gidNumber','displayName','cn');
 		$sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(&(objectClass=posixGroup)(memberUid=$this->uid))",$attrs);	
 			if($sr){
@@ -950,6 +1033,9 @@ function Groups_list(){
 
 	function save_EnableBackupAccount(){
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$array=array();
 		if($this->objectClass_array["UserArticaClass"]==null){
 			writelogs("Add a new objectClass called \"UserArticaClass\"",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -966,15 +1052,15 @@ function Groups_list(){
 			echo "\nFunction: ".__FUNCTION__."\n".dirname(__FILE__)."\nLine:".__LINE__."\n".$ldap->ldap_last_error;
 			return false;
 		}
-		
-		$sock=new sockets();
-		$sock->getfile("SetComputerBackupSchedule");	
-		$this->artica_meta();
+
 		
 		}
 		
 	function UpdateComputerOpenPorts($data){
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$upd["ComputerOpenPorts"][]=$data;
 		if(!$ldap->Ldap_modify($this->dn,$upd)){
 			echo "\nFunction: ".__FUNCTION__."\n".dirname(__FILE__)."\nLine:".__LINE__."\n".$ldap->ldap_last_error;
@@ -984,6 +1070,9 @@ function Groups_list(){
 		
 	function SaveScannerOptions(){
 		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
 		$tpl=new templates();
 		if($this->KasperkyAVScanningDatas==null){return ;}
 		$upd=array();

@@ -15,14 +15,18 @@ class pdns{
 	var $ttl=null;
 	var $prio=null;
 	var $articasrv=null;
+	var $POWER_DNS_INSTALLED=false;
 //------------------------------------------------------------------------------------------------------------------------------	
 	function pdns($domainname=null){
 		$sock=new sockets();
+		$users=new usersMenus();
 		$this->PowerDNSDisableLDAP=$sock->GET_INFO("PowerDNSDisableLDAP");
 		$this->PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSMySQLEngine");
 		if(!is_numeric($this->PowerDNSDisableLDAP)){$this->PowerDNSDisableLDAP=1;}
 		if(!is_numeric($this->PowerDNSMySQLEngine)){$this->PowerDNSMySQLEngine=1;}
 		$this->PowerDNSMySQLEngine=1;
+		$this->POWER_DNS_INSTALLED=$users->POWER_DNS_INSTALLED;
+		
 		if(!isset($GLOBALS["DisablePowerDnsManagement"])){
 			
 			$this->DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
@@ -44,8 +48,8 @@ class pdns{
 	function AddDomain($domainname){
 		if(class_exists("usersMenus")){
 			$LOCAL_MDA=false;
-			$users=new usersMenus();
-			if(!$users->POWER_DNS_INSTALLED){return true;}
+			
+			if(!$this->POWER_DNS_INSTALLED){return true;}
 		}		
 		
 		$domainname=trim(strtolower($domainname));
@@ -66,9 +70,7 @@ class pdns{
 	
 	function DelDomain($domainname){
 		if(class_exists("usersMenus")){
-			$LOCAL_MDA=false;
-			$users=new usersMenus();
-			if(!$users->POWER_DNS_INSTALLED){return true;}
+			if(!$this->POWER_DNS_INSTALLED){return true;}
 		}
 		
 		$domainname=trim(strtolower($domainname));
@@ -87,6 +89,7 @@ class pdns{
 	
 //------------------------------------------------------------------------------------------------------------------------------
 	private function mysql_checkMasterDefaulZone(){
+		if(!$this->POWER_DNS_INSTALLED){return "localhost.localdomain";}
 		$q=new mysql();
 		$sql="SELECT name FROM domains WHERE id=1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));
@@ -98,6 +101,7 @@ class pdns{
 	
 //------------------------------------------------------------------------------------------------------------------------------
 	private function mysql_checkMasterZone(){
+		if(!$this->POWER_DNS_INSTALLED){return 0;}
 		if(isset($GLOBALS["mysql_checkMasterZone:$this->domainname"])){return $GLOBALS["mysql_checkMasterZone:$this->domainname"];}
 		if($this->domainname==null){$this->mysql_checkMasterDefaulZone();}
 		
@@ -122,7 +126,7 @@ class pdns{
 	}
 	
 	private function mysql_checkin_addr_arpa(){
-		
+		if(!$this->POWER_DNS_INSTALLED){return 0;}
 		$q=new mysql();
 		$sql="SELECT id FROM domains WHERE name='in-addr.arpa'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"powerdns"));

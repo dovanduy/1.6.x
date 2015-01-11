@@ -29,96 +29,162 @@ if(isset($_GET["graph-squid-04"])){graph_squid_not_cached_hours();exit;}
 
 if(isset($_GET["graph-squid-05"])){graph_squid_cached_hier_hours();exit;}
 if(isset($_GET["graph-squid-06"])){graph_squid_not_cached_hier_hours();exit;}
+if(isset($_GET["PageDeGarde"])){PageDeGarde();exit;}
 
-PageDeGarde();
+
+
+tabs();
+
+function tabs(){
+	
+	$fontsize=18;
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["RTT"]="{realtime}";
+	$array["WEEK"]="{this_week}";
+	$array["websites"]="{websites}";
+	$array["cached-websites"]="{cached_websites}";
+	$array["PageDeGarde"]="{graphs}";
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="RTT"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwidth.rtt.week.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="WEEK"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwidth.rttw.week.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}	
+		
+		if($num=="websites"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwidth.rweb.week.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="cached-websites"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwidth.cached.week.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	
+	$html=build_artica_tabs($html,'main_bandwidth_tabs');
+	
+	echo $html;	
+	
+}
+
+
 function PageDeGarde(){
 	$page=CurrentPageName();
 	$time=time();
-	
-	if(is_file("/usr/share/artica-postfix/ressources/logs/web/CACHED_HOUR.db")){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-01'></div>";
-		$f2[]="function XSquid01$time(){
-		AnimateDiv('$time-squid-01');
-		Loadjs('$page?graph-squid-01=yes&container=$time-squid-01&time=$time',true);
-	}
-	setTimeout(\"XSquid01$time()\",500);";
-	
+	$DISABLE_STATS=false;
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($sock->SQUID_LOCAL_STATS_DISABLED()){$SquidPerformance=2;}
+	if($SquidPerformance>1){
+		$DISABLE_STATS=true;
 	}
 	
-	if(is_file("/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HOUR.db")){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-02'></div>";
-		$f2[]="function XSquid02$time(){
-		AnimateDiv('$time-squid-02');
-		Loadjs('$page?graph-squid-02=yes&container=$time-squid-02&time=$time',true);
-	}
-	setTimeout(\"XSquid02$time()\",500);";
+	if(!$DISABLE_STATS){
+			if(is_file("/usr/share/artica-postfix/ressources/logs/web/CACHED_HOUR.db")){
+				$f1[]="<div style='width:1150px;height:340px' id='$time-squid-01'></div>";
+				$f2[]="function XSquid01$time(){
+				AnimateDiv('$time-squid-01');
+				Loadjs('$page?graph-squid-01=yes&container=$time-squid-01&time=$time',true);
+			}
+			setTimeout(\"XSquid01$time()\",500);";
+			
+			}
+		
+		
+		if(is_file("/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HOUR.db")){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-squid-02'></div>";
+			$f2[]="function XSquid02$time(){
+			AnimateDiv('$time-squid-02');
+			Loadjs('$page?graph-squid-02=yes&container=$time-squid-02&time=$time',true);
+		}
+		setTimeout(\"XSquid02$time()\",500);";
+		
+		}	
+		
+		
+		
+		$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_DAY.db";
+		$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_DAY.db";
+		
+		if(is_file($file1)){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-squid-03'></div>";
+			$f2[]="function XSquid03$time(){
+			AnimateDiv('$time-squid-03');
+			Loadjs('$page?graph-squid-03=yes&container=$time-squid-03&time=$time',true);
+		}
+		setTimeout(\"XSquid03$time()\",500);";
+		
+		}	
+		if(is_file($file2)){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-squid-04'></div>";
+			$f2[]="function XSquid04$time(){
+			AnimateDiv('$time-squid-04');
+			Loadjs('$page?graph-squid-04=yes&container=$time-squid-04&time=$time',true);
+		}
+		setTimeout(\"XSquid04$time()\",500);";
+		
+		}	
+		
+		
+		$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_HIER_DAY.db";
+		$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HIER_DAY.db";
+	
+		if(is_file($file1)){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-squid-05'></div>";
+			$f2[]="function XSquid05$time(){
+			AnimateDiv('$time-squid-05');
+			Loadjs('$page?graph-squid-05=yes&container=$time-squid-05&time=$time',true);
+		}
+		setTimeout(\"XSquid05$time()\",500);";
+		
+		}
+		if(is_file($file2)){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-squid-06'></div>";
+			$f2[]="function XSquid06$time(){
+			AnimateDiv('$time-squid-06');
+			Loadjs('$page?graph-squid-06=yes&container=$time-squid-06&time=$time',true);
+		}
+		setTimeout(\"XSquid06$time()\",500);";
+		
+		}	
 	
 	}	
 	
-	$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_DAY.db";
-	$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_DAY.db";
+	$sock=new sockets();
+	$DisableBWMng=intval($sock->GET_INFO("DisableBWMng"));
 	
-	if(is_file($file1)){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-03'></div>";
-		$f2[]="function XSquid03$time(){
-		AnimateDiv('$time-squid-03');
-		Loadjs('$page?graph-squid-03=yes&container=$time-squid-03&time=$time',true);
-	}
-	setTimeout(\"XSquid03$time()\",500);";
-	
-	}	
-	if(is_file($file2)){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-04'></div>";
-		$f2[]="function XSquid04$time(){
-		AnimateDiv('$time-squid-04');
-		Loadjs('$page?graph-squid-04=yes&container=$time-squid-04&time=$time',true);
-	}
-	setTimeout(\"XSquid04$time()\",500);";
-	
-	}	
-	
-	
-	$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_HIER_DAY.db";
-	$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HIER_DAY.db";
-
-	if(is_file($file1)){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-05'></div>";
-		$f2[]="function XSquid05$time(){
-		AnimateDiv('$time-squid-05');
-		Loadjs('$page?graph-squid-05=yes&container=$time-squid-05&time=$time',true);
-	}
-	setTimeout(\"XSquid05$time()\",500);";
-	
-	}
-	if(is_file($file2)){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-06'></div>";
-		$f2[]="function XSquid06$time(){
-		AnimateDiv('$time-squid-06');
-		Loadjs('$page?graph-squid-06=yes&container=$time-squid-06&time=$time',true);
-	}
-	setTimeout(\"XSquid06$time()\",500);";
-	
-	}	
-	
-	
-	if(is_file("ressources/logs/web/BWMRT_OUT.db")){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-01'></div>";
-		$f2[]="function XDeux$time(){
-		AnimateDiv('$time-01');
-		Loadjs('$page?graph-bwrt-out=yes&container=$time-01&time=$time',true);
-	}
-	setTimeout(\"XDeux$time()\",500);";
-	
-	}
-	
-	if(is_file("/usr/share/artica-postfix/ressources/logs/web/BWMRT_IN.db")){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-02'></div>";
-		$f2[]="
-		\nfunction XCDeux$time(){
-		AnimateDiv('$time-02');
-		Loadjs('$page?graph-bwrt-in=yes&container=$time-02',true);
-	}
-	setTimeout(\"XCDeux$time()\",500);";
+	if($DisableBWMng==0){
+		if(is_file("ressources/logs/web/BWMRT_OUT.db")){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-01'></div>";
+			$f2[]="function XDeux$time(){
+			AnimateDiv('$time-01');
+			Loadjs('$page?graph-bwrt-out=yes&container=$time-01&time=$time',true);
+		}
+		setTimeout(\"XDeux$time()\",500);";
+		
+		}
+		
+		if(is_file("/usr/share/artica-postfix/ressources/logs/web/BWMRT_IN.db")){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-02'></div>";
+			$f2[]="
+			\nfunction XCDeux$time(){
+			AnimateDiv('$time-02');
+			Loadjs('$page?graph-bwrt-in=yes&container=$time-02',true);
+		}
+		setTimeout(\"XCDeux$time()\",500);";
+		}
 	}
 
 	if(is_file("/usr/share/artica-postfix/ressources/logs/web/INTERFACE_LOAD_AVG3.db")){
@@ -128,18 +194,19 @@ function PageDeGarde(){
 		if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/INTERFACE_LOAD_AVG3.db no such file</H1>\n";}
 	}
 	
-	
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_LOAD_AVG5.db";
-	if(is_file($cacheFile)){
-		$f1[]="<div style='width:1150px;height:340px' id='$time-5'></div>";
-		$f2[]="function FCinq$time(){
-		AnimateDiv('$time-5');
-		Loadjs('$page?graph5=yes&container=$time-5',true);
+	if(!$DISABLE_STATS){
+		$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_LOAD_AVG5.db";
+		if(is_file($cacheFile)){
+			$f1[]="<div style='width:1150px;height:340px' id='$time-5'></div>";
+			$f2[]="function FCinq$time(){
+			AnimateDiv('$time-5');
+			Loadjs('$page?graph5=yes&container=$time-5',true);
+		}
+		setTimeout(\"FCinq$time()\",600);";
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/INTERFACE_LOAD_AVG5.db no such file</H1>\n";}
+		}	
 	}
-	setTimeout(\"FCinq$time()\",600);";
-	}else{
-		if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/INTERFACE_LOAD_AVG5.db no such file</H1>\n";}
-	}	
 	
 	$html=@implode("\n", $f1)."<script>".@implode("\n", $f2)."</script>";
 	echo $html;	

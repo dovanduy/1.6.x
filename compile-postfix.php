@@ -1,8 +1,27 @@
 <?php
+
+/*apt-get install gnustep-make libgnustep-base-dev
+ * SOGO 
+ * wget http://www.sogo.nu/files/downloads/SOGo/Sources/SOPE-2.2.8.tar.gz
+ * tar -xf SOPE-2.2.8.tar.gz
+ * cd SOPE
+ * ./configure
+ * make 
+ * make install
+ * 
+ * wget http://www.sogo.nu/files/downloads/SOGo/Sources/SOGo-2.2.8.tar.gz
+ * apt-get install gnustep-config libmemcached-dev
+ * ./configure --enable-ldap-config
+ * make
+ * make install
+ * 
+ */
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
+include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 
 $unix=new unix();
 
@@ -16,7 +35,12 @@ if(preg_match("#--repos#", @implode(" ", $argv))){$GLOBALS["REPOS"]=true;}
 if(preg_match("#--force#", @implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 
 $GLOBALS["URISRC"]="ftp://ftp.porcupine.org/mirrors/postfix-release/experimental";
+$GLOBALS["GREYLIST_URL"]="ftp://ftp.espci.fr/pub/milter-greylist/milter-greylist-4.4.3.tgz";
+$GLOBALS["POSTFIX_URI"]="ftp://ftp.porcupine.org//mirrors/postfix-release/official/postfix-2.11.3.tar.gz";
+$GLOBALS["POF_URL"]="http://lcamtuf.coredump.cx/p0f3/releases/p0f-3.07b.tgz";
 
+if($argv[1]=="--pof"){compile_pof();exit;}
+if($argv[1]=="--milter-greylist"){compile_milter_greylist();exit;}
 if($argv[1]=="--factorize"){factorize($argv[2]);exit;}
 if($argv[1]=="--serialize"){serialize_tests();exit;}
 if($argv[1]=="--latests"){latests();exit;}
@@ -24,6 +48,8 @@ if($argv[1]=="--latest"){echo "Latest:". latests()."\n";exit;}
 if($argv[1]=="--create-package"){create_package();exit;}
 if($argv[1]=="--parse-install"){parse_install($argv[2]);exit;}
 if($argv[1]=="--compile-options"){echo "\n".GetCompilationOption()."\n";die();}
+if($argv[1]=="--libmilter"){libmilter();exit;}
+if($argv[1]=="--libspf"){compile_libspf();exit;}
 
 
 
@@ -36,27 +62,48 @@ $cp=$unix->find_program("cp");
   if(is_file('/usr/include/sasl/sasl.h')){$include_sasl='/usr/include/sasl';}
   if(is_file('/usr/include/cdb.h')){$include_cdb='/usr/include';}
   
+  if(!is_file("/usr/include/sasl/sasl.h")){
+  	echo "include DB?.....: /usr/include/sasl/sasl.h no such file, apt-get install libsasl2-dev ?\n";
+  	return;
+  }
+  
   if(!is_file("/usr/include/db.h")){
   	 echo "include DB?.....: /usr/include/db.h no such file, apt-get install libdb-dev ?\n";
   	 return;
   }
-  
+  $Architecture=Architecture();
   echo "include CDB.....: $include_cdb\n";
   echo "include SASL....: $include_sasl\n";
   echo "include OPENSSL.: $include_openssl\n";
+  echo "Fixed uri.......: {$GLOBALS["POSTFIX_URI"]}\n";
+  
+  echo "Architecture....: {$Architecture}\n";
 
 
+  libmilter();
 
-//http://ftp.samba.org/pub/samba/stable/
-
-
+  
 $dirsrc="postfix-0.0.0";
-$Architecture=Architecture();
 
+$v=null;
 if(!$GLOBALS["NO_COMPILE"]){
-	$v=latests();
-	if(preg_match("#postfix-([0-9\.\-]+)#", $v,$re)){$dirsrc=$re[1];}
-	system_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
+	if(!isset($GLOBALS["POSTFIX_URI"])){
+		$v=latests();
+		if(preg_match("#postfix-([0-9\.\-]+)#", $v,$re)){$dirsrc=$re[1];}
+		$uri_postfix="{$GLOBALS["URISRC"]}/$v";
+		system_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
+	}else{
+		$filename=basename($GLOBALS["POSTFIX_URI"]);
+		$v=$filename;
+		$uri_postfix=$GLOBALS["POSTFIX_URI"];
+		
+	}
+	
+	
+}
+
+if($v==null){
+	echo "No version found !!!\n";die();
 }
 
 if(!$GLOBALS["FORCE"]){
@@ -70,8 +117,10 @@ if(!$GLOBALS["NO_COMPILE"]){
 	@mkdir("/root/$dirsrc");
 	if(!is_file("/root/$v")){
 		echo "Downloading $v ...\n";
-		shell_exec("$wget {$GLOBALS["URISRC"]}/$v");
-		if(!is_file("/root/$v")){echo "Downloading failed...\n";die();}
+		$curl=new ccurl($uri_postfix);
+		if(!$curl->GetFile("/root/$v")){
+			echo "Downloading failed...$curl->error\n";die();
+		}
 	}
 	
 	shell_exec("$tar -xf /root/$v -C /root/$dirsrc/");
@@ -102,16 +151,10 @@ shell_exec('/bin/mv /usr/sbin/sendmail /usr/sbin/sendmail.OFF >/dev/null');
 shell_exec('/bin/mv /usr/bin/newaliases /usr/bin/newaliases.OFF >/dev/null');
 shell_exec('/bin/mv /usr/bin/mailq /usr/bin/mailq.OFF >/dev/null');
 shell_exec('/bin/chmod 755 /usr/sbin/sendmail.OFF /usr/bin/newaliases.OFF /usr/bin/mailq.OFF >/dev/null');
-
-
-
 shell_exec("useradd postfix");
 shell_exec("groupadd postdrop");
-
 $configure=GetCompilationOption();
-
 if($GLOBALS["SHOW_COMPILE_ONLY"]){echo $configure."\n";die();}
-
 echo "Executing `$configure`\n";
 
 if(!$GLOBALS["NO_COMPILE"]){
@@ -155,6 +198,344 @@ function POSTFIX_VERSION(){
 	}
 	
 }
+
+function compile_pof(){
+	$unix=new unix();
+	
+	$wget=$unix->find_program("wget");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$ln=$unix->find_program("ln");
+	$DIR=$unix->TEMP_DIR()."/pof";
+	if(is_dir($DIR)){shell_exec("$rm -rf $DIR");}
+	@mkdir($DIR,0755,true);	
+	
+	echo "Downloading: {$GLOBALS["POF_URL"]}\n";
+	$destfile=$DIR."/".basename($GLOBALS["POF_URL"]);
+	$curl=new ccurl($GLOBALS["POF_URL"]);
+	if(!$curl->GetFile($destfile)){
+		@unlink($destfile);
+		echo $curl->error."\n";
+		die();
+	}
+	
+	echo "Extracting $destfile in $DIR\n";
+	shell_exec("$tar xf $destfile -C $DIR/");
+	@unlink($destfile);
+	$WORKING_DIR=null;
+	
+	$dirs=$unix->dirdir($DIR);
+	while (list ($num, $ligne) = each ($dirs) ){
+	if(!is_file("$ligne/Makefile")){continue;}
+	$WORKING_DIR=$ligne;
+	break;
+	}
+	
+	if($WORKING_DIR==null){
+	echo "Could not find the source directory\n";
+		die();
+	}
+	
+	chdir($WORKING_DIR);
+	system("./build.sh");
+	if(!is_file("$WORKING_DIR/p0f")){
+		echo "Could not find the $WORKING_DIR/p0f binary\n";
+		die();
+	}
+	system("$cp -fp $WORKING_DIR/p0f /usr/sbin/p0f");
+	@mkdir("/usr/src/p0f");
+	system("$cp -fpr $WORKING_DIR/* /usr/src/p0f/");
+	@chdir("/root");
+	system("$rm -rf $DIR");
+}
+
+
+function libmilter(){
+	$unix=new unix();
+	$wget=$unix->find_program("wget");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$ln=$unix->find_program("ln");
+	$DIR=$unix->TEMP_DIR()."/sendmail";
+	if(is_dir($DIR)){shell_exec("$rm -rf $DIR");}
+	@mkdir($DIR,0755,true);
+	
+	
+	$url="ftp://ftp.sendmail.org/pub/sendmail/sendmail-current.tar.gz";
+	echo "Downloading: $url\n";
+	$destfile=$DIR."/".basename($url);
+	$curl=new ccurl($url);
+	if(!$curl->GetFile($destfile)){
+		@unlink($destfile);
+		echo $curl->error."\n";
+		die();
+	}
+	echo "Extracting $destfile in $DIR\n";
+	shell_exec("$tar xf $destfile -C $DIR/");
+	@unlink($destfile);
+	$WORKING_DIR=null;
+	$libmilter_dir=null;
+	
+	$dirs=$unix->dirdir($DIR);
+	while (list ($num, $ligne) = each ($dirs) ){
+		if(!is_file("$ligne/libmilter/Build")){continue;}
+		$WORKING_DIR=$ligne;
+		$libmilter_dir="$ligne/libmilter";
+		break;
+	}
+	
+	if($libmilter_dir==null){
+		echo "Could not find the source directory\n";
+		die();
+	}
+	@unlink("/lib/libmilter.a");
+	@unlink("/usr/include/libmilter/mfapi.h");
+	@unlink("/usr/include/libmilter/mfdef.h");
+	@unlink("/usr/lib/libmilter.a");
+	@unlink("/usr/lib/libmilter.so.1.0.1");
+	@unlink("/usr/lib/libmilter/libmilter.a");        
+	@unlink("/usr/lib/libmilter/libmilter.so");        
+	@unlink("/usr/lib/libmilter/libmilter.so.1.0.1");
+	chdir($libmilter_dir);
+	system("./Build");
+	
+	$dirs=$unix->dirdir($WORKING_DIR);
+	while (list ($num, $ligne) = each ($dirs) ){
+		if(!is_file("$ligne/libmilter/smfi.o")){continue;}
+		$WORKING_OBJ="$ligne/libmilter";
+		break;
+	}
+	
+	if($WORKING_OBJ==null){
+		echo "Could not find the object directory\n";
+		die();
+	}
+	
+	echo "Installing From $WORKING_OBJ\n";
+	chdir($WORKING_OBJ);
+	system("make install");
+	@chdir("/root");
+	system("$rm -rf $DIR");
+	
+}
+
+function LOCATE_LIB_CURL(){
+	
+	$possibledirs[]="/usr/lib/x86_64-linux-gnu";
+	$possibledirs[]="/usr/lib64";
+	$possibledirs[]="/usr/lib";
+	$possibledirs[]="/usr/lib32";
+	
+	while (list ($num, $ligne) = each ($possibledirs) ){
+		if(is_link("$ligne/libcurl.so")){
+			return $ligne;
+		}
+		if(is_file("$ligne/libcurl.so")){return $ligne;}
+		echo "$ligne/libcurl.so no such link or file\n";
+	}
+	
+}
+function LOCATE_LIB_GEOIP(){
+
+	$possibledirs[]="/usr/lib/x86_64-linux-gnu";
+	$possibledirs[]="/usr/lib64";
+	$possibledirs[]="/usr/lib";
+	$possibledirs[]="/usr/lib32";
+
+	while (list ($num, $ligne) = each ($possibledirs) ){
+		if(is_link("$ligne/libGeoIP.so")){
+			return $ligne;
+		}
+		if(is_file("$ligne/libGeoIP.so")){return $ligne;}
+	}
+
+}
+
+
+function compile_libspf(){
+	$unix=new unix();
+	$wget=$unix->find_program("wget");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$ln=$unix->find_program("ln");
+	$DIR=$unix->TEMP_DIR()."/libspf2";
+	if(is_dir($DIR)){shell_exec("$rm -rf $DIR");}
+	@mkdir($DIR,0755,true);
+	$url="http://www.libspf2.org/spf/libspf2-1.2.10.tar.gz";
+	
+	echo "Downloading: $url\n";
+	$destfile=$DIR."/".basename($url);
+	$curl=new ccurl($url);
+	if(!$curl->GetFile($destfile)){
+		@unlink($destfile);
+		echo $curl->error."\n";
+		die();
+	}
+	echo "Extracting $destfile in $DIR\n";
+	shell_exec("$tar xf $destfile -C $DIR/");
+	@unlink($destfile);
+	
+	$WORKING_DIR=null;
+	
+	$dirs=$unix->dirdir($DIR);
+	while (list ($num, $ligne) = each ($dirs) ){
+		if(!is_file("$ligne/Makefile.in")){continue;}
+		$WORKING_DIR=$ligne;
+		break;
+	}
+	
+	$Arch=Architecture();
+	
+	$f[]="./configure";
+	$f[]="--prefix=/usr";
+	if($Arch==64){
+		$f[]="--build=x86_64-linux-gnu";
+	}
+	if($Arch==32){
+		$f[]="--build=i586-linux-gnu";
+	}
+	$f[]="CFLAGS=\"-g -O2  -Wformat -Werror=format-security\"";
+	$f[]="CPPFLAGS=\"-D_FORTIFY_SOURCE=2\" ";
+	$f[]="CXXFLAGS=\"-g -O2  -Wformat -Werror=format-security\"";
+	$f[]="FCFLAGS=\"-g -O2 \" ";
+	$f[]="FFLAGS=\"-g -O2 \" ";
+	$f[]="GCJFLAGS=\"-g -O2 \" ";
+	$f[]="OBJCFLAGS=\"-g -O2  -Wformat -Werror=format-security\"";
+	$f[]="OBJCXXFLAGS=\"-g -O2  -Wformat -Werror=format-security\"";
+	
+	$cmd=@implode(" ", $f);
+	echo $cmd."\n";
+	
+	chdir($WORKING_DIR);
+	system($cmd);
+	system("make");
+	system("make install");
+	chdir("/root");
+	system("$rm -rf $DIR");
+}
+
+
+
+function compile_milter_greylist(){
+	$unix=new unix();
+	compile_pof();
+	$wget=$unix->find_program("wget");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$ln=$unix->find_program("ln");
+	$DIR=$unix->TEMP_DIR()."/milter-greylist";
+	if(is_dir($DIR)){shell_exec("$rm -rf $DIR");}
+	@mkdir($DIR,0755,true);
+	
+	$LOCATE_LIB_CURL=LOCATE_LIB_CURL();
+	if($LOCATE_LIB_CURL==null){
+		echo "Unable to find libcurl.so\n";
+		die();
+	}
+	
+	$LOCATE_LIB_GEOIP=LOCATE_LIB_GEOIP();
+	if($LOCATE_LIB_GEOIP==null){
+		echo "Unable to find libGeoIP.so\n";
+		die();
+	}
+	
+	
+	echo "Downloading: {$GLOBALS["GREYLIST_URL"]}\n";
+	$destfile=$DIR."/".basename($GLOBALS["GREYLIST_URL"]);
+	$curl=new ccurl($GLOBALS["GREYLIST_URL"]);
+	if(!$curl->GetFile($destfile)){
+		@unlink($destfile);
+		echo $curl->error."\n";
+		die();
+	}
+	
+	echo "Extracting $destfile in $DIR\n";
+	shell_exec("$tar xf $destfile -C $DIR/");
+	@unlink($destfile);
+	$WORKING_DIR=null;
+	
+	$dirs=$unix->dirdir($DIR);
+	while (list ($num, $ligne) = each ($dirs) ){
+		if(!is_file("$ligne/Makefile")){continue;}
+		$WORKING_DIR=$ligne;
+		break;
+	}
+	
+	if($WORKING_DIR==null){
+		echo "Could not find the source directory\n";
+		die();
+	}
+	
+	if(is_link("/lib/libmilter.a")){
+		$dest=@readlink("/lib/libmilter.a");
+		echo "/lib/libmilter.a is a symbolic link to [$dest]\n";
+		if(!is_file($dest)){ @unlink("/lib/libmilter.a"); }
+	}
+	
+	if(!is_file("/lib/libmilter.a")){
+		if(is_file("/usr/lib/libmilter.a")){
+			shell_exec("$ln -s /usr/lib/libmilter.a /lib/libmilter.a");
+		}
+		
+	}
+	
+	
+	if(!is_file("/lib/libmilter.a")){	
+		if(!is_file("/usr/lib/libmilter/libmilter.a")){
+			echo "Could not find libmilter.a\n";
+			die();
+		}
+		shell_exec("$ln -s /usr/lib/libmilter/libmilter.a /lib/libmilter.a");
+		
+	}
+	
+	if(!is_dir("/usr/src/p0f")){
+		echo "Could not find /usr/src/p0f directory\n";
+		die();
+	}
+	
+	if(!is_file("/usr/lib/libspf2.la")){
+		compile_libspf();
+		
+	}
+	
+	if(!is_file("/usr/lib/libdkim.so")){
+		
+		system("apt-get install libdkim-dev");
+	}
+	
+
+	$Arch=Architecture();
+	echo "Compile from $WORKING_DIR\n";
+	$f[]="./configure --with-user=postfix --with-libmilter=/usr/lib --with-libcurl=$LOCATE_LIB_CURL --with-libGeoIP=$LOCATE_LIB_GEOIP";
+	if($Arch==64){
+		$f[]="--build=x86_64-linux-gnu";
+	}
+	if($Arch==32){
+		$f[]="--build=i586-linux-gnu";
+	}
+	$f[]="--enable-postfix --enable-spamassassin";
+	$f[]="--with-libGeoIP=$LOCATE_LIB_GEOIP --enable-mx --enable-dnsrbl"; 
+	$f[]="--with-p0f-src=/usr/src/p0f";
+	$f[]="--with-libspf2=/usr/lib";
+	$f[]="CFLAGS=\"-L/usr/lib/libmilter -L/lib -L/usr/lib -L/usr/local/lib\"";
+	
+	$cmd=@implode(" ", $f);
+	echo $cmd."\n";
+	
+	chdir($WORKING_DIR);
+	system($cmd);
+	system("make");
+	system("make install");
+	//Makefile
+	
+	
+}
+
 
 function GetCompilationOption(){
 	
@@ -244,6 +625,15 @@ $f[]="/usr/sbin/postdrop";
 $f[]="/usr/sbin/postqueue";
 $f[]="/usr/sbin/sendmail";
 $f[]="/usr/bin/newaliases";
+$f[]="/usr/bin/spftest";
+$f[]="/usr/bin/spftest_static";
+$f[]="/usr/bin/spfquery";
+$f[]="/usr/bin/spfd";
+$f[]="/usr/lib/libspf2.so.2.1.0";
+$f[]="/usr/lib/libspf2.so.2";
+$f[]="/usr/lib/libspf2.so";
+$f[]="/usr/lib/libspf2.a";
+$f[]="/usr/lib/libspf2.la";
 $f[]="/usr/bin/mailq";
 $f[]="/etc/postfix/LICENSE";
 $f[]="/etc/postfix/TLS_LICENSE";
@@ -331,6 +721,7 @@ $f[]="/usr/lib/libdns.a";
 $f[]="/usr/lib/libtls.a";
 $f[]="/usr/lib/libxsasl.a";
 $f[]="/usr/lib/libmilter.a";
+$f[]="/lib/libmilter.a";
 $f[]="/usr/lib/libmaster.a";
 $f[]="/usr/share/doc/mailgraph";
 $f[]="/usr/share/doc/mailgraph/README.Debian";
@@ -446,6 +837,7 @@ $f[]="/var/lib/queuegraph";
 $f[]="/etc/init.d/mailgraph";
 $f[]="/etc/cron.d/queuegraph";
 $f[]="/usr/local/bin/milter-greylist";
+$f[]="/usr/local/var/milter-greylist/greylist.db";
 $f[]="/usr/local/etc/mail/greylist.conf";
 $f[]="/usr/bin/sa-awl";
 $f[]="/usr/bin/sa-check_spamd";
@@ -486,13 +878,17 @@ $f[]="/usr/local/bin/mimedefang.pl";
 $f[]="/usr/bin/spamassassin";
 $f[]="/usr/bin/spamc";
 $f[]="/usr/bin/spamd";
+$f[]="/usr/sbin/p0f";
 
 mkdir('/root/postfix-builder/var/amavis/dspam',0755,true);
 mkdir('/root/postfix-builder/usr/share/spamassassin',0755,true);
 mkdir('/root/postfix-builder/etc/spamassassin',0755,true);
 mkdir('/root/postfix-builder/var/lib/spamassassin',0755,true);
 mkdir('/root/postfix-builder/var/spool/postfix/spamass',0755,true);
-	
+mkdir('/root/postfix-builder/usr/local/var/milter-greylist',0755,true);
+mkdir("/root/postfix-builder/etc/postfix",0755,true);
+mkdir("/root/postfix-builder/var/spool/postfix",0755,true);
+mkdir("/root/postfix-builder/usr/src/p0f",0755,true);
 
 	while (list ($num, $ligne) = each ($f) ){
 		$ligne=trim($ligne);
@@ -504,11 +900,14 @@ mkdir('/root/postfix-builder/var/spool/postfix/spamass',0755,true);
 		shell_exec("/bin/cp -fd $ligne /root/postfix-builder$dir/");
 		
 	}
-	@mkdir("/root/postfix-builder/etc/postfix",0755,true);
-	@mkdir("/root/postfix-builder/var/spool/postfix",0755,true);
+
+	
 	shell_exec("/bin/cp -rfd /usr/libexec/postfix/* /root/postfix-builder/usr/libexec/postfix/");
 	shell_exec("/bin/cp -rfd /etc/postfix/* /root/postfix-builder/etc/postfix/");
 	shell_exec("/bin/cp -rfd /var/spool/postfix/* /root/postfix-builder/var/spool/postfix/");
+	shell_exec("/bin/cp -rfd /usr/src/p0f/* /root/postfix-builder/usr/src/p0f/");
+	
+	
 	
 $f=array();
 $f[]="/etc/spamassassin";

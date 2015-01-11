@@ -6,12 +6,22 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+
+//depreciated !
+die();
 $GLOBALS["TITLENAME"]="Sarg Statistics Generator";
 $GLOBALS["LOGFILE"]="/var/log/sarg-exec.log";
 $GLOBALS["OUTPUT"]=false;
+$GLOBALS["FORCE"]=false;
+$GLOBALS["SCHEDULED"]=true;
+$GLOBALS["FROM_SCHEDULE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;
+$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;$GLOBALS["RESTART"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;;}
+if(preg_match("#--schedule#",implode(" ",$argv))){$GLOBALS["SCHEDULED"]=true;;}
+if(preg_match("#--from-schedule#",implode(" ",$argv))){$GLOBALS["FROM_SCHEDULE"]=true;;}
 
 $sock=new sockets();
 $EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
@@ -30,7 +40,7 @@ if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
-if($argv[1]=="--exec"){execute();die();}
+if($argv[1]=="--exec"){execute();build_index_page();die();}
 if($argv[1]=="--backup"){backup();die();}
 if($argv[1]=="--conf"){buildconf();die();}
 if($argv[1]=="--restore-id"){restore_id($argv[2]);die();}
@@ -43,14 +53,14 @@ if($argv[1]=="--status"){status();die();}
 
 function SargDefault($SargConfig){
 	if($SargConfig["report_type"]==null){$SargConfig["report_type"]="topusers topsites sites_users users_sites date_time denied auth_failures site_user_time_date downloads";}
-	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=0;}
+	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=10;}
 	if(!is_numeric($SargConfig["long_url"])){$SargConfig["long_url"]=0;}
 	if(!is_numeric($SargConfig["graphs"])){$SargConfig["graphs"]=1;}
 	if(!is_numeric($SargConfig["user_ip"])){$SargConfig["user_ip"]=1;}
 	if(!is_numeric($SargConfig["resolve_ip"])){$SargConfig["resolve_ip"]=1;}
 	if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=0;}
 	if(!is_numeric($SargConfig["topsites_num"])){$SargConfig["topsites_num"]=100;}
-	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=0;}
+	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=10;}
 	if($SargConfig["topsites_sort_order"]==null){$SargConfig["topsites_sort_order"]="D";}
 	if($SargConfig["index_sort_order"]==null){$SargConfig["index_sort_order"]="D";}
 	if($SargConfig["topsites_num"]<2){$SargConfig["topsites_num"]=100;}
@@ -62,6 +72,7 @@ function SargDefault($SargConfig){
 	if($SargConfig["user_ip"]==1){$SargConfig["user_ip"]="yes";}else{$SargConfig["user_ip"]="no";}
 	if($SargConfig["resolve_ip"]==1){$SargConfig["resolve_ip"]="yes";}else{$SargConfig["resolve_ip"]="no";}
 	if($SargConfig["long_url"]==1){$SargConfig["long_url"]="yes";}else{$SargConfig["long_url"]="no";}
+	if($SargConfig["topuser_num"]==0){$SargConfig["topuser_num"]=10;}
 	return $SargConfig;
 }
 
@@ -167,6 +178,8 @@ function buildconf(){
 	$conf[]="index_tree file";
 	$conf[]="overwrite_report yes";
 	$conf[]="mail_utility mail";
+	$conf[]="hostalias /etc/squid3/sarg-aliases";
+	$conf[]="exclude_codes /etc/squid3/sarg-exclude_codes";
 	$conf[]="temporary_dir /tmp";
 	$conf[]="date_time_by bytes";
 	$conf[]="show_sarg_info no";
@@ -181,8 +194,25 @@ function buildconf(){
 	$conf[]="realtime_access_log_lines 5000";
 	$conf[]="graph_days_bytes_bar_color orange";
 	$conf[]="";	
+	add_defaults();
+	$q=new mysql_squid_builder();
+	$sql="SELECT *  FROM sarg_aliases ORDER BY `pattern`";
+	$results = $q->QUERY_SQL($sql);
+	$a=array();
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$zline="{$ligne["pattern"]}";
+		if($ligne["group"]<>null){
+			$zline=$zline." {$ligne["group"]}";
+		}
+		if(trim($ligne["replace"]==null)){
+			$ligne["replace"]=str_replace("*.", "", $ligne["pattern"]);
+			$zline=$zline.": {$ligne["replace"]}";
+		}
+		$a[]=$zline;
+		
+	}
 
-	
+file_put_contents("/etc/squid3/sarg-aliases",@implode("\n",$a));	
 file_put_contents("/etc/squid3/sarg.conf",@implode("\n",$conf));
 
 
@@ -192,8 +222,26 @@ events("/etc/squid3/sarg.conf done");
 
 
 $ips=array();
+$ips[]="127.0.0.1";
 
+$excluescodes[]="NONE/400";
+$excluescodes[]="NONE/411";
+$excluescodes[]="TCP_DENIED/407";
+$excluescodes[]="TCP_DENIED/403";
+$excluescodes[]="TCP_DENIED/400";
+$excluescodes[]="TCP_DENIED/401";
+$excluescodes[]="TCP_DENIED/411";
+$excluescodes[]="TCP_MEM_HIT/200";
+$excluescodes[]="TCP_MEM_HIT/302";
+$excluescodes[]="TCP_REFRESH_HIT/200";
+$excluescodes[]="TCP_REFRESH_HIT/304";
+$excluescodes[]="TCP_NEGATIVE_HIT/404";
+$excluescodes[]="TCP_IMS_HIT/304";
+$excluescodes[]="TCP_IMS_HIT/200";
+$excluescodes[]="TCP_HIT/200";
+$excluescodes[]="TCP_HIT/302";
 
+@file_put_contents("/etc/squid3/sarg-exclude_codes",@implode("\n",$excluescodes));
 @file_put_contents("/etc/squid3/sarg.hosts",@implode("\n",$ips));
 echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.hosts done\n";
 // $sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
@@ -263,6 +311,21 @@ echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.cs
 	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, ".__FUNCTION__." done\n";
 
 }
+function sargevents($text=null){
+	$TIME=date("M d H:i:s");
+	if($GLOBALS["VERBOSE"]){echo "$text\n";}
+	$logFile="/var/log/artica-sarg.log";
+	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+	if (is_file($logFile)) {
+		$size=filesize($logFile);
+		if($size>1000000){@unlink($logFile);}
+	}
+	$logFile=str_replace("//","/",$logFile);
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, "$TIME $text\n");
+	@fclose($f);
+}
+
 
 function build_index_page(){
 	$sock=new sockets();
@@ -425,6 +488,20 @@ if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS
 
 function execute_monthly(){
 	$unix=new unix();
+	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=@file_get_contents($pidFile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
+	@file_put_contents($pidFile, getmypid());
+	
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	$pidTimeEx=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["FORCE"]){
+		if($pidTimeEx<43200){
+			return;
+		}
+	}	
+	
 	$t=time();
 	buildconf();
 	$t=time();
@@ -462,11 +539,28 @@ function execute_monthly(){
 	$took=$unix->distanceOfTimeInWords($t,time());
 	sarg_admin_events("Monthly report $WEEKSAGO-$YESTERDAY generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
 	build_index_page();
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user,$lighttpd_user, "$SargOutputDir/*");
 
 }
 function execute_weekly(){
 	$unix=new unix();
+	
+	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=@file_get_contents($pidFile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
+	@file_put_contents($pidFile, getmypid());
+	
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	$pidTimeEx=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["FORCE"]){
+		if($pidTimeEx<10080){
+			return;
+		}
+	}
+	
+	
+	
 	$t=time();
 	buildconf();
 	$TODAY=date("d/m/Y");
@@ -501,10 +595,29 @@ function execute_weekly(){
 	$took=$unix->distanceOfTimeInWords($t,time());
 	sarg_admin_events("Weekly report $LASTWEEK-$TODAY generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
 	build_index_page();
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user, $lighttpd_user,"$SargOutputDir/*");
 }
 function execute_daily(){
 	$unix=new unix();
+	if(!$GLOBALS["FROM_SCHEDULE"]){
+		$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidFile);
+		if($unix->process_exists($pid,basename(__FILE__))){die();}
+		@file_put_contents($pidFile, getmypid());
+		
+		$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		
+		if(!$GLOBALS["SCHEDULED"]){
+			$pidTimeEx=$unix->file_time_min($pidTime);
+			if(!$GLOBALS["FORCE"]){
+				if($pidTimeEx<1440){
+					return;
+				}
+			}
+		}
+	}else{
+		sarg_admin_events("Daily statistics from CRON",__FILE_,__LINE__);
+	}
 	$t=time();
 	$TODAY=date("d/m/Y");
 	$sock=new sockets();
@@ -525,7 +638,7 @@ function execute_daily(){
 	$results[]="Nice command: $nice";
 	
 	@mkdir("$SargOutputDir/daily",0755,true);
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user,$lighttpd_user, "$SargOutputDir/*");
 	
 	$squid=new squidbee();
 	if($squid->is_auth()){$usersauth=true;}
@@ -537,15 +650,41 @@ function execute_daily(){
 	$cmds[]="-z -d $YESTERDAY-$TODAY -x";
 
 	buildconf();
-	exec(@implode(" ", $cmds)." 2>&1",$results);
+	$cmdline=@implode(" ", $cmds);
+	sargevents("execute_daily():: $cmdline");
+	exec("$cmdline 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
 	sarg_admin_events("Daily $YESTERDAY-$TODAY report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");	
 	build_index_page();
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user, $lighttpd_user,"$SargOutputDir/*");
 }
 
 function execute_hourly(){
 	$unix=new unix();
+	
+	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=@file_get_contents($pidFile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		sargevents("execute_hourly(): $pid already running");
+		if($GLOBALS["VERBOSE"]){echo " $pid already running\n";}
+		die();}
+	@file_put_contents($pidFile, getmypid());
+	
+	
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "Time: $pidTime";}
+	$pidTimeEx=$unix->file_time_min($pidTime);
+	if($GLOBALS["VERBOSE"]){echo " $pidTimeEx mn";}
+	if(!$GLOBALS["FORCE"]){
+		if($pidTimeEx<60){
+			sargevents("$pidTime = {$pidTimeEx}Mn require 60mn");
+			return;
+		} 
+	}
+	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	sarg_admin_events("Executing hourly task...", __FUNCTION__,__FILE__,__LINE__);
 	$t=time();
 	buildconf();
 	
@@ -573,7 +712,7 @@ function execute_hourly(){
 	$results[]="Nice command: $nice";
 	
 	@mkdir("$SargOutputDir/daily",0755,true);
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user, $lighttpd_user,"$SargOutputDir/*");
 	@mkdir("$SargOutputDir/hourly",0755);
 	
 	$squid=new squidbee();
@@ -587,11 +726,15 @@ function execute_hourly(){
 	
 	
 	buildconf();
-	exec(@implode(" ", $cmds)." 2>&1",$results);
+	$cmline=@implode(" ", $cmds);
+	sargevents("execute_hourly(): $cmline");
+	
+	exec("$cmline 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
+	sargevents("Hourly $LASTHOUR:00-$HOUR:00 report generated took: $took");
 	sarg_admin_events("Hourly $LASTHOUR:00-$HOUR:00 report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
 	build_index_page();
-	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	$unix->chown_func($lighttpd_user,$lighttpd_user,"$SargOutputDir/*");
 
 }
 function progress($text,$num){events($text);}
@@ -790,18 +933,14 @@ function execute(){
 	
 	if(!is_file("/etc/squid/exclude_codes")){@file_put_contents("/etc/squid/exclude_codes","\nNONE/400\n");}
 	@mkdir("$SargOutputDir",0755,true);
+	$u=" -i ";
 	
-	if($usersauth){
-		events("User authentification enabled");
-		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, user authentification enabled\n";
-		$u=" -i ";
-	}else{
-		events("User authentification disabled");
-		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, user authentification disabled\n";
-	}
 	$cmd="$nice$sarg_bin -d {$today}-{$today} $u-f /etc/squid3/sarg.conf -l /var/log/squid/access.log -o \"$SargOutputDir\" -x -z 2>&1";
 	$t1=time();
+	
 	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $cmd\n";
+	
+	sargevents("execute(): $cmd");
 	exec($cmd,$results);
 	
 
@@ -974,6 +1113,149 @@ function status($aspid=false){
 	@file_put_contents($filetime, serialize($array));
 	@chmod($filetime, 0755);
 }
+function add_defaults(){
 
+
+	$array["image-hosting"]["FILE"]="class.squid.category.array.imagehosting.inc";
+	$array["image-hosting"]["CLASS"]="array_category_imagehosting";
+
+	$array["Arts"]["CLASS"]="array_category_arts";
+	$array["Arts"]["FILE"]="class.squid.category.array.arts.inc";
+
+	$array["Tracker"]["CLASS"]="array_category_tracker";
+	$array["Tracker"]["FILE"]="class.squid.category.array.tracker.inc";
+
+	$array["Porn"]["CLASS"]="array_category_porn";
+	$array["Porn"]["FILE"]="class.squid.category.array.porn.inc";
+
+	$array["smallads"]["CLASS"]="array_category_smallads";
+	$array["smallads"]["FILE"]="class.squid.category.array.smallads.inc";
+
+	$array["smallads"]["CLASS"]="array_category_travel";
+	$array["smallads"]["FILE"]="class.squid.category.array.travel.inc";
+
+	$array["industry"]["CLASS"]="array_category_industry";
+	$array["industry"]["FILE"]="class.squid.category.array.industry.inc";
+
+	$array["isp"]["CLASS"]="array_category_isp";
+	$array["isp"]["FILE"]="class.squid.category.array.isp.inc";
+
+	$array["malware"]["CLASS"]="array_category_malware";
+	$array["malware"]["FILE"]="class.squid.category.array.malware.inc";
+
+	$array["movies"]["CLASS"]="array_category_movies";
+	$array["movies"]["FILE"]="class.squid.category.array.movies.inc";
+
+	$array["music"]["CLASS"]="array_category_music";
+	$array["music"]["FILE"]="class.squid.category.array.music.inc";
+
+	$array["advertisement"]["CLASS"]="array_category_publicite";
+	$array["advertisement"]["FILE"]="class.squid.category.array.publicite.inc";
+
+	$array["remote-control"]["CLASS"]="array_category_remotecontrol";
+	$array["remote-control"]["FILE"]="class.squid.category.array.remotecontrol.inc";
+
+	$array["school"]["CLASS"]="array_category_school";
+	$array["school"]["FILE"]="class.squid.category.array.school.inc";
+
+	$array["computing"]["CLASS"]="array_category_sciencecomputing";
+	$array["computing"]["FILE"]="class.squid.category.array.sciencecomputing.inc";
+
+	$array["shopping"]["CLASS"]="array_category_shopping";
+	$array["shopping"]["FILE"]="class.squid.category.array.shopping.inc";
+
+	$array["sports"]["CLASS"]="array_category_sport";
+	$array["sports"]["FILE"]="class.squid.category.array.sport.inc";
+
+	$array["spyware"]["CLASS"]="array_category_spyware";
+	$array["spyware"]["FILE"]="class.squid.category.array.spyware.inc";
+
+	$array["travel"]["CLASS"]="array_category_travel";
+	$array["travel"]["FILE"]="class.squid.category.array.travel.inc";
+
+	$array["updates"]["CLASS"]="array_category_updatesites";
+	$array["updates"]["FILE"]="class.squid.category.array.updatesites.inc";
+
+	$array["web-plugins"]["CLASS"]="array_category_webplugins";
+	$array["web-plugins"]["FILE"]="class.squid.category.array.webplugins.inc";
+
+	$array["web-radio"]["CLASS"]="array_category_webradio";
+	$array["web-radio"]["FILE"]="class.squid.category.array.webradio.inc";
+
+	$array["health"]["CLASS"]="array_category_health";
+	$array["health"]["FILE"]="class.squid.category.array.health.inc";
+
+	$array["file-hosting"]["CLASS"]="array_category_filehosting";
+	$array["file-hosting"]["FILE"]="class.squid.category.array.filehosting.inc";
+
+	$array["dynamic"]["CLASS"]="array_category_dynamic";
+	$array["dynamic"]["FILE"]="class.squid.category.array.dynamic.inc";
+
+	$array["downloads"]["CLASS"]="array_category_downloads";
+	$array["downloads"]["FILE"]="class.squid.category.array.downloads.inc";
+
+
+	$array["chat"]["CLASS"]="array_category_chat";
+	$array["chat"]["FILE"]="class.squid.category.array.chat.inc";
+
+	$array["blogs"]["CLASS"]="array_category_blog";
+	$array["blogs"]["FILE"]="class.squid.category.array.blog.inc";
+
+	$array["audio-video"]["CLASS"]="array_category_audiovideo";
+	$array["audio-video"]["FILE"]="class.squid.category.array.audiovideo.inc";
+
+	$array["socialnet"]["CLASS"]="array_category_socialnet";
+	$array["socialnet"]["FILE"]="class.squid.category.array.socialnet.inc";
+
+	$array["web-apps"]["CLASS"]="array_category_webapps";
+	$array["web-apps"]["FILE"]="class.squid.category.array.webapps.inc";
+
+	$array["translators"]["CLASS"]="array_category_translator";
+	$array["translators"]["FILE"]="class.squid.category.array.translator.inc";
+
+	$array["remote-control"]["CLASS"]="array_category_remotecontrol";
+	$array["remote-control"]["FILE"]="class.squid.category.array.remotecontrol.inc";
+
+	$array["ssl-sites"]["CLASS"]="array_category_sslsites";
+	$array["ssl-sites"]["FILE"]="class.squid.category.array.sslsites.inc";
+
+	$array["pictures"]["CLASS"]="array_category_pictureslib";
+	$array["pictures"]["FILE"]="class.squid.category.array.pictureslib.inc";
+
+	$array["books"]["CLASS"]="array_category_books";
+	$array["books"]["FILE"]="class.squid.category.array.books.inc";
+
+	$array["dictionaries"]["CLASS"]="array_category_dictionaries";
+	$array["dictionaries"]["FILE"]="class.squid.category.array.dictionaries.inc";
+
+
+
+	while (list ($cat, $main) = each ($array) ){
+
+		include_once(dirname(__FILE__)."/ressources/{$main["FILE"]}");
+		$method = $main["CLASS"];
+		$class = new $method();
+		$subarray=$class->return_array(true);
+
+
+		while (list ($www, $none) = each ($subarray) ){
+			$www=trim($www);
+			if(substr($www, 0,1)=="."){$www=substr($www, 1,strlen($www));}
+			$l[]="('*.$www','$cat','')";
+			$l[]="('$www','$cat','')";
+		}
+
+
+
+
+
+
+	}
+
+
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("INSERT IGNORE INTO `sarg_aliases` (`pattern`,`group`,`replace`) VALUES ".@implode($l, ","));
+
+}
 
 ?>

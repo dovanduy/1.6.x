@@ -1,19 +1,25 @@
 <?php
-if(isset($_GET["verbose"])){ini_set_verbosed();}
+if(isset($_GET["verbose"])){ini_set_verbosedx();}else{	ini_set('display_errors', 0);ini_set('error_reporting', 0);}
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
+$GLOBALS["OUTPUT"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RELOAD"]=false;
 $GLOBALS["RESTART"]=false;
 $GLOBALS["TITLENAME"]="URLfilterDB daemon";
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian.compile.log";
 if(posix_getuid()<>0){
+	//$GLOBALS["VERBOSE"]=true;
+	if(isset($_POST["smtp-send-email"])){parseTemplate_smtp_post();exit;}
+	if(isset($_POST["unlock-www"])){parseTemplate_unlock_save();exit;}
+	if(isset($_GET["unlock"])){parseTemplate_unlock();exit;}
 	if(isset($_GET["SquidGuardWebAllowUnblockSinglePass"])){parseTemplate_SinglePassWord();die();}
-	
+	if(isset($_GET["smtp-send-js"])){parseTemplate_sendemail_js();exit;}
+	if(isset($_REQUEST["send-smtp-notif"])){parseTemplate_sendemail_perform();exit;}
 	if(isset($_POST["USERNAME"])){parseTemplate_LocalDB_receive();die();}
-	if(isset($_POST["password"])){parseTemplate_SinglePassWord_receive();die();}
 	if(isset($_GET["SquidGuardWebUseLocalDatabase"])){parseTemplate_LocalDB();die();}
 	parseTemplate();die();}
 
+if(preg_match("#--ouput#",implode(" ",$argv),$re)){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#--schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 $GLOBALS["GETPARAMS"]=@implode(" Params:",$argv);
 $GLOBALS["CMDLINEXEC"]=@implode("\nParams:",$argv);
@@ -38,10 +44,17 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(count($argv)>0){
 	$imploded=implode(" ",$argv);
 	
+	if(preg_match("#--(output|ouptut)#",$imploded)){
+		$GLOBALS["OUTPUT"]=true;
+	}
+	
 	if(preg_match("#--verbose#",$imploded)){
 			$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;
 			$GLOBALS["OUTPUT"]=true;ini_set_verbosed(); 
 	}
+	
+	
+	
 	if(preg_match("#--reload#",$imploded)){$GLOBALS["RELOAD"]=true;}
 	if(preg_match("#--force#",$imploded)){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--shalla#",$imploded)){$GLOBALS["SHALLA"]=true;}
@@ -53,6 +66,7 @@ if(count($argv)>0){
 	if($argv[1]=="--dbmem"){ufdbdatabases_in_mem();exit;}
 	if($argv[1]=="--notify-start"){ufdguard_start_notify();exit;}
 	if($argv[1]=="--artica-db-status"){ufdguard_artica_db_status();exit;}
+	
 	
 	
 	
@@ -95,7 +109,7 @@ if(count($argv)>0){
 	if($argv[1]=="--list-missdbs"){BuildMissingUfdBguardDBS(false,true);exit;}				
 	if($argv[1]=="--parsedir"){ParseDirectory($argv[2]);exit;}
 	if($argv[1]=="--notify-dnsmasq"){notify_remote_proxys_dnsmasq();exit;}
-	if($argvs[1]=='--build-ufdb-smoothly'){echo build_ufdbguard_smooth();echo "Starting......: ".date("H:i:s")." Starting UfdGuard FINISH DONE\n";exit;}
+	if($argvs[1]=='--build-ufdb-smoothly'){$GLOBALS["FORCE"]=true;echo build_ufdbguard_smooth();echo "Starting......: ".date("H:i:s")." Starting UfdGuard FINISH DONE\n";exit;}
 	
 	
 	
@@ -169,6 +183,8 @@ function build_ufdbguard_HUP(){
 	$sock=new sockets();$forceTXT=null;
 	$ufdbguardReloadTTL=intval($sock->GET_INFO("ufdbguardReloadTTL"));
 	if($ufdbguardReloadTTL<1){$ufdbguardReloadTTL=10;}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.ufdbclient.reload.php");
 	
 	
 	if(function_exists("debug_backtrace")){
@@ -213,14 +229,14 @@ if($unix->process_exists($pid)){
 		if(!$GLOBALS["FORCE"]){
 			echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading force is disabled\n";
 			if($LastTime<$ufdbguardReloadTTL){
-				
+				squid_admin_mysql(1, "Reloading Web Filtering [Aborted] last reload {$LastTime}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
 				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn - Current {$LastTime}mn\n";
 				return;
 			}			
 			
 			
 			if($processTTL<$ufdbguardReloadTTL){
-				
+				squid_admin_mysql(1, "Reloading Web Filtering [Aborted] {$processTTL}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
 				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
 				return;
 			}
@@ -230,14 +246,12 @@ if($unix->process_exists($pid)){
 		@file_put_contents($timeFile, time());
 		
 		echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service PID:$pid {$processTTL}mn\n";
-		squid_admin_mysql(2, "Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
-		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
-		ufdbguard_admin_events("Asking to reload ufdbguard$forceTXT - $called - cmdline:{$GLOBALS["EXECUTEDCMDLINE"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		squid_admin_mysql(1, "Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
 		unix_system_HUP($pid);
 		return;
 }
 	
-	
+	squid_admin_mysql(1, "Warning, Reloading Web Filtering but not running [action=start]","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
 	echo "Starting......: ".date("H:i:s")." UfdbGuard reloading service no pid is found, Starting service...\n";
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
@@ -250,7 +264,10 @@ if($unix->process_exists($pid)){
 function ufdbguard_pid(){
 	$unix=new unix();
 	$pid=$unix->get_pid_from_file("/var/tmp/ufdbguardd.pid");
-	if($unix->process_exists($pid)){return $pid;}
+	if($unix->process_exists($pid)){
+		$cmdline=trim(@file_get_contents("/proc/$pid/cmdline"));
+		if(!preg_match("#ufdbcatdd#", $cmdline)){return $pid;}
+	}
 	$ufdbguardd=$unix->find_program("ufdbguardd");
 	return $unix->PIDOF($ufdbguardd);
 }
@@ -342,6 +359,7 @@ function ufdbguard_start(){
 	
 	shell_exec("$nohup /etc/init.d/ufdb start >/dev/null 2>&1 &");
 	
+	
 	for($i=1;$i<5;$i++){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Starting UfdGuard  waiting $i/5\n";}
 		sleep(1);
@@ -354,7 +372,6 @@ function ufdbguard_start(){
 	if(!$unix->process_exists($master_pid)){
 		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service failed...\n";
 		squid_admin_mysql(0, "Starting Web Filtering engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n");
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service failed...", basename(__FILE__));}
 	}else{
 		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master success pid $master_pid...\n";
 	}
@@ -430,6 +447,9 @@ function build_ufdbguard_config(){
 	remove_bad_files();
 	$ufdb=new compile_ufdbguard();
 	$datas=$ufdb->buildConfig();	
+	
+	if(is_file("/var/log/squid/UfdbguardCache.db")){@unlink("/var/log/squid/UfdbguardCache.db"); }
+	
 	
 	if($EnableWebProxyStatsAppliance==1){
 		@file_put_contents("/usr/share/artica-postfix/ressources/databases/ufdbGuard.conf",$datas);
@@ -544,6 +564,7 @@ function build(){
 	if($EnableRemoteStatisticsAppliance==1){return;}	
 	send_email_events("Order to rebuild filters configuration",@implode("\nParams:",$argv),"proxy");
 	$funtion=__FUNCTION__;
+	if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 	if($GLOBALS["VERBOSE"]){echo "$funtion::".__LINE__." Loading libraries\n";}
 	$users=new usersMenus();
 	$sock=new sockets();
@@ -644,11 +665,7 @@ function build(){
 		shell_exec("/usr/share/artica-postfix/bin/artica-install --reload-dansguardian --withoutconfig");
 	}
 	
-	if(is_file($GLOBALS["SQUIDBIN"])){
-		if(function_exists('WriteToSyslogMail')){WriteToSyslogMail("build() -> Reloading Squid service", basename(__FILE__));}
-		echo "Starting......: ".date("H:i:s")." Squid reloading service\n";
-		shell_exec("$nohup $php5 ". basename(__FILE__)."/exec.squid.php --reconfigure-squid >/dev/null 2>&1");
-	}
+
 	
 }
 	
@@ -1070,51 +1087,80 @@ function  parseTemplate_extension($uri){
 	if(!isset($array["path"])){return false;}
 	$path_parts = pathinfo($array["path"]);
 	$ext=$path_parts['extension'];
+	if(preg_match("#(.+?)\?#", $ext,$re)){$ext=$re[1];}
+	if($ext=="php"){return false;}
+	if($ext=="html"){return false;}
 	$basename=$path_parts['basename'];
 	$filename=$path_parts['basename'];
 	
-	writelogs("$uri: $ext ($filename)",__FUNCTION__,__FILE__,__LINE__);
+	if(preg_match("#\/pixel\?#", $uri)){
+		parseTemplate_extension_gif();
+		return true;
+	}
+	
+	
 	
 	if($filename==null){$filename="1x1.$ext";}
 	$ctype=null;
     switch ($ext) {
       
-      case "gif": parseTemplate_extension_gif($filename);return true;break;
+      case "gif": parseTemplate_extension_gif($filename);return true;
       case "png": $ctype="image/png"; break;
       case "jpeg": $ctype="image/jpg";break;
-      case "jpg": $ctype="image/jpg";;break;;
-      
-    }
+      case "jpg": $ctype="image/jpg";;break;
+      case "js": $ctype="application/x-javascript";;break;
+      case "css": $ctype="text/css";;break;
+	}
+	
+	//aspx
+	
+
+	
+	if($ext=="js"){
+		header("content-type: application/x-javascript");echo "// blocked by url filtering\n";
+		return true;
+	}
+	if($ext=="css"){
+		header("content-type: text/css");echo "\n";
+		echo "/**\n";
+		echo "* blocked by url filtering\n";
+		echo "* \n";
+		echo "*/\n";
+		return true;
+	}
+	if($ext=="ico"){
+		
+		$fsize = filesize("ressources/templates/Squid/favicon.ico");
+		header("content-type: image/vnd.microsoft.icon");
+		header("Content-Length: ".$fsize);
+		ob_clean();
+		flush();
+		readfile( $fsize );
+		return true;
+	}
+	
+	
 
     if($ctype<>null){
-    	parseTemplateLogs("Fake $filename for $uri",__FUNCTION__,__FILE__,__LINE__);
-   		$fsize = filesize("img/$filename"); 
+    	if(!is_file("img/$filename")){$filename=null;}
+    	if($filename==null){$filename="1x1.$ext";}
+    	$fsize = filesize("img/$filename"); 
     	header("Content-Type: $ctype");
-    	//header("Content-Disposition: attachment; filename=\"$filename\";" );
-    	//header("Content-Transfer-Encoding: binary");
     	header("Content-Length: ".$fsize);
     	ob_clean();
     	flush();
     	readfile( $fsize );     	
     	return true;
     }
-    if($ext=="js"){
-    	parseTemplateLogs("Fake JS for $uri",__FUNCTION__,__FILE__,__LINE__);
-    	header("content-type: application/x-javascript");echo "// blocked by url filtering\n";
-    	return true;
-    }
-	if(preg_match("#\/pixel\?#", $uri)){
-		parseTemplate_extension_gif();
-		return true;
-	}
+
+    writelogs("$uri: $ext ($filename) Unkown",__FUNCTION__,__FILE__,__LINE__);
+    
+
 		
 }
 function parseTemplate_extension_gif($filename){
-		parseTemplateLogs("Fake GIF",__FUNCTION__,__FILE__,__LINE__);
 		$fsize = filesize("img/1x1.gif"); 
     	header("Content-Type: image/gif");
-    	//header("Content-Disposition: attachment; filename=\"$filename\";" );
-    	//header("Content-Transfer-Encoding: binary");
     	header("Content-Length: ".$fsize);
     	ob_clean();
     	flush();
@@ -1178,7 +1224,8 @@ function parseTemplate_LocalDB_receive(){
 	$CLIENT=$_POST["CLIENT"];
 	$MEMBER=$_POST["USERNAME"];
 	$md5=md5("$CLIENT$Whitehost$MEMBER");
-	$sql="INSERT IGNORE INTO webfilters_usersasks (zmd5,ipaddr,sitename,uid) VALUES ('$md5','$CLIENT','$Whitehost','$MEMBER')";
+	$sql="INSERT IGNORE INTO webfilters_usersasks (zmd5,ipaddr,sitename,uid) 
+	VALUES ('$md5','$CLIENT','$Whitehost','$MEMBER')";
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
@@ -1195,45 +1242,7 @@ function parseTemplate_LocalDB_receive(){
 	
 }
 
-function parseTemplate_SinglePassWord_receive(){
-	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-	session_start();
-	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
-	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
-	include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
-	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
-	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");		
-	$sock=new sockets();
-	$_POST["password"]=trim($_POST["password"]);
-	$SquidGuardWebAllowUnblockSinglePassContent=trim($sock->GET_INFO("SquidGuardWebAllowUnblockSinglePassContent"));
-	$SquidGuardWebAllowUnblockSinglePassContentMD=md5($SquidGuardWebAllowUnblockSinglePassContent);	
-	if($_POST["password"]<>$SquidGuardWebAllowUnblockSinglePassContentMD){
-		$tpl=new templates();
-		echo $tpl->javascript_parse_text("{failed}: {wrong_password}");
-		die();
-	}
 
-	$Whitehost=$_POST["Whitehost"];
-	$CLIENT=$_POST["CLIENT"];
-	$md5=md5("$CLIENT$Whitehost");
-	$sql="INSERT IGNORE INTO webfilters_usersasks (zmd5,ipaddr,sitename) VALUES ('$md5','$CLIENT','$Whitehost')";
-	$q=new mysql_squid_builder();
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$q->QUERY_SQL($sql);}
-	}
-	if(!$q->ok){echo $q->mysql_error;return;}
-	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("{success_restart_query_in_few_seconds}");
-	
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
-	
-	
-	
-	
-}
 
 function parseTemplate_LocalDB(){
 	session_start();
@@ -1514,6 +1523,11 @@ function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
 			parseTemplateLogs("Parsing: `$category`=`{$re[1]}`",__FUNCTION__,__FILE__,__LINE__);
 			$category=CategoryCodeToCatName($category);
 			$CATEGORY_PLUS_TXT="Artica Database";
+			$users=new usersMenus();
+			if($users->WEBSECURIZE){$CATEGORY_PLUS_TXT="Web Securize Database";}
+			if($users->LANWANSAT){$CATEGORY_PLUS_TXT="LanWanSAT Database";}
+			
+			
 		}
 		
 		if(preg_match("#^tls(.+)#", $category,$re)){
@@ -1540,9 +1554,41 @@ function hostfrom_url($url){
 }
 
 
-function parseTemplate(){
-	session_start();
+function CacheManager_default(){
+	$sock=new sockets();
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+		
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]="contact@articatech.com";}
+	$LicenseInfos["EMAIL"]=str_replace("'", "", $LicenseInfos["EMAIL"]);
+	$LicenseInfos["EMAIL"]=str_replace('"', "", $LicenseInfos["EMAIL"]);
+	$LicenseInfos["EMAIL"]=str_replace(' ', "", $LicenseInfos["EMAIL"]);
+	return $LicenseInfos["EMAIL"];
+}
+
+function CacheManager(){
+	$sock=new sockets();
+	$cache_mgr_user=$sock->GET_INFO("cache_mgr_user");
+	if($cache_mgr_user<>null){return $cache_mgr_user;}
+	return CacheManager_default();
+}
+
+
+function parseadmin($emailTemplate,$subj){
 	
+	$CacheManager=CacheManager();
+	$subject=rawurlencode("Web Filtering complain [$subj]");
+	$emailTemplate=rawurlencode($emailTemplate);
+	return "<a href=\"mailto:$CacheManager?subject=$subject&body=$emailTemplate\">$CacheManager</a>";
+	
+}
+
+function parseTemplate(){
+	
+	session_start();
+
+	$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
@@ -1551,14 +1597,13 @@ function parseTemplate(){
 	//$q=new mysql_squid_builder();
 	$UfdbGuardRedirectCategories=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 	$SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
-	$SquidGuardWebAllowUnblock=$sock->GET_INFO("SquidGuardWebAllowUnblock");
-	$SquidGuardWebAllowUnblockSinglePass=$sock->GET_INFO("SquidGuardWebAllowUnblockSinglePass");
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
 	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	
-	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
+	
+	
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
 	if(!is_numeric($SquidGuardWebUseLocalDatabase)){$SquidGuardWebUseLocalDatabase=0;}
 	$CATEGORY_SOURCE=$_GET["category"];
@@ -1612,13 +1657,6 @@ function parseTemplate(){
 	
 	
 	
-	if($SquidGuardWebAllowUnblock==1){
-		if($SquidGuardWebAllowUnblockSinglePass==1){
-			$clientaddr=base64_encode($_GET["clientaddr"]);
-			$defaultjs="s_PopUp('{$GLOBALS["JS_HEAD_PREPREND"]}/". basename(__FILE__)."?SquidGuardWebAllowUnblockSinglePass=1&url=".base64_encode("{$_GET["url"]}")."&clientaddr=$clientaddr',640,350)";
-			$ADD_JS_PACK=true;
-		}
-	}
 	
 	if($SquidGuardWebUseLocalDatabase==1){
 		$clientaddr=base64_encode($_GET["clientaddr"]);
@@ -1626,7 +1664,7 @@ function parseTemplate(){
 		$ADD_JS_PACK=true;
 	}
 	
-	if($users->CORP_LICENSE){$LICENSE=1;}
+	if($users->CORP_LICENSE){$LICENSE=1;$FOOTER=null;}
 	if(!$users->CORP_LICENSE){$LICENSE=0;}
 	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`$CATEGORY_SOURCE` targetgroup=`{$_GET["targetgroup"]}` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
 	$CATEGORY_KEY=null;
@@ -1641,15 +1679,18 @@ function parseTemplate(){
 	$_CATEGORIES_K=$_GET["category"];
 	$_RULE_K=$_GET["clientgroup"];
 	if($_CATEGORIES_K==null){$_CATEGORIES_K=$_GET["targetgroup"];}
-	if($_RULE_K==null){$_RULE_K="Web filtering";}
-	$REASONGIVEN="Web filtering $_CATEGORIES_K";
+
+	if($_RULE_K==null){$_RULE_K="{web_filtering}";}
+	$REASONGIVEN="{web_filtering} $_CATEGORIES_K";
+	
+	if($_CATEGORIES_K=="restricted_time"){$REASONGIVEN="{restricted_access}";}
 	
 	parseTemplateLogs("{$REASONGIVEN}: _CATEGORIES_K=`$_CATEGORIES_K` _RULE_K=$_RULE_K` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
 	$IpToUid=null;
 	//$IpToUid=$q->IpToUid($_GET["clientaddr"]);
 	if($IpToUid<>null){$IpToUid="&nbsp;($IpToUid)";}
 	
-	if($LICENSE==1){
+		if($LICENSE==1){
 		if($CATEGORY_KEY<>null){
 			$RedirectCategory=$UfdbGuardRedirectCategories[$CATEGORY_KEY];
 			
@@ -1663,29 +1704,15 @@ function parseTemplate(){
 				if(trim($RedirectCategory["template_data"])<>null){
 					header('Content-Type: text/html; charset=iso-8859-1');
 					$TemplateErrorFinal=$RedirectCategory["template_data"];
-					$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"].$IpToUid,$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:$REASONGIVEN",$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:$_CATEGORIES_K:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>$_RULE_K",$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-BYPASS-","$defaultjs",$TemplateErrorFinal);				
+
+					
 					return;
 				}
 			}
 		}
 	}
 		
-	if($LICENSE==1){$TemplateError=$sock->GET_INFO("DansGuardianHTMLTemplate");}
 	$EnableSquidFilterWhiteListing=$sock->GET_INFO("EnableSquidFilterWhiteListing");
-	if(strlen($TemplateError)<50){
-		$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
-		$TemplateError=@file_get_contents($template_default_file);
-		parseTemplateLogs("TemplateError: -> `$template_default_file` ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
-	}	
-	
-	if(preg_match("#<body>(.+?)</body>#is",$TemplateError,$re)){$TemplateError=$re[1];}
-	
-	
 	if(isset($_GET["rule-id"])){$ID=$_GET["rule-id"];}
 	parseTemplateLogs("ID: $ID",__FUNCTION__,__FILE__,__LINE__);
 	if(isset($_GET["fatalerror"])){$ID=0;}
@@ -1695,64 +1722,37 @@ function parseTemplate(){
 		if(is_numeric($ID)){
 			if($ID==0){
 				$ligne["groupname"]="Default";
-				parseTemplateLogs("TemplateError: -> DansGuardianDefaultMainRule",__FUNCTION__,__FILE__,__LINE__);
-				$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 			}else{
-				$sql="SELECT groupname,TemplateError FROM webfilter_rules WHERE ID=$ID";
+				$sql="SELECT groupname FROM webfilter_rules WHERE ID=$ID";
 				$q=new mysql_squid_builder();
 				$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+				$ruleName=$ligne["groupname"];
 			}	
-			$TemplateError=trim($ligne["TemplateError"]);
-			$ruleName=$ligne["groupname"];
+			
+			
 			
 		}else{
 			writelogs("ID: not a numeric",__FUNCTION__,__FILE__,__LINE__);
 		}
 	}
 
-	parseTemplateLogs("TemplateError: ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
-	
-	if($TemplateError==null){
-		$servername=$_SERVER["SERVER_NAME"];
-		parseTemplateLogs("freeweb_slashsquid: $servername",__FUNCTION__,__FILE__,__LINE__);
-		$sql="SELECT template_body,template_header FROM freeweb_slashsquid WHERE servername='$servername'";
-		$qTPL=new mysql();
-		$ligneTMPL=mysql_fetch_array($qTPL->QUERY_SQL($sql,"artica_backup"));
-		if($TemplateError==null){$TemplateError=trim($ligneTMPL["template_body"]);}
-		$TemplateErrorHeader=trim($ligneTMPL["template_header"]);
-		parseTemplateLogs("freeweb_slashsquid: ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
-	}
-	
-	
-	
-	if($TemplateError==null){
-		$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
-		$TemplateError=@file_get_contents($template_default_file);
-		parseTemplateLogs("TemplateError: -> `$template_default_file` ".strlen($TemplateError)." bytes",__FUNCTION__,__FILE__,__LINE__);
-	}	
-	
-	if($TemplateErrorHeader==null){$TemplateErrorHeader=@file_get_contents(dirname(__FILE__)."/ressources/databases/dansguard-template-header.html");}
-	
-	
-	$TemplateErrorFinal="$TemplateErrorHeader$TemplateError\n</body>\n</html>";	
-	
-
+		
 	
 	if(isset($_GET["fatalerror"])){
 		$_GET["clientaddr"]=$_SERVER["REMOTE_ADDR"];
 		$_GET["clientname"]=$_SERVER["REMOTE_HOST"];
-		$REASONGIVEN="Webfiltering issue";
-		$_CATEGORIES_K="System Webfiltering error";
-		$_RULE_K="Service Error";
+		$REASONGIVEN="{webfiltering_issue}";
+		$_CATEGORIES_K="{system_Webfiltering_error}";
+		$_RULE_K="{service_error}";
 		$_GET["url"]=$_SERVER['HTTP_REFERER'];
 	}
 	
 	if(isset($_GET["loading-database"])){
 		$_GET["clientaddr"]=$_SERVER["REMOTE_ADDR"];
 		$_GET["clientname"]=$_SERVER["REMOTE_HOST"];
-		$REASONGIVEN="Webfiltering maintenance";
-		$_CATEGORIES_K="Please wait, reloading databases";
-		$_RULE_K="Waiting service....";
+		$REASONGIVEN="{Webfiltering_maintenance}";
+		$_CATEGORIES_K="{please_wait_reloading_databases}";
+		$_RULE_K="{waiting_service}....";
 		$_GET["url"]=$_SERVER['HTTP_REFERER'];		
 		
 	}
@@ -1762,61 +1762,24 @@ function parseTemplate(){
 	if(isset($_GET["user"])){$_GET["clientname"]=$_GET["user"];}
 	if(isset($_GET["virus"])){$_GET["targetgroup"]=$_GET["virus"];$ruleName=null;}
 	if($_GET["clientuser"]<>null){$_GET["clientname"]=$_GET["clientuser"];}
-	$TemplateErrorFinal=str_replace("-USER-",$_GET["clientname"],$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-HOST-",$_SESSION["IPRES"][$_GET["clientaddr"]],$TemplateErrorFinal);
 	$ruleName=parseTemplate_categoryname($ruleName,$LICENSE);
+
+	$ARRAY["URL"]=$_GET["url"];
+	$ARRAY["IPADDR"]=$_GET["clientaddr"];
+	$ARRAY["REASONGIVEN"]=$REASONGIVEN;
+	$ARRAY["CATEGORY_KEY"]=$CATEGORY_KEY;
+	$ARRAY["RULE_ID"]=$ID;
 	
-	
+	$ARRAY["CATEGORY"]=$_CATEGORIES_K;
+	$ARRAY["RULE"]=$_RULE_K;
 	if($ruleName<>null){
-		$_GET["clientgroup"]=null;
-		$ruleNameText="<strong>$ruleName:</strong>";
+		$ARRAY["RULE"]=$ruleName;
 	}
-	
-
-	
-	$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-REASONGIVEN-",$_GET["targetgroup"],$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-CATEGORIES-","$ruleNameText<div style='font-size:12px'>Category:&nbsp;$_CATEGORIES_K</div>",$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>$_RULE_K",$TemplateErrorFinal);
-	$TemplateErrorFinal=str_replace("-BYPASS-","javascript:$defaultjs",$TemplateErrorFinal);
-	if(strpos($TemplateErrorFinal,"-JSPACK-")>0){
-		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
-		include_once(dirname(__FILE__)."/ressources/class.templates.inc");
-		$tpl=new templates();
-		$pp=new pagebuilder();
-		$TemplateErrorFinal=str_replace("-JSPACK-","\n".$pp->jsArtica()."\n",$TemplateErrorFinal);
-		$ADD_JS_PACK=false;
-	}
-	$TemplateErrorFinal=str_replace("%uFEFF","",$TemplateErrorFinal);
-	
-	
-	
-	if($EnableSquidFilterWhiteListing==1){
-		$DansGuardianWhiteListIntro=$sock->GET_INFO("DansGuardianWhiteListIntro");	
-		if(strlen($DansGuardianWhiteListIntro)<2){$DansGuardianWhiteListIntro="<strong style=\"font-size:14px\">Unlock this Website</strong><hr><br><i style=\"font-size:14px\">Access to this site is restricted because it is not classified in any category selected by our company policy.<br>If you think that this website is safe and help your work for company objectives, you are free to save this website into categories listed bellow.</i><hr>";}
-	}
-	
-	if($ADD_JS_PACK){
-		if(preg_match("#<head>(.*?)</head>#is", $TemplateErrorFinal,$re)){
-			include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
-			include_once(dirname(__FILE__)."/ressources/class.templates.inc");
-			$tpl=new templates();
-			$pp=new pagebuilder();
-			$head=$re[1]."\n".$pp->jsArtica()."\n";
-			$TemplateErrorFinal=str_replace($re[1], $head, $TemplateErrorFinal);
-		}
-	
-	}
-	
-	if($SquidGuardWebAllowUnblock==0){
-		if($LICENSE==1){$TemplateErrorFinal=str_replace("Bypass this Website", "", $TemplateErrorFinal);}
-		if($LICENSE==0){$TemplateErrorFinal=str_replace("Bypass this Website","Artica Proxy Appliance (community Edition)", $TemplateErrorFinal);}
-	}
-	
-
-	echo "$TemplateErrorFinal";
-	
+	$ARRAY["targetgroup"]=$_GET["targetgroup"];
+	$ARRAY["IpToUid"]=$IpToUid;
+	$ARRAY["clientname"]=$_GET["clientname"];
+	$ARRAY["HOST"]=$_SESSION["IPRES"][$_GET["clientaddr"]];
+	echo parseTemplate_build_main($ARRAY);
 	
 	
 }
@@ -1926,7 +1889,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["sports"]="recreation/sports";
 	$array["getmarried"]="getmarried";
 	$array["police"]="police";
-	$array["press"]="press";
+	$array["press"]="news";
 	$array["audio-video"]="audio-video";
 	$array["webmail"]="webmail";
 	$array["chat"]="chat";
@@ -1957,7 +1920,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["mixed_adult"]="mixed_adult";
 	$array["mobile-phone"]="mobile-phone";
 	$array["phishing"]="phishing";
-	$array["press"]="press";
+	
 	$array["radio"]="webradio";
 	$array["reaffected"]="reaffected";
 	$array["redirector"]="redirector";
@@ -1969,8 +1932,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["sports"]="recreation/sports";
 	$array["getmarried"]="getmarried";
 	$array["police"]="police";	
-	$array["strict_redirector"]="strict_redirector";
-	$array["strong_redirector"]="strong_redirector";
+
 	$array["tricheur"]="tricheur";
 	$array["violence"]="violence";
 	$array["warez"]="warez";
@@ -2001,7 +1963,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["mixed_adult"]="mixed_adult";
 	$array["mobile-phone"]="mobile-phone";
 	$array["phishing"]="phishing";
-	$array["press"]="press";
+	
 	$array["radio"]="webradio";
 	$array["reaffected"]="reaffected";
 	$array["redirector"]="redirector";
@@ -2013,8 +1975,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["sports"]="recreation/sports";
 	$array["getmarried"]="getmarried";
 	$array["police"]="police";	
-	$array["strict_redirector"]="strict_redirector";
-	$array["strong_redirector"]="strong_redirector";
+
 	$array["tricheur"]="tricheur";
 	$array["violence"]="violence";
 	$array["warez"]="warez";
@@ -2618,14 +2579,30 @@ function ufdbguard_schedule(){
 	//events_ufdb_tail("ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}",__LINE__);
 }
 
+function UFDBGUARD_COMPILE_CATEGORY_PROGRESS($text,$pourc){
+	
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/ufdbguard.compile.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	if($GLOBALS["OUTPUT"]){echo "{$pourc}% $text\n";sleep(2);}
+}
+
 function UFDBGUARD_COMPILE_CATEGORY($category){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}	
-	if($EnableRemoteStatisticsAppliance==1){return;}
-	if($UseRemoteUfdbguardService==1){return;}	
+	if($EnableRemoteStatisticsAppliance==1){
+		UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{failed} Stat Appliance enabled",110);
+		return;
+	}
+	if($UseRemoteUfdbguardService==1){
+		UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{failed} Use remote service",110);
+		return;
+	}	
 	$unix=new unix();
 	if($GLOBALS["VERBOSE"]){
 		$ufdbguardd=$unix->find_program("ufdbguardd");
@@ -2636,14 +2613,15 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
+		UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{failed} $category category aborting,task pid $pid running since {$time}Mn",110);
 		ufdbguard_admin_events("Compile $category category aborting,task pid $pid running since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"compile");
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 	$t=time();
 	
-	
-	
+	echo "Starting......: ".date("H:i:s")." Compiling category $category\n";
+	UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{compiling} Compiling category $category",2);
 	$ufdb=new compile_ufdbguard();
 	$ufdb->compile_category($category);
 	$sock=new sockets();
@@ -2688,14 +2666,15 @@ function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	$cats=$q->LIST_TABLES_CATEGORIES();
 	$ufdb=new compile_ufdbguard();
 	while (list ($table, $line) = each ($cats) ){
+		if(preg_match("#categoryuris_#",$table)){continue;}
 		$category=$q->tablename_tocat($table);
-		if($category==null){squid_admin_mysql(1,"Compilation failed for table $table, unable to determine category",__FILE__,__LINE__);continue;}
+		if($category==null){squid_admin_mysql(1,"Compilation failed for table $table, unable to determine category",null,__FILE__,__LINE__);continue;}
 		$ufdb->compile_category($category);
 		
 	}
 	
 	$ttook=$unix->distanceOfTimeInWords($t,time(),true);
-	squid_admin_mysql(2,"All personal categories are compiled ($ttook)",@implode("\n", $cats),__FUNCTION__,__FILE__,__LINE__,"global-compile");
+	squid_admin_mysql(2,"All personal categories are compiled ($ttook)",@implode("\n", $cats),__FILE__,__LINE__,"global-compile");
 	if($EnableWebProxyStatsAppliance==1){CompressCategories();return;}
 	
 	
@@ -3313,4 +3292,1390 @@ function ufdguard_artica_db_status(){
 
 
 
+
+function parseTemplate_headers($title,$addhead=null,$SquidGuardIPWeb=null){
+	$sock=new sockets();
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"])){
+		$sock->BuildTemplatesConfig();
+	}
+	
+	if($SquidGuardIPWeb<>null){
+		$SquidGuardIPWeb=str_replace("/".basename(__FILE__), "", $SquidGuardIPWeb);
+		
+	}
+	
+	$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"];
+	if(isset($_REQUEST["unlock"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
+	if(isset($_REQUEST["unlock-www"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
+	if(isset($_REQUEST["smtp-send-email"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
+	
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"])){
+		$SquidHTTPTemplateSmiley=$sock->GET_INFO("SquidHTTPTemplateSmiley");
+	}
+	
+	$BackgroundColorBLKBT=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"];
+	
+	if(!is_numeric($SquidHTTPTemplateSmiley)){$SquidHTTPTemplateSmiley=2639;}
+	
+
+
+	
+	
+	$f[]="<!DOCTYPE HTML>";
+	$f[]="<html>";
+	$f[]="<head>";
+	$f[]=$addhead;
+	$f[]="<title>$title</title>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/js/jquery-1.8.3.js\"></script>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/js/jquery-ui-1.8.22.custom.min.js\"></script>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/js/jquery.blockUI.js\"></script>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/mouse.js\"></script>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/default.js\"></script>";
+	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/XHRConnection.js\"></script>";
+	$f[]="<script type=\"text/javascript\">";
+	$f[]="    function Blur(){ }";
+	$f[]="    function checkIfTopMostWindow()";
+	$f[]="    {";
+	$f[]="        if (window.top != window.self) ";
+	$f[]="        {  ";
+	$f[]="            document.body.style.opacity    = \"0.0\";";
+	$f[]="            document.body.style.background = \"#FFFFFF\";";
+	$f[]="        }";
+	$f[]="        else";
+	$f[]="        {";
+	$f[]="            document.body.style.opacity    = \"1.0\";";
+	$f[]="            document.body.style.background = \"$Background\";";
+	$f[]="        } ";
+	$f[]="    }";
+	$f[]="</script>";
+	$f[]="<style type=\"text/css\">";
+	$f[]="    body {";
+	$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        background-color: #FFFFFF; ";
+	$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        14pt; ";
+	$f[]="        ";
+	$f[]="        opacity:            0.0;";
+	$f[]="        transition:         opacity 2s;";
+	$f[]="        -webkit-transition: opacity 2s;";
+	$f[]="        -moz-transition:    opacity 2s;";
+	$f[]="        -o-transition:      opacity 2s;";
+	$f[]="        -ms-transition:     opacity 2s;    ";
+	$f[]="    }";
+	$f[]="    h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]=".bad{ font-size: 110px; float:left; margin-right:30px; }";
+	$f[]=".bad:before{ content: \"\\{$SquidHTTPTemplateSmiley}\";}";
+	$f[]="    h2 {";
+	$f[]="        font-size: 22pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }   ";
+	$f[]="    h3 {";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }   ";
+	$f[]="    #wrapper {";
+	$f[]="        width: 700px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]="    #info {";
+	$f[]="        width: 600px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]=".important{";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }    ";
+	$f[]="p {";
+	$f[]="        font-size: 12pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }    ";
+	$f[]="    td.info_title {    ";
+	$f[]="        text-align: right;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="        min-width: 100px;";
+	$f[]="    }";
+	$f[]="    td.info_content {";
+	$f[]="        text-align: left;";
+	$f[]="        padding-left: 10pt ;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="    }";
+	$f[]="    .break-word {";
+	$f[]="        width: 500px;";
+	$f[]="        word-wrap: break-word;";
+	$f[]="    }    ";
+	$f[]="    a {";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }";
+	$f[]="    a:visited{";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="    }
+			
+			
+.Button2014-lg {
+	border-radius: 6px 6px 6px 6px;
+	-moz-border-radius: 6px 6px 6px 6px;
+	-khtml-border-radius: 6px 6px 6px 6px;
+	-webkit-border-radius: 6px 6px 6px 6px;
+	font-size: 18px;
+	line-height: 1.33;
+	padding: 10px 16px;
+}
+.Button2014-success {
+	background-color: $BackgroundColorBLKBT;
+	border-color: #000000;
+	color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};
+}
+.Button2014 {
+	-moz-user-select: none;
+	border: 1px solid transparent;
+	border-radius: 4px 4px 4px 4px;
+	cursor: pointer;
+	display: inline-block;
+	font-size: 22px;
+	font-weight: normal;
+	line-height: 1.42857;
+	margin-bottom: 0;
+	padding: 6px 22px;
+	text-align: center;
+	vertical-align: middle;
+	white-space: nowrap;
+	font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};
+}";
+	$f[]="</style>";
+	$f[]="</head>";
+	$f[]="<body onLoad='checkIfTopMostWindow()'>";
+	
+	
+	
+	if($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoEnable"]==1){
+		$SquidHTTPTemplateLogoPositionH=$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoPositionH"];
+		$SquidHTTPTemplateLogoPositionL=$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoPositionL"];
+		$picturemode=$GLOBALS["UfdbGuardHTTP"]["picturemode"];
+		if($picturemode==null){$picturemode="absolute";}
+		$widthDiv="100%";
+		$heightDiv=null;
+		
+			list($width, $height, $type, $attr) = getimagesize(dirname(__FILE__)."/{$GLOBALS["UfdbGuardHTTP"]["picture_path"]}");
+			
+			$heightDiv="height:{$height}px;";
+			$background="background-position:{$SquidHTTPTemplateLogoPositionL}% {$SquidHTTPTemplateLogoPositionH}%;";
+		
+			if($picturemode=="absolute"){
+				$widthDiv="{$width}px";
+				$background=null;
+			}
+		
+		if($GLOBALS["UfdbGuardHTTP"]["picturealign"]<>null){
+			$align="text-align:{$GLOBALS["UfdbGuardHTTP"]["picturealign"]};";
+		}
+		$f[]="<div style='position:{$picturemode};{$align}width:{$widthDiv};$heightDiv
+		background-image:url(\"$SquidGuardIPWeb/{$GLOBALS["UfdbGuardHTTP"]["picture_path"]}\");
+		background-repeat:no-repeat;$background
+		left:{$SquidHTTPTemplateLogoPositionL}%;
+		top:{$SquidHTTPTemplateLogoPositionH}%;
+		'
+		>&nbsp;</div>
+		";
+	
+	}	
+	
+	
+	$f[]="<div id=\"wrapper\">";	
+	return @implode("\n", $f);
+}
+
+
+function parseTemplate_GET_REMOTE_ADDR(){
+	if(isset($_SERVER["REMOTE_ADDR"])){
+		$IPADDR=$_SERVER["REMOTE_ADDR"];
+		if($GLOBALS["VERBOSE"]){echo "REMOTE_ADDR = $IPADDR<br>\n";}
+	}
+	if(isset($_SERVER["HTTP_X_REAL_IP"])){
+		$IPADDR=$_SERVER["HTTP_X_REAL_IP"];
+		if($GLOBALS["VERBOSE"]){echo "HTTP_X_REAL_IP = $IPADDR<br>\n";}
+	}
+	if(isset($_SERVER["HTTP_X_FORWARDED_FOR"])){
+		$IPADDR=$_SERVER["HTTP_X_FORWARDED_FOR"];
+		if($GLOBALS["VERBOSE"]){echo "HTTP_X_FORWARDED_FOR = $IPADDR<br>\n";}
+	}
+	$GLOBALS["HTTP_USER_AGENT"]=$_SERVER["HTTP_USER_AGENT"];
+	if($GLOBALS["VERBOSE"]){echo "HTTP_USER_AGENT = {$GLOBALS["HTTP_USER_AGENT"]}<br>\n";}
+
+	if($GLOBALS["VERBOSE"]){
+		while (list ($num, $Linz) = each ($_SERVER) ){
+			if(is_array($Linz)){
+				while (list ($a, $b) = each ($Linz) ){
+					echo "<li style='font-size:10px'>\$_SERVER[\"$num\"][\"$a\"]=\"$b\"</li>\n";
+				}
+				continue;
+			}
+			echo "<li style='font-size:10px'>\$_SERVER[\"$num\"]=\"$Linz\"</li>\n";
+		}
+
+	}
+
+
+	$GLOBALS["IPADDR"]=$IPADDR;
+	return $IPADDR;
+}
+
+function parseTemplate_smtp_button($ARRAY,$SquidGuardIPWeb){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include_once(dirname(__FILE__)."/ressources/class.external_acl_squid_ldap.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+	$client_username=$ARRAY["clientname"];
+	$ARRAY["SquidGuardIPWeb"]=$SquidGuardIPWeb;
+	$serialize_array=base64_encode(serialize($ARRAY));
+	$sock=new sockets();
+	$SquidGuardWebSMTP=unserialize(base64_decode($sock->GET_INFO("SquidGuardWebSMTP")));
+	
+	$client_username=$ARRAY["clientname"];
+	$SquidGuardIPWeb=$ARRAY["SquidGuardIPWeb"];
+	$email=null;
+	$t=time();
+	if($client_username<>null){
+	
+		$sock=new sockets();
+		$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+		if($EnableKerbAuth==1){
+				
+			$ad=new external_acl_squid_ldap();
+			$array=$ad->ADLdap_userinfos($client_username);
+			$email=$array[0]["mail"][0];
+				
+		}else{
+				
+			$users=new user($client_username);
+			if(count($users->email_addresses)>0){
+				$email=$users->email_addresses[0];
+			}
+				
+		}
+	}
+	
+	
+	
+	return "
+	<form method='post' action='$SquidGuardIPWeb' id='post-send-email'>
+		<input type='hidden' name='smtp-send-email' value='yes'>
+		<input type='hidden' name='email' value='$email'>
+		<input type='hidden' name='serialize' value='$serialize_array'>
+	</form>
+	<a href=\"javascript:Blur();\" OnClick=\"javascript:document.forms['post-send-email'].submit();\">{$SquidGuardWebSMTP["smtp_recipient"]}</a>";
+	
+	
+}
+
+function parseTemplate_smtp_post(){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include_once(dirname(__FILE__)."/ressources/class.external_acl_squid_ldap.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+	$tpl=new templates();
+	$sock=new sockets();
+	$ARRAY=unserialize(base64_decode($_POST["serialize"]));
+	$sock->BuildTemplatesConfig($ARRAY);
+	$serialize_array=$_POST["serialize"];
+	
+	
+	
+	$_RULE_K=$ARRAY["RULE"];
+	$IPADDR=$ARRAY["IPADDR"];
+	$targetgroup=$ARRAY["targetgroup"];
+	$IpToUid=$ARRAY["IpToUid"];
+	$URL=$ARRAY["URL"];
+	$HOST=$ARRAY["HOST"];
+	
+	$members[]=$IPADDR;
+	if($HOST<>null){$members[]=$HOST; }
+	if(trim($IpToUid)<>null){$members[]=$IpToUid;}
+	if(count($members)>0){while (list ($num, $ligne) = each ($members) ){$AAAA[$ligne]=true;}
+	$members=array();
+	while (list ($num, $ligne) = each ($AAAA) ){$members[]=$num;}}
+	$membersTX=@implode(", ", $members);
+	
+	
+	$email=$_POST["email"];
+
+	$SquidGuardIPWeb=$ARRAY["SquidGuardIPWeb"];
+	$error=parseTemplate_sendemail_perform($email,$ARRAY);
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+
+	$notify_your_administrator=$tpl->_ENGINE_parse_body("{notify_your_administrator}");
+	$fontfamily="font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$fontfamily=str_replace('"', "", $fontfamily);
+	
+	
+	$f[]=parseTemplate_headers($notify_your_administrator,null,$SquidGuardIPWeb);
+	$f[]="    <h2>{notify_your_administrator}</h2>";
+	if($error<>null){$f[]="    <h2>$error</h2>";}
+	$f[]="<div id=\"info\">";
+	$f[]="";
+	$f[]="<form id='send-email-form' action=\"$SquidGuardIPWeb\" method=\"post\">
+		<input type='hidden' name='smtp-send-email' value='yes'>
+		<input type='hidden' name='email' value='$email'>
+		<input type='hidden' name='serialize' value='$serialize_array'>";
+	$f[]="<table width='100%;'>";
+	$f[]="        <tr><td class=\"info_title\">{member}:</td><td class=\"info_content\">$membersTX</td></tr>";
+	$f[]="        <tr><td class=\"info_title\">{policy}:</td><td class=\"info_content\">$_RULE_K, $targetgroup</td></tr>";
+	$f[]="        <tr>";
+	$f[]="            <td class=\"info_title\" nowrap>{requested_uri}:</td>";
+	$f[]="            <td class=\"info_content\">";
+	$f[]="                <div class=\"break-word\">$URL</div>";
+	$f[]="            </td>";
+	$f[]="        </tr>";
+	$f[]="    </table>
+	<p style='margin-top:50px'>&nbsp;</p>";	
+	
+	
+	
+	
+	
+	if($email==null){
+		$f[]="<table width='100%;'>";
+	
+	
+	$f[]="
+	<tr>
+		<td class=\"info_title\">{email}:</td>
+		<td class=\"info_content\">".Field_text("email",$_REQUEST["email"],"$fontfamily;width:80%;font-size:35px;padding:5px"
+				,null,null,null,false,"CheckTheForm(event)")."</td>
+	</tr>
+	";
+	$f[]=" <tr><td colspan=2 align='right'><p style='margin-top:50px'>&nbsp;</p></td></tr>";
+	$f[]=" <tr><td colspan=2 align='right'><hr>". button("{submit}","document.forms['send-email-form'].submit();")."</td></tr>
+	</table>";
+	}
+	$f[]="
+	</form>
+	<script>
+	function CheckTheForm(e){
+		if(!checkEnter(e)){return;}
+		document.forms['send-email-form'].submit();
+		}
+		
+	</script>
+	";
+	
+	
+	$f[]="</div>    $FOOTER";
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="</html>";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+	
+	
+	
+	
+}
+
+
+function parseTemplate_sendemail_js(){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include_once(dirname(__FILE__)."/ressources/class.external_acl_squid_ldap.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+	$tpl=new templates();
+	$your_query_was_sent_to_administrator= $tpl->javascript_parse_text("{your_query_was_sent_to_administrator}",0);
+	
+	$ARRAY=unserialize(base64_decode($_GET["serialize"]));
+	$client_username=$ARRAY["clientname"];
+	$SquidGuardIPWeb=$ARRAY["SquidGuardIPWeb"];
+	$email=null;
+	$t=time();
+	if($client_username<>null){
+		
+		$sock=new sockets();
+		$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+		if($EnableKerbAuth==1){
+			
+			$ad=new external_acl_squid_ldap();
+			$array=$ad->ADLdap_userinfos($client_username);
+			$email=$array[0]["mail"][0];
+			
+		}else{
+			
+			$users=new user($client_username);
+			if(count($users->email_addresses)>0){
+				$email=$users->email_addresses[0];
+			}
+			
+		}
+	}
+	
+	if($email<>null){
+		echo "
+		// $client_username
+		var xSMTPNotifValues$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);}
+		}
+		
+		function SMTPNotifValues$t(){
+		
+		var jqxhr = $.post( '$SquidGuardIPWeb',{'send-smtp-notif':'$email','MAIN_ARRAY':'{$_GET["serialize"]}'}, function(result) {
+			alert( '$your_query_was_sent_to_administrator' );
+		})
+		.done(function(result) {
+		alert('$your_query_was_sent_to_administrator' );
+		})
+		.fail(function() {
+		alert( '$your_query_was_sent_to_administrator' );
+		})
+		.always(function() {
+		//alert( 'unknown' );
+		});
+		
+		
+		//	var XHR = new XHRConnection();
+		//	XHR.setLockOff();
+		//	XHR.appendData('send-smtp-notif','$email');
+		//	XHR.appendData('MAIN_ARRAY','{$_GET["serialize"]}');
+		//	XHR.sendAndLoad('$SquidGuardIPWeb', 'POST',xSMTPNotifValues$t);
+		}
+		SMTPNotifValues$t();";
+		return;
+		
+	}
+	
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{give_your_email_address}");
+	echo " //$client_username
+	var xSMTPNotifValues$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+	}
+	
+	function SMTPNotifValues$t(){
+		var email=prompt('$title');
+		if(!email){return;}
+		
+		var jqxhr = $.post( '$SquidGuardIPWeb',{'send-smtp-notif':email,'MAIN_ARRAY':'{$_GET["serialize"]}'}, function(result) {
+			alert( '$your_query_was_sent_to_administrator' );
+		})
+		.done(function(result) {
+			alert('$your_query_was_sent_to_administrator' );
+		})
+		.fail(function(xhr, textStatus, errorThrown){
+			 alert('$your_query_was_sent_to_administrator' +xhr.responseText);
+			 		 
+		})
+		.always(function() {
+		 //none
+		});
+		
+		
+		//var XHR = new XHRConnection();
+		//XHR.appendData('send-smtp-notif',email);
+		//XHR.appendData('MAIN_ARRAY','{$_GET["serialize"]}');
+		//XHR.sendAndLoad('$SquidGuardIPWeb', 'POST',xSMTPNotifValues$t);
+	}
+	SMTPNotifValues$t();";
+	return;	
+	
+}
+
+function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
+	ini_set('html_errors',0);
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string','');
+	ini_set('error_append_string','');
+	include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+	include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
+	include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	
+	if($smtp_sender==null){
+		$tpl=new templates();
+		return $tpl->_ENGINE_parse_body("{give_your_email_address}");
+	}
+	
+	$tpl=new templates();
+	$HOST=$ARRAY["HOST"];
+	$clientname=$ARRAY["clientname"];
+	if($clientname<>null){$clientname="/$clientname";}
+	$Subject="Web filter request from an user: {$HOST}$clientname";
+	$zDate=date('Y-m-d H:i:s');
+	$q=new mysql_squid_builder();
+	$URL=$ARRAY["URL"];
+	$REASONGIVEN=$ARRAY["REASONGIVEN"];
+	
+	
+	unset($ARRAY["SquidGuardIPWeb"]);
+	unset($ARRAY["URL"]);
+	unset($ARRAY["REASONGIVEN"]);
+	
+	
+	while (list ($a, $b) = each ($ARRAY) ){
+		$body[]="$a\t:$b";
+	
+	
+	}
+	
+	$text=mysql_escape_string2(@implode($body, "\r\n"));
+	$Subject=mysql_escape_string2($Subject);
+	$URL=mysql_escape_string2($URL);
+	$REASONGIVEN=mysql_escape_string2($REASONGIVEN);
+	$md5=md5(serialize($ARRAY)."$Subject $smtp_sender");
+	
+	$tablename="ufdb_smtp";
+	if($q->COUNT_ROWS("ufdb_smtp")==0){
+		$q->QUERY_SQL("DROP TABLE ufdb_smtp");
+	}
+	$sql="CREATE TABLE IF NOT EXISTS `ufdb_smtp` (
+	`zmd5` varchar(90) NOT NULL,
+	`zDate` datetime NOT NULL,
+	`Subject` varchar(255) NOT NULL,
+	`content` varchar(255) NOT NULL,
+	`URL` varchar(255) NOT NULL,
+	`REASONGIVEN` varchar(255) NOT NULL,
+	`sender` varchar(128) NOT NULL,
+	`retrytime` smallint(1) NOT NULL,
+	PRIMARY KEY (`zmd5`),
+	KEY `zDate` (`zDate`),
+	KEY `Subject` (`Subject`),
+	KEY `sender` (`sender`),
+	KEY `retrytime` (`retrytime`)
+	
+	) ENGINE=MEMORY;";
+	
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		echo $q->mysql_error;return;}
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO ufdb_smtp (`zmd5`,`zDate`,`Subject`,`content`,`sender`,`URL`,`REASONGIVEN`,`retrytime`) VALUES
+	('$md5',NOW(),'$Subject','$text','$smtp_sender','$URL','$REASONGIVEN','0')");
+	if(!$q->ok){
+		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		return $q->mysql_error_html();return false;
+	}
+	
+	
+	$sock=new sockets();
+	$sock->getFrameWork("squidguardweb.php?smtp-notifs=yes");
+	
+	$tpl=new templates();
+	return $tpl->_ENGINE_parse_body("{your_query_was_sent_to_administrator}");
+	
+	return true;
+	
+	
+}
+
+function parseTemplate_unlock_privs($ARRAY,$pattern="deny=1",$tokenSource,$debug=false){
+	include_once('ressources/class.templates.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.users.menus.inc');
+	include_once('ressources/class.dansguardian.inc');
+	$HOST=$ARRAY["HOST"];
+	
+	$URL=$ARRAY["URL"];
+	$IPADDR=$ARRAY["IPADDR"];
+	$REASONGIVEN=$ARRAY["REASONGIVEN"];
+	$CATEGORY_KEY=$ARRAY["CATEGORY_KEY"];
+	$_CATEGORIES_K=$ARRAY["CATEGORY"];
+	$_RULE_K=$ARRAY["RULE"];
+	$targetgroup=$ARRAY["targetgroup"];
+	$IpToUid=$ARRAY["IpToUid"];
+	$SquidGuardIPWeb=base64_decode($_GET["SquidGuardIPWeb"]);
+	$client_username=$ARRAY["clientname"];
+	$RETURNED=2;
+	if(preg_match("#(.+?)=([0-9]+)#", $pattern,$re)){
+		$FIELD_TO_QUERY=$re[1];
+		$VALUE_TO_QUERY=$re[2];
+	}
+	
+	if($FIELD_TO_QUERY=="deny"){$RETURNED=0;}
+	if($FIELD_TO_QUERY=="allow"){$RETURNED=1;}
+	if($FIELD_TO_QUERY=="noauth"){$RETURNED=1;}
+	
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>FIELD_TO_QUERY == &laquo;$FIELD_TO_QUERY&raquo;,return =&laquo;$RETURNED&raquo;</span><br>\n";}
+	
+	$FILTER="`$FIELD_TO_QUERY`=$VALUE_TO_QUERY";
+	
+	if($FIELD_TO_QUERY=="addTocat"){
+		$FILTER="LENGTH(addTocat)>0";
+		$RETURNED=2;
+	}
+	
+	
+	
+	if(!isset($_SESSION["IsKerbAuth"])){
+		$ldap=new clladp();
+		$_SESSION["IsKerbAuth"]=$ldap->IsKerbAuth();
+	}
+	
+	if($debug){writelogs("$CATEGORY_KEY:: $FIELD_TO_QUERY -> $VALUE_TO_QUERY",__FUNCTION__,__FILE__,__LINE__);}
+	$q=new mysql_squid_builder();
+	
+	
+	$sql="SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND adgroup='*' AND $FILTER";
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>$sql</span><br>\n";}
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>$q->mysql_error</span><br>\n";}
+		writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
+	
+	if($ligne["zmd5"]<>null){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>zmd5<>null</span><br>\n";}
+		if($RETURNED==2){
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>RETURNED == 2<>null return {$ligne[$FIELD_TO_QUERY]}</span><br>\n";}
+			$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+			return $ligne[$FIELD_TO_QUERY];
+		}
+		if($ligne[$FIELD_TO_QUERY]==1){
+			$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+			return $RETURNED;
+		}
+	}
+	
+	if($_SESSION["IsKerbAuth"]){
+		if($debug){writelogs("$CATEGORY_KEY:: IsKerbAuth -> TRUE",__FUNCTION__,__FILE__,__LINE__);}
+		$sql="SELECT zmd5,maxtime,adgroup,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND $FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
+		
+		if($ligne["zmd5"]<>null){
+			
+			if($debug){writelogs("$CATEGORY_KEY:: {$ligne["zmd5"]}",__FUNCTION__,__FILE__,__LINE__);}
+			if($ligne["adgroup"]<>null){
+				if($client_username<>null){
+					if($debug){writelogs("$CATEGORY_KEY:: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username",__FUNCTION__,__FILE__,__LINE__);}
+					if(parseTemplate_if_in_ADGroup($ligne["adgroup"],$client_username)){
+						if($RETURNED==2){
+							if($debug){writelogs("$CATEGORY_KEY:: [$FIELD_TO_QUERY]: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username RETURN:{$ligne[$FIELD_TO_QUERY]}",__FUNCTION__,__FILE__,__LINE__);}
+							$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+							return $ligne[$FIELD_TO_QUERY];
+						}
+						if($debug){writelogs("$CATEGORY_KEY:: [$FIELD_TO_QUERY]: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username RETURN:$RETURNED",__FUNCTION__,__FILE__,__LINE__);}
+						$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+						return $RETURNED;
+					}
+				}
+			}
+		}
+	}
+
+	if($client_username<>null){
+		$sql="SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND `username`='$client_username' AND $FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
+			if($ligne["zmd5"]<>null){
+				if($RETURNED==2){$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];return $ligne[$FIELD_TO_QUERY];}
+				if($ligne[$FIELD_TO_QUERY]==1){
+					if($debug){writelogs("$CATEGORY_KEY::RETURN $RETURNED",__FUNCTION__,__FILE__,__LINE__);}
+					$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+					return $RETURNED;
+				} 
+		}
+	}
+	
+	if($IPADDR<>null){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND `username`='$IPADDR' AND $FILTER"));
+		if($ligne["zmd5"]<>null){
+			if($RETURNED==2){return $ligne[$FIELD_TO_QUERY];}
+			if($ligne[$FIELD_TO_QUERY]==1){
+				if($debug){writelogs("$CATEGORY_KEY::RETURN $RETURNED",__FUNCTION__,__FILE__,__LINE__);}
+				$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
+				return $RETURNED;
+			} 
+		}
+	}	
+	
+	return $tokenSource;
+	
+}
+
+function parseTemplate_if_in_ADGroup($adgroup,$client_username){
+	include_once(dirname(__FILE__)."/ressources/class.external_acl_squid_ldap.inc");
+	
+	if(!isset($_SESSION["GROUPES_IN_AD"])){
+		$ad=new external_acl_squid_ldap();
+		$groupes=$ad->ADLdap_getgroups($client_username);
+		while (list ($GroupName, $none) = each ($groupes) ){
+			$GROUPES_IN_AD[trim(strtolower($GroupName))]=true;
+		}
+		$_SESSION["GROUPES_IN_AD"]=$GROUPES_IN_AD;
+	}else{
+		$GROUPES_IN_AD=$_SESSION["GROUPES_IN_AD"];
+	}
+	
+	
+	if(strpos($adgroup, ",")>0){
+		$QueriesGroups=explode(",",$adgroup);
+	}else{
+		$QueriesGroups[]=$adgroup;
+	}
+	
+	while (list ($none, $GroupName) = each ($QueriesGroups) ){
+		$GROUPES_TO_AD[trim(strtolower($GroupName))]=true;
+	}
+	
+	while (list ($GroupName,$none ) = each ($GROUPES_TO_AD) ){
+		if(isset($GROUPES_IN_AD[$GroupName])){return true;}
+	}
+	
+	
+	
+}
+
+
+function parseTemplate_build_main($ARRAY){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	if($GLOBALS["ARTICA_VERSION"]==null){$GLOBALS["ARTICA_VERSION"]=trim(@file_get_contents(dirname(__FILE__)."/VERSION"));}
+	
+	$version=$GLOBALS["ARTICA_VERSION"];
+	$FOOTER=null;
+	$users=new usersMenus();
+	$HOST=$ARRAY["HOST"];
+	$URL=$ARRAY["URL"];
+	$IPADDR=$ARRAY["IPADDR"];
+	$REASONGIVEN=$ARRAY["REASONGIVEN"];
+	$_CATEGORIES_K=$ARRAY["CATEGORY"];
+	$_RULE_K=$ARRAY["RULE"];
+	$targetgroup=$ARRAY["targetgroup"];
+	$IpToUid=$ARRAY["IpToUid"];
+	$SquidGuardIPWeb=base64_decode($_GET["SquidGuardIPWeb"]);
+	$client_username=$ARRAY["clientname"];
+	$hostname=$sock->GET_INFO("myhostname");
+	$ARRAY["Proxy Server"]=$hostname;
+	$sock->BuildTemplatesConfig($ARRAY);
+	
+	
+	if($IPADDR==null){
+		$IPADDR=parseTemplate_GET_REMOTE_ADDR();
+	}
+	
+	if($HOST==null){
+		$HOST=$_SERVER["HTTP_HOST"];
+	}
+	
+	if($URL==null){
+		$proto="http";
+		if(isset($_SERVER["HTTPS"])){
+			if($_SERVER["HTTPS"]=="on"){
+				$proto="https";
+			}
+		}
+		$URL="$proto://$HOST{$_SERVER["REQUEST_URI"]}";
+		
+	}
+	
+	if($SquidGuardIPWeb==null){
+		$SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
+		$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
+		$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+		if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+		if(!preg_match("#\/\/(.+?):$SquidGuardApachePort#", $SquidGuardIPWeb)){
+			if($SquidGuardServerName<>null){
+				$SquidGuardIPWeb="http://$SquidGuardServerName:$SquidGuardApachePort";
+			}
+		}
+		
+	}
+	
+	if(strpos($SquidGuardIPWeb, $page)==0){
+		if($GLOBALS["VERBOSE"]){echo "<H1>SquidGuardIPWeb = $SquidGuardIPWeb require $page</H1>";}
+		$SquidGuardIPWeb="$SquidGuardIPWeb/$page";
+	}
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "<H1>$SquidGuardIPWeb</H1>";}
+	
+	$UfdbGuardHTTPUnbblockMaxTime=intval($sock->GET_INFO("UfdbGuardHTTPUnbblockMaxTime"));
+	$UfdbGuardHTTPDisableHostname=intval($sock->GET_INFO("UfdbGuardHTTPDisableHostname"));
+	$UfdbGuardHTTPUnbblockText2=$sock->GET_INFO("UfdbGuardHTTPUnbblockText2");
+	$UfdbGuardHTTPEnablePostmaster=$GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"];
+	$UfdbGuardHTTPNoVersion=$GLOBALS["UfdbGuardHTTP"]["NoVersion"];
+	$UfdbGuardHTTPAllowUnblock=$GLOBALS["UfdbGuardHTTP"]["AllowUnblock"];
+	
+	if($UfdbGuardHTTPEnablePostmaster==1){
+		$emailTemplate="URL:{$_GET["url"]}\nIP:{$_GET["clientaddr"]}\nREASON:$REASONGIVEN\nCategory:$_CATEGORIES_K\nrule:$_RULE_K";
+		$Postmaster=parseadmin($emailTemplate,$URL);
+	}
+	
+	$UfdbGuardHTTPAllowSMTP=intval($sock->GET_INFO("UfdbGuardHTTPAllowSMTP"));
+	if($UfdbGuardHTTPAllowSMTP==1){
+		$UfdbGuardHTTPEnablePostmaster=1;
+		$Postmaster=parseTemplate_smtp_button($ARRAY,$SquidGuardIPWeb);
+	}
+	
+
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+	$UFDBGUARD_TITLE_1=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"];
+	$UFDBGUARD_PARA1=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"];
+	$UFDBGUARD_PARA2=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"];
+	$UFDBGUARD_TITLE_2=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"];
+	
+	
+
+	
+	$f[]=parseTemplate_headers("$UFDBGUARD_TITLE_1 - $_CATEGORIES_K",null,$SquidGuardIPWeb);
+	
+	
+	
+	$f[]="    <h1 class=bad></h1>";
+	if(trim(strtolower($UFDBGUARD_TITLE_1))<>"none"){
+		$f[]="    <h2>$UFDBGUARD_TITLE_1</h2>    ";
+	}
+	$f[]="    <h2>$REASONGIVEN</h2>    ";
+	
+	if(trim(strtolower($UFDBGUARD_PARA1))<>"none"){
+		$f[]="    <p>$UFDBGUARD_PARA1</p>";
+	}
+	if(trim(strtolower($UFDBGUARD_TITLE_2))<>"none"){
+		$f[]="    <h3>$UFDBGUARD_TITLE_2</h3>";
+	}
+	if(trim(strtolower($UFDBGUARD_PARA2))<>"none"){
+		$f[]="    <p>$UFDBGUARD_PARA2</p>    ";
+	}
+	$f[]="    ";
+	$f[]="    <div id=\"info\">";
+	$f[]="    <table width='100%'>";
+	
+	if($client_username<>null){
+		$members[]=$client_username;
+		
+	}
+	
+	
+	$members[]=$IPADDR;
+	if($HOST<>null){
+		$members[]=$HOST;
+	}
+	
+	if(trim($IpToUid)<>null){
+		$members[]=$IpToUid;
+	}
+
+	if(count($members)>0){
+		while (list ($num, $ligne) = each ($members) ){$AAAA[$ligne]=true;}
+		$members=array();
+		while (list ($num, $ligne) = each ($AAAA) ){$members[]=$num;}
+		
+	}
+	
+	$membersTX=@implode(", ", $members);
+	
+	if($UfdbGuardHTTPDisableHostname==0){
+		$hostname=$sock->GET_INFO("myhostname");
+		if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
+		$f[]="        <tr><td class=\"info_title\">{proxy_server}:</td><td class=\"info_content\">$hostname</td></tr>";
+	}	
+	
+	if($GLOBALS["VERBOSE"]){echo "<span style='font-size:16px'>UfdbGuardHTTPEnablePostmaster:$UfdbGuardHTTPEnablePostmaster</span><br>\n";}
+	
+	if($UfdbGuardHTTPEnablePostmaster==1){
+		$f[]="        <tr><td class=\"info_title\">{administrator}:</td><td class=\"info_content\">$Postmaster</td></tr>";
+	}
+	if($UfdbGuardHTTPNoVersion==0){
+		$f[]="        <tr><td class=\"info_title\">{application}:</td><td class=\"info_content\">Artica Proxy, version $version</td></tr>";
+	}
+	
+	
+	if($targetgroup=="restricted_time"){$targetgroup="{restricted_access}";}
+	
+	$f[]="        <tr><td class=\"info_title\">{member}:</td><td class=\"info_content\">$membersTX</td></tr>";
+	$f[]="        <tr><td class=\"info_title\">{policy}:</td><td class=\"info_content\">$_RULE_K, $targetgroup</td></tr>";
+	$f[]="        <tr>";
+	$f[]="            <td class=\"info_title\" nowrap>{requested_uri}:</td>";
+	$f[]="            <td class=\"info_content\">";
+	$f[]="                <div class=\"break-word\">$URL</div>";
+	$f[]="            </td>";
+	$f[]="        </tr>";
+	$f[]="    </table>";
+	
+	$NOUNBLOCK=false;
+	if(isset($_GET["fatalerror"])){$NOUNBLOCK=true;}
+	if(isset($_GET["loading-database"])){$NOUNBLOCK=true;}
+	
+	
+	$q=new mysql_squid_builder();
+	if($q->COUNT_ROWS("ufdb_page_rules")>0){
+		
+		if($GLOBALS["VERBOSE"]){echo "<hr style='border-color:#35CA61'>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
+		$UfdbGuardHTTPAllowUnblock=parseTemplate_unlock_privs($ARRAY,"allow=1",$UfdbGuardHTTPAllowUnblock);
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>allow: UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
+		$UfdbGuardHTTPAllowUnblock=parseTemplate_unlock_privs($ARRAY,"deny=1",$UfdbGuardHTTPAllowUnblock);
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>Deny: UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
+	}
+	
+	
+	
+	if($UfdbGuardHTTPAllowUnblock==1){
+
+		if(!$NOUNBLOCK){
+			$URL_ENCODED=urlencode($URL);
+			$IPADDR_ENCODE=urlencode($IPADDR);
+			$page=CurrentPageName();
+			$SquidGuardIPWeb_enc=urlencode($SquidGuardIPWeb);
+			
+			if(isset($GLOBALS["RULE_MAX_TIME"])){$ARRAY["RULE_MAX_TIME"]=$GLOBALS["RULE_MAX_TIME"];}
+			
+			$ARRAY_SERIALIZED=urlencode(base64_encode(serialize($ARRAY)));
+			$f[]="<p>{$GLOBALS["UfdbGuardHTTP"]["UnbblockText1"]}</p>
+			<div style='text-align:right;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};padding-top:5px'>
+			<a href='$SquidGuardIPWeb?unlock=yes&url=$URL_ENCODED&ipaddr=$IPADDR_ENCODE&SquidGuardIPWeb=$SquidGuardIPWeb_enc&clientname={$ARRAY["clientame"]}&serialize=$ARRAY_SERIALIZED' class=important>{unlock_web_site}</a></div>";
+		}
+	}	
+	
+	$f[]="    </div>    $FOOTER";
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="<!-- ";
+	while (list ($num, $ligne) = each ($ARRAY) ){
+		$f[]="    $num = $ligne";
+	}
+
+	$tpl=new templates();
+	if(!isset($_SESSION["UFDB_PAGE_LANG"])){
+		if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/ressources/class.langages.inc");}
+		$langAutodetect=new articaLang();
+		$_SESSION["UFDB_PAGE_LANG"]=$langAutodetect->get_languages();
+		
+	}
+	$tpl->language=$_SESSION["UFDB_PAGE_LANG"];
+	$f[]=" Language : $tpl->language";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="-->";
+	$f[]="</html>";
+	
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+}
+
+function wifidog_build_uri(){
+	reset($_REQUEST);
+	while (list ($num, $ligne) = each ($_REQUEST) ){
+		if($num=="unlock-www"){continue;}
+		if($num=="unlock"){continue;}
+		
+		$URIZ[]="$num=".urlencode($ligne);
+		$inputz[]="<input type='hidden' id='$num' name='$num' value='$ligne'>";
+
+	}
+
+	return array(@implode("&", $URIZ),@implode("\n", $inputz));
+
+}
+function parseTemplate_unlock_checkcred(){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+	include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	include("ressources/settings.inc");
+	$sock=new sockets();
+	$UfdbGuardHTTPAllowNoCreds=intval($sock->GET_INFO("UfdbGuardHTTPAllowNoCreds"));
+	if($UfdbGuardHTTPAllowNoCreds==1){return true;}
+	if($_POST["nocreds"]==1){return true;}
+	$username=$_POST["username"];
+	$password=trim($_POST["password"]);
+	
+	
+	if(trim(strtolower($username))==trim(strtolower($_GLOBAL["ldap_admin"]))){
+		if($password==trim($_GLOBAL["ldap_password"])){return true;}
+	}
+	
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		$external_ad_search=new external_ad_search();
+		if($external_ad_search->CheckUserAuth($username,$password)){
+			return true;
+		}
+	}
+	
+	
+	
+	$q=new mysql();
+	$sql="SELECT `username`,`value`,id FROM radcheck WHERE `username`='$username' AND `attribute`='Cleartext-Password' LIMIT 0,1";
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!is_numeric($ligne["id"])){$ligne["id"]=0;}
+	if(!$q->ok){writelogs("$username:: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
+	
+	if($ligne["id"]>0){
+		if($ligne["value"]==$password){return true; }
+	}		
+	
+	
+	$u=new user($username);
+	if(trim($u->uidNumber)<>null){
+		if(trim($password)==trim($u->password)){return true; }
+	}	
+	
+	
+	return false;
+	
+	
+	
+}
+
+
+
+function parseTemplate_unlock_save(){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
+	$tpl=new templates();
+	$cssform="  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border:1px solid #DDDDDD;
+  background:url(\"/img/gr-greybox.gif\") repeat-x scroll 0 0 #FBFBFA;
+  background:-moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+  margin:5px;padding:5px;
+  -webkit-border-radius: 5px;
+  -o-border-radius: 5px;
+ -moz-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ -webkit-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);";	
+	
+	
+	if(!parseTemplate_unlock_checkcred()){
+		parseTemplate_unlock("{wrong_password_or_username}");
+		die();
+	}
+	
+	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
+	$sock=new sockets();
+	$sock->BuildTemplatesConfig($ARRAY);
+	$q=new mysql_squid_builder();
+	$finalhost=$_POST["finalhost"];
+	$IPADDR=$_REQUEST["ipaddr"];
+	$user=$_REQUEST["username"];
+	$SquidGuardIPWeb=$_REQUEST["SquidGuardIPWeb"];
+	
+	$MAX=intval($GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]);
+	$url=$_REQUEST["url"];
+	
+	if(isset($ARRAY["RULE_MAX_TIME"])){
+		if(intval($ARRAY["RULE_MAX_TIME"])>0){
+			$MAX=$ARRAY["RULE_MAX_TIME"];
+		}
+	}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`ufdbunlock` (
+			`md5` VARCHAR( 90 ) NOT NULL ,
+			`logintime` BIGINT UNSIGNED ,
+			`finaltime` INT UNSIGNED ,
+			`uid` VARCHAR(128) NOT NULL,
+			`MAC` VARCHAR( 90 ) NULL,
+			`www` VARCHAR( 128 ) NOT NULL ,
+			`ipaddr` VARCHAR( 128 ) ,
+			PRIMARY KEY ( `md5` ) ,
+			KEY `MAC` (`MAC`),
+			KEY `logintime` (`logintime`),
+			KEY `finaltime` (`finaltime`),
+			KEY `uid` (`uid`),
+			KEY `www` (`www`),
+			KEY `ipaddr` (`ipaddr`)
+			)  ENGINE = MEMORY;";
+	
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){parseTemplate_unlock($q->mysql_error);return;}
+	
+	
+	if($MAX==0){$MAX=60;}
+	
+	
+	
+	$familysite=$q->GetFamilySites($finalhost);
+	$addTocategory=parseTemplate_unlock_privs($ARRAY,"addTocat=1",null);
+	
+	if(!isset($ARRAY["RULE_MAX_TIME"])){
+		if(isset($GLOBALS["RULE_MAX_TIME"])){
+			if(intval($GLOBALS["RULE_MAX_TIME"])>0){
+				$MAX=$GLOBALS["RULE_MAX_TIME"];
+			}
+		}
+	}
+	
+	$md5=md5($finalhost.$IPADDR.$user);
+	$time=time();
+	$EnOfLife = strtotime("+{$MAX} minutes", $time);
+	
+	$NextLogs=$EnOfLife-$time;
+	writelogs("$finalhost $IPADDR $user Alowed for {$MAX} minutes, EndofLife=$EnOfLife in {$NextLogs} seconds",__FUNCTION__,__FILE__,__LINE__);
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO `ufdbunlock` (`md5`,`logintime`,`finaltime`,`uid`,`www`,`ipaddr`)
+			VALUES('$md5','$time','$EnOfLife','$user','$familysite','$IPADDR')");
+	if(!$q->ok){
+		writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
+		parseTemplate_unlock($q->mysql_error);
+		return;
+	}
+	
+	
+	
+	
+	if($addTocategory<>null){
+		writelogs("Saving $familysite  into $addTocategory",__FUNCTION__,__FILE__,__LINE__);
+		$q->ADD_CATEGORYZED_WEBSITE($familysite, $addTocategory);
+	}
+	
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO webfilters_usersasks (zmd5,ipaddr,sitename,uid) 
+			VALUES ('$md5','$IPADDR','$familysite','$user')");
+	$function=__FUNCTION__;
+	$file=basename(__FILE__);
+	$line=__LINE__;
+	$subject="Unlocked website $finalhost/$familysite from $user/$IPADDR";
+	$redirect="<META http-equiv=\"refresh\" content=\"10; URL=$url\">";
+	
+	$redirecting_text=$tpl->javascript_parse_text("{redirecting}");
+	$MAIN_BODY="<center>
+	
+	<center style='margin:20px;padding:20px;$cssform;color:black;width:80%'>
+		<input type='hidden' id='countdownvalue' value='10'>
+		<span id='countdown' style='font-size:70px'></span>
+	</center>
+	
+	<p style='font-size:22px'>
+			<center style='margin:50px;$cssform;color:black;width:80%'>
+				{please_wait_redirecting_to}<br>$url<br><{for} $MAX {minutes}
+				<center style='margin:20px'>
+				<img src='img/wait_verybig_mini_red.gif'></center>
+			</center>
+	</p> 
+	</center>
+	<script>
+
+	
+ 
+setInterval(function () {
+	var countdown = document.getElementById('countdownvalue').value
+	countdown=countdown-1;
+	if(countdown==0){
+		document.getElementById('countdownvalue').innerHTML='$redirecting_text';
+		return;
+	}
+	document.getElementById('countdownvalue').value=countdown;
+	document.getElementById('countdown').innerHTML=countdown
+ 
+}, 1000);
+</script>";
+	
+	
+	$q=new mysql();
+	$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_mysql`
+			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+			(NOW(),'','$subject','$function','$file','$line','1','{$_SERVER["SERVER_NAME"]}')","artica_events");
+	if(!$q->ok){
+		$redirect=null;
+		$MAIN_BODY="<center style='margin:20px;padding:20px;$cssform;color:black;width:80%'>
+		<H1>Oups!</H1><hr>".$q->mysql_error_html()."</center>";
+		
+	}
+	
+
+	
+	if($redirect<>null){
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?reconfigure-unlock=yes");
+	}
+	
+	$f[]=parseTemplate_headers("{unlock_web_site}",$redirect);
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+	$f[]=$MAIN_BODY;
+	$f[]=$FOOTER;
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="</html>";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));	
+	
+	
+	
+	
+}
+
+
+function parseTemplate_unlock($error=null){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+	$sock=new sockets();
+	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
+	$sock->BuildTemplatesConfig($ARRAY);
+	$SquidGuardIPWeb=null;
+	$url=$_REQUEST["url"];
+	$IPADDR=$_REQUEST["ipaddr"];
+	if(isset($_GET["SquidGuardIPWeb"])){$SquidGuardIPWeb=$_GET["SquidGuardIPWeb"];}
+	if($SquidGuardIPWeb==null){$SquidGuardIPWeb=CurrentPageName();}
+	if($GLOBALS["VERBOSE"]){echo "<H1>SquidGuardIPWeb=$SquidGuardIPWeb</H1>";}
+	$UfdbGuardHTTPAllowNoCreds=intval($sock->GET_INFO("UfdbGuardHTTPAllowNoCreds"));
+	
+	$q=new mysql_squid_builder();
+	$parse_url=parse_url($url);
+	$host=$parse_url["host"];
+	if(preg_match("#(.+?):[0-9]+#", $host,$re)){$host=$re[1];}
+	$FinalHost=$q->GetFamilySites($host);
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+	$MAX=$GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"];
+	$Timez[5]="5 {minutes}";
+	$Timez[10]="10 {minutes}";
+	$Timez[15]="15 {minutes}";
+	$Timez[30]="30 {minutes}";
+	$Timez[60]="1 {hour}";
+	$Timez[120]="2 {hours}";
+	$Timez[240]="4 {hours}";
+	$Timez[720]="12 {hours}";
+	$Timez[2880]="2 {days}";
+	$TEXT_TIME=$Timez[$MAX];
+	$UnbblockText2=$GLOBALS["UfdbGuardHTTP"]["UnbblockText2"];
+	$page=CurrentPageName();
+	$UnbblockText2=str_replace("%WEBSITE%", $url, $UnbblockText2);
+	$UnbblockText2=str_replace("%TIME%", $TEXT_TIME, $UnbblockText2);
+	$fontfamily="font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$fontfamily=str_replace('"', "", $fontfamily);
+	
+	$wifidog_build_uri=wifidog_build_uri();
+	$uriext=$wifidog_build_uri[0];
+	$HiddenFields=$wifidog_build_uri[1];
+	
+	
+	
+	$client_username=$ARRAY["clientname"];
+	if($client_username<>null){$_REQUEST["clientname"]=$client_username;}
+	
+	if($q->COUNT_ROWS("ufdb_page_rules")>0){
+		$noauth=parseTemplate_unlock_privs($ARRAY,$pattern="noauth=1",0,true);
+		$UfdbGuardHTTPAllowNoCreds=$noauth;
+	}
+	
+	if($noauth==1){
+		$f[]=parseTemplate_headers("{unlock_web_site}",null,$SquidGuardIPWeb);
+		$f[]=$f[]="<form id='unlockform' action=\"$SquidGuardIPWeb\" method=\"post\">
+		<input type='hidden' id='unlock-www' name='unlock-www' value='yes'>
+		<input type='hidden' id='finalhost' name='finalhost' value='$FinalHost'>
+		<input type='hidden' id='ipaddr' name='ipaddr' value='$IPADDR'>
+		<input type='hidden' id='SquidGuardIPWeb' name='SquidGuardIPWeb' value='$SquidGuardIPWeb'>
+		<input type='hidden' id='serialize' name='serialize' value='{$_REQUEST["serialize"]}'>
+		<input type='hidden' id='url' name='url' value='$url'>";
+		$f[]="<input type='hidden' id='username' name='username' value='{$_REQUEST["clientname"]}'>";		
+		$f[]="<input type='hidden' id='nocreds' name='nocreds' value='1'>";
+		$f[]="<script>	";	
+		$f[]="function CheckTheForm(){	";	
+		$f[]="document.forms['unlockform'].submit();";	
+		$f[]="}	";	
+		$f[]="CheckTheForm();";		
+		$f[]="</script>	";			
+		$f[]="</body>";
+		$f[]="</html>";
+		echo @implode("\n", $f);
+		return;
+	}
+	
+	
+	$f[]=parseTemplate_headers("{unlock_web_site}",null,$SquidGuardIPWeb);
+	$f[]="    <h2>{unlock_web_site} $FinalHost {for} $IPADDR {$_REQUEST["clientname"]}</h2>";
+	if($error<>null){
+		$f[]="    <h2>$error</h2>";
+	}
+	$f[]="    <div id=\"info\">";
+	$f[]="<p style='margin-bottom:30px'>$UnbblockText2</p>";
+	$f[]="<form id='unlockform' action=\"$SquidGuardIPWeb\" method=\"post\">
+	<input type='hidden' id='unlock-www' name='unlock-www' value='yes'>
+	<input type='hidden' id='finalhost' name='finalhost' value='$FinalHost'>
+	<input type='hidden' id='ipaddr' name='ipaddr' value='$IPADDR'>
+	<input type='hidden' id='serialize' name='serialize' value='{$_REQUEST["serialize"]}'>
+	<input type='hidden' id='url' name='url' value='$url'>";
+	$f[]="<input type='hidden' id='username' name='username' value='{$_REQUEST["clientname"]}'>";
+	
+	if($UfdbGuardHTTPAllowNoCreds==1){
+		$f[]="<input type='hidden' id='username' name='username' value='{$_REQUEST["clientname"]}'>";
+		$f[]="<input type='hidden' id='password' name='password' value='{$_REQUEST["password"]}'>";
+		
+	}
+	
+	
+	$f[]="<table width='100%;'>";
+	if($UfdbGuardHTTPAllowNoCreds==0){
+	$f[]=" <tr>
+				<td class=\"info_title\">{username}:</td>
+				<td class=\"info_content\">".Field_text("username",$_REQUEST["username"],"$fontfamily;width:80%;font-size:35px;padding:5px")."</td>
+			</tr> 
+			<tr>
+				<td class=\"info_title\">{password}:</td>
+				<td class=\"info_content\">".Field_password(
+						"nolock:password",$_REQUEST["password"],"$fontfamily;width:80%;font-size:35px;padding:5px",
+						null,null,null,false,"CheckTheForm(event)")."</td>
+			</tr>";
+	}
+	$f[]=" <tr><td colspan=2 align='right'><hr>". button("{submit}","document.forms['unlockform'].submit();")."</td></tr>
+	</table>
+	</form>
+	<script>
+	function CheckTheForm(e){
+		if(!checkEnter(e)){return;}
+		document.forms['unlockform'].submit();
+		}
+			
+	</script>		
+	";
+	
+	
+	$f[]="    </div>    $FOOTER";
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="</html>";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+}
+
+
+
+function ini_set_verbosedx(){
+	ini_set('html_errors',0);
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string','');
+	ini_set('error_append_string','');
+	$GLOBALS["VERBOSE"]=true;
+}
 ?>

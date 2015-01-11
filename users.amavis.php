@@ -140,7 +140,7 @@ $tpl=new templates();
 $users=new usersMenus();
 $sock=new sockets();
 if(!$users->AMAVIS_INSTALLED){
-		echo $tpl->_ENGINE_parse_body("<div class=explain>{NO_FEATURE_AMAVIS_NOT_INSTALLED}</div>");	
+		echo $tpl->_ENGINE_parse_body("<div class=text-info>{NO_FEATURE_AMAVIS_NOT_INSTALLED}</div>");	
 		return;
 	}
 	$EnableAmavisDaemon=$sock->GET_INFO("EnableAmavisDaemon");
@@ -149,7 +149,7 @@ if(!$users->AMAVIS_INSTALLED){
 	if(!is_numeric($EnableAmavisDaemon)){$EnableAmavisDaemon=0;}		
 	
 	if($EnableAmavisDaemon==0){
-		echo $tpl->_ENGINE_parse_body("<div class=explain>{NO_FEATURE_AMAVIS_NOT_ENABLED}</div>");	
+		echo $tpl->_ENGINE_parse_body("<div class=text-info>{NO_FEATURE_AMAVIS_NOT_ENABLED}</div>");	
 		return;		
 	}
 
@@ -215,7 +215,7 @@ $form="
 
 $html="
 <H3>{spam_rules}</H3>
-<div class=explain>{amavis_user_text}</div>
+<div class=text-info>{amavis_user_text}</div>
 <hr>
 $button_admin
 <div id='user-amavis'>$form</div>

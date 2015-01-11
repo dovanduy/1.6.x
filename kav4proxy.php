@@ -17,7 +17,7 @@ $user=new usersMenus();
 	}
 	
 	
-	
+	if(isset($_GET["callback-enabled"])){callback_enabled_js();exit;}
 	if(isset($_GET["frontend-status"])){frontend_status_js();exit;}
 	if(isset($_GET["frontend-params"])){frontend_params_js();exit;}
 	if(isset($_GET["frontend-groups"])){frontend_groups_js();exit;}
@@ -61,6 +61,17 @@ function kav_cmds_js(){
 	echo $html;	
 }
 
+function callback_enabled_js(){
+	header("content-type: application/x-javascript");
+	$sock=new sockets();
+	$kavicapserverEnabled=intval($sock->GET_INFO("kavicapserverEnabled"));
+	if($kavicapserverEnabled==0){
+		echo "Loadjs('kav4Proxy.disable.progress.php');";
+		return;
+	}
+	echo "Loadjs('kav4Proxy.enable.progress.php');";
+}
+
 
 function kav4proxy_status(){
 	$ini=new Bs_IniHandler();
@@ -82,7 +93,7 @@ function kav4proxy_status(){
 	$Kav4ProxyLicenseRead=$sock->GET_INFO("Kav4ProxyLicenseRead");
 	if(!is_numeric($Kav4ProxyLicenseRead)){$Kav4ProxyLicenseRead=0;}
 	
-	$pattern_date=base64_decode($sock->getFrameWork("cmd.php?kav4proxy-pattern-date=yes"));
+	$pattern_date=base64_decode($sock->getFrameWork("kav4proxy.php?pattern-date=yes"));
 	$pattern_date_org=$pattern_date;
 	if($pattern_date==null){
 		$pattern_date="<strong style='font-size:11px;color:#C61010'>{av_pattern_database_obsolete_or_missing}</strong>";}
@@ -190,19 +201,21 @@ function kav4proxy_status(){
 	$kavicapserverEnabled=intval($sock->GET_INFO("kavicapserverEnabled"));
 	if($kavicapserverEnabled==1){
 		$q=new mysql_squid_builder();
-		$ligneSQL=mysql_fetch_array($q->QUERY_SQL("SELECT `enabled` FROM c_icap_services WHERE ID=7"));
+		$ligneSQL=mysql_fetch_array($q->QUERY_SQL("SELECT `enabled` FROM c_icap_services WHERE ID=6"));
 		if($ligneSQL["enabled"]==0){
 			$CICAP_LOCAL_WARNING="<center>".Paragraphe("warning-panneau-64.png", "{local_proxy_service_not_linked}",
 					"{local_proxy_service_not_linked_explain}",
-					"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')",null,350)."</center>";
+					"javascript:Loadjs('kav4Proxy.enable.progress.php')",null,350)."</center>";
 		}
 	
 	}
+	$DEFAULT_SIZE=133602007;
+	
 	
 	
 	$html="$CICAP_LOCAL_WARNING$kav$Keep$UpdateUtility
 
-
+	
 
 	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Kav4ProxyStatus()")."</div>
 	<br>
@@ -212,6 +225,10 @@ function kav4proxy_status(){
 			<td class=legend nowrap>{pattern_date}:</td>
 			<td style='font-size:14px' colspan=2>$pattern_date</td>
 		</tr>
+		
+		
+		
+		
 		<tr>
 			<td width=1% align='right'><img src='img/$iconupdate'></td>
 			<td nowrap>$updatejs{TASK_UPDATE_ANTIVIRUS}</a></span></td>
@@ -321,10 +338,11 @@ function status(){
 		
 		$t=time();
 		$users=new usersMenus();
-		$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
-		if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
+		$kavicapserverEnabled=intval($sock->GET_INFO("kavicapserverEnabled"));
 		
-		$form=$tpl->_ENGINE_parse_body(Paragraphe_switch_img("{ACTIVATEANTIVIRUSSERVICE}", "{ACTIVATEANTIVIRUSWSERVICETEXT}",
+		
+		$form=$tpl->_ENGINE_parse_body(
+		Paragraphe_switch_img("{ACTIVATEANTIVIRUSSERVICE}", "{ACTIVATEANTIVIRUSWSERVICETEXT}",
 		"kavicapserverEnabled-$t",$kavicapserverEnabled,null,450));
 		
 		
@@ -335,7 +353,7 @@ function status(){
 		$MainV="Kaspersky For Proxy Server version $KAV4PROXY_VERSION (revision $rev)";
 		
 	$html="
-	<div style='font-size:22px;text-align:right;margin-bottom:10px'>$MainV</div>
+	<div style='font-size:30px;text-align:right;margin-bottom:10px'>$MainV</div>
 	<table style='width:100%'>
 	<tbody>
 		<tr>
@@ -344,11 +362,11 @@ function status(){
 			<div id='$t-div'>
 				<div style='width:98%' class=form>
 					$form
-					<div style='width:100%;text-align:right'>". button("{apply}","kavicapserverEnabledSave$t()",14)."</div>
+					<div style='width:100%;text-align:right'>". button("{apply}","kavicapserverEnabledSave$t()",26)."</div>
 				</div>
 			
 				<center style='margin-top:20px'><img src=img/kaspersky-logo-250.png></center>
-				<div class=explain style='font-size:14px'>{kav4proxy_about}</div></td>
+				<div class=text-info style='font-size:14px'>{kav4proxy_about}</div></td>
 			</div>
 		</tr>
 	</tbody>
@@ -364,14 +382,13 @@ function status(){
 	var X_kavicapserverEnabledSave$t= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);}
-		RefreshTab('main_kav4proxy_config');
+		Loadjs('$page?callback-enabled=yes');
 		}		
 		
 	function kavicapserverEnabledSave$t(){
 		var enabled=document.getElementById('kavicapserverEnabled-$t').value;
 		var XHR = new XHRConnection();
 		XHR.appendData('kavicapserverEnabled',enabled);
-		AnimateDiv('$t-div');
 		XHR.sendAndLoad('$page', 'POST',X_kavicapserverEnabledSave$t);     		
 	}
 		
@@ -393,15 +410,7 @@ function kavicapserverEnabledSave(){
 	
 	$sock=new sockets();
 	$sock->SET_INFO("kavicapserverEnabled", $_POST["kavicapserverEnabled"]);
-	if($_POST["kavicapserverEnabled"]==0){
-		$sock->getFrameWork("services.php?kav4proxy-stop=yes");
-	}else{
-		$sock->getFrameWork("services.php?kav4proxy-restart=yes");
-		
-	}
 	
-	$sock->getFrameWork("squid.php?build-smooth=yes");
-	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	
 }
 
@@ -620,7 +629,7 @@ buttons : [
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 877,
+	width: '99%',
 	height: 420,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -819,7 +828,7 @@ if(preg_match("#(.+?):[0-9]+#", $kav4->main_array["ListenAddress"],$re)){$kav4->
 			if(!isset($kav4->main_array[$fieldname])){$kav4->main_array[$fieldname]=$default;}
 			if(!isset($TypesFields[$fieldname])){
 				$Rev88TR[]="<tr>
-					<td align='right' style='font-size:14px' class=legend>{{$fieldname}}:</strong></td>
+					<td align='right' style='font-size:18px' class=legend>{{$fieldname}}:</strong></td>
 					<td>". Field_checkbox("$fieldname", 1,$kav4->main_array[$fieldname])."</td>
 					<td>&nbsp;</td>
 				</tr>";
@@ -829,8 +838,8 @@ if(preg_match("#(.+?):[0-9]+#", $kav4->main_array["ListenAddress"],$re)){$kav4->
 				if($TypesFields[$fieldname]=="F"){
 					
 					$Rev88TR[]="<tr>
-					<td align='right' style='font-size:14px' class=legend>{{$fieldname}}:</strong></td>
-					<td align='left'>" . Field_text($fieldname,$kav4->main_array[$fieldname],'width:90px;font-size:14px')."</td>
+					<td align='right' style='font-size:18px' class=legend>{{$fieldname}}:</strong></td>
+					<td align='left'>" . Field_text($fieldname,$kav4->main_array[$fieldname],'width:110px;font-size:18px')."</td>
 					<td>&nbsp;</td>
 					</tr>";	
 
@@ -859,41 +868,41 @@ $templates
 </td>
 <td width=99% valign='top'>
 			<div style='width:98%' class=form>
-				<table>
+				<table style='width:100%'>
 				<tbody>
 				<tr>
-					<td align='right' style='font-size:14px' class=legend>{ListenAddress}:</strong></td>
-					<td align='left' style='font-size:14px'>" . Field_array_Hash($ips, 'ListenAddress',$kav4->main_array["ListenAddress"],'style:font-size:14px')."&nbsp;:1344</td>
+					<td align='right' style='font-size:18px' class=legend>{ListenAddress}:</strong></td>
+					<td align='left' style='font-size:18px'>" . Field_array_Hash($ips, 'ListenAddress',$kav4->main_array["ListenAddress"],'style:font-size:18px')."&nbsp;:1344</td>
 					<td align='left'>&nbsp;</td>
 				</tr>				
 				<tr>
-					<td align='right' style='font-size:14px' class=legend>{MaxChildren}:</strong></td>
-					<td align='left'>" . Field_text('MaxChildren',$kav4->main_array["MaxChildren"],'width:90px;font-size:14px')."</td>
+					<td align='right' style='font-size:18px' class=legend>{MaxChildren}:</strong></td>
+					<td align='left'>" . Field_text('MaxChildren',$kav4->main_array["MaxChildren"],'width:110px;font-size:18px')."</td>
 					<td align='left'>" . help_icon('{MaxChildren_text}',false,'milter.index.php') . "</td>
 				</tr>
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{IdleChildren}:</strong></td>
-				<td align='left'>" . Field_text('IdleChildren',$kav4->main_array["IdleChildren"],'width:90px;font-size:14px')."</td>
+				<td align='right' style='font-size:18px' class=legend>{IdleChildren}:</strong></td>
+				<td align='left'>" . Field_text('IdleChildren',$kav4->main_array["IdleChildren"],'width:110px;font-size:18px')."</td>
 				<td align='left'>" . help_icon('{IdleChildren_text}',false,'milter.index.php') . "</td>
 				</tr>
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{MaxReqsPerChild}:</strong></td>
-				<td align='left'>" . Field_text('MaxReqsPerChild',$kav4->main_array["MaxReqsPerChild"],'width:90px;font-size:14px')."</td>
+				<td align='right' style='font-size:18px' class=legend>{MaxReqsPerChild}:</strong></td>
+				<td align='left'>" . Field_text('MaxReqsPerChild',$kav4->main_array["MaxReqsPerChild"],'width:110px;font-size:18px')."</td>
 				<td align='left'>" . help_icon('{MaxReqsPerChild_text}',false,'milter.index.php') . "</td>
 				</tr>	
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{MaxEnginesPerChild}:</strong></td>
-				<td align='left'>" . Field_text('MaxEnginesPerChild',$kav4->main_array["MaxEnginesPerChild"],'width:90px;font-size:14px')."</td>
+				<td align='right' style='font-size:18px' class=legend>{MaxEnginesPerChild}:</strong></td>
+				<td align='left'>" . Field_text('MaxEnginesPerChild',$kav4->main_array["MaxEnginesPerChild"],'width:110px;font-size:18px')."</td>
 				<td align='left'>" . help_icon('{MaxEnginesPerChild_text}',false,'milter.index.php') . "</td>
 				<tr>
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{PreviewSize}:</strong></td>
-				<td align='left'>" . Field_text('PreviewSize',$kav4->main_array["PreviewSize"],'width:90px;font-size:14px')."</td>
+				<td align='right' style='font-size:18px' class=legend>{PreviewSize}:</strong></td>
+				<td align='left'>" . Field_text('PreviewSize',$kav4->main_array["PreviewSize"],'width:110px;font-size:18px')."</td>
 				<td align='left'>" . help_icon('{PreviewSize_text}',false,'milter.index.php') . "</td>
 				<tr>
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{MaxReqLength}:</strong></td>
-				<td align='left' style='font-size:14px'>" . Field_text('MaxReqLength',$kav4->main_array["MaxReqLength"],'width:90px;font-size:14px')."&nbsp;Bytes</td>
+				<td align='right' style='font-size:18px' class=legend>{MaxReqLength}:</strong></td>
+				<td align='left' style='font-size:18px'>" . Field_text('MaxReqLength',$kav4->main_array["MaxReqLength"],'width:110px;font-size:18px')."&nbsp;Bytes</td>
 				<td align='left'>" . help_icon('{MaxReqLength_text}',false,'milter.index.php') . "</td>
 				<tr>
 						".@implode("\n", $Rev88TR)."
@@ -901,13 +910,13 @@ $templates
 					<td colspan=3 style='font-size:22px;font-weight:bold;padding-top:15px;padding-bottom:15px'>{memory_scanning}</td>
 				</tr>
 				<tr>
-					<td align='right' style='font-size:14px' class=legend>{enable_memory_scanning}:</strong></td>
+					<td align='right' style='font-size:18px' class=legend>{enable_memory_scanning}:</strong></td>
 					<td>". Field_checkbox("Kav4ProxyTMPFS", 1,$Kav4ProxyTMPFS,"Kav4ProxyTMPFSMBCheck()")."</td>
 					<td>" . help_icon('{Kav4ProxyTMPFS_explain}') . "</td>
 				</tr>
 				<tr>
-				<td align='right' style='font-size:14px' class=legend>{memory_size}:</strong></td>
-				<td align='left' style='font-size:14px'>" . Field_text('Kav4ProxyTMPFSMB',$Kav4ProxyTMPFSMB,'width:50px;font-size:14px')."&nbsp;MB</td>
+				<td align='right' style='font-size:18px' class=legend>{memory_size}:</strong></td>
+				<td align='left' style='font-size:18px'>" . Field_text('Kav4ProxyTMPFSMB',$Kav4ProxyTMPFSMB,'width:110px;font-size:18px')."&nbsp;MB</td>
 				<td align='left'>" . help_icon('{Kav4ProxyTMPFS_explain}') . "</td>
 				<tr>				
 
@@ -915,7 +924,7 @@ $templates
 				
 					<td colspan=3 align='right'>
 						<hr>
-						". button("{apply}","icapserver_engine_options_save()","16px")."</td>
+						". button("{apply}","icapserver_engine_options_save()","26")."</td>
 				</tr>
 				</tbody>
 				</table>

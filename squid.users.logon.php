@@ -1333,7 +1333,7 @@ function lost_password_popup(){
 	$page=CurrentPageName();
 	$html="
 	<div id='$t'></div>
-	<div class=explain style='font-size:16px;padding-bottom:10px'>{lost_password_explain}</div>
+	<div class=text-info style='font-size:16px;padding-bottom:10px'>{lost_password_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:18px'>{email}:</td>

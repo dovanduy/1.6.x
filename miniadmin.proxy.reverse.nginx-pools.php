@@ -639,6 +639,7 @@ function parameters(){
 	$page=CurrentPageName();
 	$boot=new boostrap_form();
 	$squid=new squidbee();
+	$squid_reverse=new squid_reverse();
 	if(!$users->AsSquidAdministrator){
 		senderror("{ERROR_NO_PRIVS}");
 		return;
@@ -650,14 +651,10 @@ function parameters(){
 	if($SquidReverseDefaultWebSite==null){$SquidReverseDefaultWebSite=$squid->visible_hostnameF();}
 	$boot->set_formtitle("{global_parameters}");
 	$boot->set_field("SquidReverseDefaultWebSite","{default_website}",  "$SquidReverseDefaultWebSite");
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	$q=new mysql();
-	$sslcertificates[null]="{default}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
-	}
-	
+
 	
 	$boot->set_list("certificate_center", "{default_certificate}", $sslcertificates,$squid->certificate_center);	
 	$boot->set_button("{apply}");

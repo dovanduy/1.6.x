@@ -50,7 +50,7 @@ function popup(){
 
 	$html="
 	<div id='div-$t'></div>
-	<div class=explain style='font-size:16px'>{zarafa_search_explain}</div>
+	<div class=text-info style='font-size:16px'>{zarafa_search_explain}</div>
 		<table style='width:99%' class=form>
 			<tr>	
 				<td class=legend style='font-size:16px'>{enable_zarafa_search}:</td>

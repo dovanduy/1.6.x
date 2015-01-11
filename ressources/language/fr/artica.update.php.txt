@@ -5,11 +5,10 @@
 <enable_autoupdate>T&eacute;l&eacute;charger les mises 	&agrave; jour</enable_autoupdate>
 <enable_nightlybuild>T&eacute;l&eacute;charger les nightly builds</enable_nightlybuild>
 <front_page_notify>Afficher sur la page de garde</front_page_notify>
-<install_package>Installer le package...</install_package>
+<install_package>Installer le paquetage</install_package>
 <install_package_text>Mettre &agrave; jour le noyau d'Artica en utilisant ce paquet ?
 Si oui, le processus de mise &agrave; jour red&eacute;marrera Artica et l'interface ne devrait pas &ecirc;tre disponible pendant quelques secondes.</install_package_text>
-<perform_update_text>Cette op&eacute;ration ex&eacute;cutera la mise &agrave; jour en t&acirc;che de fond, attendez s'il vous pla&icirc;t quelques minutes et retourn&eacute; &agrave; cette section dans les &eacute;v&eacute;nements pour voir si  l'op&eacute;ration de mise &agrave; jour c'est bien d&eacute;roul&eacute;e.
-Ex&eacute;cutez la Mise &agrave; jour maintenant ? ?</perform_update_text>
+<perform_update_text>Cette op&eacute;ration va lancer maintenant la mise &agrave; jour du logiciel Artica sur votre serveur en fonction des param&egrave;tres de mise &agrave; jour enregistr&eacute;s</perform_update_text>
 <samba_notify>Afficher/Notifier les mises &agrave; jour Samba</samba_notify>
 <update_list>Liste des mises &agrave; jour</update_list>
 <uri>URL du serveur de mise &agrave; jour</uri>

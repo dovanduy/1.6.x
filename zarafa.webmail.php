@@ -160,7 +160,7 @@ if($ZarafaApacheWebMailType==null){$ZarafaApacheWebMailType="APP_ZARAFA";}
 	
 $t=time();	
 $html="
-<div class=explain style='font-size:18px' id='anim-$t'>{zarafa_settings_webmail}</div>
+<div class=text-info style='font-size:18px' id='anim-$t'>{zarafa_settings_webmail}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>

@@ -67,7 +67,7 @@ function popup(){
 	
 	$color="#5DD13D";
 	$html="
-	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_POSTFIX}</div>
+	<div class=text-info style='font-size:16px'>{APPLY_SETTINGS_POSTFIX}</div>
 		<div id='please-wait'></div>
 		<table style='width:100%'>
 		<tr>

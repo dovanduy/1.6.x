@@ -25,7 +25,7 @@ faux causes la suppression de messages  de fa&ccedil;on permanente si il n'y a p
 <lighttp_min_proc>Param&eacute;trer les processus minimaux pour d&eacute;marrer</lighttp_min_proc>
 <locale_string>La configuration locale par d&eacute;faut</locale_string>
 <managesieve>filtres dans le style de Thunderbird</managesieve>
-<markasjunk>mark the selected message as Junk and move it to the Junk folder</markasjunk>
+<markasjunk>Marquer le message s&eacute;lectionn&eacute; comme ind&eacute;sirable et le d&eacute;placer dans le dossier courrier ind&eacute;sirable</markasjunk>
 <mysql>Configurations Mysql</mysql>
 <new_user_dialog>Pr&eacute;sente les param&egrave;tres d'identification aux nouveaux utilisateurs</new_user_dialog>
 <PHP_FCGI_CHILDREN>Le nombre de processus php-cgi</PHP_FCGI_CHILDREN>

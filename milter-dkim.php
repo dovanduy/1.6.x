@@ -125,7 +125,7 @@ function config(){
 	
 	
 	$html="
-			<div class=explain>{dkim_about}<br>{dkim_about2}</div>
+			<div class=text-info>{dkim_about}<br>{dkim_about2}</div>
 			<div id='$t'>
 			<table style='width:99%' class=form>
 				<tr>
@@ -338,7 +338,7 @@ function dns_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<div style='font-size:16px' class=explain>{dkim_showkeys_text}
+	<div style='font-size:16px' class=text-info>{dkim_showkeys_text}
 	<br>
 	<a href='javascript:blur();' OnClick=\"javascript:s_PopUp('http://dkimcore.org/tools/dkimrecordcheck.html',1024,768);\" style='text-decoration:underline;font-weight:bold'>DKIM Validation:</a>&nbsp;<i style='font-size:10px'>http://dkimcore.org/tools/dkimrecordcheck.html</i><br>
 	<a href='javascript:blur();' OnClick=\"javascript:s_PopUp('http://www.dnswatch.info/dkim/create-dns-record',1024,768);\" style='text-decoration:underline;font-weight:bold'>DKIM DNS Wizard:</a>&nbsp;<i style='font-size:10px'>http://www.dnswatch.info/dkim/create-dns-record</i><br>

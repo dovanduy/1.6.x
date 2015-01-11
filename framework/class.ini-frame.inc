@@ -7,7 +7,6 @@ if(!defined('BS_INIHANDLER_UNQUOTE_NONE')){
 	define('BS_INIHANDLER_HEAD_COMMENT',   "#\n\n");
 }
 
-
 class iniFrameWork {
   	var $commentChars = array('#', '/', ';');
    	var $unQuote = BS_INIHANDLER_UNQUOTE_ALL;

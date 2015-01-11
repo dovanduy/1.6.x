@@ -301,7 +301,7 @@ function policies_search(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();	
-	$html="<p class=explain>{amavis_users_policies_explain}</p>";
+	$html="<p class=text-info>{amavis_users_policies_explain}</p>";
 	$boot=new boostrap_form();
 	$user=new user($_SESSION["uid"]);
 	$mails=$user->HASH_ALL_MAILS;

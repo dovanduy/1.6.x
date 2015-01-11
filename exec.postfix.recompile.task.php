@@ -33,7 +33,7 @@ if($EnablePostfixMultiInstance==0){
 	$t=time();
 	exec("$php5 /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("Reconfigure postfix done took $took\n".@implode("\n", $results), "MAIN", __FILE__,
+	system_admin_events("{reconfigure} postfix done took $took\n".@implode("\n", $results), "MAIN", __FILE__,
 	 __LINE__, "postfix");
 }
 if($EnablePostfixMultiInstance==1){
@@ -49,7 +49,7 @@ if($EnablePostfixMultiInstance==1){
 		$ttA=array();
 		exec("$php5 /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\" 2>&1",$ttA);
 		$took=$unix->distanceOfTimeInWords($t,time(),true);	 
-		system_admin_events("Reconfigure postfix $hostname instance done took $took\n".@implode("\n", $ttA), "MAIN", __FILE__,__LINE__, "postfix");
+		system_admin_events("{reconfigure} postfix $hostname instance done took $took\n".@implode("\n", $ttA), "MAIN", __FILE__,__LINE__, "postfix");
 	}	
 	
 }

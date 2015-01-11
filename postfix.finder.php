@@ -40,7 +40,7 @@ function popup(){
 	$tpl=new templates();
 	$delete_this_query=$tpl->javascript_parse_text("{delete_this_query}");	
 	$html="
-		<div class=explain>{postfix_finder_explain}</div>
+		<div class=text-info>{postfix_finder_explain}</div>
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>

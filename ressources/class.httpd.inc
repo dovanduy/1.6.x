@@ -2,7 +2,8 @@
 include_once(dirname(__FILE__) . '/class.templates.inc');
 include_once(dirname(__FILE__) . '/class.artica.inc');
 include_once(dirname(__FILE__) . '/class.sockets.inc');
-
+include_once(dirname(__FILE__).  '/class.lighttpd.certificate.php');
+include_once(dirname(__FILE__).  '/class.apache.certificate.php');
 
 class httpd{
 	

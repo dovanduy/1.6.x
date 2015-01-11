@@ -50,7 +50,7 @@ function restart() {
 	start(true);
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
-	shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");
+	
 	
 }
 

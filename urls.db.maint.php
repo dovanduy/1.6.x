@@ -50,7 +50,7 @@ function popup(){
 	<tr>
 		<td width=1% valign='top'><img src='img/database-check-128.png'></td>
 		
-		<td valign='top'><div class=explain>{databases_maintenance_explain}</div>
+		<td valign='top'><div class=text-info>{databases_maintenance_explain}</div>
 			<table style='width:100%'>
 			<tr>
 				<td valign='middle' class=legend style='font-size:16px' width=1% nowrap>{time}:</td>

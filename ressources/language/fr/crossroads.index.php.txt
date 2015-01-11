@@ -21,7 +21,7 @@ Cette adresse sera utilis&eacute;e par les serveurs esclaves pour communiquer et
 <replicate_suffix>Section LDAP r&eacute;pliqu&eacute;e</replicate_suffix>
 <replicate_suffix_text>Cette branche LDAP sera r&eacute;pliqu&eacute;e par les serveurs esclaves</replicate_suffix_text>
 <slaves_servers>Serveurs esclaves</slaves_servers>
-<synchronize>Synchroniser les esclaves</synchronize>
+<synchronize>Synchroniser</synchronize>
 <synchronize_text>Cliquer sur cette image pour envoyer aux esclaves l'ordre d'activer le mode r&eacute;plication</synchronize_text>
 <warning_all_ldap_deleted>La base de donn&eacute;es LDAP principale [b]effacera les bases de donn&eacute;es LDAP distantes[/b].[br]
 Assurez vous que vos serveurs esclaves n'h&eacute;bergent pas de donn&eacute;es de production[br]

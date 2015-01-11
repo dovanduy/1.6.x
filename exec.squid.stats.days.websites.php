@@ -122,7 +122,7 @@ function perform($tablesource,$zday){
 	$prefix="INSERT IGNORE INTO `visited_sites_days` (`zmd5`,zDate,familysite,`size` ,`hits`) VALUES ";
 
 	$COUNT=mysql_num_rows($results);
-	event("perform($tablesource,$zday) -> $COUNT rows");
+	events("perform($tablesource,$zday) -> $COUNT rows");
 	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){

@@ -59,7 +59,6 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--repos#", @implode(" ", $argv))){$GLOBALS["REPOS"]=true;}
 if(preg_match("#--force#", @implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 
-
 if($argv[1]=="--factorize"){factorize($argv[2]);exit;}
 if($argv[1]=="--serialize"){serialize_tests();exit;}
 if($argv[1]=="--latests"){latests();exit;}

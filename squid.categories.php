@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["VERBOSE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -9,10 +10,9 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
-	$user=new usersMenus();
-	if(!$user->AsSquidAdministrator){
-		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
+	
+	if(!CategoriesCheckRightsRead()){
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}<hr>".@implode("<br>", $GLOBALS["CategoriesCheckRights"]));
 		exit;
 		
 	}
@@ -109,6 +109,7 @@ function js_popup_master(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{categories}");
 	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}::{$_GET["search"]}";}
+	header("content-type: application/x-javascript");
 	$start="RTMMail('720','$page?popup=yes&category={$_GET["category"]}&website={$_GET["search"]}&tablesize=700&rowebsite=426','$title');";
 	$html="
 	$start
@@ -134,9 +135,9 @@ function tabs(){
 	$array["list"]='{categories}';
 	$array["popup"]='{manage_your_items}';
 	$array["security"]='{permissions}';
-	$array["size"]='{compiled_categories}';
-	if($DisableArticaProxyStatistics==0){if(!isset($_GET["statusfirst"])){$array["status"]='{status}';}}
-	$array["squidlogs"]='{statistics_database}';
+	//$array["size"]='{compiled_categories}';
+	//if($DisableArticaProxyStatistics==0){if(!isset($_GET["statusfirst"])){$array["status"]='{status}';}}
+	//$array["squidlogs"]='{statistics_database}';
 	
 	if($_GET["category"]<>null){
 		unset($array["free-cat"]);
@@ -171,7 +172,7 @@ function tabs(){
 		
 	}
 	
-	$fontsize=13;
+	$fontsize=16;
 	if(count($array)<5){$fontsize=16;}
 	$catname_enc=urlencode($_GET["category"]);
 while (list ($num, $ligne) = each ($array) ){
@@ -343,6 +344,8 @@ function popup(){
 	$category_text=$tpl->_ENGINE_parse_body("{category}");
 	$removedisabled=$tpl->_ENGINE_parse_body("{remove_disabled_items}");
 	$removedisabled_warn=$tpl->javascript_parse_text("{remove_disabled_items_warn}");
+	$export=$tpl->javascript_parse_text("{export}");
+	$CategoriesCheckRightsWrite=CategoriesCheckRightsWrite();
 	if($category==null){
 		
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){
@@ -364,10 +367,14 @@ function popup(){
 		
 		
 	}
-	
+	$xls="{name: '$export:CSV', bclass: 'xls', onpress : xls$t},";
 	$RemoveEnabled="{name: '$removedisabled', bclass: 'Delz', onpress : RemoveDisabled$t},";
+	$BUTON_ADD_WEBSITES="{name: '$add_websites', bclass: 'Add', onpress : AddWebSites$t},";
+	if(!$CategoriesCheckRightsWrite){$RemoveEnabled=null;$BUTON_ADD_WEBSITES=null;}
+	
+	
 		$buttons="buttons : [
-			$RemoveEnabled
+			$RemoveEnabled 
 				],	";	
 			
 
@@ -376,8 +383,8 @@ function popup(){
 		if($_GET["category"]<>null){
 			$table_title="$category_text::$category";
 		$buttons="buttons : [
-			{name: '$add_websites', bclass: 'Add', onpress : AddWebSites$t},
-			$RemoveEnabled
+			$BUTON_ADD_WEBSITES
+			$RemoveEnabled $xls
 				],";
 		
 		$searchitem="	searchitems : [
@@ -404,7 +411,7 @@ $('#$t').flexigrid({
 	url: '$page?query=yes&category={$_GET["category"]}&website={$_GET["website"]}',
 	dataType: 'json',
 	colModel : [
-			{display: '$date', name : 'zDate', width : 140, sortable : true, align: 'left'},	
+			{display: '$date', name : 'zDate', width : 153, sortable : true, align: 'left'},	
 			{display: '$website', name : 'pattern', width :$rowebsite, sortable : true, align: 'left'},
 			{display: '$movetext', name : 'description2', width : 40, sortable : false, align: 'left'},
 			{display: '$movetext', name : 'description', width : 40, sortable : false, align: 'left'},
@@ -416,7 +423,7 @@ $searchitem
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$table_title',
+	title: '<span style=font-size:18px>$table_title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -426,6 +433,10 @@ $searchitem
 	
 	});   
 });
+
+function xls$t(){
+	Loadjs('squid.categories.export.php?category={$_GET["category"]}&t=$t');
+}
 
 	function AddWebSites$t(){
 		Loadjs('squid.visited.php?add-www=yes&category={$_GET["category"]}&t=$t');
@@ -574,6 +585,7 @@ function query(){
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	if(mysql_num_rows($results)==0){json_error_show("$nowebsites",1);}
 	$disabled_text=$tpl->_ENGINE_parse_body("{disabled}");
+	$CategoriesCheckRightsWrite=CategoriesCheckRightsWrite();
 	
 	$data = array();
 	$data['page'] = $page;
@@ -610,13 +622,21 @@ function query(){
 		
 $jscat="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.categorize.php?www={$ligne["pattern"]}');\"
-		style='font-size:14px;text-decoration:underline;$color'>";		
+		style='font-size:14px;text-decoration:underline;$color'>";	
+
+
+if(!$CategoriesCheckRightsWrite){
+	$jscat=null;
+	$moveAll=null;
+	$move=null;
+	$delete=null;
+}
 		
 	$data['rows'][] = array(
 		'id' => $ligne['zmd5'],
 		'cell' => array("
-		<span style='font-size:14px;$color'>{$ligne['zDate']}</span>",
-		"<span style='font-size:14px;$color'>$jscat{$ligne['pattern']}</a></span>$added",$moveAll,
+		<span style='font-size:16px;$color'>{$ligne['zDate']}</span>",
+		"<span style='font-size:16px;$color'>$jscat{$ligne['pattern']}</a></span>$added",$moveAll,
 		$move,$delete)
 		);
 	}
@@ -741,7 +761,7 @@ function MoveCategory_popup(){
 	
 	$html="
 	<div id='move-category-div'>
-	<div class=explain>{move_category_explain}</div>
+	<div class=text-info>{move_category_explain}</div>
 	<table style='width:99%' class=form>
 		<tbody>
 			<tr>
@@ -1039,7 +1059,8 @@ function test_category_perform(){
 		
 	}
 	$found=$tpl->_ENGINE_parse_body("{found}");
-	echo "<div style='width:95%:padding-left:50px;padding-top:20px' class=explain><div style='font-size:18px'>$found</div><table>".@implode("\n", $categoryText)."</table></div>";
+	echo "<div style='width:95%:padding-left:50px;padding-top:20px' class=text-info><div style='font-size:18px'>$found</div><table>".@implode("\n", $categoryText)."</table></div>";
 	
 }
+
 

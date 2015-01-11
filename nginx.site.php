@@ -23,9 +23,12 @@
 		die();exit();
 	}
 	
+	if(isset($_POST["main-parameters"])){main_parameters_save();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["main"])){main();exit;}
 	if(isset($_POST["servername-edit"])){Save();exit;}
+	if(isset($_GET["main_parameters"])){main_parameters();exit;}
+	if(isset($_GET["destination-none"])){destination_none();exit;}
 
 js();
 
@@ -44,17 +47,37 @@ function js(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$q=new mysql();
+	$q=new mysql_squid_builder();
 	$servername=$_GET["servername"];
 	$servername_text=$servername;
 	$servername_enc=urlencode($_GET["servername"]);
 	if($servername==null){$servername_text="{new_server}";}
 	
-	$array["main"]="$servername_text";
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT cache_peer_id FROM reverse_www WHERE servername='{$_GET["servername"]}'"));
+	$cache_peer_id=$ligne["cache_peer_id"];
+	if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error);return;}
+	
+	//$array["main"]="$servername_text";
 	if($servername<>null){
-		$array["ssl"]="{ssl}";
+		$array["main_parameters"]="$servername_text";
+		$array["aliases"]="{aliases}";
+		
 		
 	}
+	
+	if($cache_peer_id>0){
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr,port FROM reverse_sources WHERE ID='{$cache_peer_id}'"));
+		if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error);return;}
+		$array["destination"]=$ligne["ipaddr"].":".$ligne["port"];
+		
+	}else{
+		$array["destination-none"]="{destination}";
+	}
+		
+		
+	$array["ssl"]="{ssl}";
+
 	
 	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
@@ -67,8 +90,18 @@ function tabs(){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"apache.watchdog-events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="aliases"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.site.aliases.php?servername=$servername_enc\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 	
-	
+		if($num=="destination"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.peer.php?general-settings=yes&ID=$cache_peer_id\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+			
 		$tab[]="<li style='font-size:{$fontsize}px'><a href=\"$page?$num=yes&servername=$servername_enc\"><span >$ligne</span></a></li>\n";
 			
 	}
@@ -81,6 +114,105 @@ function tabs(){
 	echo build_artica_tabs($tab, "main_nginx_server");	
 	
 }
+
+
+function main_parameters(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$servername=$_GET["servername"];
+	
+	$rv=new squid_reverse();
+	$q=new mysql_squid_builder();
+	$sock=new sockets();	
+	$t=time();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
+	
+	$ip=new networking();
+	$ipsH=$ip->ALL_IPS_GET_ARRAY();
+	$ipsH[null]="{all}";
+	
+	$html[]="<div style='width:98%' class=form>";
+	$html[]="<table style='width:100%'>";
+	$html[]="<tr><td colspan=2 style='font-size:36px;margin-bottom:20px'>{main_parameters}</td></tr>";
+	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{enable_website}", "{nginx_enable_www_text}","enabled-$t",$ligne["enabled"],null,820)."</td></tr>";
+	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{default_server}", "{NGINX_DEFAULT_SERVER}<br>{nginx_default_server_text}","default_server-$t",$ligne["default_server"],null,820)."</td></tr>";
+	
+	
+	$html[]=Field_text_table("zOrder-$t","{order}",$ligne["zOrder"],26,null,90);
+	$html[]=Field_list_table("ipaddr-$t","{listen_address}",$ligne["ipaddr"],26,$ipsH);
+	$html[]=Field_text_table("port-$t","{inbound_port}",$ligne["port"],26,null,110);
+	$html[]=Field_text_table("RedirectQueries-$t","{RedirectQueries}",$ligne["RedirectQueries"],26,"{RedirectQueries_explain}",480);
+	
+	
+	
+	$html[]=Field_button_table_autonome("{apply}","Submit$t",30);
+	$html[]="</table>";
+	$html[]="</div>
+<script>
+	var xSubmit$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		$('#NGINX_MAIN_TABLE').flexReload();
+		
+	}
+
+
+	function Submit$t(){
+		var XHR = new XHRConnection();	
+		XHR.appendData('servername','$servername');
+		XHR.appendData('main-parameters','yes');
+		XHR.appendData('enabled',document.getElementById('enabled-$t').value);
+		XHR.appendData('zOrder',document.getElementById('zOrder-$t').value);
+		XHR.appendData('default_server',document.getElementById('default_server-$t').value);
+		XHR.appendData('port',document.getElementById('port-$t').value);
+		XHR.appendData('ipaddr',document.getElementById('ipaddr-$t').value);
+		XHR.appendData('RedirectQueries',encodeURIComponent(document.getElementById('RedirectQueries-$t').value));
+		
+		
+		XHR.sendAndLoad('$page', 'POST',xSubmit$t);	
+	}
+</script>			
+			
+";
+echo $tpl->_ENGINE_parse_body(@implode("\n", $html));
+	
+	
+}
+
+function main_parameters_save(){
+	$_POST["RedirectQueries"]=url_decode_special_tool($_POST["RedirectQueries"]);
+	$q=new mysql_squid_builder();
+	$sql="UPDATE `reverse_www` SET 
+				`enabled`='{$_POST["enabled"]}',
+				`zOrder`='{$_POST["zOrder"]}',
+				`default_server`='{$_POST["default_server"]}',
+				`port`='{$_POST["port"]}',
+				`ipaddr`='{$_POST["ipaddr"]}',
+				`RedirectQueries`='{$_POST["RedirectQueries"]}'
+				WHERE servername='{$_POST["servername"]}'";
+	$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){echo $q->mysql_error."\n$sql";}
+	
+	$results=$q->QUERY_SQL("SELECT servername FROM reverse_www ORDER by zOrder","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	$c=1;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ID=$ligne["servername"];
+		$sql="UPDATE reverse_www SET zOrder=$c WHERE servername='$ID'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n$sql";}
+		$c++;
+	}	
+	
+	if($_POST["enabled"]==0){
+		$sock=new sockets();
+		$sock->getFrameWork("nginx.php?remove-site=".urlencode($_POST["servername"]));
+	}
+	
+	
+}
+
 
 function main(){
 	$tpl=new templates();
@@ -147,18 +279,18 @@ function main(){
 	
 	$html[]="<div style='width:98%' class=form>";
 	$html[]="<table style='width:100%'>";
-	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("$title", "{nginx_enable_www_text}","enabled-$t",$ligne["enabled"],null,600)."</td></tr>";
+	
+	
+	$html[]="<tr><td colspan=2 style='font-size:22px'>{reverse_proxy}:</td></tr>";
 	$html[]="<tr><td class=legend style='font-size:18px'>{webserver}:</td>";
 	$html[]="<td style='font-size:18px'>$Hidden</td></tr>";
 	
 		
 	
-if(!$AsFReeWeb){
-	$html[]=Field_text_table("port-$t","{inbound_port}",$ligne["port"],18,null,110);		
-}
 
 
-	$html[]=Field_checkbox_table("default_server-$t","{default_server}",$ligne["default_server"],18,"{NGINX_DEFAULT_SERVER}",300);
+
+	
 	$html[]=Field_checkbox_table("owa-$t","{protect_owa}",$ligne["owa"],18);
 	$html[]=Field_checkbox_table("debug-$t","{debug}",$ligne["debug"],18);
 	$html[]=Field_list_table("cacheid-$t","{cache}",$ligne["cacheid"],18,$nginx_caches);
@@ -242,12 +374,23 @@ function Save(){
 
 }
 
+function AdminPrivs(){
+	$users=new usersMenus();
+	if($users->AsSystemWebMaster){return true;}
+	if($users->AsSquidAdministrator){return true;}
+}
 
-
-
-	function AdminPrivs(){
-		$users=new usersMenus();
-		if($users->AsSystemWebMaster){return true;}
-		if($users->AsSquidAdministrator){return true;}
+function destination_none(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$servername=$_GET["servername"];
+	$servenameenc=urlencode($servername);
+	echo FATAL_ERROR_SHOW_128("<strong>{no_destination}</strong><br>{nginx_destination_none_explain}
+			<center style='margin-top:20px'>".button("{choose_destination}","Loadjs('nginx.destinations.choose.php?servername=$servenameenc')",26)."</center>
+			
+			");
 	
-	}
+	
+	
+	
+}

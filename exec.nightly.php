@@ -31,8 +31,121 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if($argv[1]=="--refresh"){RefreshIndex(true);exit;}
+if($argv[1]=="--restart-services"){RestartDedicatedServices(true);exit;}
+if($argv[1]=="--meta-release"){ArticaMeta_release($argv[2]);exit;}
 
 nightly();
+
+
+function ArticaMeta_release($source_package){
+	$sock=new sockets();
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$Todelete=false;
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==0){
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - DISABLED -\n";
+		_artica_update_event(2,"Checking Artica-meta repository - DISABLED -",null,__FILE__,__LINE__);
+		return;
+	}
+	
+	ArticaMeta_events("Checking $source_package");
+	
+	$dirname=dirname($source_package);
+	if($dirname=="/usr/share/artica-postfix/ressources/conf/upload"){
+		$Todelete=true;
+	}
+	
+	echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - ENABLED -\n";
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
+	@mkdir("$ArticaMetaStorage/releases",0755,true);
+	$basename=basename($source_package);
+	if(!preg_match("#artica-[0-9\.]+\.tgz#", $basename)){
+		 ArticaMeta_events("$basename no match #artica-[0-9\.]+\.tgz#");
+		_artica_update_event(1,"Checking Artica-meta repository - FAILED ( $basename not an artica package)",null,__FILE__,__LINE__);
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - FAILED ( not an artica package) -\n";
+		return;
+	}
+	
+	
+	if(is_file("$ArticaMetaStorage/releases/$basename")){@unlink("$ArticaMetaStorage/releases/$basename");}
+	
+	$md5source=md5_file($source_package);
+	
+	ArticaMeta_events("Copy $source_package to $ArticaMetaStorage/releases/$basename");
+	@copy($source_package, "$ArticaMetaStorage/releases/$basename");
+	$md5Dest=md5_file("$ArticaMetaStorage/releases/$basename");
+	
+	if($md5source<>$md5Dest){
+		ArticaMeta_events("$md5source differ $md5Dest");
+		_artica_update_event(1,"Checking Artica-meta repository - FAILED source differ!");
+		if($Todelete){@unlink($source_package);}
+		
+	}
+	
+	
+	_artica_update_event(2,"Added $basename into official repository",null,__FILE__,__LINE__);
+	meta_admin_mysql(2, "Added $basename into official repository", null,__FILE__,__LINE__);
+	if($Todelete){
+		ArticaMeta_events("Removing $source_package");
+		@unlink($source_package);
+	}
+
+	ArticaMeta_events("Execute $php /usr/share/artica-postfix/exec.artica-meta-server.php --force ");
+	shell_exec("$php /usr/share/artica-postfix/exec.artica-meta-server.php --force");
+}
+
+function ArticaMeta_events($subject){
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+			
+		}
+			
+	}
+
+
+	$unix=new unix();
+	$unix->events($subject,"/var/log/artica-metaserver-update.log",false,$function,$line,$file);
+}
+
+function ArticaMeta_nightly($source_package){
+	$sock=new sockets();
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==0){
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - DISABLED -\n";
+		_artica_update_event(2,"Checking Artica-meta repository - DISABLED -",null,__FILE__,__LINE__);
+		return;
+	}
+
+	echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - ENABLED -\n";
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
+	@mkdir("$ArticaMetaStorage/releases",0755,true);
+	$basename=basename($source_package);
+	if(!preg_match("#artica-[0-9\.]+\.tgz#", $basename)){
+		_artica_update_event(1,"Checking Artica-meta repository - FAILED ( $basename not an artica package)",null,__FILE__,__LINE__);
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - FAILED ( not an artica package) -\n";
+		return;
+	}
+	if(is_file("$ArticaMetaStorage/nightlys/$basename")){@unlink("$ArticaMetaStorage/nightlys/$basename");}
+	@copy($source_package, "$ArticaMetaStorage/nightlys/$basename");
+	_artica_update_event(2,"Added $basename into nightly repository",null,__FILE__,__LINE__);
+	meta_admin_mysql(2, "Added $basename into nightly repository", null,__FILE__,__LINE__);
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php ".dirname(__FILE__)."/exec.artica-meta-server.php --force");
+	
+}
+
 
 function RefreshIndex(){
 	$unix=new unix();
@@ -268,7 +381,7 @@ function update_release(){
 	events("Downloading new version $Lastest");
 	
 	$uri="$MAIN_URI/download/artica-$Lastest.tgz";
-	$ArticaFileTemp="$tmpdir/$Lastest/$Lastest.tgz";
+	$ArticaFileTemp="$tmpdir/$Lastest/artica-$Lastest.tgz";
 	@mkdir("$tmpdir/$Lastest",0755,true);
 	$curl=new ccurl($uri);
 	$curl->Timeout=2400;
@@ -291,14 +404,20 @@ function update_release(){
 	$took=$unix->distanceOfTimeInWords($t,time(),true);
 	_artica_update_event(2,"artica-$Lastest.tgz downloaded, took $took",null,__FILE__,__LINE__);
 	system_admin_events("artica-$Lastest.tgz downloaded, took $took", __FUNCTION__, __FILE__, __LINE__, "artica-update");
+	ArticaMeta_release($ArticaFileTemp);
 	events("artica-$Lastest.tgz downloaded, took $took");
+	
+	echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository\n";
+	ArticaMeta_release($ArticaFileTemp);
 	
 	if(!$GLOBALS["FORCE"]){
 		if($autoinstall==false){
 			_artica_update_event(2,"artica-latest.tgz will be stored in /root",null,__FILE__,__LINE__);
 			@copy("$ArticaFileTemp", "/root/artica-latest.tgz");
+			$size=@filesize($ArticaFileTemp);
+			$size=FormatBytes($size/1024,true);
 			@unlink($ArticaFileTemp);
-			_artica_update_event(1,"New Artica v.$Lastest waiting administrator order",null,__FILE__,__LINE__);
+			_artica_update_event(1,"New Artica v.$Lastest ($size) waiting administrator order",null,__FILE__,__LINE__);
 			system_admin_events("New Artica update v.$Lastest waiting your order", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 			return;
 		}
@@ -307,9 +426,11 @@ function update_release(){
 	
 	
 	echo "Starting......: ".date("H:i:s")." Official release took $took\n";
+	$size=@filesize($ArticaFileTemp);
+	$size=FormatBytes($size/1024,true);
 	if(install_package($ArticaFileTemp,$Lastest)){return;}
 	events("New Artica update v.$Lastest");
-	_artica_update_event(1,"Nightly build: Artica v.$Lastest",null,__FILE__,__LINE__);
+	_artica_update_event(1,"Nightly build: Artica v.$Lastest ($size)",null,__FILE__,__LINE__);
 	system_admin_events("New Artica update v.$Lastest", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 	
 }
@@ -377,6 +498,8 @@ function nightly(){
 	$pid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	$tmpdir=$unix->TEMP_DIR();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	
 	
 	if($unix->process_exists($pid,basename(__FILE__))){
@@ -411,14 +534,19 @@ function nightly(){
 	$ini=new iniFrameWork();
 	$ini->loadFile('/etc/artica-postfix/artica-update.conf');
 	if(!isset($ini->_params["AUTOUPDATE"]["enabled"])){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
+	if(trim($ini->_params["AUTOUPDATE"]["enabled"])==null){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
 	if($ini->_params["AUTOUPDATE"]["enabled"]==null){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
 	if(trim($ini->_params["AUTOUPDATE"]["uri"])==null){$ini->_params["AUTOUPDATE"]["uri"]="http://www.articatech.net/auto.update.php";}
-	
-	
-	
-	if(trim($ini->_params["AUTOUPDATE"]["enabled"])==null){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
+	if($ini->_params["AUTOUPDATE"]["enabled"]==1){$ini->_params["AUTOUPDATE"]["enabled"]='yes';}
 	if(!is_numeric(trim($ini->_params["AUTOUPDATE"]["CheckEveryMinutes"]))){$ini->_params["AUTOUPDATE"]["CheckEveryMinutes"]=60;}
-	if($ini->_params["AUTOUPDATE"]["enabled"]<>'yes'){echo "Starting......: ".date("H:i:s")." Update feature is disabled\n";return;}
+	
+	if($ini->_params["AUTOUPDATE"]["enabled"]<>'yes'){
+		echo "Starting......: ".date("H:i:s")." Artica Update feature is disabled (enabled = {$ini->_params["AUTOUPDATE"]["enabled"]} )\n";
+		return;
+	}
+	
+
+	
 	$CheckEveryMinutes=$ini->_params["AUTOUPDATE"]["CheckEveryMinutes"];
 	
 	$uri=$ini->_params["AUTOUPDATE"]["uri"];
@@ -448,7 +576,21 @@ function nightly(){
 		}
 	}
 	
+	
+	
+// ----------------------- LANCEMENT ------------------------------------------------------------------------------
+
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){
+		echo "Starting......: ".date("H:i:s")." Nightly builds using Artica Meta console\n";
+		system("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-client.php --artica-updates >/dev/null 2>&1 &");
+		die();
+	}
+	
+	
+	
 	echo "Starting......: ".date("H:i:s")." Nightly builds checking an official release first\n";
+	
 	if(update_release()){return;}
 	
 	$nightly=trim(strtolower($ini->_params["AUTOUPDATE"]["nightlybuild"]));
@@ -493,7 +635,7 @@ function nightly(){
 	events("Downloading new version $Lastest");
 	
 	$uri="$MAIN_URI/nightbuilds/artica-$Lastest.tgz";
-	$ArticaFileTemp="$tmpdir/$Lastest/$Lastest.tgz";    
+	$ArticaFileTemp="$tmpdir/$Lastest/artica-$Lastest.tgz";    
 	@mkdir("$tmpdir/$Lastest",0755,true);
 	$curl=new ccurl($uri);
 	$curl->Timeout=2400;
@@ -511,14 +653,16 @@ function nightly(){
 	_artica_update_event(2,"artica-$Lastest.tgz download, took $took",null,__FILE__,__LINE__);
 	system_admin_events("artica-$Lastest.tgz download, took $took", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 	events("artica-$Lastest.tgz download, took $took");
-
+	$size=@filesize($ArticaFileTemp);
+	$size=FormatBytes($size/1024,true);
+	ArticaMeta_nightly($ArticaFileTemp);
 	echo "Starting......: ".date("H:i:s")." nightly builds took $took\n";
 	if(!$GLOBALS["FORCE"]){
 		if($autoinstall==false){
 			_artica_update_event(2,"artica-latest.tgz will be stored in /root",null,__FILE__,__LINE__);
 			@copy("$ArticaFileTemp", "/root/artica-latest.tgz");
 			@unlink($ArticaFileTemp);
-			_artica_update_event(1,"nightly builds New Artica update v.$Lastest waiting order",null,__FILE__,__LINE__);
+			_artica_update_event(1,"Nightly builds New Artica update v.$Lastest ($size) waiting order",null,__FILE__,__LINE__);
 			system_admin_events("New Artica update v.$Lastest waiting your order", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 			return;
 		}else{
@@ -528,11 +672,14 @@ function nightly(){
 
 
 	events("Now, installing the newest version in $ArticaFileTemp package...");
+	$size=@filesize($ArticaFileTemp);
+	$size=FormatBytes($size/1024,true);
+	
 	if(!install_package($ArticaFileTemp,$Lastest)){
 		events("Install package Failed...");
 		return false;}
 	events("New Artica update v.$Lastest");
-	_artica_update_event(1,"nightly builds New Artica update v.$Lastest",null,__FILE__,__LINE__);
+	_artica_update_event(1,"Nightly builds New Artica update v.$Lastest ($size)",null,__FILE__,__LINE__);
 	system_admin_events("New Artica update v.$Lastest", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 
 }
@@ -542,6 +689,7 @@ function install_package($filename,$expected=null){
 	$sock=new sockets();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	$rm=$unix->find_program("rm");
 	$RebootAfterArticaUpgrade=$sock->GET_INFO("RebootAfterArticaUpgrade");
 	if(!is_numeric($RebootAfterArticaUpgrade)){$RebootAfterArticaUpgrade=0;}
 	events("Starting......: ".date("H:i:s")." install_package() Extracting package $filename, please wait... ");
@@ -567,8 +715,19 @@ function install_package($filename,$expected=null){
 		@file_put_contents("/usr/share/artica-postfix/download_progress", 100);
 		return false;
 	}
-	events("Starting......: ".date("H:i:s")." Extracting...");
+	events("Starting......: ".date("H:i:s")." Purge directories...");
 	@file_put_contents("/usr/share/artica-postfix/download_progress", 40);
+	system("$rm -f /usr/share/artica-postfix/ressources/logs/*");
+	system("$rm -f /usr/share/artica-postfix/ressources/logs/web/*");
+	if(is_dir("/usr/share/artica-postfix/ressources/conf/upload")){
+		system("$rm -f /usr/share/artica-postfix/ressources/conf/upload/*");
+	}
+	
+	if(is_dir("/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded")){
+		system("$rm -f /usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/*");
+	}
+	
+	events("Starting......: ".date("H:i:s")." Extracting...");
 	exec("$tarbin xf $filename -C /usr/share/ 2>&1",$results);
 	if(is_file("$killall")){shell_exec("$killall artica-install >/dev/null 2>&1");}
 	@unlink($filename);
@@ -602,8 +761,24 @@ function install_package($filename,$expected=null){
 	
 }
 
-function RestartDedicatedServices(){
+function RestartDedicatedServices($aspid=false){
 	$unix=new unix();
+	
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		
+		
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "Starting......: ".date("H:i:s")." RestartDedicatedServices already executed PID: $pid since {$time}Mn\n";
+			if($time<120){if(!$GLOBALS["FORCE"]){die();}}
+			unix_system_kill_force($pid);
+		}
+		
+		@file_put_contents($pidfile, getmypid());
+	}
+	
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	$squidbin=$unix->LOCATE_SQUID_BIN();

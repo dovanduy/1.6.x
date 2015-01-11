@@ -1,5 +1,5 @@
 <?php
-
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $GLOBALS["AS_ROOT"]=false;
 $GLOBALS["CACHE_RIGHT_IMAGE"]="/usr/share/artica-postfix/ressources/logs/web/status.right.image.cache";
 
@@ -51,6 +51,7 @@ if($GLOBALS["AS_ROOT"]){
 			include_once('ressources/class.templates.inc');
 			$page=CurrentPageName();
 			$time=filemtime($GLOBALS["CACHE_RIGHT_IMAGE"]);
+			if($GLOBALS["VERBOSE"]){echo "<H1>{$GLOBALS["CACHE_RIGHT_IMAGE"]} ".strlen($data)." bytes</H1>";}
 			$tpl=new templates();
 			$cacheTime_text=date("Y {F} {l} H:i:s",$time);
 			$subtext=$tpl->_ENGINE_parse_body("
@@ -69,6 +70,7 @@ if($GLOBALS["AS_ROOT"]){
 build();
 
 function build(){
+	if($GLOBALS["VERBOSE"]){echo "<H1>build()</H1>";}
 	$script="<script> LoadAjax('mem_status_computer','admin.index.php?memcomputer=yes',true); </script>";
 	$html=status_right_image2().$script;
 	@file_put_contents($GLOBALS["CACHE_RIGHT_IMAGE"], $html);
@@ -108,12 +110,18 @@ function status_right_image2(){
 	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
-	
+	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
+	$status=new status();
 	if($GLOBALS["VERBOSE"]){echo " DisableMessaging = $DisableMessaging\n";}
 	
 	if($DisableMessaging==1){
 			$users->POSTFIX_INSTALLED=false;
 			$users->ZARAFA_INSTALLED=false;
+	}
+	
+	if($AsCategoriesAppliance==1){
+		return $tpl->_ENGINE_parse_body($status->CATEGORIES_APPLIANCE());
+		
 	}
 	
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
@@ -123,7 +131,7 @@ function status_right_image2(){
 	
 	$NOCACHE=false;
 	if($GLOBALS["VERBOSE"]){echo " -> Loading status()\n";}
-	$status=new status();
+	
 	
 
 	if($GLOBALS["VERBOSE"]){echo " -> Checking\n";}

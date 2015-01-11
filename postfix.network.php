@@ -66,8 +66,9 @@ function ajax(){
 function popuptabs(){
 	
 	$page=CurrentPageName();
-	$array["BindInterfaceForm"]='{inet_interfaces_title}';
 	$array["networkint"]='{networks}';
+	$array["BindInterfaceForm"]='{inet_interfaces_title}';
+	
 	$array["dns"]='{DNS_SETTINGS}';
 	$array["ipv6"]='ipv6';
 	
@@ -78,28 +79,10 @@ function popuptabs(){
 	
 
 while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:20px'>$ligne</span></a></li>\n";
 	}
 	
-	
-	return "
-	<div id=main_config_postfix_net style='width:100%;height:530px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_postfix_net').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	return build_artica_tabs($html, "main_config_postfix_net");
 }
 
 
@@ -350,7 +333,7 @@ $('#POSTFIX_BIND_INTERFACE').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 665,
+	width: '99%',
 	height: 300,
 	singleSelect: true
 	
@@ -522,14 +505,15 @@ function QueryDNSForm(){
 	
 	$myorigin="<strong>\$mydomain</strong><input type='hidden' name='myorigin' value='\$mydomain' id='myorigin'>";
 	
-	$styleadd="style='font-size:16px;padding:4px'";
+	$styleadd="style='font-size:26px;padding:4px'";
 
 $html="<div id='QueryDNSFormSaveid'>
-<span style='font-size:18px;font-weight:bold'>{DNS_SETTINGS} & {hostname}</span>
-	<table style='width:99%' align='center' class=form>
+<span style='font-size:32px;'>{DNS_SETTINGS} & {hostname}</span>
+<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 	<td align='right' valign='top' nowrap class=legend $styleadd>{myhostname}&nbsp;:</strong></td>
-	<td align='left' width=1% $styleadd>" . Field_text('myhostname',$myhostname,'width:220px;font-size:16px;padding:3px') ."</td>
+	<td align='left' width=1% $styleadd>" . Field_text('myhostname',$myhostname,'width:500px;font-size:26px;padding:3px') ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{myhostname_text}')."</td>
 	<tr>
 	<tr>
@@ -538,16 +522,16 @@ $html="<div id='QueryDNSFormSaveid'>
 	<td valign='top' width=1% $styleadd>".help_icon('{myorigin_text}')."</td>
 	<tr>	
 	<td align='right' valign='top' nowrap class=legend $styleadd>{ignore_mx_lookup_error}&nbsp;:</strong></td>
-	<td align='left' width=1% $styleadd>" . Field_checkbox('ignore_mx_lookup_error','1',$main->GET("ignore_mx_lookup_error")) ."</td>
+	<td align='left' width=1% $styleadd>" . Field_checkbox_design('ignore_mx_lookup_error','1',$main->GET("ignore_mx_lookup_error")) ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{ignore_mx_lookup_error_text}')."</td>
 	</tr>
 	<tr>
 		<tr>
 	<td align='right' valign='top' nowrap class=legend $styleadd>{disable_dns_lookups}&nbsp;:</strong></td>
-	<td align='left'  width=1% $styleadd>" . Field_checkbox('disable_dns_lookups','1',$main->GET("disable_dns_lookups")) ."</td>
+	<td align='left'  width=1% $styleadd>" . Field_checkbox_design('disable_dns_lookups','1',$main->GET("disable_dns_lookups")) ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{disable_dns_lookups_text}')."</td>
 	</tr>
-	<tr><td colspan=3 align='right'><hr>". button("{apply}","QueryDNSFormSave()",16)."</td></tr>
+	<tr><td colspan=3 align='right'><hr>". button("{apply}","QueryDNSFormSave()",40)."</td></tr>
 	</table>
 	</div>
 	
@@ -1008,7 +992,7 @@ function POSTFIX_MULTI_INSTANCE(){
 		</td>
 	</tr>
 	</table>
-	<div class=explain style='font-size:13px'>{POSTFIX_MULTI_INSTANCE_HOWTO}</div>
+	<div class=text-info style='font-size:13px'>{POSTFIX_MULTI_INSTANCE_HOWTO}</div>
 		<div style='text-align:right'><hr>
 		". button("{apply}","POSTFIX_MULTI_INSTANCE()",16)."
 		</div>
@@ -1061,20 +1045,20 @@ function ipv6(){
 	<td valign='top' width=1%>
 	<img src='img/folder-network-128.png' id='smtp_bind_address6_img'>
 	</td>
-	<td valign='top'>
-	<div class=explain>{smtp_bind_address6}</div>
+	<td valign='top' style='padding-left:15px'>
+	<div class=text-info style='font-size:18px'>{smtp_bind_address6}</div>
 	
 	<table style='width:100%'>
 	<tr>
-		<td class=legend>{enable_ipv6}:</td>
-		<td>". Field_checkbox("PostfixEnableIpv6",1,$PostfixEnableIpv6,"PostfixEnableIpv6Check()")."</td>
+		<td class=legend style='font-size:26px'>{enable_ipv6}:</td>
+		<td>". Field_checkbox_design("PostfixEnableIpv6",1,$PostfixEnableIpv6,"PostfixEnableIpv6Check()")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{addr}:</td>
-		<td>". Field_text("smtp_bind_address6",$smtp_bind_address6,"font-size:13px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:26px'>{addr}:</td>
+		<td>". Field_text("smtp_bind_address6",$smtp_bind_address6,"font-size:26px;padding:3px;width:520px")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align=right><hr>". button("{apply}","smtp_bind_address6_save()")."</td>
+		<td colspan=2 align=right><hr>". button("{apply}","smtp_bind_address6_save()",40)."</td>
 	</tr>
 	</table>
 	</td>

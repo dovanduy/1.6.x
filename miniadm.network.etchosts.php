@@ -26,7 +26,7 @@ function etchostss_section(){
 	$tpl=new templates();
 	$OPTIONS["BUTTONS"][]=button("{add_new_entry}","Loadjs('$page?etchosts-js=yes')",16);
 	echo 
-	$tpl->_ENGINE_parse_body("<div class=explain>{etc_hosts_explain}</div>").	$boot->SearchFormGen("ipaddr,hostname","search-etchosts",null,$OPTIONS);
+	$tpl->_ENGINE_parse_body("<div class=text-info>{etc_hosts_explain}</div>").	$boot->SearchFormGen("ipaddr,hostname","search-etchosts",null,$OPTIONS);
 
 
 }

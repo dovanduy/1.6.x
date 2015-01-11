@@ -179,6 +179,23 @@ function categorize($day=null){
 	
 }
 
+
+function categorize_last7days_percentage($text){
+
+
+	$array["TITLE"]="Last 7 days: ".$text." ".date("H:i:s");
+	$array["POURC"]=55;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [46] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
+
 function categorize_last7days(){
 	
 	$unix=new unix();
@@ -251,9 +268,10 @@ function _categorize_last7days($tablesource){
 	if($GLOBALS["VERBOSE"]){echo "$sql\n$tablesource = ".mysql_num_rows($results)."\n";}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		categorize_last7days_percentage($ligne["sitename"]);
 		$cat=$q->GET_FULL_CATEGORIES($ligne["sitename"]);
 		if($cat==null){
-			echo "{$ligne["sitename"]}\n";
+			
 			continue;
 		}
 		$q->QUERY_SQL("UPDATE $tablesource SET `category`='$cat' WHERE `sitename`='{$ligne["sitename"]}'");

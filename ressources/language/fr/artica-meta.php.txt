@@ -347,7 +347,7 @@ Par cons&eacute;quent, les exp&eacute;diteurs ne sont pas autoris&eacute;s &agra
 <sarg_topuser_exp>0 = Sans limite</sarg_topuser_exp>
 <sarg_topuser_num>Combien d'utilisateurs dans le top des sites web</sarg_topuser_num>
 <sarg_users_sites>Sites utilisateurs</sarg_users_sites>
-<sarg_user_ip>Utilise l'adresse IP &agrave; la place des id utilisateurs dans les rapports</sarg_user_ip>
+<sarg_user_ip>Utiliser que l\'adresse IP</sarg_user_ip>
 <security_packages>Paquets de s&eacute;curit&eacute;</security_packages>
 <selected_accents>s&eacute;lectionn&eacute;(s)</selected_accents>
 <serial_number>Num&eacute;ro de s&eacute;rie</serial_number>
@@ -404,7 +404,7 @@ Il est &agrave; noter que le serveur distant &eacute;met un &eacute;tat ponctuel
 <top_processes>TOP des Processus</top_processes>
 <trash>corbeille</trash>
 <UpdatesFolder>Dossier de mise &agrave; jour</UpdatesFolder>
-<update_packages>Paquets applicatifs</update_packages>
+<update_packages>Mettre &agrave; jour les paquets</update_packages>
 <update_serial_number>Mettre &agrave; jour le num&eacute;ro de s&eacute;rie</update_serial_number>
 <UseAuthenticationProxyServer>Utiliser l'authentification Proxy</UseAuthenticationProxyServer>
 <UsePassiveFtpMode>Utiliser le mode FTP PASSIF</UsePassiveFtpMode>

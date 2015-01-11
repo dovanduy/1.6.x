@@ -182,7 +182,7 @@ function popup(){
 function  help_page(){
 	$page=CurrentPageName();
 	$tpl=new templates();			
-	$html="<div class=explain style='font-size:14px'>{crossroads_wb_text}</div>";
+	$html="<div class=text-info style='font-size:14px'>{crossroads_wb_text}</div>";
 	echo $tp->_ENGINE_parse_body($html);
 	
 }

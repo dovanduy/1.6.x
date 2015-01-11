@@ -260,7 +260,7 @@ function zarafaSendAsPrivilege_popup(){
 	],";
 	
 	$html="
-	<div class=explain style='font-size:14px'>$zarafaSendAsPrivilege_text</div>
+	<div class=text-info style='font-size:14px'>$zarafaSendAsPrivilege_text</div>
 	<table class='flexRT$tt' style='display: none' id='flexRT$tt' style='width:100%'></table>
 	<script>
 	function Start$tt(){
@@ -519,7 +519,7 @@ $html="<div style='font-size:16px;font-weight:bolder;padding:5px'>{sender_canoni
 		</td>
 		<td valign='top'>
 				<div id='SaveSenderCanonicalID'>
-				<div class=explain>{sender_canonical_text} </div>
+				<div class=text-info>{sender_canonical_text} </div>
 				<span style='font-weight:bolder;font-size:13px'>{from}: &laquo;$mail&raquo; {to}: &laquo;$cano&raquo;</span></p>
 				<center>
 					<table style='width:100%'>
@@ -631,7 +631,7 @@ function popup(){
 			<div id='senders-left-infos' style='margin-top:8px'>$leftinfos</div>
 		</td>
 		<td valign='top'>
-			<div class=explain style='font-size:13px'>{sender_parameters_text}</div>
+			<div class=text-info style='font-size:13px'>{sender_parameters_text}</div>
 			<table style='width:100%'>
 			<tr>
 			<td valign='top'>$canonical</td>

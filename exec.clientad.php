@@ -18,18 +18,13 @@ include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
 
 if($argv[1]=="--tests"){tests();die();}
 
-
-
-
-
-
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$timepid="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$unix=new unix();
 
 	if(!$GLOBALS["FORCE"]){
-		if($unix->file_time_min($timepid)<20){
-			if($GLOBALS["VERBOSE"]){echo "Need 20Mb minimal\n";}
+		if($unix->file_time_min($timepid)<240){
+			if($GLOBALS["VERBOSE"]){echo "Need 240Mn minimal\n";}
 			die();
 		}
 	}

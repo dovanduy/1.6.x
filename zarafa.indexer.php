@@ -42,7 +42,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain>{zarafa_indexer_explain}</div>
+	<div class=text-info>{zarafa_indexer_explain}</div>
 	<div id='zarafa-indexer-div'>
 	<p>&nbsp;</p>
 	<table style='width:99%' class=form>

@@ -55,6 +55,7 @@ function tabs(){
 	$array["backup"]='{backup}';
 	$array["members"]='{members}';
 	$array["purge"]='{manual_purge}';
+	$array["restore"]='{restore}';
 	
 	
 	$font="style='font-size:18px'";
@@ -78,11 +79,20 @@ function tabs(){
 			continue;
 		}
 		
+		if($num=="restore"){
+			$html[]= "<li $font><a href=\"squid.articadb.restore.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
 		$html[]= "<li $font><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
 	}
 
 	$t=time();
-	echo build_artica_tabs($html, "squidarticadb");
+	echo build_artica_tabs($html, "squidarticadb")."<script>
+			$('#main-page-squid-statistics-central').remove();
+		</script>
+			
+			";
 
 }
 
@@ -160,7 +170,7 @@ function status(){
 	<tr>
 	<td valign='top'><div id='squid-db-status'></div></td>
 	<td valign='top'><div id='squid-db-mysql'>
-		<div class=explain style='font-size:14px'>{squiddb_howitis}</div>
+		<div class=text-info style='font-size:14px'>{squiddb_howitis}</div>
 	</td>
 	</tr>
 	</table>

@@ -215,10 +215,10 @@ function events_table(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){ if(preg_match("#marked as crashed#", $q->mysql_error)){ $q->QUERY_SQL("DROP TABLE `$table`","artica_events"); } }
-	if(!$q->ok){json_error_show($q->mysql_error,1);}
+	if(!$q->ok){ if(preg_match("#(marked as crashed|Incorrect key file for table)#", $q->mysql_error)){ $q->QUERY_SQL("DROP TABLE `$table`","artica_events"); } }
+	if(!$q->ok){json_error_show($q->mysql_error." $sql",1);}
 
 	$data = array();
 	$data['page'] = $page;

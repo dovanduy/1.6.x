@@ -122,7 +122,7 @@ function page(){
 	
 	
 	
-	$html="<div class=explain>{squid_blk_explain}</div>
+	$html="<div class=text-info>{squid_blk_explain}</div>
 	<div style='font-size:16px;margin:10px' id='pattern-database-title'></div>
 	
 	

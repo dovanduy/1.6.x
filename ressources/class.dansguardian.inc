@@ -630,7 +630,7 @@ class dansguardian_rules{
 									
 									"blog"=>"{blog}",
 									"news"=>"{www_news}",
-									"press"=>"{www_news}",
+								
 									"society"=>"{www_society}",
 									"books"=>"{www_books}",
 									"manga"=>"{www_mangua}",
@@ -639,8 +639,7 @@ class dansguardian_rules{
 									
 									"redirector"=>"{redirector}",
 									"proxy"=>"{www_proxy}",
-									"strict_redirector"=>"{strict_redirector}",
-									"strong_redirector"=>"{strong_redirector}",
+									
 									"paytosurf"=>"{www_paytosurf}",
 									"reaffected"=>"{reaffected}",
 									
@@ -828,8 +827,6 @@ class dansguardian_rules{
 		  	"spyware"=>"20-setup.png",
 		  	"recreation/governments"=>"20-towns.png",
 		  	"redirector"=>"20-redirect.png",
-		  	"strict_redirector"=>"20-redirect.png",
-		  	"strong_redirector"=>"20-redirect-plus.png",
 		  	"recreation/schools"=>"20-schools.png",
 		  	"webradio"=>"20-webradio.png",
 		  	"radio"=>"20-webradio.png",
@@ -861,7 +858,7 @@ class dansguardian_rules{
 		  	"books"=>"books_20.png",
 		  	"internal"=>"network-1-20.gif",
 		  	"maps"=>"20-maps.png",
-		  	"press"=>"20-news.png",
+		  	
 		  	"nature"=>"nature-20.png",
 		  	"gifts"=>"gifts-20.png",
 		  	"browsersplugins"=>"20-webplugins.png",

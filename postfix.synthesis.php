@@ -64,7 +64,7 @@ function security_section(){
 	$page=CurrentPageName();
 	
 	$html="
-	<div class=explain>{postfix_security_synthesis_explain}</div>
+	<div class=text-info>{postfix_security_synthesis_explain}</div>
 	<div id='synthesis_postfix_$md'></div>
 	
 	

@@ -139,7 +139,7 @@ function tabs(){
 	
 	
 	
-	$array["quotas"]='{quotas}';
+	//$array["quotas"]='{quotas}';
 	
 	$array["browser-rules"]="{browsers_rules}";
 	
@@ -223,7 +223,7 @@ function tabs(){
 		}
 
 		if($num=="quotas"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.helpers.quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.helpers.quotas.tabs.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		
 		}
@@ -249,8 +249,9 @@ function groups(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$array["groups-filters"]='{groups_for_rules}';
+	
 	$array["section_basic_filters-groups"]='{proxy_objects}';
+	$array["groups-filters"]='{groups_for_rules}';
 	$time=time();
 
 	if(!$users->APP_UFDBGUARD_INSTALLED){
@@ -261,20 +262,20 @@ function groups(){
 	while (list ($num, $ligne) = each ($array) ){
 
 		if($num=="groups-macs"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.user.computer.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.user.computer.php\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
 
 		if($num=="section_basic_filters-groups"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
 
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 	}
 
 
@@ -310,7 +311,7 @@ function groups_filters(){
 	],";		
 
 	$html="<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-<div class=explain>$dansguardian2_members_groups_explain</div>
+<div class=text-info>$dansguardian2_members_groups_explain</div>
 <script>
 var rowid=0;
 $(document).ready(function(){
@@ -486,10 +487,10 @@ function groups_search(){
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;color:$color;text-decoration:underline;font-weight:bold'>$suffix{$ligne["groupname"]} $groupadd_text</a>
-			<div style='font-size:10px'><i style='font-size:14px'>{$ligne["description"]}</i>",
-			"<span style='font-size:14px;color:$color;'>$groupeTypeText</span>",
-			"<span style='font-size:14px;color:$color;'>$CountDeMembers</span>",
-			"<span style='font-size:14px;color:$color;'>$delete</span>",
+			<div style='font-size:10px'><i style='font-size:16px'>{$ligne["description"]}</i>",
+			"<span style='font-size:20px;color:$color;'>$groupeTypeText</span>",
+			"<span style='font-size:20px;color:$color;'>$CountDeMembers</span>",
+			"<span style='font-size:20px;color:$color;'>$delete</span>",
 		)
 		);
 	}
@@ -627,7 +628,7 @@ function dansguardian_status($asroot=false){
 	$EnableRDPProxy=$sock->GET_INFO("EnableRDPProxy");
 	$EnableLocalDNSMASQ=$sock->GET_INFO("EnableLocalDNSMASQ");
 	$WizardStatsApplianceDisconnected=intval($sock->GET_INFO("WizardStatsApplianceDisconnected"));
-	
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
 	
 	$EnableFTPProxy=$sock->GET_INFO('EnableFTPProxy');
 	
@@ -724,6 +725,11 @@ function dansguardian_status($asroot=false){
 	$picHaarp="status_ok-grey.png";
 	$picCNTLM="status_ok-grey.png";
 	$picRDPProxy="status_ok-grey.png";
+	$picAccessLogs="status_ok.png";
+	$EnableAccessLogsText="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('squid.NoAccessLogs.php');\"
+			style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";
+	
 	
 	$status_users=status_users();
 	
@@ -779,7 +785,13 @@ function dansguardian_status($asroot=false){
 
 	
 		
+	if($SquidNoAccessLogs==1){
+		$picAccessLogs="status_ok-grey.png";
+		$EnableAccessLogsText="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('squid.NoAccessLogs.php');\"
+			style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 		
+	}
 	
 	
 	
@@ -1281,7 +1293,13 @@ function dansguardian_status($asroot=false){
 					</tr>";	
 			
 			
-			
+	$EnableLocalAccessLogsTR="<tr>
+					<td width=1%><span id='aaaaa-$time'><img src='img/$picAccessLogs'></span></td>
+					<td class=legend style='font-size:12px'>{access_log}:</td>
+					<td><div style='font-size:12px' nowrap>$EnableAccessLogsText</td>
+					</tr>";	
+	
+
 
 
 
@@ -1308,6 +1326,7 @@ function dansguardian_status($asroot=false){
 		<div style='width:93%' class=form>
 		<table style='width:250px' class='TableRemove TableMarged'><tbody>
 		$EnableWatchdogTextTR
+		$EnableLocalAccessLogsTR
 		$EnableActiveDirectoryTextTR
 		$status_users
 		$EnableCNTLMTextTR
@@ -1468,7 +1487,7 @@ function ufdbguard_service_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{web_proxy}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{APP_UFDBGUARD}&nbsp;&nbsp;&raquo;&raquo;&nbsp;{parameters}");
-	echo "YahooWin('850','$page?ufdbguard=yes&width=100%&service=yes','$title')";
+	echo "YahooWin('1000','$page?ufdbguard=yes&width=100%&service=yes','$title')";
 }
 
 
@@ -1486,6 +1505,7 @@ function ufdbguard_service_section(){
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	$EnableRemoteStatisticsAppliance=0;
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	if(isset($_GET["service"])){
 		$array["ufdbguard-status"]="{status}";
@@ -1496,8 +1516,10 @@ function ufdbguard_service_section(){
 
 	if($EnableRemoteStatisticsAppliance==0){
 		if($UnlockWebStats==0){
-			$array["ufdbguard-blocked"]='{blocked_websites}';
-			$array["ufdbguard-events"]='{service_events}';
+			if($SquidPerformance<3){
+				$array["ufdbguard-blocked"]='{blocked_websites}';
+				
+			}
 		}
 	}
 
@@ -1506,28 +1528,28 @@ function ufdbguard_service_section(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="ufdbguard-status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.status.php\" style='font-size:14px;font-weight:normal'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.status.php\" style='font-size:22px;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 
 		if($num=="databases"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php\" style='font-size:14px;font-weight:normal'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php\" style='font-size:22px;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="ufdbguard-events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php\" style='font-size:22px'><span>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
 		if($num=="ufdbguard-blocked"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blocked.events.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blocked.events.php\" style='font-size:22px'><span>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:22px'><span>$ligne</span></a></li>\n");
 	}
 
 
@@ -1550,8 +1572,8 @@ function ufdbguard_service_options(){
 	$width="650px";
 	if(isset($_GET["width"])){$width="{$_GET["width"]}";}
 	$template=Paragraphe("banned-template-64.png","{template_label}",'{template_explain}',"javascript:s_PopUp('dansguardian.template.php',800,800)");
-	$squidguardweb=Paragraphe("parameters2-64.png","{banned_page_webservice}","{banned_page_webservice_text}","javascript:Loadjs('squidguardweb.php')");
-	$ufdbguard_settings=Paragraphe("filter-sieve-64.png","{APP_UFDBGUARD}","{APP_UFDBGUARD_PARAMETERS}","javascript:Loadjs('ufdbguard.php')");
+	
+	
 
 	$recompile_all_database=Paragraphe("database-spider-compile2-64.png",
 	"{recompile_all_db}","{recompile_all_db_ww_text}","javascript:Loadjs('ufdbguard.databases.php?scripts=recompile')");
@@ -1561,7 +1583,7 @@ function ufdbguard_service_options(){
 	$ufdbguard_conf=Paragraphe("script-64.png","ufdbguard.conf","{ufdbguard_conf_read_text}",
 	"javascript:Loadjs('ufdbguard.conf.php')");
 
-	$cicap=Paragraphe('c-icap-64-grey.png','{APP_C_ICAP}','{feature_not_installed}',"");
+	
 
 	$hide=Paragraphe("delete-64.png", "{hide}", "{hide_webfiltering_section}","javascript:Loadjs('ufdbguard.hide.php')");
 
@@ -1611,10 +1633,7 @@ function ufdbguard_service_options(){
 
 
 
-	$tr[]=$ufdbguard_settings;
-	$tr[]=$ufdbguard_conf;
-	$tr[]=$cicap;
-	$tr[]=$squidguardweb;
+	
 	$tr[]=$youtubeSchools;
 	$tr[]=$PagePeeker;
 	$tr[]=$recompile_all_database;
@@ -1624,7 +1643,7 @@ function ufdbguard_service_options(){
 
 
 	$html="
-	<div class=explain style='font-size:14px'>{ufdbguard_options_explain}</div>		
+	<div class=text-info style='font-size:14px'>{ufdbguard_options_explain}</div>		
 	
 	<center><div style='width:$width'>".CompileTr3($tr)."</div></center>";
 	$tpl=new templates();

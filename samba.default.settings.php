@@ -67,7 +67,7 @@ function admin_users(){
 	$add=imgtootltip("plus-24.png","{add}","Loadjs('MembersBrowse.php?field-user=&OnlyGroups=0&OnlyGUID=0&NOComputers=1&callback=SambaAdminUserAdd')");
 	
 	
-	$html="<div class=explain>{samba_admin_users_explain}</div>
+	$html="<div class=text-info>{samba_admin_users_explain}</div>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
@@ -180,7 +180,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain>{samba_default_settings_explain}</div>
+	<div class=text-info>{samba_default_settings_explain}</div>
 	<div id='$time'>
 	<center>
 	<table style='width:90%' class=form>

@@ -5,6 +5,7 @@ include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/ressources/class.system.nics.inc');
 include_once(dirname(__FILE__) . '/ressources/class.os.system.inc');
+include_once(dirname(__FILE__) . '/ressources/class.openssh.inc');
 $GLOBALS["TITLENAME"]="OpenSSH daemon";
 $GLOBALS["MONIT"]=false;
 $GLOBALS["FORCE"]=false;
@@ -14,6 +15,57 @@ if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();exit;}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();exit;}
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();exit;}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();exit;}
+if($argv[1]=="--progress"){$GLOBALS["OUTPUT"]=true;progress();exit;}
+
+
+function build_progress($text,$pourc){
+	$filename=basename(__FILE__);
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			$function=$trace[0]["function"];
+			$line=$trace[0]["line"];
+		}
+
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+		}
+
+
+
+	}
+
+
+	echo "[{$pourc}%] $filename $text ( $function Line $line)\n";
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/sshd.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+	if($GLOBALS["OUTPUT"]){usleep(5000);}
+
+}
+
+function progress(){
+	$unix=new unix();
+	build_progress("Writing configuration...",10);
+	$ssh=new openssh();
+	$data=$ssh->save(true);
+	echo "Config file: $LOCATE_SSHD_CONFIG_PATH\n";
+	$LOCATE_SSHD_CONFIG_PATH=$unix->LOCATE_SSHD_CONFIG_PATH();
+	@file_put_contents($LOCATE_SSHD_CONFIG_PATH, $data);
+	build_progress("{stopping_service}...",50);
+	stop(true);
+	build_progress("{starting_service}...",70);
+	start(true);
+	build_progress("{done}...",100);
+}
+
 
 function reload(){
 	$unix=new unix();
@@ -86,6 +138,13 @@ function restart() {
 	start(true);
 
 }
+
+function SCRIPT_FILE_PATH(){
+	if(is_file("/etc/init.d/ssh")){return "/etc/init.d/ssh";}
+	if(is_file("/etc/init.d/sshd")){return "/etc/init.d/sshd";}
+	if(is_file("/etc/init.d/openssh")){return "/etc/init.d/openssh";}
+}
+
 function start($aspid=false){
 	
 	$unix=new unix();
@@ -143,8 +202,17 @@ function start($aspid=false){
 	
 	$echo=$unix->find_program("echo");
 	$nohup=$unix->find_program("nohup");
-	$cmd="$nohup $sshd >/dev/null 2>&1 &";
-	shell_exec($cmd);
+	
+	$init=SCRIPT_FILE_PATH();
+	if(is_file($init)){
+		$cmd="$init 2>&1 &";
+	}else{
+		$cmd="$sshd >/dev/null 2>&1 &";
+	}
+	
+	
+	
+	system($cmd);
 
 
 

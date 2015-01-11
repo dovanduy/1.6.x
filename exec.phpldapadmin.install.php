@@ -45,7 +45,7 @@ function install(){
 	
 	$filename="phpldapadmin-1.2.3.tgz";
 	$version_down="1.2.3";
-	$uri="http://93.88.245.88/download/phpldapadmin-1.2.3.tgz";
+	$uri="http://articatech.net/download/phpldapadmin-1.2.3.tgz";
 	$INSTALL_DIR="/usr/share/phpldapadmin";
 	$time=time();
 	$unix=new unix();

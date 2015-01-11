@@ -14,8 +14,8 @@
 		echo "alert('$text');";
 		exit;
 	}
-
-	
+	if(isset($_GET["certificate-upload-popup"])){certificate_upload_popup();exit;}
+	if(isset($_GET["certificate-upload-js"])){certificate_upload_js();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["items"])){items();exit;}
@@ -31,6 +31,8 @@
 	if(isset($_POST["generate-key"])){generate_key();exit;}
 	if(isset($_GET["generate-x509"])){generate_x509();exit;}
 	if(isset($_GET["tools"])){tools();exit;}
+	if(isset($_GET["tools-main"])){tools_main();exit;}
+	
 	if(isset($_GET["x509-js"])){x509_js();exit;}
 	if(isset($_POST["delete-certificate"])){certificate_delete();exit;}
 	
@@ -42,7 +44,7 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$fontsize=16;
+	$fontsize=20;
 	
 	$array["popup"]="{certificates_center}";
 	
@@ -61,6 +63,7 @@ function tabs(){
 	
 	
 }
+
 	
 function certificate_single_js(){
 	$CommonName=$_GET["CommonName"];
@@ -78,7 +81,7 @@ function certificate_edit_js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{certificate}:{$_GET["CommonName"]}");
 	$CommonName=urlencode($_GET["CommonName"]);
-	echo "YahooWin6(800,'$page?certificate-edit-tabs=yes&CommonName=$CommonName&t={$_GET["t"]}','$title')";
+	echo "YahooWin6(1025,'$page?certificate-edit-tabs=yes&CommonName=$CommonName&t={$_GET["t"]}','$title')";
 
 }
 	
@@ -86,7 +89,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{certificates_center}");
-	$html="YahooWin2('850','$page?popup=yes','$title')";
+	$html="YahooWin2('990','$page?popup=yes','$title')";
 	echo $html;
 }
 function x509_js(){
@@ -168,7 +171,7 @@ $('#flexRT$t').flexigrid({
 }
 
 function new_certificate$t(){
-	Loadjs('miniadmin.certificates.php?wizard-certificate-js=yes&t=$t');
+	Loadjs('certificates.center.wizard.php?t=$t');
 	
 }
 function certificate$t(CommonName){
@@ -256,7 +259,7 @@ function items(){
 	$delete=imgsimple("delete-24.png","","DeletSSlCertificate$t('{$ligne["CommonName"]}','$zmd5')");
 	$delete=imgsimple("delete-24.png",null,"Loadjs('miniadmin.certificates.php?delete-certificate-js={$ligne["CommonName"]}&id=$zmd5')");
 	
-	$jsEdit="Loadjs('$MyPage?certificate-edit-js=yes&CommonName={$ligne["CommonName"]}');";
+	$jsEdit="Loadjs('$MyPage?certificate-edit-js=yes&CommonName={$ligne["CommonName"]}&t=$t');";
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\"
 	style='font-size:16px;color:$color;text-decoration:underline'>";
 	
@@ -286,42 +289,58 @@ function certificate_edit_tabs(){
 	$PageMe=CurrentPageName();
 	$CommonName=urlencode($_GET["CommonName"]);
 	$array["settings"]="{settings}";
-	$array["CSR"]="{CSR}";
-	$array["certificate"]="{certificate}";
+	$array["certificates"]="{certificates}";
+	
 	$array["apache_chain"]="{apache_chain}";
 	$array["DynCert"]="{dynamic_chain}";
 	$array["tools"]="{tools}";
 	
+	$fontsize=17;
 	$id=md5($CommonName);
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="settings"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-settings=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.main.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		if($num=="CSR"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-csr=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		if($num=="certificates"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.table.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="ROOT_CERT"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.srca.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		if($num=="CSR"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.csr.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="privkey"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.privkey.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}		
 
 		if($num=="certificate"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-crt=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.crt.php?CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 
 		if($num=="apache_chain"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-bundle=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-bundle=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="DynCert"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-DynCert=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-DynCert=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 
 		if($num=="tools"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$PageMe?tools=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$PageMe?tools=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -398,38 +417,64 @@ function generate_x509(){
 				
 }
 
+
 function tools(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$fontsize=20;
+	$CommonName=$_GET["CommonName"];
+	$commonNameEnc=urlencode($CommonName);
+	$array["tools-main"]="{tools}";
+	
+	
+	
+	$t=time();
+		while (list ($num, $ligne) = each ($array) ){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&CommonName=$commonNameEnc\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+		}
+	
+	
+	
+		$html=build_artica_tabs($html,'main_certificates_tools_tabs');
+	
+		echo $html;
+	
+	
+		
+	
+	
+	
+}
+
+function tools_main(){
 	$t=$_GET["t"];
 	$CommonName=$_GET["CommonName"];
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$commonNameEnc=urlencode($CommonName);
+	
+	if($CommonName==null){
+		echo FATAL_ERROR_SHOW_128("No certificate selected !");
+		return;
+	}
 	
 	$tt=time();
-	$tr[]=Paragraphe("vpn-rebuild.png", "{generate_x509}", "{generate_x509_text}","javascript:Loadjs('$page?x509-js=$CommonName');",true);
+	$tr[]="<center style='margin-bottom:10px'>".button("{generate_x509}","Loadjs('openssl.x509.progress.php?generate-x509=$commonNameEnc')",22)."
+		<div style='font-size:16px;margin-top:15px'>{generate_x509_text}</div>
+		";
 	
-	$table=CompileTr3($tr);
+	$tr[]="<center style='margin-bottom:10px'>".button("{generate_x509_client}",
+			"Loadjs('openssl.x509-client.progress.php?generate-x509=$commonNameEnc')",22)."
+		<div style='font-size:16px;margin-top:15px'>{generate_x509_client_explain}</div>
+		";	
+	
+	
+	$table=@implode("<p>&nbsp;</p>", $tr);
 	
 	
 	$html="
-	$table
-	<script>
-		var x_GenerateX509$tt=function (obj) {
-			var results=obj.responseText;	
-			UnlockPage();
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate');
-			$('#flexRT$t').flexReload();
-		}	
-	
-	
-		function GenerateX509$tt(){
-		  	var XHR = new XHRConnection();  
-		  	LockPage();
-    	 	XHR.appendData('generate-x509','$CommonName');
-		  	XHR.sendAndLoad('$page', 'POST',x_GenerateX509$tt);
-		}
-	
-	</script>";
+	$table";
 	
 	echo $tpl->_ENGINE_parse_body($html);	
 }

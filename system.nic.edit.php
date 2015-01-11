@@ -24,6 +24,9 @@
 	if(isset($_GET["ifconfig-route-add-popup"])){ipconfig_routes_add_popup();exit;}
 	if(isset($_GET["ipconfig-routage"])){ipconfig_routage();exit;}
 	
+	if(isset($_GET["ipconfig-qos"])){ipconfig_qos();exit;}
+	
+	if(isset($_POST["QOSMAX"])){ipconfig_qos_save();exit;}
 	if(isset($_POST["add-routes"])){ipconfig_routes_add();exit;}
 	if(isset($_GET["del-routes"])){ipconfig_routes_del();exit;}	
 	if(isset($_POST["ipv6-enable"])){UseIpv6();exit;}
@@ -37,7 +40,7 @@
 function js(){
 	$page=CurrentPageName();
 	header("content-type: application/x-javascript");
-	$html="YahooWin2('650','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}','{$_GET["nic"]}');";
+	$html="YahooWin2('650','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}&OnLyQOS={$_GET["OnLyQOS"]}','{$_GET["nic"]}');";
 	echo $html;
 	
 	
@@ -119,19 +122,80 @@ function tabs(){
 	}
 	//$array["ipconfig-routes"]='{routes}';
 	$array["ipconfig-routage"]='{routing}';
+	$array["ipconfig-qos"]='{Q.O.S}';
 	$array["ipconfig-tools"]='{tools}';
 	
 	//ip neigh flush dev eth0
 	
+	if($_GET["OnLyQOS"]=="yes"){
+		$array=array();
+		$array["ipconfig-qos"]='{Q.O.S}';
+	}
+	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?$num=yes&nic=$nic&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num=yes&nic=$nic&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n";
 	}
 	
 	
 	$html= build_artica_tabs($html, "main_config_$nic");
 
 	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function ipconfig_qos(){
+	$nic=$_GET["nic"];
+	$nic=new system_nic($_GET["nic"]);
+	$t=time();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	
+	$p=Paragraphe_switch_img("{enable_qos_fornic}", "{enable_qos_fornic_explain}",
+			"QOS-$t",$nic->QOS,null,580);
+	
+	$html="
+	<div style='width:98%' class=form>
+	$p
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:22px'>{nic_capacity}:</td>
+		<td style='font-size:22px'>". Field_text("QOSMAX-$t",$nic->QOSMAX,"width:150px;font-size:22px")."&nbsp;Mib</td>
+	</tr>
+	</table>
+	<div style='text-align:right'>
+	<hr>".button("{apply}","Save$t()",32)."</div>
+	<script>
+	var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	if(document.getElementById('main_config_{$_GET["nic"]}')){RefreshTab('main_config_{$_GET["nic"]}');}
+	if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
+	if(document.getElementById('tabs_listnics2')){RefreshTab('tabs_listnics2');}
+	if(document.getElementById('TABLEAU_MAIN_QOS_INTERFACES')){ $('#TABLEAU_MAIN_QOS_INTERFACES').flexReload();}
+	
+	}
+	
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('eth','{$_GET["nic"]}');
+		XHR.appendData('QOSMAX',document.getElementById('QOSMAX-$t').value);
+		XHR.appendData('QOS',document.getElementById('QOS-$t').value);
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+	</script>
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
+function ipconfig_qos_save(){
+	$nic=new system_nic($_POST["eth"]);
+	$nic->QOS=$_POST["QOS"];
+	$nic->QOSMAX=$_POST["QOSMAX"];
+	$nic->SaveNic();
+	
 }
 
 function ipconfig_routage(){
@@ -194,29 +258,31 @@ function ipconfig_nic6(){
 	$array[0]="{select}";
 	$array[12]="/12";$array[13]="/13";$array[14]="/14";$array[15]="/15";$array[16]="/16";$array[17]="/17";$array[18]="/18";$array[19]="/19";$array[20]="/20";$array[21]="/21";$array[22]="/22";$array[23]="/23";$array[24]="/24";$array[25]="/25";$array[26]="/26";$array[27]="/27";$array[28]="/28";$array[29]="/29";$array[30]="/30";$array[31]="/31";$array[32]="/32";$array[33]="/33";$array[34]="/34";$array[35]="/35";$array[36]="/36";$array[37]="/37";$array[38]="/38";$array[39]="/39";$array[40]="/40";$array[41]="/41";$array[42]="/42";$array[43]="/43";$array[44]="/44";$array[45]="/45";$array[46]="/46";$array[47]="/47";$array[48]="/48";$array[49]="/49";$array[50]="/50";$array[51]="/51";$array[52]="/52";$array[53]="/53";$array[54]="/54";$array[55]="/55";$array[56]="/56";$array[57]="/57";$array[58]="/58";$array[59]="/59";$array[60]="/60";$array[61]="/61";$array[62]="/62";$array[63]="/63";$array[64]="/64";$array[104]="/104";$array[120]="/120";$array[128]="/128";
 	
-$html="	<table style='width:99.5%' class=form>
+$html="	
+<div style='width:99.5%' class=form>
+<table style='width:100%' >
 	<tr>
-		<td class=legend style='font-size:16px'>{use_ipv6}:</td>
-		<td width=1%>" . Field_checkbox("ipv6-$t",1,$nic->ipv6,"SwitchIpv6$t()")."</td>
+		<td class=legend style='font-size:22px'>{use_ipv6}:</td>
+		<td width=1%>" . Field_checkbox_design("ipv6-$t",1,$nic->ipv6,"SwitchIpv6$t()")."</td>
 	</tr>		
 
 		<tr>
-			<td class=legend style='font-size:16px'>{tcp_address}:</td>
-			<td>" . Field_text("ipv6addr-$t",$nic->ipv6addr,'padding:3px;font-size:18px;width:220px')."</td>
+			<td class=legend style='font-size:22px'>{tcp_address}:</td>
+			<td>" . Field_text("ipv6addr-$t",$nic->ipv6addr,'padding:3px;font-size:22px;width:352px')."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{netmask} ipv6:</td>
-			<td>" . Field_array_Hash($array,"ipv6mask-$t",$nic->ipv6mask,"blur()",null,0,'padding:3px;font-size:18px')."</td>
+			<td class=legend style='font-size:22px'>{netmask} ipv6:</td>
+			<td>" . Field_array_Hash($array,"ipv6mask-$t",$nic->ipv6mask,"blur()",null,0,'padding:3px;font-size:22px')."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:16px'>{gateway}:</td>
-			<td>" . Field_text("ipv6gw-$t",$nic->ipv6gw,'padding:3px;font-size:18px;width:220px')."</td>
+			<td class=legend style='font-size:22px'>{gateway}:</td>
+			<td>" . Field_text("ipv6gw-$t",$nic->ipv6gw,'padding:3px;font-size:22px;width:352px')."</td>
 		</tr>
 		<tr>
-			<td colspan=2 align='right'><hr>".button("{apply}","SaveNicSettings$t()","18px")."</td>
+			<td colspan=2 align='right'><hr>".button("{apply}","SaveNicSettings$t()","32")."</td>
 		</tr>
 	</table>
-	
+</div>	
 <script>
 		function SwitchIpv6$t(){
 			var EnableipV6=$EnableipV6;
@@ -251,6 +317,11 @@ $html="	<table style='width:99.5%' class=form>
 			}
 
 		function SaveNicSettings$t(){
+			var EnableipV6=$EnableipV6;
+			var dgcp=$nic->dhcp;
+			var enabled=$nic->enabled;
+			if(enabled==0){return;}
+		
 			var XHR = new XHRConnection();
 			var DisableNetworksManagement=$DisableNetworksManagement;
 			var ipv6Mask=document.getElementById('ipv6mask-$t').value;
@@ -259,9 +330,11 @@ $html="	<table style='width:99.5%' class=form>
 			if(!document.getElementById('ipv6-$t')){alert('ipv6-$t no such id');return;}
 			if(document.getElementById('ipv6-$t').checked){
 				ipv6enabled=1;
-				if(ipv6Mask==0){
-					alert('Please select the Ipv6 netmask');
-					return;
+				if(dgcp==0){
+					if(ipv6Mask==0){
+						alert('Please select the Ipv6 netmask');
+						return;
+					}
 				}
 			}
 			XHR.appendData('ipv6-eth','$eth');
@@ -269,7 +342,7 @@ $html="	<table style='width:99.5%' class=form>
 			XHR.appendData('ipv6addr',document.getElementById('ipv6addr-$t').value);
 			XHR.appendData('ipv6mask',document.getElementById('ipv6mask-$t').value);
 			XHR.appendData('ipv6gw',document.getElementById('ipv6gw-$t').value);
-			XHR.sendAndLoad('$page', 'POST',X_SaveNicSettings);
+			XHR.sendAndLoad('$page', 'POST',X_SaveNicSettings$t);
 			
 		}		
 	
@@ -356,16 +429,16 @@ function ipconfig_nic(){
 	<input type='hidden' name='save_nic' id='save_nic' id='save_nic' value='$eth'>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:18px'>{enabled}:</td>
-			<td width=1%>" . Field_checkbox('enabled',1,$nic->enabled,'SwitchDHCP()')."</td>
+			<td class=legend style='font-size:22px'>{enabled}:</td>
+			<td width=1%>" . Field_checkbox_design('enabled',1,$nic->enabled,'SwitchDHCP()')."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:18px'>{use_dhcp}:</td>
-			<td width=1%>" . Field_checkbox('dhcp',1,$nic->dhcp,'SwitchDHCP()')."</td>
+			<td class=legend style='font-size:22px'>{use_dhcp}:</td>
+			<td width=1%>" . Field_checkbox_design('dhcp',1,$nic->dhcp,'SwitchDHCP()')."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{enable_ids}:</td>
-			<td width=1%>" . Field_checkbox('UseSnort',1,$snortInterfaces[$eth],'SwitchSnort()')."</td>
+			<td class=legend style='font-size:22px'>{enable_ids}:</td>
+			<td width=1%>" . Field_checkbox_design('UseSnort',1,$snortInterfaces[$eth],'SwitchSnort()')."</td>
 		</tr>
 	</table>
 	
@@ -373,45 +446,45 @@ function ipconfig_nic(){
 	<div style='width:98%' class=form>
 	<table style='100%'>
 		<tr>
-			<td class=legend style='font-size:18px'>{netzone}:</td>
-			<td>" . field_text("netzone-$t",$nic->netzone,'padding:3px;font-size:18px;width:85px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{netzone}:</td>
+			<td>" . field_text("netzone-$t",$nic->netzone,'padding:3px;font-size:22px;width:325px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:18px'>{name}:</td>
-			<td>" . field_text("NICNAME-$t",$nic->NICNAME,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{name}:</td>
+			<td>" . field_text("NICNAME-$t",$nic->NICNAME,'padding:3px;font-size:22px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:18px'>{tcp_address}:</td>
-			<td>" . field_ipv4("IPADDR",$nic->IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{tcp_address}:</td>
+			<td>" . field_ipv4("IPADDR",$nic->IPADDR,'padding:3px;font-size:22px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{netmask}:</td>
-			<td>" . field_ipv4("NETMASK",$nic->NETMASK,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{netmask}:</td>
+			<td>" . field_ipv4("NETMASK",$nic->NETMASK,'padding:3px;font-size:22px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 			
 		<tr>
-			<td class=legend style='font-size:18px'>{gateway}:</td>
-			<td>" . field_ipv4("GATEWAY",$nic->GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{gateway}:</td>
+			<td>" . field_ipv4("GATEWAY",$nic->GATEWAY,'padding:3px;font-size:22px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{default_gateway}:</td>
-			<td>" . Field_checkbox("defaultroute-$t",1,$nic->defaultroute)."</td>
+			<td class=legend style='font-size:22px'>{default_gateway}:</td>
+			<td>" . Field_checkbox_design("defaultroute-$t",1,$nic->defaultroute)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{metric}:</td>
-			<td>" . field_text("metric-$t",$nic->metric,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{metric}:</td>
+			<td>" . field_text("metric-$t",$nic->metric,'padding:3px;font-size:22px;width:90px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>MTU:</td>
-			<td>" . field_text("mtu-$t",$nic->mtu,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>MTU:</td>
+			<td>" . field_text("mtu-$t",$nic->mtu,'padding:3px;font-size:22px;width:90px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>										
 		<tr>
-			<td class=legend style='font-size:18px'>{broadcast}:</td>
-			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:22px'>{broadcast}:</td>
+			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:22px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>	
 			
 	</table>
-	<div style='text-align:right'><hr> ". button("$button","SaveNicSettings()",22)."</div>
+	<div style='text-align:right'><hr> ". button("$button","SaveNicSettings()",28)."</div>
 	</div>
 	
 	
@@ -571,16 +644,18 @@ $sock=new sockets();
 	$nic=$_POST["ipv6-eth"];
 	$tpl=new templates();
 	$nics=new system_nic($nic);
-	if(!$ip->isIPv6($_POST["ipv6addr"])){
-		echo "{$_POST["ipv6addr"]} not a valide ipv6 address...\n";
-		return;
+	if($nics->dhcp==0){
+		if(!$ip->isIPv6($_POST["ipv6addr"])){
+			echo "{$_POST["ipv6addr"]} not a valid ipv6 address...\n";
+			return;
+		}
 	}
 	$nics->eth=$nic;
 	$nics->ipv6=$_POST["ipv6-enable"];
 	$nics->ipv6addr=$_POST["ipv6addr"];
 	$nics->ipv6mask=$_POST["ipv6mask"];
 	$nics->ipv6gw=$_POST["ipv6gw"];
-	if($nics->SaveNic()){echo $tpl->javascript_parse_text('{success}\n{success_save_nic_infos}',1);}
+	$nics->SaveNic();
 	
 }
 	
@@ -691,14 +766,14 @@ function save_nic(){
 	if($_GET["noreboot"]=="noreboot"){
 		$nics->NoReboot=true;
 		if($nics->SaveNic()){
-			echo $tpl->javascript_parse_text('{success}');
+			
 			return;
 		}
 	}
 	
-	if($nics->SaveNic()){echo $tpl->javascript_parse_text(@implode(" ",$text).'\n{success}\n{success_save_nic_infos}',1);}
-}
+	$nics->SaveNic();
 
+}
 function ipconfig_routes(){
 	$page=CurrentPageName();
 	$tpl=new templates();

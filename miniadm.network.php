@@ -285,7 +285,7 @@ function webstats_middle(){
 
 	$tr=array();
 	$dhcp=Paragraphe("64-dhcp.png", "{APP_DHCP}", "{APP_DHCP_TEXT}","miniadm.dhcp.php?webstats-middle=yes");
-	$pdns=Paragraphe("dns-64.png", "{APP_PDNS}", "{APP_PDNS_TEXT}","miniadm.pdns.php");
+	
 	$domains=Paragraphe("domain-main-64.png", "{manage_internet_domains}",
 			 "{manage_internet_domains_text}","miniadm.smtpdom.php");
 	
@@ -310,7 +310,7 @@ function webstats_middle(){
 	
 	$tr[]=$dhcp;
 	$tr[]=$domains;
-	$tr[]=$pdns;
+	
 	echo $title.$tpl->_ENGINE_parse_body(CompileTr3($tr));
 }	
 function CalcCdir(){

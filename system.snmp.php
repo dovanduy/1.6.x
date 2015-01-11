@@ -97,7 +97,7 @@ function popup(){
 			<td style='font-size:16px'>". Field_text("SNMPDNetwork",$SNMPDNetwork,"font-size:16px;width:190px")." SNMPv2c</td>
 		</tr>					
 		<tr>
-		<td align='right' colspan=2><hr>". button("{apply}", "SaveSNMP$t()","18px")."</td>
+		<td align='right' colspan=2><hr>". button("{apply}", "SaveSNMP$t()","32px")."</td>
 	</tr>
 	</table>
 	</td>

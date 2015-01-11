@@ -15,7 +15,7 @@
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
-
+if(isset($_GET["security_settings_tabs"])){main_tabs_security();exit;}
 if(isset($_GET["cram-md5"])){sasl_popup_auth_save();exit;}
 if(isset($_POST["reconfigure-postfix"])){reconfigure_postfix();exit;}	
 if(isset($_GET["postfix-status"])){POSTFIX_STATUS();exit;}	
@@ -192,13 +192,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td style='vertical-align:middle'>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		
 }
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td style='vertical-align:middle'>&nbsp;</td>";				
 	}
 }
 				
@@ -355,22 +355,10 @@ function POSTFIX_STATUS(){
 	style='font-size:14px;text-decoration:underline'>";
 	
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr><td>$status</td></tr></table>		
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>$ahref{sasl_title}</a>:</td>
-		<td width=1%><img src='img/$PostFixSmtpSaslEnableIcon'></td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>$ahref{PostfixEnableSubmission}</a>:</td>
-		<td width=1%><img src='img/$PostfixEnableSubmissionIcon'></td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:14px'>$ahref{TrustMyNetwork}</a>:</td>
-		<td width=1%><img src='img/$TrustMyNetworkIcon'></td>
-	</tr>
-	</table>";
+	";
 	
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -385,11 +373,58 @@ function POSTFIX_STATUS(){
 	
 }
 
+function main_tabs_security(){
+	$hostname=$_GET["hostname"];
+	
+	$users=new usersMenus();
+	$users->LoadModulesEnabled();
+	$tpl=new templates();
+	$sock=new sockets();
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$filters_settings=$tpl->_ENGINE_parse_body('{filters_settings}');
+	if(strlen($filters_settings)>25){$filters_settings=texttooltip(substr($filters_settings,0,22).'...',$filters_settings,null,null,1);}
+	if($hostname==null){$hostname="master";}
+	$page=CurrentPageName();
+	$height="850px";
+	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
+	$array["authentication"]='{authentication}';
+	$array["options"]='{options}';
+	
+	$style="style='font-size:20px'";
+	
+	if(isset($_GET["font-size"])){
+		$style="style='font-size:22px'";
+	}
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="options"){
+			$html[]= $tpl->_ENGINE_parse_body("<li $style>
+					<a href=\"postfix.index.php?main=security_settings&hostname=$hostname\">
+					<span>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+	
+		if($num=="authentication"){
+			$html[]= "<li $style><a href=\"postfix.index.php?popup-auth=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+	
+		
+	}
+	
+	
+	echo build_artica_tabs($html, "main_tabs_security")."<script>LeftDesign('messaging-service-256-opac20.png');</script>";	
+	
+}
+
 
 
 
 function main_tabs(){
-	
+	$hostname=$_GET["hostname"];
 	if(!isset($_GET["main"])){$_GET["main"]="network";};
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
@@ -403,10 +438,11 @@ function main_tabs(){
 	$height="850px";
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
 	$array["status"]='{status}';
+	$array["networks"]='{networks}';
 	$array["service"]='{servicew}';
 	$array["mailbox"]='{mailbox_settings}';
-	$array["transport_settings"]='{transport_settings}';
-	//$array["transport_table"]="{transport_table}";
+	
+	$array["postfix"]='{mta_policies}';
 	
 	
 	//$array["filters"]=$filters_settings;
@@ -415,7 +451,7 @@ function main_tabs(){
 	$style="style='font-size:14px'";
 	
 	if(isset($_GET["font-size"])){
-		$style="style='font-size:{$_GET["font-size"]}px'";
+		$style="style='font-size:22px'";
 	}
 	
 	if($EnablePostfixMultiInstance==1){
@@ -427,10 +463,24 @@ function main_tabs(){
 
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="postfix"){
+			$html[]= $tpl->_ENGINE_parse_body("<li $style>
+					<a href=\"postfix.index.php?security_settings_tabs=yes&hostname=$hostname\">
+						<span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
 		if($num=="synthesis"){
 			$html[]= "<li $style><a href=\"postfix.synthesis.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
+		
+		if($num=="networks"){
+			$html[]= "<li $style><a href=\"postfix.network.php?ajax-popup=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
 		
 		if($num=="service"){
 			$html[]= "<li $style><a href=\"postfix.service.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
@@ -447,7 +497,7 @@ function main_tabs(){
 	}
 	
 	
-	return build_artica_tabs($html, "main_config_postfix",1000)."<script>LeftDesign('messaging-service-256-opac20.png');</script>";		
+	return build_artica_tabs($html, "main_config_postfix",1080)."<script>LeftDesign('messaging-service-256-opac20.png');</script>";		
 }
 
 
@@ -505,12 +555,12 @@ function multidomains_script(){
 	$tpl=new templates();
 	$mul=$tpl->_ENGINE_parse_body('{multidomains}');
 	$page=CurrentPageName();
-	$html="YahooWin2(550,'$page?multidomains=yes','$mul',''); 
+	$html="YahooWin2(750,'$page?multidomains=yes','$mul',''); 
 	
 var X_ApplyMultidomains= function (obj) {
 	var results=trim(obj.responseText);
 	if(results.length>0){alert(results);}
-	YahooWin2(550,'$page?multidomains=yes','$mul',''); 
+	YahooWin2(750,'$page?multidomains=yes','$mul',''); 
 	}
 		
 	function ApplyMultidomains(){
@@ -543,14 +593,14 @@ function multidomains_popup(){
 	
 	$main=new main_cf();
 	$milter=Paragraphe_switch_img('{multidomains}',
-	'{multidomains_explain}','EnableVirtualDomainsInMailBoxes',$artica->EnableVirtualDomainsInMailBoxes,'{enable_disable}',495);
+	'{multidomains_explain}','EnableVirtualDomainsInMailBoxes',$artica->EnableVirtualDomainsInMailBoxes,'{enable_disable}',650);
 
 	$html="
-	<div class=explain style='font-size:14px'>{multidomains_text}</div>
-	<div class=form>
+	<div class=text-info style='font-size:18px'>{multidomains_text}</div>
+	<div class=form style='width:98%'>
 	$milter
 	</div>
-	<div style='text-align:right;width:100%'>". button('{apply}',"ApplyMultidomains()",16)."</div>
+	<div style='text-align:right;width:100%'><hr>". button('{apply}',"ApplyMultidomains()",26)."</div>
 	";
 	
 	$tpl=new templates();
@@ -840,19 +890,27 @@ function sasl_popup(){
 	
 	$page=CurrentPageName();
 	$array["popup-auth-status"]="{status}";
+	$array["popup-auth-except"]="{smtpd_sasl_exceptions_networks}";
+	
 	$array["popup-auth-adv"]="{advanced_options}";
 	$array["popup-auth-mech"]='{auth_mechanism}';
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+		if($num=="popup-auth-except"){
+			
+			$html[]="<li><a href=\"smtpd_sasl_exceptions_networks.php?popup=yes\"><span style='font-size:20px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:20px'>$ligne</span></a></li>\n";
 			
 		}	
 	
 	
 	
-	echo build_artica_tabs($html, "main_popup_sasl_auth",950)."
+	echo build_artica_tabs($html, "main_popup_sasl_auth")."
 	
 	<script>LeftDesign('authentication-white-256-opac20.png');</script>";
 
@@ -865,7 +923,7 @@ function sasl_popup_auth_save(){
 	$sock->SET_INFO("EnableMechDigestMD5",$_GET["digest-md5"]);
 	$sock->SET_INFO("EnableMechLogin",$_GET["login"]);
 	$sock->SET_INFO("EnableMechPlain",$_GET["plain"]);	
-	$sock->getFrameWork("cmd.php?postfix-sasl-mech=yes");
+	
 	//artica-install --postfix-sasldb2
 }
 
@@ -887,30 +945,30 @@ $html="
 	<div id='sasl-auth-div'  style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
-	<td align='right' class=legend style='font-size:18px'>plain:</stong></td>
-	<td>" . Field_checkbox('plain',1,$EnableMechPlain)."</td>
+	<td align='right' class=legend style='font-size:26px'>plain:</stong></td>
+	<td>" . Field_checkbox_design('plain',1,$EnableMechPlain)."</td>
 	<td width=1%></td>
 	</tr>
 
 	<tr>
-	<td align='right' class=legend style='font-size:18px'>login:</stong></td>
-	<td>" . Field_checkbox('login',1,$EnableMechLogin)."</td>
+	<td align='right' class=legend style='font-size:26px'>login:</stong></td>
+	<td>" . Field_checkbox_design('login',1,$EnableMechLogin)."</td>
 	<td width=1%></td>
 	</tr>	
 
 	<tr>
-	<td align='right' class=legend style='font-size:18px'>cram-md5:</stong></td>
-	<td>" . Field_checkbox('cram-md5',1,$EnableMechCramMD5)."</td>
+	<td align='right' class=legend style='font-size:26px'>cram-md5:</stong></td>
+	<td>" . Field_checkbox_design('cram-md5',1,$EnableMechCramMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 	
 	<tr>
-	<td align='right' class=legend style='font-size:18px'>digest-md5:</stong></td>
-	<td>" . Field_checkbox('digest-md5',1,$EnableMechDigestMD5)."</td>
+	<td align='right' class=legend style='font-size:26px'>digest-md5:</stong></td>
+	<td>" . Field_checkbox_design('digest-md5',1,$EnableMechDigestMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 	<tr>
-		<td colspan=3 align='right'><hr>". button('{apply}',"SaveSMTPAuthMech()",24)."</td>
+		<td colspan=3 align='right'><hr>". button('{apply}',"SaveSMTPAuthMech()",40)."</td>
 	</tr>
 	</table>
 	</div>
@@ -921,6 +979,7 @@ $html="
 		if(results.length>0){alert(results);}
 		RefreshTab('main_popup_sasl_auth');
 		RefreshTab('main_config_postfix');
+		Loadjs('postfix.sasl.progress.php');
 	}	
 	
 		function SaveSMTPAuthMech(){
@@ -938,18 +997,21 @@ echo $tpl->_ENGINE_parse_body($html);
 
 
 function sasl_popup_status(){
+	include_once(dirname(__FILE__))."/ressources/class.squid.reverse.inc";
+	$squid_reverse=new squid_reverse();
 	$page=CurrentPageName();
 	$ldap=new clladp();
 	$main=new smtpd_restrictions();
 	$sock=new sockets();
 	$PostfixEnableMasterCfSSL=intval($sock->GET_INFO("PostfixEnableMasterCfSSL"));
-	
+	$t=time();
 	$PostfixEnableSubmission=$sock->GET_INFO("PostfixEnableSubmission");
+	$PostFixMasterCertificate=$sock->GET_INFO("PostFixMasterCertificate");
 	$PostFixSmtpSaslEnable=$sock->GET_INFO("PostFixSmtpSaslEnable");
 	$TrustMyNetwork=$sock->GET_INFO("TrustMyNetwork");
 	if(!is_numeric($TrustMyNetwork)){$TrustMyNetwork=1;}
 	$enabled=$PostFixSmtpSaslEnable;
-	$sasl=Paragraphe_switch_img('{sasl_title}','{sasl_intro}','enable_auth',$enabled,'{enable_disable}',550);
+	$sasl=Paragraphe_switch_img('{enable_smtp_authentication}','{sasl_intro}','enable_auth',$enabled,'{enable_disable}',550);
 	
 	
 	$smtpd_sasl_exceptions_networks=Paragraphe("64-white-computer.png",
@@ -961,28 +1023,34 @@ function sasl_popup_status(){
 	$TrustMyNetwork_field=Paragraphe_switch_img('{TrustMyNetwork}','{TrustMyNetwork_text}','TrustMyNetwork',$TrustMyNetwork,'{enable_disable}',550);
 	
 	
-	
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	$ENABLE_SMTPS=Paragraphe_switch_img('{ENABLE_SMTPS}','{SMTPS_TEXT}','PostfixEnableMasterCfSSL',$PostfixEnableMasterCfSSL,null,550);
 	
+	$ENABLE_SMTPS_CERTIFICATE="
+	<table style='width:100%'>
+	<tr>
+		<td colspan=2>$ENABLE_SMTPS</td>
+	</tr>
+	<tr>
+	<td class=legend nowrap style='font-size:22px'>{use_certificate_from_certificate_center}:</td>
+	<td>". Field_array_Hash($sslcertificates, "certificate-$t",$PostFixMasterCertificate,null,null,0,"font-size:22px")."</td>
+	</tr>
+	</table>";
 	
 $html="
 	<div id='sasl-id'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>
+		<td style='vertical-align:middle'>
 			$sasl
 			<hr>$TrustMyNetwork_field
 			<hr>$PostfixEnableSubmission_field
-			<hr>$ENABLE_SMTPS
+			<hr>$ENABLE_SMTPS_CERTIFICATE
 			<div style='text-align:right'>
-			<hr>". button("{apply}","enable_auth()",24). "
+			<hr>". button("{apply}","enable_auth()",40). "
 			</div>
 		</td>
-	<td valign='top'>
-		
-			$smtpd_sasl_exceptions_networks
-			
-	</td>
+	
 	</tr>
 	</table>
 	</div>
@@ -991,6 +1059,7 @@ $html="
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}
 		RefreshTab('main_popup_sasl_auth');
+		Loadjs('postfix.sasl.progress.php');
 	}	
 		
 	
@@ -999,6 +1068,7 @@ $html="
 		XHR.appendData('save_auth',document.getElementById('enable_auth').value);
 		XHR.appendData('PostfixEnableSubmission',document.getElementById('PostfixEnableSubmission').value);
 		XHR.appendData('TrustMyNetwork',document.getElementById('TrustMyNetwork').value);
+		XHR.appendData('PostFixMasterCertificate',document.getElementById('certificate-$t').value);
 		XHR.appendData('PostfixEnableMasterCfSSL',document.getElementById('PostfixEnableMasterCfSSL').value);
 		XHR.sendAndLoad('$page', 'GET',X_enable_auth);	
 	
@@ -1035,7 +1105,7 @@ function sasl_satus(){
 	
 	
 	$html="
-	<div class=explain>{SASL_STATUS_TEXT}</div>
+	<div class=text-info style='font-size:18px'>{SASL_STATUS_TEXT}</div>
 	<div style='width:100%;height:300px;overflow:auto'>$t</div>";
 	
 	$tpl=new templates();
@@ -1072,17 +1142,7 @@ function sasl_adv(){
 	$smtpd_tls_auth_only=$tpl->_ENGINE_parse_body("{smtpd_tls_auth_only}");
 	$smtpd_tls_received_header=$tpl->_ENGINE_parse_body("{smtpd_tls_received_header}");
 	
-	if(strlen($smtpd_sasl_authenticated_header)>25){
-		$smtpd_sasl_authenticated_header=texttooltip(substr($smtpd_sasl_authenticated_header,0,25)."...",$smtpd_sasl_authenticated_header);
-	}
 	
-	if(strlen($smtpd_tls_auth_only)>25){
-		$smtpd_tls_auth_only=texttooltip(substr($smtpd_tls_auth_only,0,25)."...",$smtpd_tls_auth_only);
-	}	
-	
-	if(strlen($smtpd_tls_received_header)>25){
-		$smtpd_tls_received_header=texttooltip(substr($smtpd_tls_received_header,0,25)."...",$smtpd_tls_received_header);
-	}
 
 	$broken_sasl_auth_clients=$main->GET("broken_sasl_auth_clients");
 	if(!is_numeric($broken_sasl_auth_clients)){$broken_sasl_auth_clients=1;}
@@ -1105,46 +1165,46 @@ function sasl_adv(){
 	<div id='sasl_adv_options' class=form style='width:95%'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend nowrap style='font-size:16px'>{broken_sasl_auth_clients}:</td>
-		<td valign='top'>".Field_checkbox("broken_sasl_auth_clients",1,$main->GET("broken_sasl_auth_clients"))."</td>
-		<td valign='top'>". help_icon('{broken_sasl_auth_clients_text}')."</td>
+		<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{broken_sasl_auth_clients}:</td>
+		<td style='vertical-align:middle'>".Field_checkbox_design("broken_sasl_auth_clients",1,$main->GET("broken_sasl_auth_clients"))."</td>
+		<td style='vertical-align:middle'>". help_icon('{broken_sasl_auth_clients_text}')."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:16px'>$smtpd_tls_auth_only</td>
-		<td valign='top'>".Field_checkbox("smtpd_tls_auth_only",1,$main->GET("smtpd_tls_auth_only"))."</td>
-		<td valign='top'>". help_icon('{smtpd_tls_auth_only_text}')."</td>
+		<td valign='top' class=legend style='font-size:22px'>$smtpd_tls_auth_only</td>
+		<td style='vertical-align:middle'>".Field_checkbox_design("smtpd_tls_auth_only",1,$main->GET("smtpd_tls_auth_only"))."</td>
+		<td style='vertical-align:middle'>". help_icon('{smtpd_tls_auth_only_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:16px'>{smtpd_sasl_local_domain}:</td>
-		<td valign='top'>".Field_text("smtpd_sasl_local_domain",$main->GET("smtpd_sasl_local_domain"),"font-size:16px")."</td>
-		<td valign='top'>". help_icon('{smtpd_sasl_local_domain_text}')."</td>
+		<td valign='top' class=legend style='font-size:22px'>{smtpd_sasl_local_domain}:</td>
+		<td style='vertical-align:middle'>".Field_text("smtpd_sasl_local_domain",$main->GET("smtpd_sasl_local_domain"),"font-size:16px")."</td>
+		<td style='vertical-align:middle'>". help_icon('{smtpd_sasl_local_domain_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend nowrap style='font-size:16px'>$smtpd_sasl_authenticated_header</td>
-		<td valign='top'>".Field_checkbox("smtpd_sasl_authenticated_header",1,$smtpd_sasl_authenticated_headerV)."</td>
-		<td valign='top'>&nbsp;</td>
+		<td class=legend nowrap style='font-size:22px;vertical-align:middle'>$smtpd_sasl_authenticated_header</td>
+		<td style='vertical-align:middle'>".Field_checkbox_design("smtpd_sasl_authenticated_header",1,$smtpd_sasl_authenticated_headerV)."</td>
+		<td style='vertical-align:middle'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap style='font-size:16px'>$smtpd_tls_received_header</td>
-		<td valign='top'>".Field_checkbox("smtpd_tls_received_header",1,$smtpd_tls_received_headerV)."</td>
-		<td valign='top'>". help_icon('{smtpd_tls_received_header_text}')."</td>
+		<td class=legend nowrap style='font-size:22px;vertical-align:middle'>$smtpd_tls_received_header</td>
+		<td style='vertical-align:middle'>".Field_checkbox_design("smtpd_tls_received_header",1,$smtpd_tls_received_headerV)."</td>
+		<td style='vertical-align:middle'>". help_icon('{smtpd_tls_received_header_text}')."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:16px'>{smtpd_tls_security_level}:</td>
-		<td valign='top'>".Field_array_Hash($smtpd_tls_security_level_ARR,"smtpd_tls_security_level",
-				$smtpd_tls_security_level,null,null,0,'font-size:16px')."</td>
-		<td valign='top'>". help_icon('{smtpd_tls_security_level_text}')."</td>
+		<td valign='top' class=legend style='font-size:22px'>{smtpd_tls_security_level}:</td>
+		<td style='vertical-align:middle'>".Field_array_Hash($smtpd_tls_security_level_ARR,"smtpd_tls_security_level",
+				$smtpd_tls_security_level,null,null,0,'font-size:22px')."</td>
+		<td style='vertical-align:middle'>". help_icon('{smtpd_tls_security_level_text}')."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:16px'>{smtpd_sasl_security_options}:</td>
-		<td valign='top'>".Field_array_Hash($smtpd_sasl_security_options_ARR,"smtpd_sasl_security_options",
-				$main->smtpd_sasl_security_options,null,null,0,'font-size:16px')."</td>
-		<td valign='top'>". help_icon('{smtpd_sasl_security_options_text}')."</td>
+		<td valign='top' class=legend style='font-size:22px'>{smtpd_sasl_security_options}:</td>
+		<td style='vertical-align:middle'>".Field_array_Hash($smtpd_sasl_security_options_ARR,"smtpd_sasl_security_options",
+				$smtpd_sasl_security_options,null,null,0,'font-size:22px')."</td>
+		<td style='vertical-align:middle'>". help_icon('{smtpd_sasl_security_options_text}')."</td>
 	</tr>		
 	
 	
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","SaveSaslAdvOptions()",18)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveSaslAdvOptions()",40)."</td>
 	</tr>
 	</table>
 	</div>
@@ -1152,7 +1212,8 @@ function sasl_adv(){
 	
 	var X_SaveSaslAdvOptions= function (obj) {
 		var results=obj.responseText;
-		YahooWin3Hide();
+		RefreshTab('main_popup_sasl_auth');
+		Loadjs('postfix.sasl.progress.php');
 		}	
 	
 	function SaveSaslAdvOptions(){
@@ -1178,7 +1239,6 @@ function sasl_adv(){
 		XHR.appendData('smtpd_sasl_local_domain',document.getElementById('smtpd_sasl_local_domain').value);
 		XHR.appendData('smtpd_tls_security_level',document.getElementById('smtpd_tls_security_level').value);
 		XHR.appendData('smtpd_sasl_security_options',document.getElementById('smtpd_sasl_security_options').value);
-		AnimateDiv('sasl_adv_options');
 		XHR.sendAndLoad('$page', 'GET',X_SaveSaslAdvOptions);	
 	
 	}	
@@ -1200,7 +1260,7 @@ function  sasl_adv_save(){
 	
 	
 	
-	$sock->getFrameWork("cmd.php?postfix-smtp-sasl=yes");
+	
 }
 
 
@@ -1211,9 +1271,9 @@ function sasl_save(){
 	$socks->SET_INFO('PostfixEnableSubmission',$_GET["PostfixEnableSubmission"]);
 	$socks->SET_INFO('PostFixSmtpSaslEnable',$_GET["save_auth"]);
 	$socks->SET_INFO('TrustMyNetwork',$_GET["TrustMyNetwork"]);
+	$socks->SET_INFO("PostFixMasterCertificate", $_GET["PostFixMasterCertificate"]);
 	if(isset($_GET["PostfixEnableMasterCfSSL"])){$socks->SET_INFo('PostfixEnableMasterCfSSL',$_GET["PostfixEnableMasterCfSSL"]);}
-	$socks->getFrameWork("cmd.php?postfix-smtp-sasl=yes");
-	$socks->getFrameWork("cmd.php?postfix-ssl=yes");
+
 	
 	
 
@@ -1505,13 +1565,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td style='vertical-align:middle'>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		}
 
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td style='vertical-align:middle'>&nbsp;</td>";				
 	}
 }	
 	
@@ -1539,7 +1599,7 @@ function filter_connect_warning(){
 	$tpl=new templates();
 	$RestrictToInternalDomains=$sock->GET_INFO("RestrictToInternalDomains");
 	if($RestrictToInternalDomains==1){
-		$html="<div class=explain>
+		$html="<div class=text-info>
 		<table style='width:80%'>
 		<tr>
 		<td width=1%><img src='img/status_warning.png'></rd>
@@ -1617,13 +1677,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td style='vertical-align:middle'>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		
 }
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td style='vertical-align:middle'>&nbsp;</td>";				
 	}
 }
 				
@@ -1792,13 +1852,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td style='vertical-align:middle'>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		
 }
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td style='vertical-align:middle'>&nbsp;</td>";				
 	}
 }
 				
@@ -1848,16 +1908,16 @@ function mailbox_section(){
 	
 	
 	$date_start=time();
-
+	$tpl=new templates();
 	
 	
 	$failedtext="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
 	$users=new usersMenus();
 	$users->LoadModulesEnabled();
+	$CYRUS_CLUSTER_TEXT=$tpl->_ENGINE_parse_body("{CYRUS_CLUSTER_TEXT}");
 	
-	$fetchmail=Buildicon64('DEF_ICO_FETCHMAIL');
 	$install=Paragraphe('add-remove-64.png','{INSTALL_NEW_PLUGINS}','{INSTALL_NEW_PLUGINS_TEXT}','setup.index.php',null,210,100,0,true);
-	$cyrus_cluster=Paragraphe('64-cluster-grey.png','{CYRUS_CLUSTER}','{CYRUS_CLUSTER_TEXT}',null,null,210,100,0,true);
+	$cyrus_cluster=Paragraphe('64-cluster-grey.png','{CYRUS_CLUSTER}',$CYRUS_CLUSTER_TEXT,null,null,210,100,0,true);
 	
 	
 	
@@ -1882,7 +1942,7 @@ function mailbox_section(){
 	if($users->cyrus_imapd_installed){
 		if($users->AsMailBoxAdministrator){
 			$cyrus=Paragraphe('bg-cyrus-64.png','{APP_CYRUS}','{mange_cyrus_mailbox}',"javascript:Loadjs('cyrus.index.php')",null,210,100,0,true);
-			$multimdomains=Paragraphe('folder-org-64.png','{multidomains}','{multidomains_icon_text}',"javascript:Loadjs('postfix.index.php?script=multidomains')",null,210,100,0,true);
+			//$multimdomains=Paragraphe('folder-org-64.png','{multidomains}','{multidomains_icon_text}',"javascript:Loadjs('postfix.index.php?script=multidomains')",null,210,100,0,true);
 			$murder=Buildicon64('DEF_ICO_IMAP_MURDER',210,100);
 		}
 	}
@@ -1917,13 +1977,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td style='vertical-align:middle'>$line</td>";
 		if($t==3){$t=0;$tables[]="</tr><tr>";}
 		}
 
 if($t<3){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td style='vertical-align:middle'>&nbsp;</td>";				
 	}
 }
 				
@@ -1963,148 +2023,7 @@ function Transport_rules_redirect(){
 }
 
 
-function Transport_rules(){
-	//$datas=GET_CACHED(__FILE__,__FUNCTION__,null,TRUE);
-	//if($datas<>null){return $datas;}
-	$sock=new sockets();
-	$page=CurrentPageName();
-	$users=new usersMenus();
-	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
-	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
-	$EnableArticaSMTPFilter=0;
-	
-	$failedtext="{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}";
-	$network=Buildicon64('DEF_ICO_POSTFIX_NETWORK');
-	//$transport=Buildicon64('DEF_ICO_POSTFIX_TRANSPORT');
-	$applysettings=Buildicon64('DEF_ICO_POSTFIX_APPLY');
-	$queue=Buildicon64('DEF_ICO_POSTFIX_QUEUE');
-	$relayhost=Buildicon64('DEF_ICO_POSTFIX_RELAYHOST');
-	$relayhostssl=Buildicon64('DEF_ICO_POSTFIX_RELAYHOSTSSL');
-	$notifs=Buildicon64('DEF_ICO_POSTFIX_NOTIFS');
-	$mailman=Buildicon64('DEF_ICO_POSTFIX_MAILMAN');
-	$mailgraph=Buildicon64('DEF_ICO_EVENTS_MAILGRAPH');	
-	$crossroads=Paragraphe('load-blancing-64-grey.png','{APP_CROSSROADS}','{load_balancing_intro_text}',"");
-	
-	$testSMTPCnx=Paragraphe("mass-mailing-postfix-64.png","{TEST_SMTP_CONNECTION}","{TEST_SMTP_CONNECTION_TEXT}","javascript:Loadjs('postfix.smtp-tests.php?hostname=master&ou=master');");
-	
 
-	$POSTFIX_MAIN=base64_encode("POSTFIX_MAIN");
-	$smtp_generic_maps=Paragraphe('generic-maps-64.png','{smtp_generic_maps}','{smtp_generic_maps_text}',
-	"javascript:Loadjs('postfix.smtp.generic.maps.php?ou=$POSTFIX_MAIN')");
-	$applysettings=null;
-	
-	$additional_databases=Paragraphe('databases-add-64-grey.png','LDAP','{remote_users_databases_text}',
-	"");
-	$applysettings=null;	
-	
-	
-	if($users->POSTFIX_LDAP_COMPLIANCE){
-		$master=base64_encode("MASTER");
-		$additional_databases=Paragraphe('databases-add-64.png','LDAP','{remote_users_databases_text}',
-		"javascript:Loadjs('postfix.smtp.ldap.maps.php?hostname=master&ou=master')");		
-		
-	}
-	
-	$additional_databases2=Paragraphe('databases-add-64.png','{remote_users_databases}','{remote_users_databases_text}',
-		"javascript:Loadjs('postfix.smtp.db.maps.php?hostname=master&ou=master')");		
-	
-	$ecluse=Paragraphe('ecluse-64.png','{domain_throttle}','{domain_throttle_text}',
-		"javascript:Loadjs('postfix.smtp.throttle.php?hostname=master&ou=master')");
-	
-	$iprotator=Paragraphe('ip-rotator-64.png','{ip_rotator}','{ip_rotator_text}',
-		"javascript:Loadjs('postfix.ip.rotator.php?hostname=master&ou=master')");
-
-	$mailinglist_behavior=Paragraphe('64-bg_addresses.png','{mailing_list_behavior}','{mailing_list_behavior_text}',
-		"javascript:Loadjs('postfix.maillinglist.php')");
-	
-	
-	
-	if($EnablePostfixMultiInstance==1){
-	
-		$relayhost=null;
-		$relayhostssl=null;
-		$orange=null;
-		$oleane=null;
-		$oneone=null;
-		$wanadoo=null;
-		$notifs=null;
-		$mailman=null;
-		$mailgraph=null;
-		$applysettings=Paragraphe("org-smtp-settings-64.png","{OU_BIND_ADDR_AFFECT}","{OU_BIND_ADDR_AFFECT_TEXT}","javascript:Loadjs('system.nic.config.php?postfix-virtual=yes')");
-	}
-	
-	$redirect=Paragraphe("redirect-64-grey.png","{REDIRECT_SERVICE}","{REDIRECT_SERVICE_TEXT}","");
-	
-	if($EnableArticaSMTPFilter==1){
-		$redirect=Paragraphe("redirect-64.png","{REDIRECT_SERVICE}","{REDIRECT_SERVICE_TEXT}","javascript:Loadjs('artica-filter.redirect.php')");
-		
-	}
-	
-	if($users->crossroads_installed){
-		$crossroads=Paragraphe('load-blancing-64.png','{APP_CROSSROADS}','{load_balancing_intro_text}',
-	"javascript:Loadjs('crossroads.index.php')");
-	}
-
-	$dnsmasq=Paragraphe('dns-64.png','{APP_DNSMASQ}','{APP_DNSMASQ_TEXT}',"javascript:Loadjs('dnsmasq.index.php?popup=yes')");
-	if(!$users->dnsmasq_installed){$dnsmasq=Paragraphe("dns-64-grey.png","{APP_DNSMASQ}",'{APP_DNSMASQ_TEXT}');}
-	
-		
-		$tr[]=$network;
-		$tr[]=$transport;
-		$tr[]=$smtp_generic_maps;
-		//$tr[]=$additional_databases;
-		$tr[]=$additional_databases2;
-		$tr[]=$redirect;
-		$tr[]=$mailinglist_behavior;
-		$tr[]=$testSMTPCnx;
-		$tr[]=$ecluse;
-		$tr[]=$iprotator;
-		$tr[]=$dnsmasq;
-		$tr[]=$applysettings;
-		$tr[]=$queue;
-		$tr[]=$relayhost;
-		$tr[]=$relayhostssl;
-		$tr[]=$notifs;
-		$tr[]=$crossroads;
-		$tr[]=$mailman;
-		$tr[]=$mailgraph;
-		
-
-	
-$tables[]="<table style='width:99%' class=form><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}
-				
-$tables[]="</table>";	
-$html=implode("\n",$tables);	
-	
-$tpl=new templates();	
-$html="<center><div style='width:700px'>$html</div></center>
-<script>
-function relayhost(){
-	YahooWin(700,'postfix.routing.table.php?relayhost=yes',\"Relay Host\");	
-}
-</script>
-
-";	
-$datas=$tpl->_ENGINE_parse_body($html);	
-SET_CACHED(__FILE__,__FUNCTION__,null,$datas);
-return $datas;	
-	
-
-}
 
 
 function tweaks(){
@@ -2178,7 +2097,8 @@ function tweaks(){
 	
 	//$massmailing=ParagrapheTEXT_disabled('mass-mailing-postfix-48.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',null,90);
 	if($users->EMAILRELAY_INSTALLED){
-		$massmailing=Paragraphe('mass-mailing-postfix-64.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',"javascript:Loadjs('postfix.massmailing.php',true)",90);
+		$massmailing=Paragraphe('mass-mailing-postfix-64.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',
+				"javascript:Loadjs('postfix.massmailing.php',true)",90);
 	}		
 	//$multi_infos=ParagrapheTEXT_disabled('postfix-multi-48-info.png','{POSTFIX_MULTI_INSTANCE_INFOS}',
 	///'{POSTFIX_MULTI_INSTANCE_INFOS_TEXT}',null,90);
@@ -2257,7 +2177,7 @@ $refresh
 <tbody>
 <tr>
 	<td style='width:99%'>$icons</td>
-	<td valign='top'><div id='Postfixservinfos' style='width:450px'></div>
+	<td style='vertical-align:top'><div id='Postfixservinfos' style='width:450px'></div>
 </tr>
 </tbody>
 </table>
@@ -2555,7 +2475,7 @@ function orangefr_popup(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=1%><img src='img/{$ini->_params[$ISP]["default_icon"]}' style='margin:4px;padding:5px;border:1px solid #7B787E;background-color:white'></td>
-		<td valign='top'>$text</td>
+		<td style='vertical-align:top'>$text</td>
 	</tr>
 	</table>
 	<script>		

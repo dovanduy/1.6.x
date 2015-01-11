@@ -174,7 +174,6 @@ public
        procedure OPENSSL_CERTIFCATE_CONFIG();
        function  OPENSSL_CERTIFCATE_HOSTS():string;
        function FILE_CHOWN(username:string;groupname:string;path:string):boolean;
-       function FILE_TEMP():string;
        function PROCESS_LIST_PID(processname:string):string;
        procedure RemoveService(servicename:string);
        function FOLDER_SIZE(path:string):integer;
@@ -503,7 +502,7 @@ if not FileExists(tmpstr) then begin
 end;
 
 l:=TstringList.Create;
-l.LoadFromFile('/tmp/artica-ifconfig.tmp');
+l.LoadFromFile(tmpstr);
 RegExpr:=TRegExpr.Create;
 ipstring:=trim(ipstring);
 ipstring:=AnsiReplaceText(ipstring,'.','\.');
@@ -1216,6 +1215,8 @@ begin
 end;
 //#########################################################################################
 function Tsystem.FILE_TEMP():string;
+var
+   ziulogs:Tlogs;
 begin
 ziulogs:=Tlogs.Create;
 result:=ziulogs.FILE_TEMP();
@@ -6816,12 +6817,6 @@ if FileExists('/usr/bin/stunnel4') then exit('/usr/bin/stunnel4');
 if FileExists('/usr/bin/stunnel') then exit('/usr/bin/stunnel');
 end;
 //#############################################################################
-function tsystem.FILE_TEMP():string;
-begin
-if not DirectoryExists('/opt/artica/tmp') then ForceDirectories('/opt/artica/tmp');
-result:='/opt/artica/tmp/'+ MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now)+IntToStr(random(2548)));
-end;
-//#############################################################################
 function Tsystem.DISKS_STATUS_DEV():string;
 var
    l:TstringList;
@@ -6830,8 +6825,11 @@ var
    tmp:string;
    res:string;
    xxxlogs:tlogs;
+   mounted:string;
+   dubin:string;
    ss:integer;
    cmd:string;
+   resultsDu:string;
 begin
      res:='';
    xxxlogs:=Tlogs.Create;
@@ -6845,11 +6843,13 @@ begin
    l.LoadFromFile(tmp);
    DeleteFile(tmp);
    RegExpr:=TRegExpr.Create;
+   dubin:=LOCATE_GENERIC_BIN('du');
 
 
-   RegExpr.Expression:='^\/dev\/(.+?)\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)%';
+   RegExpr.Expression:='^\/dev\/(.+?)\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)%\s+(.*)';
    for i:=0 to l.Count-1 do begin
        if RegExpr.Exec(l.Strings[i]) then begin
+          mounted:=RegExpr.Match[6];
           ss:=0;
           res:=res + RegExpr.Match[1]+','+RegExpr.Match[2]+','+RegExpr.Match[3]+','+RegExpr.Match[4]+',' +RegExpr.Match[5]+ ';';
           try
@@ -6858,7 +6858,12 @@ begin
             xxxlogs.Debuglogs('Fatal error while try to tranfrom '+RegExpr.Match[5]);
           end;
           if ss>94 then begin
-             xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning disk size !! on device ' + RegExpr.Match[1],'You need to check disk size, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[5] +'% used','system');
+             if DirectoryExists(mounted) then begin
+                fpsystem(dubin+' -h --max-dep=1 '+mounted+' >/tmp/DUH.txt 2>&1');
+                resultsDu:=xxxlogs.ReadFromFile('/tmp/DUH.txt');
+                xxxlogs.DeleteFile('/tmp/DUH.txt');
+             end;
+                xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning disk size !! '+mounted+' on device ' + RegExpr.Match[1],'You need to check disk size, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[5] +'% used','system');
           end;
       end else begin
           xxxlogs.Debuglogs(l.Strings[i]+'->Failed '+RegExpr.Expression);
@@ -6994,7 +6999,7 @@ begin
           except
             xxxlogs.Debuglogs('Fatal error while try to transfrom '+RegExpr.Match[8]);
           end;
-          if ss>70 then begin
+          if ss>98 then begin
              xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning too many files !! on device ' + RegExpr.Match[1],'You need to check number of files on this disk, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[8] +'% used','system');
           end;
       end else begin
@@ -8788,6 +8793,7 @@ if RegExpr.Exec(data) then begin
 end;
 
 RegExpr.Expression:='x86_64';
+
 if RegExpr.Exec(data) then begin
    RegExpr.free;
    result:=64;

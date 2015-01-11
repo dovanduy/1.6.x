@@ -11,16 +11,18 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 		var $ComputerOS;
 		var $ComputerIP;
 		var $PROLOG_FREQ=0;
-		
+		var $dhcpfixed=0;
 		function ocs($mac=null){
 			if($mac=="unknown"){$mac=null;}
+			$this->PATCHS_TABLES();
 			if($mac<>null){
-				$this->mac=trim($mac);
+				$this->mac=strtoupper(trim($mac));
 				$this->Loadinfos();
 			}
 		}
 		
 		private function Loadinfos(){
+			if($this->mac==null){return;}
 			$this->mac=strtoupper($this->mac);
 			$sql="SELECT HARDWARE_ID FROM networks WHERE UPPER(MACADDR)='$this->mac' ORDER BY `IPMASK` DESC";
 			
@@ -31,6 +33,8 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 				$sock->getFrameWork("services.php?mysql-ocs=yes");
 				return;
 			}
+			
+			
 			
 			$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'ocsweb'));
 			if(!$q->ok){
@@ -49,6 +53,10 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 				writelogs("$sql -> NULL",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			}
 			
+			$this->dhcpfixed=0;
+			$ligneMAC=mysql_fetch_array($q->QUERY_SQL("SELECT mac FROM dhcpd_fixed WHERE mac='$this->ComputerMacAddress'","artica_backup"));
+			if($ligneMAC["mac"]<>null){$this->dhcpfixed=1;}
+			
 		}
 		
 		public function LoadParams(){
@@ -59,6 +67,55 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			$this->ComputerName=$ligne["NAME"];
 			$this->ComputerOS=$ligne["OSNAME"];
 			$this->ComputerIP=$ligne["IPADDR"];
+		}
+		
+		public function UPDATE_IPADDR($ipaddr){
+			if($ipaddr=="0.0.0.0"){return;}
+			if($this->HARDWARE_ID==0){return;}
+			$q=new mysql();
+			$q->QUERY_SQL("UPDATE hardware SET `IPADDR`='$ipaddr' WHERE `ID`='$this->HARDWARE_ID'",'ocsweb');
+		}
+		
+		public function ADD_HARDWARE($ipaddr,$mac){
+			$q=new mysql();
+			$newdate=date("Y-m-d H:i:s");
+			if($mac=="00:00:00:00:00:00"){return true;}
+			$mac=strtoupper($mac);
+			$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT ID,HARDWARE_ID FROM networks WHERE UPPER(MACADDR)='$mac' LIMIT 0,1",'ocsweb'));
+			$id_net=$ligne["ID"];
+			$HARDWARE_ID=$ligne["HARDWARE_ID"];
+			
+			if(intval($id_net)>0){
+				$q->QUERY_SQL("UPDATE networks SET `IPADDR`='$ipaddr' WHERE `ID`='$id_net'",'ocsweb');
+				if(!$q->ok){return false;}
+				$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT `IPADDR`,`NAME` FROM hardware WHERE ID=$HARDWARE_ID LIMIT 0,1",'ocsweb'));
+				if($ligne["IPADDR"]==null){
+					$NAME=gethostbyaddr($ipaddr);
+					$sql="INSERT IGNORE INTO hardware(`IPADDR`,`NAME`,`LASTDATE`) VALUES ('$ipaddr','$NAME','$newdate')";
+					$q->QUERY_SQL($sql,'ocsweb');
+					$ID=$q->last_id;
+					$q->QUERY_SQL("UPDATE networks SET `HARDWARE_ID`=$ID WHERE `ID`='$id_net'",'ocsweb');
+					return $q->ok;
+				}else{
+					$q->QUERY_SQL("UPDATE hardware SET `IPADDR`='$ipaddr',`LASTDATE`='$newdate' WHERE `ID`='$HARDWARE_ID'",'ocsweb');
+					
+				}
+				return $q->ok;
+			}
+			
+			$NAME=gethostbyaddr($ipaddr);
+			$sql="INSERT IGNORE INTO hardware(`IPADDR`,`NAME`,`LASTDATE`) VALUES ('$ipaddr','$NAME','$newdate')";
+			$q->QUERY_SQL($sql,'ocsweb');
+			$ID=$q->last_id;
+			
+			
+			
+			$sql="INSERT IGNORE INTO networks(`IPADDR`,`MACADDR`,`HARDWARE_ID`) VALUES ('$ipaddr','$mac','$ID')";
+			$q->QUERY_SQL($sql,'ocsweb');
+			if(!$q->ok){return false;}
+			
+			
+			return $q->ok;
 		}
 		
 		
@@ -74,11 +131,11 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 		public function EditComputer(){
 			if($this->ComputerName==null){return;}
 			if($this->mac==null){return;}
+			$this->mac=str_replace("-", ":", $this->mac);
+			$this->mac=strtolower($this->mac);
 			$MAC=strtolower($this->mac);
 			$NAME=strtolower($this->ComputerName);
 			$IPADDR=$this->ComputerIP;
-			$this->mac=str_replace("-", ":", $this->mac);
-			$this->mac=strtolower($this->mac);
 			$MAC=str_replace("-", ":", $MAC);
 			
 			$ComputerOS_edit=null;$ComputerOS_add_field=null;$ComputerOS_add_datd=null;
@@ -127,14 +184,19 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 				if(!$q->ok){if($GLOBALS["VERBOSE"]){writelogs($q->mysql_error,__CLASS__."/".__FILE__,__FILE__,__LINE__);}return false;}			
 			}
 			
-			if(!$GLOBALS["AS_ROOT"]){
-				$sock=new sockets();
-				$sock->getFrameWork("services.php?dnsmasq-reconfigure=yes");
-			}else{
-				$unix=new unix();
-				$nohup=$unix->find_program("nohup");
-				$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php >/dev/null 2>&1");
-				shell_exec($cmd);				
+			if(!isset($GLOBALS["DNSMASQ_RECONFIGURE"])){
+				$GLOBALS["DNSMASQ_RECONFIGURE"]=true;
+				if(!$GLOBALS["AS_ROOT"]){
+					$sock=new sockets();
+					
+					$sock->getFrameWork("services.php?dnsmasq-reconfigure=yes");
+				}else{
+					$unix=new unix();
+					$nohup=$unix->find_program("nohup");
+					$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php >/dev/null 2>&1");
+					shell_exec($cmd);				
+				}
+			
 			}
 			
 		
@@ -468,6 +530,14 @@ if($t<2){
 			if(!$q->ok){writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if(trim($ligne["USERAGENT"])<>null){$_SESSION[__FUNCTION__][$MAC]=$ligne["USERAGENT"];}
 			return $ligne["USERAGENT"];
+			
+		}
+		
+		private FUNCTION PATCHS_TABLES(){
+			$q=new mysql();
+			if(!$q->FIELD_EXISTS("networks", "meta", "ocsweb")){
+				$q->QUERY_SQL("ALTER TABLE `networks` ADD `meta` SMALLINT(1) NOT NULL DEFAULT 0,ADD INDEX(`meta`)","ocsweb");
+			}
 			
 		}
 		

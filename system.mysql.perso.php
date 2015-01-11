@@ -50,7 +50,7 @@ function popup(){
 	
 	$html="
 	<span id='mysqld-animate'></span>
-	<div class=explain>{mysql_perso_conf_text}</div>
+	<div class=text-info>{mysql_perso_conf_text}</div>
 	<div style='font-size:14px;font-weight:bolder;margin-bottom:10px;font-family:Courier New, Courier, Prestige, monospace;'>[mysqld]</div>
 	<center>
 	<textarea id='mysqld-perso' style='height:350px;width:450px;overflow:auto;font-size:14px;font-family:Courier New, Courier, Prestige, monospace;color:black'>$perso</textarea>

@@ -138,7 +138,7 @@ function popup(){
 	$sock=new sockets();
 	$restart=null;
 	
-	$sock->getFrameWork("squid.php?install-squid-tgz=yes&filename=".urlencode($_GET["filename"])."");
+	$sock->getFrameWork("squid.php?install-squid-tgz=".urlencode($_GET["filename"])."");
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...");

@@ -37,13 +37,15 @@ function scan_stats(){
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
-	
+	$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
+	if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
+	if($UseSimplifiedCachePattern==1){return;}
 	
 	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1; }}
 	if($SquidCacheLevel<3){$ARRAY["ENABLED"]=0;}
 	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
 	if(!is_numeric($ARRAY["LEVEL"])){$ARRAY["LEVEL"]=5;}
-	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
+	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=1440;}
 	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}
 	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=0;}
 	
@@ -407,9 +409,8 @@ function gencache_hier(){
 
 }
 function gencache_TOP(){
-	$file1="/usr/share/artica-postfix/ressources/logs/web/TOP_CACHED.db";
+	
 	$file2="/usr/share/artica-postfix/ressources/logs/web/TOP_NOT_CACHED.db";
-	@unlink($file1);
 	@unlink($file2);
 	$q=new mysql_squid_builder();
 	
@@ -420,36 +421,18 @@ function gencache_TOP(){
 	}
 
 	if(!$q->TABLE_EXISTS($current_table)){ if($GLOBALS["VERBOSE"]){echo "$current_table no such table...\n";} return;}
-
-		$sql="SELECT familysite,cached,SUM(size) as size FROM
-		$current_table GROUP BY cached,familysite HAVING cached=1 ORDER BY `size` DESC LIMIT 0,10";
-		$results=$q->QUERY_SQL($sql);
-		$Count=mysql_num_rows($results);
-		if($GLOBALS["VERBOSE"]){echo $sql."\n$Count items \n";}
-		if($Count<2){return ;}
-
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$size=$ligne["size"];
-			$size=$size/1024;
-			$size=$size/1024;
-			$size=round($size);
-			$ARRAY[$ligne["familysite"]]=$size;
-		}
-		@file_put_contents($file1,serialize($ARRAY));
-		@chmod($file1, 0755);
-		$ARRAY=array();
+	$ARRAY=array();
 		
+	$sql="SELECT familysite,cached,SUM(size) as size FROM
+	$current_table GROUP BY cached,familysite HAVING cached=0 ORDER BY `size` DESC LIMIT 0,10";
+	$results=$q->QUERY_SQL($sql);
+	$Count=mysql_num_rows($results);
+	if($GLOBALS["VERBOSE"]){echo $sql."\n$Count items \n";}
+	if($Count<2){return ;}
 		
-		$sql="SELECT familysite,cached,SUM(size) as size FROM
-		$current_table GROUP BY cached,familysite HAVING cached=0 ORDER BY `size` DESC LIMIT 0,10";
-		$results=$q->QUERY_SQL($sql);
-		$Count=mysql_num_rows($results);
-		if($GLOBALS["VERBOSE"]){echo $sql."\n$Count items \n";}
-		if($Count<2){return ;}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$size=$ligne["size"];
-			$size=$size/1024;
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$size=$ligne["size"];
+		$size=$size/1024;
 			$size=$size/1024;
 			$size=round($size);
 			$ARRAY[$ligne["familysite"]]=$size;

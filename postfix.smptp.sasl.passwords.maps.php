@@ -36,7 +36,7 @@ function js(){
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$html="<div class=explain>{smtp_sasl_password_maps_table_explain}</div>
+	$html="<div class=text-info>{smtp_sasl_password_maps_table_explain}</div>
 	
 	<div id='smtp_sasl_password_maps_table'></div>
 	

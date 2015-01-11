@@ -1657,7 +1657,7 @@ function SMTP_NOTIFICATIONS(){
 		//Switchdiv
 	
 $notif1="
-	<div class=explain style='font-size:14px'>{smtp_notifications_text}</div>
+	<div class=text-info style='font-size:14px'>{smtp_notifications_text}</div>
 	<div id='notif1'>
 	<div style='width:98%' class=form>
 	<table>
@@ -1785,7 +1785,7 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 $notif2="
 <div id='notif2'>
 <br>
-<div class=explain>{notification_context}</div>
+<div class=text-info>{notification_context}</div>
 <table style='width:99%' class='form'>
 <tbody>
 <tr>
@@ -1917,7 +1917,7 @@ $notif2="
 $notif3="
 <div id='notif3'>
 <br>
-<div class=explain>{APP_POSTFIX} {notifications}</div>
+<div class=text-info>{APP_POSTFIX} {notifications}</div>
 <table style='width:100%'>
 <tr>
 	<td valign='top' class=legend>{PostfixQueueEnabled}:</td>
@@ -2702,28 +2702,31 @@ function http_proxy(){
 	$artica=new artica_general();
 	if($artica->ArticaProxyServerEnabled==null){$artica->ArticaProxyServerEnabled="no";}
 	$page=CurrentPageName();
+	
+	if($artica->ArticaProxyServerEnabled=="yes"){$artica->ArticaProxyServerEnabled=1;}
+	
 $html="
 <div id='js-proxy-interface-div' style='width:98%' class=form>
-		<table >
+		<table style='width:100%'>
 		<tr>
 		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerEnabled}:</strong></td>
-		<td align='left'>" . Field_checkbox('ArticaProxyServerEnabled','yes',$artica->ArticaProxyServerEnabled,"EnableDisableProxySetts()")."</td>
+		<td align='left'>" . Field_checkbox_design('ArticaProxyServerEnabled',1,$artica->ArticaProxyServerEnabled,"EnableDisableProxySetts()")."</td>
 		</tr>			
 		<tr>
 		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerName}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerName",$artica->ArticaProxyServerName,'width:150px;font-size:18px;padding:3px')."</td>
+		<td align='left'>" . Field_text("ArticaProxyServerName",$artica->ArticaProxyServerName,'width:276px;font-size:18px;padding:3px')."</td>
 		</tr>
 		<tr>
 		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerPort}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerPort",$artica->ArticaProxyServerPort,'width:60px;font-size:18px;padding:3px')."</td>
+		<td align='left'>" . Field_text("ArticaProxyServerPort",$artica->ArticaProxyServerPort,'width:90px;font-size:18px;padding:3px')."</td>
 		</tr>
 		<tr>
 		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerUsername}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerUsername",$artica->ArticaProxyServerUsername,'width:150px;font-size:18px;padding:3px')."</td>
+		<td align='left'>" . Field_text("ArticaProxyServerUsername",$artica->ArticaProxyServerUsername,'width:276px;font-size:18px;padding:3px')."</td>
 		</tr>	
 		<tr>
 		<td align='right' class=legend nowrap class=legend style='font-size:18px'>{ArticaProxyServerUserPassword}:</strong></td>
-		<td align='left'>" . Field_password("ArticaProxyServerUserPassword",$artica->ArticaProxyServerUserPassword,'width:150px;font-size:18px;padding:3px')."</td>
+		<td align='left'>" . Field_password("ArticaProxyServerUserPassword",$artica->ArticaProxyServerUserPassword,'width:200px;font-size:18px;padding:3px')."</td>
 		</tr>				
 		<tr>
 			<td colspan=2 align='right'><hr>". button("{apply}","SaveJsProxyInterface()",24)."</td>
@@ -2900,7 +2903,7 @@ var x_ParseFormLDAP= function (obj) {
 		XHR.appendData('LdapListenIPAddr',document.getElementById('LdapListenIPAddr').value);
 		XHR.appendData('LdapAllowAnonymous',LdapAllowAnonymous);
 		XHR.appendData('EnableRemoteAddressBook',EnableRemoteAddressBook);
-		AnimateDiv('cachesizediv');
+		
 		
 		XHR.sendAndLoad('$page', 'GET',x_ParseFormLDAP);
 	
@@ -2954,6 +2957,7 @@ function LDAP_SAVE(){
 	if(isset($_GET["LdapListenIPAddr"])){$sock->SET_INFO("LdapListenIPAddr",$_GET["LdapListenIPAddr"]);}
 	if(isset($_GET["OpenLDAPLogLevel"])){$sock->SET_INFO("OpenLDAPLogLevel",$_GET["OpenLDAPLogLevel"]);}
 	if(isset($_GET["LockLdapConfig"])){$sock->SET_INFO("LockLdapConfig",$_GET["LockLdapConfig"]);}
+	if(isset($_GET["RestartLDAPEach"])){$sock->SET_INFO("RestartLDAPEach",$_GET["RestartLDAPEach"]);}
 	
 	
 	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
@@ -3061,12 +3065,29 @@ function LDAP_CONFIG_NET(){
 	16384=>"{synchronization}",
 	2048=>"{debug}",
 	);
+	
+	$CACHE_AGES[0]="{never}";
+	$CACHE_AGES[30]="30 {minutes}";
+	$CACHE_AGES[60]="1 {hour}";
+	$CACHE_AGES[120]="2 {hours}";
+	$CACHE_AGES[360]="6 {hours}";
+	$CACHE_AGES[720]="12 {hours}";
+	$CACHE_AGES[1440]="1 {day}";
+	$CACHE_AGES[2880]="2 {days}";
+	$CACHE_AGES[4320]="3 {days}";
+	$CACHE_AGES[10080]="1 {week}";
+	$CACHE_AGES[20160]="2 {weeks}";
+	$CACHE_AGES[43200]="1 {month}";
+	
+	$RestartLDAPEach=$sock->GET_INFO("RestartLDAPEach");
+	if(!is_numeric($RestartLDAPEach)){$RestartLDAPEach=4320;}
+	
 	$LockLdapConfig=$sock->GET_INFO("LockLdapConfig");
 	$OpenLDAPLogLevel=$sock->GET_INFO("OpenLDAPLogLevel");
 	if(!is_numeric($OpenLDAPLogLevel)){$OpenLDAPLogLevel=256;}
 	if(!is_numeric($LockLdapConfig)){$LockLdapConfig=0;}
 	$loglevel_field=Field_array_Hash($loglevel_hash,"OpenLDAPLogLevel",$OpenLDAPLogLevel,"style:font-size:13px;padding:3px");
-	
+	$restart_field=Field_array_Hash($CACHE_AGES,"RestartLDAPEach",$RestartLDAPEach,"style:font-size:13px;padding:3px");
 	$form_network="
 	<table style='width:100%'>
 	<tr>
@@ -3093,7 +3114,11 @@ function LDAP_CONFIG_NET(){
 				<tr>
 					<td class=legend nowrap>{log_level}:</td>
 					<td><strong style='font-size:11px' nowrap>$loglevel_field</td>
-				</tr>						
+				</tr>	
+				<tr>
+					<td class=legend nowrap>{restart_service_each}:</td>
+					<td><strong style='font-size:11px' nowrap>$restart_field</td>
+				</tr>									
 				<tr>
 					<td colspan=2 align='right'><hr>
 					". button("{apply}","ParseFormLDAPNET()","14px")."
@@ -3146,7 +3171,9 @@ function LDAP_CONFIG_NET(){
 		XHR.appendData('EnableRemoteAddressBook',EnableRemoteAddressBook);
 		XHR.appendData('LockLdapConfig',LockLdapConfig);
 		XHR.appendData('OpenLDAPLogLevel',document.getElementById('OpenLDAPLogLevel').value);
-		AnimateDiv('ParseFormLDAPNET');
+		XHR.appendData('RestartLDAPEach',document.getElementById('RestartLDAPEach').value);
+		
+		
 		XHR.sendAndLoad('$page', 'GET',x_ParseFormLDAP);
 		}
 
@@ -3488,7 +3515,7 @@ function js_web_fw(){
 	$page=CurrentPageName();
 	$styleOfFields="width:190px;font-size:14px;padding:3px";
 	$html="
-	<div class=explain>{LIGHTTPD_IP_ACCESS_TEXT}</div>
+	<div class=text-info>{LIGHTTPD_IP_ACCESS_TEXT}</div>
 	
 	<table style='width:100%'>
 	<tr>

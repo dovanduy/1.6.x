@@ -105,6 +105,7 @@ function build(){
 	$ICP_PORT=intval(trim($ini->_params["NETWORK"]["ICP_PORT"]));
 	$certificate_center=$ini->_params["NETWORK"]["certificate_center"];
 	$SSL_BUMP=intval($ini->_params["NETWORK"]["SSL_BUMP"]);
+	$LogsWarninStop=intval($sock->GET_INFO("LogsWarninStop"));
 	$ssl=false;
 	if($ICP_PORT==0){$ICP_PORT=3130;}
 	if($LISTEN_PORT==0){$LISTEN_PORT=3128;}
@@ -180,13 +181,13 @@ function build(){
 		$IPADDRS[$ipaddr]=$xport;
 	}
 	
-
+	$transparent=" transparent";
 	
 	while (list ($ipaddr, $xport) = each ($IPADDRSSL)){ $IPADDRSSL2["$ipaddr:$xport"]=true; }
 	
 	while (list ($ipaddr, $xport) = each ($IPADDRS)){ $IPADDRS2["$ipaddr:$xport"]=true; }
 	while (list ($ipaddr, $none) = each ($IPADDRS2)){
-		$f[]="http_port $ipaddr transparent";
+		$f[]="http_port $ipaddr$transparent";
 	}
 	
 	
@@ -230,12 +231,14 @@ function build(){
 		
 	}
 	
+
+	
 	
 	$f[]="acl all src all";
 	$f[]="acl manager proto cache_object";
 	$f[]="acl localhost src 127.0.0.1/32";
 	$f[]="acl to_localhost dst 127.0.0.0/8 0.0.0.0/32";
-	$f[]="acl SSL_ports port 443";
+	$f[]="acl SSL_ports port \"/etc/squid3/acls/SSLPorts\"";
 	$f[]="acl Safe_ports port 80		# http";
 	$f[]="acl Safe_ports port 21		# ftp";
 	$f[]="acl Safe_ports port 443		# https";
@@ -249,6 +252,43 @@ function build(){
 	$f[]="acl CONNECT method CONNECT";
 	$f[]="";
 	$f[]="";
+	
+	if($sock->EnableUfdbGuard()==1){
+		$f[]=ufdbguard27();
+		$EnableUfdbGuardArtica=$sock->EnableUfdbGuardArtica();
+		if(!is_file("/etc/squid3/acls/office365-nets.acl")){@touch("/etc/squid3/acls/office365-nets.acl");}
+		if(!is_file("/etc/squid3/acls/office365-domains.acl")){@touch("/etc/squid3/acls/office365-domains.acl");}
+		if(!is_file("/etc/squid3/acls/skype-nets.acl")){@touch("/etc/squid3/acls/skype-nets.acl");}
+		if(!is_file("/etc/squid3/acls/dropbox-nets.acl")){@touch("/etc/squid3/acls/dropbox-nets.acl");}
+		
+		$f[]="acl squidclient proto cache_object";
+		$f[]="acl MgRDest dst 127.0.0.1";
+		$f[]="acl MgRPort dst 127.0.0.1";
+		$f[]="acl MyTestPort src 127.0.0.1";
+		$f[]="acl MyLocalIpsDest dst 127.0.0.1";
+		$f[]="acl ToArticaWWW dstdomain .artica.fr .articatech.net .articatech.com";
+		
+		if($EnableUfdbGuardArtica==0){
+			$f[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"";
+		}
+		$f[]="acl ArticaMetaWhiteDoms dstdomain \"/etc/squid3/artica-meta/whitelist-domains.db\"";
+		$f[]="acl ArticaMetaWhiteIPs dst \"/etc/squid3/artica-meta/whitelist-nets.db\"";
+
+		$f[]="acl BrowsersNoWebF browser -i \"/etc/squid3/acls/Browsers-nofilter.acl\"";
+		$f[]="acl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\"";
+		
+		$f[]="acl office365_ips dst \"/etc/squid3/acls/office365-nets.acl\"";
+		$f[]="acl office365_www dstdomain \"/etc/squid3/acls/office365-domains.acl\"";
+		
+		$f[]="acl skype_www dstdomain  .live.com  .skypeassets.com";
+		$f[]="acl skype_ips dst \"/etc/squid3/acls/skype-nets.acl\"";
+		
+		$f[]="acl dropbox_ips dst \"/etc/squid3/acls/dropbox-nets.acl\"";
+		$f[]="acl dropbox_www dstdomain  .dropbox.com";
+		
+		$f[]=@file_get_contents("/etc/squid3/url_rewrite_access.conf");
+	}
+	
 	$f[]="http_access allow manager localhost";
 	$f[]="http_access deny manager";
 	$f[]="http_access deny !Safe_ports";
@@ -260,6 +300,7 @@ function build(){
 	$f[]="icp_access deny all";
 	
 	$f[]="cache_peer 127.0.0.1\tparent\t$LISTEN_PORT\t3130\tdefault";
+	$f[]="never_direct allow all";
 	$f[]="cache_mem 64 MB";
 	$f[]="maximum_object_size_in_memory 256 KB";
 	$f[]="memory_replacement_policy lru";
@@ -278,10 +319,16 @@ function build(){
 	$LOGFORMAT[]="Forwarded:\"%{X-Forwarded-For}>h\"";
 	
 	$f[]="logformat common MAC:00:00:00:00:00:00 ".@implode(" ", $LOGFORMAT);
-	$f[]="logfile_daemon /usr/share/artica-postfix/exec.logfile_daemon.php";
+	
 	$f[]="access_log none";
 	$f[]="cache_store_log none";
+	if($LogsWarninStop==0){
 	$f[]="logfile_rotate 10";
+	}
+	if($LogsWarninStop==1){
+		$f[]="logfile_rotate 0";
+	}
+	
 	$f[]="# emulate_httpd_log off";
 	$f[]="log_ip_on_direct on";
 	$f[]="mime_table /etc/squid27/mime.conf";
@@ -293,7 +340,12 @@ function build(){
 	$f[]="strip_query_terms off";
 	$f[]="buffered_logs on";
 	$f[]="netdb_filename /var/log/squid/netdb_nat.state";
-	$f[]="cache_log /var/log/squid/cache-nat.log";
+	if($LogsWarninStop==0){
+		$f[]="cache_log /var/log/squid/cache-nat.log";
+	}
+	if($LogsWarninStop==1){
+		$f[]="cache_log /dev/null";
+	}
 	$f[]="#url_rewrite_program";
 	$f[]="# url_rewrite_children 5";
 	$f[]="# url_rewrite_concurrency 0";
@@ -389,6 +441,82 @@ function CheckFilesAndSecurity(){
 		if(!is_dir($val)){@mkdir($val,0755,true);}
 		$unix->chown_func("squid","squid","$val/*");
 	}
+	
+}
+
+function ufdbguard27(){
+	$unix=new unix();
+	$sock=new sockets();
+	$squid=new squidbee();
+	$users=new usersMenus();
+	$major=$unix->UFDBGUARDD_MAJOR();
+	$minor=$unix->UFDBGUARDD_MINOR();
+	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$ufdbClass=new compile_ufdbguard();
+	$datas=$ufdbClass->SetDefaultsConfig($datas);
+	
+	
+	if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
+	if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
+	if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}
+	
+	if(!is_numeric($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
+	if($datas["url_rewrite_children_concurrency"]>1){$moinsC="-C ";}
+	
+	if($squid->EnableRemoteStatisticsAppliance==1){
+		$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
+		if($this->ASROOT){
+			echo "Starting......: ".date("H:i:s")." [UFDB]: Using remote appliance {$RemoteStatisticsApplianceSettings["SERVER"]}:{$datas["listen_port"]} as Web filtering engine\n";
+		}
+			
+		$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
+		$datas["UseRemoteUfdbguardService"]=1;
+		$datas["remote_port"]=$datas["listen_port"];
+	}
+	
+	$binary="/usr/share/artica-postfix/ufdbgclient.php";
+	$log="-l /var/log/squid";
+		
+	if(!is_numeric($datas["listen_port"])){$datas["listen_port"]="3977";}
+	if(!is_numeric($datas["tcpsockets"])){$datas["tcpsockets"]=1;}
+	if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}
+	
+	if($datas["remote_port"]==null){$datas["UseRemoteUfdbguardService"]=0;}
+	if($datas["listen_addr"]==null){$datas["listen_addr"]="127.0.0.1";}
+	if($datas["listen_addr"]=="all"){$datas["listen_addr"]="127.0.0.1";}
+	
+	if($datas["UseRemoteUfdbguardService"]==1){
+		if(trim($datas["remote_server"]==null)){$datas["remote_server"]="127.0.0.1";}
+		$address="-S {$datas["remote_server"]} -p {$datas["remote_port"]} ";
+		echo "Starting......: ".date("H:i:s")." ufdbguardd: Use remote ufdbguard service: {$datas["remote_server"]}:{$datas["remote_port"]}\n";
+		$GLOBALS[__FUNCTION__]="$binary $moinsC$address $log";
+		return "$binary $moinsC$address $log";
+	}	
+
+	$effective_port=$squid->ufdbguard_value("port");
+	echo "Starting......: ".date("H:i:s")." ufdbguardd: Effective port:`$effective_port`\n";
+	if(is_numeric($effective_port)){$datas["tcpsockets"]=1;}
+	
+	
+	if($major>0){
+		if($minor>26){
+			if($datas["tcpsockets"]==1){
+				if(trim($datas["listen_addr"]==null)){$datas["listen_addr"]="127.0.0.1";}
+				echo "Starting......: ".date("H:i:s")." ufdbguardd: Use remote ufdbguard service: {$datas["listen_addr"]}:{$datas["remote_port"]}\n";
+				$address="-S {$datas["listen_addr"]} -p {$datas["listen_port"]} ";
+				$GLOBALS[__FUNCTION__]="$binary $moinsC$address $log";
+				$f[]="url_rewrite_program $binary $moinsC$address $log";
+				$f[]=$squid->url_rewrite_children();
+				return @implode("\n", $f);
+				
+			}
+		}
+		}
+		echo "Starting......: ".date("H:i:s")." ufdbguardd: Use remote ufdbguard service: $binary $moinsC$log\n";
+		$GLOBALS[__FUNCTION__]="$binary $moinsC$log";
+		$f[]="url_rewrite_program /usr/share/artica-postfix/ufdbgclient.php";	
+		$f[]=$squid->url_rewrite_children();
+		return @implode("\n", $f);
 	
 }
 

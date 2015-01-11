@@ -19,8 +19,7 @@ if(isset($_GET["transport-table"])){routingTable(1);exit;}
 if(isset($_GET["local-domain-table"])){LocalTable(1);exit;}
 if(isset($_GET["relay-domain-table"])){RelayDomainsTable(1);exit;}
 if(isset($_GET["relay-recipient-table"])){RelayRecipientsTable(1);exit;}
-if(isset($_GET["relay-sender-table"])){SenderTableLoad(1);exit;}
-if(isset($_GET["relay-sender-table-list"])){SenderTableLoad_list(1);exit;}
+
 
 if(isset($_GET["artica-sender-table-list"])){ArticaSyncTable_list();exit();}
 
@@ -135,7 +134,7 @@ function relayhost_sasl_config(){
 	
 	$html="
 	<div id='smtp_sasl_security_options_div'>
-	<div class=explain>{smtp_sasl_security_options_text}</div>
+	<div class=text-info>{smtp_sasl_security_options_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{smtp_sasl_security_options_noanonymous}</td>
@@ -304,7 +303,7 @@ $sync_artica=Paragraphe("sync-64.png","{smtp_sync_artica}","{smtp_sync_artica_te
 	$html="<table style='width:100%'>
 			<tr>
 				<td valign='top'><img src='img/bg_routing-250.png'></td>
-				<td valign='top'><div class=explain>{transport_table_explain}</div></td>
+				<td valign='top'><div class=text-info>{transport_table_explain}</div></td>
 			</tr>
 			<tr>
 			<td colspan=2>
@@ -787,7 +786,7 @@ $form="
 	<td align='right' colspan=2>". button("{apply}","PostfixAddNewRoutingTable()")."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><hr><div class=explain><strong>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><hr><div class=text-info><strong>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>
@@ -842,7 +841,7 @@ $html="
 	<td align='right'  colspan=2>". button("{add}","PostfixRelayRecipientTableSave$t()",18)."</td>
 	</tr>			
 	</table>
-	<div class=explain style='font-size:14px'>{relay_recipient_maps_text}</div>
+	<div class=text-info style='font-size:14px'>{relay_recipient_maps_text}</div>
 	
 	<script>
 
@@ -1031,7 +1030,7 @@ $t=time();
 $ask_compile_postfix=$tpl->javascript_parse_text("{ask_compile_postfix}");
 
 $form="<div style='font-size:16px'>{relayhost}</div>
-<div class=explain>{relayhost_text}</div>
+<div class=text-info>{relayhost_text}</div>
 <div id='relayhostdiv-$t'></div>
 <div style='text-align:right'><code style='font-size:14px;padding:3px'>$relayhost</code></div>
 	<table style='width:100%'>
@@ -1084,7 +1083,7 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 		</td>
 	</tr>
 </table>
-<div class=explain>{MX_lookups}<br>{MX_lookups_text}</div>
+<div class=text-info>{MX_lookups}<br>{MX_lookups_text}</div>
 </div>
 <script>
 var X_PostfixSaveRelayHost= function (obj) {
@@ -1417,92 +1416,7 @@ return $tpl->_ENGINE_parse_body($html);
 	
 }
 
-function SenderTableLoad(){
-	$t=time();
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$users=new usersMenus();
-	$sock=new sockets();
-	$t=time();
-	$domain=$tpl->_ENGINE_parse_body("{domain}");
-	$are_you_sure_to_delete=$tpl->javascript_parse_text("{are_you_sure_to_delete}");
-	$relay=$tpl->javascript_parse_text("{relay}");
-	$MX_lookups=$tpl->javascript_parse_text("{MX_lookups}");
-	$delete=$tpl->javascript_parse_text("{delete}");
-	$InternetDomainsAsOnlySubdomains=$sock->GET_INFO("InternetDomainsAsOnlySubdomains");
-	if(!is_numeric($InternetDomainsAsOnlySubdomains)){$InternetDomainsAsOnlySubdomains=0;}
-	$add_local_domain_form_text=$tpl->javascript_parse_text("{add_local_domain_form}");
-	$add_local_domain=$tpl->_ENGINE_parse_body("{add_local_domain}");
-	$sender_dependent_relayhost_maps_title=$tpl->_ENGINE_parse_body("{sender_dependent_relayhost_maps_title}");
-	$ouescape=urlencode($ou);
-	$destination=$tpl->javascript_parse_text("{destination}");
-	$hostname=$_GET["hostname"];
-	$add_sender_routing_rule=$tpl->_ENGINE_parse_body("{add_sender_routing_rule}");
-	$add_remote_domain=Paragraphe("64-remotedomain-add.png",'{add_relay_domain}','{add_relay_domain_text}',
-	"javascript:AddRemoteDomain_form(\"$ou\",\"new domain\")","add_relay_domain",210);
 
-	$buttons="
-	buttons : [
-	{name: '$add_sender_routing_rule', bclass: 'add', onpress : add_sender_routing_rule$t},
-	],";		
-
-	$explain=$tpl->_ENGINE_parse_body("{postfix_transport_senders_explain}");
-$html="
-<div class=explain style='font-size:14px'>$explain</div>
-<input type='hidden' id='ou' value='$ou'>
-<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-
-	
-<script>
-$(document).ready(function(){
-$('#flexRT$t').flexigrid({
-	url: '$page?relay-sender-table-list=yes&hostname=$hostname&t=$t',
-	dataType: 'json',
-	colModel : [
-		{display: '$domain', name : 'domain', width : 428, sortable : true, align: 'left'},
-		{display: '$relay', name : 'description', width :309, sortable : true, align: 'left'},
-		{display: '$delete;', name : 'delete', width : 44, sortable : false, align: 'left'},
-		],
-	$buttons
-	searchitems : [
-		{display: '$domain', name : 'domain'},
-		],
-	sortname: 'domain',
-	sortorder: 'asc',
-	usepager: true,
-	title: '',
-	useRp: true,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: '99%',
-	height: '600',
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
-	
-	});   
-});
-
-	function add_sender_routing_rule$t(){
-		YahooWin3(552,'postfix.routing.table.php?SenderTable=yes&domainName=&t=$t','$sender_dependent_relayhost_maps_title');	
-	}
-
-	function sender_routing_ruleED$t(domainName){
-		YahooWin3(552,'postfix.routing.table.php?SenderTable=yes&domainName='+domainName+'&t=$t','$sender_dependent_relayhost_maps_title::'+domainName);	
-	}	
-	
-	
-	function SenderTableDelete$t(domain){
-		Loadjs('$page?SenderTableDelete-js=yes&domain='+domain+'&t=$t');
-	
-	}
-	
-</script>
-";
-	
-	echo $html;
-		
-	
-}
 
 function SenderTableLoad_list(){
 	$ldap=new clladp();
@@ -1569,100 +1483,7 @@ function SenderTableLoad_list(){
 }
 
 
-function SenderTable(){
-$button="{add}";	
-$page=CurrentPageName();
-$ldap=new clladp();
-$t=$_GET["t"];
-if($_GET["domainName"]<>null){
-	$button="{apply}";
-	if(strpos($_GET["domainName"],'@')==0){
-		$domain_f="@".$_GET["domainName"];
-		$domain=$_GET["domainName"];
-	}else{
-		$domain_f=$_GET["domainName"];
-		$email=$domain_f;
-		
-	}
-	
-	$domaintools=new DomainsTools();
-	$h=$ldap->hash_Sender_Dependent_Relay_host();
-	$table=$domaintools->transport_maps_explode($h[$domain_f]);
-	$relay_address=$table[1];
-	$MX_lookups=$table[3];
-}
 
-	$main=new main_cf();
-	if($main->main_array["smtp_sasl_auth_enable"]=="yes"){
-		$tls_table=$ldap->hash_Smtp_Tls_Policy_Maps();
-		$tls_value=$tls_table[$relay_address];
-		writelogs("server \"{$table[$domainName]}\"=>$smtp_server_line=>".$tls_table[$smtp_server_line] ."($tls_value)",__FUNCTION__,__FILE__);
-		
-		$field=Field_array_Hash($main->array_field_relay_tls,'smtp_tls_policy_maps',$tls_value,null,null,0,"font-size:16px;",false);
-		$sasl="
-		</tr>
-			<td align='right' nowrap valign='top' class=legend style='font-size:16px'><strong>{tls_level}:</strong></td>
-			<td style='font-size:12px'>$field<div class='explain'>{use_tls_relay_explain}</div></td>	
-		</tr>";
-		
-	}
-
-
-	$html="
-	
-	<input type='hidden' name='SenderTableSave' value='yes'>
-	<table style='width:99%' class=form>
-	<tr>
-	<td align='right' nowrap class=legend style='font-size:16px'>{email}:</strong></td>
-	<td style='font-size:16px'>" . Field_text('email',$email,"font-size:16px;width:300px") . "</td>	
-	</tr>		
-	<tr>
-	<td align='right' nowrap class=legend style='font-size:16px'>{or} {domain}:</strong></td>
-	<td style='font-size:16px'> " . Field_text('domain',$domain,"font-size:16px;width:300px") . "</td>	
-	</tr>	
-	<tr>
-	<td align='right' nowrap class=legend style='font-size:16px'>{relay_address}:</strong></td>
-	<td style='font-size:16px'>" . Field_text('relay_address',$relay_address,"font-size:16px;width:300px") . "</td>	
-	</tr>
-	<tr>
-	<td align='right' nowrap style='font-size:16px'>" . Field_yesno_checkbox_img('MX_lookups',$MX_lookups,'{enable_disable}')."</td>
-	<td style='font-size:16px'>{MX_lookups}</td>	
-	</tr>
-	$sasl
-	<tr>
-	<td align='right' colspan=2>". button($button,"PostfixAddNewSenderTable$t()",18)."</td>
-	</tr>		
-	</table>
-	<div class=explain style='font-size:14px'>{sender_dependent_relayhost_maps_text}</div>
-	
-	<script>
-	
-var X_PostfixAddNewSenderTable$t= function (obj) {
-		var results=obj.responseText;
-		if (results.length>0){alert(results);}
-		YahooWinHide();
-		YahooWin3Hide();
-		$('#flexRT$t').flexReload();
-	}		
-function PostfixAddNewSenderTable$t(){
-		var XHR = new XHRConnection();
-		XHR.appendData('SenderTableSave','yes');
-		XHR.appendData('email',document.getElementById('email').value);
-		XHR.appendData('domain',document.getElementById('domain').value);
-		XHR.appendData('relay_address',document.getElementById('relay_address').value);
-		XHR.appendData('MX_lookups',document.getElementById('MX_lookups').value);
-		XHR.sendAndLoad('$page', 'GET',X_PostfixAddNewSenderTable$t);
-		
-	}	
-</script>	
-	
-	
-";
-
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);		
-	
-}
 
 function SenderTableSave(){
 	$tpl=new templates();

@@ -31,7 +31,7 @@ function bridges_section(){
 	$page=CurrentPageName();
 	$boot=new boostrap_form();
 	$OPTIONS["BUTTONS"][]=button("{new_net_bridge}","Loadjs('$page?bridge-js=0')",16);
-	$expl="<div class=explain>{firewall_bridges_explain}</div>";
+	$expl="<div class=text-info>{firewall_bridges_explain}</div>";
 	echo $expl.$boot->SearchFormGen("nic_inbound,nic_linked","search-bridge",null,$OPTIONS);
 
 

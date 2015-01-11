@@ -13,7 +13,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["NO-OUTPUT"]=false;
 
 
-if($argv[1]=="--build"){BuildJgrowl();exit;}
+
 if($argv[1]=="--disks"){CheckHardDrives();die();}
 if($argv[1]=="--versions"){CheckVersions();die();}
 
@@ -1101,7 +1101,7 @@ function norogs(){
 	$hash=$ldap->hash_get_ou();
 	$ldap->ldap_close();
 	if(count($hash)>0){return;}
-	$link="<center><a href='#' OnClick=javascript:TreeAddNewOrganisation(); style=font-weight:bolder;text-decoration:underline;font-size:11px>{add_new_org}</a></center>";
+	$link="<center><a href='#' OnClick=javascript:loadjs('organization.js.php?add-ou=yes');; style=font-weight:bolder;text-decoration:underline;font-size:11px>{add_new_org}</a></center>";
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{no_organization}");
 	$html[]="";
@@ -1134,6 +1134,9 @@ function squid_cache_infos(){
 		if($GLOBALS["VERBOSE"]){echo "squid_cache_infos(): NOT AN ARRAY\n";}
 		return null;
 	}
+	
+	if(count($cacheinfo)==0){return null;}
+	
 if($GLOBALS["VERBOSE"]){echo "squid_cache_infos(): Starting ". count($cacheinfo)."\n";}
 		while (list ($path, $array) = each ($cacheinfo) ){	
 			$pourc=$array["POURC"];
@@ -1177,6 +1180,8 @@ function squid_cache_infos_email($pourc,$cacheinfo){
 	if($GLOBALS["VERBOSE"]){echo "squid_cache_infos() -> timed-out\n";}
 		return null;
 	}	
+	
+	
 	
 	reset($cacheinfo);
 	
@@ -1355,49 +1360,7 @@ function SquidGardCompile(){
 	
 }
 
-function BuildJgrowl(){
-	events("starting",__FUNCTION__,__FILE__,__LINE__);
-	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	if($GLOBALS["VERBOSE"]){echo "PidTime: $pidfile\n";}
-	
-	if($unix->file_time_min($pidTime)<1){return;}
-	@unlink($pidTime);
-	@file_put_contents($pidTime, time());
-	
-	$pid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid)){
-		events("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);
-		die();
-	}
-	$size=$unix->file_size("/etc/artica-postfix/smtpnotif.conf");
-	if($size>200000){
-		events("/etc/artica-postfix/smtpnotif.conf => cleaning -> size=$size","MAIN",__FUNCTION__,__FILE__,__LINE__);	
-		$tbl=explode("\n",@file_get_contents("/etc/artica-postfix/smtpnotif.conf"));
-		events("/etc/artica-postfix/smtpnotif.conf => cleaning -> ".count($tbl)." rows","MAIN",__FUNCTION__,__FILE__,__LINE__);
-		while (list ($index, $val) = each ($tbl) ){
-			if(trim($val)==null){continue;}
-			$new[]=$val;
-		}
-		@file_put_contents("/etc/artica-postfix/smtpnotif.conf",@implode("\n",$new));
-		events("/etc/artica-postfix/smtpnotif.conf => cleaning -> ".count($new)." rows","MAIN",__FUNCTION__,__FILE__,__LINE__);
-	}
-	
-	@file_put_contents($pidfile,getmypid());	
-	$nice=EXEC_NICE();
-	if(is_file("/usr/share/artica-postfix/ressources/logs/web/jgrowl.txt")){
-		events("/usr/share/artica-postfix/ressources/logs/web/jgrowl.txt exists, aborting",__FUNCTION__,__FILE__,__LINE__);
-		die();
-	}
-	$cmd=$nice.LOCATE_PHP5_BIN2()." ". __FILE__." >/usr/share/artica-postfix/ressources/logs/web/jgrowl.txt 2>&1";
-	events("Executing $cmd",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);
-	events("chmod...",__FUNCTION__,__FILE__,__LINE__);
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/jgrowl.txt",0777);
-	events("success, die",__FUNCTION__,__FILE__,__LINE__);
-	die();	
-}
+
 function events($text,$function,$file=null,$line=0){
 		$pid=@getmypid();
 		$date=@date("H:i:s");

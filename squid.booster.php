@@ -12,22 +12,50 @@
 		die();exit();
 	}
 	
+	
+	if(isset($_GET["tab"])){tabs();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["SquidBoosterMem"])){Save();exit;}
-	
+	if(isset($_GET["status"])){status();exit;}
+	if(isset($_GET["cache-mem"])){cache_mem();exit;}
+	if(isset($_GET["cache-rock"])){cache_rock();exit;}
 	
 	js();
 	
 	
 function js() {
-
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{squid_booster}");
 	$page=CurrentPageName();
-	$html="YahooWin3('550','$page?popup=yes','$title')";
-	echo $html;	
+	echo "
+	AnimateDiv('BodyContent');
+	LoadAjax('BodyContent','$page?tabs=yes');";
+	
 	
 }
+
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["popup"]="{squid_booster}";
+	$array["status"]="{status}";
+	
+	$fontsize="22px";
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+	
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	
+	
+	echo build_artica_tabs($html, "squid_booster_tab",990)."
+	<script>LeftDesign('speed-256.png');</script>";
+}
+
 
 function popup(){
 	$tpl=new templates();
@@ -36,6 +64,8 @@ function popup(){
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 	$SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 	$SquidBoosterOnly=$sock->GET_INFO("SquidBoosterOnly");
+	$SquidBoosterEnable=intval($sock->GET_INFO("SquidBoosterEnable"));
+	
 	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 	if(!is_numeric($SquidBoosterMemK)){$SquidBoosterMemK=50;}
 	if(!is_numeric($SquidBoosterOnly)){$SquidBoosterOnly=0;}
@@ -49,9 +79,15 @@ function popup(){
 	$maxMem=500;
 	$CPUS=0;
 	$currentMem=intval($sock->getFrameWork("cmd.php?GetTotalMemMB=yes"));
+	$soustraire=500;
+	if($currentMem>3500){$soustraire=1000;}
+	if($currentMem>4000){$soustraire=1200;}
+	if($currentMem>6000){$soustraire=2000;}
+	if($currentMem>7999){$soustraire=2500;}
+	if($currentMem>9999){$soustraire=3000;}
 	
 	if($currentMem>0){
-		$maxMem=$currentMem-500;
+		$maxMem=$currentMem-$soustraire;
 	}
 	
 	$users=new usersMenus();
@@ -59,36 +95,22 @@ function popup(){
 		
 	
 	
-	$html="
-
-	<div class=explain style='font-size:14px;' id='$t-div'>{squid_booster_text}</div>
-	<div style='font-size:16px;font-weight:bold;text-align:center;color:#E71010' id='$t-multi'></div>
+	$html=Paragraphe_switch_img("{activate_the_booster_cache}", "{squid_booster_text}","SquidBoosterEnable",$SquidBoosterEnable,null,850)."
 	
-	<table style='width:99%' class=form>
+	
+	
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1%>{memory}:</td>
-		<td width=99%><strong style='font-size:16px' id='$t-value'>{$SquidBoosterMem}M/{$currentMem}M$SquidBoosterMemText</strong><input type='hidden' id='$t-mem' value='$SquidBoosterMem'></td>
+		<td class=legend style='font-size:22px' widht=1%>{memory}:</td>
+		<td width=99%><strong style='font-size:35px' id='$t-value'>{$SquidBoosterMem}M/{$maxMem}M</strong><input type='hidden' id='$t-mem' value='$SquidBoosterMem'></td>
 	</tr>
 	<tr>
-		<td colspan=2><div id='slider$t'></div></td>
+		<td colspan=2><div id='slider$t' style='height:70px'></div></td>
 	</tr>
 	</table>
 	
-	
-	
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{max_objects_size}:</td>
-		<td width=99%><strong style='font-size:16px' id='$t-value2'>{$SquidBoosterMemK}K</strong>
-		<input type='hidden' id='$t-ko' value='$SquidBoosterMemK'></td>
-	</tr>
-	<tr>
-		<td colspan=2><div id='slider2$t'></div></td>
-	</tr>
-	<td class=legend style='font-size:16px' widht=1% nowrap>{UseOnlyBooster}:</td>
-	<td align=left'>". Field_checkbox("$t-only", 1,$SquidBoosterOnly)."</td>
-	</table>
-	<div style='margin-top:8px;text-align:right'>". button("{apply}","SaveBooster$t()",18)."</div>	
+	<div style='margin-top:20px;text-align:right'><HR>". button("{apply}","SaveBooster$t()",36)."</div>	
 	
 	
 	
@@ -97,66 +119,51 @@ function popup(){
 			$('#slider$t').slider({ max: $maxMem,step:5,
 			value:$SquidBoosterMem,
 			 slide: function(e, ui) {
-          		ChangeSlideField$t(ui.value)
+			 
+			// $( '#control-direct' ).val( ui.values[ 0 ] + '%' );
+			var slidercolor =ui.value+'%';
+
+			$('.ui-slider-horizontal').css({background: '#16D33F'})
+				.css({background: 'linear-gradient(to right,  #D32516 '+slidercolor+',#16D33F '+slidercolor+')'})
+				.css({background: '-moz-linear-gradient(left,  #16D33F '+slidercolor+', #D32516 '+slidercolor+')'})
+				.css({background: '-webkit-linear-gradient(left,  #16D33F '+slidercolor+',#D32516 '+slidercolor+')'});
+			
+			ChangeSlideField$t(ui.value)
         	},
         	change: function(e, ui) {
+        		
           		ChangeSlideField$t(ui.value);
         	}
 		});
 		
-		$('#slider2$t').slider({ max: 1000,step:5,
-			value:$SquidBoosterMemK,
-			 slide: function(e, ui) {
-          		ChangeSlideFieldK$t(ui.value)
-        	},
-        	change: function(e, ui) {
-          		ChangeSlideFieldK$t(ui.value);
-        	}
-		});		
+	
+		$('.ui-slider-horizontal').css({background: '#16D33F'});
+		$('.ui-slider-handle').height(75);
 		
 		
 		});
 		
 		function ChangeSlideField$t(val){
 			var disabled='';
-			var cpus=$CPUS;
-			
 			if(val==0){disabled='&nbsp;$disabled';}
-			document.getElementById('$t-value').innerHTML=val+'M/{$currentMem}M'+disabled;
+			document.getElementById('$t-value').innerHTML=val+'M/{$maxMem}M'+disabled;
 			document.getElementById('$t-mem').value=val;
-			if(cpus>1){
-				var selected_mem=val;
-				var newval=selected_mem/cpus;
-				newval=newval-10;
-				if(newval>0){
-					document.getElementById('$t-multi').innerHTML=newval-10+'M / CPU';
-				}
-			
-			}
-			
+					
 		}
-		function ChangeSlideFieldK$t(val){
-			if(val<10){
-				$('#slider2$t').slider( 'option', 'value', 10 );
-				val=10;
-				}
-			document.getElementById('$t-value2').innerHTML=val+'K';
-			document.getElementById('$t-ko').value=val
-		}
+		
 
 	var x_SaveBooster$t=function(obj){
      	var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
-      	YahooWin3Hide();
+      	Loadjs('squid.compile.progress.php');
      	}	
 
 	function SaveBooster$t(){
 		if(confirm('$warn_squid_restart')){
 			var XHR = new XHRConnection();
+			
+			XHR.appendData('SquidBoosterEnable',document.getElementById('SquidBoosterEnable').value);
 			XHR.appendData('SquidBoosterMem',document.getElementById('$t-mem').value);
-			XHR.appendData('SquidBoosterMemK',document.getElementById('$t-ko').value);
-			if(document.getElementById('$t-only').checked){XHR.appendData('SquidBoosterOnly',1);}else{XHR.appendData('SquidBoosterOnly',0);}
-			AnimateDiv('$t-div');
 			XHR.sendAndLoad('$page', 'POST',x_SaveBooster$t);		
 		}
 	
@@ -171,11 +178,101 @@ function popup(){
 
 function Save(){
 	$sock=new sockets();
-	if($_POST["SquidBoosterMem"]==0){$_POST["SquidBoosterOnly"]=0;}
+	if($_POST["SquidBoosterMem"]==0){$_POST["SquidBoosterEnable"]=0;}
 	$sock->SET_INFO("SquidBoosterMem",$_POST["SquidBoosterMem"]);
-	$sock->SET_INFO("SquidBoosterMemK",$_POST["SquidBoosterMemK"]);
-	$sock->SET_INFO("SquidBoosterOnly",$_POST["SquidBoosterOnly"]);		
-	$sock->getFrameWork("cmd.php?squid-restart=yes");
+	$sock->SET_INFO("SquidBoosterEnable",$_POST["SquidBoosterEnable"]);
 	
 }
 
+function status(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$html="<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+	<td valign='top' width=50%>
+		<center style='font-size:26px'>{squid_booster} {memory}</center>
+		<div id='cache-mem' style='width:410px;height:410px'></div>
+	</td>
+	<td valign='top' width=50%>
+		<center style='font-size:26px'>{squid_booster} {hard_disk}</center>
+		<div id='cache-rock' style='width:410px;height:410px'></div>
+	</td>
+	</tr>
+	</table>
+	<div style='text-align:right;margin:10px;margin-top:20px;'><hr>".button("{refresh}", "Loadjs('squid.refresh-status.php')",18)."</div>
+<script>
+	function Fsix1(){
+				AnimateDiv('cache-mem');
+				Loadjs('$page?cache-mem&yes&container=cache-mem',true);
+			}
+			
+	function Fsix2(){
+				AnimateDiv('cache-rock');
+				Loadjs('$page?cache-rock&yes&container=cache-rock',true);
+			}			
+			
+			setTimeout(\"Fsix1()\",800);
+			setTimeout(\"Fsix2()\",1600);	
+</script>		
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+function cache_mem(){	
+	$sock=new sockets();
+	$Main=unserialize(base64_decode($sock->getFrameWork("squid.php?cacheBoosterStatus=yes")));
+	$TOT=$Main["TOT"];
+	
+	$PARTITION_TEXT=FormatBytes($TOT);
+	$TOT=round($TOT/1024);
+	$USED=$Main["USED"];
+	$PARTITION_SIZE=FormatBytes($USED);
+	$USED=round($USED/1024);
+	
+	
+	$PieData["{total}"]=$TOT;
+	$PieData["{used}"]=$USED;
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{squid_booster} {memory}";
+	$highcharts->Title="$PARTITION_SIZE/$PARTITION_TEXT";
+	$highcharts->LegendSuffix=" Bytes";
+	echo $highcharts->BuildChart();
+}
+
+function cache_rock(){
+	$sock=new sockets();
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db";
+	$array=unserialize(@file_get_contents($cachefile));
+	$Main=$array["/home/squid/cache_rock"];
+	
+
+
+	$TOT=$Main["MAX"];
+	$PARTITION_TEXT=FormatBytes($TOT);
+	$TOT=round($TOT/1024);
+	
+	$USED=$Main["CURRENT"];
+	$PARTITION_SIZE=FormatBytes($USED);
+	$USED=round($USED/1024);
+
+
+	$PieData["{total}"]=$TOT;
+	$PieData["{used}"]=$USED;
+
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{squid_booster} ROCK";
+	$highcharts->Title="$PARTITION_SIZE/$PARTITION_TEXT";
+	$highcharts->LegendSuffix=" MB";
+	echo $highcharts->BuildChart();
+}
+?>

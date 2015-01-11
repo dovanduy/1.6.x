@@ -107,7 +107,7 @@ function popup(){
 	$warn_restore_articadb=$tpl->javascript_parse_text("{warn_restore_articadb}");
 	
 	$html="
-	<div style='font-size:18px' class=explain>{zarafadb_restore_explain}</div>
+	<div style='font-size:18px' class=text-info>{zarafadb_restore_explain}</div>
 	<div style='font-size:22px;text-align:center;margin:10px' id='title$t'></div>
 	<div style='margin:10px;min-height:75px' id='Status$t'></div>
 	<div style='width:98%' class=form>

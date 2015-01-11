@@ -17,6 +17,8 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();$users=$GLOBALS["CLASS_USERS"];}else{$users=$GLOBALS["CLASS_USERS"];}
+
+if($_GET["function"]=="quicklinks_account"){quicklinks_account();exit;}
 if(!$GLOBALS["AS_ROOT"]){if(!$users->AsAnAdministratorGeneric){die("Not autorized");}}
 if(isset($_GET["off"])){off();exit;}
 if(isset($_GET["squidcklinks-host-infos"])){squidcklinks_host_infos();exit;}
@@ -460,15 +462,6 @@ echo $html;
 
 function section_start(){
 	
-	$users=new usersMenus();
-	if(!$users->AsSystemAdministrator){
-		if($users->AsWebStatisticsAdministrator){
-			echo "<script>SquidQuickLinks();</script>";return;
-		}
-	}
-	
-	
-	
 	
 	
 	if(is_file("/usr/share/artica-postfix/ressources/logs/web/admin.index.status-infos.php.left_menus_services")){
@@ -501,7 +494,10 @@ function quicklinks_main_menu(){
 	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
-	
+	$productName="Artica";
+	if(is_file(dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf")){
+		$productName=@file_get_contents(dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf");
+	}
 	
 	$tr[]=paragrapheWin("license-white-64.png","{artica_license}","Loadjs('artica.license.php?tabs-js=yes')");
 	$tr[]=paragrapheWin("update-64.png", "{update2}", 
@@ -531,7 +527,7 @@ function quicklinks_main_menu(){
 	if($users->ArchStruct==64){$back="x64-256-opac20.png";}
 	$html="
 	<div style='background-image:url(img/$back);background-repeat:no-repeat;background-position:43% 20%;'>
-		<div style='font-size:64px;color:white;width:767px'>Artica v.$version
+		<div style='font-size:64px;color:white;width:767px'>$productName v.$version
 			<div style='font-size:15px;text-align:right;border-top:1px solid #FFFFFF;padding-top:5px'>$company: $companytext &nbsp;|&nbsp; uuid: $uuid &nbsp;|&nbsp; $license_type</div>
 			<div style='font-size:32px;text-align:right;'>$users->LinuxDistriFullName {$users->ArchStruct}bits</div>
 		</div>
@@ -553,13 +549,22 @@ function quicklinks_section_networks(){
 	if(!$users->AsSystemAdministrator){return;}
 	
 	$tr[]=paragrapheWin("network-white-64.png", "{network}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.network.php?function=section_mynic')");
+	
+	$tr[]=paragrapheWin("dns-white-64-settings.png", "{dns_settings}", "AnimateDiv('BodyContent');
+			LoadAjax('BodyContent','system.nic.config.php?main=DNSServers&newinterface=yes')");
+	
+	
 	$tr[]=paragrapheWin("routes-white-64.png", "{routes}","AnimateDiv('BodyContent');LoadAjax('BodyContent','system.routes.php')");
 	$tr[]=paragrapheWin("bridge-network-64-white.png", "{network_bridges}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','system.network.bridges.php')");
+	$tr[]=paragrapheWin("qos-64-white.png","{Q.O.S}","AnimateDiv('BodyContent');LoadAjax('BodyContent','system.qos.php')");
+	
 	if($users->VDESWITCH_INSTALLED){
 		$tr[]=paragrapheWin("switch-white-64.png", "{virtual_switch}","AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.network.php?function=section_virtualswitch')");
 	}
 	
 	$tr[]=paragrapheWin("conntrack-white-64.png", "{connections_tracking}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','system.network.conntrack.php')");
+	$tr[]=paragrapheWin("ssl-64-white.png", "{SSL_TUNNELS}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','system.network.stunnel4.php')");
+		
 	
 	
 	
@@ -573,7 +578,12 @@ function quicklinks_section_networks(){
 	if($users->AsSystemAdministrator){
 			$tr[]=paragrapheWin("firewall-64-white.png", "FireWall","AnimateDiv('BodyContent');LoadAjax('BodyContent','system.firewall.php');");
 			$tr[]=paragrapheWin("64-dhcp-white.png", "{APP_DHCP}","AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.network.php?function=section_dhcp')");
-			$tr[]=paragrapheWin("dns-64-white.png", "{DNS_SERVER}","AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.network.php?function=section_dnsmasq');");
+			
+			if(!$users->POWER_DNS_INSTALLED){
+				$tr[]=paragrapheWin("dns-64-white.png", "{DNS_SERVER}","AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.network.php?function=section_dnsmasq');");
+			}else{
+				$tr[]=paragrapheWin("dns-64-white.png", "{DNS_SERVER} PowerDNS","AnimateDiv('BodyContent');LoadAjax('BodyContent','pdns.php?tabs=yes');");
+			}
 			
 			
 			$tr[]=paragrapheWin("vpn-white-64.png","{APP_OPENVPN}", "Loadjs('index.openvpn.php?infront=yes')");
@@ -654,11 +664,28 @@ function quicklinks_section_server(){
 	if(!is_numeric($DisableFrontBrowseComputers)){$DisableFrontBrowseComputers=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	
+	$ProductName="Artica";
+	$ProductNamef=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf";
+	if(is_file($ProductNamef)){
+		$ProductName=trim(@file_get_contents($ProductNamef));
+	}
 	
-	
-	
+	if($users->AsSystemAdministrator){
+		$artica_meta=paragrapheWin("management-console-64.png","$ProductName Meta","AnimateDiv('BodyContent');
+				LoadAjax('BodyContent','artica-meta.php');");
+		
+		
+		$time_ntp=paragrapheWin("ntp-time-64-white.png","{server_time2}","AnimateDiv('BodyContent');
+				LoadAjax('BodyContent','index.time.php?tabs=yes');");
+		
+		$sensors=paragrapheWin("temperature-64.png","{temperature}","AnimateDiv('BodyContent');
+				LoadAjax('BodyContent','system.sensors.php');");
+		
+		
+	}
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$LDAP=paragrapheWin("mysql-white-64.png","{APP_LDAP}","AnimateDiv('BodyContent');Loadjs('system.ldap.php');");
 	$MySQL=paragrapheWin("mysql-white-64.png","MySQL","AnimateDiv('BodyContent');Loadjs('system.mysql.php');");
 
 	
@@ -706,6 +733,10 @@ if($users->UPDATE_UTILITYV2_INSTALLED){
 
 	
 if($users->AsSystemAdministrator){
+	
+
+	
+	
 	if($users->FREERADIUS_INSTALLED){
 		$freeradius=paragrapheWin("radius-white-64.png","{APP_FREERADIUS}",
 				"LoadAjax('BodyContent','freeradius.php');");
@@ -715,10 +746,7 @@ if($users->AsSystemAdministrator){
 				"{load_balancing}","Loadjs('haproxy.php')");
 	}
 	
-	if($users->roundcube_installed){
-		$roundcube=paragrapheWin("webmail-white-64.png","RoundCube",
-				"Loadjs('roundcube.index.php?script=yes&in-front-ajax=yes&newinterface=yes');");
-	}
+	
 	
 }
 
@@ -750,10 +778,17 @@ if($OnlySMTP){ $samba=null; $computers=null; $fetchmail=null; }
 if($users->AsSystemAdministrator){
 	$tr[]=paragrapheWin("hostname-white-64.png", "{hostname}","Loadjs('system.nic.config.php?change-hostname-js=yes');");
 	$tr[]=paragrapheWin("harddrive-white-64.png", "{internal_hard_drives}","AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?function=section_btrfs');");
+	$tr[]=$sensors;
+	$tr[]=$time_ntp;
+	
+	$tr[]=paragrapheWin("optimize-64.png", "{system_optimization}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','system.optimize.php')");
+	
 	$tr[]=paragrapheWin("settings-server-64.png", "{general_settings}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?function=section_computers_infos')");
 	$tr[]=paragrapheWin("directory-white-64.png", "{explorer}", "Loadjs('tree.php')");
+	$tr[]=paragrapheWin("snmp-64-white.png", "SNMP", "Loadjs('system.snmp.php');");
 	$tr[]=paragrapheWin("ssh-64.png", "{APP_OPENSSH}", "AnimateDiv('BodyContent');Loadjs('sshd.php?in-front-ajax=yes&tabsize=14');");
 	$tr[]=paragrapheWin("clamav-64-white.png", "{APP_CLAMAV}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','clamd.php?tabs=yes');");
+	$tr[]=paragrapheWin("sync-64-white.png","{APP_SYNCTHING}","LoadAjax('BodyContent','syncthing.php');");
 	
 	
 }	
@@ -783,6 +818,7 @@ $stats=paragrapheWin("statistics3-white-64.png", "{statistics}","AnimateDiv('Bod
 	
 
 if(!$users->AsSystemAdministrator){$hostname=null;}
+	$tr[]=$artica_meta;
 	$tr[]=$dhcp;
 	$tr[]=$PowerDNS;
 	$tr[]=$dnsmasq;
@@ -796,7 +832,10 @@ if(!$users->AsSystemAdministrator){$hostname=null;}
 	$tr[]=$haProxy;
 	
 	$tr[]=$computers;
+if($users->AsSystemAdministrator){	
 	$tr[]=$MySQL;
+	$tr[]=$LDAP;
+}
 	$tr[]=$samba;
 	$tr[]=$ocs;
 	$tr[]=$updateutility;
@@ -1002,7 +1041,7 @@ function section_myhost_config(){
 	$artica_settings=Paragraphe('folder-interface-64.png',"{advanced_options}","{advanced_artica_options_text}","javascript:Loadjs('artica.settings.php?js=yes&ByPopup=yes');","{advanced_artica_options_text}");
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
-	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
+	
 
 	
 	
@@ -1018,7 +1057,7 @@ function section_myhost_config(){
 	$tr[]=$WATCHDOG;
 	$tr[]="$perfs";
 	$tr[]=$proxy;
-	$tr[]=$ldap;
+	
 	$tr[]=$SMTP_NOTIFICATIONS_PAGE;
 	$tr[]=$artica_settings;
 	
@@ -1194,8 +1233,6 @@ function section_computers_infos_OS_2(){
 		$automount=Paragraphe("magneto-64.png","{automount_center}","{automount_center_text}","javascript:Loadjs('autofs.php?windows=yes');");
 	}
 	
-	$snmp=Paragraphe("64-snmp.png", "SNMP", "{system_snmp_explain}",
-			"javascript:Loadjs('system.snmp.php')");
 	
 	$movefilestsem=Paragraphe("folder-move-64.png","{move_filesystem}","{move_filesystem_text}","javascript:Loadjs('system.move.php');");
 	
@@ -1825,20 +1862,57 @@ function quicklinks_only_reverse($Noreturn=false){
 	echo $html;
 }
 
+function quicklinks_postfix_action(){
+
+	$users=new usersMenus();
+	
+	$tr[]=paragrapheWin("apply-white-64.png","{compile_postfix}",
+			"Loadjs('postfix.compile.php')");
+	
+	if($users->cyrus_imapd_installed){
+		$tr[]=paragrapheWin("user-add-white-64.png","{new_mailbox}","Loadjs('create-user.php')");
+		
+	}
+	
+
+	$tr[]=paragrapheWin("mass-mailing-postfix-64-white.png", "{TEST_SMTP_CONNECTION}",
+			"Loadjs('postfix.smtp-tests.php?ou=master&hostname=master')");
+	
+	$tr[]=paragrapheWin("logs-white-64.png",
+			"{POSTFIX_EVENTS}",
+			"AnimateDiv('BodyContent');LoadAjax('BodyContent','quicklinks.postfix.php?function=section_postfix_events')");
+
+	return $tr;
+}
 function quicklinks_proxy(){
-	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
+	
 	$users=new usersMenus();
 	$tpl=new templates();
 	$sock=new sockets();
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){quicklinks_only_reverse(true);return;}
+	$AsMonitor=false;
 	
-	$tr[]=paragrapheWin("parameters-64-white.png","{main_parameters}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.main.quicklinks.php?function=section_status')");
+	if($users->AsSquidAdministrator){$AsMonitor=true;}
+	if($users->AsDansGuardianAdministrator){$AsMonitor=true;}
+	if($users->AsProxyMonitor){$AsMonitor=true;}
 	
-	$tr[]=paragrapheWin("compteur-64.png","{monitor}",
+	if($users->AsSquidAdministrator){
+		
+		
+		$tr[]=paragrapheWin("speedomter2-white-64.png","{performance}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.global.performance.php')");
+		
+		$tr[]=paragrapheWin("parameters-64-white.png","{main_parameters}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.main.quicklinks.php?function=section_status')");
+	}
+	
+	
+	if($AsMonitor){
+		$tr[]=paragrapheWin("compteur-64.png","{monitor}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.status.php?tabs=yes')");
+	}
 	
 	
 	
@@ -1846,37 +1920,42 @@ function quicklinks_proxy(){
 	$CacheManagement2=$sock->GET_INFO("CacheManagement2");
 	if(!is_numeric($CacheManagement2)){$CacheManagement2=0;}
 	
-	$tr[]=paragrapheWin("caches-center-white-64.png","{caches_center}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes')");
-		
-	$tr[]=paragrapheWin("squid-templates-64-white.png","{squid_templates_error}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.templates.php?tabs=yes')");
-	
-	$tr[]=paragrapheWin("autoconf-64-white.png","{autoconfiguration}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
-
-
-	
-	if($users->APP_UFDBGUARD_INSTALLED){
-		$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
-		"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.mainrules.php')");
+	if($users->AsSquidAdministrator){
+		$tr[]=paragrapheWin("caches-center-white-64.png","{caches_center}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes')");
 	}
+		
+	if($users->AsDansGuardianAdministrator){
+		$tr[]=paragrapheWin("squid-templates-64-white.png","{squid_templates_error}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.templates.php?tabs=yes')");
+	}
+	if($users->AsSquidAdministrator){
+		$tr[]=paragrapheWin("autoconf-64-white.png","{autoconfiguration}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
+	}
+
+	if($users->AsDansGuardianAdministrator){
+		if($users->APP_UFDBGUARD_INSTALLED){
+			$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
+			"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.mainrules.php')");
+		}
+		$tr[]=paragrapheWin("firewall-64-white.png","{ACLS}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");	
 	
-	
-	
-	$tr[]=paragrapheWin("firewall-64-white.png","{ACLS}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");	
-	
-	if($users->C_ICAP_INSTALLED){
-		$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
+		if($users->C_ICAP_INSTALLED){
+			$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
+		}
 	}
 	
 	
 //******************** ICAP CENTER **************************************************
-$tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')");	
-$tr[]=paragrapheWin("transparent-64-white.png","{transparent}","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.transparent.php')");
-$tr[]=paragrapheWin("wifi-white-64.png","HotSpot","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.webauth.php?tabs=yes')");
+	if($users->AsSquidAdministrator){
+		
+		$tr[]=paragrapheWin("ssl-64-white.png","{UseSSL}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.ssl.center.php')");
+		$tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')");	
+		$tr[]=paragrapheWin("transparent-64-white.png","{transparent}","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.transparent.php')");
+		$tr[]=paragrapheWin("wifi-white-64.png","HotSpot","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.webauth.php?tabs=yes')");
 	
 
 	
@@ -1887,15 +1966,16 @@ $tr[]=paragrapheWin("wifi-white-64.png","HotSpot","AnimateDiv('BodyContent');Loa
 			}
 	
 		}
-
-		
+	}	
+	if($users->AsDansGuardianAdministrator){	
 		$tr[]=paragrapheWin("group-64-white.png","{browsers_users}",
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.BrowsersView.php')");
+	}
 
 		
 		
 		
-	
+	if($users->AsSquidAdministrator){
 	$tr[]=paragrapheWin("proxy-parent-white-64.png","{squid_parent_proxy}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.parent.proxy.php')");
 	
@@ -1915,39 +1995,51 @@ $tr[]=paragrapheWin("wifi-white-64.png","HotSpot","AnimateDiv('BodyContent');Loa
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','nginx.main.php')");
 	
 	}	
-	
-	
-	$tr[]=paragrapheWin("statistics-white-64.png","Artica - {statistics}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.statistics.central.php')");
-	
-	if($users->SARG_INSTALLED){
-		$tr[]=paragrapheWin("statistics3-white-64.png", "{APP_SARG2}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','sarg.php?popup=yes')");
 	}
 	
-	$tr[]=paragrapheWin("tasks-white-64.png","{tasks}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid-quicklinks.php?function=section_tasks')");
+	if($users->AsDansGuardianAdministrator){
+		
+		
+		
+		$tr[]=paragrapheWin("database-64-white.png","{APP_UFDBCAT}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','ufdbcat.php')");
+		
+		$tr[]=paragrapheWin("statistics-white-64.png","{statistics}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.statistics.central.php')");
+	}
 	
-	//$tr[]=paragrapheWin("artica-watchdog.png","Artica Watchdog",
-		//	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.watchdog.php?tabs=yes')");	
+	if($users->AsSquidAdministrator){
+		$tr[]=paragrapheWin("tasks-white-64.png","{tasks}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid-quicklinks.php?function=section_tasks')");
+		
+		$tr[]=paragrapheWin("stats-app-64-white.png","{statistic_appliance}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.stats-appliance.index.php')");		
+		
+		
+		
 	
-	$tr[]=paragrapheWin("failover-64.png","{failover}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.failover.php?tabs=yes')");	
+		$tr[]=paragrapheWin("failover-64.png","{failover}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.failover.php?tabs=yes')");	
 	
+	}
 	
-	
+	if($AsMonitor){
 	$tr[]=paragrapheWin("logs-white-64.png","{events}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.accesslogs.php?tabs-all=yes')");
 	
-	$tr[]=paragrapheWin("debug-white-64.png","{debugging}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.debug.php')");
-			
+	$tr[]=paragrapheWin("rangement-64.png","{backuped_logs}",
+			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.sourceslogs.php')");
 	
+	
+	
+	
+			
+	}
 	
 
 	
 	$html= $tpl->_ENGINE_parse_body(CompileTr6_win($tr,true));
-	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
+	
 	echo $html;	
 }
 
@@ -2016,7 +2108,7 @@ function quicklinks_postfix(){
 	if(!is_numeric($InnoDBFilePerTableAsk)){$InnoDBFilePerTableAsk=0;}
 	
 	
-	
+	$the_specified_module_is_not_installed=$tpl->javascript_parse_text("{the_specified_module_is_not_installed}");
 	
 
 	
@@ -2061,6 +2153,16 @@ function quicklinks_postfix(){
 			if($users->AsMailBoxAdministrator){
 				$tr[]=paragrapheWin("bg-cyrus-white-64.png","{mailboxes}",
 						"AnimateDiv('BodyContent');LoadAjax('BodyContent','cyrus.index.php?popup-index=yes');");
+				
+				if($users->roundcube_installed){
+					$tr[]=paragrapheWin("webmail-white-64.png","WebMail",
+							"Loadjs('roundcube.index.php?script=yes&in-front-ajax=yes&newinterface=yes');");
+				}else{
+					$tr[]=paragrapheWin("64-deny-white.png","WebMail",
+							"alert('$the_specified_module_is_not_installed');");
+				}
+				
+				
 				$tr[]=paragrapheWin("database-check-64-white.png","{backup}",
 						"AnimateDiv('BodyContent');LoadAjax('BodyContent','cyrus.backup.php?tabs=yes');");
 				
@@ -2094,10 +2196,7 @@ function quicklinks_postfix(){
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','opendkim.php?popup=yes&mail=master')");
 	
 
-	$tr[]=paragrapheWin("logs-white-64.png",
-			"{POSTFIX_EVENTS}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent',
-			'quicklinks.postfix.php?function=section_postfix_events')");
+
 	
 	
 	
@@ -2147,32 +2246,95 @@ if($users->POSTFIX_INSTALLED){
 }
 
 function quicklinks_proxy_action(){
-	
-	if(isset($_SESSION[__FUNCTION__])){echo $_SESSION[__FUNCTION__];return;} 
-	
-	
-	
 	$users=new usersMenus();
+	$AsMonitor=false;
+	$sock=new sockets();
+	if($users->AsSquidAdministrator){$AsMonitor=true;}
+	if($users->AsProxyMonitor){$AsMonitor=true;}
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	$users=new usersMenus();
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
+	if($AsCategoriesAppliance==1){$SQUIDEnable=0;}
+	$DisableArticaProxyStatistics=intval($sock->GET_INFO("DisableArticaProxyStatistics"));
+	if($users->POSTFIX_INSTALLED){$f=quicklinks_postfix_action();}
+	
 	$tpl=new templates();
-	$f[]=paragrapheWin("category-add-white-64.png","{CATEGORIZE_A_WEBSITE}","Loadjs('squid.visited.php?add-www=yes')");
-	$f[]=paragrapheWin("ok-white-64.png","{whitelist_website}","Loadjs('squid.urlrewriteaccessdeny.php?add-www-js=yes')");
-	$f[]=paragrapheWin("deny-white-64.png","{blacklist_website}","Loadjs('squid.urlrewriteaccessdeny.php?add-black-js=yes')");
-	$f[]=paragrapheWin("databases-cache-deny-white-64.png","{deny_from_cache}","Loadjs('squid.hosts.blks.php?blk=4')");
+// ------------------------------------------- SQUID	
+	if($users->SQUID_INSTALLED){
+		if($users->AsWebStatisticsAdministrator){
+			
+			if($DisableArticaProxyStatistics==0){
+				$f[]=paragrapheWin("report-center-64.png","{reports_center}",
+						"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.stats.reports.php');");
+				
+			}
+		}
+		
+		if($users->AsProxyMonitor){
+			if($SQUIDEnable==1){
+				$f[]=paragrapheWin("processor-64-white.png","{multi-processorsP}",
+						"Loadjs('squid.task.monitor.php')");
+			}
+			
+		}
+		
+		if($users->APP_UFDBGUARD_INSTALLED){
+			if($users->AsDansGuardianAdministrator){
+				$f[]=paragrapheWin("category-add-white-64.png","{CATEGORIZE_A_WEBSITE}","Loadjs('squid.visited.php?add-www=yes')");
+			
+			}
+		}
+		
+		
+		
+		
+		if($users->AsDansGuardianAdministrator){
+			if($SQUIDEnable==1){
+				$f[]=paragrapheWin("ok-white-64.png","{whitelist_website}","Loadjs('squid.urlrewriteaccessdeny.php?add-www-js=yes')");
+				$f[]=paragrapheWin("ok-white-64.png","{whitelist_website} (Meta)","Loadjs('squid.whitelist-meta.php')");
+				$f[]=paragrapheWin("deny-white-64.png","{blacklist_website}","Loadjs('squid.urlrewriteaccessdeny.php?add-black-js=yes')");
+				$f[]=paragrapheWin("databases-cache-deny-white-64.png","{deny_from_cache}","Loadjs('squid.urlrewriteaccessdeny.php?add-nocache-js=yes')");
+			}
+	
+			if($users->APP_UFDBGUARD_INSTALLED){$f[]=paragrapheWin("verify-rules-64-white.png","{verify_rules}", "Loadjs('ufdbguard.tests.php')");}
+			if($users->APP_UFDBGUARD_INSTALLED){$f[]=paragrapheWin("check-white-64.png","{test_categories}", "Loadjs('squid.category.tests.php')");}
+			if($users->APP_UFDBGUARD_INSTALLED){$f[]=paragrapheWin("categories-64-white.png","{your_categories}", "Loadjs('dansguardian2.databases.perso.php?js=yes')");}
+			
+			
+			
+			if($users->APP_UFDBGUARD_INSTALLED){$f[]=paragrapheWin("64-ticket-white.png","{official_categories_support}", "Loadjs('squid.category.support.php')");}
+		}
+		
+		if($users->AsSquidAdministrator){
+			if($SQUIDEnable==1){
+				$f[]=paragrapheWin("speed-64.png","{squid_booster}","Loadjs('squid.booster.php');");
+			}
+		}
+		
+		//Loadjs('squid.compile.progress.php')
+		
+		if($AsMonitor){
+			if($SQUIDEnable==1){
+				$f[]=paragrapheWin("64-administrative-tools-white.png","{services_operations}","Loadjs('squid.services.php');");
+			}
+		}
+		
+		if($users->AsSquidAdministrator){
+			if($SQUIDEnable==1){
+				$f[]=paragrapheWin("update-64.png","{update_proxy_software}","Loadjs('squid.compilation.status.php');");
+				$f[]=paragrapheWin("config-file-64-white.png","{configuration_file}","Loadjs('squid.conf.php');");
+			}
+		}
+		
+		
+	}
+	// ------------------------------------------- SQUID
 	
 	
-	
-	
-	$f[]=paragrapheWin("check-white-64.png","{test_categories}", "Loadjs('squid.category.tests.php')");
-	$f[]=paragrapheWin("64-ticket-white.png","{official_categories_support}", "Loadjs('squid.category.support.php')");
-	
-	
-	
-	//Loadjs('squid.compile.progress.php')
-	
-	
-	$f[]=paragrapheWin("64-administrative-tools-white.png","{services_operations}","Loadjs('squid.services.php');");
-	$f[]=paragrapheWin("config-file-64-white.png","{configuration_file}","Loadjs('squid.conf.php');");
-	$f[]=paragrapheWin("terminal-64-white.png","{commandline}","Loadjs('system.terminal.php')");
+	if($users->AsSystemAdministrator){
+		$f[]=paragrapheWin("terminal-64-white.png","{commandline}","Loadjs('system.terminal.php')");
+	}
 	
 	
 	
@@ -2194,8 +2356,16 @@ function quicklinks_members(){
 	$tr[]=paragrapheWin("users-search-white-64.png","{members}: $search",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','domains.manage.users.index.php?finduser-tab=yes');");
 	
-	$tr[]=paragrapheWin("postmasters-white-64.png","{administrators}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','freeradius.users.php?t=0&tab=yes');");
+	if($users->AsSystemAdministrator){
+		$tr[]=paragrapheWin("postmasters-white-64.png","{administrators}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','freeradius.users.php?t=0&tab=yes');");
+	}
+	
+	if($users->AsAnAdministratorGeneric){
+		
+		$tr[]=paragrapheWin("64-computer2-white.png", "{my_computers}", "LoadAjax('BodyContent','computer-browse.php?tabs=yes',false)");
+	}
+	
 	
 	if($users->SQUID_INSTALLED){
 		if($users->SAMBA_INSTALLED){
@@ -2203,8 +2373,30 @@ function quicklinks_members(){
 				$tr[]=paragrapheWin("windows-white-64.png","Active Directory",
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.adker.php?tabs=yes');");
 			}
+			
+			
+			
 	
 		}
+		
+		if($users->AsWebStatisticsAdministrator){
+			$tr[]=paragrapheWin("user-stats-64.png","{web_statistics}",
+					"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.users-profiling.php');");
+			
+			
+			
+		}
+		
+		
+		if($users->AsSquidAdministrator){
+			$tr[]=paragrapheWin("users-search-white-64.png","{identd_server}",
+					"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.identd.php');");
+			
+			$tr[]=paragrapheWin("users-search-white-64.png","{proxy_members_aliases}",
+					"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.macToUid.php');");			
+			
+		}
+		
 	}
 	
 	

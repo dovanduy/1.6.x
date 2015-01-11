@@ -127,10 +127,10 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'none0', width : 32, sortable : false, align: 'left'},	
-		{display: '$networks', name : 'pattern', width :203, sortable : true, align: 'left'},
-		{display: '$description', name : 'description', width :258, sortable : true, align: 'left'},
+		{display: '$networks', name : 'pattern', width :421, sortable : true, align: 'left'},
+		{display: '$description', name : 'description', width :346, sortable : true, align: 'left'},
 		{display: '$disable', name : 'ban', width : 49, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 40, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -140,11 +140,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'pattern',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 1024,
 	showTableToggleBtn: false,
-	width: 660,
+	width: '99%',
 	height: 234,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,1024]
@@ -153,11 +153,11 @@ $('#flexRT$t').flexigrid({
 }
 
 function AddNetworkRange$t(){
-	YahooWin5('550','$page?new-range=yes&hostname={$_GET["hostname"]}&t=$t','$new_range');
+	YahooWin5('850','$page?new-range=yes&hostname={$_GET["hostname"]}&t=$t','$new_range');
 }
 
 function AddNetworkAddress$t(){
-	YahooWin5('550','$page?new-address=yes&hostname={$_GET["hostname"]}&t=$t','$new_address');
+	YahooWin5('850','$page?new-address=yes&hostname={$_GET["hostname"]}&t=$t','$new_address');
 
 }
 
@@ -219,12 +219,13 @@ function new_address_popup(){
 	$tpl=new templates();	
 	$t=$_GET["t"];		
 	
-$html="<div style='font-size:14px;' class=explain>{mynetworks_text}</div>
-	<table style='width:99%' class=form>
+$html="<div style='font-size:18px;' class=text-info>{mynetworks_text}</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-	<td class=legend style='font-size:16px'>{new_address}:</td>
-	<td>". Field_text("mynetworks-$t",null,"font-size:16px",null,null,null,false,"PostfixAddMyNetworkCheck$t(event)")."</td>
-	<tr><td colspan=2 align='right'><hr>". button("{add}","PostfixAddMyNetwork$t()",16)."</td></tr>
+	<td class=legend style='font-size:26px'>{new_address}:</td>
+	<td>". Field_text("mynetworks-$t",null,"font-size:26px",null,null,null,false,"PostfixAddMyNetworkCheck$t(event)")."</td>
+	<tr><td colspan=2 align='right'><hr>". button("{add}","PostfixAddMyNetwork$t()",32)."</td></tr>
 	</table>
 <script>
 	var x_PostfixAddMyNetwork$t= function (obj) {
@@ -254,25 +255,27 @@ function new_range_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$t=$_GET["t"];	
+	$calculate=$tpl->javascript_parse_text("{calculate}");
 $html="
-<center><span id='mynetworks-text-$t' style='font-size:18px'></span></center>
-<div style='font-size:14px;' class=explain>{give_ip_from_ip_to}<br></div>
-<input type='hidden' id='mynetworks-$t' value='mynetworks-$t'>
-	<table style='width:99%' class=form>
+<center><span id='mynetworks-text-$t' style='font-size:40px'></span></center>
+<div style='font-size:14px;' class=text-info style='font-size:18px'>{give_ip_from_ip_to}<br></div>
+<input type='hidden' id='mynetworks-$t' value=''>
+<div style='width:98%' class=form>
+	<table style='width:100%' >
 	<tr>
-	<td align='right' valign='top' nowrap class=legend style='font-size:14px'>{from}:</td>
+	<td align='right' valign='middle' nowrap class=legend style='font-size:26px'>{from}:</td>
 	<td>" . 
-		field_ipv4("ipfrom-$t",null,'font-size:14px',null,"PostfixCalculateMyNetwork$t()") ."</td>
+		field_ipv4("ipfrom-$t",null,'font-size:26px',null,"PostfixCalculateMyNetwork$t()") ."</td>
 	</tr>
 	<tr>
-	<td align='right' valign='top' nowrap class=legend style='font-size:14px'>{to}:</td>
-	<td>".field_ipv4("ipto-$t",null,'font-size:14px',null,"PostfixCalculateMyNetwork$t()") ."</td>
+	<td align='right' valign='middle' nowrap class=legend style='font-size:26px'>{to}:</td>
+	<td>".field_ipv4("ipto-$t",null,'font-size:26px',null,"PostfixCalculateMyNetwork$t()") ."</td>
 	</tr>
 	<tr>
-	<td align='right' valign='top' nowrap class=legend style='font-size:14px'></td>
-	<td align='right'><input type='button' value='{calculate}&raquo;' style='font-size:13px' OnClick=\"PostfixCalculateMyNetwork$t();\"></td>
+	<td align='right' valign='middle' nowrap class=legend style='font-size:26px'></td>
+	<td align='right'>". button($calculate,"PostfixCalculateMyNetwork$t()",18)."</td>
 	</tr>	
-	<tr><td colspan=2 align='right'><hr>". button("{add}","PostfixAddMyNetwork$t()",16)."</td></tr>
+	<tr><td colspan=2 align='right'><hr>". button("{add}","PostfixAddMyNetwork$t()",32)."</td></tr>
 	</table>
 	
 <script>
@@ -288,8 +291,23 @@ $html="
 		$('#flexRT$t').flexReload();
 	}	
 	function PostfixAddMyNetwork$t(){
+		var ipfrom=document.getElementById('ipfrom-$t').value;
+		var ipto=document.getElementById('ipto-$t').value;
+		if(ipfrom.length==0){
+			alert('IP from please...');
+			return;
+		}
+		if(ipfrom.length==0){
+			alert('IP To please...');
+			return;
+		}
 		PostfixCalculateMyNetwork$t();
 		var XHR = new XHRConnection();
+		var net=document.getElementById('mynetworks-$t').value;
+		if(net.length==0){
+			alert('Click on $calculate please...');
+			return;
+		}
 		XHR.appendData('PostfixAddMyNetwork',document.getElementById('mynetworks-$t').value);
 		XHR.sendAndLoad('$page', 'GET',x_PostfixAddMyNetwork$t);
 	}		
@@ -330,8 +348,20 @@ $html="
 function CalculCDR(){
 	$ip=new IP();
 	$ipfrom=$_GET["mynet_ipfrom"];
+	
+	$ipfrom2=explode(".",$ipfrom);
+	$ipfrom2[3]=0;
+	$ipfrom=@implode(".", $ipfrom2);
+	
 	$ipto=$_GET["mynet_ipto"];
+	$ipto2=explode(".",$ipto);
+	$ipto2[3]=255;
+	$ipto=@implode(".", $ipto2);
+	
+	
+	
 	$SIP=$ip->ip2cidr($ipfrom,$ipto);
+	
 	echo trim($SIP);
 	}
 
@@ -426,9 +456,9 @@ function network_list(){
 		'id' => $md5,
 		'cell' => array("
 		<img src='img/$icon'>"
-		,"<span style='font-size:16px;color:$color'>$val</span>",
+		,"<span style='font-size:22px;color:$color'>$val</span>",
 		"<a href=\"javascript:blur();\" OnClick=\"javascript:GlobalSystemNetInfos('$val')\" 
-		style='font-size:12px;text-decoration:underline;color:$color'><i>{$ligne["netinfos"]}</i>$explainmore</a>",$enable,$delete )
+		style='font-size:18px;text-decoration:underline;color:$color'><i>{$ligne["netinfos"]}</i>$explainmore</a>",$enable,$delete )
 		);
 	}
 	

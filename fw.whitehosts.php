@@ -41,7 +41,7 @@ function add_domain_white_popup(){
 	$t=time();
 	$html="
 	<div style='width:98%' class=form>
-	<div style='font-size:16px' class=explain>{whitelist_mx_explain}</div>
+	<div style='font-size:16px' class=text-info>{whitelist_mx_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{domain}:</td>

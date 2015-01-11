@@ -37,6 +37,14 @@ class external_acl_squid_ldap{
 			}
 		}
 		
+		
+		$this->BuildDefault();
+		if($GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"]==1){
+			$GLOBALS["MEMBERS_GROUPS"][$member]=$this->ADLdap_getgroups($member);
+			return $GLOBALS["MEMBERS_GROUPS"][$member];
+		}
+		
+		
 		$this->ConnectToLDAP();
 		if(!isset($GLOBALS["QUERYTIME"])){$GLOBALS["QUERYTIME"]=time();}
 		
@@ -44,13 +52,13 @@ class external_acl_squid_ldap{
 	
 		if(!$GLOBALS["BIND"]){
 			$this->WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
-			ConnectToLDAP();
+			$this->ConnectToLDAP();
 			if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
 		}
 	
 		if(!$GLOBALS["CONNECTION"]){
 			$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect twice</strong>");
-			ConnectToLDAP();
+			$this->ConnectToLDAP();
 		}
 	
 		if(!$GLOBALS["CONNECTION"]){
@@ -137,21 +145,41 @@ class external_acl_squid_ldap{
 	}	
 	
 	
+	
+	
 private function BuildDefault(){
 	if(!isset($GLOBALS["KerbAuthInfos"]["LDAP_SERVER"])){
-		WLOG("KerbAuthInfos -> Try to find LDAP_SERVER");
+		$this->WLOG("KerbAuthInfos -> Try to find LDAP_SERVER");
 		$GLOBALS["KerbAuthInfos"]["LDAP_SERVER"]=$this->BuildDefault_ldap_server();
-		WLOG("KerbAuthInfos -> {$GLOBALS["KerbAuthInfos"]["LDAP_SERVER"]}");
+		$this->WLOG("KerbAuthInfos -> {$GLOBALS["KerbAuthInfos"]["LDAP_SERVER"]}");
 	}
 	
+	if(!isset($GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"])){$GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"]=0;}
 	if(!isset($GLOBALS["KerbAuthInfos"]["LDAP_PORT"])){$GLOBALS["KerbAuthInfos"]["LDAP_PORT"]=389;}
 	if(!isset($GLOBALS["KerbAuthInfos"]["LDAP_SUFFIX"])){
-		$SMB=SAMBA_GetNetAdsInfos();
+		$SMB=$this->SAMBA_GetNetAdsInfos();
 		$GLOBALS["KerbAuthInfos"]["LDAP_SUFFIX"]=$SMB["Bind Path"];
 	}
 	
+	if(!isset($GLOBALS["KerbAuthInfos"]["WINDOWS_SERVER_ADMIN"])){
+		$array=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/KerbAuthInfos")));
+		$GLOBALS["KerbAuthInfos"]["WINDOWS_SERVER_ADMIN"]=$array["WINDOWS_SERVER_ADMIN"];
+		$GLOBALS["KerbAuthInfos"]["WINDOWS_SERVER_PASS"]=$array["WINDOWS_SERVER_PASS"];
+		$GLOBALS["KerbAuthInfos"]["WINDOWS_DNS_SUFFIX"]=$array["WINDOWS_DNS_SUFFIX"];
+	}
+
+	
 	
 }	
+
+
+
+private function LOCATE_NET_BIN_PATH(){
+	$net=$this->internal_find_program("net");
+	if(is_file($net)){return $net;}
+	$net=$this->internal_find_program("net.samba3");
+	if(is_file($net)){return $net;}
+}
 
 private function SAMBA_GetNetAdsInfos(){
 	if(isset($GLOBALS["CACHE_NET"])){return $GLOBALS["CACHE_NET"];}
@@ -164,7 +192,7 @@ private function SAMBA_GetNetAdsInfos(){
 		}
 	}
 
-	$net=LOCATE_NET_BIN_PATH();
+	$net=$this->LOCATE_NET_BIN_PATH();
 	if(!is_file($net)){return array();}
 	exec("$net ads info 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){
@@ -174,22 +202,28 @@ private function SAMBA_GetNetAdsInfos(){
 	}
 
 	if(!isset($array["KDC server"])){$array["KDC server"]=null;}
-	WLOG("$net ads info 2>&1 return ".count($array)." items");
+	$this->WLOG("$net ads info 2>&1 return ".count($array)." items");
 	$GLOBALS["CACHE_NET"]=$array;
 	@file_put_contents("/etc/squid3/NET_ADS_INFOS", serialize($array));
 	return $array;
 }
-private function LOCATE_NET_BIN_PATH(){
-	$net=$this->internal_find_program("net");
-	if(is_file($net)){return $net;}
-	$net=$this->internal_find_program("net.samba3");
-	if(is_file($net)){return $net;}
-}
+
 
 private function internal_find_program($strProgram){
+	if(isset($GLOBALS["internal_find_program"][$strProgram])){return $GLOBALS["internal_find_program"][$strProgram];}
 	global $addpaths;
 	$arrPath = array('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin','/usr/local/sbin','/usr/kerberos/bin');
-	if (function_exists("is_executable")) {foreach($arrPath as $strPath) {$strProgrammpath = $strPath . "/" . $strProgram;if (is_executable($strProgrammpath)) {return $strProgrammpath;}}} else {return strpos($strProgram, '.exe');}
+	if (function_exists("is_executable")) {
+		foreach($arrPath as $strPath) {
+			$strProgrammpath = $strPath . "/" . $strProgram;
+			if (is_executable($strProgrammpath)) {
+				$GLOBALS["internal_find_program"][$strProgram]=$strProgrammpath;return $strProgrammpath;
+				}
+		}
+	} else {
+		$GLOBALS["internal_find_program"][$strProgram]=strpos($strProgram, '.exe');
+		return $GLOBALS["internal_find_program"][$strProgram];
+	}
 }
 
 
@@ -218,10 +252,214 @@ private function WLOG($text=null){
 		 
 	}
 
+	if(!isset($GLOBALS["PID"])){ if(function_exists("getmypid")){ $GLOBALS["PID"]=getmypid(); }else{$GLOBALS["PID"]=0;}}
 	$FinalText="$date ".basename(__FILE__)."[{$GLOBALS["PID"]}]: $text $called";
 	$this->Errors[]=$FinalText;
 	@fwrite($GLOBALS["F"], $FinalText);
 }
+
+public function ADLdap_getgroups($username){
+	$RETURN=array();
+
+	
+	$this->ADLdap_init();
+	$options=$this->ADLdap_options();
+	try {
+		$adldap = new adLDAP($options);
+	}
+	catch (adLDAPException $e) {
+		$this->WLOG($e);
+		return array();
+	}
+	
+	try {
+		$adldap->authenticate($options["ad_username"],$options["ad_password"]);}
+		catch (adLDAPException $e) {
+			$this->WLOG($e);
+			return array();
+	}
+	$result=$adldap->user()->groups($username);
+	while (list ($num, $group) = each ($result) ){
+		$RETURN[$group]=true;
+	}
+	
+	return $RETURN;
+}
+
+public function ADLdap_userinfos($username){
+	$RETURN=array();
+
+
+	$this->ADLdap_init();
+	$options=$this->ADLdap_options();
+	try {
+		$adldap = new adLDAP($options);
+	}
+	catch (adLDAPException $e) {
+		$this->WLOG($e);
+		return array();
+	}
+
+	try {
+		$adldap->authenticate($options["ad_username"],$options["ad_password"]);}
+		catch (adLDAPException $e) {
+			$this->WLOG($e);
+			return array();
+		}
+		$result=$adldap->user()->info($username);
+		return $result;
+}
+
+private function ADLdap_init(){
+	
+	if($GLOBALS["VERBOSE"]){
+		ini_set('display_errors', 1);
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+	}
+	
+	if(class_exists("adLDAP")){return;}
+	$lib=dirname(__FILE__)."/externals/adLDAP/adLDAP.php";
+	if(!is_file($lib)){return array();}
+	if($GLOBALS["VERBOSE"]){echo "Include $lib\n";}
+	include($lib);
+}
+
+private function ADLdap_options(){
+	
+	$this->BuildDefault();
+	$array=$GLOBALS["KerbAuthInfos"];
+	$GLOBALS["SUFFIX"]=$array["LDAP_SUFFIX"];
+	$recursive=false;
+	if($GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"]==1){
+		if($GLOBALS["VERBOSE"]){echo "RECURSIVE_GROUPS = TRUE\n";}
+		$recursive=true;
+	}
+	
+	
+	
+	$options=array(
+			'base_dn'=>$GLOBALS["SUFFIX"],
+			'ad_username'=>$array["WINDOWS_SERVER_ADMIN"],
+			'ad_password'=>$array["WINDOWS_SERVER_PASS"],
+			'recursive_groups'=>$recursive,
+			'domain_controllers'=>array($array["LDAP_SERVER"]),
+			'account_suffix'=>"@{$array["WINDOWS_DNS_SUFFIX"]}");
+	
+	return $options;
+	
+}
+
+private function ObjectProperty($dn){
+	
+	$this->ConnectToLDAP();
+	if(!isset($GLOBALS["QUERYTIME"])){$GLOBALS["QUERYTIME"]=time();}
+	
+	if(!$GLOBALS["BIND"]){
+		$this->WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+		$this->ConnectToLDAP();
+		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+	}
+	
+	if(!$GLOBALS["CONNECTION"]){
+		$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect twice</strong>");
+		$this->ConnectToLDAP();
+	}
+	
+	if(!$GLOBALS["CONNECTION"]){
+		$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+		return array();
+	}
+	
+	
+	$GLOBALS["QUERIES_NUMBER"]++;
+	$link_identifier=$GLOBALS["CONNECTION"];
+	$base_dn=$GLOBALS["SUFFIX"];
+	$attributes=array();
+	$attrsonly=null;
+	$sizelimit=null;
+	$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
+	
+	
+	
+	
+	$res=@ldap_read($link_identifier,$dn,"(objectClass=*)",array(),null,null,20);
+	if(!$res){
+		$this->WLOG("[QUERY]: <strong style='color:red'>Error: LDAP search number " . ldap_errno($link_identifier) . "\nAction:LDAP search\ndn:$dn\n");
+		ldap_err2str(ldap_errno($link_identifier));
+		return array();
+	}
+
+	$hash=@ldap_get_entries($link_identifier,$res);
+	$Config=$hash[0];
+	for($i=0;$i<$Config["objectclass"]["count"];$i++){
+		$types[$Config["objectclass"][$i]]=true;
+			
+	}
+	$ARRAY["SOURCE"]=$Config;
+	$ARRAY["description"]=null;
+	$ARRAY["mail"]=null;
+
+	$cn=utf8_decode($Config["cn"][0]);
+	$ARRAY["cn"]=$cn;
+
+
+	if(isset($Config["description"])){$ARRAY["description"]=utf8_decode($Config["description"][0]);}
+	if(isset($types["group"])){
+		$ARRAY["TYPE"]="group";
+		$ARRAY["MEMBERS"]=$Config["member"]["count"];
+		$ARRAY["name"]=$Config["name"][0];
+		return $ARRAY;
+	}
+	if(isset($types["foreignSecurityPrincipal"])){
+		$ARRAY["TYPE"]="group";
+		return null;
+	}
+	if(isset($types["user"])){
+		$ARRAY["TYPE"]="user";
+	}
+
+
+	$ARRAY["name"]=$Config["name"][0];
+	$ARRAY["uid"]=$Config["samaccountname"][0];
+	$ARRAY["displayname"]=$Config["displayname"][0];
+	if(isset($Config["userprincipalname"])){$ARRAY["userprincipalname"]=$Config["userprincipalname"][0];}
+	if(isset($Config["mail"][0])){$ARRAY["mail"]=$Config["mail"][0];}
+	return $ARRAY;
+}
+
+
+public function AdLDAP_MembersFromGroup($dn){
+	$this->ADLdap_init();
+	$options=$this->ADLdap_options();
+	try {
+		$adldap = new adLDAP($options);
+	}
+	catch (adLDAPException $e) {
+		$this->WLOG($e);
+		return array();
+	}
+	
+	try {
+		$adldap->authenticate($options["ad_username"],$options["ad_password"]);}
+		catch (adLDAPException $e) {
+			$this->WLOG($e);
+			return array();
+	}
+	
+	$props=$this->ObjectProperty($dn);
+	$name=$props["name"];
+	
+	if($GLOBALS["VERBOSE"]){echo "$dn -> $name\n";}
+	
+	$array=$adldap->group()->members($name);
+	if($GLOBALS["VERBOSE"]){echo "AdLDAP_MembersFromGroup $dn -> ".count($array)."\n";}
+	return $array;
+	}	
+	
+	
+
 	
 	
 	

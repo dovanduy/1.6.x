@@ -186,7 +186,11 @@ function sync_time($aspid=false){
 	if($ipaddr<>null){$cmd="$ntpdate -u $ipaddr";}else{$cmd="$ntpdate -u $hostname";}
 	if($GLOBALS["VERBOSE"]){progress_logs(20,"{sync_time}","$cmd line:".__LINE__."");}
 	exec($cmd." 2>&1",$results);
-	while (list ($num, $a) = each ($results) ){progress_logs(20,"{sync_time}","$function, $a Line:".__LINE__."");}
+	while (list ($num, $a) = each ($results) ){
+		$unix->ToSyslog($a,false,"ntpd");
+		progress_logs(20,"{sync_time}","$function, $a Line:".__LINE__."");
+	}
+	
 	if(is_file($hwclock)){
 		progress_logs(20,"{sync_time}","$function, sync the Hardware time with $hwclock");
 		shell_exec("$hwclock --systohc");
@@ -554,8 +558,8 @@ function build_progress(){
 		unix_system_kill_force($pid);
 	}
 		
-	progress_logs(1);
-	build();
+	
+	build(5);
 	progress_logs(66,"NssSwitch","Building nsswitch.... on line ".__LINE__);
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch --verbose  2>&1",$results2);
 	while (list ($index, $line) = each ($results2) ){
@@ -566,7 +570,7 @@ function build_progress(){
 	if(is_file($unix->LOCATE_SQUID_BIN())){
 		progress_logs(68,"Reconfiguring Squid-cache","...");
 		$results2=array();
-		exec("$php /usr/share/artica-postfix/exec.squid.php --build --force 2>&1",$results2);
+		exec("$php /usr/share/artica-postfix/exec.squid.php --build --force --progress-activedirectory=68 2>&1",$results2);
 		while (list ($index, $line) = each ($results2) ){
 			progress_logs(68,"Reconfiguring Squid-cache",$line);
 		}
@@ -641,7 +645,7 @@ function build($nopid=false){
 	pinglic(true);
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
-	progress_logs(20,"{join_activedirectory_domain}","Running PID $mypid",__LINE__);
+	progress_logs(20,"{join_activedirectory_domain} Running PID $mypid","Running PID $mypid",__LINE__);
 	writelogs("Running PID $mypid",__FUNCTION__,__FILE__,__LINE__);
 	
 	$wbinfo=$unix->find_program("wbinfo");
@@ -665,7 +669,7 @@ function build($nopid=false){
 	}
 	
 	if(!checkParams()){
-		progress_logs(20,"{join_activedirectory_domain}","Auth Winbindd, misconfiguration failed");
+		progress_logs(20,"{join_activedirectory_domain} {failed}","Auth Winbindd, misconfiguration failed");
 		progress_logs(100,"{finish}","Auth Winbindd, misconfiguration failed");
 		return;
 	}
@@ -711,52 +715,52 @@ function build($nopid=false){
 		$ipaddr=@implode(".", $ipaddrZ);
 	}
 	
-	progress_logs(9,"{apply_settings}","Synchronize time"." in line ".__LINE__);
+	progress_logs(9,"{apply_settings} Synchronize time","Synchronize time"." in line ".__LINE__);
 	sync_time();
-	progress_logs(10,"{apply_settings}","Check kerb5..in line ".__LINE__);
+	progress_logs(10,"{apply_settings} Check kerb5","Check kerb5..in line ".__LINE__);
 	krb5conf(12);
-	progress_logs(15,"{apply_settings}","Check msktutils in line ".__LINE__);
+	progress_logs(15,"{apply_settings} Check mskt","Check msktutils in line ".__LINE__);
 	run_msktutils();
-	progress_logs(15,"{apply_settings}","netbin -> $netbin in line ".__LINE__);
+	progress_logs(15,"{apply_settings} netbin","netbin -> $netbin in line ".__LINE__);
 	if(is_file($netbin)){
 		try {
-		progress_logs(15,"{apply_settings}","netbin -> SAMBA_PROXY()  in line ".__LINE__);
+		progress_logs(15,"{apply_settings} netbin","netbin -> SAMBA_PROXY()  in line ".__LINE__);
 		SAMBA_PROXY();
 		} catch (Exception $e) {
 			progress_logs(15,"{failed}","Exception Error: Message: " .$e->getMessage());
 		}
 	}
 
-	progress_logs(20,"{apply_settings}","Next");
 	
-	progress_logs(20,"{apply_settings}","kdb5_util -> $kdb5_util");
+	
+	progress_logs(20,"{apply_settings} [kdb5_util] {please_wait} {about} 2 {minutes}","[kdb5_util] -> $kdb5_util {please_wait}");
 	if(is_file("$kdb5_util")){
+		progress_logs(20,"{apply_settings} [kdb5_util] {please_wait} {about} 2 {minutes}","[kdb5_util] Running: $kdb5_util create -r $domainUp -s -P xxxxxx");
 		$cmd="$kdb5_util create -r $domainUp -s -P $kinitpassword";
-		progress_logs(20,"{apply_settings}","$cmd");
 		$results=array();
 		exec($cmd,$results);
-		while (list ($num, $a) = each ($results) ){progress_logs(15,"kdb5_util, $a");}
+		while (list ($num, $a) = each ($results) ){progress_logs(20,"{apply_settings} [kdb5_util]","[kdb5_util] -> $a");}
 	}
 	
-	progress_logs(20,"kadmin_bin -> $kadmin_bin");
-	progress_logs(20,"netbin -> $netbin ");
+	progress_logs(20,"{apply_settings} [kadmin_bin]",$kadmin_bin);
+	progress_logs(20,"{apply_settings} [netbin]", $netbin);
 	if(is_file("$netbin")){
 		progress_logs(20,"{join_activedirectory_domain}","netbin -> JOIN_ACTIVEDIRECTORY() ");
 		JOIN_ACTIVEDIRECTORY();
 	
 	}
-	progress_logs(51,"{restarting_winbind}","winbind_priv();");
+	progress_logs(51,"{restarting_winbind} 1","winbind_priv();");
 	winbind_priv(false,52);
-	progress_logs(60,"{restarting_winbind}","winbind_priv();");
+	progress_logs(60,"{restarting_winbind} 2","winbind_priv();");
 	winbindd_monit();
-	progress_logs(65,"{restarting_winbind}","winbind_priv();");
+	progress_logs(65,"{restarting_winbind} 3","winbind_priv();");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	if(!is_file("/etc/init.d/winbind")){
 		shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --winbind");
 	}
 	progress_logs(65,"{restarting_winbind}","winbind_priv();");
-	shell_exec("/etc/init.d/winbind restart --force");
+	system("/etc/init.d/winbind restart --force");
 
 
 
@@ -1121,7 +1125,7 @@ function SAMBA_VERSION_DEBUG(){
 
 
 function SAMBA_PROXY(){
-	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Reconfigure Samba for proxy commpliance", basename(__FILE__));}
+	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("{reconfigure} Samba for proxy commpliance", basename(__FILE__));}
 	progress_logs(15,"SAMBA_SPECIFIC_PROXY() start... ");
 	$IsAppliance=false;
 	progress_logs(15,"users=new usersMenus(); ");
@@ -1589,7 +1593,7 @@ function winbind_priv_perform($withpid=false,$progress=0){
 		if(is_file($squidbin)){
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Reloading $squidbin",basename(__FILE__),false);}
 			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
-			progress_logs($progress,"{kerberaus_authentication}","Reconfigure Squid-cache...");
+			progress_logs($progress,"{kerberaus_authentication}","{reconfigure} Squid-cache...");
 			$cmd="/etc/init.d/squid reload --script=".basename(__FILE__)." >/dev/null 2>&1 &";
 			shell_exec($cmd);
 		}

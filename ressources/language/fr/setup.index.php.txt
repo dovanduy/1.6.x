@@ -17,5 +17,5 @@ Cette section vous permet d'envoyer la commande d'installation des logiciels ...
 <software>Logiciel</software>
 <STATS_TOOLS>Logiciels de statistiques</STATS_TOOLS>
 <stat_packages>Logiciels de statistiques</stat_packages>
-<system_packages>Syst&egrave;me de paquets</system_packages>
+<system_packages>Paquets syst&egrave;me</system_packages>
 <web_packages>Logiciels web/travail collaboratif</web_packages>

@@ -1,6 +1,6 @@
 <?php
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
@@ -181,7 +181,7 @@ function item_popup2(){
 	
 	$t=time();
 	$html="<div class=form style='width:95%'>
-	<div class=explain style='font-size:14.5px'>{transparent_pattern_explain}</div>
+	<div class=text-info style='font-size:14.5px'>{transparent_pattern_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{interface}:</td>
@@ -312,7 +312,7 @@ ChkEna$t();
 	echo $tpl->_ENGINE_parse_body($html);
 }
 function Save(){
-	
+	writelogs("Saving rule",__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql_squid_builder();
 	$table="transparent_networks";
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables(null,true);}
@@ -341,12 +341,11 @@ function Save(){
 	$sql_edit="UPDATE `$table` SET ".@implode(",", $edit)." WHERE ID='$ID'";
 	$sql="INSERT IGNORE INTO `$table` (".@implode(",", $fields).") VALUES (".@implode(",", $values).")";
 	if($ID>0){$sql=$sql_edit;}
-
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "Mysql error: `$q->mysql_error`";;return;}
+	if(!$q->ok){echo "Mysql error: `$q->mysql_error`";writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
 	$tpl=new templates();
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?restart-firewall=yes");
+
 
 }
 
@@ -455,7 +454,7 @@ var xNewRule$tt= function (obj) {
 }
 
 function Apply$tt(){
-	Loadjs('system.services.cmd.php?APPNAME=transparent&action=restart&cmd=%2Fetc%2Finit.d%2Ftproxy&appcode=transparent');
+	Loadjs('squid.transparent.networks.progress.php');
 }
 
 
@@ -672,6 +671,14 @@ function items(){
 	$local_proxy=$tpl->_ENGINE_parse_body("{local_proxy}");
 	$redirect_to=$tpl->_ENGINE_parse_body("{redirect_to}");
 	$not=$tpl->_ENGINE_parse_body("{not} ");
+	
+	$AVAILABLE_MACROS["google"]=true;
+	$AVAILABLE_MACROS["teamviewer"]=true;
+	$AVAILABLE_MACROS["office365"]=true;
+	$AVAILABLE_MACROS["skype"]=true;
+	$AVAILABLE_MACROS["dropbox"]=true;
+	
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
 		$check32="<img src='img/check-32.png'>";
@@ -711,6 +718,7 @@ function items(){
 		
 		if($ligne["transparent"]==0){
 			$check32T="<img src='img/cloud-goto-42.png'>";
+			$proxy=null;
 		}
 
 		$delete=imgsimple("delete-32.png",null,"Loadjs('$MyPage?delete-js={$ligne["ID"]}&t={$_GET["t"]}',true)");
@@ -728,6 +736,12 @@ function items(){
 		}
 		
 		if($ligne["destination"]=="*"){$ligne["destination"]=null;}
+		$destination_clean=trim(strtolower($ligne["destination"]));
+		if(isset($AVAILABLE_MACROS[$destination_clean])){
+			$ligne["destination"]=$tpl->javascript_parse_text("{macro}: $destination_clean {websites}");
+		}
+		
+		
 		if($ligne["destination"]==null){$ligne["destination"]="$AllDestinations $destination_port";$proxy=null;}
 		if($ligne["isnot"]==1){$isnot=$not;}
 		

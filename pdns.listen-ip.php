@@ -54,7 +54,7 @@ function tabs(){
 	
 	
 	echo $tpl->_ENGINE_parse_body("
-	<div style='font-size:14px' class=explain>{pdns_listen_ip_explain}</div>")."
+	<div style='font-size:14px' class=text-info>{pdns_listen_ip_explain}</div>")."
 	<div id=main_config_pdns_lip>
 		<ul>". implode("\n",$html)."</ul>
 	</div>

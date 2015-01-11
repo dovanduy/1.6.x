@@ -32,7 +32,7 @@ function content(){
 	$SearchQuery=$boot->SearchFormGen("MAC,uid,hostname","search-records");
 	$apply_changes_mactouid_explain=$tpl->javascript_parse_text("{apply_changes_mactouid_explain}");
 	$html="
-	<div class=explain>{mactouid_explain}</div>
+	<div class=text-info>{mactouid_explain}</div>
 	<table style='width:100%'>
 	<tr>
 	<td>$button $button2</td>

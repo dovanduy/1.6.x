@@ -5140,7 +5140,7 @@ function Tclass_install.CYRUS_IMAPD_CONFIGURE():boolean;
 begin
    result:=false;
 
-   ccyrus.WRITE_CYRUS_CONF();
+
 end;
 //##############################################################################
 

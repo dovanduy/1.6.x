@@ -72,18 +72,19 @@ localsyslog("Check changed leases...");
 if(!$GLOBALS["FORCE"]){if($GLOBALS["VERBOSE"]){echo " -->Changed()\n";}if(!Changed()){die();}}
 
 $datas=@file_get_contents("/var/lib/dhcp3/dhcpd.leases");
-$md5Tampon=md5_file($datas);
-
-
+$md5Tampon=md5_file("/var/lib/dhcp3/dhcpd.leases");
 $md5Local=md5_file("/etc/artica-postfix/dhcpd.leases.dmp");
-
-
-
 
 dhcpd_logs("dhcpd.leases.dmp: $md5Local / $md5Tampon");
 
-if($GLOBALS["VERBOSE"]){echo " -->$md5Local / $md5Tampon\n";}
-if(!$GLOBALS["FORCE"]){if($md5Local==$md5Tampon){if($GLOBALS["VERBOSE"]){echo " -->$md5Local == $md5Tampon, abort\n";}die();}}
+if($GLOBALS["VERBOSE"]){echo " --> MD5LOCAL=$md5Local / MD5Tampon=$md5Tampon\n";}
+
+if(!$GLOBALS["FORCE"]){
+	if($md5Local==$md5Tampon){
+		if($GLOBALS["VERBOSE"]){echo " --> $md5Local == $md5Tampon, abort\n";}
+		die();
+	}
+}
 
 @unlink($cache_file);
 @file_put_contents($cache_file,$md5Tampon);
@@ -114,11 +115,13 @@ if($GLOBALS["VERBOSE"]){echo " -->domain $dhcp->ddns_domainname\n";}
 if($GLOBALS["VERBOSE"]){echo " -->Table ".count($re[1])." rows\n";}
 $sql="TRUNCATE TABLE `dhcpd_leases`";
 $q=new mysql();
+if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 $q->QUERY_SQL($sql,"artica_backup");
 $GLOBALS["FIXIPHOST"]=false;
 
 $c=0;
 while (list ($num, $ligne) = each ($re[1]) ){
+	if($GLOBALS["VERBOSE"]){echo "Checking $ligne\n";}
 	$c++;
 	$ip=$ligne;
 	$HOST=null;
@@ -202,7 +205,7 @@ while (list ($num, $ligne) = each ($re[1]) ){
 			$comp->DnsZoneName=$GLOBALS["domain"];
 			$MustEdit=true;
 		}
-		if($MustEdit){$comp->Edit();}
+		if($MustEdit){$comp->Edit(basename(__FILE__));}
 		
 		
 		
@@ -437,19 +440,74 @@ function update_commit($ip,$mac,$hostname){
 	
 }
 function parseLeases(){
-	foreach (glob("/var/log/artica-postfix/DHCP-LEASES/*") as $filename) {
-		$array=unserialize(@file_get_contents($filename));
-		@unlink($filename);
+	
+	
+	$BaseWorkDir="/var/log/artica-postfix/DHCP-LEASES";
+	@mkdir($BaseWorkDir,0755,true);
+	if (!$handle = opendir($BaseWorkDir)) {
+		echo "Failed open $BaseWorkDir\n";
+		return;
+	}
+	
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		$array=unserialize(@file_get_contents($targetFile));
+		@unlink($targetFile);
 		if(!is_array($array)){continue;}
 		$ip=$array["IP"];
 		$mac=$array["MAC"];
 		$hostname=$array["hostname"];
-		if($ip==null){continue;}	
+		if($ip==null){continue;}
+		CreateComputerLogs($ip,$mac,$hostname);
 		update_computer($ip,$mac,$hostname);
 	}
 	
 	
 }
+
+
+function CreateComputerLogs($ip,$mac,$hostname){
+	
+	$q=new mysql();
+	if(!isset($GLOBALS["dhcpd_hosts_checked"])){
+		$sql="CREATE TABLE IF NOT EXISTS `dhcpd_hosts` (
+				`MAC` VARCHAR(60) NOT NULL PRIMARY KEY,
+				`created` DATETIME,
+				`updated` DATETIME,
+				`ipaddr` varchar(60) NOT NULL,
+				`hostname` VARCHAR(128),
+				KEY `ipaddr` (`ipaddr`),
+				KEY `hostname` (`hostname`)
+				)  ENGINE = MYISAM;";
+		
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){return false;}
+		$GLOBALS["dhcpd_hosts_checked"]=true;
+	}
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM dhcpd_hosts
+			WHERE MAC='$mac'","artica_backup"));
+	
+	
+	$time=date("Y-m-d H:i:s");
+	if($ligne["MAC"]==null){
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO dhcpd_hosts (MAC,`created`,`updated`,`ipaddr`,`hostname`) 
+				VALUES('$mac','$time','$time','$ip','$hostname')","artica_backup");
+		
+	}else{
+		$q->QUERY_SQL("UPDATE dhcpd_hosts SET `ipaddr`='$ip',`hostname`='$hostname',`updated`='$time'
+				WHERE MAC='$mac'","artica_backup");
+		
+	}
+	
+	
+	
+}
+
 function dhcpd_logs($text){
 	
 	if(!function_exists("syslog")){return;}

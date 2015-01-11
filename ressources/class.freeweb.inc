@@ -10,6 +10,7 @@
 	include_once(dirname(__FILE__).'/class.mysql-multi.inc');
 	include_once(dirname(__FILE__).'/class.ejabberd.inc');
 	include_once(dirname(__FILE__).'/class.SugarCRM.inc');
+	include_once(dirname(__FILE__).'/class.apache.certificate.php');
 	
 	
 	class freeweb{
@@ -407,7 +408,8 @@
 				$f[]="\t\tAddType application/octet-stream .manifest";
 				$f[]="\t\tAddType application/octet-stream .dat";
 			}
-			
+			$f[]="\t\tAddType application/x-gtar-compressed .tgz";
+			$f[]="\t\tAddType application/x-gzip 	.gz";
 			return @implode("\n", $f);
 			
 		}
@@ -912,11 +914,15 @@
 			return @implode("\n", $f);
 			
 		}
-		public function mod_status(){
+		public function mod_status($servername=null){
+			$sock=new sockets();
+			$ApacheDisableModStatus=intval($sock->GET_INFO("ApacheDisableModStatus"));
+			if($ApacheDisableModStatus==1){return null;}
+			if($servername==null){$servername=$this->servername;}
 			if($this->groupware=="KLMS"){return null;}
 			if(!$this->APACHE_MOD_INFO){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_info, no such module\n";return;}
 			if(!$this->APACHE_MOD_STATUS){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_status, no such module\n";return;}
-			if(isset($GLOBALS["HTTPD_CONF_MOD_STATUS"])){return $GLOBALS["HTTPD_CONF_MOD_STATUS"];}
+			if(isset($GLOBALS["HTTPD_CONF_MOD_STATUS"][$servername])){return $GLOBALS["HTTPD_CONF_MOD_STATUS"][$servername];}
 			
 			if(!isset($GLOBALS["MYINTERFACESAllowFROM"])){
 				include_once(dirname(__FILE__)."/class.system.network.inc");
@@ -928,7 +934,9 @@
 				if(isset($hash)){if(is_array($hash)){while (list ($ip, $line) = each ($hash) ){$GLOBALS["MYINTERFACESAllowFROM"][]="\t\tAllow from $ip";}}}
 			}
 			
-			$dirMD=md5($this->servername);
+			
+			
+			$dirMD=md5($servername);
 			$f[]="\t<Location /$dirMD/$dirMD-status>";
 			$f[]="\t\tSetHandler server-status";
 			$f[]="\t\tOrder deny,allow";
@@ -936,18 +944,8 @@
 			$f[]=@implode("\n", $GLOBALS["MYINTERFACESAllowFROM"]);
 			$f[]="\t\tSatisfy Any";
 			$f[]="\t</Location>";
-			$f[]="\t<Location /server-status/?auto>";
-			$f[]="\t\tSetHandler server-status";
-			$f[]="\t\tOrder deny,allow";
-			$f[]="\t\tDeny from all";
-			$f[]=@implode("\n", $GLOBALS["MYINTERFACESAllowFROM"]);
-			$f[]="\t\tSatisfy Any";
-			$f[]="\t</Location>";			
-			
-			
-			
 			$mod_status=@implode("\n",$f);
-			$GLOBALS["HTTPD_CONF_MOD_STATUS"]=$mod_status;
+			$GLOBALS["HTTPD_CONF_MOD_STATUS"][$servername]=$mod_status;
 			return $mod_status;
 			
 		}
@@ -4053,65 +4051,17 @@
 				
 		}		
 		private function SSLEngine2(){
+			$apache_certificate=new apache_certificate($this->sslcertificate);
+			return $apache_certificate->build();
 			
 			
-			
-			
-			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
-			if(!is_file("$directory/server.crt")){
-				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/server.crt no such file\n";}
-				return;
-			}
-			if(!is_file("$directory/myserver.key")){
-				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/myserver.key no such file\n";}
-				return;
-			}	
-
-			$conf[]="\tSSLCertificateFile $directory/server.crt";
-			$conf[]="\tSSLCertificateKeyFile $directory/myserver.key";
-			return @implode("\n", $conf);
 		}
 
 		
 		public function SSLEngine(){
-			if(!$this->AS_ROOT){return;}
-			$conf[]="\tSSLCertificateFile {$GLOBALS["SSLKEY_PATH"]}/$this->servername.crt";
-			$conf[]="\tSSLCertificateKeyFile {$GLOBALS["SSLKEY_PATH"]}/$this->servername.key";
-			if($this->sslcertificate==null){return @implode("\n", $conf);}
-			
-			
-			
-			$directory="/etc/openssl/certificate_center/$this->sslcertificate";
-			$CommonName=$this->sslcertificate;
-			if(!is_file("$directory/chain.crt")){
-				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/chain.crt no such file\n";}
-				$SSLEngine2=$this->SSLEngine2();
-				if($SSLEngine2<>null){return $SSLEngine2;}
-				return @implode("\n", $conf);
-			}
-		
-			if(!is_file("$directory/$CommonName.crt")){
-				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/$CommonName.crt no such file\n";}
-				$SSLEngine2=$this->SSLEngine2();
-				if($SSLEngine2<>null){return $SSLEngine2;}				
-				return @implode("\n", $conf);
-			}
-			
-			if(!is_file("$directory/cakey.pem")){
-				if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] $directory/cakey.pem no such file\n";}
-				$SSLEngine2=$this->SSLEngine2();
-				if($SSLEngine2<>null){return $SSLEngine2;}					
-				return @implode("\n", $conf);
-			}			
-			$conf=array();
-			$unix=new unix();
-			
-			$conf[]="\tSSLCertificateFile $directory/$CommonName.crt";
-			$conf[]="\tSSLCertificateKeyFile $directory/cakey.pem";
-			$conf[]="\tSSLCertificateChainFile $directory/chain.crt";
-			
-			
-			return @implode("\n", $conf);
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] sslcertificate = $this->sslcertificate\n";}
+			$apache_certificate=new apache_certificate($this->sslcertificate);
+			return $apache_certificate->build();
 		}
 		
 		

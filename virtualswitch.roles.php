@@ -106,7 +106,7 @@ function role_popup(){
 	$html="
 	<div id='STEP_{$_GET["t"]}'>
 	<div style='width:98%' class=form>
-		<div style='font-size:16px' class=explain>{create_role_explain}</div>
+		<div style='font-size:16px' class=text-info>{create_role_explain}</div>
 		<table style='width:100%;margin-top:20px'>	
 			<tr>
 				<td class=legend style='font-size:16px'>{role}:</td>

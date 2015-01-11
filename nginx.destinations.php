@@ -14,6 +14,7 @@
 	include_once('ressources/class.ini.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.system.network.inc');
+	include_once('ressources/class.nginx-sources.inc');
 	
 	
 	$user=new usersMenus();
@@ -24,6 +25,8 @@
 	}
 	
 	if(isset($_GET["list"])){list_items();exit;}
+	if(isset($_GET["delete-destination-js"])){delete_destination_js();exit;}
+	if(isset($_POST["delete-destination"])){delete_destination();exit;}
 
 table();
 
@@ -39,8 +42,9 @@ function table(){
 	$array["currentpage"]=CurrentPageName();
 	$array["sortname"]="servername";
 	$array["cols"][]=array("source_name:servername",430);
-	$array["cols"][]=array("destination:ipaddr",430);
-	$array["cols"][]=array("delete",50);
+	$array["cols"][]=array("destination_servers_list:ipaddr",430);
+	$array["cols"][]=array("compile2",80);
+	$array["cols"][]=array("delete",80);
 	$array["buttons"][]=array("{new_server}","New$t","add");
 	$array["func"]["New$t"]="Loadjs('$page?ID=0&t=$t')";
 	
@@ -144,6 +148,50 @@ return @implode("\n", $f);
 }
 
 
+function delete_destination_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$source_id=$_GET["ID"];
+	if(!is_numeric($source_id)){$source_id=0;}
+	if($source_id==0){return;}
+	
+	if($source_id>0){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT servername FROM reverse_sources WHERE ID='$source_id'"));
+		$title=$ligne["servername"];
+	}
+	
+	$title=$tpl->javascript_parse_text("{delete} $title ?");
+	
+	echo "
+var xDelete$t = function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return}
+	$('#flexRT{$_GET["t"]}').flexReload();
+}			
+function Delete$t(){
+	if(!confirm('$title')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('delete-destination','$source_id');
+	XHR.sendAndLoad('$page', 'POST',xDelete$t);
+}
+
+ Delete$t();";
+	
+	
+}
+
+function delete_destination(){
+	$q=new mysql_squid_builder();
+	$reverse=new nginx_sources();
+	$reverse->DeleteSource($_POST["delete-destination"]);
+
+
+}
+
+
 function list_items(){
 	$STATUS=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/nginx.status.acl"));
 	$tpl=new templates();
@@ -233,13 +281,14 @@ function list_items(){
 		}
 	
 		$servername=$ligne["servername"];
-		$delete=imgsimple("delete-48.png",null,"Delete$t('{$ligne["ID"]}','$md')");
+		
+		$delete=imgsimple("delete-48.png",null,"Loadjs('$MyPage?delete-destination-js=yes&ID={$ligne["ID"]}&t=$t')");
 	
 		
 		if($ligne["ipaddr"]=="127.0.0.1"){$delete="&nbsp;";}
 	
 		$isSuccess=$ligne["isSuccess"];
-		if(!$AdminPrivs){$delete="&nbsp;";}
+	
 		
 	
 		$isSuccesstxt=unserialize(base64_decode($ligne["isSuccesstxt"]));
@@ -256,8 +305,10 @@ function list_items(){
 		}
 		
 		$jsedit="<a href=\"javascript:Blur();\" 
-							OnClick=\"javascript:Loadjs('$page?js-source=yes&source-id={$ligne["ID"]}');\"
-							style='font-size:18px;text-decoration:underline'>";
+							OnClick=\"javascript:Loadjs('nginx.peer.php?js=yes&ID={$ligne["ID"]}');\"
+							style='font-size:20px;text-decoration:underline;font-weight:bold'>";
+		
+		$compile=imgsimple("apply-48.png",null,"Loadjs('nginx.destination.progress.php?cacheid={$ligne["ID"]}')");
 		
 		
 		$data['rows'][] = array(
@@ -265,8 +316,8 @@ function list_items(){
 				'cell' => array(
 						
 						"$jsedit$servername</a>",
-						"$jsedit{$ligne["ipaddr"]}:{$ligne["port"]}</a>",
-						"$delete",
+						"$jsedit{$ligne["ipaddr"]}:{$ligne["port"]}</a>","<center>$compile</center>",
+						$delete,
 						
 				)
 		);		

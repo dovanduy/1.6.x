@@ -115,7 +115,7 @@ function start($aspid=false){
 	if(count($pids)>0){
 		while (list ($pid, $none) = each ($pids) ){$ttl=$unix->PROCESS_TTL($pid);$fty[]="Success PID $pid since {$ttl}Mn";if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid since {$ttl}Mn\n";}}
 		
-		squid_admin_mysql(1,"Succes starting Web Filtering Client service from the proxy{$GLOBALS["ADPLUS"]}",
+		squid_admin_mysql(2,"Succes starting Web Filtering Client service from the proxy{$GLOBALS["ADPLUS"]}",
 		@implode("\n", $fty),__FILE__,__LINE__);
 		return true;
 	}else{
@@ -309,7 +309,7 @@ function EnableClient(){
 	if($Detected){
 		@file_put_contents("/etc/squid3/squid.conf", @implode("\n", $f));
 		$GLOBALS["FORCE"]=true;
-		squid_admin_mysql(1,"Reconfigure Proxy service to relink Web Filtering service{$GLOBALS["ADPLUS"]}","Detected `$replaced_line` in squid.conf",__FILE__,__LINE__);
+		squid_admin_mysql(1,"{reconfigure} Proxy service to relink Web Filtering service{$GLOBALS["ADPLUS"]}","Detected `$replaced_line` in squid.conf",__FILE__,__LINE__);
 		$squid=$unix->LOCATE_SQUID_BIN();
 		shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Relink done\n";}
@@ -321,7 +321,7 @@ function EnableClient(){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Reconfigure Proxy for linking \n";}
 	if($GLOBALS["VERBOSE"]){echo "$php /usr/share/artica-postfix/exec.squid.php --build --force\n";}
 	exec("$php /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &",$results);
-	squid_admin_mysql(1,"Reconfigure Proxy service to relink Web Filtering service{$GLOBALS["ADPLUS"]}","Not Detected in squid.conf\nexecuted exec.squid.php --build --force\n".@implode("\n", $results),__FILE__,__LINE__);
+	squid_admin_mysql(1,"{reconfigure} Proxy service to relink Web Filtering service{$GLOBALS["ADPLUS"]}","Not Detected in squid.conf\nexecuted exec.squid.php --build --force\n".@implode("\n", $results),__FILE__,__LINE__);
 }
 
 function GetLocalConf(){

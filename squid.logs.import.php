@@ -85,7 +85,7 @@ function popup(){
 	if(!is_numeric($EnableImportWithSarg)){$EnableImportWithSarg=1;}
 	
 	$t=time();
-	$html="<div style='font-size:16px' class=explain>{explain_oldsquidstats}</div>
+	$html="<div style='font-size:16px' class=text-info>{explain_oldsquidstats}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>

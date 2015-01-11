@@ -173,7 +173,7 @@ function popup(){
 
 	
 	$html="
-	<div class=explain>{ip_rotator_smtp_explain}</div>
+	<div class=text-info>{ip_rotator_smtp_explain}</div>
 	<div id='form-rotator-display'></div>
 	<p>&nbsp;</p>
 	<div id='ip-rotator-list' style='width:100%;height:230px;overflow:auto'></div>

@@ -314,11 +314,60 @@ private function buildObjects(){
 	return @implode("\n", $f);
 	
 }
+private function regex_fix($pattern){
+	$pattern=str_replace('s.fr','s\.fr',$pattern);
+	$pattern=str_replace('e.com','e\.com',$pattern);
+	$pattern=str_replace('].com',']\.com',$pattern);
+	$pattern=str_replace('].eu',']\.eu',$pattern);
+	$pattern=str_replace('].ru',']\.ru',$pattern);
+	$pattern=str_replace('].info',']\.info',$pattern);
+	$pattern=str_replace(']+.com',']+\.com',$pattern);
+	$pattern=str_replace(']+.cf',']+\.cf',$pattern);
+	$pattern=str_replace(']+.net',']+\.net',$pattern);
+	$pattern=str_replace(']+.me',']+\.me',$pattern);
+	$pattern=str_replace(']+.co.vu',']+\.co\.vu',$pattern);
+	return $pattern;
+}
+
 private function is_regex($pattern){
 	$pattern_t="   $pattern";
+	
+	if(preg_match("#regex:\s+(.+)#", trim($pattern),$re)){
+		$re[1]=$this->regex_fix($re[1]);
+		return " /".trim($re[1])."/";
+	}
+	if(preg_match("#regex:(.+)#", trim($pattern),$re)){
+		$re[1]=$this->regex_fix($re[1]);
+		return " /".trim($re[1])."/";
+	}
+
+	if(preg_match("#^regex\s+(.+)#", trim($pattern),$re)){
+		$re[1]=$this->regex_fix($re[1]);
+		return " /".trim($re[1])."/";
+	}
+	if(preg_match("#^regex(.+)#", trim($pattern),$re)){
+		$re[1]=$this->regex_fix($re[1]);
+		return " /".trim($re[1])."/";
+	}
+	
+
+	
+	if(strpos($pattern_t, '[')>0){
+		$pattern=$this->regex_fix($pattern);
+		return " /$pattern/";
+	}
+	
+	if(strpos($pattern_t, '.*')>0){
+		$pattern=$this->regex_fix($pattern);
+		return " /$pattern/";
+	}	
+	
 	if(strpos($pattern_t, '*')>0){
 		return " /".$this->string_to_regex(trim($pattern))."/";
 	}
+	
+
+	
 	return $pattern;
 }
 
@@ -498,8 +547,10 @@ function BuildConfig(){
 					$ligne["pattern"]=$this->is_regex($ligne["pattern"]);
 					
 					if($ligne["type"]=="domain"){
-						$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
-						$this->acl[]="acl {$ligne["method"]} from /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from domain {$ligne["pattern"]}";
+						if(strpos(" {$ligne["pattern"]}", "/")==0){
+							$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
+							$this->acl[]="acl {$ligne["method"]} from /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from domain {$ligne["pattern"]}";
+						}
 					}
 					
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}
@@ -850,7 +901,7 @@ function BuildConfig(){
 				$unix=new unix();
 				$php5=$unix->LOCATE_PHP5_BIN();
 				@mkdir("/var/log/milter-greylist",0777,true);
-				$conf=$conf."stat \"|logger -t milter-greylist -p mail.info\" \"MGREYSTATS:$this->hostname,%i,%f,%r,%a,%A,%S,%C\\n\"";
+				$conf=$conf."stat \"|/usr/share/artica-postfix/exec.milter-greylist.logger.php\" \"$this->hostname,%i,%f,%r,%a,%A,%S,%C\"";
 				$conf=$conf ."\n";
 			}
 	      	

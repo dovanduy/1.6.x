@@ -457,7 +457,8 @@ function buildconf(){
 	if(!is_numeric($AmavisDebugSpamassassin)){$AmavisDebugSpamassassin=0;}
 	if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
 	if(!is_numeric($ArticaAmavisEnablePlugin)){$ArticaAmavisEnablePlugin=1;}
-	$myhostname=$sock->GET_INFO("myhostname");
+	
+	$myhostname=$sock->getFrameWork("cmd.php?full-hostname=yes");
 	if($myhostname==null){$myhostname=$users->fqdn;}
 	if($GLOBALS["EXECUTED_AS_ROOT"]){
 	if(is_file("/usr/local/sbin/amavisd")){

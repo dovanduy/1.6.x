@@ -136,7 +136,7 @@ function form_add_popup(){
 	<div id='form-autofs-add-div'>
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_1}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_1}</td>
 		
 	</tr>			
 			
@@ -192,7 +192,7 @@ function form_add_details_USB(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
@@ -305,7 +305,7 @@ function form_add_details_FTP(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
 	</tr>			
 	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
@@ -366,7 +366,7 @@ $dn=$_GET["dn"];
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:16px'>{url}:</td>
@@ -442,7 +442,7 @@ switch ($_GET["proto"]) {
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
@@ -512,7 +512,7 @@ function form_add_details_CIFS(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=explain style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
 	</tr>			
 	<tr>
 		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
@@ -820,7 +820,7 @@ function status(){
 	}
 	
 	$html="
-	<div class=explain style='font-size:16px'>{autofs_about}</div>
+	<div class=text-info style='font-size:16px'>{autofs_about}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td valign='top'>
@@ -950,7 +950,7 @@ function mounts_list(){
 		
 	if($_GET["field"]<>null){$buttons=null;}
 	
-if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=text-info style='font-size:13px'>$explain</div>";}	
 $html="
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 <script>

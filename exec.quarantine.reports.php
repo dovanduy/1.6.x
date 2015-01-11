@@ -345,6 +345,7 @@ function BuildPDFReportCron(){
 		$count=$count+1;
 		$f[]="MAILTO=\"\"";
 		$f[]="{$params["min_execution"]} {$params["hour_execution"]} * * * root ".LOCATE_PHP5_BIN2()." ".__FILE__." --user {$ligne["userid"]} >/dev/null 2>&1"; 
+		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-usr-quar-$count",@implode("\n",$f) );
 		unset($f);
 	}

@@ -331,9 +331,10 @@ function rotate_save(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$array["sysalerts"]="{load_alerts}";
 	$array["syslog"]="{syslog}";
 	$array["rotate-tabs"]="{rotate}";
-	$array["syslog-engine-tabs"]="{syslog_engine}";
+	$array["syslog-engine-tabs"]="{syslog_engine2}";
 	
 
 
@@ -341,7 +342,10 @@ function tabs(){
 	$fontsize=18;
 	
 	while (list ($num, $ligne) = each ($array) ){
-		
+		if($num=="sysalerts"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.sys_alert.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
 
 		if($num=="master"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
@@ -410,7 +414,7 @@ function syslog_engine_tab(){
 	$array["client"]='{client}';	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$fontsize=18;
+	$fontsize=26;
 	
 	while (list ($num, $ligne) = each ($array) ){
 	
@@ -545,8 +549,8 @@ function settings_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$sock=new sockets();
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
@@ -564,9 +568,6 @@ function settings_popup(){
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 	
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
-	
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	
 	
@@ -579,7 +580,9 @@ function settings_popup(){
 
 	
 	
-	$html="<table style='width:100%' class=form>
+	$html="
+			
+	<table style='width:100%' class=form>
 		
 			
 			
@@ -598,15 +601,8 @@ function settings_popup(){
 		<td style='font-size:14px'>". Field_text("LogsRotateDefaultSizeRotation",$LogsRotateDefaultSizeRotation,"font-size:14px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
 	</tr>						
-	<tr>
-		<td class=legend style='font-size:14px'>{compress_files}:</td>
-		<td>". Field_checkbox("LogRotateCompress", 1,$LogRotateCompress)."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{insert_in_mysql}:</td>
-		<td>". Field_checkbox("LogRotateMysql", 1,$LogRotateMysql,"LogRotateMysqlCheck()")."</td>
-	</tr>	
+
+
 	<tr>
 		<td class=legend style='font-size:14px'>{storage_files_path}:</td>
 		<td>". Field_text("LogRotatePath",$LogRotatePath,"font-size:14px;width:220px")."</td>
@@ -650,25 +646,13 @@ function settings_popup(){
 		
 	}	
 
-	function LogRotateMysqlCheck(){
-		document.getElementById('LogRotatePath').disabled=false;
-		document.getElementById('BackupMaxDays').disabled=true;
-		document.getElementById('BackupMaxDaysDir').disabled=true;
-		if(document.getElementById('LogRotateMysql').checked){
-			document.getElementById('LogRotatePath').disabled=true;
-			document.getElementById('BackupMaxDays').disabled=false;
-			document.getElementById('BackupMaxDaysDir').disabled=false;			
-		}
-			
-	}
+
 	
 
 	function SaveRotateOptions(){
 	  	var XHR = new XHRConnection();
-	  	if(document.getElementById('LogRotateCompress').checked){XHR.appendData('LogRotateCompress',1);}
-	  	else{XHR.appendData('LogRotateCompress',0);}
-	  	if(document.getElementById('LogRotateMysql').checked){XHR.appendData('LogRotateMysql',1);}
-	  	else{XHR.appendData('LogRotateMysql',0);}	  	
+	  	XHR.appendData('LogRotateCompress',1);
+	 	XHR.appendData('LogRotateMysql',0);	  	
 	  	XHR.appendData('LogRotatePath',document.getElementById('LogRotatePath').value);
 	  	XHR.appendData('LogsRotateRemoveApacheMaxSize',document.getElementById('LogsRotateRemoveApacheMaxSize').value);
 	  	
@@ -686,7 +670,7 @@ function settings_popup(){
 	
 	
 	
-	LogRotateMysqlCheck();";
+	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -737,7 +721,7 @@ function storage(){
 	
 	if($q->MySQLSyslogType==3){
 		
-		$error=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{syslog_used_nas_storage}</div>");
+		$error=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>{syslog_used_nas_storage}</div>");
 	}
 	
 	$html="
@@ -1466,8 +1450,8 @@ function remote_nas_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
@@ -1479,8 +1463,8 @@ function remote_nas_popup(){
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
 	
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	
+	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	
 	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
@@ -1502,7 +1486,7 @@ function remote_nas_popup(){
 
 	
 	
-$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
+$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>

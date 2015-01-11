@@ -48,12 +48,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'><img src='img/pagepeeker-204.png'></div>
-	<div class=explain style='font-size:14px'>{pagepeeker_icon_text}
-	<hr>
-		<div style='width:100%;text-align:right'>
-		<a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUp('http://proxy-appliance.org/index.php/artica-for-proxy-appliance/proxy-rule-and-web-filtering/using-the-web-filter-engine/using-youtube-for-schools-inside-your-proxy-appliance/',1024,900);\"
-		style='font-size:18px;text-decoration:underline'>{howto}</a>
-		</div>
+	<div class=text-info style='font-size:14px'>{pagepeeker_icon_text}
 	</div>
 	
 	<table style='width:99%' class=form>

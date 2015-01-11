@@ -480,7 +480,7 @@ function members(){
 	],";
 
 	$html="
-	<div class=explain style='font-size:14px'>$explain</div>
+	<div class=text-info style='font-size:14px'>$explain</div>
 	<table class='mysql-users-$t' style='display: none' id='mysql-users-$t' style='width:100%;margin:-10px'></table>
 <script>
 memedb$t='';
@@ -813,7 +813,7 @@ function mysql_dir_popup(){
 	
 	$html="
 	<div id='ChangeMysqlDirDiv'>
-	<div class=explain>{ChangeMysqlDir_explain}</div>
+	<div class=text-info>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>

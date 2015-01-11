@@ -30,7 +30,7 @@ function popup(){
 	$t=time();
 	$html="
 	<center id='anim-$t'></center>
-	<div class=explain style='font-size:14px'>{reset_admin_password_explain}</div>
+	<div class=text-info style='font-size:14px'>{reset_admin_password_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{username}</td>

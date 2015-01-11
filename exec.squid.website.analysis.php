@@ -50,6 +50,6 @@ function start(){
 	
 	$cmd=@implode(" ", $CMDS);
 	shell_exec($cmd);
-	@chmod(0755,"/usr/share/artica-postfix/ressources/logs/web/curl.trace");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/curl.trace",0755);
 	
 }

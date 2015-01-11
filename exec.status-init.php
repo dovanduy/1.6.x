@@ -5,12 +5,14 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["NOSQUIDOUTPUT"]=true;
-$GLOBALS["TITLENAME"]="Artica Watchdog daemon";
+$GLOBALS["STARTED_BY_CRON"]=false;
+$GLOBALS["TITLENAME"]="Watchdog daemon";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
+if(preg_match("#--startcron#",implode(" ",$argv),$re)){$GLOBALS["STARTED_BY_CRON"]=true;}
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
@@ -63,6 +65,9 @@ function restart() {
 
 
 function start($aspid=false){
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/SquidPerformance")){@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance", 1); }
+	
 	if(is_file("/etc/artica-postfix/FROM_ISO")){if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){return;}}
 	$unix=new unix();
 	$sock=new sockets();
@@ -82,6 +87,10 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["STARTED_BY_CRON"]){
+			$unix->ToSyslog("Artica Status is already started $pid since {$timepid}Mn ( asked by cron daemon )");
+		}
+		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
@@ -99,7 +108,12 @@ function start($aspid=false){
 	$echo=$unix->find_program("echo");
 	$nohup=$unix->find_program("nohup");
 	
+	if($GLOBALS["STARTED_BY_CRON"]){
+		$unix->ToSyslog("Starting Artica Status ( asked by cron daemon )");
+	}
+	
 	$cmd="$nohup $php5 ". dirname(__FILE__)."/exec.status.php >/dev/null 2>&1 &";
+	@unlink("/etc/artica-postfix/pids/class.status.squid.inc.squid_master_status.time");
 	shell_exec($cmd);
 	
 	

@@ -16,7 +16,7 @@ $unix=new unix();
 $pidfile="/etc/artica-postfix/croned.1/cron.notifs.php.pid";
 $pidTime="/etc/artica-postfix/croned.1/cron.notifs.php.time";
 
-if($unix->file_time_min($pidTime)<1){die();}
+if($unix->file_time_min($pidTime)<5){die();}
 @unlink($pidTime);@file_put_contents($pidTime, time());
 $pid=@file_get_contents($pidfile);
 if($unix->process_exists($pid,basename(__FILE__))){

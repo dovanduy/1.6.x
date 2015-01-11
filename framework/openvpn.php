@@ -13,6 +13,7 @@ if(isset($_GET["client-reconfigure"])){vpn_client_reconfigure();exit;}
 if(isset($_GET["certificate-infos"])){certificate_infos();}
 if(isset($_GET["ifAllcaExists"])){ifAllcaExists();exit;}
 if(isset($_GET["RestartOpenVPNServer"])){RestartOpenVPNServer();exit;}
+if(isset($_GET["enable"])){enable_service();exit;}
 
 
 
@@ -56,6 +57,22 @@ function RestartClientsTenir(){
 	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.openvpn.php --client-restart",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 	
+}
+function enable_service(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/openvpn.enable.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/openvpn.enable.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.openvpn.enable.php >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 	
 function vpn_client_running(){
@@ -143,7 +160,7 @@ function BuildWindowsClient(){
     	echo "keyout: $workingDir/$commonname.key\n";
     	echo "Keyfile: /etc/artica-postfix/openvpn/keys/openvpn-ca.key\n";
     	echo "/etc/artica-postfix/openvpn/keys/openvpn-ca.crt\n";
-    	echo "config: $ssl_config_path\n";
+    	echo "config: $config_path\n";
     	echo "$workingDir/$commonname.csr\n";
     	
     }

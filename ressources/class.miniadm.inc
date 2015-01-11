@@ -309,7 +309,7 @@ class miniadm{
 			$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 			if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 			if($SquidActHasReverse==1){
-				$explainSquidActHasReverse="<div class=explain>{explain_freewebs_reverse}</div>";
+				$explainSquidActHasReverse="<div class=text-info>{explain_freewebs_reverse}</div>";
 			}
 		}		
 		
@@ -1086,7 +1086,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		if(is_array($EXPLAIN)){
 			
 			if(isset($EXPLAIN["EXPLAIN"])){
-				$EXPLAINTXTP[]="<div class=explain>";
+				$EXPLAINTXTP[]="<div class=text-info>";
 				$EXPLAINTXTP[]="\t{$EXPLAIN["EXPLAIN"]}";
 				$EXPLAINTXTP[]="</div>";
 			}
@@ -1302,7 +1302,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 			if($TYPE=="HIDDEN"){$this->js[]="\tXHR.appendData('$fieldname','$VALUE');";continue;}
 			if($TYPE=="TITLE"){$f[]="<H3>$VALUE</H3>";continue;}
-			if($TYPE=="EXPLAIN_SPACER"){$f[]="<div class=explain>$VALUE</div>";continue;}
+			if($TYPE=="EXPLAIN_SPACER"){$f[]="<div class=text-info>$VALUE</div>";continue;}
 			if($TYPE=="SUBTITLE"){$f[]="<H4>$VALUE</H4>";continue;}
 			
 			
@@ -1573,7 +1573,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$jsdisableAll[]="\tdocument.getElementById('$ids').disabled=true;";
 			$jsEnableAll[]="\tdocument.getElementById('$ids').disabled=false;";
 			if(!isset($DIVERRORSTEXT["$ids-error"])){$DIVERRORSTEXT["$ids-error"]=null;}
-			$DIVERRORS[]="<div id='$ids-error' style='display:none' class=explainWarn>\n\t{$DIVERRORSTEXT["$ids-error"]}\n</div>";
+			$DIVERRORS[]="<div id='$ids-error' style='display:none' class=text-infoWarn>\n\t{$DIVERRORSTEXT["$ids-error"]}\n</div>";
 			
 		}
 		while (list ($functionanme, $code) = each ($JSFUNCTIONS) ){
@@ -1755,7 +1755,7 @@ $desc_form="<hr>";
 		}
 		
 		if($this->desc_form<>null){
-			$desc_form="<div class=explain style='margin-top:-1px;font-weight:bold;font-style: italic;font-size:13px;line-height:15px'>$this->desc_form</div>";
+			$desc_form="<div class=text-info style='margin-top:-1px;font-weight:bold;font-style: italic;font-size:13px;line-height:15px'>$this->desc_form</div>";
 		}
 		
 		return $formtitle.$desc_form.$DIVERRORSF.@implode("\n", $f);

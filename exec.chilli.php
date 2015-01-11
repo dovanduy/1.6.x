@@ -1046,7 +1046,7 @@ function DefaultSplash($ChilliConf){
 	$f[]="</div>";
 	$f[]="</td>";
 	$f[]="</tr>";
-	$f[]="</tboyd>";
+	$f[]="</body>";
 	$f[]="</table>";
 	$f[]="</div>";
 	$f[]="";

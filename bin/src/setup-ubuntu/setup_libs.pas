@@ -986,8 +986,9 @@ var
 
 begin
 
-    xMEM_TOTAL_INSTALLEE:=IntToStr(MEM_TOTAL_INSTALLEE());
 
+writeln('COMPILE_GENERIC_APPS ->"'+package_name+'"');
+xMEM_TOTAL_INSTALLEE:=IntToStr(MEM_TOTAL_INSTALLEE());
 
    if not FileExists('/etc/artica-postfix/dmidecode.cache.url') then begin
       if FileExists('/usr/share/artica-postfix/exec.dmidecode.php') then fpsystem(LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.dmidecode.php --chassis >/dev/null 2>&1');
@@ -1014,7 +1015,7 @@ begin
 
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
-
+    writeln('Change to "'+ ExtractFilePath(ParamStr(0))+'" directory..');
     fpsystem('cd ' + ExtractFilePath(ParamStr(0)));
 
     gcc_path:=LOCATE_GCC();
@@ -1029,18 +1030,18 @@ begin
     
 
 
-    writeln('Checking required compilation tools as gcc and make');
+    writeln(package_name,': Checking required compilation tools as GCC and MAKE');
     if length(make_path)=0 then begin
         writeln('ERROR:: unable to locate make...');
         goto MyEnd;
     end;
 
     if length(gcc_path)=0 then begin
-        writeln('ERROR:: unable to locate gcc...');
+        writeln(package_name,' ERROR:: unable to locate gcc...');
         goto MyEnd;
     end;
 
-    writeln('Checking last supported version of ' + package_name + ' from ' +index_file);
+    writeln(package_name,': Checking last supported version of ' + package_name + ' from ' +index_file);
 
     if local_folder='' then begin
        autoupdate_path:=CHECK_INDEX_FILE();
@@ -1098,7 +1099,6 @@ begin
     if length(package_version)=0 then begin
          writeln('http source problem [NEXT]\' + package_name +  ' is null...aborting');
          writeln('try to remove ',autoupdate_path);
-
          exit;
     end;
 

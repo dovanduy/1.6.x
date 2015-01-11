@@ -540,7 +540,7 @@ function INDEX(){
 	<tbody>
 		<tr>
 			<td valign='top'>
-			<div class=explain style='font-size:14px'>{services_status_text}<br>{services_status_text_explain}</div>
+			<div class=text-info style='font-size:14px'>{services_status_text}<br>{services_status_text_explain}</div>
 		</td>
 		<td valign='top'><div id='mymem' style='width:99%' class=form></div></td>
 	</tr>
@@ -923,7 +923,7 @@ function BuildRow($users,$array,$application_name,$titleAdd=null){
 	$stopped=$tbl[1];
 	$filter_disabled=$tbl[2];
 	$not_installed=$tbl[3];	
-		
+	$master_cached_memory=0;
 
 	$application_installed=$array["application_installed"];
 	$master_memory=$array["master_memory"];
@@ -938,7 +938,9 @@ function BuildRow($users,$array,$application_name,$titleAdd=null){
 	$cpu_percent_total="&nbsp;";
 	$memory_percent_total="&nbsp;";
 	$uptime=$array["uptime"];
-	$master_cached_memory=$array["master_cached_memory"];
+	if(isset($array["master_cached_memory"])){
+		$master_cached_memory=$array["master_cached_memory"];
+	}
 	$processes_number=$array["processes_number"];
 	$watchdog_features=$array["watchdog_features"];
 	$explain=$array["explain"];

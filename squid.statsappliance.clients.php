@@ -179,7 +179,7 @@ function servers(){
 	<center id='$t'></div>
 	
 	</center>
-	<div class=explain style='font-size:14px'>{prodservers_statsappliance_explain}</div>
+	<div class=text-info style='font-size:14px'>{prodservers_statsappliance_explain}</div>
 	<script>
 	
 		

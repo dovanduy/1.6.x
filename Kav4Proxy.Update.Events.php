@@ -81,7 +81,7 @@ $('#table-$t').flexigrid({
 	rp: 100,
 	rpOptions: [10, 20, 30, 50,100,200,500],
 	showTableToggleBtn: false,
-	width: 835,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	

@@ -305,7 +305,7 @@ function popup_status(){
 	
 	<table style='width:100%' style='margin-top:10px'>
 		<tr>
-			<td valign='top'><div  style='font-size:14px' class=explain>{APP_OCSI_TEXT}</div><div id='ocs-resolve'></div></td>
+			<td valign='top'><div  style='font-size:14px' class=text-info>{APP_OCSI_TEXT}</div><div id='ocs-resolve'></div></td>
 			<td valign='top'><div id='ocsweb-status' style='margin:10px'></div></td>
 		</tr>
 	</table>
@@ -374,7 +374,7 @@ $removeInstall
 		<img src='img/web-64.png'>
 	</td>
 	<td valign='top'>
-			<div style='font-size:14px' class=explain>{ocs_web_params_text}</div>
+			<div style='font-size:14px' class=text-info>{ocs_web_params_text}</div>
 			<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2><hr><div>$www</div><div style='font-size:11px;text-align:right'>{username}:admin&nbsp;{password}:admin<hr></td>

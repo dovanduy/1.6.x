@@ -46,7 +46,7 @@ Le paquet ne peut &ecirc;tre cr&eacute;&eacute;.</OCS_PACKAGE_NO_CERT_SERVER>
 <OCS_SERVER_ADDRESS>Adresse du serveur OCS</OCS_SERVER_ADDRESS>
 <ocs_web_params>Serveur web/interface</ocs_web_params>
 <ocs_web_params_text>Indiquez les param&egrave;tres du serveur Web et de l'interface principale d'OCS inventory.</ocs_web_params_text>
-<packages>paquetages</packages>
+<packages>Paquetages</packages>
 <PACKAGE_AFFECT_HOWTO>Cliquez sur la case &agrave; c&ocirc;cher &agrave; c&ocirc;t&eacute; de l'ordinateur afin de lancer le d&eacute;ploiement du paquet.</PACKAGE_AFFECT_HOWTO>
 <PROLOG_FREQ>Fr&eacute;quence de connexions</PROLOG_FREQ>
 <PROLOG_FREQ_HELP>Nombre d'heures entre deux lancements de l'agent (utilis&eacute; par le service). Toutefois, l'agent prendra contact (pas n&eacute;cessairement pour envoyer un inventaire si l'inventaire n'est pas plus vieux que le nombre de jours sp&eacute;cifi&eacute;s dans FREQUENCY) avec le serveur OCS selon X nombre d'heures</PROLOG_FREQ_HELP>

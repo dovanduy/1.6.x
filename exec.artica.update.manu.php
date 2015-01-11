@@ -11,6 +11,33 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 install($argv[1]);exit;
 
+function ArticaMeta_release($source_package){
+	$sock=new sockets();
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==0){
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - DISABLED -\n";
+		return;
+	}
+
+	echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - ENABLED -\n";
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
+	@mkdir("$ArticaMetaStorage/releases",0755,true);
+	$basename=basename($source_package);
+	if(!preg_match("#artica-[0-9\.]+\.tgz#", $basename)){
+		echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - FAILED ( not an artica package) -\n";
+		return;
+	}
+	if(is_file("$ArticaMetaStorage/releases/$basename")){@unlink("$ArticaMetaStorage/releases/$basename");}
+	@copy($source_package, "$ArticaMetaStorage/releases/$basename");
+	meta_admin_mysql(2, "Added $basename into official repository", null,__FILE__,__LINE__);
+	
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php ".dirname(__FILE__)."/exec.artica-meta-server.php --force");
+}
+
 
 
 function install($filename){
@@ -30,6 +57,8 @@ function install($filename){
 	$tarballs_file="/usr/share/artica-postfix/ressources/conf/upload/$filename";
 	echo "Package $tarballs_file\n";
 	$size=filesize($tarballs_file);
+	
+	ArticaMeta_release($tarballs_file);
 	
 	if (preg_match('#([0-9\.]+)_([0-9\.]+)-([0-9]+).tgz$#i',$filename,$r)){
 		$CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");

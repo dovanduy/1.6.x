@@ -40,6 +40,21 @@ class squid_bandwith_builder{
 			$this->rules_array[$count]=$ligne["ID"];
 			$this->rules_name[$count]=$ligne["rulename"];
 			$this->delay_class[]="delay_class $count {$ligne["rule_class"]}";
+			if($ligne["rule_class"]==1){
+				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]}";
+				continue;
+			}
+			if($ligne["rule_class"]==2){
+				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} -1/-1 {$ligne["total_users"]}";
+				continue;
+			}
+			
+			if($ligne["rule_class"]==3){
+				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} -1/-1 {$ligne["total_users"]}";
+				continue;
+			}
+			
+			
 			$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} {$ligne["total_users"]}";
 		}
 	}

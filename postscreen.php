@@ -105,7 +105,7 @@ function dnsbl(){
 	
 	
 	$html="
-	<div class=explain>{postscreen_dnsbl_sites}</div>
+	<div class=text-info>{postscreen_dnsbl_sites}</div>
 	
 	<table style='width:99%' class=form id='tosave'>
 	
@@ -335,7 +335,7 @@ function parameters(){
 	<div id='NavigationForms4'>
 	<h3><a href=\"#\">{Bare_newline_test}</a></h3>
 	<div>
-	<div class=explain>{POSTSCREEN_BARRE_NEWLINE_EXPLAIN}</div>
+	<div class=text-info>{POSTSCREEN_BARRE_NEWLINE_EXPLAIN}</div>
 	
 			<table style='width:99%' class=form>
 			
@@ -363,7 +363,7 @@ function parameters(){
 
 	<h3><a href=\"#\">{Command_pipelining_test}</a></h3>
 	<div>
-	<div class=explain>{postscreen_pipelining_explain}</div>	
+	<div class=text-info>{postscreen_pipelining_explain}</div>	
 
 	<table style='width:99%' class=form>
 	
@@ -390,7 +390,7 @@ function parameters(){
 	
 	<h3><a href=\"#\">{postscreen_non_smtp_command_title}</a></h3>
 	<div>
-	<div class=explain>{postscreen_non_smtp_command_explain}</div>	
+	<div class=text-info>{postscreen_non_smtp_command_explain}</div>	
 	<table style='width:99%' class=form>
 	
 	<tr>

@@ -114,7 +114,7 @@ function popup(){
 		
 		</table>
 		<br>
-		<div class=explain>$recipient_bcc_maps_text</div>
+		<div class=text-info>$recipient_bcc_maps_text</div>
 		<div style='width:100%;height:150px;overflow:auto' id='RecipientToAddID'></div>
 		
 		

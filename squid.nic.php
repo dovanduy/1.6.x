@@ -44,9 +44,12 @@ function save(){
 	$sock=new sockets();
 	if($_POST["SquidBinIpaddr"]==null){$_POST["SquidBinIpaddr"]="0.0.0.0";}
 	$sock->SET_INFO("SquidBinIpaddr", $_POST["SquidBinIpaddr"]);
-	$squid=new squidbee();
-	$squid->global_conf_array["tcp_outgoing_address"]=$_POST["tcp_outgoing_address"];
-	$squid->SaveToLdap(true);
+	
+	if(isset($_POST["tcp_outgoing_address"])){
+		$squid=new squidbee();
+		$squid->global_conf_array["tcp_outgoing_address"]=$_POST["tcp_outgoing_address"];
+		$squid->SaveToLdap(true);
+	}
 	
 }
 
@@ -58,15 +61,35 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
-	
-	$squid=new squidbee();
-	$tcp_outgoing_address=$squid->global_conf_array["tcp_outgoing_address"];
+	$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
 	$ip=new networking();
-	$ips=$ip->ALL_IPS_GET_ARRAY();
-	$ips["0.0.0.0"]="{all}";
 	$t=time();
 	$pfws=$ip->ALL_IPS_GET_ARRAY();
 	$pfws[null]="{none}";
+	
+	if($MikrotikTransparent==0){
+		$squid=new squidbee();
+		$tcp_outgoing_address=$squid->global_conf_array["tcp_outgoing_address"];
+		
+		$ips=$ip->ALL_IPS_GET_ARRAY();
+		$ips["0.0.0.0"]="{all}";
+		
+		$ff1="<tr>
+		<td class=legend style='font-size:16px'>{forward_address}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($pfws,"tcp_outgoing_address",$tcp_outgoing_address,"style:font-size:16px")."<td>
+		<td style='font-size:16px' width=1%><td>
+	</tr>";
+		
+	}else{
+		$MikrotikVirtualIP=$sock->GET_INFO('MikrotikVirtualIP');
+		$ff1="
+		<tr>
+			<td class=legend style='font-size:16px'>{forward_address}:</td>
+			<td style='font-size:16px'><strong>MikroTik:$MikrotikVirtualIP</strong><td>
+			<td style='font-size:16px' width=1%><td>
+		</tr>";
+	}
+
 	$html="
 	<div id='$t'>
 	<table style='width:99%' class=form>
@@ -76,11 +99,7 @@ function popup(){
 		<td style='font-size:16px'>". Field_array_Hash($ips,"bindip-$t",$SquidBinIpaddr,"style:font-size:16px")."<td>
 		<td style='font-size:16px' width=1%><td>
 	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{forward_address}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($pfws,"tcp_outgoing_address",$tcp_outgoing_address,"style:font-size:16px")."<td>
-		<td style='font-size:16px' width=1%><td>
-	</tr>	
+	$ff1
 	<tr>
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveSquidBinIpaddr()",16)."</td>
 	</tr>
@@ -97,8 +116,10 @@ function popup(){
 	function SaveSquidBinIpaddr(){
 		var XHR = new XHRConnection();
 		XHR.appendData('SquidBinIpaddr',document.getElementById('bindip-$t').value);
-		XHR.appendData('tcp_outgoing_address',document.getElementById('tcp_outgoing_address').value);
-		AnimateDiv('$t'); 
+		if(document.getElementById('tcp_outgoing_address')){
+			XHR.appendData('tcp_outgoing_address',document.getElementById('tcp_outgoing_address').value);
+			}
+		
 		XHR.sendAndLoad('$page', 'POST',x_SaveSquidBinIpaddr);	
 	}		
 </script>	

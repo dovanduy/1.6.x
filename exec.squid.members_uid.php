@@ -3,7 +3,8 @@ $GLOBALS["BYPASS"]=true;
 $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
-if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+$GLOBALS["SCHEDULED"]=false;
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];$GLOBALS["SCHEDULED"]=true;}
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
@@ -57,12 +58,15 @@ function members_uid(){
 		}
 		
 		$timeexec=$unix->file_time_min($timefile);
-		if($timeexec<540){return;}
+		if(!$GLOBALS["SCHEDULED"]){
+			if($timeexec<540){return;}
+		}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);	
 	}
 	
-	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
 	if(isset($GLOBALS["members_uid_executed"])){return;}
 	$GLOBALS["members_uid_executed"]=true;
 	$q=new mysql_squid_builder();

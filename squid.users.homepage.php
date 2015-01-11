@@ -29,7 +29,7 @@ function page(){
 	$page=CurrentPageName();	
 	$html="<div class=form>
 	<div style='font-size:18px'>{welcome_title} {$_SESSION["email"]}</div>
-	<p style='font-size:16px'  class=explain>{instroduction_enduser_proxy}</p>
+	<p style='font-size:16px'  class=text-info>{instroduction_enduser_proxy}</p>
 	<table style='width:100%'>
 	<tbody>
 	<tr>

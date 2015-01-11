@@ -7,7 +7,8 @@ include_once(dirname(__FILE__).'/class.ini.inc');
 include_once(dirname(__FILE__).'/class.bind9.inc');
 include_once(dirname(__FILE__) .'/class.tcpip.inc');
 include_once(dirname(__FILE__) .'/class.mysql.inc');
-
+include_once(dirname(__FILE__) .'/class.dhcpd-sub.inc');
+include_once(dirname(__FILE__) .'/class.computers.inc');
 
 class dhcpd_hosts{
 	public $uid;
@@ -70,39 +71,12 @@ function AddFixed(){
 	$ldap=new clladp();
 	$tpl=new templates();
 	$tcp=new IP();
-	if($this->dn==null){
-		$this->dn="cn=$this->uid,cn=DhcpConfig,ou=dhcp,$ldap->suffix";
-	}
 	
 	if(!$tcp->isValid($this->IP)){
 		echo $tpl->_ENGINE_parse_body("DHCP:: {error} IP: $this->IP {invalid}\n");
 		return false;
 	}	
 	
-	
-	$this->LDAPBranch();
-	if(!$ldap->ExistsDN($this->dn)){
-		$upd=array();
-		$upd["objectClass"][]="top";
-		$upd["objectClass"][]="dhcpHost";
-		$upd["cn"][]="$this->uid";
-		if(!$ldap->ldap_add($this->dn,$upd)){
-			echo $tpl->_ENGINE_parse_body("DHCP:: {error} function:".__FUNCTION__."\nfile: ".__FILE__."\nline:".__LINE__."\n");
-			echo $ldap->ldap_last_error;
-			return false;
-		}
-		
-		unset($upd);
-	}
-	
-	$upd["dhcpHWAddress"][0]="ethernet $this->MAC";
-	$upd["dhcpStatements"][0]="fixed-address $this->IP";
-	if(!$ldap->Ldap_modify($this->dn,$upd)){
-	   echo $tpl->_ENGINE_parse_body("DHCP:: {error} function:".__FUNCTION__."\nfile: ".__FILE__."\nline:".__LINE__."\n");
-	   echo $ldap->ldap_last_error;
-	   return false;
-		
-	}
 	
 	include_once(dirname(__FILE__)."/class.mysql.inc");
 	$sql="INSERT IGNORE INTO dhcpd_fixed (mac,ipaddr,hostname,domain) VALUES ('$this->MAC','$this->IP','$this->uid','$this->dds_domain')";
@@ -120,68 +94,21 @@ function AddFixed(){
 	if(!$q->ok){echo $q->mysql_error." in ".__CLASS__."/".__FUNCTION__." line ".__LINE__;return false;}
 	
 	
+	$cmp=new computers();
+	$uid=$cmp->ComputerIDFromMAC($this->MAC);
+	$cmp->uid=$uid;
+	$cmp->ComputerIP=$this->IP;
+	$cmp->ComputerMacAddress=$this->MAC;
+	$cmp->ComputerRealName=$this->hostname;
+	$cmp->Add();
+	
+	
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
 	return true;	
 	
 }
 	
-function LDAPBranch(){
-	$ldap=new clladp();
-	$users=new usersMenus();
-	$dn="ou=dhcp,$ldap->suffix";
-	if(!$ldap->ExistsDN($dn)){
-		$upd=array();
-		$upd["ou"][]="dhcp";
-		$upd["objectClass"][]="organizationalUnit";
-		$upd["objectClass"][]="top";
-		if(!$ldap->ldap_add($dn,$upd)){
-			echo __FUNCTION__.' line '.__LINE__."\n".__FILE__;
-			echo "Please try to re-index your LDAP server\n";
-			echo "Under the troubleshoot section\n";			
-			echo $ldap->ldap_last_error;
-			return;
-		}
-		
-	}
-	
-	
-	$dn="cn=$users->hostname,ou=dhcp,$ldap->suffix";
-	if(!$ldap->ExistsDN($dn)){
-		$upd["objectClass"][]="dhcpServer";
-		$upd["objectClass"][]="top";
-		$upd["cn"][]="$users->hostname";
-		$upd["dhcpServiceDN"][]="cn=dhcpConfig,ou=dhcp,$ldap->suffix";
-		
-		if(!$ldap->ldap_add($dn,$upd)){
-			echo __FUNCTION__.' line '.__LINE__."\n".__FILE__;
-			echo "Please try to re-index your LDAP server\n";
-			echo "Under the troubleshoot section\n";			
-			echo $ldap->ldap_last_error;
-			return;
-		}
-		
-	}	
-	
-	$dn="cn=DhcpConfig,ou=dhcp,$ldap->suffix";
-	if(!$ldap->ExistsDN($dn)){
-		$upd["objectClass"][]="dhcpService";
-		$upd["objectClass"][]="dhcpOptions";
-		$upd["dhcpStatements"][]="ddns-update-style ad-hoc";
-		$upd["dhcpStatements"][]="default-lease-time 86400";
-		$upd["dhcpStatements"][]="max-lease-time 604800";
-		$upd["dhcpPrimaryDN"][]="ou=dhcp,$ldap->suffix";
-		if(!$ldap->ldap_add($dn,$upd)){
-			echo __FUNCTION__.' line '.__LINE__."\n".__FILE__;
-			echo "Please try to re-index your LDAP server\n";
-			echo "Under the troubleshoot section\n";
-			echo $ldap->ldap_last_error;
-			return;
-		}
-		
-	}	
-	
-}	
 }
 
 
@@ -197,6 +124,7 @@ class dhcpd{
 	public $DNS_2;
 	public $EnableArticaAsGateway=0;
 	public $EnableArticaAsDNSFirst=0;
+	public $do_no_verify_range=0;
 	public $gateway;
 	public $pxe_enable=0;
 	public $pxe_server=null;
@@ -214,7 +142,6 @@ class dhcpd{
 	public $noloadFixed=0;
 	public $local_pac_server=0;
 	public $get_lease_hostnames=0;
-	public $DHCPDEnableCacheDNS=0;
 	
 	function dhcpd($noload=0,$noloadFixed=0){
 		if($noload<>0){$this->noload=$noload;return ;}
@@ -255,6 +182,12 @@ class dhcpd{
 		$this->authoritative=$ini->_params["SET"]["authoritative"];
 		$this->local_pac_server=$ini->_params["SET"]["local_pac_server"];
 		$this->get_lease_hostnames=$ini->_params["SET"]["get_lease_hostnames"];
+		$this->deny_unkown_clients=intval($ini->_params["SET"]["deny_unkown_clients"]);
+		
+		
+		
+		
+		$this->do_no_verify_range=$ini->_params["SET"]["do_no_verify_range"];
 		
 		if($this->listen_nic==null){$this->GetDefaultNic();}
 		
@@ -297,8 +230,7 @@ class dhcpd{
 		writelogs("LOADING RemoteVPN ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		$this->RemoteVPN();
 		if(!$GLOBALS["ASROOT"]){if(isset($GLOBALS["DHCPDCONF"])){$this->conf=$GLOBALS["DHCPDCONF"];}else{$this->conf=$this->BuildConf();$GLOBALS["DHCPDCONF"]=$this->conf;}}
-		$this->DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-		if(!is_numeric($this->DHCPDEnableCacheDNS)){$this->DHCPDEnableCacheDNS=0;}
+
 	}
 	
 	function Save($norestart=false){
@@ -359,6 +291,10 @@ class dhcpd{
 		$ini=$ini."ping_check=$this->ping_check\n";
 		$ini=$ini."local_pac_server=$this->local_pac_server\n";
 		$ini=$ini."get_lease_hostnames=$this->get_lease_hostnames\n";
+		$ini=$ini."do_no_verify_range=$this->do_no_verify_range\n";
+		$ini=$ini."deny_unkown_clients=$this->deny_unkown_clients\n";
+		
+		
 		$sock=new sockets();
 		$sock->SaveConfigFile($ini,'ArticaDHCPSettings');
 		$sock->SaveConfigFile($this->BuildConf(),'DHCP3ConfigurationFile');
@@ -595,52 +531,26 @@ private function DomainNameServers(){
 			$conf=$conf."ddns-update-style none;\n";
 		}
 		
-		$conf=$conf."allow unknown-clients;\n";
-		if($this->authoritative==1){
-			$conf=$conf."authoritative;\n";
+		if($this->deny_unkown_clients==1){
+			$conf=$conf."deny unkown-clients;\n";
 		}else{
-			$conf=$conf."not authoritative;\n";
-		}
-		$conf=$conf."max-lease-time $this->max_lease_time;\n";
-		$conf=$conf."default-lease-time $this->max_lease_time;\n";
-		
-		
-		if($this->get_lease_hostnames==1){
-			$conf=$conf."get-lease-hostnames true;\n";
-		}else{
-			$conf=$conf."get-lease-hostnames false;\n";
+			$conf=$conf."allow unknown-clients;\n";
 		}
 		
+
 		
-		if($this->ping_check==1){
-			$conf=$conf."ping-check = 1;\n";
-		}else{
-			$conf=$conf."ping-check = 0;\n";
-		}
 		//$conf=$conf."ddns-hostname = pick (option fqdn.hostname,option host-name,concat (\"dhcp-\", binary-to-ascii (10, 8, \"-\", leased-address)));";
 		
 		if($this->gateway<>null){
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server DEBUG: gateway [". count($gateway_array)."] = $this->gateway set by admin\n";}
 			$gateway_array[]=$this->gateway;
 		}
-		
-		if($this->EnableArticaAsGateway==1){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server DEBUG: gateway [". count($gateway_array)."] = $eth_IP (EnableArticaAsGateway = 1) \n";}
-			$gateway_array[]=$eth_IP;
-		}
+
 		
 		
-		if($GLOBALS["VERBOSE"]){echo "DEBUG: ->BuildRoutes() Line ".__LINE__."\n";}
-		$routes=$this->BuildRoutes();
-		if(count($routes["ROUTERS"])>0){
-			while (list ($index, $router) = each ($routes["ROUTERS"]) ){
-			$gateway_array[]=$router;
-			}
-			$conf=$conf."option ms-classless-static-routes code 249 = array of unsigned integer 8;\n";
-			$conf=$conf."option rfc3442-classless-static-routes code 121 = array of unsigned integer 8;\n";
-			$conf=$conf."option ms-classless-static-routes ". implode(" ,",$routes["COMPILE"]).";\n";
-			$conf=$conf."option rfc3442-classless-static-routes ". implode(" ,",$routes["COMPILE"]).";\n";
-		}
+		
+		
+
 		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->WINS)){
 			$conf=$conf."option netbios-name-servers $this->WINS;\n";
 		}
@@ -650,6 +560,17 @@ private function DomainNameServers(){
 			$conf=$conf."option local-pac-server \"$this->local_pac_server\";\n";
 		}
 		
+
+		
+
+		if(preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->subnet,$re)){
+			$SUBNET_1=$re[1];
+			$SUBNET_2=$re[2];
+			$SUBNET_3=$re[3];
+			$SUBNET_4=$re[3];
+			if($GLOBALS["ASROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server Subnet $SUBNET_1 - $SUBNET_2 - $SUBNET_3\n";}
+			
+		}
 		
 		
 		
@@ -658,36 +579,99 @@ private function DomainNameServers(){
 				preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->broadcast,$re);
 			}
 		}
-			
+	
 		$range_suffix=0;
 		if(is_numeric($re[4])){if($re[4]>0){$range_suffix=$re[4];}}
 		$final_subnet="{$re[1]}.{$re[2]}.{$re[3]}.$range_suffix";
 		if($final_subnet=="...0"){$final_subnet="0.0.0.0";}
-		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server DEBUG: final_subnet=$final_subnet\n";}
+		if($GLOBALS["ASROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server Subnet final_subnet: $final_subnet\n";}
+		if($GLOBALS["ASROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server Subnet Range 1.....: $this->range1\n";}
 		
-		
-		
+		$xdhcpSub=new dhcpd_sub($this->listen_nic);
+		$conf=$conf.$xdhcpSub->BuildRoutes()."\n";		
 		
 		$conf=$conf."\n";
 		$conf=$conf."subnet {$re[1]}.{$re[2]}.{$re[3]}.$range_suffix netmask $this->netmask {\n";
-		if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
-			$conf=$conf."\trange $this->range1 $this->range2;\n";
+		$conf=$conf."\tinterface $this->listen_nic;\n";
+		
+		$conf=$conf."\tmax-lease-time $this->max_lease_time;\n";
+		$conf=$conf."\tdefault-lease-time $this->max_lease_time;\n";
+		
+		if($this->authoritative==1){
+			$conf=$conf."\tauthoritative;\n";
+		}else{
+			$conf=$conf."\tnot authoritative;\n";
 		}
 		
 		
+		if($this->get_lease_hostnames==1){
+			$conf=$conf."\tget-lease-hostnames true;\n";
+		}else{
+			$conf=$conf."\tget-lease-hostnames false;\n";
+		}
 		
-			$conf=$conf."\n\ton commit {\n";
-			$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
-			$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
-			$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
-			$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"commit\", clip, clhw, ClientName);\n";
-			$conf=$conf."\t}\n";		
-			$conf=$conf."\n\ton release {\n";
-			$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
-			$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
-			$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
-			$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"release\", clip, clhw, ClientName);\n";
-			$conf=$conf."\t}\n";		
+		
+		if($this->ping_check==1){
+			$conf=$conf."\tping-check = 1;\n";
+		}else{
+			$conf=$conf."\tping-check = 0;\n";
+		}
+		
+
+		
+		if($this->do_no_verify_range==0){
+		if(preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range1,$re)){
+			$RANGE_1=$re[1];
+			$RANGE_2=$re[2];
+			$RANGE_3=$re[3];
+			$RANGE_4=$re[4];
+			if(is_numeric($SUBNET_1)){
+				if($SUBNET_1<>$RANGE_1){$RANGE_1=$SUBNET_1;}
+				if($SUBNET_2<>$RANGE_2){$RANGE_2=$SUBNET_2;}
+				if($SUBNET_3<>$RANGE_3){$RANGE_3=$SUBNET_3;}
+				$this->range1="$RANGE_1.$RANGE_2.$RANGE_3.$RANGE_4";
+			}
+			
+		}
+			
+		if(!preg_match('#^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$this->range2,$re)){
+				$this->range2="$SUBNET_1.$SUBNET_2.$SUBNET_3.254";
+			}else{
+				$RANGE_1=$re[1];
+				$RANGE_2=$re[2];
+				$RANGE_3=$re[3];
+				$RANGE_4=$re[4];
+					if(is_numeric($SUBNET_1)){
+					if($SUBNET_1<>$RANGE_1){$RANGE_1=$SUBNET_1;}
+					if($SUBNET_2<>$RANGE_2){$RANGE_2=$SUBNET_2;}
+					if($SUBNET_3<>$RANGE_3){$RANGE_3=$SUBNET_3;}
+					$this->range2="$RANGE_1.$RANGE_2.$RANGE_3.$RANGE_4";
+				}
+			}
+			
+		}
+		
+
+		
+		
+		
+			
+		
+		if($GLOBALS["ASROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server Subnet Range ......: $this->range1 - $this->range2\n";}
+		
+		$conf=$conf."\trange $this->range1 $this->range2;\n";
+		$conf=$conf."\n\ton commit {\n";
+		$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
+		$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
+		$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
+		$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"commit\", clip, clhw, ClientName);\n";
+		$conf=$conf."\t}\n";		
+		$conf=$conf."\n\ton release {\n";
+		$conf=$conf."\t\tset clip = binary-to-ascii(10, 8, \".\", leased-address);\n";
+		$conf=$conf."\t\tset clhw = binary-to-ascii(16, 8, \":\", substring(hardware, 1, 6));\n";
+		$conf=$conf."\t\tset ClientName = pick-first-value(option fqdn.hostname,option host-name,config-option host-name, noname);\n";
+		$conf=$conf."\t\texecute(\"/usr/share/artica-postfix/exec.dhcpd-leases.php\", \"release\", clip, clhw, ClientName);\n";
+		$conf=$conf."\t}\n";		
 		
 		
 		
@@ -734,14 +718,8 @@ private function DomainNameServers(){
 	
 		$arrayNameServersB=array();
 		$arrayNameServersA=$this->DomainNameServers();
-		if($this->DHCPDEnableCacheDNS==1){
-			$arrayNameServersB[]=$eth_IP;
-			while (list ($index, $m_gw) = each ($arrayNameServersA) ){ $arrayNameServersB[]=$m_gw; }
-			$sock=new sockets();
-			$sock->getFrameWork("dnsmasq.php?restart=yes");
-		}else{
-			$arrayNameServersB=$arrayNameServersA;
-		}
+		$arrayNameServersB=$arrayNameServersA;
+
 		$ipClass=new IP();
 		
 		while (list ($index, $m_gw) = each ($arrayNameServersB) ){  if(!$ipClass->isValid($m_gw)){continue;} if($GLOBALS["VERBOSE"]){echo "NameServer: $m_gw<br>\n";} $BB[$m_gw]=$m_gw;  }
@@ -783,6 +761,24 @@ private function DomainNameServers(){
 			
 		}
 		$conf=$conf."}\n\n";
+		
+		
+		$q=new mysql();
+		$results=$q->QUERY_SQL("SELECT nic FROM dhcpd_nics WHERE EnableDHCPServer=1","artica_backup");
+		if(!$q->ok){	$conf=$conf."# dhcpd_nics = $q->mysql_error\n";}
+		$conf=$conf."# dhcpd_nics = ".mysql_num_rows($results)."\n";
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if($ligne["nic"]==$this->listen_nic){
+				$conf=$conf."# dhcpd_nics: {$ligne["nic"]} = $this->listen_nic SKIP\n";
+				continue;}
+			$conf=$conf."# dhcpd_nics: {$ligne["nic"]} => Build\n";
+			$xdhcpSub=new dhcpd_sub($ligne["nic"]);
+			$conf=$conf.$xdhcpSub->build()."\n\n";
+				
+		}
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: ->SetFixedAddresses() -> Line ".__LINE__."\n";}
 		$conf=$conf.$this->SetFixedAddresses();
 		$conf=$conf.$this->shared_networks();
@@ -953,12 +949,6 @@ private function DomainNameServers(){
 				if($ligne["ntp-servers"]<>null){
 					$conf=$conf ."\t\toption ntp-servers {$ligne["ntp-servers"]};\n";
 				}	
-
-				if($ligne["local-pac-server"]<>null){
-					$conf=$conf."\t\toption local-pac-server code 252 = text;\n";
-					$conf=$conf."\t\toption local-pac-server \"{$ligne["local-pac-server"]}\";\n";					
-					
-				}				
 							
 				if($GLOBALS["VERBOSE"]){echo "Add fixed address for $hostname {$ligne["MAC"]} = {$ligne["IP"]}\n";}
 				$conf=$conf ."\t}\n";
@@ -1006,31 +996,7 @@ private function DomainNameServers(){
 				$this->AddRoute($ligne["IP_START"],$ligne["netmask"],$gateway,"VPN ".$ligne["sitename"]);
 			}
 	}
-	
-	private function BuildRoutes(){
-		if(!is_array($this->routes)){return array();}
-		$datas=$this->routes;
-		$line1=array();
-		$routers=array();
-		while (list ($ipaddr, $infos) = each ($datas) ){
-			if(!preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#",$ipaddr,$re)){continue;}
-			unset($re[0]);
-			if($re[4]==0){unset($re[4]);}
-			if($re[3]==0){unset($re[3]);}
-			if($re[2]==0){unset($re[2]);}
-			$ip=new networking();
-			$cdir=$ip->route_shouldbe($ipaddr,$infos[0]);
-			if($cdir==null){continue;}
-			if(preg_match("#\/([0-9]+)#",$cdir,$cdr)){$cdir=$cdr[1];}
-			if(!preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#",$infos[1],$router)){continue;}
-			unset($router[0]);
-			$line1[]="$cdir, ". implode(",",$re).", " .implode(",",$router);
-			$routers[]=$infos[1];
-			
-		}
-		
-		return array("COMPILE"=>$line1,"ROUTERS"=>$routers);
-	}
+
 	
 	
 	private function shared_networks(){

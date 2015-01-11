@@ -93,7 +93,7 @@ Ce mode de fonctionnement est utilis&eacute; pour &eacute;muler la commande &quo
 Il traite les demandes de livraison de messages &agrave; partir du gestionnaire de file d'attente.[br]
 Chaque requ&ecirc;te sp&eacute;cifie un fichier de file d'attente, une adresse d'exp&eacute;diteur, un domaine ou un h&ocirc;te &agrave; livrer &agrave;, et des informations relatives au destinataire.[br]
 Ce programme s'attend &agrave; &ecirc;tre ex&eacute;cut&eacute; &agrave; partir du gestionnaire de processus ma&icirc;tre</service_smtp_text>
-<service_tlsmgr>Gestionnaire de cache des sessions TLS</service_tlsmgr>
+<service_tlsmgr>Cache des sessions TLS</service_tlsmgr>
 <service_tlsmgr_text>Le service tlsmgr g&egrave;re les caches de session TLS.[br]Il enregistre et retrouve les entr&eacute;es mises en cache et demand&eacute;e par les processus SMTPD et SMTP et de fa&ccedil;on p&eacute;riodique, supprime les entr&eacute;es expir&eacute;es.</service_tlsmgr_text>
 <service_trace>Rapport sur l'&eacute;tat d'avancement de la livraison (trace)</service_trace>
 <service_trace_text>&quot;&quot;</service_trace_text>

@@ -130,7 +130,7 @@ function js(){
 		var mem_parent_id;
 		var mem_parent;
 		function start(){
-			YahooWinBrowse(900,'$page?popup=yes&select-dir={$_GET["select-dir"]}&mount-point={$_GET["mount-point"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$title');
+			YahooWinBrowse(1025,'$page?popup=yes&select-dir={$_GET["select-dir"]}&emergency={$_GET["emergency"]}&mount-point={$_GET["mount-point"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$title');
 			Loadjs('js/samba.js');
 		}
 		
@@ -167,7 +167,8 @@ function js(){
 				XHR.appendData('browse-folder',path);
 				XHR.appendData('select-file','{$_GET["select-file"]}');
 				XHR.appendData('target-form','{$_GET["target-form"]}');
-				XHR.appendData('select-dir','{$_GET["select-dir"]}');		
+				XHR.appendData('select-dir','{$_GET["select-dir"]}');
+				XHR.appendData('emergency','{$_GET["emergency"]}');			
 				XHR.sendAndLoad('$page', 'GET',X_TreeArticaExpand);
 			}else{
 				$('#'+mem_id).children('ul').empty();
@@ -193,7 +194,7 @@ function js(){
 	}
 	
 	function FileUpload(path,id){
-		YahooWin2(580,'$page?upload-file='+path+'&id='+id+'&select-dir={$_GET["select-dir"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$upload_a_file');
+		YahooWin2(580,'$page?upload-file='+path+'&id='+id+'&select-dir={$_GET["select-dir"]}&emergency={$_GET["emergency"]}&select-file={$_GET["select-file"]}&target-dir={$_GET["target-dir"]}&target-form={$_GET["target-form"]}','$upload_a_file');
 	}
 		
 		
@@ -205,6 +206,7 @@ function js(){
 			XHR.appendData('target-form','{$_GET["target-form"]}');
 			XHR.appendData('select-dir','{$_GET["select-dir"]}');
 			XHR.appendData('target-dir','{$_GET["target-dir"]}');
+			XHR.appendData('emergency','{$_GET["emergency"]}');		
 			AnimateDiv('browser-infos');		
 			XHR.sendAndLoad('$page', 'GET',X_BrowserInfos);
 		}
@@ -215,7 +217,8 @@ function js(){
 			XHR.appendData('select-file','{$_GET["select-file"]}');
 			XHR.appendData('target-form','{$_GET["target-form"]}');		
 			XHR.appendData('select-dir','{$_GET["select-dir"]}');
-			XHR.appendData('target-dir','{$_GET["target-dir"]}');				
+			XHR.appendData('target-dir','{$_GET["target-dir"]}');	
+			XHR.appendData('emergency','{$_GET["emergency"]}');					
 			XHR.sendAndLoad('$page', 'GET',X_top_bar);
 		}
 		
@@ -306,6 +309,7 @@ function js(){
 				 	var XHR = new XHRConnection();
 				 	AnimateDiv('browser-infos');	
         			XHR.appendData('delete-folder',path);
+        			XHR.appendData('emergency','{$_GET["emergency"]}');		
         			XHR.sendAndLoad('$page', 'GET',x_DeleteSubFolder);	
 			}
 		}
@@ -338,6 +342,7 @@ function js(){
 				XHR.appendData('select-file','{$_GET["select-file"]}');
 				XHR.appendData('target-form','{$_GET["target-form"]}');	
 				XHR.appendData('select-dir','{$_GET["select-dir"]}');
+				XHR.appendData('emergency','{$_GET["emergency"]}');		
 				XHR.sendAndLoad('$page', 'GET',X_TreeArticaExpand);
 			}		
 		}
@@ -607,7 +612,9 @@ function SambaInfos($path,$elements){
 	}
 	
 	if($unix->IsProtectedDirectory($path)){
-			$delfolder=imgtootltip('folder-delete-48-grey.png','{del_sub_folder}',"");
+			if($_GET["emergency"]<>"yes"){
+				$delfolder=imgtootltip('folder-delete-48-grey.png','{del_sub_folder}',"");
+			}
 			$addfolder=imgtootltip('folder-48-add-grey.png','{add_sub_folder}',"");
 			$acls=$acls_grey;
 			$auditd=$auditd_grey;
@@ -655,7 +662,9 @@ function SambaInfos($path,$elements){
 			$share_rsync=null;
 			$share_rsync_properties=$share_rsync_properties_grey;
 			$addfolder=null;
-			$delfolder=null;
+			if($_GET["emergency"]<>"yes"){
+				$delfolder=null;
+			}
 			$cluster=null;
 			$auditd=null;
 			$deduplication=null;
@@ -1235,7 +1244,7 @@ if(!is_object($GLOBALS["USERMENUS"])){$users=new usersMenus();$GLOBALS["USERMENU
 	}
 	
 	if($path<>null){
-		echo base64_decode($sock->getFrameWork("cmd.php?folder-remove=".base64_encode($path)));
+		echo base64_decode($sock->getFrameWork("cmd.php?folder-remove=".base64_encode($path)."&emergency={$_GET["emergency"]}"));
 		$samba=new samba();
 		$samba->RemoveShareFromFolder($path);
 		

@@ -105,22 +105,6 @@ function import($filepath){
 	while (list ($index, $line) = each ($f)){
 		$line=trim($line);
 		if(trim($line)=="http_access deny all"){continue;}
-		if(preg_match("#http_port\s+([0-9]+)$#", $line,$re)){
-			if(!$FIRST_PORT){ $squid->listen_port=$re[1]; $FIRST_PORT=true; }
-			if($FIRST_PORT){ $squid->second_listen_port=$re[1]; }
-			continue;
-			
-		}
-		
-		if(preg_match("#http_port\s+([0-9]+)\s+(transparent|intercept)#")){
-			$squid->second_listen_port=$squid->listen_port;
-			$squid->listen_port=$re[1];
-			$sock->SET_INFO("hasProxyTransparent", 1);
-			continue;
-		}
-		
-		
-		
 		if(!preg_match("#^(http_access|http_reply_access)\s+#", $line)){continue;}
 		$c++;
 		build_progress("$line",50);

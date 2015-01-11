@@ -65,17 +65,22 @@ function install($filename){
 	echo "Removing $tarballs_file...\n";
 	@unlink($tarballs_file);
 	shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/upload/*");
-	
-	
-	
-	
+	@unlink(dirname(__FILE__)."/ressources/logs/squid.compilation.params");
+
 	build_progress("{restarting} Squid-cache...",60);
 	system("/etc/init.d/squid restart --force");
+	
 	build_progress("{reconfiguring} Squid-cache...",65);
 	system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
+	
 	build_progress("{reconfiguring} {APP_UFDBGUARD}...",70);
 	system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
-	build_progress("Refresh local versions...",80);
+	
+	build_progress("{restarting} {APP_C_ICAP}...",80);
+	system("/etc/init.d/c-icap restart");
+	
+	
+	build_progress("Refresh local versions...",90);
 	system('/usr/share/artica-postfix/bin/process1 --force --verbose --'.time());
 	$squid_version=x_squid_version();
 	build_progress("{success} v.$squid_version...",100);

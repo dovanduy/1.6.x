@@ -75,7 +75,7 @@ function popup(){
 			
 			
 	<div style='font-size:24px;margin-top:30px'>{automatic_swap_cleaning}</div>
-	<div class=explain style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
+	<div class=text-info style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
 	<div id='AutoSwapDiv' width=98% class=form>
 	<table style='width:99%'>
 	<tr>
@@ -106,7 +106,7 @@ function popup(){
 	<p>&nbsp;</p>
 	
 	<div style='font-size:24px;margin-top:30px'>{automatic_memory_cleaning}</div>	
-	<div class=explain style='font-size:14px'>{automatic_memory_cleaning_explain}</div>	
+	<div class=text-info style='font-size:14px'>{automatic_memory_cleaning_explain}</div>	
 	<div id='AutoSwapDiv2' width=98% class=form>		
 			
 	<table style='width:99%'>

@@ -63,10 +63,7 @@ function status(){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
-	
+
 	if($EnablePDNS==0){
 		echo $tpl->_ENGINE_parse_body("<p class=text-error>{error_powerdns_disabled}</p>");
 		return;
@@ -200,7 +197,7 @@ function settings(){
 	$boot->set_PROTO("GET");
 	
 	
-	echo $tpl->_ENGINE_parse_body("<div class=explain>{pdns_explain}</div>").$boot->Compile();	
+	echo $tpl->_ENGINE_parse_body("<div class=text-info>{pdns_explain}</div>").$boot->Compile();	
 }
 function events(){
 	$boot=new boostrap_form();

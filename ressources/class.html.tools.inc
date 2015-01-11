@@ -6,9 +6,14 @@ function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterfac
 	$cmdline=null;
 	if(preg_match("#^ID:(.+)#",$key, $re)){$ADD_ID_DIV=true;$key=$re[1];}
 	$version=null;$license_error=null;$icap=null;$pattern=null;$textoadd2=null;$disabled=null;
+	
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>$key: checking service</span><br>\n<hr>";;print_r($bsini->_params[$key]);}
+	
 	if(!isset($bsini->_params[$key]["service_name"])){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>".__FUNCTION__."::".__LINE__."::FAILED:: KEY service_name for &laquo;$key&raquo;<br>\n".print_r($bsini->_params[$key])."<br></span>\n";}return null;}
-	if($bsini->_params["$key"]["service_name"]==null){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED<br>\n";}return null;}
+		if($GLOBALS["VERBOSE"]){
+			echo "<span style='color:red'>".__FUNCTION__."::".__LINE__."::FAILED:: KEY \"service_name\" for &laquo;$key&raquo;<br>\n".print_r($bsini->_params[$key])."<br></span>\n";}return null;}
+	if($bsini->_params["$key"]["service_name"]==null){
+			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED<br>\n";}return null;}
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
 	$app=$bsini->_params["$key"]["service_name"];
 	if(isset($bsini->_params["$key"]["monit"])){$monit=$bsini->_params["$key"]["monit"];}else{$monit=0;}
@@ -57,7 +62,7 @@ if($monit==1){
 
 
 if($noenable==1){
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>Service not enabled -> NULL</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>$key:Service not enabled -> NULL</span><br>\n";}
 	if($bsini->_params["$key"]["service_disabled"]==0){return null;}}
 $tpl=new templates();
 $prod=$bsini->_params[$key]["service_name"];
@@ -179,14 +184,20 @@ if($bsini->_params["$key"]["master_pid"]<>null){
 	}
 
 	
-
-	if(strlen($bsini->_params["$key"]["master_version"])>8){
-		$bsini->_params["$key"]["master_version"]=substr($bsini->_params["$key"]["master_version"],0,8)."...";
+	$label_version="{version}";
+	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", trim($bsini->_params["$key"]["master_version"]))){
+		$label_version="{ip_addr}";
 	}
+	if(strlen($bsini->_params["$key"]["master_version"])>14){
+		$bsini->_params["$key"]["master_version"]=substr($bsini->_params["$key"]["master_version"],0,14)."...";
+	}
+	
+	
 	
 $version="
 		<tr>
-			<td align='right' nowrap valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>{version}:</strong></td>
+			<td align='right' nowrap valign='top' 
+			style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>$label_version:</strong></td>
 			<td valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>{$bsini->_params["$key"]["master_version"]}</strong></td>
 		</tr>";
 	
@@ -220,7 +231,14 @@ $version="
 
 	if(preg_match("#(.+?):(.+)#",$bsini->_params["$key"]["service_name"],$rz)){$change_name="{{$rz[1]}}";}
 
+
+	
 	$master_title="{{$bsini->_params["$key"]["service_name"]}}";
+	
+	if(preg_match("#^eth[0-9]+#", $bsini->_params["$key"]["service_name"])){
+		$master_title=$bsini->_params["$key"]["service_name"];
+	}
+	
 	if($change_name<>null){$master_title=$change_name;}
 
 	if($newInterface==1){
@@ -248,7 +266,7 @@ $version="
 			";
 		}
 	}
-	
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>$key: ok BUILDING</span><br>\n";}	
 $html="
 
 <table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' class='TableRemove TableMarged'>
@@ -488,6 +506,7 @@ return $html;}
 
 function url_decode_special_tool($path){
 	$path=str_replace("%C3%C2§","ç",$path);
+	$path=str_replace("%5C","\\",$path);
 	$path=str_replace("%20"," ",$path);
 	$path=str_replace("%0A","\n",$path);
 	$path=str_replace("%C2£","£",$path);
@@ -524,7 +543,7 @@ function url_decode_special_tool($path){
 	$path=str_replace("%24","$",$path);
 	$path=str_replace("%21","!",$path);
 	$path=str_replace("%23","#",$path);
-	$path=str_replace("%5C",'\\',$path);
+	
 	$path=str_replace("%7E",'~',$path);
 	$path=str_replace("%22",'"',$path);
 	$path=str_replace("%22",'"',$path);

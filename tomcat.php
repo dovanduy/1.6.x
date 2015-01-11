@@ -54,7 +54,7 @@ function parameters(){
 		$OpenEMMEnable=$sock->GET_INFO("OpenEMMEnable");
 		if(!is_numeric($OpenEMMEnable)){$OpenEMMEnable=1;}
 		if($OpenEMMEnable==1){
-			echo $tpl->_ENGINE_parse_body("<div class=explain>{OPENEMM_INSTALLED_ENABLED_FEATURE_DISABLED}</div>");
+			echo $tpl->_ENGINE_parse_body("<div class=text-info>{OPENEMM_INSTALLED_ENABLED_FEATURE_DISABLED}</div>");
 			return;
 			
 		}

@@ -129,7 +129,9 @@ function re_categorize($nopid=false){
 
 function __re_categorize_subtables($oldT1=0,$websites){
 	$unix=new unix();
-	if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+	if(!$GLOBALS["FORCE"]){
+		if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+	}
 	$sock=new sockets();
 	$RecategorizeSecondsToWaitOverload=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
 	$RecategorizeMaxExecutionTime=$sock->GET_INFO("RecategorizeSecondsToWaitOverload");
@@ -155,7 +157,7 @@ function __re_categorize_subtables($oldT1=0,$websites){
 		while (list ($num, $tablename) = each ($tables_days) ){
 			$category=addslashes($category);
 			$CountUpdatedTables++;
-			$GLOBALS["Q"]->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE sitename='$website'");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE familysite='$website'");
 			if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: mysql error on table $tablename {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"categorize");return;}
 		}
 

@@ -35,7 +35,7 @@ if(isset($_GET["AutomaticConfig"])){TreeArticaSaveConfig();exit;}
 if(isset($_GET["TreeFetchMailApplyConfig"])){TreeFetchMailApplyConfig();exit;}
 if(isset($_GET["fetchmail_daemon_pool"])){TreeArticaSaveConfig();exit;}
 if(isset($_GET["GetKavGroups"])){GetKavGroups();exit;}
-if(isset($_GET["TreeAddNewOrganisation"])){TreeAddNewOrganisation();exit;}
+if(isset($_GET["TreeAddNewOrganisation"])){TreeAddNewOrganisation();;exit;}
 if(isset($_GET["TreeDeleteOrganisation"])){TreeDeleteOrganisation();exit;}
 if(isset($_GET["TreeSynchronyzeMailBoxes"])){TreeSynchronyzeMailBoxes();exit;}
 

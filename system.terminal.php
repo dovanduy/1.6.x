@@ -26,7 +26,7 @@ function popup(){
 	
 	$html="
 	
-	<div style='font-size:14px' class=explain>{commandline_explain}</div>
+	<div style='font-size:14px' class=text-info>{commandline_explain}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 		<tr>

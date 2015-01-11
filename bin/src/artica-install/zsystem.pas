@@ -6825,8 +6825,11 @@ var
    tmp:string;
    res:string;
    xxxlogs:tlogs;
+   mounted:string;
+   dubin:string;
    ss:integer;
    cmd:string;
+   resultsDu:string;
 begin
      res:='';
    xxxlogs:=Tlogs.Create;
@@ -6840,11 +6843,13 @@ begin
    l.LoadFromFile(tmp);
    DeleteFile(tmp);
    RegExpr:=TRegExpr.Create;
+   dubin:=LOCATE_GENERIC_BIN('du');
 
 
-   RegExpr.Expression:='^\/dev\/(.+?)\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)%';
+   RegExpr.Expression:='^\/dev\/(.+?)\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)%\s+(.*)';
    for i:=0 to l.Count-1 do begin
        if RegExpr.Exec(l.Strings[i]) then begin
+          mounted:=RegExpr.Match[6];
           ss:=0;
           res:=res + RegExpr.Match[1]+','+RegExpr.Match[2]+','+RegExpr.Match[3]+','+RegExpr.Match[4]+',' +RegExpr.Match[5]+ ';';
           try
@@ -6853,7 +6858,12 @@ begin
             xxxlogs.Debuglogs('Fatal error while try to tranfrom '+RegExpr.Match[5]);
           end;
           if ss>94 then begin
-             xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning disk size !! on device ' + RegExpr.Match[1],'You need to check disk size, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[5] +'% used','system');
+             if DirectoryExists(mounted) then begin
+                fpsystem(dubin+' -h --max-dep=1 '+mounted+' >/tmp/DUH.txt 2>&1');
+                resultsDu:=xxxlogs.ReadFromFile('/tmp/DUH.txt');
+                xxxlogs.DeleteFile('/tmp/DUH.txt');
+             end;
+                xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning disk size !! '+mounted+' on device ' + RegExpr.Match[1],resultsDu+'You need to check disk size, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[5] +'% used','system');
           end;
       end else begin
           xxxlogs.Debuglogs(l.Strings[i]+'->Failed '+RegExpr.Expression);

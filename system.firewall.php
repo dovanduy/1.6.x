@@ -76,17 +76,28 @@ function generic_tabs(){
 	$eth=$_GET["eth"];
 	$t=$_GET["t"];
 	
-
+	$array["l7filter"]='{application_detection}';
 	$array["firewall"]='{incoming_firewall}';
 	$array["antihack"]='Anti-hack SSH';
 	$array["firewall-white"]='{whitelist}';
+	//$array["nat-proxy"]='NAT Proxy';
 	
-	$fontsize="font-size:16px";
+	$fontsize="font-size:18px";
 	while (list ($index, $ligne) = each ($array) ){
 			if($index=="firewall"){
 			$html[]= "<li><a href=\"system.firewall.in.php?no=no$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 			continue;
-		}	
+		}
+		
+		if($index=="nat-proxy"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.nat.proxy.php\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}		
+
+		if($index=="l7filter"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.l7filter.php\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		if($index=="antihack"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.iptables.php?tab-iptables-rules=yes&sshd=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
@@ -116,12 +127,20 @@ function iptables_tabs(){
 	$array["INPUT"]="{INPUT}";
 	$array["OUTPUT"]="{OUTPUT}";
 	$array["FORWARD"]="{FORWARD}";
+	$array["MARK"]="{MARK}";
+	$array["EVENTS"]="{events}";
 	while (list ($index, $ligne) = each ($array) ){
+		
+		if($index=="EVENTS"){
+			$html[]="<li><a href=\"system.firewall.events.php?eth=$eth\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
 		$html[]="<li><a href=\"$page?iptables-table=yes&eth=$eth&table=$index\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	$html=build_artica_tabs($html,"main_firewall_table_$eth",950);
+	$html=build_artica_tabs($html,"main_firewall_table_$eth",1060);
 	SET_CACHED(__FILE__, __FUNCTION__, $eth, $html);
 	echo $html;
 }
@@ -142,7 +161,7 @@ function rule_js(){
 		$title="$eth::".$tpl->javascript_parse_text($ligne["rulename"]);
 	}
 
-	echo "YahooWin('900','$page?rule-tabs=yes&ID=$ID&t=$t&table=$table&eth=$eth','$title')";
+	echo "YahooWin('1005','$page?rule-tabs=yes&ID=$ID&t=$t&table=$table&eth=$eth','$title')";
 }
 
 function rule_tab(){
@@ -327,6 +346,7 @@ function time_save(){
 function rule_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
 	$eth=$_GET["eth"];
 	$ethC=new system_nic($eth);
 	$table=$_GET["table"];
@@ -336,6 +356,9 @@ function rule_popup(){
 	$bt="{add}";
 	$enabled=1;
 	$LOCKFORWARD=1;
+	$HIDEFORMARK=0;
+	$EnableL7Filter=intval($sock->GET_INFO("EnableL7Filter"));
+	$EnableQOS=intval($sock->GET_INFO("EnableQOS"));
 	if($ID>0){
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM iptables_main WHERE ID='$ID'","artica_backup"));
@@ -344,178 +367,228 @@ function rule_popup(){
 		$table=$ligne["MOD"];
 		$eth=$ligne["eth"];
 		$bt="{apply}";
-		
+		$jlog=$ligne["jlog"];
+
 	}
-/*`ID` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-	`zOrder` INT UNSIGNED DEFAULT 1,
-	`rulename` VARCHAR( 128 ) NOT NULL,
-	`MOD` VARCHAR( 20 ) NOT NULL,
-	`eth` VARCHAR( 10 ) NOT NULL ,
-	`proto` VARCHAR( 5 ) NOT NULL,
-	`destport_group` INT( 10 ) NOT NULL,
-	`source_group` INT( 10 ) NOT NULL,
-	`dest_group` INT( 10 ) NOT NULL,
-	`enabled` SMALLINT( 1 ) NOT NULL,
-	`accepttype` VARCHAR( 20 ) NOT NULL,
-	KEY `MOD`(`MOD`),
-	KEY `zOrder`(`zOrder`),
-			KEY `enabled`(`enabled`),
-					KEY `rulename`(`rulename`),
-							KEY `eth`(`eth`),
-							KEY `proto`(`proto`),
-									KEY `accept_type`(`accept_type`)
-*/									
+
+	$L7Mark=intval($ligne["L7Mark"]);
+
+	if($EnableL7Filter==1){
+		$q=new mysql();
+		$L7Filters[0]="{select}";
+		$sql="SELECT ID,keyitem  FROM `l7filters_items` WHERE enabled=1";
+		$resultsL7Filter = $q->QUERY_SQL($sql,"artica_backup");
+		while ($ligneL7Filter = mysql_fetch_assoc($resultsL7Filter)) {
+			$L7Filters[$ligneL7Filter["ID"]]=strtoupper($ligneL7Filter["keyitem"]);
+			$L7Field="<tr><td colspan=3><div style='height:30px'>&nbsp;</div></td></tr>
+		<tr>
+			<td class=legend style='font-size:22px' nowrap>{applications}:</td>
+			<td colspan=2>". Field_array_Hash($L7Filters,"L7Mark-$t",$L7Mark,"style:font-size:22px")."</td>
+
+	</tr>	";
+		}
+
+	}
+
+	$nic=new networking();
+	$nicZ=$nic->Local_interfaces();
+	unset($nicZ[$eth]);
+	$ForwardNICs[null]="{none}";
+	while (list ($yinter, $line) = each ($nicZ) ){
+		$znic=new system_nic($yinter);
+		if($znic->Bridged==1){continue;}
+		$ForwardNICs[$yinter]="$yinter - $znic->NICNAME";
+	}
+
+	$FORWARD_NIC="<tr>
+					<td class=legend style='font-size:22px' nowrap>{output_interface}:</td>
+					<td>". Field_array_Hash($ForwardNICs,"ForwardNIC-$t",$ligne["ForwardNIC"],"style:font-size:22px")."</td>
+					<td width=1%>&nbsp;</td>
+				</tr>";
+
 	if($table=="FORWARD"){$LOCKFORWARD=0;}
+
+
 	$rulename=$ligne["rulename"];
 	$proto=$ligne["proto"];
 	$accepttype=$ligne["accepttype"];
 	$source_group=intval($ligne["source_group"]);
 	$dest_group=intval($ligne["dest_group"]);
-	
+
 	$destport_group=intval($ligne["destport_group"]);
-	
+
 	if($proto==null){$proto="tcp";}
 	$protos[null]="{all}";
 	$protos["udp"]="UDP";
 	$protos["tcp"]="tcp";
-	
+
 	$accepttypes["ACCEPT"]="{accept}";
 	$accepttypes["DROP"]="{drop}";
 	$accepttypes["RETURN"]="{return}";
-	
-	$nic=new networking();
-	$nicZ=$nic->Local_interfaces();
-	unset($nicZ[$eth]);
-	$ForwardNICs[null]="{none}";
-	while (list ($yinter, $line) = each ($results) ){
-		$znic=new system_nic($yinter);
-		if($znic->Bridged==1){continue;}
-		$ForwardNICs[$yinter]="$yinter - $znic->NICNAME";
+	$accepttypes["LOG"]="{log_only}";
+
+	if($table=="MARK"){
+		$LOCKFORWARD=1;
+		$HIDEFORMARK=1;
+		$accepttypes=array();
+		$accepttypes["MARK"]="{MARK}";
+		if($EnableQOS==1){$containers=containers_from_eth($eth);}
+
+
+		$MARK_SECTION="
+		<table>
+		<tr><td colspan=3>&nbsp;</td></tr>
+		<tr>
+			<td class=legend style='font-size:22px' nowrap>{Q.O.S} {containers}:</td>
+			<td>". Field_array_Hash($containers,"QOS-$t",$ligne ["QOS"],"style:font-size:22px")."</td>
+			<td width=1%>&nbsp;</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:22px' nowrap>{or} {MARK_ITEM}:</td>
+			<td>". Field_text("MARK-$t",$ligne["MARK"],"font-size:22px;width:90px")."</td>
+			<td width=1%>&nbsp;</td>
+			</tr>$FORWARD_NIC
+			</table>
+			";
+			$FORWARD_NIC=null;
+
 	}
-	
-	
+
+
+
+
+
 	$AllSystems=$tpl->javascript_parse_text("{AllSystems}");
 	$AllPorts=$tpl->javascript_parse_text("{AllPorts}");
-	
+
 	if($source_group==0){
-		$inbound_object=$AllSystems;
+	$inbound_object=$AllSystems;
 	}
 	if($dest_group==0){
-		$outbound_object=$AllSystems;
+	$outbound_object=$AllSystems;
 	}
-	
+
 	if($destport_group==0){
-		$destports_object=$AllPorts;
-	}	
-	
+	$destports_object=$AllPorts;
+	}
+
 	if(!is_numeric($ligne["zOrder"])){$ligne["zOrder"]=1;}
+	if(!is_numeric($ligne["masquerade"])){$ligne["masquerade"]=1;}
 	$jsGroup1="squid.BrowseAclGroups.php?callback=LinkInBoundGroup$t&FilterType=FW-IN";
 	$jsGroup2="squid.BrowseAclGroups.php?callback=LinkOutbBoundGroup$t&FilterType=FW-OUT";
 	$jsGroup3="squid.BrowseAclGroups.php?callback=LinkPortGroup$t&FilterType=FW-PORT";
-	
+
 	$sDel1=imgtootltip("22-delete.png","{unlink}","Delgroup1$t()");
 	$sDel2=imgtootltip("22-delete.png","{unlink}","Delgroup2$t()");
 	$sDel3=imgtootltip("22-delete.png","{unlink}","Delgroup3$t()");
-	
+
 	$html="
-<div style='width:98%' class=form>
+	<div style='width:98%' class=form>
 	". Field_hidden("source_group-$t", $ligne["source_group"])."
 	". Field_hidden("dest_group-$t", $ligne["dest_group"])."
-	". Field_hidden("destport_group-$t", $ligne["destport_group"])."				
-	<div style='font-size:18px;margin-bottom:25px;margin-top:10px;margin-left:5px'>[$table] $title</div>
-	
+	". Field_hidden("destport_group-$t", $ligne["destport_group"])."
+	<div style='font-size:26px;margin-bottom:25px;margin-top:10px;margin-left:5px'>[$table] $title</div>
+
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{rulename}:</td>
-		<td>". Field_text("rulename-$t",$rulename,"font-size:16px;width:450px")."</td>
+	<td class=legend style='font-size:22px' nowrap>{rulename}:</td>
+	<td>". Field_text("rulename-$t",$rulename,"font-size:22px;width:450px")."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{order}:</td>
-		<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:16px;width:90px")."</td>
+		<td class=legend style='font-size:22px' nowrap>{order}:</td>
+		<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:22px;width:90px")."</td>
 		<td width=1%>&nbsp;</td>
-	</tr>						
+	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{enabled}:</td>
+		<td class=legend style='font-size:22px' nowrap>{enabled}:</td>
 		<td>". Field_checkbox("enabled-$t", 1,$enabled)."</td>
 		<td width=1%>&nbsp;</td>
-	</tr>	
+	</tr>
+		<tr>
+		<td class=legend style='font-size:22px' nowrap><span id='OverideNet-label-$t'>{OverideNet}:</span></td>
+		<td><span id='OverideNet-field-$t'>". Field_checkbox("OverideNet-$t", 1,$ligne["OverideNet"])."</span></td>
+		<td width=1%><span id='OverideNet-explain-$t'>". help_icon("{OverideNet_explain}")."</span></td>
+	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{OverideNet}:</td>
-		<td>". Field_checkbox("OverideNet-$t", 1,$ligne["OverideNet"])."</td>
-		<td width=1%>". help_icon("{OverideNet_explain}")."</td>
-	</tr>				
-				
-				
+		<td class=legend style='font-size:22px' nowrap>{log_all_events}:</td>
+		<td>". Field_checkbox("jlog-$t", 1,$jlog)."</td>
+		<td width=1%>&nbsp;</td>
+	</tr>
+	<tr>
+	<td class=legend style='font-size:22px' nowrap>{protocol}:</td>
+		<td>". Field_array_Hash($protos,"proto-$t",$proto,"style:font-size:22px")."</td>
+		<td width=1%>&nbsp;</td>
+		</tr>
+		<tr><td colspan=3>
+		<center style='width:90%;margin:20px;border:1px solid #DDDDDD;border-radius:4px 4px 4px 4px'>
+		<table >
+		<tr><td colspan=4>&nbsp;</td></tr>
+		<tr>
+		<td width=42% align='center' style='font-size:22px;font-weight:bold;'>{inbound_object}</td>
+		<td width=5% align='center'>&nbsp;</td>
+		<td width=42% align='center' style='font-size:22px;font-weight:bold'>{outbound_object}</td>
+		</tr>
+		<tr><td colspan=4>&nbsp;</td></tr>
+		<tr>
+		<td width=42% align='center'><a href=\"javascript:Loadjs('$jsGroup1');\"
+		style='font-size:22px;text-decoration:underline'>
+		<span id='in-$t'>$inbound_object</span></a>$sDel1</td>
+		<td width=5% align='center'><img src='img/arrow-blue-left-64.png'></td>
+		<td width=42% align='center'><a href=\"javascript:Loadjs('$jsGroup2');\"
+		style='font-size:22px;text-decoration:underline'>
+		<span id='out-$t'>$outbound_object</span></a>$sDel2</td>
+		</tr>
+		<tr><td colspan=4>&nbsp;</td></tr>
+		</table>
+		</center>
+		</td>
+		</tr>
+		<tr>
+		<td class=legend style='font-size:22px' nowrap>{dest_ports}:</td>
+		<td><a href=\"javascript:Loadjs('$jsGroup3');\"
+		style='font-size:22px;text-decoration:underline'>
+		<span id='port-$t'>$destports_object</span></a><div style='float:left;margin-right:5px'>$sDel3</div></td>
+		<td width=1%>&nbsp;</td>
+		</tr>
+		$L7Field
+		<tr><td colspan=3><div style='height:30px'>&nbsp;</div></td></tr>
+		<tr>
+		<td class=legend style='font-size:26px' nowrap>{action}:</td>
+		<td colspan=2>". Field_array_Hash($accepttypes,"accepttype-$t",$accepttype,"style:font-size:26px;padding:5px;width:250px;")."</td>
 
-	<tr>
-		<td class=legend style='font-size:16px' nowrap>{protocol}:</td>
-		<td>". Field_array_Hash($protos,"proto-$t",$proto,"style:font-size:16px")."</td>
-		<td width=1%>&nbsp;</td>
-	</tr>	
-<tr><td colspan=3>
-<center style='width:90%;margin:20px;border:1px solid #DDDDDD;border-radius:4px 4px 4px 4px'>
-<table >
-	<tr><td colspan=4>&nbsp;</td></tr>	
-	<tr>
-		<td width=42% align='center' style='font-size:16px;font-weight:bold;'>{inbound_object}</td>
-		<td width=5% align='center'>&nbsp;</td>				
-		<td width=42% align='center' style='font-size:16px;font-weight:bold'>{outbound_object}</td>		
-	</tr>	
-	<tr><td colspan=4>&nbsp;</td></tr>	
-	<tr>
-		<td width=42% align='center'><a href=\"javascript:Loadjs('$jsGroup1');\" 
-			style='font-size:16px;text-decoration:underline'>
-				<span id='in-$t'>$inbound_object</span></a>$sDel1</td>
-		<td width=5% align='center'><img src='img/arrow-blue-left-64.png'></td>				
-		<td width=42% align='center'><a href=\"javascript:Loadjs('$jsGroup2');\" 
-		style='font-size:16px;text-decoration:underline'>
-			<span id='out-$t'>$outbound_object</span></a>$sDel2</td>		
-	</tr>
-	<tr><td colspan=4>&nbsp;</td></tr>		
-</table>
-</center>
-</td>
-</tr>
-	<tr>
-		<td class=legend style='font-size:16px' nowrap>{dest_ports}:</td>
-		<td><a href=\"javascript:Loadjs('$jsGroup3');\" 
-		style='font-size:16px;text-decoration:underline'>
-			<span id='port-$t'>$destports_object</span></a>$sDel3</td>
-		<td width=1%>&nbsp;</td>
-	</tr>
-	<tr><td colspan=3>&nbsp;</td></tr>
-	<tr>
-		<td class=legend style='font-size:16px' nowrap>{action}:</td>
-		<td>". Field_array_Hash($accepttypes,"accepttype-$t",$accepttype,"style:font-size:16px")."</td>
-		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
 		<td colspan=3>
 		<center style='width:90%;margin:20px;border:1px solid #DDDDDD;border-radius:4px 4px 4px 4px'>
-			<table>
-				<tr><td colspan=3>&nbsp;</td></tr>
-				<tr>
-					<td class=legend style='font-size:16px' nowrap>{output_interface}:</td>
-					<td>". Field_array_Hash($ForwardNICs,"ForwardNIC-$t",$ligne["ForwardNIC"],"style:font-size:16px")."</td>
-					<td width=1%>&nbsp;</td>
-				</tr>				
-				<tr>
-					<td class=legend style='font-size:16px' nowrap>{forward_to}:</td>
-					<td>". Field_text("ForwardTo-$t",$ligne["ForwardTo"],"font-size:16px;width:450px")."</td>
-					<td width=1%>". help_icon("{forward_to_iptables_explain}")."</td>
-				</tr>
-				<tr><td colspan=3>&nbsp;</td></tr>
+		$MARK_SECTION
+
+
+		<table id='FORWARD-$t'>
+		<tr><td colspan=3>&nbsp;</td></tr>
+
+		$FORWARD_NIC
+		<tr>
+			<td class=legend style='font-size:22px' nowrap>{forward_to}:</td>
+			<td>". Field_text("ForwardTo-$t",$ligne["ForwardTo"],"font-size:22px;width:450px")."</td>
+			<td width=1%>". help_icon("{forward_to_iptables_explain}")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:22px' nowrap colspan=2>{rewrite_source_address}:</td>
+			<td>". Field_checkbox("masquerade-$t",1,$ligne["masquerade"])."</td>
+			
+		</tr>		
+		<tr><td colspan=3>&nbsp;</td></tr>
 			</table>
-		</center>
-	</td>				
-	</tr>				
-				
+				</center>
+	</td>
+	</tr>
+
 	<tr>
-		<td colspan=3 align='right'><hr>". button($bt,"Save$t()",22)."</td>
-	</tr>		
+		<td colspan=3 align='right'><hr>". button($bt,"Save$t()",30)."</td>
+	</tr>
 	</table>
-</div>			
+</div>		
 <script>
 var xSave$t= function (obj) {
 	var res=obj.responseText;
@@ -582,18 +655,43 @@ function Save$t(){
 	
 	if(document.getElementById('OverideNet-$t').checked){
 	XHR.appendData('OverideNet',1); }else{ XHR.appendData('OverideNet',0); }
+
+	if(document.getElementById('jlog-$t').checked){
+	XHR.appendData('jlog',1); }else{ XHR.appendData('jlog',0); }	
+	
+	
+	
 	XHR.appendData('source_group',  document.getElementById('source_group-$t').value);
 	XHR.appendData('dest_group',  document.getElementById('dest_group-$t').value);
 	XHR.appendData('destport_group',  document.getElementById('destport_group-$t').value);
 	XHR.appendData('zOrder',  document.getElementById('zOrder-$t').value);
 	XHR.appendData('ForwardTo',  document.getElementById('ForwardTo-$t').value);
 	XHR.appendData('ForwardNIC',  document.getElementById('ForwardNIC-$t').value);
+	XHR.appendData('masquerade',  document.getElementById('masquerade-$t').value);
+	
+	
+	
+	if(document.getElementById('QOS-$t') ){
+		XHR.appendData('QOS',  document.getElementById('QOS-$t').value);
+	}
+	if(document.getElementById('MARK-$t') ){
+		XHR.appendData('MARK',  document.getElementById('MARK-$t').value);
+	}	
+	if(document.getElementById('L7Mark-$t') ){
+		XHR.appendData('L7Mark',  document.getElementById('L7Mark-$t').value);
+	}	
+	
+	
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
+	
+		
 		
 	}
 function Dyn$t(){
 	var RID=$ID;
 	var LOCKFORWARD=$LOCKFORWARD;
+	var HIDEFORMARK=$HIDEFORMARK;
 	var source_group=$source_group;
 	var dest_group={$dest_group};
 	var destport_group=$destport_group;
@@ -601,6 +699,14 @@ function Dyn$t(){
 	if(LOCKFORWARD==1){
 		document.getElementById('ForwardNIC-$t').disabled=true;
 		document.getElementById('ForwardTo-$t').disabled=true;
+		document.getElementById('FORWARD-$t').style.visibility='hidden';
+	}
+	
+	if(HIDEFORMARK==1){
+		document.getElementById('OverideNet-label-$t').style.visibility='hidden';
+		document.getElementById('OverideNet-field-$t').style.visibility='hidden';
+		document.getElementById('OverideNet-explain-$t').style.visibility='hidden';
+		document.getElementById('ForwardNIC-$t').disabled=false;
 	}
 	
 	if(RID==0){return;}
@@ -613,6 +719,8 @@ function Dyn$t(){
 	if(destport_group>0){
 		LoadAjaxTiny('port-$t','$page?groupname=yes&gpid='+destport_group);
 	}
+	
+	
 
 }
 		
@@ -635,39 +743,133 @@ function groupname(){
 function rule_save(){
 	$ID=$_POST["rule-save"];
 	$_POST["rulename"]=mysql_escape_string2(url_decode_special_tool($_POST["rulename"]));
-
 	
-	if($ID==0){
-		$sql="INSERT IGNORE INTO iptables_main (`rulename`,`proto`,`accepttype`,`enabled`,
-		`OverideNet`,`MOD`,`eth`,`source_group`,`dest_group`,`destport_group`,`zOrder`,`ForwardTo`,`ForwardNIC`)
-		VALUES('{$_POST["rulename"]}','{$_POST["proto"]}','{$_POST["accepttype"]}',
-		'{$_POST["enabled"]}','{$_POST["OverideNet"]}','{$_POST["table"]}','{$_POST["interface"]}',
-		'{$_POST["source_group"]}','{$_POST["dest_group"]}','{$_POST["destport_group"]}',
-		'{$_POST["zOrder"]}','{$_POST["ForwardTo"]}','{$_POST["ForwardNIC"]}')";
-	}else{
-		$sql="UPDATE iptables_main SET `rulename`='{$_POST["rulename"]}',
-		`proto`='{$_POST["proto"]}',
-		`MOD`='{$_POST["table"]}',
-		`eth`='{$_POST["interface"]}',
-		`accepttype`='{$_POST["accepttype"]}',
-		`enabled`='{$_POST["enabled"]}',
-		`OverideNet`='{$_POST["OverideNet"]}',
-		`source_group`='{$_POST["source_group"]}',
-		`dest_group`='{$_POST["dest_group"]}',
-		`destport_group`='{$_POST["destport_group"]}',
-		`ForwardTo`='{$_POST["ForwardTo"]}',
-		`ForwardNIC`='{$_POST["ForwardNIC"]}',
-		`zOrder`='{$_POST["zOrder"]}'
-		WHERE ID='$ID'";
-		
+	
+	$FADD_FIELDS[]="`rulename`";
+	$FADD_FIELDS[]="`proto`";
+	$FADD_FIELDS[]="`accepttype`";
+	$FADD_FIELDS[]="`enabled`";
+	$FADD_FIELDS[]="`OverideNet`";
+	$FADD_FIELDS[]="`MOD`";
+	$FADD_FIELDS[]="`eth`";
+	$FADD_FIELDS[]="`source_group`";
+	$FADD_FIELDS[]="`dest_group`";
+	$FADD_FIELDS[]="`destport_group`";
+	$FADD_FIELDS[]="`zOrder`";
+	$FADD_FIELDS[]="`ForwardTo`";
+	$FADD_FIELDS[]="`ForwardNIC`";
+	$FADD_FIELDS[]="`L7Mark`";
+	$FADD_FIELDS[]="`jlog`";
+	
+	
+	
+	$FADD_VALS[]=$_POST["rulename"];
+	$FADD_VALS[]=$_POST["proto"];
+	$FADD_VALS[]=$_POST["accepttype"];
+	$FADD_VALS[]=$_POST["enabled"];
+	$FADD_VALS[]=$_POST["OverideNet"];
+	$FADD_VALS[]=$_POST["table"];
+	$FADD_VALS[]=$_POST["interface"];
+	$FADD_VALS[]=$_POST["source_group"];
+	$FADD_VALS[]=$_POST["dest_group"];
+	$FADD_VALS[]=$_POST["destport_group"];
+	$FADD_VALS[]=$_POST["zOrder"];
+	$FADD_VALS[]=$_POST["ForwardTo"];
+	$FADD_VALS[]=$_POST["ForwardNIC"];
+	$FADD_VALS[]=$_POST["L7Mark"];
+	$FADD_VALS[]=$_POST["jlog"];
+	
+	
+	
+	if(isset($_POST["MARK"])){
+		$FADD_FIELDS[]="`MARK`";
+		$FADD_VALS[]=$_POST["MARK"];
+	
+	}
+	
+	if(isset($_POST["QOS"])){
+		$FADD_FIELDS[]="`QOS`";
+		$FADD_VALS[]=$_POST["QOS"];
+	
+	}
+
+	while (list ($num, $field) = each ($FADD_FIELDS)){
+		$EDIT_VALS[]="$field ='".$FADD_VALS[$num]."'";
+	}
+	
+	reset($FADD_VALS);
+	while (list ($num, $field) = each ($FADD_VALS)){
+		$ITEMSADD[]="'$field'";
 	}
 	
 	$q=new mysql();
+	if(!$q->FIELD_EXISTS("iptables_main","MARK","artica_backup")){
+		$sql="ALTER TABLE `iptables_main` ADD `MARK` INT( 10 ) NOT NULL DEFAULT 0";
+		$q->QUERY_SQL($sql,"artica_backup");
+	}
+	
+	if(!$q->FIELD_EXISTS("iptables_main","QOS","artica_backup")){
+		$sql="ALTER TABLE `iptables_main` ADD `QOS` INT( 10 ) NOT NULL DEFAULT 0";
+		$q->QUERY_SQL($sql,"artica_backup");
+	}
+	
+	if(!$q->FIELD_EXISTS("iptables_main","L7Mark","artica_backup")){
+		$sql="ALTER TABLE `iptables_main` ADD `L7Mark` INT( 10 ) NULL DEFAULT 0,ADD INDEX ( L7Mark ) ";
+		$q->QUERY_SQL($sql,"artica_backup");
+	}
+	if(!$q->FIELD_EXISTS("iptables_main","jlog","artica_backup")){
+		$sql="ALTER TABLE `iptables_main` ADD `jlog` smallint( 1 ) NOT NULL DEFAULT 0,ADD INDEX ( jlog )";
+		$q->QUERY_SQL($sql,"artica_backup");
+	}
+
+	
+	if($ID==0){
+		$sql="INSERT IGNORE INTO iptables_main ( ". @implode(",", $FADD_FIELDS).") VALUES (".@implode(",", $ITEMSADD).")";
+		
+	}else{
+		$sql="UPDATE iptables_main SET  ". @implode(",", $EDIT_VALS)." WHERE ID='$ID'";
+		
+	}
+	
+	
+	
+
+	
 	
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n$sql";}
 }
 
+function containers_from_bridge($eth){
+	$q=new mysql();
+	$sql="SELECT 
+			`nics`.BridgedTo,`nics`.QOS,`qos_containers`.* FROM `nics`,`qos_containers`
+			WHERE `qos_containers`.`eth`=`nics`.`Interface` AND `nics`.`QOS`=1 
+			AND `nics`.`BridgedTo`='$eth'
+			AND `qos_containers`.`enabled`=1
+			ORDER BY `qos_containers`.prio";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error_html();}
+	$HASH[0]="{select}";
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$HASH[$ligne["ID"]]=$ligne["name"]." {$ligne["rate"]}{$ligne["rate_unit"]}/{$ligne["ceil"]}{$ligne["ceil_unit"]}";
+	
+	}
+	return $HASH;
+}
+function containers_from_eth($eth){
+	if(preg_match("#^br#", $eth)){return containers_from_bridge($eth);}
+	$q=new mysql();
+	$sql="SELECT
+	SELECT qos_containers.* FROM qos_containers WHERE enabled=1";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$HASH[0]="{select}";
+	while ($ligne = mysql_fetch_assoc($results)) {
+	$HASH[$ligne["ID"]]=$ligne["name"]." {$ligne["rate"]}{$ligne["rate_unit"]}/{$ligne["ceil"]}{$ligne["ceil_unit"]}";
+
+	}
+	return $HASH;
+}
 
 function iptables_status(){
 	$page=CurrentPageName();
@@ -711,7 +913,11 @@ function iptables_status(){
 	$error_bridge
 	<table style='width:100%'>
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply_firewall_rules}","Save$t();Loadjs('firewall.restart.php')",22)."</td>
+			<td colspan=2 align='right' style='font-size:22px'><hr>
+			". button("{firewall_rules}","Save$t();Loadjs('firewall.view.php')",22)."&nbsp;|&nbsp;
+			". button("{apply_firewall_rules}","Save$t();Loadjs('firewall.restart.php')",22)."
+			<hr>		
+			</td>
 		</tr>
 		<tr>
 			<td colspan=2>
@@ -965,7 +1171,9 @@ $MyPage=CurrentPageName();
 $q=new mysql();
 $eth=$_GET["eth"];
 $table_type=$_GET["table"];
-
+$sock=new sockets();
+$EnableL7Filter=intval($sock->GET_INFO("EnableL7Filter"));
+$EnableQOS=intval($sock->GET_INFO("EnableQOS"));
 $t=$_GET["t"];
 $FORCE_FILTER=null;
 $search='%';
@@ -1008,7 +1216,7 @@ if($searchstring<>null){
 
 	if(mysql_num_rows($results)==0){json_error_show($q->mysql_error,1);}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
-	
+	$log_all_events=$tpl->_ENGINE_parse_body("{log_all_events}");
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
@@ -1022,10 +1230,22 @@ if($searchstring<>null){
 		$source_group=inbound_object($ligne["source_group"]);
 		$dest_group=inbound_object($ligne["dest_group"]);
 		$destport_group=inbound_object($ligne["destport_group"],1);
+		$L7Mark=$ligne["L7Mark"];
 		$FORWARD_TEXT=null;
+		if($EnableL7Filter==0){$L7Mark=0;}
 		
-		$explain=$tpl->_ENGINE_parse_body("<div style='font-size:12px'>{from} $source_group {to} $dest_group $destport_group</div>");
-		$rulename=utf8_encode($ligne["rulename"]);
+		if($destport_group<>null){$destport_group="<br>$destport_group";}
+		$explain=$tpl->_ENGINE_parse_body("<span style='font-size:12px'>{from} $source_group {to} $dest_group$destport_group</span>");
+		$rulename=trim(utf8_encode($ligne["rulename"]));
+		
+		if($ligne["jlog"]==1){
+				$explain=$explain."<br><span style='font-size:12px'>$log_all_events</span>";
+		}
+		
+		$explain=$explain.Layer7_object($L7Mark);
+		
+		if($rulename==null){$rulename=$tpl->_ENGINE_parse_body("{rule} {$ligne["ID"]}");}
+		
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
 		$js="Loadjs('$MyPage?ruleid={$ligne["ID"]}&eth=$eth&t={$_GET["t"]}&table=$table_type',true);";
@@ -1037,6 +1257,9 @@ if($searchstring<>null){
 		
 		if($ligne["accepttype"]=="RETURN"){
 			$ACTION="arrow-right-32.png";
+		}
+		if($ligne["accepttype"]=="LOG"){
+			$ACTION="log-32.png";
 		}
 		
 		
@@ -1052,7 +1275,25 @@ if($searchstring<>null){
 			$time=$tpl->_ENGINE_parse_body("<span style='font-size:12px;color:$color'>{time_restriction}</span>").":&nbsp;".buildtime($ligne);
 		}
 		
+		if($table_type=="MARK"){
+			if($ligne["QOS"]>0){$ligne["MARK"]=0;}
+			if($ligne["QOS"]>0){
+				if($EnableQOS==0){$color="#8a8a8a";}
+				$lsprime="javascript:Loadjs('system.qos.containers.php?container-js=yes&ID={$ligne["QOS"]}')";
+				$FORWARD_TEXT=$FORWARD_TEXT.$tpl->_ENGINE_parse_body("<div style='font-size:12px'>
+						{mark_packets_for_bandwidth} <a href=\"javascript:blur();\" OnClick=\"$lsprime\"
+						style='font-size:12px;font-weight:bold;text-decoration:underline;color:$color'> - {$ligne["QOS"]} - ". qos_name($ligne["QOS"])."</a></div>");
+			}
+			
+			if($ligne["MARK"]>0){
+				$FORWARD_TEXT=$FORWARD_TEXT.$tpl->_ENGINE_parse_body("<div style='font-size:12px'>
+				{mark_packets_with} {$ligne["MARK"]}</div>");
+			}
+			
+		}
 		
+		$JSRULE="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\"
+			style='font-size:14px;font-weight:bold;text-decoration:underline;color:$color'>";
 		
 		if($ligne["zOrder"]==1){$up=null;}
 		if($ligne["zOrder"]==0){$up=null;}
@@ -1060,8 +1301,7 @@ if($searchstring<>null){
 			'id' => "$mkey",
 			'cell' => array(
 			"<span style='font-size:14px;font-weight:bold;color:$color'>{$ligne["zOrder"]}</span>",
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\"
-			style='font-size:14px;font-weight:bold;text-decoration:underline;color:$color'>$rulename</a>$explain$FORWARD_TEXT$time",
+			"$JSRULE$rulename</a>&nbsp;$explain$FORWARD_TEXT$time",
 			"<div style=\"margin-top:5px\">$enabled</div>",
 			"<span style='font-size:14px;font-weight:bold;color:$color'><img src='img/$ACTION'></span>",
 			"<div style=\"margin-top:5px\">$up</div>",
@@ -1071,6 +1311,13 @@ if($searchstring<>null){
 	}
 	
 	echo json_encode($data);	
+	
+}
+
+function qos_name($ID){
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT name FROM `qos_containers` WHERE ID='$ID'","artica_backup"));
+	return utf8_decode($ligne["name"]);
 	
 }
 
@@ -1107,6 +1354,16 @@ function buildtime($ligne){
 	}
 	
 	
+}
+
+function Layer7_object($ID){
+	if($ID==0){return;}
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT keyitem,`explain` FROM l7filters_items WHERE ID='$ID' AND enabled=1","artica_backup"));
+	if($ligne["keyitem"]==null){return null;}
+	$text="( {application} <span style='font-size:11px'>{$ligne["explain"]}</span> )";
+	$tpl=new templates();
+	return $tpl->_ENGINE_parse_body($text);
 }
 
 function inbound_object($ID,$asport=0){

@@ -3,6 +3,7 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--progress#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.acls.inc');
@@ -10,15 +11,22 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 
+build_progress("{starting}..",10);
+
 if(!$GLOBALS["FORCE"]){
 	if(system_is_overloaded(basename(__FILE__))){
+		build_progress("Overloaded system... aborting task..",110);
 		writelogs("Overloaded system... aborting task...","MAIN",__FILE__,__LINE__);
 		die();
 	}
 }
 $unix=new unix();
 if(is_file("/etc/artica-postfix/FROM_ISO")){
-	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<10){die();}
+	$time=$unix->file_time_min("/etc/artica-postfix/FROM_ISO");
+	if($time<10){
+		build_progress("/etc/artica-postfix/FROM_ISO {$time}Mn require >10.. aborting task..",110);
+		die();
+	}
 }
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
@@ -26,6 +34,7 @@ $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 
 $pid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($pid)){
+	build_progress("Aborting generating locales, a process with pid $pid already running",110);
 	echo "Aborting generating locales, a process with pid $pid already running\n";
 	die(0);
 }
@@ -451,6 +460,9 @@ $f[]="zh_TW.EUC-TW EUC-TW";
 $f[]="zu_ZA.UTF-8 UTF-8";
 $f[]="zu_ZA ISO-8859-1";
 
+$max=count($f);
+build_progress("Generate ".count($f)." Lang...",50);
+
 @file_put_contents("/etc/locale.gen",@implode("\n",$f));
 $unix=new unix();
 $local=$unix->find_program("locale-gen");
@@ -462,4 +474,15 @@ if(is_file($local)){
 	
 
 }
+build_progress("{done}",100);
+
+function build_progress($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/locales.progress", serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+	
+}
+
 ?>

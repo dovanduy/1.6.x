@@ -28,6 +28,12 @@ if(document.getElementById('IMAGE_STATUS_INFO')){
 		LoadAjax('IMAGE_STATUS_INFO','admin.index.right-image.php');
 	}
 }
+		
+if(document.getElementById('squid-front-end-status')){
+	LoadAjaxSilent('squid-front-end-status','admin.index.loadvg.php?squid-front-end-status=yes');
+}
+		
+		
 ";
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 die();

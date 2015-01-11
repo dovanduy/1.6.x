@@ -32,7 +32,7 @@ $downloadapple=Paragraphe("apple-logo-64.png",
 
 
 	$html="
-	<div class=explain>{OPENVPN_ADMIN_HELP_TEXT}</div>
+	<div class=text-info>{OPENVPN_ADMIN_HELP_TEXT}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
@@ -54,7 +54,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{BUILD_OPENVPN_CLIENT_CONFIG}");
-	$html="YahooWin4('550','$page?popup=yes','$title')";
+	$html="YahooWin4('940','$page?popup=yes','$title')";
 	echo $html;
 	
 }
@@ -67,14 +67,22 @@ function tabs(){
 	
 	
 	$array["popup-main"]="{BUILD_OPENVPN_CLIENT_CONFIG}";
+
+	
 	$array["help"]="{help}";
 	
-		$font="font-size:14px";
+		$font="font-size:18px";
 		$newinterface="&newinterface=yes";
 	
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
+			if($num=="OPENVPN_SCHEDULE_RUN"){
+				$tab[]="<li><a href=\"index.openvpn.schedule.php?popup=yes\"><span style='$font'>$ligne</span></a></li>\n";
+				continue;
+				
+			}
+		
 			$tab[]="<li><a href=\"$page?$num=yes$newinterface\"><span style='$font'>$ligne</span></a></li>\n";
 			
 		}
@@ -82,20 +90,7 @@ function tabs(){
 	
 	
 
-	$html="
-		<div id='main_openvpn_builclientconfig' style='background-color:white;width:100%'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_openvpn_builclientconfig').tabs();
-			});
-		</script>
-	
-	";
-		
+	$html=build_artica_tabs($tab, "main_openvpn_builclientconfig");
 	$tpl=new templates();
 	$html=$tpl->_ENGINE_parse_body($html);
 	SET_CACHED(__FILE__,__FUNCTION__,null,$html);
@@ -115,22 +110,22 @@ function popup(){
 	$os["Windows7"]="Windows 7 (Seven)";
 	$os[null]="{select}";
 	
-	$os=Field_array_Hash($os,"ComputerOS",null,"style:font-size:16px;padding:3px");
+	$os=Field_array_Hash($os,"ComputerOS",null,"style:font-size:32px;padding:3px");
 	
-	$html="<div class=explain id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
+	$html="<div class=text-info id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
 	
-	<center>
-		<table style='width:75%' class=form>
+	<center style='width:98%' class=form>
+		<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{connection_name}:</td>
-			<td class=legend style='font-size:16px'>". Field_text("connection_name",null,"font-size:16px")."</td>
+			<td class=legend style='font-size:32px'>{connection_name}:</td>
+			<td class=legend style='font-size:32px'>". Field_text("connection_name",null,"padding:20px;font-size:32px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{ComputerOS}:</td>
-			<td class=legend style='font-size:16px'>$os</td>
+			<td class=legend style='font-size:32px'>{ComputerOS}:</td>
+			<td class=legend style='font-size:32px'>$os</td>
 		</tr>		
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{generate_parameters}","GenerateVPNConfig()")."</td>
+			<td colspan=2 align='right'><div style='margin-top:100px'><hr>". button("{generate_parameters}","GenerateVPNConfig()",32)."</div></td>
 		</tr>
 		</table>
 	</center>

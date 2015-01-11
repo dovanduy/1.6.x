@@ -44,7 +44,7 @@ function popup(){
 	$confirm=$tpl->javascript_parse_text("{confirm_import_rules_text}");
 	$html="
 			
-	<div id='text-$t' style='font-size:16px' class=explain>{import_acl_rules_explain}</div>
+	<div id='text-$t' style='font-size:16px' class=text-info>{import_acl_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
 	<div style='width:98%' class=form>
 	<table>

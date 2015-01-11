@@ -346,10 +346,6 @@ function group5(){
 		$array["exec.watchdog.postfix.queue.php"]="exec.watchdog.postfix.queue.php";
 		$array["exec.postfix.iptables.php"]="exec.postfix.iptables.php --parse-queue";
 		$array["exec.postfix.iptables.php --export-drop"]="exec.postfix.iptables.php --export-drop";
-		
-		if($GLOBALS["MILTER_GREYLIST_INSTALLED"]){
-			$array["exec.milter-greylist.php --database"]="exec.milter-greylist.php --database";
-		}
 		$array["exec.smtp-senderadv.php"]="exec.smtp-senderadv.php";
 	}
 	
@@ -364,36 +360,16 @@ function group5(){
 	}
 	
 	
-	$array["exec.dstat.top.php"]="exec.dstat.top.php";
+	
 	$array["exec.admin.status.postfix.flow.php"]="exec.admin.status.postfix.flow.php";
 	$array["exec.admin.smtp.flow.status.php"]="exec.admin.smtp.flow.status.php";
-	//$array["exec.remote-install.php"]="exec.remote-install.php";
-	$array["exec.parse.dar-xml.php"]="exec.parse.dar-xml.php";
-	$array["exec.import-networks.php"]="exec.import-networks.php";
-	$array["cron.notifs.php"]="cron.notifs.php";
-	$array["exec.watchdog.php"]="exec.watchdog.php";
-	
-	
-	
-	
-	if($GLOBALS["NMAP_INSTALLED"]){
-		$ComputersAllowNmap=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('ComputersAllowNmap');
-		if(!is_numeric($ComputersAllowNmap)){$ComputersAllowNmap=1;}
-		$EnableScanComputersNet=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableScanComputersNet");
-		if($ComputersAllowNmap==1){$array["exec.nmapscan.php --scan-nets"]="exec.nmapscan.php --scan-nets";}
-		if($EnableScanComputersNet==1){$array["exec.nmapscan.php --scan-period"]="exec.nmapscan.php --scan-period";}
-	}
-	
-	
-	
-	
-	
+
 	
 	if($GLOBALS["OPENVPN_INSTALLED"]){
 		$array["exec.openvpn.php --schedule"]="exec.openvpn.php --schedule";
 	}
 	
-	$array["exec.web-community-filter.php"]="exec.web-community-filter.php";
+	
 	
 	if($GLOBALS["SQUID_INSTALLED"]){
 		$array["exec.squid.logs.migrate.php"]="exec.squid.logs.migrate.php";
@@ -426,10 +402,10 @@ function group5(){
 	$array2[]="artica-install --generate-status";
 	
 	if($GLOBALS["OVERLOADED"]){
-		unset($array["exec.dstat.top.php"]);
+		
 		unset($array["exec.admin.status.postfix.flow.php"]);
-		unset($array["exec.parse.dar-xml.php"]);
-		unset($array["exec.import-networks.php"]);
+		
+		
 		unset($array["exec.admin.smtp.flow.status.php"]);
 	}
 	
@@ -507,7 +483,7 @@ function group10(){
 	$EnablePhileSight=GET_INFO_DAEMON("EnablePhileSight");
 	if($EnablePhileSight==null){$EnablePhileSight=1;}
 	
-	$array[]="exec.getent.php";
+	
 
 	
 	if($GLOBALS["OCS_INSTALLED"]){$array[]="exec.ocsweb.php --injection";	}
@@ -740,25 +716,7 @@ function group24h(){
 }
 
 function group60mn(){
-	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
-	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__).".time";
-	$time=$GLOBALS["CLASS_UNIX"]->file_time_min($filetime);
-	if($time<61){return;}
-	@unlink($filetime);
-	@file_put_contents($filetime, time());
-	
-	
-	
-	if($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableInterfaceMailCampaigns")==1){$array[]="exec.emailing.badmails.php";}
-	if($GLOBALS["ZARAFA_INSTALLED"]){$array[]="exec.zarafa.build.stores.php --exoprhs";}
-	$array[]="exec.my-rbl.check.php --myip";
-	$array[]="exec.my-rbl.check.php --checks";
-	while (list ($index, $file) = each ($array) ){
-		$cmd="{$GLOBALS["PHP5"]} /usr/share/artica-postfix/$file";
-		events("schedule $cmd",__FUNCTION__,__LINE__);
-		$GLOBALS["CMDS"][]=$cmd;
-	}	
-@file_put_contents("/etc/artica-postfix/pids/".basename(__FILE__).".GLOBALS",serialize($GLOBALS["TIME"]));
+
 }
 
 
@@ -787,7 +745,7 @@ function group120(){
 		$array["exec.cyrus.php --DirectorySize"]="exec.cyrus.php --DirectorySize";
 	}
 	
-	$array["exec.web-community-filter.php --export"]="exec.web-community-filter.php --export";
+	
 	
 	
 	

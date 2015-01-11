@@ -54,7 +54,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ou=urlencode($_GET["ou"]);
-	$html="<div class=explain>{ldap_importation_text}</div>
+	$html="<div class=text-info>{ldap_importation_text}</div>
 	<p>&nbsp;</p>
 	<div id='ldap_importation_div' style='width:100%;height:550px;overflow:auto'></div>
 	

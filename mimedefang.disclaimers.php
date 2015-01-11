@@ -361,7 +361,7 @@ function disclaimer_text(){
 	}
 
 	$html="
-		<div class=explain style='font-size:14px'>{put_text_content_here}</div>
+		<div class=text-info style='font-size:14px'>{put_text_content_here}</div>
 	<div id='$t-adddis'></div>
 	<table style='width:99%;' class=form>
 	<tr>
@@ -414,7 +414,7 @@ function disclaimer_html(){
 
 	$html="
 	<div id='$tt-adddis'></div>
-	<div class=explain style='font-size:14px'>{put_html_code_here}</div>
+	<div class=text-info style='font-size:14px'>{put_html_code_here}</div>
 
 	<table style='width:99%;' class=form>
 	<tr>

@@ -47,9 +47,11 @@ if(isset($_GET["HideTips"])){HideTips();exit;}
 
 $users=new usersMenus();
 
-if(!$users->AsSystemAdministrator){
-	error_log("[{$_SESSION["uid"]}]::[{$_SESSION["uid"]}]::Redirect to miniadm.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
-	writelogs("[{$_SESSION["uid"]}]Redirect to miniadm.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');
+if(!$users->AsAnAdministratorGeneric){
+	writelogs("[{$_SESSION["uid"]}]:: privs = {$_SESSION["privileges"]}",__FUNCTION__,__FILE__,__LINE__);
+	error_log("[{$_SESSION["uid"]}]::AsAnAdministratorGeneric =false in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+	writelogs("[{$_SESSION["uid"]}]::AsAnAdministratorGeneric =false in ",__FUNCTION__,__FILE__,__LINE__);
+	header('location:miniadm.php');
 	exit;
 }
 
@@ -308,128 +310,6 @@ SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 echo $html;	
 return;	
 	
-
-$html="	
-<script language=\"JavaScript\">       
-var timerID  = null;
-var timerID1  = null;
-var tant=0;
-var fire=0;
-var loop=0;
-var loop2=0;
-var reste=0;
-var mem_ossys=0;
-
-function Loop(){
-	loop = loop+1;
-	loop2 = loop2+1;
-	
-	if(loop2>10){
-		if(!IfWindowsOpen()){if(RunJgrowlCheck()){Loadjs('jGrowl.php');}}
-		loop2=0;
-	}
-	
-	
-    fire=10-fire;
-    if(loop<25){
-    	setTimeout(\"Loop()\",5000);
-    }else{
-      loop=0;
-      Loop();
-    }
-}
-
-	function RunJgrowlCheck(){
-		if(!document.getElementById('navigation')){return false;}
-		if($('#jGrowl').size()==0){return true;}
-		if($('#jGrowl').size()==1){return true;}
-		return false;
-	
-	}
-
-	function sysevents_query(){
-		if(document.getElementById('q_daemons')){
-			var q_daemons=document.getElementById('q_daemons').value;
-			var q_lines=document.getElementById('q_lines').value;
-			var q_search=document.getElementById('q_search').value;
-			LoadAjax('events','$page?main=logs&q_daemons='+ q_daemons +'&q_lines=' + q_lines + '&q_search='+q_search+'&hostname={$_GET["hostname"]}');
-			}
-	
-	}
-	
-	function LoadCadencee(){		
-		Loadjs('jGrowl.php');	
-		setTimeout(\"Loop()\",2000);
-	}
-
-
-	var x_{$idmd}ChargeLogs= function (obj) {
-		var tempvalue=obj.responseText;
-		document.getElementById('progression_js_left').innerHTML=tempvalue;
-		}		
-	
-
-
-
-
-function CheckDaemon(){
-	var XHR = new XHRConnection();
-	XHR.appendData('CheckDaemon','yes');
-	XHR.sendAndLoad('$page', 'GET');
-	}	
-
-
-</script>	
-	".main_admin_tabs()."
-	
-	<script>
-	
-		LoadCadencee();
-		RTMMailHide();
-		$wizard_kaspersky_mail_appliance
-		$left_menus
-		initMessagesTop();
-	</script>
-	{$arr[0]}
-	";
-
-$cfg["JS"][]=$arr[1];
-$cfg["JS"][]="js/admin.js";
-
-if(isset($_GET["admin-ajax"])){
-	$tpl=new templates();
-	$html=$tpl->_ENGINE_parse_body($html);
-	SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__."-admin-ajax",$html);
-	echo $html;
-	exit;
-}
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-$tpl=new templates();
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-$title=$tpl->_ENGINE_parse_body("<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('admin.chHostname.php',true);\" style='text-transform:lowercase;font-size:12px' >[<span id='hostnameInFront'>$usersmenus->hostname</span>]</a>&nbsp;{WELCOME} <span style='font-size:12px'>{$hash["displayName"]} </span>");
-
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-if($users->KASPERSKY_SMTP_APPLIANCE){
-	$title=$tpl->_ENGINE_parse_body("<span style='color:#005447'>{WELCOME}</span> <span style='font-size:13px;color:#005447'>For Kaspersky SMTP Appliance</span>&nbsp;|&nbsp;<span style='font-size:12px'>{$hash["displayName"]} - <span style='text-transform:lowercase'>$usersmenus->hostname</span></span>");
-}
-if($users->KASPERSKY_WEB_APPLIANCE){
-	$title=$tpl->_ENGINE_parse_body("<span style='color:black'>{WELCOME}</span> <span style='font-size:13px;color:black'>For Kaspersky Web Appliance</span>&nbsp;|&nbsp;<span style='font-size:12px'>{$hash["displayName"]} - <span style='text-transform:lowercase'>$usersmenus->hostname</span></span>");
-}
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-if($users->ZARAFA_APPLIANCE){
-	$title=$tpl->_ENGINE_parse_body("<span style='color:#005447'>{WELCOME}</span> <span style='font-size:13px;color:#005447'>For Zarafa Mail Appliance</span>&nbsp;|&nbsp;<span style='font-size:12px'>{$hash["displayName"]} - <span style='text-transform:lowercase'>$usersmenus->hostname</span></span>");
-	
-}
-
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-$tpl=new template_users($title,$html,$_SESSION,0,0,0,$cfg);
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-$html=$tpl->web_page;
-SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-echo $html;			
-if($GLOBALS["VERBOSE"]){echo "<H1>Finish</H1>";}
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);	
-	
 }
 
 function _milter_greylist_enabled(){
@@ -459,6 +339,7 @@ function main_admin_tabs(){
 	
 	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
@@ -466,8 +347,9 @@ function main_admin_tabs(){
 	
 	if(!$ldap->IsKerbAuth()){$array["t:orgs"]="{organizations}";}
 	
-	$array["t:BANDWITH-STATS"]="{bandwith}";
-	
+	if($SquidPerformance<3){
+		$array["t:BANDWITH-STATS"]="{bandwith}";
+	}
 	
 	if($users->VPS_OPENVZ){$array["t:openvz"]='OpenVZ';}
 	
@@ -497,27 +379,25 @@ function main_admin_tabs(){
 	}
 
 	
-	$sock=new sockets();
+	
 	if($users->SQUID_INSTALLED){
 		$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==1){
-			$array["t:TOP-WEB"]="{top_web}";
-			if(!$users->PROXYTINY_APPLIANCE){
-				if(!$users->SQUID_REVERSE_APPLIANCE){
-					if($users->APP_UFDBGUARD_INSTALLED){
-						$array["t:HTTP_BLOCKED_STATS"]="{blocked_websites}";
-					}
-				}
-			}
+			if($SquidPerformance<2){$array["t:TOP-WEB"]="{top_web}"; }
+
 		}
 	}
+	
+
 	
 
 if($users->KASPERSKY_SMTP_APPLIANCE){
 	$array["t:kaspersky"]="Kaspersky";	
 }else{
-	$array["t:system"]="{webinterface}";
+	if($users->AsSystemAdministrator){
+		$array["t:system"]="{webinterface}";
+	}
 }	
 
 if(count($array)<8){
@@ -655,16 +535,17 @@ function STATUS(){
 	
 	$SQUID["SQUID"]=true;
 	$SQUID["APP_CNTLM"]=true;
-	$SQUID["DANSGUARDIAN"];
-	$SQUID["KAV4PROXY"];
-	$SQUID["C-ICAP"];
-	$SQUID["APP_PROXY_PAC"];
-	$SQUID["APP_SQUIDGUARD_HTTP"];
+	$SQUID["DANSGUARDIAN"]=true;
+	$SQUID["KAV4PROXY"]=true;
+	$SQUID["C-ICAP"]=true;
+	$SQUID["APP_PROXY_PAC"]=true;
+	$SQUID["APP_SQUIDGUARD_HTTP"]=true;
 	$SQUID["APP_UFDBGUARD"];
 	$SQUID["APP_FRESHCLAM"];
 	$SQUID["APP_ARTICADB"];
 	$SQUID["APP_HAARP"];
 	$SQUID["APP_FTP_PROXY"];
+	$SQUID["APP_CNTLM_PARENT"]=true;
 	
 	if(isset($SQUID[$_GET["KEY"]])){
 		$sock=new sockets();
@@ -685,6 +566,7 @@ function status_computer_mysql_memory_check(){
 	$tpl=new templates();
 	$mysql=new mysqlserver();
 	$users=new usersMenus();
+	if(!$users->AsSystemAdministrator){return;}
 	if($users->MEM_TOTAL_INSTALLEE<624288){return;}
 	
 	$serverMem=round(($users->MEM_TOTAL_INSTALLEE-300)/1024);	
@@ -1019,29 +901,6 @@ function status_right(){
 	
 	
 }
-	
-	
-function StatusSamba(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$status=new status();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->Samba_status();
-	return $tpl->_ENGINE_parse_body($html);		
-	
-}
-
-
-
-
-
-
-	
-
-
-
-
 
 function DateDiff($debut, $fin) {
 

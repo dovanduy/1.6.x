@@ -113,7 +113,7 @@ function popup_remote(){
 		
 		$html="
 		<div id='animate-$t' style='font-size:18px;margin:15px'>{server}:$hostname</div>
-		<div class=explain style='font-size:16px'>{use_milter_remote_service_explain}</div>
+		<div class=text-info style='font-size:16px'>{use_milter_remote_service_explain}</div>
 		<div class=form style='width:95%'>
 		<table style='width:100%'>
 	
@@ -370,17 +370,6 @@ function popup(){
 			
 	<div id='animate-$t' style='font-size:26px;margin-bottom:15px'>{server}:{$_GET["hostname"]}</div>
 	$P1
-	<div id='animate-$t' style='font-size:26px;margin-bottom:15px;margin-top:15px'>{use_milter_remote_service}
-	<div class=explain style='font-size:16px'>{use_milter_remote_service_explain}</div>
-		<div class=form style='width:95%'>
-		<table style='width:100%'>
-	
-		<tr>
-		<td align='right' nowrap  class=legend style='font-size:18px;vertical-align:middle'>{value}:</strong></td>
-		<td >" . Field_text('RemoteMilterService',$RemoteMilterService,'width:350px;font-size:22px;padding:10px',null,null)."
-		</td>
-		</tr>
-	</table>
 	</div>
 	
 	
@@ -412,7 +401,6 @@ var x_Save$t= function (obj) {
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('MilterGreyListEnabled',document.getElementById('MilterGreyListEnabled-$t').value);
-	XHR.appendData('RemoteMilterService',document.getElementById('RemoteMilterService').value);
 	XHR.appendData('hostname','{$_GET["hostname"]}');
 	XHR.appendData('ou','{$_GET["ou"]}');
 	XHR.sendAndLoad('$page', 'POST',x_Save$t);	
@@ -518,6 +506,7 @@ function greylist_config($noecho=0){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$MilterGreyListEnabled=intval($sock->GET_INFO("MilterGreyListEnabled"));
+	$RemoteMilterService=trim(strtolower($sock->GET_INFO("RemoteMilterService")));
 	$t=time();
 	$arraytime=array(
 		"m"=>"{minutes}","h"=>"{hour}","d"=>"{day}"
@@ -527,20 +516,30 @@ function greylist_config($noecho=0){
 	if($hostname=="master"){
 		$portF="
 				<tr>
-					<td $style align='right' nowrap  class=legend style='font-size:18px'>{useTCPPort}:</strong></td>
-					<td $style >" . Field_checkbox('MilterGreyListUseTCPPort',1,$pure->MilterGreyListUseTCPPort,"CheckTCPPOrt$t()")."</td>
+					<td $style align='right' nowrap  class=legend style='font-size:22px'>{useTCPPort}:</strong></td>
+					<td $style >" . Field_checkbox_design('MilterGreyListUseTCPPort',1,$pure->MilterGreyListUseTCPPort,"CheckTCPPOrt$t()")."</td>
 					<td $style ></td>
 				</tr>
 				<tr>
-					<td $style align='right' nowrap  class=legend style='font-size:18px'>{listen_port}:</strong></td>
-					<td $style >" . Field_text('MilterGeryListTCPPort',$pure->MilterGeryListTCPPort,'width:120px;font-size:18px')."</td>
+					<td $style align='right' nowrap  class=legend style='font-size:22px'>{listen_port}:</strong></td>
+					<td $style >" . Field_text('MilterGeryListTCPPort',$pure->MilterGeryListTCPPort,'width:120px;font-size:22px')."</td>
 					<td $style ></td>
-				</tr>";
+				</tr>
+				<tr>
+					<td $style align='right' nowrap  class=legend style='font-size:22px'>{use_milter_remote_service}:</strong></td>
+					<td $style >" . Field_text('RemoteMilterService',$RemoteMilterService,'width:350px;font-size:22px',null,null)."</td>
+					<td $style >". help_icon("{use_milter_remote_service_explain}")."</td>		
+					
+				</tr>
+		
+		
+		
+		";
 		
 	}
 
 	$html="
-	<div id='animate-$t' style='font-size:26px;margin:15px'>{server}:$hostname</div>
+	<div id='animate-$t' style='font-size:32px;margin:15px'>{server}:$hostname</div>
 	<div id='MilterGreyListConfigGeneSaveID0'>
 	
 	<input type='hidden' name='hostname' value='$hostname'>
@@ -552,45 +551,45 @@ function greylist_config($noecho=0){
 
 	$portF
 <tr>
-	<td $style align='right' nowrap  class=legend style='font-size:18px'>{add_default_nets}:</strong></td>
-	<td $style >" . Field_checkbox('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
-	<td $style ></td>
+	<td $style align='right' nowrap  class=legend style='font-size:22px'>{add_default_nets}:</strong></td>
+	<td $style >" . Field_checkbox_design('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
+	<td $style >". help_icon("{milter_greylist_add_default_net_explain}")."</td>
 </tr>		
-<tr><td colspan=3><p class=text-info style='font-size:14px'>{milter_greylist_add_default_net_explain}</p></td></tr>
 <tr>
-	<td $style align='right' nowrap  class=legend style='font-size:18px'>{remove_tuple}:</strong></td>
-	<td $style >" . Field_checkbox('lazyaw',1,$pure->main_array["lazyaw"])."</td>
-	<td $style ></td>
+	<td $style align='right' nowrap  class=legend style='font-size:22px'>{remove_tuple}:</strong></td>
+	<td $style >" . Field_checkbox_design('lazyaw',1,$pure->main_array["lazyaw"])."</td>
+	<td $style >". help_icon("{remove_tuple_text}")."</td>
 </tr>	
-<tr><td colspan=3><p class=text-info style='font-size:14px'>{remove_tuple_text}</p></td></tr>
-	<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:18px'>{timeout}:</strong></td>
-	<td $style  colspan=2>" . Field_text('timeout',$pure->main_array["timeout"],'width:90px;font-size:18px',null,null)."&nbsp;".
-		Field_array_Hash($arraytime,'timeout_TIME',$pure->main_array["timeout_TIME"],"style:font-size:18px")."</td>
-	</tr>
-<tr><td colspan=3><p class=text-info style='font-size:14px'>{mgreylisttimeout_text}</p></td></tr>	
-	<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:18px'>{greylist}:</strong></td>
-	<td $style  colspan=2>
-	
-	" . Field_text('greylist',$pure->main_array["greylist"],'width:120px;font-size:18px',null,null)."&nbsp;".
-		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:18px")."
-	
-	</td>
-	</tr>
-	<tr><td colspan=3><p class=text-info style='font-size:14px'>{greylist_text}</p></td></tr>		
-	<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{autowhite}:</strong></td>
-	<td $style colspan=2>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:110px;font-size:18px',null,null)."&nbsp;".
-		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:18px")."</td>
-	</tr>
-	
-	<tr><td colspan=3><p class=text-info style='font-size:14px'>{autowhite_text}</p></td></tr>		
 
+	<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:22px'>{timeout}:</strong></td>
+	<td $style >" . Field_text('timeout',$pure->main_array["timeout"],'width:110px;font-size:22px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'timeout_TIME',$pure->main_array["timeout_TIME"],"style:font-size:22px;margin-top:-10px;")."</td>
+	<td $style >". help_icon("{mgreylisttimeout_text}")."</td>
+	</tr>
+	
+	<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:22px'>{greylist}:</strong></td>
+	<td $style>
+	
+	" . Field_text('greylist',$pure->main_array["greylist"],'width:110px;font-size:22px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:22px;margin-top:-10px;")."
+	
+	</td><td $style >". help_icon("{greylist_text}")."</td>
+	</tr>
+	
+	<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:22px'>{autowhite}:</strong></td>
+	<td $style>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:110px;font-size:22px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:22px;margin-top:-10px;")."
+	</td><td $style >". help_icon("{autowhite_text}")."</td>
+	</tr>
+	
+	
 	<tr>
 	<td $style colspan=3 align='right' >
 	<hr>
-	". button("{apply}","MilterGreyListPrincipalSave$t()",26)."
+	". button("{apply}","MilterGreyListPrincipalSave$t()",40)."
 	
 	</tr>
 	</table></div>
@@ -623,6 +622,8 @@ function greylist_config($noecho=0){
 		 		 
 		 	}
 		 	XHR.appendData('MilterGeryListTCPPort',document.getElementById('MilterGeryListTCPPort').value);
+		 	XHR.appendData('RemoteMilterService',document.getElementById('RemoteMilterService').value);
+		 	
 		 }
 		 
 		 XHR.appendData('hostname','$hostname');
@@ -689,6 +690,7 @@ function SaveConf(){
 	if(isset($_POST["MilterGreyListUseTCPPort"])){
 		$sock->SET_INFO("MilterGreyListUseTCPPort",$_POST["MilterGreyListUseTCPPort"]);
 		$sock->SET_INFO("MilterGeryListTCPPort",$_POST["MilterGeryListTCPPort"]);
+		$sock->SET_INFO("RemoteMilterService", $_POST["RemoteMilterService"]);
 		unset($_GET["MilterGreyListUseTCPPort"]);
 		unset($_GET["MilterGeryListTCPPort"]);
 	}
@@ -848,7 +850,7 @@ function main_acladd(){
 		var XHR = new XHRConnection();
 		XHR.appendData('SaveAclID','{$_GET["num"]}');
 		XHR.appendData('type',xType);
-		if(document.getElementById('pattern-$t')){XHR.appendData('pattern',document.getElementById('pattern-$t').value);}
+		if(document.getElementById('pattern-$t')){XHR.appendData('pattern',encodeURIComponent(document.getElementById('pattern-$t').value));}
 		XHR.appendData('infos',document.getElementById('$t-infos').value);
 		XHR.appendData('mode',document.getElementById('$t-mode').value);
 		
@@ -1190,7 +1192,7 @@ function explainThisacl(){
 	$subtitle=$action[$_GET["explainThisacl"]];
 	
 	
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>
 	<strong style='font-size:18px'>{{$_GET["xMode"]}}&nbsp;$subtitle</strong><br>
 	{{$_GET["explainThisacl"]}_text}</div>");
 	
@@ -1279,7 +1281,7 @@ function SaveAclID(){
 	$id=$_GET["SaveAclID"];
 	$mode=$_GET["mode"];
 	$type=$_GET["type"];
-	$pattern=$_GET["pattern"];
+	$pattern=url_decode_special_tool($_GET["pattern"]);
 	$instance=$_GET["hostname"];
 	if($instance==null){$instance="master";}
 	if($type=="dnsrbl"){
@@ -1339,7 +1341,6 @@ function SaveAclID(){
 			$prefix="INSERT INTO `miltergreylist_acls` (`zDate`,`instance`,`method`,`type`,`pattern`,`description`) VALUES ";
 			while (list ($index, $patterns) = each ($AllLines) ){
 				$zDate=date("Y-m-d H:i:s");
-				$patterns=mysql_escape_string2($patterns);
 				$TR[]="('$zDate','$instance','$mode','$type','$patterns','$infos')";
 			}
 			

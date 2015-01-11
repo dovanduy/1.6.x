@@ -147,9 +147,10 @@ function wizard_certificate_1(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	$title=$tpl->_ENGINE_parse_body("{new_certificate}");
 	$html="
-	<div class=explain style='font-size:18px'>{wizard_certificate_1}<br><i>{CSR_MULTIPLE_EXPLAIN}</i></div>";
+	<div class=text-info style='font-size:18px'>{wizard_certificate_1}<br><i>{CSR_MULTIPLE_EXPLAIN}</i></div>";
 	
 	$ENC[1024]=1024;
 	$ENC[2048]=2048;
@@ -182,14 +183,14 @@ function certificate_edit_privkey(){
 	$tt=time();
 	
 	$CommonNameURL=urlencode("$commonName");
-	$button_upload=button("$upload_text", "Loadjs('$page?certificate-upload-js=yes&CommonName=$CommonNameURL&type=privkey&t={$_GET["t"]}&textid=text$t&RunAfter=VerifyCertificate$tt',true)");
+	$button_upload=button("$upload_text", "Loadjs('certificates.center.upload.php?certificate-upload-js=yes&CommonName=$CommonNameURL&type=privkey&t={$_GET["t"]}&textid=text$t&RunAfter=VerifyCertificate$tt',true)");
 	$button_extract=button("{info}", "Loadjs('$page?certificate-info-privkey-js=yes&CommonName=$CommonNameURL&type=crt&t={$_GET["t"]}&textid=crt$tt',true)");
 	$button_save=button("{apply}", "Save$tt()");
 	
 	$ssl_explain=$tpl->_ENGINE_parse_body("{privkey_ssl_explain}");
 	$html="
 	
-	<div class=explain style='font-size:18px'>$ssl_explain</div>
+	<div class=text-info style='font-size:18px'>$ssl_explain</div>
 	<center>$button_upload&nbsp;$button_extract</center>
 	<div id='verify-$tt'></div>
 	<center style='margin:10px'>
@@ -252,12 +253,12 @@ function certificate_edit_csr(){
 	}
 	
 	$CommonNameURL=urlencode("$commonName");
-	$button_upload=button("$upload_text", "Loadjs('$page?certificate-upload-js=yes&CommonName=$CommonNameURL&type=csr&t={$_GET["t"]}&textid=text$t&RunAfter=VerifyCertificate$tt',true)");
+	$button_upload=button("$upload_text", "Loadjs('certificates.center.upload.php?certificate-upload-js=yes&CommonName=$CommonNameURL&type=csr&t={$_GET["t"]}&textid=text$t&RunAfter=VerifyCertificate$tt',true)");
 	
 	$csr_ssl_explain=$tpl->_ENGINE_parse_body("{csr_ssl_explain}");
 	$html="
 	
-	<div class=explain style='font-size:18px'>$csr_ssl_explain</div>
+	<div class=text-info style='font-size:18px'>$csr_ssl_explain</div>
 	<div id='verify-$tt'></div>
 	<center>$button_upload</center>
 		<center style='margin:10px'>
@@ -365,14 +366,14 @@ function certificate_edit_DynCert(){
 	$csr_ssl_explain=$tpl->_ENGINE_parse_body("{DynamicCert_ssl_explain}");
 	$CommonNameURL=urlencode($commonName);
 	$upload_text=$tpl->_ENGINE_parse_body("{upload_content}");
-	$button_upload=button("$upload_text", "Loadjs('$page?certificate-upload-js=yes&CommonName=$CommonNameURL&type=DynamicCert&t={$_GET["t"]}&textid=Content-$t',true)");
+	$button_upload=button("$upload_text", "Loadjs('certificates.center.upload.php?certificate-upload-js=yes&CommonName=$CommonNameURL&type=DynamicCert&t={$_GET["t"]}&textid=Content-$t',true)");
 	
 	
 	$html="
 	<table style='width:100%'>
 	<td style='vertical-align:top' width=1% nowrap>$img</td>
 	<td style='vertical-align:top'>
-	<div class=explain style='font-size:18px'>$csr_ssl_explain</div>
+	<div class=text-info style='font-size:18px'>$csr_ssl_explain</div>
 	<center>$button_upload</center>
 	</td>
 	</tr>
@@ -543,10 +544,10 @@ $warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
 $ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 $CommonNameURL=urlencode($CommonName);
 $upload_text=$tpl->_ENGINE_parse_body("{upload_content}");
-$button_upload=button("$upload_text", "Loadjs('$page?certificate-upload-js=yes&CommonName=$CommonNameURL&type=bundle&t={$_GET["t"]}&textid=bundl$tt',true)");
+$button_upload=button("$upload_text", "Loadjs('certificates.center.upload.php?certificate-upload-js=yes&CommonName=$CommonNameURL&type=bundle&t={$_GET["t"]}&textid=bundl$tt',true)");
 
 $html="
-<div class=explain style='font-size:18px' id='$tt-adddis'>{certificate_chain_explain}</div>
+<div class=text-info style='font-size:18px' id='$tt-adddis'>{certificate_chain_explain}</div>
 <center>$button_upload</center>
 <textarea 
 	style='margin-top:5px;font-family:Courier New;
@@ -591,7 +592,7 @@ function certificate_edit_crt(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
 	$CommonNameURL=urlencode($CommonName);
-	$button_upload=button("$upload_text", "Loadjs('$page?certificate-upload-js=yes&CommonName=$CommonNameURL&type=crt&t={$_GET["t"]}&textid=crt$tt&RunAfter=VerifyCertificate$tt',true)");
+	$button_upload=button("$upload_text", "Loadjs('certificates.center.upload.php?certificate-upload-js=yes&CommonName=$CommonNameURL&type=crt&t={$_GET["t"]}&textid=crt$tt&RunAfter=VerifyCertificate$tt',true)");
 	
 	$button_extract=button("{info}", "Loadjs('$page?certificate-info-crt-js=yes&CommonName=$CommonNameURL&type=crt&t={$_GET["t"]}&textid=crt$tt',true)");
 	
@@ -601,7 +602,7 @@ function certificate_edit_crt(){
 	//unable to load certificate
 	
 	$html="
-	<div class=explain style='font-size:18px' id='$tt-adddis'>{public_key_ssl_explain}</div>
+	<div class=text-info style='font-size:18px' id='$tt-adddis'>{public_key_ssl_explain}</div>
 	<div id='verify-$tt'></div>
 	<center>$button_upload&nbsp;$button_extract</center>
 	<textarea 

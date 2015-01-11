@@ -1,4 +1,6 @@
 <?php
+//depreciated
+die();
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.acls.inc');
@@ -10,7 +12,12 @@ if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDU
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 writelogs("Task::{$GLOBALS["SCHEDULE_ID"]}:: Executed with ".@implode(" ", $argv)." ","MAIN",__FILE__,__LINE__);
+
+
 if($argv[1]=="--mysql"){CheckSql();exit;}
+
+
+
 build();
 
 
@@ -67,11 +74,7 @@ function build(){
 		}
 	
 		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
-			@mkdir("/home/squid/access_logs");
-			if(@copy($filename, "/home/squid/access_logs/".basename($filename).".".filemtime($filename))){
-				@unlink($filename);
-			}
-				
+	
 			continue;
 		}
 	
@@ -113,21 +116,7 @@ function build(){
 	CheckSql();
 	echo "Done...\n";
 	$NICE=$unix->EXEC_NICE();
-	@mkdir("/home/squid/access_logs",0755,true);
-	if ($handle = opendir("/home/squid/access_logs")) {
-		while (false !== ($file = readdir($handle))) {
-			if ($file != "." && $file != "..") {
-				$path="/home/squid/access_logs/$file";
-				$cmdline="$NICE $mysar --logfile $path --stats --offline 2>&1";
-				$results=array();
-				exec($cmdline,$results);
-				while (list ($index, $line) = each ($results) ){if(preg_match("#Total runtime#", $line)){squid_admin_mysql(2, "MySar: $line", "Filename: ".basename($path));}}
-				rotate_admin_events("Insert into MySQL file $path",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
-				$syslog->ROTATE_ACCESS_TOMYSQL($path, null);
-			}
-			
-		}
-	}
+
 }
 
 function CheckSql(){

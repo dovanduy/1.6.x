@@ -30,6 +30,7 @@ if(!is_file($squidbin)){writelogs("squid, no such binary file",__FUNCTION__,__FI
 
 $php5=$unix->LOCATE_PHP5_BIN();
 $SQUID_ARGS="-YC";
+
 $SQUID_CONF="/etc/squid3/squid.conf";
 $f[]="[Unit]";
 $f[]="Description=Squid caching proxy";

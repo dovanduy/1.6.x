@@ -82,18 +82,25 @@ function members_repair(){
 		$xtime=$q->TIME_FROM_HOUR_TABLE($tablename);
 		if(date("Ymd",$xtime)==$currentDay){continue;}
 		$member_table=date("Ymd",$xtime)."_members";
+		$users_table=date("Ymd",$xtime)."_users";
 		$source_table="dansguardian_events_".date("Ymd",$xtime);
+		
 		if(!$q->TABLE_EXISTS($member_table)){
 			if($GLOBALS["VERBOSE"]){echo "$source_table -> $member_table -> BUILD\n";}
 			stats_admin_events(1,"Repair: Members $source_table -> $member_table",null,__FILE__,__LINE__);
-			if(members_hours_perfom($source_table,$member_table)){ $C++; }
+			if(members_hours_perfom($source_table,$member_table)){ 
+				users_day_perfom($member_table,$users_table);
+				$C++; }
 			continue;
 		}
 		
 		if($q->COUNT_ROWS($tablename)>0){
 			if($q->COUNT_ROWS($member_table)==0){
-				stats_admin_events(1,"Repair: Members $source_table -> $member_table",null,__FILE__,__LINE__);
-				if(members_hours_perfom($source_table,$member_table)){ $C++; }
+				
+				if(members_hours_perfom($source_table,$member_table)){ 
+					stats_admin_events(2,"Repair: Members Success from \"$source_table\" to \"$member_table\"",null,__FILE__,__LINE__);
+					users_day_perfom($member_table,$users_table);
+					$C++; }
 				continue;
 			}
 		}
@@ -113,16 +120,16 @@ function members_repair(){
 function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false){
 	$t=time();
 	if($tabledata==null){
-		events_tail("Processing alert (no tabledata)");
+		stats_admin_events(1,"$tabledata: Processing alert (no tabledata)",null,__FILE__,__LINE__);
 		return;
 	}
 	if($nexttable==null){
-		events_tail("Processing alert (no nexttable)");
+		stats_admin_events(1,"$tabledata: Processing alert (no nexttable)",null,__FILE__,__LINE__);
 		return;
 	}
 
 	if($tabledata=="19700101_hour"){
-		events_tail("Processing alert (19700101_hour is too old)");
+		stats_admin_events(1,"$tabledata: Processing alert (19700101_hour is too old)",null,__FILE__,__LINE__);
 		return;
 	}
 	
@@ -257,6 +264,53 @@ function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false
 	
 	stats_admin_events(2,"$tabledata -> $nexttable took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 	echo "SUCCESS\n";
+	return true;
+}
+
+function users_day_perfom($tabledata,$nexttable){
+	
+	$q=new mysql_squid_builder();
+	if($q->TABLE_EXISTS($nexttable)){
+		$q->QUERY_SQL("DROP TABLE $nexttable");
+	}
+	$f=array();
+	if(!$q->CreateUsersDayTable($nexttable)){return false;}
+		
+	$sql="SELECT SUM(size) as size, SUM(hits) as hits,client,hostname,uid,MAC FROM $tabledata GROUP BY client,hostname,uid,MAC";
+	$prefix="INSERT IGNORE INTO $nexttable (zMD5,client,hostname,MAC,size,hits,uid) VALUES";
+	
+	$results=$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){
+		stats_admin_events(0,"Processing failed with $tabledata",$q->mysql_error,__FILE__,__LINE__);
+		return;
+	}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		$md5=md5(serialize($ligne));
+		$client=mysql_escape_string2(trim(strtolower($ligne["client"])));
+		$uid=mysql_escape_string2(trim(strtolower($ligne["uid"])));	
+		$hostname=mysql_escape_string2(trim(strtolower($ligne["hostname"])));
+		$MAC=mysql_escape_string2(trim(strtolower($ligne["MAC"])));
+		$f[]="('$md5','$client','$hostname','$MAC','{$ligne["size"]}','{$ligne["hits"]}','$uid')";
+		
+		if(count($f)>500){
+			$q->QUERY_SQL("$prefix" .@implode(",", $f));
+			events_tail("Processing ". count($f)." rows");
+			if(!$q->ok){events_tail("Failed to process query to $nexttable {$q->mysql_error}");return;}
+			$f=array();
+		}
+		
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL("$prefix" .@implode(",", $f));
+		events_tail("Processing ". count($f)." rows");
+		if(!$q->ok){events_tail("Failed to process query to $nexttable {$q->mysql_error}");return;}
+		$f=array();
+	}	
+	
 	return true;
 }
 

@@ -4,7 +4,7 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once("ressources/class.os.system.inc");
 	include_once("ressources/class.lvm.org.inc");
-	
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	$user=new usersMenus();
 	if(!$user->AsSystemAdministrator){echo "alert('no privileges');";die();}
 	
@@ -23,7 +23,7 @@ function add_js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{add_iscsi_disk}");
 	
-	$html="YahooWin2('670','$page?add-popup=yes','$title');";
+	$html="YahooWin2('850','$page?add-popup=yes','$title');";
 	echo $html;
 	
 }
@@ -32,19 +32,19 @@ function add_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 
-	$html="<div class=explain>{add_iscsi_explain}</div>
+	$html="<div class=text-info style='font-size:18px'>{add_iscsi_explain}</div>
 	<hr>
-	<center>
-		<table style='width:260px' class=form>
+	<center style='width:98%' class=form>
+		<table style='width:100%'>
 		<tr>
-			<td class=legend nowrap>{addr}:</td>
-			<td>". Field_text("iscsi_search",null,"font-size:14px;font-weight:bold;width:210px",null,null,null,false,"SearchIscsiCheck(event)")."</td>
-			<td width=1%>". button("{search}","SearchIscsi()")."</td>
+			<td class=legend nowrap style='font-size:22px'>{addr}:</td>
+			<td>". Field_text("iscsi_search",null,"font-size:22px;font-weight:bold;width:350px",null,null,null,false,"SearchIscsiCheck(event)")."</td>
+			<td width=1%>". button("{search}","SearchIscsi()",22)."</td>
 		</tr>
 		</table>	
 	
 		<div style='text-align:right;margin-bottom:10px;margin-top:10px'>". imgtootltip("32-refresh.png","{refresh}","SearchIscsi()")."</td>
-		<div id='iscsi-search-list' style='width:100%;height:250px;overflow:auto'></div>
+		<div id='iscsi-search-list' style='width:100%;height:250px;overflow:auto;margin-top:15px'></div>
 		
 		
 		<script>
@@ -80,15 +80,18 @@ function add_popup(){
 
 function add_search(){
 	// sudo iscsiadm --mode discovery --type sendtargets --portal 192.168.1.106
+	$sock=new sockets();
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ip=trim($_GET["iscsi-search"]);
-	$sock=new sockets();
+	$sock->getFrameWork("iscsi.php?iscsi-sessions=yes");
+	
 	if($ip<>null){
-		$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?iscsi-search=$ip")));
+		$sock->getFrameWork("iscsi.php?iscsi-search=$ip");
+		$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/iscsi-search.array"));
 	}
 	
-	$array_sessions=unserialize(base64_decode($sock->getFrameWork("cmd.php?iscsi-sessions=yes")));
+	$array_sessions=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/iscsi-sessions.array"));
 	
 	while (list ($ip, $subarray) = each ($array_sessions)){
 		while (list ($ip, $subarray2) = each ($subarray)){
@@ -113,11 +116,13 @@ function add_search(){
 	$html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
 		<tr>
-			<th colspan=2>&nbsp;</th>
-			<th>{port}</th>
-			<th>{disk}</th>
-			<th>{directory}</th>
-			<th colspan=3>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th style='font-size:18px;padding:15px'>{port}</th>
+			<th style='font-size:18px;padding:15px'>{disk}</th>
+			<th style='font-size:18px;padding:15px'>{directory}</th>
+			<th style='font-size:18px;padding:15px'>{status}</th>
+			<th style='font-size:18px;padding:15px'>&nbsp;</th>
+			<th style='font-size:18px;padding:15px'>&nbsp;</th>
 		</tr>
 	</thead>
 	<tbody class='tbody'>";	
@@ -142,18 +147,18 @@ function add_search(){
 				$stat="ok32-grey.png";
 				if($MSESSIONS[$ids]){$stat="ok32.png";}
 				
-				$select=imgtootltip("hard-drive-add-32.png","{select}<hr>{$subarray2["FOLDER"]}",
+				$select=imgtootltip("arrow-blue-left-32.png","{select}<hr>{$subarray2["FOLDER"]}",
 				"iscsciSelect('$content','{$subarray2["ISCSI"]}/{$subarray2["FOLDER"]}','$ID')");
 				$html=$html . "
 				<tr  class=$classtr>
-					<td width=1%><img src='img/net-drive-32.png'></td>
-					<td width=1% align='center' nowrap><strong style='font-size:14px'>{$subarray2["ID"]}</strong></td>
-					<td width=1% align='center' nowrap><strong style='font-size:14px'>{$subarray2["PORT"]}</strong></td>
-					<td width=99% align='left'><strong style='font-size:14px'>{$subarray2["ISCSI"]}</strong></td>
-					<td width=1% align='center' nowrap><strong style='font-size:14px'>{$subarray2["FOLDER"]}</strong></td>
-					<td width=1%><img src='img/$stat'></td>
-					<td width=1%>$select</td>
-					<td width=1%>$delete</td>
+					
+					<td width=1%  align='center' nowrap><strong style='font-size:18px'>{$subarray2["ID"]}</strong></td>
+					<td width=1% align='center' nowrap><strong style='font-size:18px'>{$subarray2["PORT"]}</strong></td>
+					<td width=99% align='left'><strong style='font-size:18px'>{$subarray2["ISCSI"]}</strong><br><span style='font-size:12px'>{$subarray2["IP"]}</span></td>
+					<td width=1% align='center' nowrap><strong style='font-size:18px'>{$subarray2["FOLDER"]}</strong></td>
+					<td width=1% align='center' nowrap><img src='img/$stat'></td>
+					<td width=1% align='center'>$select</td>
+					<td width=1% align='center'>$delete</td>
 				</tr>";		
 			}		
 				
@@ -169,21 +174,21 @@ function add_search(){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		if($remove[$ligne["ID"]]){continue;}
 		$subarray2=unserialize(base64_decode($ligne["Params"]));
-		$select=imgtootltip("hard-drive-add-32.png","{select}<hr>{$subarray2["FOLDER"]}",
+		$select=imgtootltip("arrow-blue-left-32.png","{select}<hr>{$subarray2["FOLDER"]}",
 		"iscsciSelect('$content','{$subarray2["ISCSI"]}/{$subarray2["FOLDER"]}','{$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","iScsiClientDelete('{$ligne["ID"]}');");
 		$stat="ok32-grey.png";
 		if($MSESSIONS[$ids]){$stat="ok32.png";}
 		$html=$html . "
 			<tr  class=$classtr>
-				<td width=1%><img src='img/net-drive-32.png'></td>
-				<td width=1% align='center' nowrap><strong style='font-size:14px'>{$ligne["ID"]}</strong></td>
-				<td width=1% align='center' nowrap><strong style='font-size:14px'>{$subarray2["PORT"]}</strong></td>
-				<td width=99% align='left'><strong style='font-size:14px'>{$subarray2["ISCSI"]}</strong></td>
-				<td width=1% align='center' nowrap><strong style='font-size:14px'>{$subarray2["FOLDER"]}</strong></td>
-				<td width=1%><img src='img/$stat'></td>
-				<td width=1%>$select</td>
-				<td width=1%>$delete</td>
+				
+				<td width=1% align='center' nowrap><strong style='font-size:18px'>{$ligne["ID"]}</strong></td>
+				<td width=1% align='center' nowrap><strong style='font-size:18px'>{$subarray2["PORT"]}</strong></td>
+				<td width=99% align='left'><strong style='font-size:18px'>{$subarray2["ISCSI"]}</strong></td>
+				<td width=1% align='center' nowrap><strong style='font-size:18px'>{$subarray2["FOLDER"]}</strong></td>
+				<td width=1% align='center'><img src='img/$stat'></td>
+				<td width=1% align='center'>$select</td>
+				<td width=1% align='center'>$delete</td>
 			</tr>";		
 	}			
 		
@@ -192,12 +197,12 @@ function add_search(){
 		
 
 $html=$html."</table>
-<div style='text-align:right;width:100%;margin-top:15px'>". button("{connect}:{all}","iScsciReconnect()")."</td>
+<div style='text-align:right;width:100%;margin-top:15px'>". button("{connect}:{all}","iScsciReconnect()",18)."</td>
 
 <script>
 	function iscsciSelect(base,title,ID){
 		YahooWin3Hide();
-		YahooWin3('500','$page?add-select='+base+'&ID='+ID,title);
+		YahooWin3('850','$page?add-select='+base+'&ID='+ID,title);
 	
 	}
 	var x_iScsciReconnect=function (obj) {
@@ -236,46 +241,42 @@ function add_select_popup(){
 
 	
 	$html="
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
-	<tr>
-	<td width=1% valign='top'><img src='img/net-disk-add-64.png'></td>
-	<td valign='top'>
-		<table style=width:99%' class=form>
+	
 		<tr>
-			<td class=legend>{addr}:</td>
-			<td style='font-size:13px;font-weight:bold'>{$subarray2["IP"]}:{$subarray2["PORT"]}</td>
+			<td style='font-size:20px;' class=legend>{addr}:</td>
+			<td style='font-size:20px;font-weight:bold'>{$subarray2["IP"]}:{$subarray2["PORT"]}</td>
 		</tR>
 		<tr>
-			<td class=legend>{disk}:</td>
-			<td style='font-size:13px;font-weight:bold'>{$subarray2["ISCSI"]}</td>
+			<td style='font-size:20px;' class=legend>{disk}:</td>
+			<td style='font-size:20px;font-weight:bold'>{$subarray2["ISCSI"]}</td>
 		</tR>
 		<tr>
-			<td class=legend>{directory}:</td>
-			<td style='font-size:13px;font-weight:bold'>{$subarray2["FOLDER"]}</td>
+			<td style='font-size:20px;' class=legend>{directory}:</td>
+			<td style='font-size:20px;font-weight:bold'>{$subarray2["FOLDER"]}</td>
 		</tR>
 		<tr>
-			<td class=legend>{enable_authentication}:</td>
-			<td style='font-size:13px;font-weight:bold'>". Field_checkbox("iscsi-EnableAuth",1,$ligne["EnableAuth"],"EnableAuthCCheck()")."</td>
+			<td style='font-size:20px;' class=legend>{enable_authentication}:</td>
+			<td style='font-size:20px;font-weight:bold'>". Field_checkbox_design("iscsi-EnableAuth",1,$ligne["EnableAuth"],"EnableAuthCCheck()")."</td>
 		</tR>			
 		<tr>
-			<td class=legend nowrap>{username}:</td>
-			<td style='font-size:13px;font-weight:bold'>". Field_text("iscsi-username",$ligne["username"],"font-size:14px;padding:3px;width:210px")."</td>
+			<td style='font-size:20px;' class=legend nowrap>{username}:</td>
+			<td style='font-size:20px;font-weight:bold'>". Field_text("iscsi-username",$ligne["username"],"font-size:20px;padding:3px;width:530px")."</td>
 		</tR>
 		<tr>
-			<td class=legend>{password}:</td>
-			<td style='font-size:13px;font-weight:bold'>". Field_password("iscsi-password",$ligne["password"],"font-size:14px;padding:3px;width:150px")."</td>
+			<td style='font-size:20px;' class=legend>{password}:</td>
+			<td style='font-size:20px;font-weight:bold'>". Field_password("iscsi-password",$ligne["password"],"font-size:20px;padding:3px;width:530px")."</td>
 		</tR>		
 		<tr>
-			<td class=legend>{persistante_connection}:</td>
-			<td style='font-size:13px;font-weight:bold'>". Field_checkbox("iscsi-persistante",1,$ligne["Persistante"])."</td>
+			<td style='font-size:20px;' class=legend>{persistante_connection}:</td>
+			<td style='font-size:20px;font-weight:bold'>". Field_checkbox_design("iscsi-persistante",1,$ligne["Persistante"])."</td>
 		</tR>	
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{connect}","iscsi_client_connect()")."</td>
+			<td colspan=2 align='right'><hr>". button("{connect}","iscsi_client_connect()",26)."</td>
 		</tr>	
 		</table>
-	</td>
-	</tr>
-	</table>		
+	</div>	
 	
 	<script>
 	
@@ -319,7 +320,15 @@ function add_select_sql(){
 	$subarray2=unserialize(base64_decode($_POST["Params"]));
 	
 	$ID=$_POST["ID"];
-	if(!is_numeric($ID)){$ID=0;}		
+	if(!is_numeric($ID)){$ID=0;}
+	$q=new mysql();
+	
+	if(!$q->FIELD_EXISTS("iscsi_client","EnableAuth","artica_backup")){
+		$sql="ALTER TABLE `iscsi_client` ADD `EnableAuth` smallint(1) NOT NULL DEFAULT 1";
+		$q->QUERY_SQL($sql,'artica_backup');
+	}
+	
+	
 	
 	$sql="INSERT INTO iscsi_client(username,password,Params,hostname,directory,Persistante,EnableAuth)
 	VALUES('{$_POST["username"]}','{$_POST["password"]}','{$_POST["Params"]}','{$subarray2["ISCSI"]}:{$subarray2["PORT"]}','{$subarray2["FOLDER"]}','{$_POST["persistante"]}','{$_POST["EnableAuth"]}')";
@@ -332,7 +341,7 @@ function add_select_sql(){
 	WHERE `ID`='{$_POST["ID"]}'
 	";
 	if($ID>0){$sql=$sql_edit;}
-	$q=new mysql();
+	
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();

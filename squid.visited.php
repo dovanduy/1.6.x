@@ -212,8 +212,11 @@ function free_catgorized_tabs(){
 	if(!is_numeric($t)){
 		$t=time();
 	}
+	
+	$fontsize=15;
 
 	if($category<>null){
+		$fontsize=18;
 		unset($array["test-cat"]);
 		unset($array["categorytables"]);
 		unset($array["family"]);
@@ -223,28 +226,28 @@ function free_catgorized_tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="free-cat"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?free-cat=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"$page?free-cat=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="categorytables"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.categories.php?popup=yes&category=&website={$_GET["websitetoadd"]}&tablesize=620&rowebsite=321\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.categories.php?popup=yes&category=&website={$_GET["websitetoadd"]}&tablesize=620&rowebsite=321\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="test-cat"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.test.categories.php?popup=yes&category=&website={$_GET["websitetoadd"]}\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.test.categories.php?popup=yes&category=&website={$_GET["websitetoadd"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}	
 
 		if($num=="family"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.families.php?popup=yes&category=&website={$_GET["websitetoadd"]}\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.families.php?popup=yes&category=&website={$_GET["websitetoadd"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 
 		if($num=="compile"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php?categories=&minisize=yes\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"dansguardian2.databases.php?categories=&minisize=yes\"><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -397,14 +400,15 @@ function free_catgorized(){
 		$cats=$dans->LoadBlackListes();
 		while (list ($num, $ligne) = each ($cats) ){$newcat[$num]=$num;}
 		$newcat[null]="{select}";
-		$field_category="<span id='catz$t'>".Field_array_Hash($newcat,"free-category-add$t",null,"free_catgorized_explain()","style:font-size:16px")."</span>";	
+		$field_category="<span id='catz$t'>".Field_array_Hash($newcat,"free-category-add$t",null,
+				"free_catgorized_explain()","style:font-size:18px")."</span>";	
 		$refresh=imgtootltip("20-refresh.png","{refresh}","RefreshCatz$t()");
 		
 		
 	}else{
 		$field_category="
 		<input type='hidden' id='free-category-add$t' name='free-category-add$t' value='$category'>
-		<strong style='font-size:14px'>$category</strong>
+		<strong style='font-size:18px'>$category</strong>
 		
 		";
 	}
@@ -414,35 +418,36 @@ function free_catgorized(){
 		$textarea_with=95;
 	}
 	$html="
-	<div class=explain style='font-size:13px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
+	<div class=text-info style='font-size:18px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
 	<div style='width:98%' class=form>
-	<table >
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{category}:</td>
+		<td class=legend style='font-size:18px'>{category}:</td>
 		<td>$field_category</td>
 		<td width=1%>$refresh</td>
 	</tr>
 		<td colspan=3>
 		<table>
 			<tr>
-				<td class=legend>{force}:</td>
-				<td>". Field_checkbox("ForceCat$t", 1)."</td>
+				<td class=legend style='font-size:18px'>{force}:</td>
+				<td>". Field_checkbox_design("ForceCat$t", 1)."</td>
 				<td width=1%>". help_icon("{free_cat_force_explain}")."</td>
-				<td class=legend>{no_extension_check}:</td>
-				<td>". Field_checkbox("ForceExt$t", 1)."</td>
+				<td class=legend style='font-size:18px'>{no_extension_check}:</td>
+				<td>". Field_checkbox_design("ForceExt$t", 1)."</td>
 				<td width=1%>". help_icon("{free_cat_no_extension_check_explain}")."</td>
 			</tr>
 		</table>
 	</tr>
 	<tr>
 	<td colspan=3 align='center'>
-		<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:{$textarea_with}%;height:150px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important' id='textToParseCats$t'>$website_default</textarea>
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:{$textarea_with}%;height:150px;border:5px solid #8E8E8E;overflow:auto;font-size:18px !important' id='textToParseCats$t'>$website_default</textarea>
 	</td>
 	</tr>
 	<tr>
 	<td colspan=3 align='right'>
 	
-		". button("{add}","FreeCategoryPost()",16)."
+		". button("{add}","FreeCategoryPost()",32)."
 	</td>
 	</tr>
 	</table>
@@ -456,6 +461,7 @@ function free_catgorized(){
 		}
 		if(tt>0){ if(document.getElementById(tt)){ $('#'+tt).flexReload();} }
 		ExecuteByClassName('SearchFunction');
+		
 	}	
 
 	function free_catgorized_explain(){
@@ -589,9 +595,6 @@ function QuickCategorize(){
 		}
 		
 	}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?export-community-categories=yes");	
-	$sock->getFrameWork("squid.php?NoCategorizedAnalyze=yes");
 	
 }
 
@@ -1202,7 +1205,7 @@ function CategorizeAll_explain(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$text=$ligne["category_description"];
 	}
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>$text</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>$text</div>");
 	
 }
 

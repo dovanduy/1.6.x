@@ -21,9 +21,8 @@ This can be used to restrict users from downloading screen savers, executable fi
 <banned_catgories_text>Select categories you want to bann in this rule</banned_catgories_text>
 <black_ip_group>Computers banned list</black_ip_group>
 <black_ip_group_text>Ban computers access to Internet by IP address</black_ip_group_text>
-<blog>blogs sites.</blog>
+<blog>blogs sites or personal websites, including Websites that did not handle their own domain such as mydomain.ispdomain.com</blog>
 <build_dansguardian_databases>Build Dansguardian tables & databases</build_dansguardian_databases>
-<categories>Categories</categories>
 <categories_enabled>Enabled Categories:</categories_enabled>
 <categories_explain>Set here banned web sites per categories. This is the [b]Blacklist[/b] section.</categories_explain>
 <category>Category</category>

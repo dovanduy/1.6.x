@@ -1046,7 +1046,7 @@ function popup_db(){
 	$datas=unserialize(@file_get_contents("ressources/logs/greylist-count-{$_GET["hostname"]}.tot"));
 	if(is_array($datas)){
 		$table="
-		<div class=explain>
+		<div class=text-info>
 		<p>{MILTERGREYLIST_STATUSDUMP_TEXT}</p>
 		<table>
 		<tr>

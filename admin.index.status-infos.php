@@ -410,7 +410,7 @@ if($GLOBALS["VERBOSE"]){echo __LINE__." Saving $cachePage\n";}
 	if($users->AsAnAdministratorGeneric){
 		if(!$OnlySMTP){$f[]=left_menus_format("explorer","explorer-32.png","only:Loadjs('tree.php');",'SHARE_FOLDER_TEXT');}
 		
-		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
+		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
 		if($users->POWER_DNS_INSTALLED){
 
 			$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");
@@ -418,9 +418,7 @@ if($GLOBALS["VERBOSE"]){echo __LINE__." Saving $cachePage\n";}
 			$PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSMySQLEngine");
 			if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 			
-			$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-			if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-			if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 			
 			if(!is_numeric($PowerDNSMySQLEngine)){$PowerDNSMySQLEngine=1;}
 			if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}	
@@ -557,7 +555,7 @@ function showInfos_popup(){
 	<tbody>
 	<tr>
 		<td width=1% valign='top'><img src='img/$icon'></td>
-		<td width=99%' valign='top'><div class=explain style='font-size:14px'>{$ligne["text"]}</div></td>
+		<td width=99%' valign='top'><div class=text-info style='font-size:14px'>{$ligne["text"]}</div></td>
 	</tr>$link
 			<td colspan=2 align='left' style='font-size:16px;font-weight:bold'><a href=\"javascript:blur();\" OnClick=\"javascript:RemoveNotifAdmin()\"
 			style='font-size:16px;font-weight:bold;text-decoration:underline'>{ihavereaditremove}</a>

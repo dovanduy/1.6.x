@@ -221,7 +221,7 @@ function AddCachedSitelist_popup(){
 	<td valign='top'>
 	
 	". Field_hidden("id","{$_GET["id"]}")."
-	<div style='font-size:14px;padding:5px' class=explain>{squid_refresh_pattern_explain}</div>
+	<div style='font-size:14px;padding:5px' class=text-info>{squid_refresh_pattern_explain}</div>
 	<table style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{pattern}:</td>
@@ -361,7 +361,7 @@ if($EnableRemoteStatisticsAppliance==1){$buttons=null;}
 
 
 $html="
-<div class=explain>$refresh_pattern_intro</div>
+<div class=text-info>$refresh_pattern_intro</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 $(document).ready(function(){
@@ -475,21 +475,15 @@ function WEBSITES_SEARCH(){
 	$FORCE_FILTER=null;
 	
 	if($q->COUNT_ROWS($table,$database)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
+		json_error_show("no data");
 		return ;
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
@@ -504,7 +498,7 @@ function WEBSITES_SEARCH(){
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
-	
+	if(!is_numeric($rp)){$rp=1;}
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
@@ -519,13 +513,12 @@ function WEBSITES_SEARCH(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show($q->mysql_error);
 	}	
 	
-	
+	if(mysql_num_rows($results)==0){
+		json_error_show("no data");
+	}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=md5($ligne["domain"].$ligne["ID"]);
@@ -585,7 +578,7 @@ function WEBSITES_LIST_OLD(){
 	$html="
 	
 	<hr>
-	<div class=explain>{refresh_pattern_intro}</div>
+	<div class=text-info>{refresh_pattern_intro}</div>
 	<div style='text-align:right'>
 	<table style='width:99%'>
 	<tr>
@@ -763,7 +756,7 @@ $refresh_pattern[]="(avgate|avira).*(idx|gz)$                               1440
 $refresh_pattern[]="kaspersky.*\.avc$                                       1440 9999% 10080 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="kaspersky                                               1440 9999% 10080 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="update.nai.com/.*\.(gem|zip|mcs)                        1440 9999% 10080 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
-$refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com.*\(zip)     1440 9999% 10080 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com     1440 9999% 10080 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 
 $refresh_pattern[]="windowsupdate.com/.*\.(cab|exe)                 10080  9999%  43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="update.microsoft.com/.*\.(cab|exe)              10080  9999%  43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
@@ -839,10 +832,9 @@ $refresh_pattern[]="^http:\/\/www.onemanga.com.*\/           129600 999999% 1296
 $refresh_pattern[]="^http:\/\/www.porntube.com.*\/           129600 999999% 129600 reload-into-ims ignore-no-cache ignore-no-store ignore-reload override-expire store-stale";
 $refresh_pattern[]="guru.avg.com/.*\.(bin) 				 	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="(avgate|avira).*(idx|gz)$                       	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
-$refresh_pattern[]="kaspersky.*\.avc$                               	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
-$refresh_pattern[]="kaspersky                                       	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="kaspersky-labs.com                               	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="update.nai.com/.*\.(gem|zip|mcs)                	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
-$refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
+$refresh_pattern[]="^http:\/\/liveupdate.symantecliveupdate.com 	43200 999999% 43200 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="windowsupdate.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="update.microsoft.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";
 $refresh_pattern[]="download.microsoft.com/.*\.(cab|exe) 			43200  999999%  129600 ignore-no-cache ignore-no-store ignore-reload  reload-into-ims store-stale";

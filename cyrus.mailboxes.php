@@ -8,6 +8,7 @@
 	include_once('ressources/class.cyrus.inc');
 	include_once('ressources/class.cron.inc');
 	include_once('ressources/class.system.network.inc');
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	
 	$users=new usersMenus();
 	if(!$users->AsMailBoxAdministrator){
@@ -47,7 +48,7 @@ function page(){
 	if($EnableVirtualDomainsInMailBoxes==1){
 		$swicthdomains="{name: '$domains', bclass: 'Search', onpress : domains$t},";
 	}
-	
+	$title=$tpl->javascript_parse_text("{mailboxes}");
 	$buttons="
 	buttons : [
 	{name: '$help', bclass: 'Help', onpress : ItemHelp$t},$swicthdomains
@@ -76,11 +77,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'files',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span id=title-$t></span>',
+	title: '<span id=title-$t style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -120,51 +121,31 @@ function DeleteRealMailBox$t(mbx,id){
 }
 
 function items(){
-	 $sock=new sockets();
-	 
-	 if($_GET["domain"]<>null){
-	 	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?mailboxlist-domain={$_GET["domain"]}")));
-	 	
-	 }else{
-	 	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?mailboxlist=yes")));
-	 }
-	 if(!is_array($datas)){json_error_show("No mailbox");}
-	 if(count($datas)==0){json_error_show("No mailbox");}
+	
+	 $cyrus=new cyrus();
+ 	 $array=$cyrus->ListUsersBoxes($_POST["query"],$_GET["domain"]);
+	 if(!is_array($array)){json_error_show("No mailbox");}
+	 if(count($array)==0){json_error_show("No mailbox");}
 	 $t=$_GET["t"];
 	 $c=0;
 	 
 	$data = array();
-	$data['page'] = $page;
-	$data['total'] = count($datas);
+	$data['page'] = 1;
+	$data['total'] = count($array);
 	$data['rows'] = array();	 
 	
-	if(preg_match("#failed#", $datas[0])){
-		while (list ($num, $ligne) = each ($datas) ){
-			$data['rows'][] = array(
-					'id' => md5($line),
-					'cell' => array(
-						"<span style='font-size:16px;color:$color'>&nbsp;</a></span>",
-						"<span style='font-size:16px;color:$color'>$ligne</a></span>",
-						"<span style='font-size:16px;color:$color'>&nbsp;</a></span>",
-						)
-					);		
-			
-		}
-		echo json_encode($data);
-		return;
-		
-	}
+	
 	
 	$search=null;
 	if($_POST["query"]<>null){
 		$search=string_to_regex($_POST["query"]);
 	}
 	 
-	while (list ($num, $ligne) = each ($datas) ){
-		$ligne=trim($ligne);
-		if($ligne==null){continue;}
-		if(!preg_match("#user\/(.+)#",$ligne,$re)){continue;}
-		$mailbox_name=$re[1];
+	while (list ($mailbox_name, $ligne) = each ($array) ){
+		$mailbox_name=trim($mailbox_name);
+		if($mailbox_name==null){continue;}
+		
+	
 		if($search<>null){if(!preg_match("#$search#", $ligne)){continue;}}
 		if($_GET["domain"]<>null){
 				$mailbox_name="$mailbox_name@{$_GET["domain"]}";

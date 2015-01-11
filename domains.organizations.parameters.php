@@ -256,7 +256,7 @@ function ou_sql_popup(){
 	$sql="SELECT * FROM register_orgs WHERE `zmd5`='{$_GET["ou-sql-popup"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	$html="
-	<div class=explain>{waiting_user_confirmation}</div>
+	<div class=text-info>{waiting_user_confirmation}</div>
 	<table style='width:99%' class=form>
 		<tr>
 			<td class=legend style='font-size:13px;'>{register_date}:</td>
@@ -506,7 +506,7 @@ function main_domains(){
 	$domaintext=$tpl->javascript_parse_text("{domain}");
 	$add_official_domains_popup_text=$tpl->javascript_parse_text("{add_official_domains_popup_text}");
 	$html="
-	<div class=explain>{maindomains_explain}</div>
+	<div class=text-info>{maindomains_explain}</div>
 	<p>&nbsp;</p>
 	<center>
 	<table style='width:70%' class=form>
@@ -642,7 +642,7 @@ function UsersCreateOrg_popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$html="
-	<div class=explain>{AllowInternetUsersCreateOrg_welcome_explain}</div>
+	<div class=text-info>{AllowInternetUsersCreateOrg_welcome_explain}</div>
 	<textarea style='width:100%;height:430px;overlfow:auto;font-size:14px' id='UsersCreateOrgWelComeText'>$UsersCreateOrgWelComeText</textarea>
 	<div style='width:100%;text-align:right'>". button("{apply}","UsersCreateOrgWelComeTextSave()")."</div>
 	<script>

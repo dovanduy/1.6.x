@@ -412,7 +412,7 @@ function members_add_popup(){
 	$tpl=new templates();
 	$html="
 	<div id='viptrackadd-smtp-div'>
-	<div class=explain>{add_multiple_members_explain}</div>
+	<div class=text-info>{add_multiple_members_explain}</div>
 
 	<textarea id='members-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","MembersVIPTrackSave()")."</div>

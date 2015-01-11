@@ -648,7 +648,7 @@ function proposal($www){
 		$f["movies"]=true;
 		$f["audio-video"]=true;		
 	}
-	if(strpos($www, ".amazonaws.com")>0){$f["filehosting"]=true;}	
+	
 	if(preg_match("#radio#", $www)){$f["webradio"]=true;}
 	if(preg_match("#skyrock#", $www)){$f["webradio"]=true;}
 	if(preg_match("#journal#", $www)){$f["blog"]=true;}

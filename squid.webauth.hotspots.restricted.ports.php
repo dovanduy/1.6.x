@@ -217,7 +217,7 @@ function table(){
 	],";
 
 	$html="
-	<div class=explain style='font-size:14px'>$hostpot_blackports_explain</div>
+	<div class=text-info style='font-size:14px'>$hostpot_blackports_explain</div>
 	<table class='flexRT$tt' style='display: none' id='flexRT$tt' style='width:100%'></table>
 	<script>
 	function Start$tt(){

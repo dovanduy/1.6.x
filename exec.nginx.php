@@ -31,6 +31,8 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 
 
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
+	
+	if($argv[1]=="--dump-modules"){$GLOBALS["OUTPUT"]=true;dump_nginx_params();exit;}
 	if($argv[1]=="--reconfigure-all-reboot"){$GLOBALS["OUTPUT"]=true;reconfigure_all();exit;}
 	if($argv[1]=="--reconfigure"){$GLOBALS["OUTPUT"]=true;configure_single_website($argv[2]);die();}
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
@@ -39,6 +41,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 	if($argv[1]=="--force-restart"){$GLOBALS["OUTPUT"]=true;force_restart();die();}
 	if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;$GLOBALS["RECONFIGURE"]=true;build();die();}
+	if($argv[1]=="--main"){$GLOBALS["OUTPUT"]=true;$GLOBALS["RECONFIGURE"]=true;build(true);die();}
 	if($argv[1]=="--artica-web"){articaweb();exit;}
 	if($argv[1]=="--install-nginx"){install_nginx();exit;}
 	if($argv[1]=="--status"){status();exit;}
@@ -55,6 +58,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--import-bulk"){$GLOBALS["OUTPUT"]=true;import_bulk();exit;}
 	if($argv[1]=="--mem"){$GLOBALS["OUTPUT"]=true;parse_memory();exit;}
 	if($argv[1]=="--mymem"){$GLOBALS["OUTPUT"]=true;max_memory();exit;}
+	if($argv[1]=="--mail"){$GLOBALS["OUTPUT"]=true;mail_protocols();exit;}
 	
 	
 	
@@ -67,6 +71,135 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	echo "--framework...........: Build framework\n";
 	echo "--caches-status.......: Build caches status\n";
 	echo "--build-default.......: Build default website\n";
+	
+function mail_protocols(){
+	$sock=new sockets();
+	if(is_file("/etc/nginx/conf.d/mail.conf")){@unlink("/etc/nginx/conf.d/mail.conf");}
+	$EnableNginxMail=intval($sock->GET_INFO("EnableNginxMail"));
+	if($EnableNginxMail==0){
+		echo "Starting......: ".date("H:i:s")." [INIT]: EnableNginxMail: $EnableNginxMail, aborting\n";
+		return;}
+	
+	$unix=new unix();
+	$hostname=$unix->hostname_g();
+	$f[]="mail {";
+	
+	$f[]="\tserver_name       $hostname;";
+	$f[]="\tauth_http         unix:/usr/share/artica-postfix/ressources/web/framework.sock:/auth.unix.php;";
+	$f[]="";
+	$f[]="\timap_capabilities IMAP4rev1 UIDPLUS IDLE LITERAL+ QUOTA;";
+	$f[]="\timap_auth			login plain cram-md5;";
+	$f[]="";
+	$f[]="\tpop3_auth         plain apop cram-md5;";
+	$f[]="\tpop3_capabilities LAST TOP USER PIPELINING UIDL;";
+	$f[]="";
+	$f[]="\tsmtp_auth         login plain cram-md5;";
+	$f[]="\tsmtp_capabilities \"SIZE 10485760\" ENHANCEDSTATUSCODES PIPELINING 8BITMIME DSN;";
+	$f[]="\txclient           off;";
+	$f[]="\tproxy on;";
+	$f[]="";
+
+	
+	
+	$f[]="\tssl_prefer_server_ciphers on;";
+	$f[]="\tssl_protocols TLSv1 SSLv3;";
+	$f[]="\tssl_ciphers HIGH:!ADH:!MD5:@STRENGTH;";
+	$f[]="\tssl_session_cache shared:MAIL:10m;";
+	
+	$nginx_certificate=new nginx_certificate();
+	$f[]=$nginx_certificate->GetConf();
+	
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 25;";
+	$f[]="\t\tprotocol smtp;";
+	$f[]="\t\ttimeout 120000;";
+	$f[]="\t\tsmtp_auth  none;";
+	$f[]="\t}";	
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten     143;";
+	$f[]="\t\tprotocol   imap;";
+	$f[]="\t\tproxy      on;";
+	$f[]="\t\tproxy_pass_error_message  on;";
+	$f[]="\t}";
+	$f[]="";
+	
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 465;";
+	$f[]="\t\tprotocol smtp;";
+	$f[]="\t\tssl on;";
+	$f[]="\t}";
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 587;";
+	$f[]="\t\tprotocol smtp;";
+	$f[]="\t\tstarttls on;";
+	$f[]="\t}";
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 110;";
+	$f[]="\t\tprotocol pop3;";
+	$f[]="\t\tstarttls on;";
+	$f[]="\t}";
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 995;";
+	$f[]="\t\tprotocol pop3;";
+	$f[]="\t\tssl on;";
+	$f[]="\t\t}";
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 143;";
+	$f[]="\t\tprotocol imap;";
+	$f[]="\t\tstarttls on;";
+	$f[]="\t\t}";
+	$f[]="";
+	$f[]="\tserver {";
+	$f[]="\t\tlisten 993;";
+	$f[]="\t\tprotocol imap;";
+	$f[]="\t\tssl on;";
+	$f[]="\t}";
+$f[]="}";
+	
+
+	
+	
+	
+	return @implode("\n", $f);
+	
+}	
+
+function nginx_version(){
+	if(isset($GLOBALS["nginx_version"])){return $GLOBALS["nginx_version"];}
+	$unix=new unix();
+	$bin=$unix->find_program("nginx");
+	if(!is_file($bin)){return 0;}
+
+	exec("$bin -v 2>&1",$array);
+	while (list ($pid, $line) = each ($array) ){
+		if(preg_match("#\/([0-9\.\-]+)#i", $line,$re)){
+			$GLOBALS["nginx_version"]=$re[1];
+			return $re[1];}
+			if($GLOBALS['VERBOSE']){echo "nginx_version(), $line, not found \n";}
+	}
+
+}
+
+function dump_nginx_params(){
+	
+		$unix=new unix();
+		$ARRAY=$unix->NGINX_COMPILE_PARAMS();
+		$nginx=new nginx();
+
+	while (list ($a, $b) = each ($ARRAY["MODULES"]) ){
+		echo "Module: \"$a\"\n";
+		
+	}
+	
+	echo "Substitutions: ".$nginx->IsSubstitutions()."\n";
+	
+}
+	
 
 function build($OnlySingle=false){
 	if(isset($GLOBALS[__FILE__.__FUNCTION__])){return;}
@@ -76,7 +209,7 @@ function build($OnlySingle=false){
 	
 	shell_exec("/etc/init.d/mysql start");
 	
-	build_progress("Building configuration",10);
+	build_progress("{building_main_settings}",10);
 	
 	if($unix->SQUID_GET_LISTEN_PORT()==80){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Squid listen 80, ports conflicts, change it\n";}
@@ -110,10 +243,14 @@ function build($OnlySingle=false){
 		}	
 	}
 	
+	
+	
 	$APACHE_USER=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
 	$NginxProxyStorePath="/home/nginx";
 	@mkdir("/etc/nginx/sites-enabled",0755,true);
+	@mkdir("/etc/nginx/local-sites",0755,true);
+	@mkdir("/etc/nginx/local-sslsites",0755,true);
 	@mkdir($NginxProxyStorePath,0755,true);
 	@mkdir($NginxProxyStorePath."/tmp",0755,true);
 	@mkdir($NginxProxyStorePath."/disk",0755,true);
@@ -141,6 +278,7 @@ function build($OnlySingle=false){
 	if(is_file("/etc/nginx/sites-enabled/default")){@unlink("/etc/nginx/sites-enabled/default");}
 	if(is_link("/etc/nginx/sites-enabled/default")){@unlink("/etc/nginx/sites-enabled/default");}
 	if(is_link("/etc/nginx/conf.d/example_ssl.conf")){@unlink("/etc/nginx/conf.d/example_ssl.conf");}
+	
 	
 	
 	
@@ -179,15 +317,37 @@ function build($OnlySingle=false){
 		$workers=4;
 	}
 	
+	$mail_protocols=mail_protocols();
 	
+	
+	//
 	
 	$f[]="# Builded on ".date("Y-m-d H:i:s");
 	$f[]="user   $APACHE_USER;";
 	$f[]="worker_processes  $workers;";
+	$nginx_version=nginx_version();
+	
+	preg_match("#^([0-9])+\.([0-9]+)\.#", $nginx_version,$re);
+	$re[1]=intval($re[1]);
+	$re[2]=intval($re[2]);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Major {$re[1]} Minor:{$re[2]}\n";}
+	$syslog=false;
+	
 	$f[]="worker_rlimit_nofile 16384;";
 	$f[]="timer_resolution 1ms;";
 	$f[]="";
-	$f[]="error_log  /var/log/nginx/error.log warn;";
+	if($re[1]>0){
+		if($re[2]>6){
+			$f[]="error_log syslog:server=127.0.0.1,facility=daemon info;";
+			$syslog=true;
+		}
+	}
+	
+	
+	$syslog=false;
+	if(!$syslog){
+		$f[]="error_log  /var/log/nginx/error.log warn;";
+	}
 	$f[]="pid        /var/run/nginx.pid;";
 	$f[]="";
 	$f[]="";
@@ -291,8 +451,8 @@ function build($OnlySingle=false){
 	if($dns->MainArray["DNS1"]<>null){$resolver[]=$dns->MainArray["DNS1"];}
 	if($dns->MainArray["DNS2"]<>null){$resolver[]=$dns->MainArray["DNS2"];}
 	if($dns->MainArray["DNS3"]<>null){$resolver[]=$dns->MainArray["DNS3"];}
-;
-	build_progress("Building configuration",20);
+
+	
 	$f[]="\tresolver ". @implode(" ", $resolver).";";
 	$f[]="\tignore_invalid_headers on;";
 	$f[]="\tindex index.html;";
@@ -304,6 +464,7 @@ function build($OnlySingle=false){
 		$directory=$ligne["directory"];
 		@mkdir($directory,0755,true);
 		$unix->chown_func("www-data","www-data", $directory);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, cache `$directory`\n";}
 		$f[]="\tproxy_cache_path $directory levels={$ligne["levels"]} keys_zone={$ligne["keys_zone"]}:{$ligne["keys_zone_size"]}m max_size={$ligne["max_size"]}G  inactive={$ligne["inactive"]} loader_files={$ligne["loader_files"]} loader_sleep={$ligne["loader_sleep"]} loader_threshold={$ligne["loader_threshold"]};";
 		
 		
@@ -343,18 +504,21 @@ function build($OnlySingle=false){
 	$f[]="\tlog_format  aws_log";
 	$f[]="\t\t'\$remote_addr - \$remote_user [\$time_local] \$request '";
 	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
-	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\"';";
+	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\" [\$upstream_cache_status]';";
 	$f[]="";	
 	
 	$f[]="\tlog_format  awc_log";
 	$f[]="\t\t'[\$server_name] \$remote_addr - \$remote_user [\$time_local] \$request '";
 	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
-	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\"';";
+	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\" [\$upstream_cache_status]';";
 	$f[]="";	
 	
-	$f[]="\tinclude /etc/nginx/conf.d/*.conf;";
 	$f[]="\tinclude /etc/nginx/sites-enabled/*.conf;";
+	$f[]="\tinclude /etc/nginx/local-sites/*.conf;";
+	$f[]="\tinclude /etc/nginx/conf.d/*.conf;";
+	
 	$f[]="\t}";
+	$f[]=$mail_protocols;
 	$f[]="";	
 	@copy("/etc/nginx/nginx.conf","/etc/nginx/nginx.bak");
 	@file_put_contents("/etc/nginx/nginx.conf", @implode("\n", $f));
@@ -364,15 +528,11 @@ function build($OnlySingle=false){
 	
 	if(!$OnlySingle){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
-		build_progress("Building default configuration",25);
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+		build_progress("Building default configuration",10);
 		build_default(true);
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
-		build_progress("Building localhosts",30);
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 		build_localhosts();
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
-		build_progress("Building localhosts done",75);
+		
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Only single defined\n";}
 	}
@@ -388,7 +548,7 @@ function build($OnlySingle=false){
 		}
 	}
 	
-	build_progress("Building configuration done",75);
+	build_progress("Building configuration done",10);
 	
 }
 
@@ -431,7 +591,7 @@ function configure_single_freeweb($servername){
 	}else{
 		$host->set_freeweb();
 		$host->set_storeid($ligne2["cacheid"]);
-		$host->set_proxy_destination("127.0.0.1");
+		
 	}
 	if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
 	if($free->groupware=="WORDPRESS"){$host->WORDPRESS=true;}
@@ -509,7 +669,7 @@ function configure_single_website_reload(){
 		$nginx=$unix->find_program("nginx");
 		shell_exec("$nginx -c /etc/nginx/nginx.conf -s reload >/dev/null 2>&1");
 		if($unix->process_exists($pid)){
-			apache_admin_mysql(1, "Nginx Web service reload done [action=start]", null,__FILE__,__LINE__);
+			nginx_admin_mysql(1, "Nginx Web service reload done [action=start]", null,__FILE__,__LINE__);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Success service reloaded pid:$pid...\n";}
 		}
 	
@@ -607,12 +767,6 @@ function build_localhosts(){
 	
 	$q=new mysql();
 	
-	$sql="SELECT * FROM freeweb WHERE `enabled`=1";
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	$q2=new mysql_squid_builder();
-	if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Fatal $q->mysql_error\n";} return; }
-	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: $sql -> ".mysql_num_rows($results)." items\n";}
 	foreach (glob("/etc/nginx/sites-enabled-backuped/*") as $filename) {@unlink($filename);}
 	@mkdir("/etc/nginx/sites-enabled-backuped",0755,true);
 	
@@ -620,13 +774,19 @@ function build_localhosts(){
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, scanning /etc/nginx/sites-enabled\n";}
 	
-	build_progress("Backup old config",30);
+	build_progress("Backup old config",10);
+	
+	foreach (glob("/etc/nginx/local-sites/*") as $filename) {
+		@unlink($filename);
+	}
+	
+	
 	foreach (glob("/etc/nginx/sites-enabled/*") as $filename) {
 		
 		$file=basename($filename);
 		if(is_numeric($file)){@unlink($filename);continue;}
 		$filedetect=$file;
-		if(!preg_match("#^freewebs-#", $file,$re)){continue;}
+		if(!preg_match("#freewebs-#", $file,$re)){continue;}
 		if(preg_match("#_default_#", $file)){@unlink($filename);continue;}
 			
 		
@@ -634,14 +794,10 @@ function build_localhosts(){
 		$filedetect=str_replace("freewebs-", "", $filedetect);
 		$filedetect=str_replace("freewebs-unix-", "", $filedetect);
 		
+		if(preg_match("#([0-9])-(.+?)\.([0-9]+)\.conf$#",$filedetect,$re)){$filedetect="{$re[2]}.{$re[3]}.conf"; }
 		
 		if(preg_match("#(.+?)\.[0-9]+\.conf$#",$filedetect,$re)){
 			$sitename=$re[1];
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT DenyConf FROM reverse_www WHERE servername='$sitename'"));
-			if($ligne["DenyConf"]==1){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, [$sitename], locked\n";}
-				continue;
-			}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, [$sitename] backup/remove $filename\n";}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, backup \"$file\"\n";}
 			@copy($filename, "/etc/nginx/sites-enabled-backuped/$file");
@@ -657,108 +813,11 @@ function build_localhosts(){
 
 	$NOPROXY["SARG"]=true;
 	$NOPROXY["ARTICA_MINIADM"]=true;
-	
-	
-	$CountDeserver=mysql_num_rows($results);
-	$prc_org=30;
-	$c=0;
-	
-	while ($ligne = mysql_fetch_assoc($results)) {
-		
-		$c++;
-		$prc=($c/$CountDeserver)*100;
-		$prc=$prc/3;
-		$prc=intval($prc_org+$prc);
-		build_progress("Building {$ligne["servername"]}",$prc);
-		
-		$DenyConf=$ligne["DenyConf"];
-		$groupware=$ligne["groupware"];
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $c/$CountDeserver\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} / $DenyConf / $groupware /{$ligne["UseSSL"]} ************* \n";}
-		$ligne["servername"]=trim($ligne["servername"]);
-		if($ligne["servername"]=="_default_"){continue;}
-		
-		if($GLOBALS["REMOVE_LOCAL_ADDR"]){
-			if(isset($IPADDRS[$ligne["servername"]])){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] {$ligne["servername"]} *** SKIPPED ***\n";}
-				continue;
-			}
-		}
-		
-		if($DenyConf==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}`, DenyConf = 1,skipped\n";}
-			continue;
-		}
-		
-		if($GLOBALS["VERBOSE"]){echo "\n\n********************************************\n".__FUNCTION__.".".__LINE__.":Start...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}`, continue\n";}
-		$ALREADYSET[$ligne["servername"]]=true;
-		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT cacheid FROM reverse_www WHERE servername='{$ligne["servername"]}'"));
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}` Groupware:[$groupware]; SSL:{$ligne["UseSSL"]}\n";}
-		configure_single_website($ligne["servername"],true,true);
-		
-		
-	}
-	
-	
-// *********************************************************************************************************************************************************
-	$sql="SELECT * FROM `reverse_www` WHERE `enabled`=1";
-	$q=new mysql_squid_builder();
-	$results=$q->QUERY_SQL($sql);
-	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: $sql -> ".mysql_num_rows($results)." items\n";}
-	if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  $q->mysql_error\n";}return;}
-	$countDeServer=mysql_num_rows($results);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  $countDeServer remote websites to protect\n";}
-	
-	$c=0;
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$prc=($c/$CountDeserver)*100;
-		$prc=$prc/3;
-		$prc=intval($prc_org+$prc);
-		if($prc>75){$prc=75;}
-		build_progress("Building {$ligne["servername"]}",$prc);
-		
-		
-			
-			if($ligne["servername"]=="_default_"){continue;}
-			$c++;
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx ****************************************************\n";}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $c/$countDeServer BuildReverse({$ligne["servername"]})\n";}
-			BuildReverse($ligne);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx ****************************************************\n";}
-	}
-			
-			
-BuildArticaInNginx();
+	build_progress("Building Artica in Nginx (if set)",10);
+	BuildArticaInNginx();
+	build_progress("Building authenticator",10);
+	authenticator(false);
 
-	$prc++;if($prc>75){$prc=75;}
-	build_progress("Building authenticator",$prc);
-	authenticator();
-	
-	
-	$host=new nginx();
-	$prc++;if($prc>75){$prc=75;}
-	build_progress("Testing settings",$prc);
-	if(!$host->TestTheWholeConfig()){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, testing configuration failed, return to old config...\n";}
-		@copy("/etc/nginx/nginx.bak","/etc/nginx/nginx.conf");
-		foreach (glob("/etc/nginx/sites-enabled/*") as $filename) {
-			$file=basename($filename);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, remove new $file file\n";}
-			if(preg_match("#^freewebs-#", $file)){@unlink($filename);}
-		}
-		
-		foreach (glob("/etc/nginx/sites-enabled-backuped/*") as $filename) {
-			$file=basename($filename);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, restore old $file file\n";}
-			@copy($filename, "/etc/nginx/sites-enabled/$file");
-		}
-		
-	}
-	$prc++;if($prc>75){$prc=75;}
-	build_progress("Building settings done",$prc);
-	if($GLOBALS["VERBOSE"]){echo "\n##################### - - END - - ##############################\n".__FUNCTION__.".".__LINE__.":Start...\n";}	
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK, DONE...\n";}
 }
 
 function BuildArticaInNginx(){
@@ -832,7 +891,7 @@ function BuildReverse($ligne,$backupBefore=false){
 	$q=new mysql_squid_builder();
 	$ligne["servername"]=trim($ligne["servername"]);
 	$IPADDRS=$GLOBALS["IPADDRS"];
-	$DenyConf=$ligne["DenyConf"];
+	
 	$ligne["servername"]=trim($ligne["servername"]);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  ************* {$ligne["servername"]}:{$ligne["port"]} / $DenyConf ************* \n";}
@@ -850,10 +909,7 @@ function BuildReverse($ligne,$backupBefore=false){
 	}
 		
 		
-	if($DenyConf==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  Local web site `{$ligne["servername"]}`, DenyConf = 1,skipped\n";}
-		continue;
-	}
+
 		
 	if(isset($ALREADYSET[$ligne["servername"]])){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  `{$ligne["servername"]}` Already defined, abort\n";}
@@ -879,7 +935,6 @@ function BuildReverse($ligne,$backupBefore=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, HTTP/HTTPS Enabled...\n";}
 		$host->set_RedirectQueries($ligne["RedirectQueries"]);
 		$host->set_forceddomain($ligne2["forceddomain"]);
-		$host->set_proxy_destination($ligne2["ipaddr"]);
 		$host->set_ssl(0);
 		$host->set_proxy_port($ligne2["port"]);
 		$host->set_listen_port(80);
@@ -894,7 +949,6 @@ function BuildReverse($ligne,$backupBefore=false){
 		$host->set_ssl_certificate($certificate);
 		$host->set_ssl_certificate($ligne2["ssl_commname"]);
 		$host->set_forceddomain($ligne2["forceddomain"]);
-		$host->set_proxy_destination($ligne2["ipaddr"]);
 		$host->BackupBefore=$backupBefore;
 		$host->set_ssl(1);
 		$host->set_proxy_port($ligne2["port"]);
@@ -920,7 +974,6 @@ function BuildReverse($ligne,$backupBefore=false){
 	$host->set_ssl_certificate($certificate);
 	$host->set_ssl_certificate($ligne2["ssl_commname"]);
 	$host->set_forceddomain($ligne2["forceddomain"]);
-	$host->set_proxy_destination($ligne2["ipaddr"]);
 	$host->set_ssl($ligne2["ssl"]);
 	$host->set_proxy_port($ligne2["port"]);
 	$host->set_listen_port($ligne["port"]);
@@ -1040,7 +1093,7 @@ function build_default($aspid=false){
 	$f[]="server {";
 	$f[]="\tlisten       80;";
 	$f[]="\tserver_name  ".$unix->hostname_g().";";
-	$f[]="\tproxy_cache_key \$scheme://\$host\$uri;";
+	$f[]="\tproxy_cache_key \$host\$request_uri\$cookie_user";
 	$f[]="\tproxy_set_header Host \$host;";
 	$f[]="\tproxy_set_header	X-Forwarded-For	\$proxy_add_x_forwarded_for;";
 	$f[]="\tproxy_set_header	X-Real-IP	\$remote_addr;";
@@ -1071,7 +1124,7 @@ function build_default($aspid=false){
 	$f[]="\tssl_ciphers HIGH:!aNULL:!MD5;";
 	$f[]="\tssl_prefer_server_ciphers   on;";
 	$f[]="\tserver_name  ".$unix->hostname_g().";";
-	$f[]="\tproxy_cache_key \$scheme://\$host\$uri;";
+	$f[]="\tproxy_cache_key \$host\$request_uri\$cookie_user;";
 	$f[]="\tproxy_set_header Host \$host;";
 	$f[]="\tproxy_set_header	X-Forwarded-For	\$proxy_add_x_forwarded_for;";
 	$f[]="\tproxy_set_header	X-Real-IP	\$remote_addr;";
@@ -1202,50 +1255,7 @@ function nginx_ulimit(){
 }
 
 function reload($aspid=false){
-	$unix=new unix();
-	
-	$nginx=$unix->find_program("nginx");
-	
-	if(!$aspid){
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($pid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($pid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
-			return;
-		}
-		@file_put_contents($pidfile, getmypid());	
-	}
-	
-	$pid=PID_NUM();
-	
-	
-	
-	
-	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx reloading PID $pid\n";}
-		$kill=$unix->find_program("kill");
-		shell_exec("$nginx -c /etc/nginx/nginx.conf -s reload");
-		$pid=PID_NUM();
-		if($unix->process_exists($pid,basename(__FILE__))){
-			apache_admin_mysql(2, "Nginx Web service success to reload [action=info]", null,__FILE__,__LINE__);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Success reloading PID $pid\n";}
-		}
-		
-		return;
-	}
-	
-	$sock=new sockets();
-	$EnableNginx=$sock->GET_INFO("EnableNginx");
-	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
-	if($EnableNginx==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx not enabled ( see EnableNginx )\n";}
-		return;
-	}
-	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx starting daemon\n";}
-	apache_admin_mysql(0, "Nginx Web service not running after a reload [action=start]", null,__FILE__,__LINE__);
-	start(true);
+	force_restart();
 	
 }
 
@@ -1259,8 +1269,21 @@ function force_restart(){
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-	stop(true);
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx reloading\n";}
+	
+	$pid=PID_NUM();
+	if($unix->process_exists($pid)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx reloading PID $pid running since {$time}Mn\n";}
+		$unix->KILL_PROCESS($pid,"HUP");
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx not running, start it\n";};
 	start(true);
+	
+	
 		
 	
 }
@@ -1277,9 +1300,45 @@ function reconfigure_all(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
+	$php=$unix->LOCATE_PHP5_BIN();
+	build_progress("{cleaning_old_configs}...",5);
+	system("$php /usr/share/artica-postfix/exec.nginx.wizard.php --check-http");
+	
+	
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 	build(false);
+	
+	$sql="SELECT servername FROM reverse_www WHERE enabled=1";
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	if(!$q->ok){build_progress("MySQL Error",110); echo $q->mysql_error."\n"; return;}	
+	
+	$start=10;
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$start++;
+		if($start>50){$start=50;}
+		$servername=$ligne["servername"];
+		build_progress("$servername...",$start);
+		system("$php /usr/share/artica-postfix/exec.nginx.single.php \"$servername\" --no-reload --output --no-buildmain");
+	}
+	
+	
+	$sql="SELECT servername FROM freeweb WHERE enabled=1";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	if(!$q->ok){build_progress("MySQL Error",110); echo $q->mysql_error."\n"; return;}	
+	$start=50;
+	$php=$unix->LOCATE_PHP5_BIN();
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$start++;
+		if($start>80){$start=80;}
+		$servername=$ligne["servername"];
+		build_progress("$servername...",$start);
+		system("$php /usr/share/artica-postfix/exec.nginx.single.php \"$servername\" --no-reload --output --no-buildmain");
+	}
+	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 	build_progress("{stopping_service}",80);
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
@@ -1287,7 +1346,7 @@ function reconfigure_all(){
 	build_progress("{starting_service}",90);
 	start(true);
 	build_progress("{done}",100);
-	apache_admin_mysql(1, "Nginx Web service reconfigure all sites done [action=start]", null,__FILE__,__LINE__);
+	nginx_admin_mysql(2, "Reconfiguring all Web sites done [action=start]", null,__FILE__,__LINE__);
 }
 
 function restart(){
@@ -1299,11 +1358,12 @@ function restart(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
-	@file_put_contents($pidfile, getmypid());	
+	@file_put_contents($pidfile, getmypid());
+
+	nginx_admin_mysql(1, "Restart reverse-proxy service [action=info]", null,__FILE__,__LINE__);
 	stop(true);
-	build(false);
 	start(true);
-	apache_admin_mysql(1, "Nginx Web service was restarted [action=info]", null,__FILE__,__LINE__);
+	
 	
 }
 
@@ -1442,14 +1502,15 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		apache_admin_mysql(2, "Nginx Web service success to start [action=info]", null,__FILE__,__LINE__);
+		nginx_admin_mysql(2, "Nginx Web service success to start [action=info]", null,__FILE__,__LINE__);
 		@unlink($GLOBALS["pidStampReload"]);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service Success service started pid:$pid...\n";}
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.php-fpm.php --start >/dev/null 2>&1 &");
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.nginx.wizard.php --avail-status --force >/dev/null 2>&1 &");
 		return;
 	}
-	apache_admin_mysql(0, "Nginx Web service failed to start [action=info]", null,__FILE__,__LINE__);
+	nginx_admin_mysql(0, "Nginx Web service failed to start [action=info]", null,__FILE__,__LINE__);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service failed...\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	
@@ -1518,6 +1579,7 @@ $f[]="    application/x-x509-ca-cert            der pem crt;";
 $f[]="    application/x-xpinstall               xpi;";
 $f[]="    application/xhtml+xml                 xhtml;";
 $f[]="    application/zip                       zip;";
+$f[]="    application/x-gtar-compressed 		tgz;";
 $f[]="";
 $f[]="    application/binary					bin;";
 $f[]="    application/octet-stream              exe dll;";
@@ -1776,14 +1838,32 @@ function caches_status(){
 	}
 	
 	$results=$q->QUERY_SQL($sql,'artica_backup');
+	if(!$q->ok){
+		echo $q->mysql_error."\n------------------------\n$sql\n------------------------\n";
+		build_progress_caches("MySQL error !",110);
+		return ;
+	}
 	
-	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." caches..\n";}
-	
+	$Sum=mysql_num_rows($results);
+	if($GLOBALS["OUTPUT"]){echo "$Sum caches..\n";}
+	$c=0;
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$c++;
 		$directorySize=$unix->DIRSIZE_BYTES($ligne["directory"]);
-		if($GLOBALS["VERBOSE"]){echo "{$ligne["directory"]} $directorySize..\n";}
+		$prc=$c/$Sum;
+		$prc=$prc*100;
+		if($prc>90){$prc=90;}
+		if($GLOBALS["OUTPUT"]){echo "{$ligne["directory"]} $directorySize..\n";}
+		build_progress_caches("{$ligne["directory"]} $directorySize",$prc);
 		$q->QUERY_SQL("UPDATE nginx_caches SET CurrentSize='$directorySize' WHERE ID='{$ligne["ID"]}'");
+		if(!$q->ok){
+			echo $q->mysql_error."\n";
+			build_progress_caches("MySQL error !",110);
+			return ;
+		}	
 	}	
+	
+	build_progress_caches("{done}",100);
 	
 }
 
@@ -2250,7 +2330,7 @@ function import_bulk(){
 	if($authentication_id>0){
 		$AUTHENTICATOR["USE_AUTHENTICATOR"]=1;
 		$AUTHENTICATOR["AUTHENTICATOR_RULEID"]=$authentication_id;
-		$webauth=mysql_escape_string(base64_encode(serialize($AUTHENTICATOR)));
+		$webauth=mysql_escape_string2(base64_encode(serialize($AUTHENTICATOR)));
 	}
 	
 	
@@ -2360,14 +2440,47 @@ function import_bulk(){
 	
 }
 function build_progress($text,$pourc){
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[{$pourc}%] $text\n";}
+	$filename=basename(__FILE__);
+	
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+	
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			$function=$trace[0]["function"];
+			$line=$trace[0]["line"];
+		}
+	
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+		}
+	
+	
+	
+	}
+	
+	
+	echo "[{$pourc}%] $filename $text ( $function Line $line)\n";
 	$cachefile="/usr/share/artica-postfix/ressources/logs/nginx.reconfigure.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	if($GLOBALS["OUTPUT"]){usleep(5000);}
+
+}
+function build_progress_caches($text,$pourc){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[{$pourc}%] $text\n";}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/nginx-caches.progress";
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
 
 }
+
 
 function max_memory(){
 	$unix=new unix();

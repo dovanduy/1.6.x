@@ -24,6 +24,7 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
+	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 
 
@@ -44,7 +45,34 @@ function restart(){
 	
 	
 }	
+function reload(){
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $pid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	$pid=LIGHTTPD_PID();
 	
+	
+	
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Reloading framework PID:$pid...\n";};
+		FrmToSyslog("Reloading framework$scriptlog");
+		$unix->KILL_PROCESS($pid,1);
+		return;
+	}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting framework...\n";}
+	start(true);
+	
+	
+
+
+}	
 function stop($aspid=false){
 	$unix=new unix();
 	if(is_file("/etc/artica-postfix/FROM_ISO")){
@@ -514,9 +542,10 @@ function buildConfig(){
 		$f[]="                \"socket\" => \"/var/run/php-fpm-framework.sock\",";
 	}
 	$f[]="                \"max-procs\" => $max_procs,";
-	$f[]="                \"idle-timeout\" => 30,";
+	$f[]="                \"idle-timeout\" => 20,";
 	$f[]="                \"bin-environment\" => (";
 	$f[]="                        \"PHP_FCGI_CHILDREN\" => \"$PHP_FCGI_CHILDREN\",";
+	$f[]="                        \"HOME\" => \"/home\",";
 	$f[]="                        \"PHP_FCGI_MAX_REQUESTS\" => \"$PHP_FCGI_MAX_REQUESTS\",";
 	$f[]="                        \"PATH\" => \"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/kerberos/bin\",";
 	$f[]="                        \"LD_LIBRARY_PATH\" => \"/lib:/usr/local/lib:/usr/lib/libmilter:/usr/lib\",";

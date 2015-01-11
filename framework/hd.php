@@ -13,7 +13,7 @@ if(isset($_GET["mountlist"])){mountlist();exit;}
 
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
-writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
+writelogs_framework("Unable to understand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
 
 
 

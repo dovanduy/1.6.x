@@ -276,7 +276,7 @@ function virus(){
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=1%><img src=img/icon-antivirus-64.png></td>
-	<td><div class=explain>{kav4proxyvirus_month_stats_explain}</div></td>
+	<td><div class=text-info>{kav4proxyvirus_month_stats_explain}</div></td>
 	</tr>
 	</table>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
@@ -331,7 +331,7 @@ $html="
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=1%><img src=img/64-categories.png></td>
-	<td><div class=explain>{kav4proxycat_month_stats_explain}</div></td>
+	<td><div class=text-info>{kav4proxycat_month_stats_explain}</div></td>
 	</tr>
 	</table>
 	<center style='margin:5px'><img src='ressources/logs/web/kav4proxy.MCAT.png'  border=0></center>
@@ -393,7 +393,7 @@ $html="
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=1%><img src=img/domain-64.png></td>
-	<td><div class=explain>{kav4proxycountry_month_stats_explain}</div></td>
+	<td><div class=text-info>{kav4proxycountry_month_stats_explain}</div></td>
 	</tr>
 	</table>
 	<center style='margin:5px'><img src='ressources/logs/web/kav4proxy.MCOUNT.png'  border=0></center>

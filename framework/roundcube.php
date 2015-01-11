@@ -8,7 +8,7 @@ include_once(dirname(__FILE__)."/class.unix.inc");
 if(isset($_GET["mysqldb-restart"])){mysql_db_restart();exit;}
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["version"])){version();exit;}
-
+if(isset($_GET["restart"])){restart();exit;}
 
 
 
@@ -37,6 +37,15 @@ function mysql_db_restart(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	
 	
+}
+
+function restart(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$php5 /usr/share/artica-postfix/exec.roundcube.php --restart >/dev/null 2>&1");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
 }
 
 function status(){

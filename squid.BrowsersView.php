@@ -32,9 +32,14 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$fontsize="style='font-size:18px'";
-	
-	$array["members"]="{connected_members}";
-	$array["browser"]="{browsers}";
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance<2){
+		$array["members"]="{connected_members}";
+		$array["members-blocked"]="{blocked_members}";
+		$array["members-restricted"]="{restricted_members}";
+		$array["browser"]="{browsers}";
+	}
 	$array["browser-rules"]="{browsers_rules}";
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -43,6 +48,17 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.BrowsersView.members.php\" $fontsize><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="members-blocked"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blocked.members.php\" $fontsize><span>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="members-restricted"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.restricted.members.php\" $fontsize><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		if($num=="browser"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.browsers.php?popup=yes\" $fontsize><span>$ligne</span></a></li>\n");
 			continue;

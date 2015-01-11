@@ -42,7 +42,7 @@ if(isset($_POST["rewrite_rule_enable"])){rewrite_rule_enable();exit;}
 if(isset($_GET["whitelist"])){whitelist();exit;}
 if(isset($_POST["groupname"])){rule_edit_save();exit;}
 if(isset($_POST["blacklist"])){blacklist_save();exit;}
-if(isset($_POST["whitelist"])){whitelist_save();exit;}
+
 
 
 if(isset($_GET["js-groups"])){groups_js();exit;}
@@ -149,10 +149,22 @@ function tabs(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$squid=new squidbee();
-	$array["rule"]='{rule}';
+	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}			
 	if($EnableWebProxyStatsAppliance==1){$users->DANSGUARDIAN_INSTALLED=true;$squid->enable_dansguardian=1;}
+	
+	
+	if($_GET["ID"]<0){
+		$q=new mysql_squid_builder();
+		$array2=$q->WebFilteringAllSystems();
+		if(count($array2)>0){
+			echo FATAL_ERROR_SHOW_128("{webfiltering_all_system_warning}<br>".@implode("\n", $array2));
+			return;
+			
+		}
+	}
+	$array["rule"]='{rule}';
 	
 	if($_GET["ID"]>-1){
 		$array["blacklist"]='{blacklists}';
@@ -180,7 +192,7 @@ function tabs(){
 	}	
 	
 
-	$textsize="12.5px";
+	$textsize="16px";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -188,6 +200,11 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$page?blacklist=yes&RULEID={$_GET["ID"]}&ID={$_GET["ID"]}&modeblk=0&t={$_GET["t"]}&main_filter_rule_edit=yes\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="rewrite_rules"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"ufdbuard.rewrite-rules.php?ID={$_GET["ID"]}&ID={$_GET["ID"]}&modeblk=1&t={$_GET["t"]}&main_filter_rule_edit=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="whitelist"){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$page?blacklist=yes&RULEID={$_GET["ID"]}&ID={$_GET["ID"]}&modeblk=1&t={$_GET["t"]}&main_filter_rule_edit=yes\"><span>$ligne</span></a></li>\n");
@@ -266,7 +283,7 @@ function blacklist_form(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td valign='middle'><div class=explain>{dansguardian2_blacklist_explain}</div></td>
+		<td valign='middle'><div class=text-info>{dansguardian2_blacklist_explain}</div></td>
 		<td valign='middle'>
 			<table style='width:99%' class=form>
 			<tbody>
@@ -388,14 +405,14 @@ function blacklist(){
 			LoadAjax('blacklist-js-generator-$t','$page?blacklist-js=yes&t=$t$main_filter_rule_edit&RULEID={$_GET["RULEID"]}&TimeID={$_GET["TimeID"]}&ID={$_GET["RULEID"]}&modeblk={$_GET["modeblk"]}');
 			}
 			
-	var x_EnableDisableCategoryRule= function (obj) {
+	var x_EnableDisableCategoryRule$t= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}
-		var flexRT;
-		if( document.getElementById('WebFilteringMainTableID') ){
-			flexRT=document.getElementById('WebFilteringMainTableID').value;
-			$('#flexRT'+flexRT).flexReload();
-		}
+		if(document.getElementById('WebFilteringMainTableID') ){ $('#'+document.getElementById('WebFilteringMainTableID').value).flexReload(); }
+		if(document.getElementById('blacklist-table-by-rule') ){ $('#'+document.getElementById('blacklist-table-by-rule').value).flexReload(); }
+		
+		
+		
 	}			
 	
 	
@@ -409,7 +426,7 @@ function blacklist(){
 		XHR.appendData('TimeID','{$_GET["TimeID"]}');
 		if(document.getElementById(idname).checked){
 		XHR.appendData('enabled',1);}else{XHR.appendData('enabled',0);}
-		XHR.sendAndLoad('$page', 'POST',x_EnableDisableCategoryRule);	
+		XHR.sendAndLoad('$page', 'POST',x_EnableDisableCategoryRule$t);	
 	}			
 			
 			
@@ -491,6 +508,8 @@ function blacklist_start_table(){
 	if(is_numeric($_GET["group-size"])){$description_size=$_GET["group-size"];}	
 	
 	$html="
+			
+<input type='hidden' id='blacklist-table-by-rule' value='blacklist-table-$t-$d'>
 	<table class='blacklist-table-$t-$d' style='display: none' id='blacklist-table-$t-$d' style='width:99%'></table>
 <script>
 var CatzByEnable$t=0;
@@ -523,7 +542,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	
@@ -595,216 +614,11 @@ function AddCatz(){
 echo $tpl->_ENGINE_parse_body($html);	
 }
 
-function rewrite_rules(){
-	$ID=$_GET["rewrite_rules"];
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$t=time();
-	$rulename=$tpl->javascript_parse_text("{rulename}");
-	$items=$tpl->javascript_parse_text("{items}");
-	$new_rule=$tpl->javascript_parse_text("{new_rule}");
-	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
-	$rewrite_rules_affect_explain=$tpl->_ENGINE_parse_body("{rewrite_rules_affect_explain}");
-	
-	
-$html="
-<div id='tableau-reecriture-regles-affectees' class=explain style='font-size:14px'>$rewrite_rules_affect_explain</div>
-<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
-	
-<script>
-function start$t(){
-$('#flexRT$t').flexigrid({
-	url: '$page?rewrite_rules_list=yes&ID={$ID}',
-	dataType: 'json',
-	colModel : [
-		{display: '$rulename', name : 'rulename', width : 736, sortable : false, align: 'left'},	
-		{display: '$items', name : 'ItemsNumber', width :60, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'enabled', width : 25, sortable : true, align: 'center'},
-		],
-	
-	searchitems : [
-		{display: '$rulename', name : 'rulename'},
-		],
-	sortname: 'rulename',
-	sortorder: 'asc',
-	usepager: true,
-	title: '',
-	useRp: true,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: '99%',
-	height: 350,
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
-	
-	});   
-}
 
-	var x_MainRuleRewriteEnable= function (obj) {
-		var res=obj.responseText;
-		if (res.length>3){alert(res);}	
-		FlexReloadRulesRewrite();
-	}
-	
-	
-	function MainRuleRewriteEnable(ID,md5){
-		var XHR = new XHRConnection();
-		XHR.appendData('rewrite_rule_enable', ID);
-		XHR.appendData('ID', $ID);
-		if(document.getElementById(md5).checked){XHR.appendData('enable', 1);}else{XHR.appendData('enable', 0);}
-		XHR.sendAndLoad('$page', 'POST',x_MainRuleRewriteEnable); 	
-	
-	}
-	
 
-	function FlexReloadRulesRewrite(){
-		$('#flexRT$t').flexReload(); ExecuteByClassName('SearchFunction');
-	}
 
-start$t();
 
-</script>
-
-";	
-	echo $html;
-	
-}
-
-function rewrite_rule_enable(){
-	
-	$ruleid=$_POST["rewrite_rule_enable"];
-	$ID=$_POST["ID"];
-	$q=new mysql_squid_builder();
-	if($ID==0){
-		$sock=new sockets();
-		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-	}else{
-		$sql="SELECT RewriteRules FROM webfilter_rules WHERE ID=$ID";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	}	
-	$RewriteRules=unserialize(base64_decode($ligne["RewriteRules"]));
-
-	if($_POST["enable"]==0){unset($RewriteRules[$ruleid]);}
-	if($_POST["enable"]==1){$RewriteRules[$ruleid]=true;}
-	$ligne["RewriteRules"]=base64_encode(serialize($RewriteRules));
-	
-	if($ID==0){
-		$sock=new sockets();
-		$sock->SaveConfigFile(base64_encode(serialize($ligne)), "DansGuardianDefaultMainRule");	
-		$sock->getFrameWork("squid.php?rebuild-filters=yes");
-		return;
-	}	
-	
-	$sql="UPDATE webfilter_rules SET RewriteRules='{$ligne["RewriteRules"]}' WHERE ID=$ID";
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");		
-	
-}
-
-function rewrite_rules_list(){
-	
-	
-	$ID=$_GET["ID"];
-	$tpl=new templates();
-	$MyPage=CurrentPageName();
-	$q=new mysql_squid_builder();
-
-	if($ID==0){
-		$sock=new sockets();
-		$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
-	}else{
-		$sql="SELECT RewriteRules FROM webfilter_rules WHERE ID=$ID";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	}	
-	$RewriteRules=unserialize(base64_decode($ligne["RewriteRules"]));
-	
-	$search='%';
-	$table="webfilters_rewriterules";
-	$page=1;
-	$FORCE_FILTER=null;
-	$total=0;
-	
-	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
-	}
-	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
-	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-		
-	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-	}
-	
-	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
-
-	
-	$pageStart = ($page-1)*$rp;
-	$limitSql = "LIMIT $pageStart, $rp";
-	
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	$results = $q->QUERY_SQL($sql);
-	if(mysql_num_rows($results)==0){json_error_show("no data");}
-	
-	
-	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
-	$data['rows'] = array();
-	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
-
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$ID=$ligne["ID"];
-		$md5=md5($ligne["ID"].$ID);
-		$ligne["rulename"]=utf8_encode($ligne["rulename"]);
-		$enabled=0;
-		
-		if(isset($RewriteRules[$ligne["ID"]])){
-			if($RewriteRules[$ligne["ID"]]){$enabled=1;}
-		}
-		
-		$enable=Field_checkbox($md5,1,$enabled,"MainRuleRewriteEnable('{$ligne["ID"]}','$md5')");	
-		$js="Loadjs('$MyPage?rewrite-rule=yes&ID={$ligne["ID"]}');";
-		
-		
-		writelogs("{$ligne["ID"]} => {$ligne["rulename"]}",__FUNCTION__,__FILE__,__LINE__);
-	$data['rows'][] = array(
-		'id' => $ligne['ID'],
-		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:18px;text-decoration:underline'>{$ligne["rulename"]}</span>",
-			"<span style='font-size:18px'>{$ligne["ItemsCount"]}</span>",$enable )
-		);
-	}
-	
-	
-echo json_encode($data);		
-
-}
 
 
 function rule_time(){
@@ -849,7 +663,7 @@ function rule_time(){
 	
 	<table class=form style='width:99%'>
 		<tr>
-			<td><div class=explain style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div></td>
+			<td><div class=text-info style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div></td>
 			<td>
 			<table style='width:99%'>
 				<tbody>
@@ -862,7 +676,7 @@ function rule_time(){
 						<td>". Field_array_Hash($RULESS, "RuleAlternate-$t",$TimeSpace["RuleAlternate"],null,null,0,"font-size:14px")."</td>
 					</tr>
 					<tr>
-						<td colspan=2 align='right'><hr>". button("{apply}", "TimeSpaceSaveMain$t()",16)."</td>
+						<td colspan=2 align='right'><hr>". button("{apply}", "TimeSpaceSaveMain$t()",20)."</td>
 					</tr>
 				</tbody>
 			</table>
@@ -883,7 +697,7 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: '&nbsp;', name : 'id', width : 31, sortable : false, align: 'center'},
 		{display: '$rules', name : 'groupname', width : 747, sortable : true, align: 'left'},
-		{display: '$delete', name : 'delete', width : 48, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 78, sortable : false, align: 'center'},
 		],
 		$buttons
 
@@ -894,7 +708,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 885,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500,1000]
@@ -1377,15 +1191,15 @@ function rule_edit(){
 	
 	
 	if($ligne["AllSystems"]==1){
-		$explainAllSystems="<div class=explain style='font-size:14px'>{AllSystemsDansExpl}</div>";
+		$explainAllSystems="<div class=text-info style='font-size:18px'>{AllSystemsDansExpl}</div>";
 	}
 	
 	
 	if($EnableGoogleSafeSearch==0){
 	$EnableGoogleSafeSearchField="
 		<tr>
-			<td class=legend style='font-size:14px'>{EnableGoogleSafeSearch}:</td>
-			<td>". Field_checkbox("EnableGoogleSafeSearch-$t",1,$ligne["GoogleSafeSearch"])."</td>
+			<td class=legend style='font-size:18px'>{EnableGoogleSafeSearch}:</td>
+			<td>". Field_checkbox_design("EnableGoogleSafeSearch-$t",1,$ligne["GoogleSafeSearch"])."</td>
 			<td width=1%>&nbsp;</td>
 		</tr>";	
 	}
@@ -1397,26 +1211,16 @@ function rule_edit(){
 		$stop=Paragraphe32("navigation_banned", "navigation_banned_text", "", "warn-red-48.png",450);
 	}
 	
-	$qq=new mysql();
-	$sql="SELECT servername FROM freeweb WHERE groupware='UFDBGUARD'";
-	$results = $qq->QUERY_SQL($sql,"artica_backup");
-	$freewebs[null]="{select}";
-	while ($ligneq = mysql_fetch_assoc($results)) {
-		$freewebs[$ligneq["servername"]]=$ligneq["servername"];
-	}
 	
-	if($ligne["freeweb"]<>null){
-		$freeweburi="
-				<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname={$ligne["freeweb"]}');\" 
-				style=\"font-size:14px;text-decoration:underline\">http://{$ligne["freeweb"]}</a></td>
-				</tr>";
-	}
 	
 	if(!$users->DANSGUARDIAN_INSTALLED){$bypass=null;}
 	if($ID<0){$bypass=null;}
+	
+	$HTTP_CODE[0]="{default}";
+	$HTTP_CODE["301"]="{Moved_Permanently}";
+	$HTTP_CODE["302"]="{Moved_Temporarily}";
+	$HTTP_CODE["303"]="{http_code_see_other}";
+	
 	
 /*
  * 		<td class=legend>{sslmitm}:</td>
@@ -1432,12 +1236,12 @@ function rule_edit(){
 	
 	$specificDansguardian="<tr>
 		<td class=legend>{blockdownloads}:</td>
-		<td>". Field_checkbox("blockdownloads",1,$ligne["blockdownloads"])."</td>
+		<td>". Field_checkbox_design("blockdownloads",1,$ligne["blockdownloads"])."</td>
 		<td>". help_icon("{blockdownloads_text}")."</td>
 	</tr>			
 	<tr>
 		<td class=legend>{deepurlanalysis}:</td>
-		<td>". Field_checkbox("deepurlanalysis",1,$ligne["deepurlanalysis"])."</td>
+		<td>". Field_checkbox_design("deepurlanalysis",1,$ligne["deepurlanalysis"])."</td>
 		<td>". help_icon("{deepurlanalysis_text}")."</td>
 	</tr>
 	<tr>
@@ -1465,9 +1269,9 @@ function rule_edit(){
 		
 		$DefaultRulePostition="	
 	<tr>
-		<td class=legend style='font-size:16px'>{position}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($arrayPos, "defaultPosition-$t",$DefaultPosition,null,null,0,"font-size:16px;")."</td>
-		<td style='font-size:16px'>&nbsp;</td>
+		<td class=legend style='font-size:18px'>{position}:</td>
+		<td style='font-size:18px'>". Field_array_Hash($arrayPos, "defaultPosition-$t",$DefaultPosition,null,null,0,"font-size:16px;")."</td>
+		<td style='font-size:18px'>&nbsp;</td>
 	</tr>";
 		
 		
@@ -1486,84 +1290,68 @@ function rule_edit(){
 	</tbody>
 	</table>
 	<div style='width:98%' class=form>
-	<table>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:16px'>$ID)&nbsp;{rule_name}:</td>
-		<td style='font-size:16px'>". Field_text("groupname",$ligne["groupname"],"font-size:16px;")."</td>
+		<td class=legend style='font-size:18px'>$ID)&nbsp;{rule_name}:</td>
+		<td style='font-size:16px'>". Field_text("groupname",$ligne["groupname"],"font-size:18px;")."</td>
 		<td style='font-size:16px'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{enabled}:</td>
-		<td style='font-size:16px'>". Field_checkbox("enabled",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:18px'>{enabled}:</td>
+		<td style='font-size:18px'>". Field_checkbox_design("enabled",1,$ligne["enabled"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	$DefaultRulePostition
 	<tr>
-		<td class=legend style='font-size:16px'>{AllSystems}:</td>
-		<td style='font-size:16px'>". Field_checkbox("AllSystems-$t",1,$ligne["AllSystems"])."</td>
+		<td class=legend style='font-size:18px'>{AllSystems}:</td>
+		<td style='font-size:16px'>". Field_checkbox_design("AllSystems-$t",1,$ligne["AllSystems"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{check_SSL_protocol}:</td>
-		<td style='font-size:16px'>". Field_checkbox("UseSecurity-$t",1,$ligne["UseSecurity"])."</td>
+		<td class=legend style='font-size:18px'>{check_SSL_protocol}:</td>
+		<td style='font-size:16px'>". Field_checkbox_design("UseSecurity-$t",1,$ligne["UseSecurity"])."</td>
 		<td>&nbsp;</td>
 	</tr>
-				
+	$EnableGoogleSafeSearchField			
 				
 	<tr>
-		<td class=legend style='font-size:16px'>{groupmode}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($groupmode,"groupmode",$ligne["groupmode"],"style:font-size:16px;")."</td>
+		<td class=legend style='font-size:18px'>{groupmode}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($groupmode,"groupmode",$ligne["groupmode"],"style:font-size:18px;")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{finish_rule_by}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($ENDOFRULES,"endofrule",$ligne["endofrule"],"style:font-size:16px;")."</td>
+		<td class=legend style='font-size:18px'>{finish_rule_by}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($ENDOFRULES,"endofrule",$ligne["endofrule"],"style:font-size:18px;")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{order}:</td>
-		<td style='font-size:16px'>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:16px;width:60px")."</td>
+		<td class=legend style='font-size:18px'>{order}:</td>
+		<td style='font-size:16px'>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:18px;width:90px")."</td>
 		<td>&nbsp;</td>
-	</tr>				
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{redirect_behavior}:</td>
+		<td style='font-size:18px'>". Field_array_Hash($HTTP_CODE,"http_code-$t",$ligne["http_code"],"style:font-size:18px;")."</td>
+		<td>&nbsp;</td>
+	</tr>							
 	<tr>
 	<td colspan=3><hr></td>
 	<tr>
-		<td class=legend style='font-size:16px'>{dedicated_website_error_page}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($freewebs,"freeweb-$t",$ligne["freeweb"],"style:font-size:16px;")."</td>
-		<td>&nbsp;</td>
-	</tr>	
-	<td colspan=3 align='right'><table style='width:5%'>
-				<tr><td width=1%><img src='img/plus-big.png'></td>
-				<td width=99% nowrap>
-							<a href=\"javascript:blur();\" 
-							OnClick=\"javascript:Loadjs('$page?add-freeweb-js=yes&t=$t');\"
-					 		style=\"font-size:14px;text-decoration:underline\">{add_a_web_service}</a>
-						</td>
-				</tr>
-	$freeweburi</table></td>			
-				
-				
-	<tr>
-		<td class=legend style='font-size:16px'>{external_uri}:</td>
-		<td>". Field_checkbox("UseExternalWebPage",1,$ligne["UseExternalWebPage"],"UseExternalWebPageCheck()")."</td>
+		<td class=legend style='font-size:18px'>{external_uri}:</td>
+		<td>". Field_checkbox_design("UseExternalWebPage",1,$ligne["UseExternalWebPage"],"UseExternalWebPageCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{redirect_url}:</td>
-		<td style='font-size:16px'>". Field_text("ExternalWebPage",$ligne["ExternalWebPage"],"font-size:16px;")."</td>
-		<td style='font-size:16px'>&nbsp;</td>
+		<td class=legend style='font-size:18px'>{redirect_url}:</td>
+		<td style='font-size:18px'>". Field_text("ExternalWebPage",$ligne["ExternalWebPage"],"font-size:16px;width:98%")."</td>
+		<td style='font-size:18px'>&nbsp;</td>
 	</tr>	
-	 
 	
-	 
-	
-	
-$EnableGoogleSafeSearchField	
 
 	
 	<tr>
-		<td colspan=3 align='right'><hr>". button($button_name,"SaveDansGUardianMainRule()",18)."</td>
+		<td colspan=3 align='right'><hr>". button($button_name,"SaveDansGUardianMainRule()",26)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -1591,11 +1379,15 @@ $EnableGoogleSafeSearchField
 		function SaveDansGUardianMainRule(){
 		      var XHR = new XHRConnection();
 		      XHR.appendData('groupname', document.getElementById('groupname').value);
+		      XHR.appendData('http_code', document.getElementById('http_code-$t').value);
+		      
+		      
+		      
 		      if(document.getElementById('naughtynesslimit')){ XHR.appendData('naughtynesslimit', document.getElementById('naughtynesslimit').value);}
 		      if(document.getElementById('searchtermlimit')){ XHR.appendData('searchtermlimit', document.getElementById('searchtermlimit').value);}
 		      if(document.getElementById('endofrule')){ XHR.appendData('endofrule', document.getElementById('endofrule').value);}
 		      if(document.getElementById('ExternalWebPage')){ XHR.appendData('ExternalWebPage', document.getElementById('ExternalWebPage').value);}
-		      if(document.getElementById('freeweb-$t')){ XHR.appendData('freeweb', document.getElementById('freeweb-$t').value);}
+		      
 		      if(document.getElementById('zOrder-$t')){ XHR.appendData('zOrder', document.getElementById('zOrder-$t').value);}
 		      
 		      
@@ -1607,6 +1399,8 @@ $EnableGoogleSafeSearchField
 		      if(document.getElementById('deepurlanalysis')){ if(document.getElementById('deepurlanalysis').checked){ XHR.appendData('deepurlanalysis',1);}else{ XHR.appendData('deepurlanalysis',0);}}
 		      if(document.getElementById('AllSystems-$t')){ if(document.getElementById('AllSystems-$t').checked){ XHR.appendData('AllSystems',1);}else{ XHR.appendData('AllSystems',0);}}
 		      if(document.getElementById('UseSecurity-$t')){ if(document.getElementById('UseSecurity-$t').checked){ XHR.appendData('UseSecurity',1);}else{ XHR.appendData('UseSecurity',0);}}
+		     
+		      
 		      
 		      
 		      
@@ -1713,11 +1507,11 @@ function rule_edit_save(){
 	$sql="SELECT ID FROM webfilter_rules WHERE `groupname`='{$_POST["groupname"]}'";
 	$results=$q->QUERY_SQL($sql);
 	$mysql_num_rows=intval(mysql_num_rows($results));
-	echo $sql." -> $mysql_num_rows";
+	
 	if($mysql_num_rows>0){
 		$Groupname=$_POST["groupname"];
 		$_POST["groupname"] = "$Groupname - ".(intval($mysql_num_rows)+1);
-		echo " -> {$_POST["groupname"]}";
+		
 	}
 	
 	while (list ($num, $ligne) = each ($_POST) ){
@@ -1738,9 +1532,11 @@ function rule_edit_save(){
 		writelogs("Default rule, saving DansGuardianDefaultMainRule",__FUNCTION__,__FILE__,__LINE__);
 		$sock->SaveConfigFile(base64_encode(serialize($DEFAULTARRAY)), "DansGuardianDefaultMainRule");	
 		writelogs("Ask to compile rule...",__FUNCTION__,__FILE__,__LINE__);
-		$sock->getFrameWork("webfilter.php?compile-rules=yes");
+		
 		return;
 	}		
+	
+	if(!$q->FIELD_EXISTS("webfilter_rules", "http_code")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `http_code` smallint(3)");}
 	
 	$sql_edit="UPDATE webfilter_rules SET ".@implode(",", $fieldsEDIT)." WHERE ID=$ID";
 	$sql_add="INSERT IGNORE INTO webfilter_rules (".@implode(",", $fieldsAddA).") VALUES (".@implode(",", $fieldsAddB).")";
@@ -1748,9 +1544,8 @@ function rule_edit_save(){
 	if($ID<0){$s=$sql_add;$build=true;}else{$s=$sql_edit;}
 	$q->QUERY_SQL($s);
 	 
-	if(!$q->ok){echo $q->mysql_error."\n$s\n";return;}
-	$sock=new sockets();
-	$sock->getFrameWork("webfilter.php?compile-rules=yes");
+	if(!$q->ok){echo $q->mysql_error."\n$q->mysql_error\n$s\n";return;}
+	
 	
 	
 }
@@ -1776,7 +1571,7 @@ function groups_js(){
 function groups(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$dansguardian2_rules_groups_explain=$tpl->_ENGINE_parse_body("{dansguardian2_rules_groups_explain}");
+	$dansguardian2_rules_groups_explain=$tpl->javascript_parse_text("{dansguardian2_rules_groups_explain}");
 	$unlink=$tpl->_ENGINE_parse_body("{unlink}");
 	$t=time();
 	$group=$tpl->_ENGINE_parse_body("{group}");
@@ -1790,7 +1585,7 @@ function groups(){
 	
 $html="
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-<div class=explain>$dansguardian2_rules_groups_explain</div>
+
 <script>
 var rowid=0;
 $(document).ready(function(){
@@ -1810,11 +1605,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '$dansguardian2_rules_groups_explain',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 893,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1826,18 +1621,19 @@ function DansGuardianAddSavedGroup(){
 	YahooWin4('590','$page?choose-group={$_GET["groups"]}&t=$t','$link_group');
 }
 
-		var x_UnlinkFilterGroup= function (obj) {
-			var res=obj.responseText;
-			if (res.length>3){alert(res);}
-			$('#rowgroup'+rowid).remove();
-		}
+var x_UnlinkFilterGroup$t= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+	$('#rowgroup'+rowid).remove();
+	RefreshMainFilterTable();
+}
 	
-		function UnlinkFilterGroup(ID){
-			  rowid=ID;
-		      var XHR = new XHRConnection();
-		      XHR.appendData('choose-groupe-del', ID);
-		      XHR.sendAndLoad('$page', 'POST',x_UnlinkFilterGroup);  		
-		}
+function UnlinkFilterGroup(ID){
+	rowid=ID;
+	var XHR = new XHRConnection();
+	XHR.appendData('choose-groupe-del', ID);
+	XHR.sendAndLoad('$page', 'POST',x_UnlinkFilterGroup$t);  		
+}
 </script>";
 	
 echo $tpl->_ENGINE_parse_body($html);
@@ -2106,20 +1902,21 @@ $('#flexRT$t').flexigrid({
 	
 	});   
 });
-		var x_SaveDansGUardianMainRule= function (obj) {
-			var res=obj.responseText;
-			if (res.length>3){alert(res);}
-			if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
-			$('#flexRT$tt').flexReload(); ExecuteByClassName('SearchFunction');	
-			
-			
-		}
+
+
+var x_SaveDansGUardianMainRule$t= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+	RefreshMainFilterTable();
+	if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
+	$('#flexRT$tt').flexReload(); ExecuteByClassName('SearchFunction');	
+}
 	
 		function DansGuardianAddSavedGroup(ID){
 		      var XHR = new XHRConnection();
 		      XHR.appendData('choose-groupe-save', ID);
 		      XHR.appendData('ruleid', '$ID');
-		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianMainRule);  		
+		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianMainRule$t);  		
 		}
 		
 		function AddNewDansGuardianGroup$t(){
@@ -2270,7 +2067,7 @@ function bannedextensionlist_popup(){
 	$tpl=new templates();	
 $html="
 <div id='bannedextensionlist-div'></div>
-<div class=explain>{bannedextensionlist_explain}</div>
+<div class=text-info>{bannedextensionlist_explain}</div>
 <script>
 	function RefreshBannedextensionlist(){
 		$('#bannedextensionlist-table').remove();

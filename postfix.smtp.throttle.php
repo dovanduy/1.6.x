@@ -92,7 +92,7 @@ function domains_popup(){
 	
 	
 	$html="
-	<div class=explain>{domain_throttle_domain_explain}</div>
+	<div class=text-info>{domain_throttle_domain_explain}</div>
 	<center><table class=form>
 	<tr>
 		<td class=legend>{smtp_daemon_name}:</td>
@@ -146,7 +146,7 @@ function smtp(){
 	$tpl=new templates();	
 	
 	$html="
-	<div class=explain>{domain_throttle_explain}</div>
+	<div class=text-info>{domain_throttle_explain}</div>
 	<center><table class=form>
 	<tr>
 		<td class=legend>{smtp_daemon_name}:</td>
@@ -407,7 +407,7 @@ function smtp_instance_edit(){
 	
 
 	$html="
-	<div class=explain>{domain_throttle_explain_edit}</div>
+	<div class=text-info>{domain_throttle_explain_edit}</div>
 	<div id='id-$uuid'>
 	<table class=form>
 	<tr>
@@ -665,7 +665,7 @@ function smtp_instance_cache_destinations_add(){
 	<td colspan=2 align='right'><hr>". button("{add}","PostFixSaveServerCache()")."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=explain>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=text-info>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>

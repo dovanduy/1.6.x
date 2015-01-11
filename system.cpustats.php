@@ -118,7 +118,8 @@ function graph1(){
 	$CurDay=date("Ymd");
 	$q=new mysql();
 	$sock=new sockets();
-	$hostname=$sock->getFrameWork("system.php?hostname-g=yes");
+	$hostname=$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 
 	$title="$hostname: %{cpu} {today}";
 	$timetext="{hour}";
@@ -163,7 +164,9 @@ function graph2(){
 	$CurDay=date("Ymd");
 	$q=new mysql();
 	$sock=new sockets();
-	$hostname=$sock->getFrameWork("system.php?hostname-g=yes");
+	$hostname=$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
+	
 
 	$title="$hostname: %{cpu} {yesterday}";
 	$timetext="{hour}";

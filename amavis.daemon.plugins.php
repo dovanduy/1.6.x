@@ -71,7 +71,7 @@ function popup(){
 	
 	
 	if($AmavisNoInternetTests==1){
-		$AmavisNoInternetTests_text="<div class=explain >{explain_AmavisNoInternetTests_plug_disbaled}</div>";
+		$AmavisNoInternetTests_text="<div class=text-info >{explain_AmavisNoInternetTests_plug_disbaled}</div>";
 		
 	}
 	$ClamavDaemonInstalled=0;
@@ -84,7 +84,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain style='font-size:18px'>{spamassassin_pkugins_explain}</div>
+	<div class=text-info style='font-size:18px'>{spamassassin_pkugins_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>

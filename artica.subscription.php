@@ -25,7 +25,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{ARTICA_P_SUPPORT}");
-	$html="RTMMail('550','$page?popup=yes','$title');";
+	$html="RTMMail('750','$page?popup=yes','$title');";
 	echo $html;
 	
 	
@@ -36,22 +36,22 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$supportlink="http://www.articatech.net/about.php";
+	$supportlink="http://www.articatech.com/#!contact-us/csu4";
 	$html="<table style='width:100%'>
 	<tbody>
 	<tr>
 		<td valign='top' width=1%><img src='img/technical-support-128.png'></td>
-		<td valign='top' width=100%><div style='font-size:14px' class=explain>{ARTICA_P_SUPPORT_TEXT}</div>
+		<td valign='top' width=100%><div style='font-size:18px' class=text-info>{ARTICA_P_SUPPORT_TEXT}</div>
 		<center style='margin-top:15px;margin-bottom:15px'>
 			<a href=\"javascript:blur();\" 
 			OnClick=\"javascript:s_PopUp('$supportlink',990,900,'');\"
-			style='font-size:18px;text-decoration:underline'>{ARTICA_P_SUPPORT} {link}</a>
+			style='font-size:22px;text-decoration:underline'>{ARTICA_P_SUPPORT} {link}</a>
 		</center>
 		<div style='text-align:right'>
 			<table class=form style='float:right'>
 				<tbody>
 					<tr>
-						<td class=legend>{hide_this_information}:</td>
+						<td class=legend style='font-size:16px'>{hide_this_information}:</td>
 						<td>". Field_checkbox("DisablePurchaseInfo", 1,$sock->GET_INFO("DisablePurchaseInfo"),"DisablePurchaseInfoCheck()")."</td>
 					</tr>
 				</tbody>

@@ -36,7 +36,7 @@ function popup(){
 	if(!is_numeric($AmavisWatchdogKillProcesses)){$AmavisWatchdogKillProcesses=1;}
 	if(!is_numeric($EnableAmavisWatchdog)){$EnableAmavisWatchdog=1;}
 	
-	$html="<div class=explain id='AmavisWatchdogSaveParamsId' style='font-size:16px'>{amavis_watchdog_explain}</div>
+	$html="<div class=text-info id='AmavisWatchdogSaveParamsId' style='font-size:16px'>{amavis_watchdog_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>

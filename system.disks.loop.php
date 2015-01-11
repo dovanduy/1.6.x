@@ -248,7 +248,7 @@ function disk_form(){
 	
 	$please_wait_building_the_disk=$tpl->javascript_parse_text("{please_wait_building_the_disk}...");
 	
-	$html="<div class=explain style='font-size:14px'>{disk_loop_explain}</div>
+	$html="<div class=text-info style='font-size:14px'>{disk_loop_explain}</div>
 			<center id='anim2-$t' style='font-size:22px'></center>
 			<div id='anim-$t' style='margin-top:10px'></div>
 	

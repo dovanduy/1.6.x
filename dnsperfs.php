@@ -66,7 +66,7 @@ function status(){
 	
 	$explain=$tpl->_ENGINE_parse_body("{dnsperf_explain}");
 	$explain=str_replace("%s", $minperfFloat, $explain);
-	$html="<div style='font-size:14px' class=explain>$explain</div>
+	$html="<div style='font-size:14px' class=text-info>$explain</div>
 	<div style='width:97%' class=form>
 	";
 

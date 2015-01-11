@@ -1496,7 +1496,7 @@ function events($text,$function,$fileMe=null,$line=0){
 		$pid=@getmypid();
 		if($fileMe==null){$fileMe=__FILE__;}
 		$date=@date("H:i:s");
-		$logFile="/var/log/artica-postfix/artica-meta-agent.log";
+		$logFile="/var/log/artica-meta-agent.log";
 		$size=@filesize($logFile);
 		if($size>100000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');

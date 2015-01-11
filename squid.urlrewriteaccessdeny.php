@@ -3,6 +3,8 @@ if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.inc');
+	include_once('ressources/class.squid.acls.inc');
+	include_once('ressources/class.squid.inc');
 	
 	$users=new usersMenus();
 	if(!$users->AsDansGuardianAdministrator){die();}	
@@ -10,7 +12,22 @@ if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["delete"])){Delete();exit;}
 	if(isset($_GET["add-www-js"])){add_www_js();exit;}
+	if(isset($_GET["add-nocache-js"])){add_nocache_js();exit;}
+	
+	
+	
+	if(isset($_GET["add-nocache-popup"])){add_nocache_popup();exit;}
+	if(isset($_GET["add-white-popup"])){add_white_popup();exit;}
+	if(isset($_GET["add-white-tab"])){add_white_tab();exit;}
+	
 	if(isset($_GET["add-black-js"])){add_black_js();exit;}
+	if(isset($_GET["add-black-popup"])){add_black_popup();exit;}
+	if(isset($_POST["blacklist"])){add_black_save();exit;}
+	if(isset($_POST["whitelist"])){add_white_save();exit;}
+	if(isset($_POST["nocache"])){add_nocache_save();exit;}
+	if(isset($_POST["whitelist-single"])){add_white_single();exit;}
+	
+	
 	js();
 
 	
@@ -20,7 +37,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->javascript_parse_text("{whitelist}::{APP_UFDBGUARD}");
-	echo "YahooWin4('550','$page?popup=yes&t=$t','$title')";
+	echo "YahooWin4('560','$page?popup=yes&t=$t','$title')";
 	
 }
 
@@ -28,65 +45,333 @@ function add_black_js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$squid_ask_domain=$tpl->javascript_parse_text("\\n{blacklist}\\n**************************\\n{squid_ask_domain}\\n{separate_comma}");
+	$title=$tpl->javascript_parse_text('{blacklist}');
+	echo "YahooWin5('790','$page?add-black-popup=yes','$title')";
+	return;
+	
+
+}
+
+function add_black_popup(){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$sock=new sockets();
+	$SquidHTTPTemplateLanguage=$sock->GET_INFO("SquidHTTPTemplateLanguage");
+	if($SquidHTTPTemplateLanguage==null){$SquidHTTPTemplateLanguage="en-us";}
+	
 	$t=time();
+	$sql="SELECT items  FROM deny_websites ORDER BY items";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+	
 	$html="
-var x_reload$t=function(obj){
+	<div style='font-size:22px'>{blacklist}</div>
+	<div class=text-info style='font-size:18px'>{squid_ask_domain}<br><strong style='color:#d32d2d'>{warning_deny_for_all_users}</strong></div>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='form$t'>".@implode("\n", $tr)."</textarea>
+	<div style='text-align:right;margin-top:20px;font-size:28px'>
+			<hr>
+			". button("{error_page}","Loadjs('squid.templates.skin.php?Zoom-js=ERR_BLACKLISTED_SITE&lang=$SquidHTTPTemplateLanguage');",28)."&nbsp;|&nbsp;".
+			button("{compile2}","Save2$t()",28).
+			"&nbsp;|&nbsp;". button("{apply}","Save$t()",28)."</div>
+
+<script>
+var xSave$t=function(obj){
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){alert(tempvalue);return;}
-	$('#flexRT{$_GET["t"]}').flexReload();
-	$('#flexRT{$_GET["tt"]}').flexReload();
+	
+}
+var xSave2$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	Loadjs('squid.compile.whiteblack.progress.php?ask=yes');
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('blacklist',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);	
+}
+
+function Save2$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('blacklist',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave2$t);	
+}
+
+</script>			
+";
+	
+echo $tpl->_ENGINE_parse_body($html);
+	
+	
+}
+
+function add_black_save(){
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$q=new mysql_squid_builder();
+	$f=array();
+	$f=explode("\n",$_POST["blacklist"]);
+	
+	while (list ($index, $line) = each ($f) ){
+		$line=trim(strtolower($line));
+		if($line==null){continue;}
+		$line=mysql_escape_string2($line);
+		$md5=md5($line);
+		$n[]="('$line')";
+	
+	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `deny_websites`","artica_backup");
+	if(count($n)>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO `deny_websites` (`items`) VALUES ".@implode(",", $n),"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}	
 	
 }
 
 
-function NewWebServer$t(){
-	var dom='{$_GET["sitename"]}';
-	if(dom.length==0){
-		dom=prompt('$squid_ask_domain');
-	}
-
-	if(dom){
-		var XHR = new XHRConnection();
-		XHR.appendData('biglock',dom);
-		XHR.appendData('noreload',1);
-		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_reload$t);
-	}
+function add_nocache_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text('{deny_from_cache}');
+	
+	echo "YahooWin5('790','$page?add-nocache-popup=yes','$title')";
+	return;
 }
 
-NewWebServer$t();";
-echo $html;
+function add_nocache_popup(){
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$sock=new sockets();
+	$sql="CREATE TABLE IF NOT EXISTS `denycache_websites` ( `items` VARCHAR( 255 ) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql);
+	
+
+	$t=time();
+	$sql="SELECT items  FROM denycache_websites ORDER BY items";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+
+	$html="
+	<div style='font-size:22px'>{deny_from_cache}</div>
+	<div class=text-info style='font-size:18px'>{notcaching_websites}<br>{squid_ask_domain}<br></div>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='form$t'>".@implode("\n", $tr)."</textarea>
+	<div style='text-align:right;margin-top:20px;font-size:28px'>
+			<hr>
+			".
+			button("{compile2}","Save2$t()",28)."&nbsp;|&nbsp;". button("{apply}","Save$t()",28)."</div>
+
+			<script>
+			var xSave$t=function(obj){
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue);return;}
+
 }
+var xSave2$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	Loadjs('squid.compile.whiteblack.progress.php?ask=yes');
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('nocache',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+
+function Save2$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('nocache',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave2$t);
+}
+
+</script>
+";
+	echo $tpl->_ENGINE_parse_body($html);
+
+
+}
+
+
+
+
+
 
 function add_www_js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$squid_ask_domain=$tpl->javascript_parse_text("{squid_ask_domain}");
+	$title=$tpl->javascript_parse_text('{whitelist}');
+	//echo "YahooWin5('790','$page?add-white-popup=yes','$title')";
+	echo "YahooWin5('790','$page?add-white-tab=yes','$title')";
+	return;
+}
+
+function add_white_tab(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	
+	$array["add-white-popup"]="{whitelist}";
+	$array["analyze"]="{analyze}";
+	
+	
+	
+	$fontsize=18;
+	
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="analyze"){
+			$tab[]="<li><a href=\"squid.analyze.page.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+	
+	
+		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			
+	}
+	
+	
+	
 	$t=time();
+	//
+	
+	echo build_artica_tabs($tab, "add_white_tabs")."";
+	
+		
+	
+}
+
+
+
+function add_white_popup(){
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql();
+	$sock=new sockets();
+	$SquidHTTPTemplateLanguage=$sock->GET_INFO("SquidHTTPTemplateLanguage");
+	if($SquidHTTPTemplateLanguage==null){$SquidHTTPTemplateLanguage="en-us";}
+
+	$t=time();
+	$sql="SELECT items  FROM urlrewriteaccessdeny ORDER BY items";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+
 	$html="
-	var x_reload$t=function(obj){
-		var tempvalue=obj.responseText;
-	     if(tempvalue.length>3){alert(tempvalue);return;}
-		 $('#flexRT{$_GET["t"]}').flexReload();
-		 $('#flexRT{$_GET["tt"]}').flexReload();
-		 Loadjs('squid.compile.whiteblack.progress.php?ask=yes');
-	}
+	<div style='font-size:22px'>{whitelist}</div>
+	<div class=text-info style='font-size:18px'>{squid_ask_domain}<br></div>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='form$t'>".@implode("\n", $tr)."</textarea>
+	<div style='text-align:right;margin-top:20px;font-size:28px'>
+			<hr>
+			".
+			button("{compile2}","Save2$t()",28)."&nbsp;|&nbsp;". button("{apply}","Save$t()",28)."</div>
+
+			<script>
+			var xSave$t=function(obj){
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue);return;}
+
+}
+var xSave2$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	Loadjs('squid.compile.whiteblack.progress.php');
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('whitelist',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+
+function Save2$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('whitelist',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave2$t);
+}
+
+</script>
+";
+echo $tpl->_ENGINE_parse_body($html);
 
 
-function NewWebServer$t(){
-	var dom=prompt('$squid_ask_domain');
-	if(dom){
-		var XHR = new XHRConnection();
-		XHR.appendData('unlock',dom);
-		XHR.appendData('noreload',1);
-		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_reload$t);	
+}
+
+function add_white_save(){
+//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$table="urlrewriteaccessdeny";
+	$q=new mysql();
+	$q1=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+		
+	$tr=explode("\n",$_POST["whitelist"]);
+	$q->QUERY_SQL("TRUNCATE TABLE urlrewriteaccessdeny","artica_backup");
+		
+	while (list ($none,$www ) = each ($tr) ){
+		$www=$acl->dstdomain_parse($www);
+		if($www==null){continue;}
+		$q->QUERY_SQL("INSERT IGNORE INTO urlrewriteaccessdeny (items) VALUES ('{$www}')","artica_backup");
+		if(!$q->ok){echo $q->mysql_error;return;}
 	}
+		
+}
+
+function add_white_single(){
+	$table="urlrewriteaccessdeny";
+	$q=new mysql();
+	$q1=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	
+	$www=$_POST["whitelist-single"];
+	$www=$acl->dstdomain_parse($www);
+	if($www==null){return;}
+	$q->QUERY_SQL("INSERT IGNORE INTO urlrewriteaccessdeny (items) VALUES ('{$www}')","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;return;}
+		
+	
+}
+
+function add_nocache_save(){
+	$table="denycache_websites";
+	$q=new mysql_squid_builder();
+	$q1=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	
+	$tr=explode("\n",$_POST["nocache"]);
+	$q->QUERY_SQL("TRUNCATE TABLE denycache_websites","artica_backup");
+	
+	while (list ($none,$www ) = each ($tr) ){
+		$www=$acl->dstdomain_parse($www);
+		if($www==null){continue;}
+		$q->QUERY_SQL("INSERT IGNORE INTO denycache_websites (items) VALUES ('{$www}')","artica_backup");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}	
+	
 }
 	
-NewWebServer$t();";
-	echo $html;
-}
+
+
 
 function popup(){
 	$tt=$_GET["tt"];
@@ -141,7 +426,7 @@ buttons : [
 	title: '<span style=\"font-size:14px\">$title</span>',
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 530,
+	width: '99%',
 	height: 400,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500,1000,1500]
@@ -206,13 +491,11 @@ function popup_list(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	$q2=new mysql();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
@@ -233,7 +516,7 @@ function popup_list(){
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,'artica_backup');
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;

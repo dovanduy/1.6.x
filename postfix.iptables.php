@@ -455,7 +455,7 @@ $EnablePostfixAutoBlockWhiteListed=$sock->GET_INFO("EnablePostfixAutoBlockWhiteL
 	</tr>
 	<tr>
 	<td valign='top'>
-		<div class=explain style='font-size:14px'>{postfix_autoblock_explain}</div>
+		<div class=text-info style='font-size:14px'>{postfix_autoblock_explain}</div>
 		<div id='instantIptables-status'></div>
 	</td>
 	</table>
@@ -528,7 +528,7 @@ if($array["SMTPHACK_TOO_MANY_ERRORS"]==null){$array["SMTPHACK_TOO_MANY_ERRORS"]=
 	if(!is_numeric($PostfixInstantIptablesMaxEvents)){$PostfixInstantIptablesMaxEvents=50;}
 
 $html="
-<div class=explain style='font-size:16px'>{PostfixAutoBlockParameters_text}<br>{SMTP_HACK_HOWTO}</div>
+<div class=text-info style='font-size:16px'>{PostfixAutoBlockParameters_text}<br>{SMTP_HACK_HOWTO}</div>
 
 <div id='PostfixAutoBlockParameters_id'>
 <table style='width:99%' class=form>
@@ -1157,7 +1157,7 @@ function ban_servers_popup(){
 
 	$html="
 	<div id='ban-smtp-div'>
-	<div class=explain>{bann_smtp_servers_explain}</div>
+	<div class=text-info>{bann_smtp_servers_explain}</div>
 	<textarea id='ban-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","BannSmtpAdd()")."</div>
 	</div>

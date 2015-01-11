@@ -307,7 +307,7 @@ function main_network(){
 	$fw=Paragraphe('folder-64-firewall-grey.png','{APP_IPTABLES}','{error_app_not_installed_disabled}','','error_app_not_installed_disabled');
 	$nmap=Paragraphe('folder-64-nmap-grey.png','{APP_NMAP}','{error_app_not_installed_disabled}','','error_app_not_installed_disabled');
 	$network=Paragraphe('folder-network-64.png','{net_settings}','{net_settings_text}',"javascript:Loadjs('system.nic.config.php?js=yes')",'net_settings_text');
-	$pdns=Buildicon64('DEF_ICO_PDNS');
+	
 	$crossroads=Paragraphe('load-blancing-64-grey.png','{APP_CROSSROADS}','{load_balancing_intro_text}',"");
 	
 	
@@ -430,13 +430,11 @@ function main_network(){
 		$etc_hosts=Buildicon64("DEF_ICO_ETC_HOSTS");
 		//$dyndns=Paragraphe('folder-64-dyndns.png','{nic_dynamic_dns}','{nic_dynamic_dns_text}','system.nic.dynamicdns.php');
 		$rbl_check=Paragraphe('check-64.png','{rbl_check_artica}','{rbl_check_artica_text}',"javascript:Loadjs('system.rbl.check.php')");
-		$dnsmasq=Paragraphe('dns-64.png','{APP_DNSMASQ}','{APP_DNSMASQ_TEXT}',"javascript:Loadjs('dnsmasq.index.php')");
+		
 		
 	
 		
 		if(!$users->BIND9_INSTALLED){$static=null;$bind9=null;}	
-		if(!$users->POWER_DNS_INSTALLED){$pdns=Paragraphe("dns-64-grey.png","{APP_PDNS}","{APP_PDNS_TEXT}");}
-		if(!$users->dnsmasq_installed){$dnsmasq=Paragraphe("dns-64-grey.png","{APP_DNSMASQ}",'{feature_not_installed}');}
 		if($users->KASPERSKY_SMTP_APPLIANCE){$dyndns=null;}
 		if($users->KASPERSKY_WEB_APPLIANCE){$bind9=null;$pdns=null;$dyndns=null;}
 	
@@ -444,7 +442,6 @@ function main_network(){
 		
 		$noip=Paragraphe('noip-logo-64.png','{APP_NOIP}','{APP_NOIP_TEXT}',"javascript:Loadjs('noip.php')");
 		
-		$tr[]=$dnsmasq;
 		$tr[]=$bind9;
 		$tr[]=$static;
 		$tr[]=$ntpd_server;
@@ -662,10 +659,10 @@ function main_dns(){
 	$static=Paragraphe('folder-64-dns-grey.png','{nic_static_dns}','{nic_static_dns_text}','');
 	$bind9=ICON_BIND9();
 	$etc_hosts=Buildicon64("DEF_ICO_ETC_HOSTS");
-	$pdns=Buildicon64('DEF_ICO_PDNS');
+	
 	$dyndns=Paragraphe('folder-64-dyndns.png','{nic_dynamic_dns}','{nic_dynamic_dns_text}','system.nic.dynamicdns.php');
 	$rbl_check=Paragraphe('check-64.png','{rbl_check_artica}','{rbl_check_artica_text}',"javascript:Loadjs('system.rbl.check.php')");
-	$dnsmasq=Paragraphe('dns-64.png','{APP_DNSMASQ}','{APP_DNSMASQ_TEXT}',"javascript:Loadjs('dnsmasq.index.php')");
+	
 	
 
 	
@@ -674,8 +671,6 @@ function main_dns(){
 		$bind9=null;
 	}	
 	
-	if(!$user->POWER_DNS_INSTALLED){$pdns=Paragraphe("dns-64-grey.png","{APP_PDNS}","{APP_PDNS_TEXT}");}
-	if(!$user->dnsmasq_installed){$dnsmasq=Paragraphe("dns-64-grey.png","{APP_DNSMASQ}",'{APP_DNSMASQ_TEXT}');}
 		
 	if($user->KASPERSKY_SMTP_APPLIANCE){
 		$dyndns=null;
@@ -687,8 +682,8 @@ function main_dns(){
 		$dyndns=null;
 	}
 	
-	$tr[]=$pdns;
-	$tr[]=$dnsmasq;
+	
+	
 	$tr[]=$bind9;
 	$tr[]=$static;
 	$tr[]=$dyndns;
@@ -806,7 +801,7 @@ function AdressBookPopup(){
 	
 $html="<div id='rdr'>
 	<H1>{remote_addressbook}</H1>
-	<div class=explain>{remote_addressbook_text}</div>
+	<div class=text-info>{remote_addressbook_text}</div>
 	<table style='width:100%'>
 	<tr>
 

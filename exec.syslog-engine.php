@@ -3,11 +3,15 @@ if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["DEBUG"]=false;;
 $GLOBALS["FORCE"]=false;
-$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+$GLOBALS["VERBOSE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){
-	
 	$GLOBALS["DEBUG_SQL"]=true;
-	$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	$GLOBALS["VERBOSE"]=true;
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 
@@ -22,19 +26,40 @@ include_once($BASEDIR . '/ressources/class.mysql.haproxy.builder.php');
 include_once($BASEDIR . "/ressources/class.mysql.squid.builder.php");
 include_once($BASEDIR. "/ressources/class.mysql.builder.inc");
 include_once($BASEDIR . "/ressources/class.mysql.syslogs.inc");
-
-
 if(preg_match("#--norestart#",implode(" ",$argv))){$GLOBALS["NORESTART"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--syslogmini#",implode(" ",$argv))){$GLOBALS["SYSLOGMINI"]=true;}
 
 $unix=new unix();
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." instances:".count($pids)."\n";}
+if(count($pids)>3){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." starting squid, kill them!\n";
+	$mypid=getmypid();
+	while (list ($pid, $ligne) = each ($pids) ){
+		if($pid==$mypid){continue;}
+		echo "Starting......: ".date("H:i:s")." killing $pid\n";
+		unix_system_kill_force($pid);
+	}
+
+}
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>3){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." dying\n";
+	die();
+}
+
+
+
+
 if(is_file("/etc/artica-postfix/FROM_ISO")){
 	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
 }
 
-
+if($argv[1]=='--seeker'){$GLOBALS["VERBOSE"]=true;seeker();die();}
+if($argv[1]=='--sysalerts'){$GLOBALS["VERBOSE"]=true;sys_alerts();die();}
 if($argv[1]=='--purge'){$GLOBALS["VERBOSE"]=true;clean_mysql_events();die();}
 if($argv[1]=='--imap-bw'){blackwhite_admin_mysql_check(true);die();}
 if($argv[1]=='--rotate'){squid_notifications();die();}
@@ -43,8 +68,8 @@ if($argv[1]=='--rsylogd'){rsyslog_check_includes();die();}
 if($argv[1]=='--sysev'){sysev();die();}
 if($argv[1]=='--admin-evs'){scan_queue();die();}
 if($argv[1]=='--squid-rt-failed'){squid_rt_mysql_failed();die();}
-if($argv[1]=='--loadavg'){loadavg_logs();clamd_mem();crossroads();system_admin_events_checks();system_rotate_events_checks();die();}
-
+if($argv[1]=='--loadavg'){loadavg_logs();sys_alerts();clamd_mem();crossroads();system_admin_events_checks();system_rotate_events_checks();die();}
+if($argv[1]=='--buildconf'){rsyslog_check_includes();exit;}
 
 
 if(!$GLOBALS["FORCE"]){
@@ -86,7 +111,9 @@ if($argv[1]=='--auth-logs'){
 		dhcpd_logs();
 		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
 		scan_queue();
-		
+		if(system_is_overloaded(basename(__FILE__))){system_admin_events("OVERLOADED system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting",__FUNCTION__,__FILE__,__LINE__,"system");die();}
+		sys_alerts();
+		seeker();
 		die();
 }
 if($argv[1]=='--authfw'){authfw();sessions_logs();die();ipblocks();system_admin_events_checks();}
@@ -140,6 +167,15 @@ if($GLOBALS["VERBOSE"]){echo "MAIN::".__LINE__." ->crossroads()\n";}
 crossroads();
 if($GLOBALS["VERBOSE"]){echo "MAIN::".__LINE__." ->dhcpd_logs()\n";}
 dhcpd_logs();
+if($GLOBALS["VERBOSE"]){echo "MAIN::".__LINE__." ->meta_admin_mysql_check()\n";}
+$EnableArticaMetaClient=intval(@file_content("/etc/artica-postfix/settings/Daemons/EnableArticaMetaClient"));
+meta_admin_mysql_check();
+mysql_admin_mysql_check();
+system_admin_mysql_check();
+nginx_admin_mysql_check();
+seeker();
+if($EnableArticaMetaClient==0){meta_client_clean_logs();exit;}
+
 if($GLOBALS["VERBOSE"]){echo "MAIN::".__LINE__." ->END\n";}
 die();
 
@@ -153,9 +189,14 @@ function squid_notifications(){
 	@file_put_contents($pidfile, getmypid());
 	rotate_admin_events_checks();
 	squid_admin_mysql_check();
+	nginx_admin_mysql_check();
+	mysql_admin_mysql_check();
+	system_admin_mysql_check();
+	meta_admin_mysql_check();
 	rdpproxy_admin_mysql_check();
 	sarg_admin_events_checks();	
 	udfbguard_admin_events();
+	seeker();
 	
 }
 
@@ -172,10 +213,14 @@ function sysev(){
 		system_admin_events_checks();
 		system_rotate_events_checks();
 		udfbguard_admin_events();
+		mysql_admin_mysql_check();
+		nginx_admin_mysql_check();
+		system_admin_mysql_check();
 		sys_load();
 		scan_queue();
 	
 }
+
 
 function build_server_mode(){
 	$sock=new sockets();
@@ -231,6 +276,7 @@ function build_local6_squid(){
 		echo "Starting......: ".date("H:i:s")." syslog client rsyslog mode\n";
 		rsyslog_check_includes();
 		build_local6_rsyslogd($array["SERVER"]);
+		
 		restart_syslog();
 		return;
 	}	
@@ -306,10 +352,11 @@ function rsyslog_check_includes(){
 	$f[]="#";
 	$f[]="auth,authpriv.*			/var/log/auth.log";
 	$f[]="*.*;auth,authpriv.none		-/var/log/syslog";
-	$f[]="#cron.*				/var/log/cron.log";
-	$f[]="daemon.*			-/var/log/daemon.log";
-	$f[]="kern.*				-/var/log/kern.log";
-	$f[]="lpr.*				-/var/log/lpr.log";
+	$f[]="#cron.*				-/var/log/cron.log";
+	$f[]="daemon.*				-/var/log/daemon.log";
+	$f[]="kern.=debug 			-/var/log/iptables.log";
+	$f[]="kern.*;kern.!=debug	-/var/log/kern.log";
+	$f[]="lpr.*					-/var/log/lpr.log";
 	$f[]="mail.*				-/var/log/mail.log";
 	$f[]="user.*				-/var/log/user.log";
 	$f[]="";
@@ -367,8 +414,8 @@ function rsyslog_check_includes(){
 	$f[]="	*.=notice;*.=warn	|/dev/xconsole";
 	$f[]="";
 	@file_put_contents("/etc/rsyslog.conf", @implode("\n", $f)."\n");
-	echo "Building /etc/rsyslog.conf done\n";
-	echo "You can restart syslog by typing `".$unix->LOCATE_SYSLOG_INITD()." restart`\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Sylog daemon Building /etc/rsyslog.conf done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Sylog daemon You can restart syslog by typing `".$unix->LOCATE_SYSLOG_INITD()." restart`\n";
 	
 	
 	
@@ -1059,6 +1106,8 @@ function scan_queue($nopid=false){
 	apache_admin_mysql_check(true);
 	vsftpd_admin_mysql_check(true);
 	squid_admin_mysql_check(true);
+	squid_admin_enforce_check(true);
+	nginx_admin_mysql_check(true);
 	system_admin_events_checks(true);
 	artica_update_task(true);
 	checks_hotspot_admin_mysql(true);
@@ -1066,11 +1115,78 @@ function scan_queue($nopid=false){
 	squid_admin_purge_check(true);
 	rotate_admin_events_checks(true);
 	udfbguard_admin_events(true);
+	sys_alerts(true);
 	clean_mysql_events(true);
+	seeker();
 	
 	
 	
 	
+}
+
+
+function sys_alerts($nopid=false){
+	$f=array();
+	$unix=new unix();
+	if($nopid){
+	
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$t=0;
+	
+	}
+	
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+	$uuid=$unix->GetUniqueID();
+
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`sys_alerts` (
+	`zmd5` varchar(90) NOT NULL ,
+	`zDate` TIMESTAMP NOT NULL ,
+	`sended` smallint(1) NOT NULL DEFAULT 0,
+	`load` FLOAT NOT NULL ,
+	`uuid` VARCHAR( 90 ) NOT NULL ,
+	`content` TEXT ,
+	PRIMARY KEY (`zmd5`),
+	KEY  `zDate` ( `zDate`),
+	KEY  `sended` ( `sended`),
+	KEY `load` (`load`)
+
+	) ENGINE=MYISAM;";
+
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){echo $q->mysql_error;return;}
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/sys_alerts";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+	
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>1880){@unlink($targetFile);continue;}
+		if(!preg_match("#([0-9]+)-([0-9\.]+)#", $filename,$re)){
+			@unlink($targetFile);continue;
+		}
+		
+		$time=date("Y-m-d H:i:s",$re[1]);
+		$load=$re[2];
+		$zmd5=md5("$filename$uuid");
+		$content=mysql_escape_string2(@file_get_contents($targetFile));
+		$q->QUERY_SQL("INSERT IGNORE INTO sys_alerts (`zmd5`,`zDate`,`sended`,`load`,`uuid`,`content`) 
+		VALUES ('$zmd5','$time','0','$load','$uuid','$content')","artica_events");
+		if(!$q->ok){echo $q->mysql_error;continue;}
+		@unlink($targetFile);
+		
+		
+	}
+
 }
 
 
@@ -1160,14 +1276,7 @@ function squid_admin_purge_check($nopid=false){
 function rotate_admin_events_checks($nopid=false){
 	$f=array();
 	$unix=new unix();
-	if($nopid){
-	
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
-		$t=0;
-	
-	}
+
 	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/rotate_admin_events";
 	if(!is_dir($BaseWorkDir)){return;}
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
@@ -1248,14 +1357,7 @@ function rotate_admin_events_checks($nopid=false){
 function rdpproxy_admin_mysql_check($nopid=false){
 	$f=array();
 	$unix=new unix();
-	if($nopid){
 
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
-		$t=0;
-
-	}
 
 	$sock=new sockets();
 	$users=new usersMenus();
@@ -1575,28 +1677,453 @@ function cyrus_admin_mysql_check($nopid=false){
 	
 }
 
-
-function squid_admin_mysql_check($nopid=false){
+function meta_admin_mysql_check($nopid=false){
 	$f=array();
 	$unix=new unix();
-	if($nopid){
 
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
-		$t=0;
-
+	
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/meta_admin_mysql";
+	$uuid=$unix->GetUniqueID();
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+	
+	$hostname="master";
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==0){
+		$hostname=$unix->hostname_g();
 	}
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+	
+	if(!$q->TABLE_EXISTS("meta_admin_mysql", "artica_events")){return;}
+	
+	
+	if(!$q->ok){
+		meta_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+		return;
+	}
+	
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+	
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+	
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+		
+		$zm5=md5("$zdate$subject$function$file$line$uuid");
+		
+		
+		meta_events("[meta_admin_mysql]:: $subject ",__FUNCTION__,__FILE__,__LINE__);
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO `meta_admin_mysql`
+				(`zmd5`,`uuid`,`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zm5','$uuid','$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+		
+	
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO `meta_admin_mysql`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+	
+		if(!$q->ok){
+			meta_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+			return;}
+	
+		@unlink($targetFile);
+	
+	}	
+	
+}
+
+function meta_events($text,$function,$file=null,$line=0){
+	if($file==null){$file=basename(__FILE__);}else{$file=basename($file);}
+	$pid=@getmypid();
+	$date=@date("H:i:s");
+	$logFile="/var/log/artica-meta-agent.log";
+	$size=@filesize($logFile);
+	if($size>1000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	$text="[$file][$pid] $date $function:: $text (L.$line)\n";
+	if($GLOBALS["VERBOSE"]){echo $text;}
+	@fwrite($f, $text);
+	@fclose($f);
+
+	$logFile="/var/log/artica-meta.log";
+	$size=@filesize($logFile);
+	if($size>1000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, $text);
+	@fclose($f);
+
+
+}
+
+function system_admin_mysql_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/system_admin_mysql";
+	if(!is_dir($BaseWorkDir)){@mkdir($BaseWorkDir,0755,true);}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
 
 	$sock=new sockets();
 	$users=new usersMenus();
 	$hostname=$unix->hostname_g();
-	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/squid_admin_mysql";
 
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+
+
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`system_admin_mysql` (
+		`ID` int(11) NOT NULL AUTO_INCREMENT,
+		`zDate` TIMESTAMP NOT NULL ,
+		`content` MEDIUMTEXT NOT NULL ,
+		`hostname` VARCHAR( 255 ),
+		`subject` VARCHAR( 255 ) NOT NULL ,
+		`function` VARCHAR( 60 ) NOT NULL ,
+		`filename` VARCHAR( 50 ) NOT NULL ,
+		`line` INT( 10 ) NOT NULL ,
+		`severity` smallint( 1 ) NOT NULL ,
+		`sended` smallint( 1 ) NOT NULL DEFAULT 0,
+		`TASKID` BIGINT UNSIGNED ,
+		PRIMARY KEY (`ID`),
+		  KEY `zDate` (`zDate`),
+		  KEY `subject` (`subject`),
+		  KEY `hostname` (`hostname`),
+		  KEY `function` (`function`),
+		  KEY `filename` (`filename`),
+		  KEY `sended` (`sended`),
+		  KEY `severity` (`severity`)
+		) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+
+	if(!$q->FIELD_EXISTS("mysql_admin_mysql", "hostname", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `system_admin_mysql` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
+	}
+	if(!$q->FIELD_EXISTS("mysql_admin_mysql", "sended", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `system_admin_mysql` ADD `sended` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `sended` )","artica_events");
+	}
+
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+
+		$q->QUERY_SQL("INSERT IGNORE INTO `system_admin_mysql`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+
+		if(!$q->ok){return;}
+
+		@unlink($targetFile);
+
+	}
+}
+
+function meta_client_clean_logs(){
+	$BaseWorkDir="/home/artica-meta/events";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		@unlink($targetFile);
+	}
+	
+}
+
+
+function mysql_admin_mysql_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+
+
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/mysql_admin_mysql";
+	if(!is_dir($BaseWorkDir)){@mkdir($BaseWorkDir,0755,true);}
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
 
-
+	$sock=new sockets();
+	$users=new usersMenus();
 	$hostname=$unix->hostname_g();
+	
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+	
+	
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`mysql_admin_mysql` (
+		`ID` int(11) NOT NULL AUTO_INCREMENT,
+		`zDate` TIMESTAMP NOT NULL ,
+		`content` MEDIUMTEXT NOT NULL ,
+		`hostname` VARCHAR( 255 ),
+		`subject` VARCHAR( 255 ) NOT NULL ,
+		`function` VARCHAR( 60 ) NOT NULL ,
+		`filename` VARCHAR( 50 ) NOT NULL ,
+		`line` INT( 10 ) NOT NULL ,
+		`severity` smallint( 1 ) NOT NULL ,
+		`sended` smallint( 1 ) NOT NULL DEFAULT 0,
+		`TASKID` BIGINT UNSIGNED ,
+		PRIMARY KEY (`ID`),
+		  KEY `zDate` (`zDate`),
+		  KEY `subject` (`subject`),
+		  KEY `hostname` (`hostname`),
+		  KEY `function` (`function`),
+		  KEY `filename` (`filename`),
+		  KEY `sended` (`sended`),
+		  KEY `severity` (`severity`)
+		) ENGINE=MYISAM;";
+		$q->QUERY_SQL($sql,"artica_events");
+		if(!$q->ok){echo $q->mysql_error."\n";return;}
+	
+		if(!$q->FIELD_EXISTS("mysql_admin_mysql", "hostname", "artica_events")){
+			$q->QUERY_SQL("ALTER TABLE `squid_admin_mysql` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
+		}
+		if(!$q->FIELD_EXISTS("mysql_admin_mysql", "sended", "artica_events")){
+			$q->QUERY_SQL("ALTER TABLE `squid_admin_mysql` ADD `sended` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `sended` )","artica_events");
+		}		
+		
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+	
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+		
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO `mysql_admin_mysql`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+		
+		if(!$q->ok){return;}
+		
+		@unlink($targetFile);
+
+	}
+}
+function nginx_admin_mysql_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+
+
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/nginx_admin_mysql";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+
+
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`nginx_admin_mysql` (
+		`ID` int(11) NOT NULL AUTO_INCREMENT,
+		`zDate` TIMESTAMP NOT NULL ,
+		`content` MEDIUMTEXT NOT NULL ,
+		`hostname` VARCHAR( 255 ),
+		`subject` VARCHAR( 255 ) NOT NULL ,
+		`function` VARCHAR( 60 ) NOT NULL ,
+		`filename` VARCHAR( 50 ) NOT NULL ,
+		`line` INT( 10 ) NOT NULL ,
+		`severity` smallint( 1 ) NOT NULL ,
+		`sended` smallint( 1 ) NOT NULL DEFAULT 0,
+		`TASKID` BIGINT UNSIGNED ,
+		PRIMARY KEY (`ID`),
+		  KEY `zDate` (`zDate`),
+		  KEY `subject` (`subject`),
+		  KEY `hostname` (`hostname`),
+		  KEY `function` (`function`),
+		  KEY `filename` (`filename`),
+		  KEY `sended` (`sended`),
+		  KEY `severity` (`severity`)
+		) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+
+	if(!$q->FIELD_EXISTS("nginx_admin_mysql", "hostname", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `nginx_admin_mysql` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
+	}
+	if(!$q->FIELD_EXISTS("nginx_admin_mysql", "sended", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `nginx_admin_mysql` ADD `sended` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `sended` )","artica_events");
+	}
+
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+
+		$q->QUERY_SQL("INSERT IGNORE INTO `nginx_admin_mysql`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+
+		if(!$q->ok){return;}
+
+		@unlink($targetFile);
+
+	}
+
+	
+}
+function squid_admin_enforce_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+
+
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/squid_admin_enforce";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+
+
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`squid_admin_enforce` (
+		`ID` int(11) NOT NULL AUTO_INCREMENT,
+		`zDate` TIMESTAMP NOT NULL ,
+		`content` MEDIUMTEXT NOT NULL ,
+		`hostname` VARCHAR( 255 ),
+		`subject` VARCHAR( 255 ) NOT NULL ,
+		`function` VARCHAR( 60 ) NOT NULL ,
+		`filename` VARCHAR( 50 ) NOT NULL ,
+		`line` INT( 10 ) NOT NULL ,
+		`severity` smallint( 1 ) NOT NULL ,
+		`sended` smallint( 1 ) NOT NULL DEFAULT 0,
+		`TASKID` BIGINT UNSIGNED ,
+		PRIMARY KEY (`ID`),
+		  KEY `zDate` (`zDate`),
+		  KEY `subject` (`subject`),
+		  KEY `hostname` (`hostname`),
+		  KEY `function` (`function`),
+		  KEY `filename` (`filename`),
+		  KEY `sended` (`sended`),
+		  KEY `severity` (`severity`)
+		) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+
+	if(!$q->FIELD_EXISTS("squid_admin_enforce", "hostname", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `squid_admin_enforce` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
+	}
+	if(!$q->FIELD_EXISTS("squid_admin_enforce", "sended", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `squid_admin_enforce` ADD `sended` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `sended` )","artica_events");
+	}
+
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+
+		$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_enforce`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+
+		if(!$q->ok){return;}
+
+		@unlink($targetFile);
+
+	}
+
+}
+
+function squid_admin_mysql_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+
+
+
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/squid_admin_mysql";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+	
 	$q=new mysql();
 	if(!$q->test_mysql_connection()){return;}
 	
@@ -1611,6 +2138,7 @@ function squid_admin_mysql_check($nopid=false){
 		`filename` VARCHAR( 50 ) NOT NULL ,
 		`line` INT( 10 ) NOT NULL ,
 		`severity` smallint( 1 ) NOT NULL ,
+		`sended` smallint( 1 ) NOT NULL DEFAULT 0,
 		`TASKID` BIGINT UNSIGNED ,
 		PRIMARY KEY (`ID`),
 		  KEY `zDate` (`zDate`),
@@ -1618,6 +2146,7 @@ function squid_admin_mysql_check($nopid=false){
 		  KEY `hostname` (`hostname`),
 		  KEY `function` (`function`),
 		  KEY `filename` (`filename`),
+		  KEY `sended` (`sended`),
 		  KEY `severity` (`severity`)
 		) ENGINE=MYISAM;";
 		$q->QUERY_SQL($sql,"artica_events");
@@ -1626,6 +2155,9 @@ function squid_admin_mysql_check($nopid=false){
 		if(!$q->FIELD_EXISTS("squid_admin_mysql", "hostname", "artica_events")){
 			$q->QUERY_SQL("ALTER TABLE `squid_admin_mysql` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
 		}
+		if(!$q->FIELD_EXISTS("squid_admin_mysql", "sended", "artica_events")){
+			$q->QUERY_SQL("ALTER TABLE `squid_admin_mysql` ADD `sended` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `sended` )","artica_events");
+		}		
 		
 	
 	while (false !== ($filename = readdir($handle))) {
@@ -1656,6 +2188,41 @@ function squid_admin_mysql_check($nopid=false){
 		@unlink($targetFile);
 
 	}
+	
+	$BaseWorkDir="/var/log/squid/squid_admin_mysql";
+	if(is_dir($BaseWorkDir)){
+		if ($handle = opendir($BaseWorkDir)) {
+			while (false !== ($filename = readdir($handle))) {
+				if($filename=="."){continue;}
+				if($filename==".."){continue;}
+				$targetFile="$BaseWorkDir/$filename";
+				if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+				$array=unserialize(@file_get_contents($targetFile));
+				if(!is_array($array)){@unlink($targetFile);continue;}
+			
+				if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+				$content=mysql_escape_string2($array["text"]);
+				$subject=mysql_escape_string2($array["subject"]);
+			
+				$zdate=$array["zdate"];
+				$function=$array["function"];
+				$file=$array["file"];
+				$line=$array["line"];
+				$TASKID=$array["TASKID"];
+				$severity=$array["severity"];
+			
+				$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_mysql`
+						(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+						('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+			
+				if(!$q->ok){return;}
+			
+				@unlink($targetFile);
+			
+			}
+		}	
+	}
+	
 	
 	artica_update_task(true);
 }
@@ -1769,6 +2336,7 @@ function squid_admin_notifs_check($nopid=false){
 	}
 
 	squid_admin_mysql_check(true);
+	squid_admin_enforce_check(true);
 
 }
 
@@ -1840,8 +2408,9 @@ function system_rotate_events_checks($nopid=false){
 	
 		$suffix="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}','$hostname')";
 		$q->QUERY_SQL($prefix.$suffix,"artica_events");
-		if(!$q->ok){continue;}
 		@unlink($targetFile);
+		if(!$q->ok){continue;}
+		
 	}
 	
 	
@@ -1909,6 +2478,7 @@ function system_failover_events_checks($nopid=false){
 
 function system_admin_events_checks($nopid=false){
 	$f=array();
+	$TRW=array();
 	if($nopid){
 		$unix=new unix();
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -1941,7 +2511,7 @@ function system_admin_events_checks($nopid=false){
 	KEY `category` (`category`)
 	) ENGINE=MYISAM;";
 	$q->QUERY_SQL($sql,"artica_events");
-	
+	if(!$q->ok){return;}
 	
 	$prefix="INSERT IGNORE INTO system_admin_events (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`) VALUES ";
 	while (false !== ($filename = readdir($handle))) {
@@ -2139,14 +2709,7 @@ function vsftpd_admin_mysql_check($nopid=false){
 function sarg_admin_events_checks($nopid=false){
 	$f=array();
 	$unix=new unix();
-	if($nopid){
 
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
-		$t=0;
-
-	}
 	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/sarg_admin_events")){return;}
 	$q=new mysql();
 	$q->BuildTables();
@@ -2169,6 +2732,7 @@ function sarg_admin_events_checks($nopid=false){
 		$array=unserialize(@file_get_contents($filename));
 		if(!is_array($array)){@unlink($filename);continue;}
 		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$array["text"]=substr($array["text"], 0,254);
 		$array["text"]=mysql_escape_string2($array["text"]);
 		
 		$line="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}')";
@@ -2185,14 +2749,7 @@ function sarg_admin_events_checks($nopid=false){
 function udfbguard_admin_events($nopid=false){
 	$f=array();
 	$unix=new unix();
-	if($nopid){
-		
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
-		$t=0;		
-		
-	}	
+
 	
 	$q=new mysql();	
 	$q->BuildTables();
@@ -2403,10 +2960,16 @@ function clean_mysql_events(){
 	$array["system_rotate_events"]=true;
 	$array["update_events"]=true;
 	$array["squid_admin_mysql"]=true;
+	$array["squid_admin_enforce"]=true;
+	$array["nginx_admin_mysql"]=true;
+	$array["mysql_admin_mysql"]=true;
+	$array["system_admin_mysql"]=true;
+	$array["meta_admin_mysql"]=true;
 	$array["cyrus_admin_mysql"]=true;
 	$array["apache_admin_mysql"]=true;
 	$array["vsftpd_admin_mysql"]=true;
 	$array["blackwhite_admin_mysql"]=true;
+	$array["sys_alerts"]=true;
 	$array["auth_events"]=true;
 	
 	$max=count($array);$c=0;
@@ -2470,6 +3033,20 @@ function clean_mysql_events(){
 	if($q->TABLE_EXISTS("rdpproxy_admin_mysql", "artica_events")){
 		$q->QUERY_SQL("DELETE FROM rdpproxy_admin_mysql WHERE zDate < DATE_SUB( NOW( ) , INTERVAL 30 DAY )","artica_events");
 	}	
+	
+	
+	$q=new mysql_squid_builder();
+	
+	if($q->TABLE_EXISTS("wpad_events")){
+		if($q->COUNT_ROWS("wpad_events")>0){
+			$q->QUERY_SQL("DELETE FROM wpad_events WHERE zDate < DATE_SUB( NOW( ) , INTERVAL 7 DAY )");
+		}
+	}
+	
+	
+	
+	
+	
 	
 	
 	
@@ -2722,7 +3299,86 @@ function load_stats(){
 	
 }
 
+function seeker_log($text,$line){
+	$unix=new unix();
+	$unix->events($text,"/var/log/seeker.log",false,"seeker",$line,basename(__FILE__));
+}
 
+function seeker(){
+	seeker_log("Start seeker()",__LINE__);
+	$q=new mysql();
+	$sock=new sockets();
+	$unix=new unix();
+	$f=array();	
+	
+	$sql="CREATE TABLE IF NOT EXISTS `disk_seeker` (
+			   `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				`ms_read` float,
+				`disk` VARCHAR(128),
+				`seeks` INT(100),
+				`kbs` INT(100),
+				KEY `zDate` (`zDate`),
+				KEY `disk` (`disk`),
+				KEY `kbs` (`kbs`),
+				KEY `ms_read` (`ms_read`)
+			) ENGINE=MYISAM;
+			";
+	$q->QUERY_SQL($sql,'artica_events');
+	if(!$q->ok){
+		seeker_log($q->mysql_error,__LINE__);
+		return;
+	}	
+	
+	$DirPath="{$GLOBALS["ARTICALOGDIR"]}/seeker-queue";
+	if(!is_dir($DirPath)){@mkdir($DirPath,0755,true);}
+	if(system_is_overloaded()){seeker_log("system_is_overloaded, aborting",__LINE__);return;}
+	if (!$handle = opendir($DirPath)) {seeker_log("$DirPath ERROR",__LINE__);return;}
+	
+	$prefix="INSERT IGNORE INTO `disk_seeker` (`zDate`,`ms_read`,`disk`,`seeks`,`kbs`) VALUES ";
+	$c=0;
+	seeker_log("Start Loop",__LINE__);
+	while (false !== ($file = readdir($handle))) {
+		if ($file == "."){continue;}
+		if ($file == ".."){continue;}
+		if(is_dir("$DirPath/$file")){continue;}
+		$filename="$DirPath/$file";
+		seeker_log("$filename",__LINE__);
+		$data=unserialize(@file_get_contents($filename));
+		if(!is_array($data)){
+			seeker_log("$file not an array...",__LINE__);
+			@unlink($filename);
+			continue;
+		}
+		
+		
+		$seeks=$data["SEEKS"];
+		$disk=$data["DISK"];
+		$ms=$data["MS"];
+		$time=$data["time"];
+		$zdate=date("Y-m-d H:i:s",$time);
+		$kbs=$seeks*4096;
+		$kbs=$kbs/1024;
+		$kbs=round($kbs);
+		if(!is_numeric($seeks)){
+			seeker_log("$file seek not a numeric value",__LINE__);
+			@unlink($filename);
+			continue;
+		}
+		$line="('$zdate','$ms','$disk','$seeks','$kbs')";
+		seeker_log($line,__LINE__);
+		$q->QUERY_SQL("$prefix $line","artica_events");
+		if(!$q->ok){
+			seeker_log($q->mysql_error,__LINE__);
+			return;
+		}
+		$c++;
+		@unlink($filename);
+	}	
+	
+	seeker_log("$c injected files",__LINE__);
+	
+	
+}
 
 function sys_load(){
 	if($GLOBALS["VERBOSE"]){echo "Start sys_load()\n";}
@@ -2834,42 +3490,6 @@ function sys_mem(){
 
 }
 function sys_alert(){
-	$q=new mysql();
-	$f=array();
-	if(!$q->TABLE_EXISTS('sys_alert','artica_events')){
-		$sql="CREATE TABLE IF NOT EXISTS `sys_alert` (
-			 	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				psdata LONGTEXT,
-				PRIMARY KEY (`zDate`)
-				
-			) ENGINE=MYISAM;
-			";
-		$q->QUERY_SQL($sql,'artica_events');
-		if(!$q->ok){return;}
-	}
-
-	if(!$q->BD_CONNECT()){return;}
-	$prefix="INSERT IGNORE INTO sys_alert (zDate,psdata) VALUES ";
-
-	if(system_is_overloaded()){return;}
-	foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/sys_alert/*") as $filename) {
-		$time=basename($filename);
-		$tr=explode("-",$time);
-		
-		$zdate="{$tr[0]}-{$tr[1]}-{$tr[2]} {$tr[3]}:{$tr[4]}:00";
-		$load=trim(@file_get_contents($filename));
-		$load=mysql_escape_string2($load);
-		$f[]="('$zdate','$load')";
-		@unlink($filename);
-	}
-
-	if(count($f)>0){
-		$sql=$prefix.@implode(",", $f);
-		$q->QUERY_SQL($sql,"artica_events");
-
-	}
-	
-	
 
 }
 function ps_mem($nopid=false){
@@ -3036,9 +3656,27 @@ function authlogs(){
 	if($unix->process_exists($pid)){echo "Already running pid $pid\n";return;}
 	
 	$q=new mysql();
-	foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/*") as $filename) {
+	
+	$DirPath="{$GLOBALS["ARTICALOGDIR"]}/sshd-failed";
+	if(!is_dir($DirPath)){return;}
+	if (!$handle = opendir($DirPath)) {return;}
+	while (false !== ($file = readdir($handle))) {
+		if ($file == "."){continue;}
+		if ($file == ".."){continue;}
+		$filename="{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$file";
+		if(is_dir($filename)){continue;}
+		if($unix->file_time_min($filename)>120){
+			@unlink($filename);
+			continue;
+		}
+		
 		events("Open $filename",__FUNCTION__,__FILE__,__LINE__);
 		$array=unserialize(@file_get_contents($filename));
+		if(!is_array($array)){
+			@unlink($filename);
+			continue;
+		}
+		
 		$zdate=date("Y-m-d H:i:s",basename($filename));
 		if(is_array($array)){
 			while (list ($ip, $uid) = each ($array)){

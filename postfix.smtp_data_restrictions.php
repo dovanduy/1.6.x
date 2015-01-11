@@ -50,7 +50,7 @@ function page(){
 	<table style='width:100%;margin-bottom:8px'>
 	<tr>
 	<td width=100%' valign='top'>
-		<div class=explain>{smtpd_data_restrictions_explain}</div>
+		<div class=text-info>{smtpd_data_restrictions_explain}</div>
 	</td>
 	<td width=1%>". Paragraphe("apply-config-44.png", "{compile_rules}", "{compile_rules_explain}","javascript:smtpd_data_restrictions_compile()")."</td>
 	</tr>
@@ -205,7 +205,7 @@ function smtpd_data_restrictions_datas(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	
 	$html="
-	<div class=explain style='font-size:14px'><strong>{{$ligne["restriction"]}}</strong><br>{{$ligne["restriction"]}_text}</div>
+	<div class=text-info style='font-size:14px'><strong>{{$ligne["restriction"]}}</strong><br>{{$ligne["restriction"]}_text}</div>
 	<div id='restriction-data' style='width:100%;height:250px;overflow:auto'></div>
 	<script>
 

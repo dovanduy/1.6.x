@@ -26,7 +26,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$datasUFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
-	if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}	
+	if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}
 	$watn=$tpl->javascript_parse_text("{ufdbguard_debug_off}");
 	if($datasUFDB["DebugAll"]==0){
 		$watn=$tpl->javascript_parse_text("{ufdbguard_debug_on}");
@@ -38,7 +38,7 @@ function js(){
 			
 	var xttask$t=function (obj) {
 		if(document.getElementById('rules-toolbox-left')){
-			LoadAjaxTiny('rules-toolbox-left','dansguardian2.mainrules.php?rules-toolbox-left=yes');
+			RefreshTab('main_dansguardian_mainrules');
 		}
 	}
 	

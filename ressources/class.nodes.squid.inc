@@ -267,6 +267,7 @@ class squidnodes{
 			$conf[]="# ---------  RULES DEFINITIONS";
 			$conf[]=$this->http_access();
 			$conf[]="# --------- ICAP Services.(0 service(s))";
+			
 			$conf[]="hierarchy_stoplist cgi-bin ?";
 			$conf[]="# --------- General settings ";
 			$conf[]=$this->visible_hostname();
@@ -630,7 +631,8 @@ class squidnodes{
 
 	private function http_access(){
 
-			
+			$sock=new sockets();
+			$SquidEnableIdentdServiceOnly=intval($sock->GET_INFO("SquidEnableIdentdServiceOnly"));
 			if(!isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"])){$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"]=array();}
 			//if($this->allow_squid_localhost<>1){$conf[]="http_access deny to_localhost";}else{$conf[]="http_access allow to_localhost";}
 			$conf[]="http_access allow to_localhost";
@@ -673,6 +675,16 @@ class squidnodes{
 			if(count($acls_rules)>0){$conf[]=@implode("\n", $acls_rules);}
 			$conf[]="http_access deny !Safe_ports";
 			$conf[]="http_access deny CONNECT !SSL_ports";
+			
+			
+			
+			
+			if($SquidEnableIdentdServiceOnly==1){
+				
+				
+			}
+			
+			
 			if(isset($GLOBALS["HTTP_ACCESS"]["OFFICE_NETWORK"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["OFFICE_NETWORK"];}
 			$conf[]="http_access deny all";
 			while (list ($num, $val) = each ($conf) ){if(trim($val)==null){continue;}$f[]=$val;}

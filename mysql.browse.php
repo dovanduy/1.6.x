@@ -689,7 +689,7 @@ $html="
 	<tr>
 	<td valign='top' width=1%>$warn$refresh<br>$add<br>$DEF_ICO_REMOTE_STORAGE</td>
 	<td valign='top'>
-		<div class=explain>{browse_mysql_server_text}</div>
+		<div class=text-info>{browse_mysql_server_text}</div>
 		<div id='tablemysqllist' style='width:100%;height:550px;overflow:auto'>$list</div>
 	</td>
 	</tr>

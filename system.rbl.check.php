@@ -234,7 +234,7 @@ function filldefaults(){
 	$dnss[]="dnsbl-1.uceprotect.net";
 	$dnss[]="dnsbl-2.uceprotect.net";
 	$dnss[]="dnsbl-3.uceprotect.net";
-	$dnss[]="dnsbl.ahbl.org";
+	
 	$dnss[]="dnsbl.cyberlogic.net";
 	$dnss[]="dnsbl.inps.de";
 	$dnss[]="dnsbl.njabl.org";
@@ -285,7 +285,7 @@ function filldefaults(){
 	$dnss[]="spamlist.or.kr";
 	$dnss[]="spamrbl.imp.ch";
 	$dnss[]="t3direct.dnsbl.net.au";
-	$dnss[]="tor.ahbl.org";
+	
 	$dnss[]="tor.dnsbl.sectoor.de";
 	$dnss[]="torserver.tor.dnsbl.sectoor.de";
 	$dnss[]="ubl.lashback.com";
@@ -305,7 +305,7 @@ function filldefaults(){
 	$dnss[]="cbl.abuseat.org";
 	$dnss[]="dnsbl.njabl.org";
 	$dnss[]="bl.spamcop.net";
-	$dnss[]="dnsbl.ahbl.org";
+
 	$dnss[]="zombie.dnsbl.sorbs.net";
 	$dnss[]="asiaspam.spamblocked.com";
 	$dnss[]="bl.deadbeef.com";
@@ -369,7 +369,7 @@ function filldefaults(){
 	$dnss[]="spamlist.or.kr";
 	$dnss[]="spamrbl.imp.ch";
 	$dnss[]="t3direct.dnsbl.net.au";
-	$dnss[]="tor.ahbl.org";
+	
 	$dnss[]="tor.dnsbl.sectoor.de";
 	$dnss[]="torserver.tor.dnsbl.sectoor.de";
 	$dnss[]="ubl.lashback.com";
@@ -412,7 +412,7 @@ function filldefaults(){
 	$dnss[]="postmaster.rfc-ignorant.org";
 	$dnss[]="rbl-plus.mail-abuse.org";
 	$dnss[]="rbl.efnet.org";
-	$dnss[]="rbl.orbitrbl.com";
+	
 	$dnss[]="rbl.schulte.org";
 	$dnss[]="relays.mail-abuse.org";
 	$dnss[]="spamsources.fabel.dk";
@@ -570,7 +570,7 @@ function rbls(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'><div class=explain>{rbl_check_artica_text}</div>
+	<td valign='top'><div class=text-info>{rbl_check_artica_text}</div>
 	<td valign='top'>". Paragraphe32("add","addrbl_server_text","add_RblCheck()", "32-plus.png")."</td>
 	</tr>	
 	</table>
@@ -701,7 +701,7 @@ function rbl_add_popup(){
 	
 	$html="
 	<div id='simplekeywords-smtp-div2'>
-	<div class=explain>{add_multiple_rbl_explain}</div>
+	<div class=text-info>{add_multiple_rbl_explain}</div>
 	<textarea id='rbls-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","RBLsSave()")."</div>
 	</div>

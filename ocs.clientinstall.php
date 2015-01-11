@@ -48,7 +48,7 @@ function popup(){
 	$p=Paragraphe("64-install-soft.png", "{INSTALL_OCS_CLIENT}", "{INSTALL_OCS_CLIENT_TEXT}","javascript:Loadjs('ocs.clientinstall.php')");
 	
 	$html="<div style='background-color:#005447'><img src='img/ocs-logo.png'></div>
-	<div class=explain style='font-size:14px'>{OCS_CLIENT_PUB_TEXT}</div>
+	<div class=text-info style='font-size:14px'>{OCS_CLIENT_PUB_TEXT}</div>
 	<center id='OCSURIDIV'>
 	<table style='width:90%' class=form>
 	<tboy>

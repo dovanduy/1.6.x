@@ -297,7 +297,7 @@ if($users->POSTFIX_INSTALLED){
 	<table style='width:100%'>
 	<tr>
 		<td  width=1%><img src='img/64-bind.png'</td>
-		<td><div class=explain>{EXTERNAL_PORTS_TEXT}</div></td>
+		<td><div class=text-info>{EXTERNAL_PORTS_TEXT}</div></td>
 	</tr>
 	</table>
 	

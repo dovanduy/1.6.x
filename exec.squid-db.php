@@ -17,6 +17,28 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.services.inc');
 
+$unix=new unix();
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." instances:".count($pids)."\n";}
+if(count($pids)>2){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." starting squid, kill them!\n";
+	$mypid=getmypid();
+	while (list ($pid, $ligne) = each ($pids) ){
+		if($pid==$mypid){continue;}
+		echo "Starting......: ".date("H:i:s")." killing $pid\n";
+		unix_system_kill_force($pid);
+	}
+
+}
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>2){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." dying\n";
+	die();
+}
+
+
+
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
@@ -29,6 +51,7 @@ if($argv[1]=="--checks"){checktables();die();}
 if($argv[1]=="--statistics"){statistics();die();}
 if($argv[1]=="--upgrade"){upgrade();die();}
 if($argv[1]=="--backup"){backup();die();}
+if($argv[1]=="--memory-tables"){memory_tables();exit;}
 
 
 
@@ -62,6 +85,14 @@ function get_swap(){
 
 
 }
+
+function memory_tables(){
+	
+	$q=new mysql_squid_builder();
+	print_r($q->MEMORY_TABLES_LIST());
+	
+}
+
 
 function upgrade(){
 	$GLOBALS["NOPID"]=true;

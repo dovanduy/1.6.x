@@ -246,7 +246,7 @@ function popup_finish(){
 	$html=$html."<hr>
 <div style='color:black;font-size:18px'>{wizardCompileButton}</div>
 <div class=form style='width:95%;margin:10px'>
-	<div class=explain>{wizardCompileButton_text}</div>
+	<div class=text-info>{wizardCompileButton_text}</div>
 	
 		<center>
 			". button("{wizardCompileButton}","WizardBackupCompile()",18)."
@@ -292,7 +292,7 @@ $container=Field_array_Hash(array("daily"=>"{daily}","weekly"=>"{weekly}"),"CRON
 
 $html=$html."<hr>
 <div style='color:black;font-size:18px'>{WIZARD_CONFIGURE_SCHEDULE}</div>
-	<div class=explain>{WIZARD_CONFIGURE_SCHEDULE_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_CONFIGURE_SCHEDULE_EXPLAIN}</div>
 <table style='width:99%' class=form>
 		<tr>
 			<td style='font-size:14px' align='right'>{run_every_day}:</td>
@@ -310,7 +310,7 @@ $html=$html."<hr>
 			</td>
 		</tr>	
 		<tr><td colspan=2>&nbsp;</td></tr>
-		<tr><td colspan=2><div class=explain>{WIZARD_CONFIGURE_CONTAINER_EXPLAIN}</div></td></tr>
+		<tr><td colspan=2><div class=text-info>{WIZARD_CONFIGURE_CONTAINER_EXPLAIN}</div></td></tr>
 		<tr>
 			<td style='font-size:14px' align='right'>{container}:</td>
 			<td nowrap>$container</td>
@@ -375,7 +375,7 @@ function popup_resource_usb(){
 	$select=Field_array_Hash($hash,"UUID",$_SESSION["WIZARD"]["W_RESOURCE"],null,null,0,"font-size:14px;padding:5px;");
 	$html="
 	<div style='color:black;font-size:18px'>{usb_external_drive}</div>
-	<div class=explain>{WIZARD_BACKUP_USB_STORAGE_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_BACKUP_USB_STORAGE_EXPLAIN}</div>
 	$select
 	<div style='text-align:right;width:100%'>".button("{refresh}","WizardRessourceShow()")."</center>
 <hr>
@@ -393,7 +393,7 @@ function popup_resource_smb(){
 	
 	$html="
 	<div style='color:black;font-size:18px'>{remote_smb_server}</div>
-	<div class=explain style='font-size:16px'>{WIZARD_BACKUP_SMB_STORAGE_EXPLAIN}</div>
+	<div class=text-info style='font-size:16px'>{WIZARD_BACKUP_SMB_STORAGE_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 		<tr>
 			<td style='font-size:14px' align='right'>{hostname}:</td>
@@ -432,7 +432,7 @@ function popup_resource_automount(){
 	$add=imgtootltip("32-plus.png","{add}","Loadjs('autofs.php?form-add-js=yes')");
 	
 	$html="<div style='color:black;font-size:18px'>{automount_ressource}</div>
-	<div class=explain>{WIZARD_BACKUP_AUTOMOUNT_STORAGE_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_BACKUP_AUTOMOUNT_STORAGE_EXPLAIN}</div>
 	<div id='BackupTaskAutoFSMountedList' style='width:100%;height:250px'></div>
 	<script>
 	
@@ -473,7 +473,7 @@ function popup_resource_ssh(){
 	
 	$html="
 	<div style='color:black;font-size:18px'>{remote_ssh_service}</div>
-	<div class=explain style='font-size:16px'>{WIZARD_BACKUP_SSH_STORAGE_EXPLAIN}</div>
+	<div class=text-info style='font-size:16px'>{WIZARD_BACKUP_SSH_STORAGE_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 		<tr>
 			<td style='font-size:14px' align='right'>{hostname}:</td>
@@ -507,7 +507,7 @@ function popup_resource_local(){
 	$tpl=new templates();
 	
 	$html="<div style='color:black;font-size:18px'>{local_directory}</div>
-	<div class=explain>{WIZARD_BACKUP_LOCAL_STORAGE_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_BACKUP_LOCAL_STORAGE_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{directory}:</td>
@@ -623,10 +623,10 @@ function popup(){
 		<td valign='top'><img src='img/backup-128-bg.png'>$intro</td>
 		<td valign='top'>
 	
-	<div class=explain>{WIZARD_BACKUP_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_BACKUP_EXPLAIN}</div>
 	<div class=form style='width:95%'>
 	<div style='font-size:18px;color:black'>{WIZARD_BACKUP_CHOOSE_STORAGE}:</div>
-	<div class=explain>{WIZARD_BACKUP_CHOOSE_STORAGE_EXPLAIN}</div>
+	<div class=text-info>{WIZARD_BACKUP_CHOOSE_STORAGE_EXPLAIN}</div>
 	<center>$select</center>
 	</div>
 	

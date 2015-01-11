@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -6,7 +7,7 @@
 session_start();
 include_once("ressources/class.templates.inc");
 include_once("ressources/class.ldap.inc");
-
+include_once('ressources/class.main_cf.inc');
 
 $user=new usersMenus();
 $tpl=new Templates();
@@ -87,7 +88,7 @@ $users=new usersMenus();
 
 $html="	
 	function LoadHostsCertificatePage(){
-		YahooWin4('450','$page?certificate-hosts-popup','$title');
+		YahooWin4('800','$page?certificate-hosts-popup','$title');
 	}
 	
 var X_AddHostCertificate= function (obj) {
@@ -103,7 +104,6 @@ var X_AddHostCertificate= function (obj) {
 	 if(host){
 	 	  var XHR = new XHRConnection();
 		  XHR.appendData('certificate-hosts-add',host);
-		  document.getElementById('certificate_hosts').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 		  XHR.sendAndLoad('$page', 'GET',X_AddHostCertificate);	
 		}
 	
@@ -112,7 +112,6 @@ var X_AddHostCertificate= function (obj) {
 	function DelHostCertificate(host){
  		  var XHR = new XHRConnection();
 		  XHR.appendData('certificate-hosts-del',host);
-		  document.getElementById('certificate_hosts').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 		  XHR.sendAndLoad('$page', 'GET',X_AddHostCertificate);		
 	}
 	
@@ -241,7 +240,7 @@ $title=$tpl->_ENGINE_parse_body('{tls_title}');
 	
 $html="	
 	function LoadTLSPage(){
-		RTMMail('700','$page?popup=yes','$title');
+		RTMMail('1140','$page?popup=yes','$title');
 	}
 
 
@@ -267,31 +266,11 @@ function postfix_tls_tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		if($_GET["tab"]==$num){$class="id=tab_current";}else{$class=null;}
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
-		if(strlen($ligne)>25){$ligne=texttooltip(substr($ligne,0,22)."...",$ligne,null,null,1);}
-		$html[]= "<li><a href=\"$page?main=yes&tab=$num\"><span>$ligne</span></a></li>\n";
+		
+		$html[]= "<li><a href=\"$page?main=yes&tab=$num\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 		}
-	return "
-		<div id=TLS_TABLE style='width:100%;height:430px;overflow:auto;background-color:white;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#TLS_TABLE').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-
-			});
-		</script>
+	return build_artica_tabs($html, "TLS_TABLE");
 	
-	
-	
-	";		
 	
 	
 }
@@ -323,13 +302,13 @@ function index(){
 	$DEF_ICO_SSL_KEY=Buildicon64('DEF_ICO_SSL_KEY');
 	
 	$html="
-		<H1>{tls_title}</H1>
-		". RoundedLightWhite("
+		<div style='font-size:26px'>{tls_title}</div>
+		<div style='width:98%' class=form>
 		<table style='width:100%'>
 		<td valign='top' width=1%'>$DEF_ICO_SSL_KEY</td>
-		<td valign='top'><p style='font-size:12px'>{TLS_EXPLAIN}</p></td>
+		<td valign='top'><div style='font-size:18px' class=text-info>{TLS_EXPLAIN}</div></td>
 		</tr>
-		</table>")."
+		</table></div>
 		<br>";
 		
 
@@ -363,7 +342,9 @@ function smtp_tls_policy_maps(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td align='center'><input type='button' value='{add_tls_smtp_server}&nbsp;&raquo;' OnClick=\"javascript:TLSAddSMTPServer()\"></td>
+	<td align='center'>
+			".button("{add_tls_smtp_server}", "TLSAddSMTPServer()",26)."</center>
+			</td>
 	</tr>
 	</table>
 	
@@ -417,31 +398,31 @@ function TLSAddSMTPServer(){
 	$field=Field_array_Hash($main->array_field_relay_tls,'smtp_tls_policy_maps',$tls_value);	
 	
 $page=CurrentPageName();	
-$html="<div style='padding:20px'>
+$html="<div style='width:98%' class=form>
 	<H3>{tls_smtp_server}</H3>
 	<form name='tls_smtp_server'>
 <input type='hidden' name='TLSAddSMTPServerSave' value='yes'>
 	<table style='width:100%'>
-	<td align='right' nowrap><strong>{relay_address}:</strong></td>
-	<td>" . Field_text('relay_address',$relayT[1]) . "</td>	
+	<td align='right' nowrap class=legend><strong>{relay_address}:</strong></td>
+	<td>" . Field_text('relay_address',$relayT[1],"font-size:14px") . "</td>	
 	</tr>
 	</tr>
-	<td align='right' nowrap><strong>{smtp_port}:</strong></td>
-	<td>" . Field_text('relay_port',$relayT[2]) . "</td>	
+	<td align='right' nowrap class=legend><strong>{smtp_port}:</strong></td>
+	<td>" . Field_text('relay_port',$relayT[2],"font-size:14px") . "</td>	
 	</tr>	
 	<tr>
-	<td align='right' nowrap>" . Field_yesno_checkbox_img('MX_lookups',$relayT[3],'{enable_disable}')."</td>
+	<td align='right' nowrap >" . Field_yesno_checkbox_img('MX_lookups',$relayT[3],'{enable_disable}')."</td>
 	<td>{MX_lookups}</td>	
 	</tr>
 	</tr>
-	<td align='right' nowrap valign='top'><strong>{tls_level}:</strong></td>
+	<td align='right' nowrap valign='top' class=legend><strong>{tls_level}:</strong></td>
 	<td>$field<div class='caption'>{use_tls_relay_explain}</div></td>	
 	</tr>		
 	<tr>
-	<td align='right' class=caption colspan=2><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('tls_smtp_server','$page',true);TLSLoadTable();\"></td>
+	<td align='right' colspan=2>". button("{apply}" ,"ParseForm('tls_smtp_server','$page',true);TLSLoadTable();",16)."</td>
 	</tr>		
 	<tr>
-	<td align='left' class=caption colspan=2><strong>{MX_lookups}</strong><br>{MX_lookups_text}</td>
+	<td align='left' colspan=2 class=legend><strong>{MX_lookups}</strong><br>{MX_lookups_text}</td>
 	</tr>					
 	</form>";
 

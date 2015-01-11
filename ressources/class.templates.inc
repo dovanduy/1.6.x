@@ -41,6 +41,7 @@ include_once(dirname(__FILE__).  '/class.tcpip.inc');
 debug_mem();
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__).  '/class.mysql.inc');
+include_once(dirname(__FILE__).  '/class.mysql-meta.inc');
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__)."/class.browser.detection.inc");
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -233,6 +234,9 @@ class templates{
 		$content=str_replace("\n\n", "\n", $content);
 		$content=str_replace("\n\n", "\n", $content);
 		$content=str_replace("&nbsp;", " ", $content);
+		$content=str_replace("<strong>", " ", $content);
+		$content=str_replace("</strong>", " ", $content);
+		
 		//$content=replace_accents($content);
 		$content=html_entity_decode($content);
 		$content=replace_accents($content);
@@ -260,6 +264,9 @@ class templates{
 			$content=str_replace("\\n","\n",$content);
 			
 		}
+		$content=str_replace("'","`",$content);
+		$content=str_replace("\`","`",$content);
+		
 		return $content;
 	}
 
@@ -440,6 +447,7 @@ class templates{
 							$text=str_replace('-&amp;raquo;','-&raquo;',$text);
 							$text=str_replace('[h3]','<H3>',$text);
 							$text=str_replace('[/h3]','</H3>',$text);
+							$text=str_replace('\"',"&quot;",$text);
 							if(isset($_SESSION["ou"])){
 								$text=str_replace('%ORGA',$_SESSION["ou"],$text);
 							}
@@ -464,17 +472,33 @@ class templates{
 								$text=str_replace($r[0][$a],"<a href=\"$b\">",$text);}
 							}
 							if(isset($_COOKIE["change-artica-name"])){
+								$text=str_ireplace("d'Artica",$_COOKIE["change-artica-name"],$text);
+								$text=str_ireplace("d`Artica",$_COOKIE["change-artica-name"],$text);
 								$text=str_ireplace("Artica",$_COOKIE["change-artica-name"],$text);
 								$text=str_ireplace("artica",$_COOKIE["change-artica-name"],$text);
 							}
+							if(isset($_SESSION["change-artica-name"])){
+								$text=str_ireplace("d'Artica",$_SESSION["change-artica-name"],$text);
+								$text=str_ireplace("d`Artica",$_SESSION["change-artica-name"],$text);
+								$text=str_ireplace("Artica",$_SESSION["change-artica-name"],$text);
+								$text=str_ireplace("artica",$_SESSION["change-artica-name"],$text);
+							}							
 													
 							$content=str_replace("{{$val}}",$text,$content);
 						}
 					}}
+					
+					
+		if(is_file(dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf")){
+			$backcoulor=@file_get_contents(dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf");
+			$content=str_replace("#005447",$backcoulor,$content);
+		}
+					
 		
 		$content=str_replace("<input type='button'","<input type='button' class='button'",$content);
 		$content=str_replace("web sites","websites",$content);
 		$content=str_replace("\`","`",$content);
+		$content=str_replace('\"',"&quot;",$content);
 		
 		//$content=str_replace("Loadjs(",'$.getScript(',$content);
 		if(strlen($content)<400){
@@ -515,7 +539,16 @@ class templates{
 
 	
 	function BuildMenusBarr($menus){
-		return "<div id='template-top-menus' style='position:static;min-width:768px;height:45px;background-color:#005447;color:white' >
+		$color="#005447";
+		$skinf=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf";
+		if(is_file($skinf)){
+			$color=@file_get_contents(dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf");
+		}else{
+			$error="<!-- $skinf no such file -->\n";
+		}
+		
+		
+		return "$error<div id='template-top-menus' style='position:static;min-width:768px;height:45px;background-color:$color;color:white' >
 				</div>
 					<script>AjaxTopMenu('template-top-menus','admin.top.menus.php');</script>";
 
@@ -536,6 +569,7 @@ class templates{
 	
 	
 	function Body($content=null){
+		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){$this->body=$GLOBALS[__CLASS__][__FUNCTION__];return;}
 		if(!isset($_SESSION["detected_lang"])){$_SESSION["detected_lang"]=null;}
 		if(!isset($_SESSION["uid"])){
 			$this->search_menus=null;
@@ -545,7 +579,7 @@ class templates{
 		if(isset($_COOKIE["artica-template"])){
 			if($GLOBALS["VERBOSE"]){
 				if(function_exists("debug_mem")){debug_mem();}
-				echo "Template: {$_COOKIE["artica-template"]}\n";
+				echo "Template: {$_COOKIE["artica-template"]} [".__CLASS__."/".__LINE__."]\n";
 			}
 		}else{$_COOKIE["artica-template"]=null;}
 		$template_file="index.html";
@@ -562,7 +596,7 @@ class templates{
 				$_SESSION["detected_lang"]=$this->_detect_lang();
 				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}] new LANG IS NOW {$_SESSION["detected_lang"]}::".__FUNCTION__." open $template_path ". strlen($template)." bytes in " . basename(__FILE__). " line ".__LINE__);}
 		}
-		if($GLOBALS["VERBOSE"]){echo "Template: open $template_path\n";if(function_exists("debug_mem")){debug_mem();}}
+		if($GLOBALS["VERBOSE"]){echo "Template: open $template_path [".__CLASS__."/".__LINE__."\n";if(function_exists("debug_mem")){debug_mem();}}
 		$template=$this->_readfile($template_path);
 		if(function_exists("debug_mem")){debug_mem();}
 		$template=str_replace("{TEMPLATE_SEARCH}",$this->search_menus,$template);
@@ -582,6 +616,7 @@ class templates{
 			if(function_exists("getmypid")){$getmypid="PID:".getmypid()." ";}
 			error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::$getmypid:LANG:[{$_SESSION["detected_lang"]}]".__FUNCTION__." finish ". strlen($template)." bytes $called in " . basename(__FILE__). " line ".__LINE__);
 		}
+		$GLOBALS[__CLASS__][__FUNCTION__]=$template;
 		$this->body=$template;
 	}
 	
@@ -590,8 +625,31 @@ function _get_env_var($Var){
 		$GLOBALS[$Var] = (!empty($GLOBALS['_SERVER'][$Var])) ?$GLOBALS['_SERVER'][$Var] : (!empty($GLOBALS['HTTP_SERVER_VARS'][$Var])) ? $GLOBALS['HTTP_SERVER_VARS'][$Var] : '';
 		}
 	}
+	
+	
+function _detect_lang_forced(){
+	if(isset($_SESSION["DetectedLanguage"])){
+		$this->language=$_SESSION["DetectedLanguage"];
+		return $_SESSION["DetectedLanguage"];
+	}
+	if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/class.langages.inc");}
+	$langAutodetect=new articaLang();
+	$DetectedLanguage=$langAutodetect->get_languages();
+	
+	$langfile=dirname(__FILE__)  ."/language/{$_SESSION["detected_lang"]}.db";
+	if(!is_file($langfile)){$DetectedLanguage="en";}
+	
+	
+	$this->language=$DetectedLanguage;
+	return $DetectedLanguage;
+}	
 
 function _detect_lang(){
+	if(!$GLOBALS["AS_ROOT"]){
+		$currentPageName=CurrentPageName();
+		if($currentPageName=="exec.squidguard.php"){$this->_detect_lang_forced();}
+	}
+	
 		if(!isset($_COOKIE["artica-language"])){$_COOKIE["artica-language"]=null;}
 	
 		if(!$GLOBALS["AS_ROOT"]){
@@ -754,11 +812,59 @@ function Field_hidden($name,$value){
 	$GLOBALS["AUTO_FORM"][$name]="text";
 	return "<input type='hidden' name='$name' id='$name' value=\"$value\">";}
 	
+	
 function Field_checkbox($name,$enabledatas,$value=null,$js=null,$help=null,$DISABLED=false){
+		$def=$value;
+		$checked=false;
+		$CheckBoxDesignHidden=null;
+		$GLOBALS["AUTO_FORM"][$name]="check";
+		if($value<>null){if($value==$enabledatas){$value="checked";$checked=true;}else{$value="";}}else{$value=null;}
+		if($js<>null){
+			$js="$js;";
+		}
+	
+	
+		if($help<>null){
+			$tpl=new templates();
+			$help=str_replace("[br][br]","[br]",$help);
+			$help=str_replace("\n","",$help);
+			$help=str_replace("\r\n","",$help);
+			$help=str_replace("\r","",$help);
+			$help=str_replace('"',"`",$help);
+			$help=$tpl->_ENGINE_parse_body($help);
+			$help=htmlentities($help);
+			$help=str_replace("\n","",$help);
+			$help=str_replace("\r\n","",$help);
+			$help=str_replace("\r","",$help);
+			$help="OnMouseOver=\"javascript:AffBulle('$help');\" OnMouseOut=\"javascript:HideBulle();\"";
+		}
+	
+		if($DISABLED){$disabled_infos=" DISABLED"; }
+	
+		
+	
+		if(!isset($disabled_infos)){$disabled_infos=null ;}
+		
+	
+		
+		
+		if($js==null){$js="blur();";}
+		$html="<input type=\"checkbox\" id='$name' name=\"$name\" 
+		value=\"$enabledatas\"
+		$help $disabled_infos OnClick=\"javascript:{$js}\" $value>";
+		return $html;
+		
+	}
+	
+function Field_checkbox_design($name,$enabledatas,$value=null,$js=null,$help=null,$DISABLED=false){
 	$def=$value;
 	$checked=false;
 	$CheckBoxDesignHidden=null; 
 	$GLOBALS["AUTO_FORM"][$name]="check";
+	
+	$default_text="// js:$js, help=$help";
+	
+	
 	if($value<>null){if($value==$enabledatas){$value="checked";$checked=true;}else{$value="";}}else{$value=null;}
 	if($js<>null){
 		$js="$js;";
@@ -789,28 +895,60 @@ function Field_checkbox($name,$enabledatas,$value=null,$js=null,$help=null,$DISA
 		
 if(!isset($disabled_infos)){$disabled_infos=null ;}
 if(!isset($GLOBALS["CheckBoxDesignHidden"])){$CheckBoxDesignHidden="<script>setTimeout('CheckBoxDesignHidden()',900);</script>";$GLOBALS["CheckBoxDesignHidden"]=true;}
-
+$md5=md5($name);
 $id_picture="pic-".md5($name);
-$pointers="OnMouseOver=\";this.style.cursor='pointer';this.style.boxShadow='0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6)'\" 
-OnMouseOut=\";this.style.cursor='default';this.style.boxShadow='';\" ";
 
 
-$html="<img src='img/$pic' id='$id_picture'
-	OnClick=\"javascript:CheckBoxDesign('$id_picture','$name');{$js}\" $pointers
-	Onfocus=\"this.setAttribute('class','active')\" 
-	Onblur=\"this.removeAttribute('class');\">
+if($js==null){$js="blur();";}
+$html="<p style='padding-top:1px;padding-bottom:10px' id='$name-form' checkboxfunc='Design$md5()'>
 <input type=\"checkbox\" id='$name' assoc='$id_picture' name=\"$name\" value=\"$enabledatas\" $value 
-style='padding:0px;margin:0px;border:0px;visibility:hidden' $help $js $disabled_infos>
-$CheckBoxDesignHidden		
+$help $disabled_infos><label for=\"$name\" OnClick=\"javascript:Check$md5()\"><span class=\"ui\" id='uid-$name'></span></label></p>
+<script>
+// $default_text
+function Check$md5(){
+	if(document.getElementById('$name').disabled){setTimeout('Design$md5()',150);return;}
+	setTimeout('Design$md5()',150);
+	setTimeout('run$md5()',250);
+	setTimeout('CheckBoxDesignRebuild()',350);
+	
+}
+
+function run$md5(){
+{$js};
+
+}
+
+function Design$md5(){
+var addclass='';
+	document.getElementById('$name-form').onmouseover=document.getElementById('$name-form').style.cursor='pointer';
+	document.getElementById('$name-form').onmouseout=document.getElementById('$name-form').style.cursor='default';
+	
+if(document.getElementById('$name').disabled){	
+	addclass=' CheckBoxDisabled';
+	document.getElementById('$name-form').onmouseover=document.getElementById('$name-form').style.cursor='default';
+	document.getElementById('$name-form').onmouseout=document.getElementById('$name-form').style.cursor='default';
+}
+
+
+
+if(!document.getElementById('$name').checked){
+	document.getElementById('$name-form').className='CheckBoxUnChecked'+addclass;
+
+		
+	}else{
+	document.getElementById('$name-form').className='CheckBoxChecked'+addclass;
+	
+	}
+	
+
+
+}
+
+
+setTimeout('Design$md5()',150);
+
+</script>
 ";
-return $html;
-//
-
-
-$html="
-<!-- DISABLED:$DISABLED:$disabled_infos help ". strlen($help)." bytes -->
-<input type=\"checkbox\"  id='$name' name=\"$name\" value=\"$enabledatas\" $value 
-style='padding:0px;margin:0px;border:0px' $help $js $disabled_infos>";
 return $html;
 
 }
@@ -968,7 +1106,9 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	if(preg_match("#font-size:([0-9]+)px#", $style,$re)){
 		$defined_size=intval($re[1]);
 		if($defined_size>16){$width=170;}
+		if($defined_size>21){$width=204;}
 		if($defined_size>24){$width=210;}
+		if($defined_size>30){$width=320;}
 	}
 	
 	
@@ -1021,6 +1161,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	}
 	
 	return "
+	<!-- - FONT SIZE : $defined_size -->
 	<input type='text' id='$field_name' name='$field_name' $jsAddInside$jsCheck value=\"$defaultvalue\" 
 	style=\"$style;min-width:145px;width:{$width}px\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>
 <script>
@@ -1383,6 +1524,35 @@ function field_time($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 }
 
+function Field_spacer_table($size){
+	return "<tr style='height:{$size}px'><td colspan=2 style='text-align:right;padding-top:20px;font-size:{$size}px'>
+	&nbsp;</td></tr>";
+	
+}
+
+function Field_button_table_autonome($name,$function,$size=22){
+	if($GLOBALS["AUTO_FORM_LOCK"]==true){return null;}
+	$t=time();
+	$GLOBALS["AUTO_FORM_FUNC"]="Save$t";
+	return "<tr><td colspan=2 style='text-align:right;padding-top:20px;font-size:{$size}px'>
+			<div style='text-align:right;width:100%;border-top:2px solid #CCCCCC;padding-top:5px'>
+			".button($name,"$function()",$size)."</div></td></tr>";
+}
+
+function Field_buttons_table_autonome($array,$size=22){
+	if($GLOBALS["AUTO_FORM_LOCK"]==true){return null;}
+	$t=time();
+	$GLOBALS["AUTO_FORM_FUNC"]="Save$t";
+	$f[]= "<tr>
+			<td colspan=2 style='text-align:right;padding-top:20px;font-size:{$size}px'>
+			<div style='text-align:right;width:100%;border-top:2px solid #CCCCCC;padding-top:5px'><table style='float:right'><tr>";
+	while (list ($name, $function) = each ($array) ){
+		$f[]="<td style='padding-right:10px;padding-left:10px;'>".button($name,"{$function}()",$size)."</td>";
+		
+	}
+	$f[]="</tr></table></div></td></tr>";
+	return @implode("\n", $f);
+}
 
 function Field_button_table($name,$size=22){
 	if($GLOBALS["AUTO_FORM_LOCK"]==true){return null;}
@@ -1392,28 +1562,79 @@ function Field_button_table($name,$size=22){
 }
 
 function Field_text_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+	$script=null;
+	if(preg_match("#^script:(.+)#", $explain,$re)){
+		$script=$re[1];
+		$explain=null;
+	}
+	
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
 	if($explain<>null){$explain="explain=$explain;";}
-	$html[]="<td style='font-size:18px'>".Field_text($name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px")."</td></tr>";
+	
+	//$name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null
+	
+	$html[]="<td style='font-size:18px'>".Field_text(
+			$name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px",null,null,null,false,$script)."</td></tr>";
 	return @implode("\n", $html);
 }
 
-function Field_checkbox_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+function Field_area_table($name,$caption,$value=null,$fontsize=18,$explain=null,$height=145){
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	if($explain<>null){$explain="<div class=text-info>$explain</div>";}
+	$html[]="<td style='font-size:18px'>
+			$explain
+			<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:99%;height:{$height}px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:{$fontsize}px !important' id='$name' name='$name'>$value</textarea></td></tr>";
+	return @implode("\n", $html);
+	
+}
+
+
+function Field_password_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+	$script=null;
+	if(preg_match("#^script:(.+)#", $explain,$re)){
+		$script=$re[1];
+		$explain=null;
+	}
+	
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	if($explain<>null){$explain="explain=$explain;";}
+	$html[]="<td style='font-size:18px'>".Field_password(
+	$name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px",null,null,null,false,$script)."</td></tr>";
+	return @implode("\n", $html);
+}
+function Field_ipv4_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	if($explain<>null){$explain="explain=$explain;";}
+	$html[]="<td style='font-size:18px'>".field_ipv4($name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px")."</td></tr>";
+	return @implode("\n", $html);
+}
+function Field_checkbox_table($name,$caption,$value=null,$fontsize=18,$explain=null,$javascript=null){
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
 	
-	$html[]="<td style='font-size:18px'>".Field_checkbox($name,1,$value,null,$explain)."</td></tr>";
+	$html[]="<td style='font-size:{$fontsize}px'>".Field_checkbox_design($name,1,$value,$javascript,$explain)."</td></tr>";
 	return @implode("\n", $html);	
 	
 }
 
-function Field_list_table($name,$caption,$value=null,$fontsize=18,$ARRAY){
+function Field_list_table($name,$caption,$value=null,$fontsize=18,$ARRAY,$JS_SCRIPT=null){
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
 	
-	$html[]="<td style='font-size:18px'>".Field_array_Hash($ARRAY, $name,$value,"style:font-size:{$fontsize}px")."</td></tr>";
+	//$Hash,$FieldName,$default=null,$java=null,$class='',$maxlength=0,$style_of_field=null
+	
+	$html[]="<td style='font-size:18px'>".Field_array_Hash($ARRAY, $name,$value,$JS_SCRIPT,null,0,"font-size:{$fontsize}px")."</td></tr>";
 	return @implode("\n", $html);	
 }
 
-
+function field_textarea($name,$value,$fontsize,$width="100%",$height=450){
+	
+	return "<textarea style='margin-top:5px;font-family:Courier New;
+			font-weight:bold;width:{$width};height:{$height}px;border:5px solid #8E8E8E;
+			overflow:auto;font-size:{$fontsize}px !important' 
+			id='$name' name=\"$name\">$value</textarea>";
+	
+}
 
 function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null){
 	$value=trim($value);
@@ -1594,10 +1815,10 @@ function string_to_regex($pattern){
 	
 }
 
-function string_to_sql_search($pattern){
+function string_to_sql_search($pattern,$STRICT=false){
 	$pattern=trim($pattern);
 	if(is_numeric($pattern)){return $pattern;}
-	$pattern="*$pattern*";
+	if(!$STRICT){$pattern="*$pattern*";}
 	$pattern=str_replace("**", "*", $pattern);
 	$pattern=str_replace("**", "*", $pattern);
 	$pattern=str_replace("*", "%", $pattern);
@@ -1637,12 +1858,15 @@ function string_to_flexquery($searchindix=null){
 	if(!isset($_POST["qtype"])){return;}
 	if(!isset($_POST["query"])){return;}
 	if(trim($_POST["query"])==null){return;}
-	
+	$STRICT=false;
 	$REGEXP=false;
 	if(preg_match("#^regex\s+(.+)#", $_POST["query"],$re)){$search=$re[1];$REGEXP=true;}
 	if(preg_match("#^regex:(.+)#", $_POST["query"],$re)){$search=$re[1];$REGEXP=true;}
+	if(preg_match("#^strict:(.+)#", $_POST["query"],$re)){$search=$re[1];$STRICT=true;}
 	
-	if(!$REGEXP){$search=string_to_sql_search($_POST["query"]);}
+	if(!$REGEXP){
+		$search=string_to_sql_search($_POST["query"],$STRICT);
+	}
 	if($search==null){return null;}
 	
 	if(strpos($_POST["qtype"], ',')>0){
@@ -1657,6 +1881,7 @@ function string_to_flexquery($searchindix=null){
 	
 	
 	while (list ($index, $F) = each ($Fields) ){
+		if(trim($F)==null){continue;}
 		$tta[]="(`$F` $COM '$search')";
 	}
 	
@@ -2574,7 +2799,7 @@ class template_users{
 			$menus->menusright=null;
 			$menus->toplinks=null;
 			$buildtabs=null;
-			$top_menus=null;
+			
 		}
 			
 		if(!isset($_SESSION["template"])){$_SESSION["template"]="default";}
@@ -3067,7 +3292,8 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	
 	
 	
-	$img="<div OnClick=\"javascript:SwitchBigNumeric('$field_name','$callback');\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
+	$img="<div OnClick=\"javascript:SwitchBigNumeric('$field_name','$callback');\" 
+			OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
 			<img src='$img' id='img_$field_name'  $tooltip>
 		</div>";
 	$margin=0;
@@ -3087,10 +3313,10 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 		<table style='width:100%;'>
 		<tr>
 			<td width=1% valign='top' style='line-height:normal;'><div style='min-height: 120px;'>$img</a></div></td>
-			<td valign='top' id='$id' style='line-height:normal;;padding-left:5px'><h3 style='font-size:{$fontsize_title}px;color:black;text-transform:capitalize'>$title</h3>
+			<td valign='top' id='$id' style='line-height:normal;padding-left:5px'><h3 style='font-size:{$fontsize_title}px;color:black;text-transform:capitalize'>$title</h3>
 			<div 
 				style='text-align:left;
-				font-size:{$fontsize}px; 
+				font-size:{$fontsize}px;' 
 				id='text_$id'>$field$text</div>
 		</td>
 	</tr>
@@ -3103,14 +3329,18 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 }
 function ParagrapheSimple($img,$title,$text,$link=null,$tips="go_to_section",$width="210",$height=null){
 	
-	
+	$nojs=false;
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body($title);
 	$text=$tpl->_ENGINE_parse_body($text);	
 	$tips=str_replace("'","",$tips);
 	$tips=str_replace("	","",$tips);
-	$height=null;
-	if($height==null){$height="min-height:70px;";}
+	
+	$logs[]="<!-- Height $height  -->";
+	
+	$height=intval($height);
+	if($height==0){$height=70;}
+	
 
 	
 	$id=md5($img.$text.$title.$link);
@@ -3148,35 +3378,37 @@ function ParagrapheSimple($img,$title,$text,$link=null,$tips="go_to_section",$wi
 		if($link==null){$hrf=null;$h3style=null;$tooltip="<img src='img/$img'>";}
 
 
-	$min_height="min-height:70px";
-	if(is_numeric($height)){
+	
+	
 	if($height<70){
 		$min_height=null;
 		$min_height_title=null;
-	}}
+	}
+	
 		
 	
 	$title="<h3>$title</h3>";
-		$text="<div id='text_$id' style='$min_height;font-size:11px'>$text</div>";
+	$text="<div id='text_$id' style='$min_height;font-size:11px'>$text</div>";
 		
 	
-	if(trim($height)<>null){$height=";height:{$height}px";}
+	
 	if($nojs){
 		$bigA="<a href=\"$link\" target=_new>";
 		$bigZ="</a>";
 	}
 	
-	$html="
-	<div style='width:{$width}px$height$styleFloat' class='paragraphe' id='$id' $h3style>
-	<table style='width:100%'>
-	<tr>
-	<td width=1% valign='top'>$bigA$hrf$tooltip</a></td>
-	<td valign='top' >$title$text</td>
-	</tr>
-	</table>
+	$html=
+	"\n<!-- ------------------------------------------------------------- -->\n".
+	@implode("\n", $logs)."
+	<div style='width:{$width}px;min-height:{$height}px !important' class='paragraphe' id='$id' $h3style>
+		<table style='width:100%'>
+			<tr>
+				<td width=1% valign='top'>$bigA$hrf$tooltip</a></td>
+				<td valign='top' >$title$text</td>
+			</tr>
+		</table>
 	</div>
-	
-	";
+	<!-- ------------------------------------------------------------- -->\n";
 	return $html;
 	
 	
@@ -3678,9 +3910,23 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 function paragrapheWin($img,$title,$link){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="<div style='width:120px;height:120px;text-align:center;vertical-align:bottom;background-color:#0C9C86;padding:10px;border:2px solid #ABABAB'
+	$ff=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/vignettes-color.conf";
+	
+	if(!isset($GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]])){
+		if(is_file($ff)){
+			$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]=@file_get_contents($ff);
+		}else{
+			$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]="#0C9C86";
+		}
+	
+	}
+	if($GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]==null){$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]="#0C9C86";}
+	
+	$html="<div style='width:120px;height:120px;text-align:center;
+	vertical-align:bottom;background-color:{$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]};padding:10px;border:2px solid #ABABAB'
 	onmouseout=\"javascript:this.BorderColor='#ABABAB';this.style.cursor='default'\" 
 		onmouseover=\"javascript:this.BorderColor='#FFFFFF';this.style.cursor='pointer'\"
+		template=\"{$_COOKIE["artica-template"]}\"
 		OnClick=\"javascript:$link\">
 		<table style='width:100%'>
 		<tr>
@@ -3699,7 +3945,29 @@ function paragrapheWin($img,$title,$link){
 	return $html;
 	
 }
+function paragrapheFleche($title,$link){
+	$tpl=new templates();
+	$md=md5("($title,$link");
+	$title=$tpl->_ENGINE_parse_body($title);
+	$html="<div style='padding:10px;border:1px solid #2975B8'
+	onmouseout=\"javascript:this.style.BorderColor='#2975B8';this.style.cursor='default';document.getElementById('$md-text').style.color='#2975B8'\"
+	onmouseover=\"javascript:this.style.BorderColor='#B83E29';this.style.cursor='pointer';document.getElementById('$md-text').style.color='#B83E29'\"
+	OnClick=\"javascript:$link\">
+	<table style='width:100%'>
+	<tr>
+		<td style='text-align:center;vertical-align:middle;height:24px;width:25px'>
+		<center><img src='img/arrow-blue-left-24.png'></center>
+	</td>
+	<td style='text-align:left;vertical-align:middle;'>
+		<div style='text-align:left;color:#2975B8;font-size:14px' id='$md-text'>$title</div>
+	</td>
+	</tr>
+	</table>
+	</div>
+	";
+	return $html;
 
+}
 
 function paragraph_youtube($title,$uri){
 	$OnMouseOver="OnMouseOver=\"this.style.cursor='pointer';\"";
@@ -4223,6 +4491,12 @@ function BuildSessionAuth(){
 	$ldap=new clladp();
 	if($debug){echo "<li>Verify ->ldap->UserFromAuth({$_SERVER['PHP_AUTH_USER']}) line:".__LINE__."</li>\n";}
 	$GLOBALS["UserFromAuth_debug"]=true;
+	
+	if($_SESSION["uid"]=="-100"){
+		return;
+		
+	}
+	
 	if($ldap->IsKerbAuth()){
 		BuildSession($_SERVER['PHP_AUTH_USER']);
 		return;
@@ -4339,7 +4613,7 @@ function CheckSessions(){
 	if(!isset($_SESSION["uid"])){$_SESSION["uid"]=null;}
 	if(!isset($_SESSION["MINIADM"])){$_SESSION["MINIADM"]=false;}
 	if(!isset($_COOKIE["MINIADM"])){$_COOKIE["MINIADM"]="NO";}
-	
+	$suffixLogoff=null;
 
 		
 		$page=CurrentPageName();
@@ -4363,8 +4637,12 @@ function CheckSessions(){
 					return true;
 				}
 		}}	
-		
-		
+		$noback["public.logon.php"]=true;
+		$noback["squid.categories.url.export.php"]=true;
+		$noback["squid.categories.export.php"]=true;
+		$noback["squid.categories.urls.php"]=true;
+		$noback["squid.categories.php"]=true;
+		$noback["admin.top.menus.php"]=true;
 		$noback["TestsClasses.php"]=true;
 		$noback["cron.obm.synchro.php"]=true;
 		$noback["logon.php"]=true;
@@ -4413,6 +4691,7 @@ function CheckSessions(){
 		$noback["public.squid.error.php"]=true;
 		$noback["exec.squid.sslpassword_program.php"]=true;
 		$noback["external_acl_dynamic.php"]=true;
+		$noback["external_ufdbunblock.php"]=true;
 		$noback["external_acl_squid.php"]=true;
 		$noback["execdomainlist.php"]=true;
 		$noback["external_acl_squid_quota.php"]=true;
@@ -4423,7 +4702,9 @@ function CheckSessions(){
 		$noback["wizard.automationscript.progress.php"]=true;
 		$noback["import.squid.zip.php"]=true;
 		$noback["squid.access.webfilter.log.php"]=true;
-		
+		$noback["artica.meta.listener.php"]=true;
+		$noback["smtp.autoconfig.php"]=true;
+		$noback["public.categories.personnal.php"]=true;
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
 		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		
 		if(preg_match("#^prxy\..*?\.php$#", $page)){$noback[$page]=true;}
@@ -4526,23 +4807,26 @@ function CheckSessions(){
 }
 
 
-function FormatBytes($kbytes){
+function FormatBytes($kbytes,$nohtml=false){
+	
+	$spacer="&nbsp;";
+	if($nohtml){$spacer=" ";}
 	
 	if($kbytes>1048576){
 		$value=round($kbytes/1048576, 2);
 		if($value>1000){
 			$value=round($value/1000, 2);
-			return "$value&nbsp;TB";
+			return "$value{$spacer}TB";
 		}
-		return "$value&nbsp;GB";
+		return "$value{$spacer}GB";
 	}
 	elseif ($kbytes>1024){
 		$value=round($kbytes/1024, 2); 
-		return "$value&nbsp;MB";
+		return "$value{$spacer}MB";
 	}
 	else{
 		$value=round($kbytes, 2);
-		return "$value&nbsp;KB";
+		return "$value{$spacer}KB";
 	}
 }
 
@@ -4780,7 +5064,7 @@ function button_browse($field_name){
 	
 	$btid=md5($field_name.time());
 	return "<a href=\"javascript:blur()\"  OnClick=\"javascript:Loadjs('SambaBrowse.php?no-shares=yes&field=$field_name');\"
-	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:12px;text-transform:capitalize\"
+	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:16px;text-transform:capitalize\"
 	data-loading-text=\"{browse}...\" >{browse}...&nbsp;&raquo;</a>";
 	
 	$button="&nbsp;<input type='button' OnClick=\"javascript:Loadjs('SambaBrowse.php?no-shares=yes&field=$field_name');\" value='{browse}...&nbsp;'>";
@@ -5185,7 +5469,7 @@ function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(986,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text',true);";
+	$js="{$java}YahooUser(1051,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text',true);";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -5197,7 +5481,7 @@ function COMPUTER_JS($uid,$noclik=0,$nojavascript=0,$dn=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(986,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
+	$js="{$java}YahooUser(1051,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -5716,6 +6000,7 @@ return"<div style='width:100px;background-color:white;padding-left:0px;border:1p
 function pourcentage($pourc,$submargin=0,$color="red"){
 	$pourc=str_replace('%','',$pourc);
 	$orginal_pourc=$pourc;
+	$marginTop=null;
 	$pourc=round($pourc);
 	$back="percentImage_back4.png";
 	if($color=="red"){
@@ -5877,8 +6162,11 @@ function GET_CACHED_KEY($file,$function,$token){
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);
 	$token=md5($token);
-	$uid=$_SESSION["uid"];
-	if($GLOBALS["AS_ROOT"]){$uid=-100;}
+	
+	if($GLOBALS["AS_ROOT"]){$uid=-100;}else{
+		if(!isset($_SESSION["uid"])){$_SESSION["uid"]=null;}
+		$uid=$_SESSION["uid"];
+	}
 	if($uid==-100){$uid="RootMaster";}
 	return md5("$uid$file$function$token");
 	
@@ -6297,7 +6585,13 @@ function IsPhysicalAddress($address){
 
 function getLocalTimezone(){
 	if(!class_exists("sockets")){return;}
-	$sock=new sockets();
+	$content=trim(@file_get_contents("/etc/timezone"));
+	if($content==null){
+		$sock=new sockets();
+		$content= $sock->GET_INFO("system.php?etc-timezone=yes");
+	}
+	return $content;
+	
 }
 
   function artica_get_memory_usage() {
@@ -6480,6 +6774,32 @@ function CompileTr4($array,$noform=false,$title=null,$center=false){
 	$tables[]="</tr></table>";
 	return implode("\n",$tables);
 }	
+function CompileTr5($array,$noform=false,$title=null,$center=false){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
+	$tdcenter=null;
+	if(!$noform){$classform="class=form";}
+	if($center){$tdcenter=" align='center' ";}
+	$tables[]="<table style='width:99%' $classform><tr>";
+	if($title<>null){$tables[]="<tr><td colspan=3>$title</td></tr>";}
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=20% valign='top'$tdcenter>$line</td>";
+		if($t==5){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<5){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=20% valign='top'$tdcenter>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr></table>";
+	return implode("\n",$tables);
+}
 function CompileTr3($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
@@ -6612,6 +6932,7 @@ function table_error_showZoom($error,$underline=1){
 
 function json_error_show($error,$indexColumn=0,$full=false){
 	$error=str_replace("no data", "{this_request_contains_no_data}", $error);
+	$error=str_replace("No data", "{this_request_contains_no_data}", $error);
 	$error=str_replace("Not found...", "{this_request_contains_no_data}", $error);
 	$error=str_replace("no item", "{this_request_contains_no_data}", $error);
 	$error=str_replace("no schedule", "{no_schedule}", $error);

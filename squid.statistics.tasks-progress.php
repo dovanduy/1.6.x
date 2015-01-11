@@ -12,6 +12,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_GET["progress-js"])){progress_js();exit;}	
 	if(isset($_GET["execute-js"])){execute_now_stats_js();exit;}
 	if(isset($_POST["execute-now"])){execute_now();exit;}
+	if(isset($_GET["squid-stats-central-details"])){squid_stats_central_details();exit;}
 	
 page();
 
@@ -71,10 +72,15 @@ function progress_js(){
 		echo "
 				
 		function Start$tt(){
-			if(!document.getElementById('squid-stats-central-progress-title')){return;}
-			Loadjs('$page?progress-js=yes&t=$t',false);
+			if(!document.getElementById('squid-stats-central-progress-title-$t')){return;}
+			LoadAjaxSilent('squid-stats-central-details','$page?squid-stats-central-details=yes&t=$t');
+			
 		}
-		setTimeout('Start$tt()',3000);";return;
+		
+		
+		
+		setTimeout('Start$tt()',3000);";
+		return;
 		
 	}
 	
@@ -82,13 +88,17 @@ function progress_js(){
 	echo "
 	
 	function Start$tt(){
-		if(!document.getElementById('squid-stats-central-progress-title')){return;}
-		Loadjs('$page?progress-js=yes&t=$t',false);
+		if(!document.getElementById('squid-stats-central-progress-title-$t')){return;}
+		LoadAjaxSilent('squid-stats-central-details','$page?squid-stats-central-details=yes&t=$t');
+		//Loadjs('$page?progress-js=yes&t=$t',false);
 	}
 	
-	document.getElementById('squid-stats-central-progress-title').innerHTML='$title';
-	$('#squid-stats-central-progress').progressbar({ value: $pourc });
-	setTimeout('Start$tt()',3000);";	
+	if(document.getElementById('squid-stats-central-progress-title-$t')){
+		document.getElementById('squid-stats-central-progress-title-$t').innerHTML='$title';
+		$('#squid-stats-central-progress').progressbar({ value: $pourc });
+		setTimeout('Start$tt()',4000);
+	
+	}";	
 	
 }	
 	
@@ -96,26 +106,88 @@ function page(){
 	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		
+		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		return;
+	}
+	$tt=time();
 	$t=time();
-	$html="<div class=explain style='font-size:16px'>{squid_stats_central_progress_explain}</div>
+	$html="
+	<div id='main-page-squid-statistics-central'>		
+	<div class=text-info style='font-size:16px'>{squid_stats_central_progress_explain}</div>
 			
 			
-	<center style='font-size:32px;margin:15px' id='squid-stats-central-progress-title'></center>	
+	<center style='font-size:32px;margin:15px' id='squid-stats-central-progress-title-$t'></center>	
 	<div id='squid-stats-central-progress' style='height:50px'></div>		
 	<center style='margin:20px'>". button("{execute_now}", "Loadjs('$page?execute-js=yes',false)",26)."</center>
 			
-			
+	<div id='squid-stats-central-details'></div>	
+	</div>
 	<script>
 	
 		$('#squid-stats-central-progress').progressbar({ value: 0 });
-		Loadjs('$page?progress-js=yes&t=$t',false);
-	</script>		
+		LoadAjaxSilent('squid-stats-central-details','$page?squid-stats-central-details=yes&t=$t');
+	</script>
+			
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
 	
 }	
+
+function squid_stats_central_details(){
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$tt=time();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork("squid.php?squid-stats-central-status=yes")));
+	
+	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?squid-stats-central-task=yes")));
+	
+	
+	$T[]="<table style='width:100%'>";
+	while (list ($taskid, $zArray) = each ($array)){
+		$TITLE=$zArray["TITLE"];
+		$distance=null;
+		if(isset($TIME)){
+			$distance=distanceOfTimeInWords($TIME,$zArray["TIME"]);
+		}
+		$TIME=$zArray["TIME"];
+		$date=date("Y-m-d H:i:s",$TIME);
+		$T[]="<tr>
+				<td width=32px><img src='img/check-32.png'></td>
+				<td style='font-size:18px'>$taskid) $TITLE - $date <div style='font-size:12px'>$distance</div></td>
+			</tr>
+				
+				";
+	}	
+	
+	$T[]="</table>";
+	
+	$DAEMON_STATUS_ROUND=DAEMON_STATUS_ROUND("APP_ARTICA_STATISTICS",$ini,null,0);
+	$html="<table style='width:100%'>
+	<tr>
+		<td style='vertical-align:top;width:300px'>	$DAEMON_STATUS_ROUND</td>
+		<td style='vertical-align:top;width:99%'>".@implode("\n", $T)."</td>
+	</tr>
+	</table>	
+	<script>
+	function Start$tt(){
+		Loadjs('$page?progress-js=yes&t=$t',false);
+		}
+		setTimeout('Start$tt()',1800);
+	</script>
+	
+	
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
 
 

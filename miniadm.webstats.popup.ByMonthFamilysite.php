@@ -221,7 +221,7 @@ function section_topuser_graph1(){
 	$month=$_GET["month"];
 	$table="quotamonth_$year$month";
 	$page=CurrentPageName();
-	$familysite=mysql_escape_string($_GET["familysite"]);
+	$familysite=mysql_escape_string2($_GET["familysite"]);
 	$sql="SELECT `familysite`,SUM(size) as `size`,uid FROM $table GROUP BY `familysite`,uid
 	HAVING familysite='$familysite' ORDER BY `size` DESC LIMIT 0,50";
 	$results=$q->QUERY_SQL($sql);

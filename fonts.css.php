@@ -1,17 +1,95 @@
 <?php
 include_once('ressources/class.templates.inc');
 
-$sock=new sockets();
-$font_family=$sock->GET_INFO("InterfaceFonts");
-if($font_family==null){$font_family="'Lucida Grande',Arial, Helvetica, sans-serif";}
+
+
 
 header("Content-type: text/css");
+if(isset($_SESSION["FONT_CSS"])){echo $_SESSION["FONT_CSS"];}
 
 $Green="#005447";
 $ButtonOver="#057D6A";
 $ButtonGradientStart="#047F6C";
 $StrongGreen="#044036";
-echo "
+$Button2014Bgcolor="#5CB85C";
+$Button2014BgcolorOver="#47A447";
+$Button2014BgcolorBorder="#4CAE4C";
+$sock=new sockets();
+$font_family=$sock->GET_INFO("InterfaceFonts");
+if($font_family==null){$font_family="'Lucida Grande',Arial, Helvetica, sans-serif";}
+
+$skinf=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf";
+$skinOver=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/top-bar-color-over.conf";
+$skinborder=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/top-bar-color-border.conf";
+$body=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/body.conf";
+
+$css[]="/* template {$_COOKIE["artica-template"]} */";
+
+if(is_file($skinf)){
+	$Green=@file_get_contents($skinf);
+	$Button2014Bgcolor=$Green;
+	
+}
+if(is_file($skinOver)){
+	$Button2014BgcolorOver=@file_get_contents($skinOver);
+}
+if(is_file($skinborder)){
+	$Button2014BgcolorBorder=@file_get_contents($skinborder);
+}
+
+
+if(is_file($body)){
+	
+	$body_content=@file_get_contents($body);
+	$body_content=str_replace("%TEMPLATE%","{$_COOKIE["artica-template"]}",$body_content);
+	$css[]="/* *************** $body **************** */";
+	$css[]=$body_content;
+
+}
+
+if(preg_match("#; MSIE#",$_SERVER["HTTP_USER_AGENT"])){
+	$ASIE=true;
+}
+
+$tpl=new templates();
+$yes=$tpl->javascript_parse_text("{yes1}");
+$no=$tpl->javascript_parse_text("{no1}");
+
+$css[]="div .form{
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border:1px solid #DDDDDD;
+  background:url(\"/img/gr-greybox.gif\") repeat-x scroll 0 0 #FBFBFA;
+";
+
+if(!$ASIE){
+	$css[]="background: -moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+    background: -webkit-gradient(linear, center top, center bottom, from(#F1F1F1), to(#FFFFFF)) repeat scroll 0 0 transparent;
+	background: -webkit-linear-gradient( #F1F1F1, #FFFFFF) repeat scroll 0 0 transparent;
+	background: -o-linear-gradient(#F1F1F1, #FFFFFF) repeat scroll 0 0 transparent;
+	background: -ms-linear-gradient(#F1F1F1, #ffffff) repeat scroll 0 0 transparent;
+	background: linear-gradient(#F1F1F1, #ffffff) repeat scroll 0 0 transparent;
+";
+}
+if($ASIE){
+	$css[]="filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#F1F1F1', endColorstr='#ffffff');";
+}
+
+
+$css[]="background:-moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+  margin:5px;padding:5px;
+  -webkit-border-radius: 5px;
+  -o-border-radius: 5px;
+ -moz-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ -webkit-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+}";
+
+
+$cssplus=@implode("\n", $css);
+
+
+$MAINCSS= "/* template {$_COOKIE["artica-template"]} */
 body{
 	font-family:$font_family;
 }
@@ -675,7 +753,7 @@ opacity: 0.6;
     padding: 10px 16px;
 }
 .Button2014-success {
-    background-color: #5CB85C;
+    background-color: $Button2014Bgcolor;
     border-color: #4CAE4C;
     color: #FFFFFF;
 }
@@ -701,21 +779,21 @@ a.Button2014, a.Button2014:link, a.Button2014:visited, a.Button2014:hover{
 }
 
 .Button2014-success {
-    background-color: #5CB85C !important;
-    border-color: #4CAE4C !important;
+    background-color: $Button2014Bgcolor !important;
+    border-color: $Button2014BgcolorBorder !important;
     color: #FFFFFF !important;
 }
 .Button2014-success:hover, .Button2014-success:focus, .Button2014-success:active, .Button2014-success.active, .open .dropdown-toggle.Button2014-success {
-    background-color: #47A447 !important;
-    border-color: #398439 !important;
+    background-color: $Button2014BgcolorOver !important;
+    border-color: $Button2014BgcolorBorder !important;
     color: #FFFFFF !important;
 }
 .Button2014-success:active, .Button2014-success.active, .open .dropdown-toggle.Button2014-success {
     background-image: none;
 }
 .Button2014-success.disabled, .Button2014-success[disabled], fieldset[disabled] .Button2014-success, .Button2014-success.disabled:hover, .Button2014-success[disabled]:hover, fieldset[disabled] .Button2014-success:hover, .Button2014-success.disabled:focus, .Button2014-success[disabled]:focus, fieldset[disabled] .Button2014-success:focus, .Button2014-success.disabled:active, .Button2014-success[disabled]:active, fieldset[disabled] .Button2014-success:active, .Button2014-success.disabled.active, .Button2014-success.active[disabled], fieldset[disabled] .Button2014-success.active {
-    background-color: #5CB85C !important;
-    border-color: #4CAE4C !important;
+    background-color: $Button2014Bgcolor !important;
+    border-color: $Button2014BgcolorBorder !important;
 }
 
 .field {
@@ -724,5 +802,247 @@ a.Button2014, a.Button2014:link, a.Button2014:visited, a.Button2014:hover{
     text-align: right;
 }
 
+.CheckBoxUnChecked [type=\"checkbox\"]{
+	position: absolute;
+	left: -9999px;
+}
+.CheckBoxChecked [type=\"checkbox\"]{
+	position: absolute;
+	left: -9999px;
+}
+.CheckBoxDisabled [type=\"checkbox\"]{
+	position: absolute;
+	left: -9999px;
+}
 
+
+.CheckBoxUnChecked [type=\"checkbox\"] + label{
+		position: relative;
+		padding-left: 75px;
+		cursor: pointer;
+}
+.CheckBoxChecked [type=\"checkbox\"] + label{
+		position: relative;
+		padding-left: 75px;
+		cursor: pointer;
+}
+.CheckBoxUnChecked [type=\"checkbox\"] + label:before,
+	.CheckBoxUnChecked [type=\"checkbox\"] + label:after {
+		content: '';
+		position: absolute;
+}
+.CheckBoxChecked [type=\"checkbox\"] + label:before,
+	.CheckBoxChecked [type=\"checkbox\"] + label:after {
+		content: '';
+		position: absolute;
+}
+
+.CheckBoxUnChecked 	[type=\"checkbox\"] + label:before,
+	.CheckBoxUnChecked [type=\"checkbox\"]+ label:before {
+		left:0; top: -3px;
+		width: 78px; height: 30px;
+		background: #DDDDDD;
+		border-radius: 15px;
+		-webkit-transition: background-color .2s;
+		-moz-transition: background-color .2s;
+		-ms-transition: background-color .2s;
+		transition: background-color .2s;
+	}
+
+.CheckBoxChecked 	[type=\"checkbox\"] + label:before,
+	.CheckBoxChecked [type=\"checkbox\"]+ label:before {
+		left:0; top: -3px;
+		width: 78px; height: 30px;
+		background: #DDDDDD;
+		border-radius: 15px;
+		-webkit-transition: background-color .2s;
+		-moz-transition: background-color .2s;
+		-ms-transition: background-color .2s;
+		transition: background-color .2s;
+	}	
+	
+	
+	
+.CheckBoxUnChecked [type=\"checkbox\"] + label:after {
+		width: 20px; height: 20px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+		border-radius: 50%;
+		background: #7F8C9A;
+		top: 2px; left: 5px;
+	}	
+	
+	
+.CheckBoxChecked [type=\"checkbox\"] + label:after {
+		width: 20px; height: 20px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+		border-radius: 50%;
+		background: #7F8C9A;
+		top: 2px; left: 5px;
+	}
+
+
+.CheckBoxUnChecked [type=\"checkbox\"] + label .ui,
+	.CheckBoxUnChecked [type=\"checkbox\"] + label .ui:before,
+	.CheckBoxUnChecked [type=\"checkbox\"] + label .ui:after {
+		position: absolute;
+		left: 6px;
+		width: 65px;
+		border-radius: 15px;
+		font-size: 14px;
+		font-weight: bold;
+		line-height: 22px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+	}
+	
+.CheckBoxChecked [type=\"checkbox\"] + label .ui,
+	.CheckBoxChecked [type=\"checkbox\"] + label .ui:before,
+	.CheckBoxChecked [type=\"checkbox\"] + label .ui:after {
+		position: absolute;
+		left: 6px;
+		width: 65px;
+		border-radius: 15px;
+		font-size: 14px;
+		font-weight: bold;
+		line-height: 22px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+	}	
+	
+
+.CheckBoxUnChecked [type=\"checkbox\"] + label .ui:before {
+		content: \"$no\";
+		left: 32px
+	}	
+	
+.CheckBoxChecked [type=\"checkbox\"] + label:after {
+		background: #4EE84E;
+		top: 2px; left: 55px;
+	}
+
+.CheckBoxChecked [type=\"checkbox\"] + label .ui:after {
+		content: \"$yes\";
+		color: #4C535C;
+	}	
+	
+	
+.CheckBoxDisabled [type=\"checkbox\"] + label .ui:before {
+	color: white !important;
+}
+	
+.CheckBoxUnChecked [type=\"checkbox\"]:focus + label:before {
+		border: 1px solid #777;
+		-webkit-box-sizing: border-box;
+		-moz-box-sizing: border-box;
+		-ms-box-sizing: border-box;
+		box-sizing: border-box;
+		margin-top: -1px;
+	}	
+.CheckBoxChecked [type=\"checkbox\"]:focus + label:before {
+		border: 1px solid #777;
+		-webkit-box-sizing: border-box;
+		-moz-box-sizing: border-box;
+		-ms-box-sizing: border-box;
+		box-sizing: border-box;
+		margin-top: -1px;
+	}
+
+
+.formDesign [type=\"checkbox\"]:not(:checked),
+	.formDesign [type=\"checkbox\"]:checked {
+		position: absolute;
+		left: -9999px;
+	}
+.formDesign [type=\"checkbox\"]:not(:checked) + label,
+	.formDesign [type=\"checkbox\"]:checked + label {
+		position: relative;
+		padding-left: 75px;
+		cursor: pointer;
+	}
+.formDesign [type=\"checkbox\"]:not(:checked) + label:before,
+	.formDesign [type=\"checkbox\"]:checked + label:before,
+	.formDesign [type=\"checkbox\"]:not(:checked) + label:after,
+	.formDesign [type=\"checkbox\"]:checked + label:after {
+		content: '';
+		position: absolute;
+	}
+.formDesign 	[type=\"checkbox\"]:not(:checked) + label:before,
+	.formDesign [type=\"checkbox\"]:checked + label:before {
+		left:0; top: -3px;
+		width: 78px; height: 30px;
+		background: #DDDDDD;
+		border-radius: 15px;
+		-webkit-transition: background-color .2s;
+		-moz-transition: background-color .2s;
+		-ms-transition: background-color .2s;
+		transition: background-color .2s;
+	}
+.formDesign [type=\"checkbox\"]:not(:checked) + label:after,
+	.formDesign [type=\"checkbox\"]:checked + label:after {
+		width: 20px; height: 20px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+		border-radius: 50%;
+		background: #7F8C9A;
+		top: 2px; left: 5px;
+	}
+
+	/* on checked */
+.formDesign [type=\"checkbox\"]:checked + label:before {
+		//background:#8E8E8E; 
+		background:#F3F3F3; 
+	}
+.formDesign [type=\"checkbox\"]:checked + label:after {
+		background: #4EE84E;
+		top: 2px; left: 55px;
+	}
+
+.formDesign [type=\"checkbox\"]:checked + label .ui,
+	.formDesign [type=\"checkbox\"]:not(:checked) + label .ui:before,
+	.formDesign [type=\"checkbox\"]:checked + label .ui:after {
+		position: absolute;
+		left: 6px;
+		width: 65px;
+		border-radius: 15px;
+		font-size: 14px;
+		font-weight: bold;
+		line-height: 22px;
+		-webkit-transition: all .2s;
+		-moz-transition: all .2s;
+		-ms-transition: all .2s;
+		transition: all .2s;
+	}
+.formDesign [type=\"checkbox\"]:not(:checked) + label .ui:before {
+		content: \"$no\";
+		left: 32px
+	}
+.formDesign [type=\"checkbox\"]:checked + label .ui:after {
+		content: \"$yes\";
+		color: #4C535C;
+	}
+.formDesign [type=\"checkbox\"]:focus + label:before {
+		border: 1px solid #777;
+		-webkit-box-sizing: border-box;
+		-moz-box-sizing: border-box;
+		-ms-box-sizing: border-box;
+		box-sizing: border-box;
+		margin-top: -1px;
+	}
+
+$cssplus
 ";
+
+$_SESSION["FONT_CSS"]=$MAINCSS;
+echo $MAINCSS;

@@ -54,7 +54,7 @@ function page(){
 	$uti1="http://forge.fusioninventory.org/projects/fusioninventory-agent/wiki/Platforms_tested";
 	$uti2="http://www.ocsinventory-ng.org/en/download/download-agent.html";
 	$html="
-	<div style='font-size:14px' class=explain>{OCSNG_HOWTO_1}</div>
+	<div style='font-size:14px' class=text-info>{OCSNG_HOWTO_1}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
@@ -78,7 +78,7 @@ function page(){
 	<tbody>
 	<tr>
 	<td width=1%><img src='img/ocs-nagent1-howto.png'></td>
-	<td width=99% valign='top'><div style='font-size:14px' class=explain>{ocs-nagent1-howto}</div></td>
+	<td width=99% valign='top'><div style='font-size:14px' class=text-info>{ocs-nagent1-howto}</div></td>
 	</tr>
 	<tr><td colspan=2><center><code style='font-size:16px;font-weight:bold'>$www</code></center></td></tr>
 	<tr><td colspan=2><center><code style='font-size:16px;font-weight:bold'>{silent_install}<br>$silentinstall</code></center></td></tr>

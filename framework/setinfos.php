@@ -14,6 +14,7 @@ $file_source="/usr/share/artica-postfix/ressources/logs/{$_GET["key"]}";
 if($_GET["path"]<>null){$file_source=$_GET["path"];}
 
 @copy($file_source,"/etc/artica-postfix/settings/Daemons/{$_GET["key"]}");
+@chmod("/etc/artica-postfix/settings/Daemons/{$_GET["key"]}", 0755);
 @unlink($file_source);
 
 function CLUSTER_KEY(){

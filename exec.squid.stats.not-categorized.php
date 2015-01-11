@@ -31,6 +31,7 @@ $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
 
 if($argv[1]=="--months"){not_categorized_months();exit;}
+if($argv[1]=="--recategorize"){not_categorized_scan();exit;}
 
 
 
@@ -43,6 +44,23 @@ $DisableLocalStatisticsTasks=$sock->GET_INFO("DisableLocalStatisticsTasks");
 if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
 if($DisableLocalStatisticsTasks==1){die();}
 process_all_tables();
+
+
+function process_all_tables_percentage($text){
+
+
+	$array["TITLE"]="Scanning Not categorized: ".$text." ".date("H:i:s");
+	$array["POURC"]=47;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [46] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
 
 
 function process_all_tables(){
@@ -97,6 +115,10 @@ function process_all_tables(){
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$sitename=trim($ligne["sitename"]);
 			$familysite=trim($ligne["familysite"]);
+			
+			process_all_tables_percentage($sitename);
+			
+			
 			if($sitename==null){
 				if($GLOBALS["VERBOSE"]){echo "Null value for $sitename,$familysite aborting\n";}
 				$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
@@ -190,6 +212,7 @@ function process_all_tables(){
 			if($GLOBALS["VERBOSE"]){echo "('$sitename','$family','$country','$domain','{$infos["size"]}','{$infos["hits"]}','$text_time')\n";}
 			$f[]="('$sitename','$family','$country','$domain','{$infos["size"]}','{$infos["hits"]}','$text_time')";
 			if(count($f)>500){
+				process_all_tables_percentage("notcategorized $d rows...");
 				if($GLOBALS["VERBOSE"]){echo "notcategorized 500 rows...\n";}
 				$q->QUERY_SQL($prefix.@implode(",", $f));
 				if(!$q->ok){
@@ -206,6 +229,54 @@ function process_all_tables(){
 		}	
 	}
 
+}
+
+function not_categorized_scan(){
+	
+	
+	if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
+	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.not-categorized.php.not_categorized_scan.pid";
+	$timefile="/etc/artica-postfix/pids/exec.squid.stats.not-categorized.php.not_categorized_scan.time";
+	$pid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($pid<100){$pid=null;}
+		$unix=new unix();
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<120){if($GLOBALS["VERBOSE"]){echo "{$timeexec} <>120...\n";}return;}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	}
+	
+	
+	@file_put_contents($timefile, time());
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL("SELECT sitename FROM notcategorized ORDER BY hits DESC LIMIT 0,50");
+	
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$sitename=$ligne["sitename"];
+		$category=$q->GET_CATEGORIES($sitename);
+		if($category<>null){
+			UPDATE_CATEGORY_DAYS($sitename,$category);
+		}
+		$q->QUERY_SQL("DELETE FROM notcategorized WHERE `sitename`='$sitename'");
+		
+	}
+	
+}
+
+function UPDATE_CATEGORY_DAYS($sitename,$category){
+	$q=new mysql_squid_builder();
+	$TABLES_DAYS=$q->LIST_TABLES_HOURS();
+	
+	while (list ($tablename, $infos) = each ($TABLES_DAYS)){
+		if($GLOBALS["VERBOSE"]){echo "$tablename -> $category FOR `$sitename`\n";}
+		$q->QUERY_SQL("UPDATE $tablename SET `category`='$category' WHERE `sitename`='$sitename'");
+	}
+	
+	
 }
 
 

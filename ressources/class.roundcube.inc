@@ -63,68 +63,132 @@
 			
 			$this->roundcube_plugins_line=$users->roundcube_plugins;
 			$this->roundcube_plugins_array=$this->BuildPlugins();
+			
+	}
+	
+	private function parseNewParams(){
+		$sock=new sockets();
+		$this->roundCubeArray["ldap_ok"]=intval($sock->GET_INFO("RoundCubeEnableLDAP"));
+		$this->roundCubeArray["default_host"]=$sock->GET_INFO("RoundCubeDefaultHost");
+		$this->roundCubeArray["user_link"]=$sock->GET_INFO("RoundCubeUserLink");
+		$this->roundCubeArray["locale_string"]=$sock->GET_INFO("RoundeCubeLocalString");
+		$this->roundCubeArray["product_name"]=$sock->GET_INFO("RoundCubeProductName");
+		
+		
+		$this->roundCubeArray["debug_level"]=intval($sock->GET_INFO("RoundCubeDebugLevel"));
+		
+		
+		
+		$RoundCubeSkipDeleted=intval($sock->GET_INFO("RoundCubeSkipDeleted"));
+		$RoundCubeFlagForDeletion=intval($sock->GET_INFO("RoundCubeFlagForDeletion"));
+		
+		
+		if($RoundCubeSkipDeleted==1){$this->roundCubeArray["skip_deleted"]="TRUE";}else{$this->roundCubeArray["skip_deleted"]="FALSE"; }
+		if($RoundCubeFlagForDeletion==1){$this->roundCubeArray["flag_for_deletion"]="TRUE";}else{$this->roundCubeArray["flag_for_deletion"]="FALSE"; }
+		
+		$RoundCubeEnableCaching=intval($sock->GET_INFO("RoundCubeEnableCaching"));
+		if($RoundCubeEnableCaching==1){$this->roundCubeArray["enable_caching"]="TRUE";}else{$this->roundCubeArray["enable_caching"]="FALSE"; }
+		
+		$RoundCubeAutoCreateuser=intval($sock->GET_INFO("RoundCubeAutoCreateuser"));
+		if($RoundCubeAutoCreateuser==1){$this->roundCubeArray["auto_create_user"]="TRUE";}else{$this->roundCubeArray["auto_create_user"]="FALSE";}
+		
+		
+		$RoundCubeSievePort=$sock->GET_INFO("RoundCubeSievePort");
+		if($RoundCubeSievePort==null){$RoundCubeSievePort=$this->SieveListenIp.":4190";}
+
+		if(is_numeric($RoundCubeSievePort)){$this->roundCubeArray["sieve_port"]=$RoundCubeSievePort;}
+		
+		if(preg_match("#(.+?):([0-9]+)#", $RoundCubeSievePort,$re)){
+			$this->SieveListenIp=$re[1];
+			$this->roundCubeArray["sieve_port"]=$re[2];
+		}
+
+		
+		if($this->roundCubeArray["product_name"]==null){$this->roundCubeArray["product_name"]="RoundCube Webmail for Artica";}
+		if($this->roundCubeArray["user_link"]==null){$this->roundCubeArray["user_link"]=$this->BuildUserlink();}
+		
+		
 	}
 	
 	private function ParseMysqlParams(){
 		$sock=new sockets();
 		$this->SocketPath="/var/run/mysqld/mysqld.sock";
 		$def=array();
+		$RoundCubeDedicateMySQLServer=intval($sock->GET_INFO("RoundCubeDedicateMySQLServer"));
 		$MySQLSyslogType=$sock->GET_INFO("RoundCubeMySQLServiceType");
-		if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=0;}
+		if(!is_numeric($MySQLSyslogType)){
+			if($RoundCubeDedicateMySQLServer==1){
+				$MySQLSyslogType=3;
+			}
+		}
+		
+		if(!is_numeric($MySQLSyslogType)){
+			$MySQLSyslogType=0;
+		}
+		
+		if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} RoundCubeMySQLServiceType....: $MySQLSyslogType\n";}
+		if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} RoundCubeDedicateMySQLServer.: $RoundCubeDedicateMySQLServer\n";}
+		
 		if($MySQLSyslogType>0){
 		
-		if($MySQLSyslogType==4){
-			
-			$this->mysql_admin=$sock->GET_INFO("RoundCubeRemoteMySQLServerAdmin");
-			$this->mysql_password=$sock->GET_INFO("RoundCubeRemoteMySQLServerPassword");
-			$this->mysql_server=$sock->GET_INFO("RoundCubeRemoteMySQLServer");
-			$this->mysql_port=$sock->GET_INFO("RoundCubeRemoteMySQLServerPort");
-			$this->SocketPath=null;
-			$def["TryTCP"]=true;
-			$auth=$this->mysql_admin;
-			$def["mysql_server"]=$this->mysql_server;
-			$def["mysql_port"]=$this->mysql_port;
-			if($this->mysql_password<>null){$auth="$this->mysql_admin:$this->mysql_password";}
-			$this->MYSQL_CMDLINES="--host=$this->mysql_server --port=$this->mysql_port -u $this->mysql_admin -p" .$sock->shellEscapeChars($this->mysql_password);
-			$dsn="$auth@$q->mysql_server:$q->mysql_port/$this->database";
-			$this->dbidsn=$dsn;
-		}
-		if($MySQLSyslogType==3){
-			$this->mysql_admin="root";
-			$this->mysql_password=null;
-			$def["mysql_admin"]=$this->mysql_admin;
-			$def["mysql_password"]=$this->mysql_password;
-			$this->SocketPath="/var/run/mysqld/roundcube-db.sock";
-			$def["TryTCP"]=false;
-			$def["mysql_server"]="127.0.0.1";
-			$def["SocketPath"]=$this->SocketPath;
-			$this->MYSQL_CMDLINES="--protocol=socket --socket=$this->SocketPath -u root";
-			$dsn="root@unix($this->SocketPath)/$this->database";
-			$this->dbidsn=$dsn;
-		}
+			if($MySQLSyslogType==4){
+				
+				$this->mysql_admin=$sock->GET_INFO("RoundCubeRemoteMySQLServerAdmin");
+				$this->mysql_password=$sock->GET_INFO("RoundCubeRemoteMySQLServerPassword");
+				$this->mysql_server=$sock->GET_INFO("RoundCubeRemoteMySQLServer");
+				$this->mysql_port=$sock->GET_INFO("RoundCubeRemoteMySQLServerPort");
+				$this->SocketPath=null;
+				$def["TryTCP"]=true;
+				$auth=$this->mysql_admin;
+				$def["mysql_server"]=$this->mysql_server;
+				$def["mysql_port"]=$this->mysql_port;
+				if($this->mysql_password<>null){$auth="$this->mysql_admin:$this->mysql_password";}
+				$this->MYSQL_CMDLINES="--host=$this->mysql_server --port=$this->mysql_port -u $this->mysql_admin -p" .$sock->shellEscapeChars($this->mysql_password);
+				$dsn="$auth@$q->mysql_server:$q->mysql_port/$this->database";
+				$this->dbidsn=$dsn;
+			}
+			if($MySQLSyslogType==3){
+				$this->mysql_admin="root";
+				$this->mysql_password=null;
+				$def["mysql_admin"]=$this->mysql_admin;
+				$def["mysql_password"]=$this->mysql_password;
+				$this->SocketPath="/var/run/mysqld/roundcube-db.sock";
+				$def["TryTCP"]=false;
+				$def["mysql_server"]="127.0.0.1";
+				$def["SocketPath"]=$this->SocketPath;
+				$this->MYSQL_CMDLINES="--protocol=socket --socket=$this->SocketPath -u root";
+				$dsn="root@unix($this->SocketPath)/$this->database";
+				$this->dbidsn=$dsn;
+			}
 		
 		
 		
 			
 		}else{
-			$q=new mysql();
-			if($q->mysql_server=="localhost"){$q->mysql_server="127.0.0.1";}
-			if($q->mysql_server=="localhost.localdomain"){$q->mysql_server="127.0.0.1";}
 			
-			if($q->mysql_server=="127.0.0.1"){
-				$token[]="--protocol=socket --socket=$q->SocketName";
-				
-			}else{
-				$token[]="--host=$q->mysql_server --port=$q->mysql_port";
-			}			
-			
-			
-			if($q->mysql_admin<>null){$token[]="--user=$q->mysql_admin";}
-			if($q->mysql_password<>null){$token[]="--password=".$sock->shellEscapeChars($this->mysql_password);}
-			$token[]="--database=$this->database";
-			$token[]="--silent";
-			$this->MYSQL_CMDLINES=@implode(" ", $token);
+		$q=new mysql();
+		if($q->mysql_server=="localhost"){$q->mysql_server="127.0.0.1";}
+		if($q->mysql_server=="localhost.localdomain"){$q->mysql_server="127.0.0.1";}
+	
+					if($q->mysql_server=="127.0.0.1"){
+						$token[]="--protocol=socket --socket=$q->SocketName";
+						
+					}else{
+						$token[]="--host=$q->mysql_server --port=$q->mysql_port";
+					}			
+					
+					
+					if($q->mysql_admin<>null){$token[]="--user=$q->mysql_admin";}
+					if($q->mysql_password<>null){$token[]="--password=".$sock->shellEscapeChars($this->mysql_password);}
+					$token[]="--database=$this->database";
+					$token[]="--silent";
+					$this->MYSQL_CMDLINES=@implode(" ", $token);
 		}
+
+				
+				
+				
+		
 		
 		$this->ClassSQL=new mysql($def);
 		if(!$this->ClassSQL->DATABASE_EXISTS($this->database)){
@@ -233,6 +297,7 @@
 				if($this->PHP_FCGI_CHILDREN==null){$this->PHP_FCGI_CHILDREN=4;}
 				if($this->PHP_FCGI_MAX_REQUESTS==null){$this->PHP_FCGI_MAX_REQUESTS=100;}
 				$users=new usersMenus();
+				$this->parseNewParams();
 				if($this->roundCubeArray["debug_level"]==null){$this->roundCubeArray["debug_level"]=1;}
 				if($this->roundCubeArray["enable_caching"]==null){$this->roundCubeArray["enable_caching"]="TRUE";}
 				if($this->roundCubeArray["auto_create_user"]==null){$this->roundCubeArray["auto_create_user"]="TRUE";}
@@ -407,7 +472,7 @@
 				$f[]='\t"socket" => "/var/run/lighttpd/phprcbe.socket" + var.PID,';
 			}else{
 	
-				$f[]='\t"host" => "127.0.0.1","port" =>'.$lighttpdRcbePhpPort.',';
+				$f[]="\t\"host\" => \"127.0.0.1\",\"port\" => $lighttpdRcbePhpPort,";
 			}
 		}
 	
@@ -564,6 +629,11 @@
 		$q=new mysql();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
 		$RoundCubeEnableGlobalAddressBook=$ligne["enabled"];
+		$RC_VERSION=$this->RC_VERSION();
+		$RC_VERSION_EX=explode(".",$RC_VERSION);
+		$MAJOR=intval($RC_VERSION[0]);
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} v{$RC_VERSION} Major $MAJOR [".__LINE__."]\n";}
 		
 		$plugins='';
 			reset($this->roundCubeArray);
@@ -606,26 +676,89 @@
 				$arr[]="'subscriptions_option'";
 			}
 			
-			if($this->AsRoot){
+			if($MAJOR<1){
+				if($this->AsRoot){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} checking plugins for 0.x versions [".__LINE__."]\n";}
 				if(!is_file("$this->root_path/plugins/msglistcols/msglistcols.php")){$this->plugin_install($this->root_path,"msglistcols");}
 				if(!is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){$this->plugin_install($this->root_path,"sticky_notes");}
 				if(!is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){$this->plugin_install($this->root_path,"jqueryui");}
 				if(!is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){$this->plugin_install($this->root_path,"dkimstatus");}
 				//if(!is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){$this->plugin_install($this->root_path,"fail2ban");}
 			
+				}
+			}
 				
-				
+			if($MAJOR<1){	
 				
 				if(is_file("$this->root_path/plugins/msglistcols/msglistcols.php")){
-					echo "Starting......: ".date("H:i:s")." Roundcube msglistcols Enabled\n";
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} msglistcols Enabled for 0.x versions  [".__LINE__."]\n";}
 					$arr[]="'msglistcols'";
 				}
+			}
 				
-				
+			if($MAJOR<1){
 				if(is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){
-					echo "Starting......: ".date("H:i:s")." Roundcube dkimstatus Enabled\n";
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} dkimstatus Enabled for 0.x versions [".__LINE__."]\n";}
 					$arr[]="'dkimstatus'";
 				}
+			}
+			
+			if($MAJOR>0){
+				if(is_file("$this->root_path/plugins/acl/acl.php")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} ACL Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'acl'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/acl/acl.php no such file for 1.x versions [".__LINE__."]\n";}
+				}
+				if(is_file("$this->root_path/plugins/filesystem_attachments/filesystem_attachments.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} filesystem_attachments Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'filesystem_attachments'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/filesystem_attachments/filesystem_attachments.php no such file for 1.x versions [".__LINE__."]\n";}
+				}
+				
+				if(is_file("$this->root_path/plugins/archive/archive.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} archive Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'filesystem_attachments'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/archive/archive.php no such file for 1.x versions [".__LINE__."]\n";}
+				}
+
+				if(is_file("$this->root_path/plugins/zipdownload/zipdownload.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} zipdownload Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'zipdownload'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/zipdownload/zipdownload.php no such file for 1.x versions [".__LINE__."]\n";}
+				}	
+				
+				
+				if(is_file("$this->root_path/plugins/subscriptions_option/subscriptions_option.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} subscriptions_option Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'subscriptions_option'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/subscriptions_option/subscriptions_option.php no such file for 1.x versions [".__LINE__."]\n";}
+				}
+				if(is_file("$this->root_path/plugins/vcard_attachments/vcard_attachments.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} vcard_attachments Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'vcard_attachments'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/vcard_attachments/vcard_attachments.php no such file for 1.x versions [".__LINE__."]\n";}
+				}			
+				if(is_file("$this->root_path/plugins/markasjunk/markasjunk.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} markasjunk Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'markasjunk'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/markasjunk/markasjunk.php no such file for 1.x versions [".__LINE__."]\n";}
+				}				
+				if(is_file("$this->root_path/plugins/show_additional_headers/show_additional_headers.php")){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} show_additional_headers Enabled for 1.x versions [".__LINE__."]\n";}
+					$arr[]="'markasjunk'";
+				}else{
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $this->root_path/plugins/show_additional_headers/show_additional_headers.php no such file for 1.x versions [".__LINE__."]\n";}
+				}				
+				
+				
+			}
 				
 				if(is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){
 					echo "Starting......: ".date("H:i:s")." Roundcube fail2ban installed but skipped\n";
@@ -633,16 +766,18 @@
 				}				
 				
 				
-				if(is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){
-					echo "Starting......: ".date("H:i:s")." Roundcube jqueryui Enabled\n";
-					$this->plugin_jqueryui($this->root_path);
-					$arr[]="'jqueryui'";
+					if(is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){
+						echo "Starting......: ".date("H:i:s")." Roundcube jqueryui Enabled\n";
+						$this->plugin_jqueryui($this->root_path);
+						$arr[]="'jqueryui'";
+					}
+				
 					
-					if(is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){
-						echo "Starting......: ".date("H:i:s")." Roundcube sticky_notes Enabled\n";
-						$arr[]="'sticky_notes'";
-					}					
-				}
+				if(is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){
+					echo "Starting......: ".date("H:i:s")." Roundcube sticky_notes Enabled\n";
+					$arr[]="'sticky_notes'";
+				}					
+				
 				
 				if($this->plugin_password($this->root_path,null)){
 					echo "Starting......: ".date("H:i:s")." Roundcube password Enabled\n";
@@ -656,7 +791,7 @@
 				}
 				
 				
-			}
+			
 				
 	
 				if(is_array($arr)){$plugins="\$rcmail_config['plugins'] = array(".implode(',',$arr).");";}
@@ -942,6 +1077,20 @@
 		
 	}
 	
+	function RC_VERSION($root){
+	
+		if(isset($GLOBALS["RC_VERSION"])){$GLOBALS["RC_VERSION"];}
+		$f=explode("\n",@file_get_contents("$this->root_path/program/include/iniset.php"));
+		while (list ($num, $ligne) = each ($f) ){
+			$ligne=trim($ligne);
+			if(!preg_match("#RCMAIL_VERSION.*?([0-9\.]+)#", $ligne,$re)){continue;}
+			
+			$GLOBALS["RC_VERSION"]= trim($re[1]);
+			return $GLOBALS["RC_VERSION"];
+		}
+	
+	}
+	
 	
 	function db_inc_php($return=false){
 		$filepath="/etc/roundcube/debian-db.php";
@@ -1034,13 +1183,19 @@
 		if($return){return @implode("\n", $f);}
 		@mkdir(dirname($filepath),0755,true);
 		@file_put_contents($filepath, @implode("\n", $f));
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: RoundCube Web `$filepath`\n";}
+		
+		$RC_VERSION=$this->RC_VERSION();
+		$RC_VERSION_EX=explode(".",$RC_VERSION);
+		$MAJOR=intval($RC_VERSION[0]);
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} v{$RC_VERSION} Major $MAJOR [".__LINE__."]\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} `$filepath` [".__LINE__."]\n";}
 		
 		if(is_file("$this->root_path/plugins/sieverules/sieverules.php")){
 			$users=new usersMenus();
 			$sieverules_port=4190;
 			if(is_numeric($users->SIEVE_PORT)){if($users->SIEVE_PORT>0){$sieverules_port=$users->SIEVE_PORT;}}
-			echo "Starting......: ".date("H:i:s")." Roundcube (php) sieverules_port ($sieverules_port)\n";
+			echo "Starting......: ".date("H:i:s")." {$GLOBALS["SERVICE_NAME"]} (php) sieverules_port ($sieverules_port) [".__LINE__."]\n";
 			$conf[]="\$rcmail_config['plugins'][] = 'sieverules';";
 			$sieve[]="<?php";
 			$sieve[]="\$rcmail_config[\"sieverules_host\"] = \"127.0.0.1\";";

@@ -28,6 +28,7 @@
 js();
 
 function js(){
+		header("content-type: application/x-javascript");
 		$jsstart="syslogConfigLoad()";
 		if(isset($_GET["windows"])){$jsstart="syslogConfigLoadPopup()";}
 		$page=CurrentPageName();
@@ -94,13 +95,13 @@ function master_index(){
 		
 	}
 	
-	$enable=Paragraphe_switch_img("{enable_syslog_server}","{enable_syslog_server_text}","ActAsASyslogServer","$ActAsASyslogServer",null,540);
+	$enable=Paragraphe_switch_img("{enable_syslog_server}","{enable_syslog_server_text}","ActAsASyslogServer","$ActAsASyslogServer",null,860);
 	
 	$html="
 	<div id='ActAsASyslogServerDiv' style='width:98%' class=form>
 	$enable
 	$enableSMTPStats
-	<div style='text-align:right'>". button("{apply}","ActAsASyslogServerSave()",16)."</div>
+	<div style='text-align:right'>". button("{apply}","ActAsASyslogServerSave()",32)."</div>
 	<hr>
 
 	
@@ -115,13 +116,13 @@ function master_index(){
 		}			
 		
 	function ActAsASyslogServerSave(){
-		var XHR = new XHRConnection();
-		XHR.appendData('ActAsASyslogServer',document.getElementById('ActAsASyslogServer').value);
-		if(document.getElementById('ActAsSMTPGatewayStatistics')){
-			SMTPSTATS=document.getElementById('ActAsSMTPGatewayStatistics').value;
-			XHR.appendData('ActAsSMTPGatewayStatistics',document.getElementById('ActAsSMTPGatewayStatistics').value);}
-		AnimateDiv('ActAsASyslogServerDiv');
-		XHR.sendAndLoad('$page', 'GET',x_ActAsASyslogServerSave);		
+			var XHR = new XHRConnection();
+			XHR.appendData('ActAsASyslogServer',document.getElementById('ActAsASyslogServer').value);
+			if(document.getElementById('ActAsSMTPGatewayStatistics')){
+				SMTPSTATS=document.getElementById('ActAsSMTPGatewayStatistics').value;
+				XHR.appendData('ActAsSMTPGatewayStatistics',document.getElementById('ActAsSMTPGatewayStatistics').value);
+			}
+			XHR.sendAndLoad('$page', 'GET',x_ActAsASyslogServerSave);		
 		}
 		
 	var xArticaLogDir= function (obj) {
@@ -155,12 +156,12 @@ function client_index(){
 	$page=CurrentPageName();
 	
 	$ActAsASyslogClient=$sock->GET_INFO("ActAsASyslogClient");
-	$enable=Paragraphe_switch_img("{enable_syslog_client}","{enable_syslog_client_text}","ActAsASyslogClient","$ActAsASyslogClient",null,540);
+	$enable=Paragraphe_switch_img("{enable_syslog_client}","{enable_syslog_client_text}","ActAsASyslogClient","$ActAsASyslogClient",null,850);
 	
 	$html="
 	<div id='ActAsASyslogClientDiv'>
 	$enable
-	<div style='text-align:right'><hr>". button("{apply}","ActAsASyslogClientSave()")."</div>
+	<div style='text-align:right;margin-top:25px'><hr>". button("{apply}","ActAsASyslogClientSave()",26)."</div>
 	</div>
 	<p>&nbsp;</p>
 	
@@ -200,8 +201,6 @@ function client_index(){
 		var XHR = new XHRConnection();
 		XHR.appendData('syslog-host',document.getElementById('syslog-host').value);
 		XHR.appendData('syslog-port',document.getElementById('syslog-port').value);
-		
-		document.getElementById('syslog-servers-list').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 		XHR.sendAndLoad('$page', 'GET',x_AddServerSyslogHost);		
 	}
 		
@@ -343,9 +342,9 @@ function SyslogServerLocalx(){
 	
 	
 	$html="
-	<div style='margin-right:-10px;margin-left:-15px'>
+	
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>	
+	
 	<script>
 var mm$t='';
 $(document).ready(function(){
@@ -355,7 +354,8 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: 'localx', name : 'localx', width :139, sortable : true, align: 'left'},
 		{display: '$filename', name : 'fileanme', width : 664, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 38, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'show', width : 45, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 45, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -378,7 +378,7 @@ $('#flexRT$t').flexigrid({
 });
 
 function AddLocalx(){
-	YahooWin2('450','$page?localx-popup=yes&local=&t=$t','$add_rule');
+	YahooWin2('850','$page?localx-popup=yes&local=&t=$t','$add_rule');
 }
 
 		var x_DeleteSyslogLocal = function (obj) {
@@ -412,24 +412,26 @@ function SyslogServerLocalxPopup(){
 	for($i=0;$i<8;$i++){$hash["local$i"]="local$i";}
 	$tt=$_GET["t"];
 	$array=unserialize(base64_decode($sock->GET_INFO("SyslogLocals")));
-	
+	$bt="{apply}";
+	if(!is_numeric($_GET["local"])){$bt="{add}";}
 	$html="
-	<div id='$t'></div>
-	<table style='width:99%' class=form>
+	<div id='$t' style=width:98%' class=form>
+	<table style='width:99%' >
 	<tr>
-		<td class=legend style='font-size:14px'>local:</td>
-		<td>". Field_array_Hash($hash, "local-$t",$_GET["local"],'style:font-size:14px')."</td>
+		<td class=legend style='font-size:22px'>local:</td>
+		<td>". Field_array_Hash($hash, "local-$t",$_GET["local"],'style:font-size:22px')."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{path}:</td>
-		<td>". Field_text("path-$t",$array[$_GET["local"]],"font-size:14px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{path}:</td>
+		<td>". Field_text("path-$t",$array[$_GET["local"]],"font-size:22px;width:435px")."</td>
 		<td>". button_browse("path-$t")."</td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right' style='padding-top:10px'>". button("{apply}","SaveLocalxA$t()", 16)."</td>
+		<td colspan=3 align='right' style='padding-top:40px'><hr>". button($bt,"SaveLocalxA$t()", 32)."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 		var x_SaveLocalxA$t = function (obj) {
 			document.getElementById('$t').innerHTML='';
@@ -487,18 +489,18 @@ function SyslogServerLocalx_list(){
 		if(!preg_match("#\.[a-z]+$#", $path)){
 			$path=$path."/$local.log";
 		}
-		
+		$pathenc=urlencode($path);
 		$delete=imgsimple("delete-32.png",null,"DeleteSyslogLocal('$local')");
 		$c++;
+		$show=imgsimple("loupe-32.png",null,"Loadjs('syslog.php?sjs=yes&syslog-path=$pathenc')");
 		
-		
-		$herf="<a href=\"javascript:blur();\" OnClick=\"javascript:YahooWin2('450','$MyPage?localx-popup=yes&local=$local&t={$_GET["t"]}','$local');\"
+		$herf="<a href=\"javascript:blur();\" OnClick=\"javascript:YahooWin2('850','$MyPage?localx-popup=yes&local=$local&t={$_GET["t"]}','$local');\"
 		style='font-size:18px;text-decoration:underline'>";
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("<span style='font-size:18px'>$herf{$local}</a></span>"
 		,"<span style='font-size:18px'>$herf{$path}</a></span>",
-		$delete )
+		$show,$delete )
 		);
 	}
 	

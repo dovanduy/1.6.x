@@ -270,6 +270,99 @@ $f[]="?>";
 build_progress("$servername: wp-config.php {done}...",50);
 
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $WORKING_DIRECTORY/wp-config.php done...\n";}
+
+$f=array();
+$f[]="<?php";
+$f[]="/*";
+$f[]="WP-Cache Config Sample File";
+$f[]="";
+$f[]="See wp-cache.php for author details.";
+$f[]="*/";
+$f[]="";
+$f[]="if ( ! defined('WPCACHEHOME') )";
+$f[]="	define( 'WPCACHEHOME', WP_PLUGIN_DIR . '/wp-super-cache/' );";
+$f[]="";
+$f[]="\$cache_compression = 0; // Super cache compression";
+$f[]="\$cache_enabled = false;";
+$f[]="\$super_cache_enabled = false;";
+$f[]="\$cache_max_time = 3600; //in seconds";
+$f[]="//\$use_flock = true; // Set it true or false if you know what to use";
+$f[]="\$cache_path = WP_CONTENT_DIR . '/cache/';";
+$f[]="\$file_prefix = 'wp-cache-';";
+$f[]="\$ossdlcdn = 0;";
+$f[]="";
+$f[]="// Array of files that have 'wp-' but should still be cached";
+$f[]="\$cache_acceptable_files = array( 'wp-comments-popup.php', 'wp-links-opml.php', 'wp-locations.php' );";
+$f[]="";
+$f[]="\$cache_rejected_uri = array('wp-.*\\.php', 'index\\.php');";
+$f[]="\$cache_rejected_user_agent = array ( 0 => 'bot', 1 => 'ia_archive', 2 => 'slurp', 3 => 'crawl', 4 => 'spider', 5 => 'Yandex' );";
+$f[]="";
+$f[]="\$cache_rebuild_files = 1;";
+$f[]="";
+$f[]="// Disable the file locking system.";
+$f[]="// If you are experiencing problems with clearing or creating cache files";
+$f[]="// uncommenting this may help.";
+$f[]="\$wp_cache_mutex_disabled = 1;";
+$f[]="";
+$f[]="// Just modify it if you have conflicts with semaphores";
+$f[]="\$sem_id = 5419;";
+$f[]="";
+$f[]="if ( '/' != substr(\$cache_path, -1)) {";
+$f[]="	\$cache_path .= '/';";
+$f[]="}";
+$f[]="";
+$f[]="\$wp_cache_mobile = 0;";
+$f[]="\$wp_cache_mobile_whitelist = 'Stand Alone/QNws';";
+$f[]="\$wp_cache_mobile_browsers = 'Android, 2.0 MMP, 240x320, AvantGo, BlackBerry, Blazer, Cellphone, Danger, DoCoMo, Elaine/3.0, EudoraWeb, hiptop, IEMobile, iPhone, iPod, KYOCERA/WX310K, LG/U990, MIDP-2.0, MMEF20, MOT-V, NetFront, Newt, Nintendo Wii, Nitro, Nokia, Opera Mini, Palm, Playstation Portable, portalmmm, Proxinet, ProxiNet, SHARP-TQ-GX10, Small, SonyEricsson, Symbian OS, SymbianOS, TS21i-10, UP.Browser, UP.Link, Windows CE, WinWAP';";
+$f[]="";
+$f[]="// change to relocate the supercache plugins directory";
+$f[]="\$wp_cache_plugins_dir = WPCACHEHOME . 'plugins';";
+$f[]="// set to 1 to do garbage collection during normal process shutdown instead of wp-cron";
+$f[]="\$wp_cache_shutdown_gc = 0;";
+$f[]="\$wp_super_cache_late_init = 0;";
+$f[]="";
+$f[]="// uncomment the next line to enable advanced debugging features";
+$f[]="\$wp_super_cache_advanced_debug = 0;";
+$f[]="\$wp_super_cache_front_page_text = '';";
+$f[]="\$wp_super_cache_front_page_clear = 0;";
+$f[]="\$wp_super_cache_front_page_check = 0;";
+$f[]="\$wp_super_cache_front_page_notification = '0';";
+$f[]="";
+$f[]="\$wp_cache_object_cache = 0;";
+$f[]="\$wp_cache_anon_only = 0;";
+$f[]="\$wp_supercache_cache_list = 0;";
+$f[]="\$wp_cache_debug_to_file = 0;";
+$f[]="\$wp_super_cache_debug = 0;";
+$f[]="\$wp_cache_debug_level = 5;";
+$f[]="\$wp_cache_debug_ip = '';";
+$f[]="\$wp_cache_debug_log = '';";
+$f[]="\$wp_cache_debug_email = '';";
+$f[]="\$wp_cache_pages[ \"search\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"feed\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"category\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"home\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"frontpage\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"tag\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"archives\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"pages\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"single\" ] = 0;";
+$f[]="\$wp_cache_pages[ \"author\" ] = 0;";
+$f[]="\$wp_cache_hide_donation = 0;";
+$f[]="\$wp_cache_not_logged_in = 0;";
+$f[]="\$wp_cache_clear_on_post_edit = 0;";
+$f[]="\$wp_cache_hello_world = 0;";
+$f[]="\$wp_cache_mobile_enabled = 0;";
+$f[]="\$wp_cache_cron_check = 0;";
+$f[]="?>";
+if(is_file("$WORKING_DIRECTORY/wp-content/plugins/wp-super-cache/wp-cache-config-sample.php")){ 
+	@file_put_contents("$WORKING_DIRECTORY/wp-content/plugins/wp-super-cache/wp-cache-config.php",@implode("\n", $f));
+}
+
+@file_put_contents("$WORKING_DIRECTORY/wp-config.php", @implode("\n", $f));
+build_progress("$servername: wp-config.php {done}...",50);
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $WORKING_DIRECTORY/wp-config.php done...\n";}
+
+
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: Testing configuration...\n";}
 
 if($free->groupware_admin==null){

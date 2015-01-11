@@ -45,7 +45,7 @@ function js_in_front_popup(){
 	$page=CurrentPageName();
 	
 	
-$html="<div class=explain>{OCS_SEARCH_EXPLAIN}</div>
+$html="<div class=text-info>{OCS_SEARCH_EXPLAIN}</div>
 <span id='ocs-search-div'></span>
 <script>
 	LoadAjax('ocs-search-div','$page?def={$_GET["search"]}');
@@ -99,14 +99,10 @@ function page(){
 	$execute=$tpl->_ENGINE_parse_body("{execute}");
 	$all=$tpl->_ENGINE_parse_body("{all}");
 	$import=$tpl->javascript_parse_text("{import_artica_computers}");
+	$computers=$tpl->javascript_parse_text("{computers}");
 	$buttons="
 	buttons : [
 	{name: '$new_entry', bclass: 'Add', onpress : AddComputer$t},
-	{name: '$lastest_scan', bclass: 'search', onpress : lastest_scan$t},
-	{name: '$all', bclass: 'search', onpress : all_scan$t},
-	{name: '$import', bclass: 'Add', onpress : ImportComputer$t},
-	
-	
 	],	";
 	
 	$uri="$page?SearchComputers=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}&t=$t";
@@ -120,10 +116,12 @@ $('#flexRT$t').flexigrid({
 	url: '$uri',
 	dataType: 'json',
 	colModel : [
-		{display: '$hostname', name : 'NAME', width :331, sortable : true, align: 'left'},
+		{display: '$hostname', name : 'NAME', width :299, sortable : true, align: 'left'},
 		{display: '$ipaddr', name : 'IPADDRESS', width :238, sortable : true, align: 'left'},
-		{display: 'MAC', name : 'MAC', width :120, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width :31, sortable : false, align: 'center'},
+		{display: 'MAC', name : 'MAC', width :218, sortable : true, align: 'left'},
+		{display: 'DB', name : 'DB', width :49, sortable : false, align: 'center'},
+		{display: 'DHCP', name : 'DHCP', width :49, sortable : false, align: 'center'},
+		{display: 'INTERNET', name : 'INTERNET', width :49, sortable : false, align: 'center'},
 		
 		 	
 
@@ -138,11 +136,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'NAME',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:18px>$computers</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 880,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -151,7 +149,7 @@ $('#flexRT$t').flexigrid({
 });
 
 function AddComputer$t(){
-	YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');
+	YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');
 }
 
 function lastest_scan$t(){
@@ -184,77 +182,75 @@ function SearchComputers(){
 	if(!$q->DATABASE_EXISTS("ocsweb")){$sock->getFrameWork("services.php?mysql-ocs=yes");}
 	if(!$q->TABLE_EXISTS("hardware", "ocsweb")){$sock->getFrameWork("services.php?mysql-ocs=yes");}
 	if(!$q->TABLE_EXISTS("networks", "ocsweb",true)){$sock->getFrameWork("services.php?mysql-ocs=yes");}
+	if(!$q->FIELD_EXISTS("networks", "isActive", "ocsweb")){$q->QUERY_SQL("ALTER TABLE `networks` ADD `isActive` SMALLINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `isActive` ) ","ocsweb");}
+	
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	$_POST["query"]=trim($_POST["query"]);
+	$table="(SELECT networks.HARDWARE_ID,networks.MACADDR,networks.STATUS,networks.IPADDRESS,networks.isActive,
+			hardware.* FROM networks,hardware WHERE networks.HARDWARE_ID=hardware.ID) as t";
 	
-	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
-	if(!is_numeric($EnableScanComputersNet)){$EnableScanComputersNet=0;}
-	if(!$q->FIELD_EXISTS("networks", "isActive", "ocsweb")){$q->QUERY_SQL("ALTER TABLE `networks` ADD `isActive` SMALLINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `isActive` ) ","ocsweb");}
+	$searchstring=string_to_flexquery();
 	
-	if(strpos($_POST["query"], "|")>0){
-		$exp=explode("|",$_POST["query"]);
-		$_POST["query"]=$exp[0];
-		$nextSearch=$exp[1];
-	}
-	$search="*".$_POST["query"]."*";
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("*", "%", $search);
-	if($_GET["IsActive"]==1){$IsActive=" AND isActive=1";}
 	
-	if(trim($_GET["orderBydate"])<>null){$order="ORDER BY hardware.LASTDATE {$_GET["orderBydate"]} ";}
 
 	
-	if($nextSearch<>null){
-		$nextSearch="*".$nextSearch."*";
-		$nextSearch=str_replace("**", "*", $nextSearch);
-		$nextSearch=str_replace("**", "*", $nextSearch);
-		$nextSearch=str_replace("*", "%", $nextSearch);		
-		$nextSearchSQL="OR (hardware.NAME LIKE '$nextSearch'$IsActive) OR (networks.MACADDR LIKE '$nextSearch'$IsActive) OR (networks.IPADDRESS LIKE '$nextSearch'$IsActive) OR (hardware.OSNAME LIKE '$nextSearch'$IsActive)";
-	}
-	
-	$filter="AND ( (hardware.NAME LIKE '$search'$IsActive) OR (networks.MACADDR LIKE '$search'$IsActive) OR (networks.IPADDRESS LIKE '$search'$IsActive) OR (hardware.OSNAME LIKE '$search'$IsActive)$nextSearchSQL)";
-	
-	if(!$_POST["qtype"]<>null){
-		$filter="AND(({$_POST["qtype"]} LIKE '$search'$IsActive)$nextSearchSQL)";
+if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"ocsweb"));
+		if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}
+		$total = $ligne["TCOUNT"];
 		
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"ocsweb"));
+		if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}
+		$total = $ligne["TCOUNT"];
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
-	if(isset($_POST['page'])) {$page = $_POST['page'];}		
+	if(isset($_POST['page'])) {$page = $_POST['page'];}	
+
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
 	
-	$sql="SELECT networks.*,hardware.* FROM networks,hardware WHERE
-	networks.HARDWARE_ID=hardware.ID $filter $order $limitSql";
 	
-	if(isset($_GET["latest-scan"])){
-		$filter=null;
-		if(!$_POST["qtype"]<>null){$filter="AND ({$_POST["qtype"]} LIKE '$search'$IsActive)";}
-		$sql="SELECT zDate,MAC as MACADDR,Info AS OSNAME,ipaddr AS IPADDRESS,LOWER(hostname) AS NAME FROM computers_lastscan WHERE 1 $filter $order $limitSql";
-		$results = $q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){json_error_show($q->mysql_error."<hr>$sql",0);}
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";	
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,"ocsweb");
+	if(!$q->ok){json_error_show($q->mysql_error."<hr>$sql");}
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
+
+	
+	$users=new usersMenus();
+	$DHC_MAIN=false;
+	if($users->dhcp_installed){
+		$EnableDHCPServer=intval($sock->GET_INFO('EnableDHCPServer'));
+		if($EnableDHCPServer==1){
+			$DHC_MAIN=true;
+				
+		}
+	}
+	$SQUID_MAIN=false;
+	if($users->SQUID_INSTALLED){
+		$SQUID_MAIN=true;
 		
-	}else{
-		$results = $q->QUERY_SQL($sql,"ocsweb");
-		if(!$q->ok){json_error_show($q->mysql_error."<hr>$sql",0);}
 	}
 	
 	
-	
-	
-	$data = array();
-	$data['page'] = $page;
-	$data['total'] = 0;
-	$data['rows'] = array();	
-	
+		
+	$fontsize="22px";
 	$computer=new computers();
+	$q2=new mysql_squid_builder();
+	
+	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["MACADDR"]=="unknown"){continue;}
-		
-			
+		$ligne["MACADDR"]=strtolower($ligne["MACADDR"]);
 		$uid=null;
 		$OSNAME=null;
 		if($ligne["OSNAME"]=="Unknown"){$ligne["OSNAME"]=null;}
@@ -263,23 +259,70 @@ function SearchComputers(){
 		$uri=strtolower($ligne["NAME"]);
 		$uid=$computer->ComputerIDFromMAC($ligne["MACADDR"]);
 		$view="&nbsp;";
-		$jsfiche=MEMBER_JS($uid,1,1);
+		$jslink=null;
+		$jsfiche=null;
+		$ISDB="ok24-grey.png";
+		$DHCP="ok24-none.png";
+		$SQUID="ok24-none.png";
+		if($DHC_MAIN){
+			$DHCP="ok24-grey.png";
+			if($computer->dhcpfixedFromMac($ligne["MACADDR"])){$DHCP="ok24.png";}
+		}
 		
-		if($uid<>null){$view="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:$jsfiche\" 
-		style='font-size:$fontsize;text-decoration:underline'>". str_replace("$", "", strtolower($uid))."</a>";
+		if($SQUID_MAIN){
+			
+			$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT enabled FROM computers_time WHERE `MAC`='{$ligne["MACADDR"]}'","artica_backup"));
+			if(intval($ligne2["enabled"])<>0){
+				$SQUID="warning24.png";
+			}
+		}
 		
-		$jslink="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:$jsfiche\" 
-		style='font-size:$fontsize;text-decoration:underline'>";
 		
+		
+		if($uid<>null){
+			$ISDB="ok24.png";
+			$jsfiche=MEMBER_JS($uid,1,1);
+			$view="<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:$jsfiche\" 
+			style='font-size:$fontsize;text-decoration:underline'>". str_replace("$", "", strtolower($uid))."</a>";
+		
+			$jslink="<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:$jsfiche\" 
+			style='font-size:$fontsize;text-decoration:underline'>";
+		
+		}else{
+			$uid=$ligne["NAME"];
+			
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $uid)){
+				$q=new mysql_squid_builder();
+				$NAME2=$q->UID_FROM_MAC($ligne["MACADDR"]);
+				if($NAME2<>null){$uid=$NAME2;}
+			}
+			
+			if($uid==null){$uid="Unknown";}
+			$jsfiche="Loadjs('domains.computer.autoadd.php?mac=".urlencode($ligne["MACADDR"])."&ipaddr=".urlencode($ligne["IPADDRESS"])."&computername=".urlencode($uid)."&t={$_GET["t"]}')";
+			
+			$jslink="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:$jsfiche\"
+			style='font-size:$fontsize;text-decoration:underline'>";
+			
+			$view="<a href=\"javascript:blur();\"
+			OnClick=\"javascript:$jsfiche\"
+			style='font-size:$fontsize;text-decoration:underline'>$uid</a>";
+			
+			
 		}
 		$js[]="LoadAjaxTiny('cmp-$md','$page?compt-status={$ligne["IPADDRESS"]}');";
 		
 		
+		
+		
+		if($EnableScanComputersNet==1){if($ligne["isActive"]==1){$isActive="img/ok24.png";}else{$isActive="img/danger24.png";}}
+		$icon="<img src='img/$ISDB'>";
+		
 		if($ligne["OSNAME"]<>null){$OSNAME="<div style='font-size:9px'><i>{$ligne["OSNAME"]}</i></div>";}
 		if($_GET["callback"]<>null){
-			if($uid<>null){
+			
 				$color="black";
 				
 				if($_GET["fullvalues"]==1){
@@ -290,14 +333,11 @@ function SearchComputers(){
 				
 				$view="<a href=\"javascript:blur();\" 
 						OnClick=\"javascript:$viewjs\" 
-						style='font-size:$fontsize;text-decoration:underline'>$uid</a>";				
-			}		
-			
+						style='font-size:$fontsize;text-decoration:underline'>". str_replace("$", "", strtolower($uid))."</a>";
+
+				$icon=imgtootltip("arrow-blue-left-32.png",null,$viewjs);
 		}
 		
-		$isActive="img/unknown24.png";
-		
-		if($EnableScanComputersNet==1){if($ligne["isActive"]==1){$isActive="img/ok24.png";}else{$isActive="img/danger24.png";}}
 		if(!IsPhysicalAddress($ligne["MACADDR"])){if($_GET["CorrectMac"]==1){continue;}}
 		$AlreadyMAC[$ligne["MACADDR"]]=true;
 		$zdate=null;
@@ -310,7 +350,12 @@ function SearchComputers(){
 		$view.$zdate,
 		"<span style='font-size:$fontsize'>$jslink{$ligne["IPADDRESS"]}</a></span>",
 		"<span style='font-size:$fontsize'>$jslink{$ligne["MACADDR"]}</a></span>",
-		"<img src='$isActive'>" )
+		"<a href=\"javascript:blur();\" OnClick=\"javascript:$jsfiche\">$icon</a>",
+		"<a href=\"javascript:blur();\" OnClick=\"javascript:$jsfiche\"><img src='img/$DHCP'></a>",
+		"<a href=\"javascript:blur();\" OnClick=\"javascript:$jsfiche\"><img src='img/$SQUID'></a>"
+		
+		 
+		)
 		);		
 
 	}
@@ -322,61 +367,6 @@ function SearchComputers(){
 	}
 	
 	
-	$ldap=new clladp();
-	$dn="ou=Computer,dc=samba,dc=organizations,$ldap->suffix";
-	$hash=$ldap->Ldap_search($dn, "(objectClass=*)",array());
-	
-	for($i=0;$i<$hash["count"];$i++){
-		$computerip=$hash[$i]["computerip"][0];
-		$uri=null;
-		$view="&nbsp;";
-		$color="#7D7D7D";
-		if(trim($computerip)==null){continue;}
-		$computermacaddress=$hash[$i]["computermacaddress"][0];
-		if(isset($AlreadyMAC[$computermacaddress])){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$uid=$hash[$i]["uid"][0];
-		$computeros=$hash[$i]["computeros"][0];
-		$jsfiche=MEMBER_JS($uid,1,1);
-		if($uid<>null){
-			
-			$view="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:$jsfiche\" 
-		style='font-size:$fontsize;text-decoration:underline'>".str_replace("$", "", $uid)."</a>";
-			
-
-		}
-		
-		
-		
-		
-		$isActive="img/unknown24.png";
-		
-		if(!IsPhysicalAddress($computermacaddress)){if($_GET["CorrectMac"]==1){continue;}}
-		
-		if($_GET["callback"]<>null){
-			if($uid<>null){
-				$color="black";
-				if($_GET["fullvalues"]==1){$viewjs="{$_GET["callback"]}('$uid','$computermacaddress','$computerip')";}
-				else{$viewjs="{$_GET["callback"]}('$uid')";}				
-				$view="<a href=\"javascript:blur();\" OnClick=\"javascript:$viewjs\" 
-				style='font-size:$fontsize;text-decoration:underline'>". str_replace("$", "", strtolower($uid))."</a>";				
-			}
-		}		
-		
-	$data['rows'][] = array(
-		'id' => md5(serialize($hash[$i])),
-		'cell' => array(
-		$view,
-		"<span style='font-size:$fontsize'>$jslink$computerip</a></span>",
-		"<span style='font-size:$fontsize'>$jslink$computermacaddress</a></span>",
-		"<img src='$isActive'>" )
-		);	
-
-		$cs++;
-		if($cs>$_POST["rp"]){break;}
-		
-	}
 	
 	
 	if($cs==0){
@@ -384,33 +374,6 @@ function SearchComputers(){
 	}
 	$data['total'] = $cs;
 	echo json_encode($data);
-	return;	
-
-	$html=$html."</tbody></table>
-	'
-	<script>
-	
-	
-	function CheckIpConfig2(i){
-		if(document.getElementById('ipaddr-'+i)){
-			var ipaddr=document.getElementById('ipaddr-'+i).value;
-			LoadAjaxPreload('cmp-'+i,'$page?compt-status='+ipaddr);
-			i=i+1;
-			setTimeout('CheckIpConfig2('+i+')',800);	
-		}
-	}
-	
-	
-	if(document.getElementById('query_computer')){
-		document.getElementById('query_computer').disabled=true;
-	}
-	
-	
-	</script>
-	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
 	
 	
 }

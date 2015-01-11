@@ -15,7 +15,7 @@ $GLOBALS["FORCE"]=false;
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if($argv[1]=="--start-process"){startprocess($argv[2],$argv[3]);exit;}
 if($argv[1]=="--monit"){monit();die(0);}
-
+if($argv[1]=="--squid-mem"){squid_memory_monitor();die();}
 
 if(!$GLOBALS["FORCE"]){
 	if(systemMaxOverloaded()){error_log(basename(__FILE__)."::Fatal: Aborting report, this system is too many overloaded...");die();}
@@ -34,6 +34,7 @@ if($argv[1]=="--mem"){loadmem();die();}
 if($argv[1]=="--cpu"){loadcpu();die();}
 if($argv[1]=="--queues"){ParseLoadQeues();die();}
 if($argv[1]=="--loadavg-notif"){loadavg_notif();die();}
+
 
 
 
@@ -392,6 +393,9 @@ function loadmem(){
 	$unix->send_email_events("System Memory $pourc% used exceed rule",$datas,"system");
 	checkProcess1();
 }
+
+
+
 
 
 function loadavg(){

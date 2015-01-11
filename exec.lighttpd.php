@@ -5,6 +5,7 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["MONIT"]=false;
+$GLOBALS["PAUSE"]=false;
 $GLOBALS["SERVICE_NAME"]="Artica Web service";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
@@ -12,6 +13,8 @@ if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDU
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
 if(preg_match("#--monit#",implode(" ",$argv),$re)){$GLOBALS["MONIT"]=true;}
+if(preg_match("#--pause#",implode(" ",$argv),$re)){$GLOBALS["PAUSE"]=true;}
+
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
@@ -25,7 +28,8 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 	if($argv[1]=="--phpmyadmin"){$GLOBALS["OUTPUT"]=true;PHP_MYADMIN();die();}
 	if($argv[1]=="--error500"){$GLOBALS["OUTPUT"]=true;islighttpd_error_500();die();}
-	
+	if($argv[1]=="--phpcgi"){$GLOBALS["OUTPUT"]=true;phpcgi();die();}
+	if($argv[1]=="--tests"){$GLOBALS["OUTPUT"]=true;TESTS_SETTINGS();die();}
 	
 
 
@@ -40,11 +44,19 @@ function restart($nopid=false){
 			return;
 		}
 	}
+	
+	if($GLOBALS["PAUSE"]){sleep(5);}
+	
 	@file_put_contents($pidfile, getmypid());
 	stop(true);
 	
 	start(true);	
 }	
+
+function TESTS_SETTINGS(){
+	require("/usr/share/artica-postfix/ressources/settings.inc");
+	echo "OK";
+}
 
 function apache_stop(){
 	$GLOBALS["SERVICE_NAME"]="Artica Apache service";
@@ -352,6 +364,15 @@ function start($aspid=false){
 		@file_put_contents($pidfile, getmypid());
 	}	
 	
+	if(!is_file("/etc/modprobe.d/blacklist-floppy.conf")){
+		@mkdir("/etc/modprobe.d",0755,true);
+		$rmmod=$unix->find_program("rmmod");
+		$update_initframs=$unix->find_program("update-initramfs");
+		@file_put_contents("/etc/modprobe.d/blacklist-floppy.conf", "blacklist floppy\n");
+		shell_exec("$rmmod floppy");
+		shell_exec("$update_initframs -u >/dev/null 2>&1 &");
+	}
+	
 	$EnableArticaFrontEndToNGninx=$sock->GET_INFO("EnableArticaFrontEndToNGninx");
 	$EnableArticaFrontEndToApache=$sock->GET_INFO("EnableArticaFrontEndToApache");
 	if(!is_numeric($EnableArticaFrontEndToNGninx)){$EnableArticaFrontEndToNGninx=0;}
@@ -366,6 +387,10 @@ function start($aspid=false){
 	@mkdir("/etc/artica-postfix/settings/Daemons",0755,true);
 	shell_exec("$chmod -R 0755 /etc/artica-postfix/settings >/dev/null 2>&1");
 	
+	$sock=new sockets();
+	$DisableForceFCK=intval($sock->GET_INFO("DisableForceFCK"));
+	@unlink("/forcefsck");if($DisableForceFCK==0){@touch("/forcefsck"); }
+	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnableArticaFrontEndToNGninx:$EnableArticaFrontEndToNGninx\n";}
 	
 	$pid=LIGHTTPD_PID();
@@ -374,18 +399,24 @@ function start($aspid=false){
 		if($unix->process_exists($pid)){
 			ToSyslog("Stopping artica-webinterface service using lighttpd (transfered to Nginx)...");
 			stop(true);
+			apache_stop();
 		}
 		shell_exec("/etc/init.d/nginx start");
 		return;
 	}
 	
 	if($EnableArticaFrontEndToApache==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} transfered to Apache..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Transfered to Apache..\n";}
 		if($unix->process_exists($pid)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Stopping Lighttpd PID $pid\n";}
 			ToSyslog("Stopping artica-webinterface service using lighttpd (transfered to Apache)...");
-			stop(true);}
+			stop(true);
+		}
 		$apachebin=$unix->LOCATE_APACHE_BIN_PATH();
-		if(is_file($apachebin)){stop(true);apache_start();}
+		if(is_file($apachebin)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Starting Apache Mode...\n";}
+			apache_start();
+		}
 		return;
 	}	
 	
@@ -641,11 +672,7 @@ function apache_troubleshoot(){
 }
 
 
-function apache_LOCATE_MIME_TYPES(){
-	if(is_file("/etc/mime.types")){return "/etc/mime.types";}
-	if(is_file("/etc/apache2/mime.types")){return "/etc/apache2/mime.types";}
-	if(is_file("/etc/httpd/mime.types")){return "/etc/httpd/mime.types";}
-}
+
 
 
 function apache_config(){
@@ -691,7 +718,7 @@ function apache_config(){
 	
 	
 	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/run/artica-apache");
-	$apache_LOCATE_MIME_TYPES=apache_LOCATE_MIME_TYPES();
+	$apache_LOCATE_MIME_TYPES=$unix->apache_LOCATE_MIME_TYPES();
 	
 	if($EnableArticaApachePHPFPM==1){
 		if(!is_file("$APACHE_MODULES_PATH/mod_fastcgi.so")){
@@ -815,6 +842,7 @@ function apache_config(){
 		$f[]="\tListen $ArticaHttpsPort";
 		$f[]="\tSSLRandomSeed connect builtin";
 		$f[]="\tSSLRandomSeed connect file:/dev/urandom 256";
+		
 		$f[]="\tAddType application/x-x509-ca-cert .crt";
 		$f[]="\tAddType application/x-pkcs7-crl    .crl";
 		$f[]="\tSSLPassPhraseDialog  builtin";
@@ -878,6 +906,7 @@ function apache_config(){
 	$f[]="\tAddType application/x-bzip2 .bz2";
 	$f[]="\tAddType application/x-httpd-php .php .phtml";
 	$f[]="\tAddType application/x-httpd-php-source .phps";
+	$f[]="\tAddType application/octet-stream .acl";
 	$f[]="\tAddLanguage ca .ca";
 	$f[]="\tAddLanguage cs .cz .cs";
 	$f[]="\tAddLanguage da .dk";
@@ -966,8 +995,14 @@ function apache_config(){
 		$f[]="Alias /proxy /usr/share/artica-postfix/squid.access.log.php";
 		$f[]="Alias /parent /usr/share/artica-postfix/squid.access.log.php";
 		$f[]="Alias /webfilter /usr/share/artica-postfix/squid.access.webfilter.log.php";
-		
+		$f[]="Alias /meta-updates /home/artica-meta";
+		$f[]="Alias /categories /usr/share/artica-postfix/public.categories.personnal.php";
 	}
+	
+	
+	$f[]="<Directory \"/home/artica-meta\">";
+	$f[]="\tOptions Indexes FollowSymLinks";
+	$f[]="</Directory>";
 	
 	$f[]="<Directory \"/usr/share/artica-postfix\">";
 	$f[]="\tDirectoryIndex logon.php";
@@ -978,7 +1013,22 @@ function apache_config(){
 	//$f[]="\tAllow from all";
 	$f[]="</Directory>";	
 	
-	
+	if(is_file($unix->LOCATE_SQUID_BIN())){
+		$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
+		if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
+		$ArticaProxyStatisticsOpenWeb=intval($sock->GET_INFO("ArticaProxyStatisticsOpenWeb"));
+		if($ArticaProxyStatisticsOpenWeb==1){
+			$f[]="Alias /backup-stats  \"$ArticaProxyStatisticsBackupFolder\"";
+			$f[]="<Directory \"$ArticaProxyStatisticsBackupFolder\">";
+			$f[]="\tSSLOptions +StdEnvVars";
+			$f[]="\tOptions Indexes FollowSymLinks";
+			$f[]="\tAllowOverride All";
+			//$f[]="\tOrder allow,deny";
+			//$f[]="\tAllow from all";
+			$f[]="</Directory>";
+			
+		}
+	}	
 	if($pydio_installed){
 		$directories[]="/home/pydio/plugins/auth.serial";
 		$directories[]="/home/pydio/plugins/conf.serial";
@@ -1082,12 +1132,57 @@ function apache_config(){
 	
 	}
 	
+	$f[]=apache_phpmyadmin();
 	
 	@file_put_contents("/etc/artica-postfix/httpd.conf", @implode("\n", $f));
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} /etc/artica-postfix/httpd.conf done\n";}
 	
 }
+function apache_phpmyadmin(){
+	if(!is_dir("/usr/share/phpmyadmin/libraries")){return;}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHPMyAdmin is installed\n";}
+	$f[]="Alias /mysql /usr/share/phpmyadmin";
+	$f[]=" ";
+	$f[]="<Directory /usr/share/phpmyadmin/>";
+	$f[]=" ";
+	$f[]="    DirectoryIndex index.php";
+	$f[]="    Options +FollowSymLinks";
+	$f[]="    AllowOverride None";
+	$f[]="    <IfModule mod_mime.c>";
+	$f[]=" ";
+	$f[]="      <IfModule mod_php5.c>";
+	$f[]="        AddType application/x-httpd-php .php";
+	$f[]=" ";
+	$f[]="        php_flag magic_quotes_gpc Off";
+	$f[]="        php_flag track_vars On";
+	$f[]="        php_flag register_globals Off";
+	$f[]="        php_value include_path .";
+	$f[]="        php_value memory_limit 32M";
+	$f[]="      </IfModule>";
+	$f[]=" ";
+	$f[]="      <IfModule !mod_php5.c>";
+	$f[]="        <IfModule mod_actions.c>";
+	$f[]="          <IfModule mod_cgi.c>";
+	$f[]="            AddType application/x-httpd-php .php";
+	$f[]="            Action application/x-httpd-php /cgi-bin/php5";
+	$f[]="          </IfModule>";
+	$f[]="          <IfModule mod_cgid.c>";
+	$f[]="            AddType application/x-httpd-php .php";
+	$f[]="            Action application/x-httpd-php /cgi-bin/php5";
+	$f[]="           </IfModule>";
+	$f[]="        </IfModule>";
+	$f[]="      </IfModule>";
+	$f[]=" ";
+	$f[]="    </IfModule>";
+	$f[]=" ";
+	$f[]="</Directory>";
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php /usr/share/artica-postfix/exec.phpmyadmin.php --build");
+	return @implode("\n", $f);
 
+
+}
 
 function apache_phpldapadmin(){
 	if(!is_dir("/usr/share/phpldapadmin/htdocs")){return;}
@@ -1566,8 +1661,8 @@ function buildConfig(){
 			$f[]='         "host" => "127.0.0.1","port" =>'.$lighttpdPhpPort.',';
 		}
 	}
-	
-	$f[]='         "max-procs" => '.$max_procs.',';
+	$f[]='         "min-procs" => 1,';
+	$f[]='         "max-procs" => 1,';
 	$f[]='         "idle-timeout" => 10,';
 	$f[]='         "bin-environment" => (';
 	$f[]='             "PHP_FCGI_CHILDREN" => "'.$PHP_FCGI_CHILDREN.'",';
@@ -1918,6 +2013,27 @@ function DetectError($results,$type){
 			
 	}	
 	
+	
+}
+
+function phpcgi(){
+	$unix=new unix();
+	$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
+	
+	$pids=$unix->PIDOF_PATTERN_ALL($phpcgi);
+	if(count($pids)==0){return;}
+	$c=0;
+	while (list ($pid, $ligne) = each ($pids) ){
+		$time=$unix->PROCESS_TTL($pid);
+		
+		if($time>1640){
+			$c++;
+			$unix->KILL_PROCESS($pid,9);
+		}
+	}
+	
+
+		
 	
 }
 

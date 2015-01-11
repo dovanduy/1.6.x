@@ -1,4 +1,5 @@
 <?php
+session_start();
 header("Pragma: no-cache");
 header("Expires: 0");
 header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -11,13 +12,14 @@ include_once('ressources/class.templates.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.ActiveDirectory.inc');
 	
-	
-$usersmenus=new usersMenus();
-if(!$usersmenus->AsDansGuardianAdministrator){
-	$tpl=new templates();
-	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
-	echo "alert('$alert');";
-	die();	
+if($_SESSION["uid"]<>-100){	
+	$usersmenus=new usersMenus();
+	if(!$usersmenus->AsDansGuardianAdministrator){
+		$tpl=new templates();
+		$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
+		echo "alert('$alert');";
+		die();	
+	}
 }
 if(isset($_GET["button"])){apply_button();exit;}
 if(isset($_GET["apply-js"])){apply_js();exit;}

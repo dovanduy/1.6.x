@@ -59,7 +59,8 @@ function menu(){
 }
 
 function RestartMySQL(){
-	system("/etc/init.d/mysql restart");
+	mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+	system("/etc/init.d/mysql restart --force --framework=".__FILE__);
 	echo "Type Enter key to exit.\n";
 	$answer=trim(strtolower(fgets(STDIN)));
 	menu();

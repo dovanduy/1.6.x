@@ -130,7 +130,7 @@ function maintenance_settings(){
 	<tr>
 	<td valign='top'><div id='cnx-status'></div></td>
 	<td valign='top'>
-		<div style='font-size:16px;' class=explain>{external_artica_mysql_statistics_generator}</div>
+		<div style='font-size:16px;' class=text-info>{external_artica_mysql_statistics_generator}</div>
 	</td>
 	</tr>
 	</table>

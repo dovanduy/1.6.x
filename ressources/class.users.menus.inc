@@ -10,10 +10,12 @@ if(function_exists("debug_mem")){debug_mem();}
 
 if(function_exists("posix_getuid")){
 	if(posix_getuid()<>0){
-		if(!isset($_SESSION["uid"])){session_start();}
-		if(function_exists("DefineSessions")){DefineSessions();}
-		if(function_exists("CheckSessions")){CheckSessions();}
-		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(strlen($GLOBALS["SESSION_ID"])<2){$GLOBALS["SESSION_ID"]=session_id();} }
+		if(!isset($GLOBALS["SESSION_ID"])){
+				session_start();
+				$GLOBALS["SESSION_ID"]=session_id();}
+				if(function_exists("DefineSessions")){DefineSessions();}
+				if(function_exists("CheckSessions")){CheckSessions();}
+				if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(strlen($GLOBALS["SESSION_ID"])<2){$GLOBALS["SESSION_ID"]=session_id();} }
 				
 	}else{
 		$GLOBALS["AS_ROOT"]=true;
@@ -38,6 +40,7 @@ class usersMenus {
 	public $dhcp_installed=false;
 	public $AllowChangeDomains=false;
 	public $AsSystemAdministrator=false;
+	public $AsArticaMetaAdmin=false;
 	public $AsDansGuardianAdministrator=false;
 	public $AsWebFilterRepository=false;	
 	public $AsOrgStorageAdministrator=false;
@@ -162,6 +165,7 @@ class usersMenus {
 	public $APP_SQUIDSTREAM_INSTALLED=false;
 	public $VSFTPD_INSTALLED=false;
 	public $PHPFPM_INSTALLED=false;
+	public $WIFIDOG_INSTALLED=false;
 	/* This licence must be used Only with Artica-for postfix */
 	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
 	/*you cannot use it without any authorizations of maani.us.
@@ -491,6 +495,7 @@ class usersMenus {
 	public $POWERADMIN_INSTALLED=false;
 	public $APACHE_MOD_CACHE=false;
 	public $APP_AMANDA_INSTALLED=false;
+	public $SYNCTHING_INSTALLED=false;
 	public $NicRoleArray=array();
 	public $PDNSSEC_INSTALLED=false;
 	public $NSCD_INSTALLED=false;
@@ -587,6 +592,11 @@ class usersMenus {
 	public $APP_EBTABLES_INSTALLED=false;
 	public $APACHE_MODE_BW=false;
 	public $WORDPRESS_APPLIANCE=false;
+	public $l7FILTER_INSTALLED=false;
+	public $WEBSECURIZE=false;
+	public $LANWANSAT=false;
+	public $SENSORS_INSTALLED=false;
+	public $SS5_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -767,6 +777,10 @@ class usersMenus {
 			if(isset($_GLOBAL["APACHE_MODE_BW"])){$this->APACHE_MODE_BW=$_GLOBAL["APACHE_MODE_BW"];}
 			if(isset($_GLOBAL["VSFTPD_INSTALLED"])){$this->VSFTPD_INSTALLED=$_GLOBAL["VSFTPD_INSTALLED"];}
 			if(isset($_GLOBAL["WORDPRESS_APPLIANCE"])){$this->WORDPRESS_APPLIANCE=$_GLOBAL["WORDPRESS_APPLIANCE"];}
+			if(isset($_GLOBAL["WIFIDOG_INSTALLED"])){$this->WIFIDOG_INSTALLED=$_GLOBAL["WIFIDOG_INSTALLED"];}
+			if(isset($_GLOBAL["SYNCTHING_INSTALLED"])){$this->SYNCTHING_INSTALLED=$_GLOBAL["SYNCTHING_INSTALLED"];}
+			if(isset($_GLOBAL["SENSORS_INSTALLED"])){$this->SENSORS_INSTALLED=$_GLOBAL["SENSORS_INSTALLED"];}
+			if(isset($_GLOBAL["SS5_INSTALLED"])){$this->SS5_INSTALLED=$_GLOBAL["SS5_INSTALLED"];}
 			
 			
 			
@@ -878,6 +892,11 @@ class usersMenus {
 			if(isset($_GLOBAL["GATEWAY_APPLIANCE"])){$this->GATEWAY_APPLIANCE=$_GLOBAL["GATEWAY_APPLIANCE"];}
 			if(isset($_GLOBAL["SHOREWALL_INSTALLED"])){$this->SHOREWALL_INSTALLED=$_GLOBAL["SHOREWALL_INSTALLED"];}
 			if(isset($_GLOBAL["CONNTRACK_INSTALLED"])){$this->CONNTRACK_INSTALLED=$_GLOBAL["CONNTRACK_INSTALLED"];}
+			if(isset($_GLOBAL["l7FILTER_INSTALLED"])){$this->l7FILTER_INSTALLED=$_GLOBAL["l7FILTER_INSTALLED"];}
+			if(isset($_GLOBAL["WEBSECURIZE"])){$this->WEBSECURIZE=$_GLOBAL["WEBSECURIZE"];}
+			if(isset($_GLOBAL["LANWANSAT"])){$this->LANWANSAT=$_GLOBAL["LANWANSAT"];}
+			
+			
 			
 			
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
@@ -1027,6 +1046,7 @@ class usersMenus {
 			if(isset($_GLOBAL["POSTMULTI"])){$this->POSTMULTI=$_GLOBAL["POSTMULTI"];}
 			$this->MLDONKEY_INSTALLED=$_GLOBAL["MLDONKEY_INSTALLED"];
 			$this->APACHE_MODE_WEBDAV=$_GLOBAL["APACHE_MODE_WEBDAV"];
+			//error detected ?
 			$this->hostname=str_replace('.(none)','',$this->hostname);
 			$this->fqdn=str_replace('.(none)','',$this->fqdn);
 			$this->BACKUPPC_INSTALLED=$_GLOBAL["BACKUPPC_INSTALLED"];
@@ -1211,7 +1231,9 @@ class usersMenus {
 			
 			//Parse privileges
 			if(!$GLOBALS["AS_ROOT"]){
-				if($GLOBALS["DEBUG_PRIVS"]){writelogs("->_ParsePrivieleges()",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				if($page=="admin.index.php"){
+					writelogs("->_ParsePrivieleges()",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				}
 				$priv=$this->_ParsePrivieleges();
 				$this->priv=$this->_TranslateRights($priv);			
 			}
@@ -1369,11 +1391,7 @@ public function EnablePDNS(){
 public function EnableDNSMASQ(){
 	$sock=new sockets();
 	if(!$this->dnsmasq_installed){return 0;}
-	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){return 1;}
-	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
+	$EnableDNSMASQ=intval($sock->GET_INFO("EnableDNSMASQ"));
 	return $EnableDNSMASQ;
 }
 
@@ -1530,9 +1548,7 @@ private function build_user_left_menus(){
 		if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=1;}
 		if(!is_numeric($EnableLXCINLeftMenus)){$EnableLXCINLeftMenus=1;}
 		if(!is_numeric($EnableGroupWareScreen)){$EnableGroupWareScreen=1;}
-		$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-		if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;$EnableDNSMASQ=1;}
+
 
 		$ASDEBIAN=false;
 		if($this->LinuxDistriCode=="DEBIAN"){$ASDEBIAN=true;}
@@ -1682,10 +1698,10 @@ private function build_user_left_menus(){
 				}
 			}
 			if(!$this->ARTICA_META_ENABLED){
-				$array["{organizations}"]["SUB"]["{add}"]="javascript:TreeAddNewOrganisation();";
+				$array["{organizations}"]["SUB"]["{add}"]="javascript:loadjs('organization.js.php?add-ou=yes');;";
 			}else{
 				if($sock->GET_INFO("AllowArticaMetaAddUsers")==1){
-					$array["{organizations}"]["SUB"]["{add}"]="javascript:TreeAddNewOrganisation();";
+					$array["{organizations}"]["SUB"]["{add}"]="javascript:loadjs('organization.js.php?add-ou=yes');;";
 				}
 			}
 			
@@ -2527,7 +2543,9 @@ private function MAILBOXES_MENUS($array=array()){
 				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsSystemAdministrator=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}
 				return false;}
 		
-
+			if($this->AsArticaMetaAdmin){
+				return false;
+			}
 				
 			if($this->AsVirtualBoxManager){
 				if($log){writelogs("[{$_SESSION["uid"]}]:logon:  AsVirtualBoxManager=TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);}
@@ -2617,6 +2635,8 @@ private function MAILBOXES_MENUS($array=array()){
 		if($priv["AsSystemAdministrator"]=="yes"){return true;}
 		if($priv["AsSambaAdministrator"]=="yes"){return true;}
 		if($priv["AsVirtualBoxManager"]=="yes"){return true;}
+		if($priv["AsArticaMetaAdmin"]=="yes"){return true;}
+		
 		
 		if($priv["AllowChangeKas"]=="yes"){return true;}
 		if($priv["AllowChangeKav"]=="yes"){return true;}
@@ -2632,6 +2652,7 @@ private function MAILBOXES_MENUS($array=array()){
 			$this->AsArticaAdministrator=true;
 			$this->AsQuarantineAdministrator=true;
 			$this->AsVirtualBoxManager=true;
+			$this->AsArticaMetaAdmin=true;
 			if($log){writelogs("It is a global administrator",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			return true;
 			}
@@ -2642,6 +2663,9 @@ private function MAILBOXES_MENUS($array=array()){
 		if($priv["AsSquidAdministrator"]=="yes"){return true;}
 		if($priv["AsSambaAdministrator"]=="yes"){return true;}
 		if($priv["AsVirtualBoxManager"]=="yes"){return true;}
+		if($priv["AsArticaMetaAdmin"]=="yes"){return true;}
+		
+		
 		return false;
 		}
 		

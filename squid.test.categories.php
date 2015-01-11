@@ -131,7 +131,7 @@ function page(){
 	$html="
 	<span id='analyze-img-$t'></span>
 	$form
-	<div class=explain style='font-size:12px' id='tableau-test-categories'>$squid_test_categories_explain</div>
+	<div class=text-info style='font-size:12px' id='tableau-test-categories'>$squid_test_categories_explain</div>
 <table class='$t' style='display: none' id='$t' style='width:100%'></table>
 <script>
 var xsite='';
@@ -429,7 +429,7 @@ function websitelist(){
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
+	if(!is_numeric(v)){$rp=1;}
 
 	
 	$pageStart = ($page-1)*$rp;
@@ -515,7 +515,7 @@ function proposal($www){
 		$f["movies"]=true;
 		$f["audio-video"]=true;		
 	}
-	if(strpos($www, ".amazonaws.com")>0){$f["filehosting"]=true;}	
+	
 	if(preg_match("#radio#", $www)){$f["webradio"]=true;}
 	if(preg_match("#skyrock#", $www)){$f["webradio"]=true;}
 	if(preg_match("#journal#", $www)){$f["blog"]=true;}

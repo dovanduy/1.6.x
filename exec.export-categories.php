@@ -48,7 +48,7 @@ $GLOBALS["CATS"][]="passwords";
 $GLOBALS["CATS"][]="phishing";
 $GLOBALS["CATS"][]="pictures";
 $GLOBALS["CATS"][]="porn";
-$GLOBALS["CATS"][]="press";
+
 $GLOBALS["CATS"][]="publicite";
 $GLOBALS["CATS"][]="radiotv";
 $GLOBALS["CATS"][]="reaffected";

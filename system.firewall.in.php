@@ -616,7 +616,7 @@ function firewall_multiple_form(){
 	$t=$_GET["t"];
 	$html="
 	<div id='div$t'>
-	<div style='font-size:13px' class=explain>{firewall_multiple_form_add_text}</div>
+	<div style='font-size:13px' class=text-info>{firewall_multiple_form_add_text}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

@@ -308,7 +308,7 @@ $final=CompileTr4($tr);
 $groupware_text=$tpl->_ENGINE_parse_body($groupware_text);
 $freeweb_groupware_explain=$tpl->_ENGINE_parse_body("{freeweb_groupware_explain}");
 $html="
-<div class=explain style='font-size:18px'>$freeweb_groupware_explain</div>
+<div class=text-info style='font-size:18px'>$freeweb_groupware_explain</div>
 $groupware_text
 <center>
 $final
@@ -515,7 +515,9 @@ function popup_tabs(){
 		}
 	}
 	
-	$array["openbasedir"]="BaseDir";
+	if($_GET["servername"]<>null){
+		$array["openbasedir"]="BaseDir";
+	}
 	
 	if($EnableFreeWeb==0){
 		unset($array["params"]);
@@ -1164,7 +1166,7 @@ function popup(){
 	if($groupwarelink<>null){
 		
 		$explain="
-		<div class=explain>$groupwares_textintro:<br><strong style='font-size:14px'>
+		<div class=text-info>$groupwares_textintro:<br><strong style='font-size:14px'>
 			<a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$groupwarelink',1024,768)\" style='text-decoration:underline;font-weight:bold;color:#969696'>$groupwarelink</a></strong></div>		
 		";
 		
@@ -1334,15 +1336,12 @@ function popup(){
 	
 	
 	$ServerIP=Field_array_Hash($znets,'ServerIP',$ServerIPVAL,null,null,0,'font-size:14px;');	
-	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
 	$q=new mysql();
-	$sslcertificates[]="{select}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
-	}
 	
+	
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	$sslcertificate=Field_array_Hash($sslcertificates, $ligne["sslcertificate"],"style:font-size:14px");
 	
 	

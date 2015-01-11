@@ -488,6 +488,14 @@ if(preg_match("#warning: SASL authentication problem: unable to open Berkeley db
 	}
 }
 
+if(preg_match("#smtpd.*?warning: No server certs available. TLS won't be enabled#", $buffer,$re)){
+	$file="/etc/artica-postfix/pids/postfix.No.server.certs.available.".__LINE__.".time";
+	$timefile=file_time_min($file);
+	if($timefile>3){
+		
+		
+	}
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 if(preg_match("#fatal: scan_dir_push: open directory .*?: Permission denied#", $buffer,$re)){
@@ -1745,9 +1753,6 @@ if(preg_match("#zarafa-server\[.+?INNODB engine is not support.+?Please enable t
 	$file="/etc/artica-postfix/croned.1/zarafa.INNODB.error";
 	if(file_time_min($file)>5){
 		email_events("Zarafa server: innodb is not enabled","Zarafa-server claim\n$buffer\nArtica will restart mysql","mailbox");
-		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/mysql restart");
-		}
 		@unlink($file);
 		file_put_contents($file,"#");
 	}
@@ -4083,6 +4088,11 @@ function smtp_hack_perform($servername,$array,$matches){
 	shell_exec($cmd);	
 	
 	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack/$md5.hack",$serialize);
+	
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("{$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.postfix.iptables.php --compile");
+	
+	
+	
 	events("SMTP Hack: $servername matches $matches $text");
 	if(!$GLOBALS["SMTP_HACKS_NOTIFIED"][$servername]){
 		$GLOBALS["SMTP_HACKS_NOTIFIED"][$servername]=true;

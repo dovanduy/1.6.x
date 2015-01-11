@@ -2,7 +2,6 @@
 
 class processes_php{
 	
-	
 	function processes_php(){
 		if(!isset($GLOBALS["CLASS_UNIX"])){
 			if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
@@ -57,6 +56,7 @@ function MemoryInstances(){
 		$Toremove["exec.openvpn.php"]=true;	
 		$Toremove["exec.smtp-senderadv.php"]=true;	
 		$Toremove["external_acl_squid.php"]=true;
+		$Toremove["external_acl_restrict_access.php"]=true;
 		$Toremove["exec.offlineimap.php"]=true;
 		$Toremove["exec.mailbox.migration.php"]=true;
 		$Toremove["exec.logfile_daemon.php"]=true;
@@ -99,6 +99,7 @@ function MemoryInstances(){
 		$Toremove["exec.offlineimap.php"]=true;
 		$Toremove["exec.mailbox.migration.php"]=true;
 		$Toremove["exec.pdns.pipe.php"]=true;
+		$Toremove["exec.milter-greylist.logger.php"]=true;
 
 		$arrayK["exec.freeweb.php"]=15;
 		$arrayK["exec.squid.stats.hours.php"]=60;
@@ -145,9 +146,15 @@ function MemoryInstances(){
 		$arrayK["exec.containers.php"]=5;
 		$arrayK["exec.openvpn.php"]=10;
 		$arrayK["exec.squid.stats.not-categorized.php"]=45;
+		$arrayK["exec.mysqld.crash.php"]=60;
+		$arrayK["exec.zarafa-backup.php"]=300;
+		$arrayK["exec.mysql.start.php"]=15;
+		$arrayK["exec.squid-rrd.php"]=20;
+		$arrayK["exec.postfix.parse.awstats.php"]=20;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
+		$this->PhileSight_watchdog();
 		
 		exec("$cmd",$results);
 		if($GLOBALS["VERBOSE"]){echo "$cmd -> ". count($results)." items\n";}
@@ -173,14 +180,12 @@ function MemoryInstances(){
 
 				if(isset($arrayK[$filename])){
 					if($time>$arrayK[$filename]){
-					if($filename=="exec.squid.stats.central.php"){
-						stats_admin_events(1,"Statistics overtime {$time}Mn/{$arrayK[$filename]}Mn, killing process",null,__FILE__,__LINE__);
-					}
-					$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn",__FUNCTION__,__LINE__);
-					
-					unix_system_kill_force($re[1]);
-					
-					continue;						
+						if($filename=="exec.squid.stats.central.php"){
+							stats_admin_events(1,"Statistics overtime {$time}Mn/{$arrayK[$filename]}Mn, killing process",null,__FILE__,__LINE__);
+						}
+						$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn",__FUNCTION__,__LINE__);
+						unix_system_kill_force($re[1]);
+						continue;						
 					}
 				}
 				
@@ -222,10 +227,34 @@ function MemoryInstances(){
 		
 	}
 	
+	
+	private function PhileSight_watchdog(){
+		$unix=new unix();
+		$pgrep=$unix->find_program("pgrep");
+		$cmd="$pgrep -l -f \"/usr/share/artica-postfix/bin/philesight\" 2>&1";
+		exec($cmd,$results);
+		
+		if($GLOBALS["VERBOSE"]){echo "PhileSight_watchdog:: $cmd ".count($results)." lines\n";}
+		
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#pgrep#", $ligne)){continue;}
+			if(!preg_match("#^([0-9]+)\s+#", $ligne,$re)){continue;}
+			$pid=$re[1];
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			$this->ToSyslog("Found philesight process ID $pid running since {$time}mn",__FUNCTION__,__LINE__);
+			if($time>60){
+				$this->ToSyslog("Killing process ID $pid",__FUNCTION__,__LINE__);
+				$unix->KILL_PROCESS($pid,9);
+				system_admin_mysql(2,"philesight process was killed TTL was {$time}mn and exceed 60mn",null,__FILE__,__LINE__);
+			}
+			
+		}
+	}
+	
 	private function ToSyslog($text){
 		if($GLOBALS["VERBOSE"]){echo $text."\n";}
 		if(!function_exists("syslog")){return;}
-		$file=basename($file);
+		$file=basename(__FILE__);
 		$LOG_SEV=LOG_INFO;
 		openlog($file, LOG_PID , LOG_SYSLOG);
 		syslog($LOG_SEV, $text);
@@ -248,12 +277,37 @@ function MemoryInstances(){
 	
 	
 	public function ParseLocalQueue(){
-		if(system_is_overloaded()){$this->ToSyslog("[OVERLOAD]:: running in max overload mode, aborting queue");return;}
+		if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		$line=0;
+		$function="NONE";
+		$file=basename(__FILE__);
+		
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			$function=$trace[0]["function"];
+			$line=$trace[0]["line"];
+		}
+
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+		}
+
+
+
+	}
+		
+		if(systemMaxOverloaded()){
+			$this->ToSyslog("$file:: $function/$line [OVERLOAD]:: running in max overload mode, aborting queue");
+			return;
+		}
 		if(!$this->IfQueue()){return;}
 	
 		$MemoryInstances=$this->MemoryInstances();
 		if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
-		if($MemoryInstances>4){$this->ToSyslog("Too much php processes in memory ( $MemoryInstances ), aborting");return;}
+		if($MemoryInstances>4){$this->ToSyslog("$file:: $function/$line Too much php processes in memory ( $MemoryInstances ), aborting");return;}
 		
 	
 		if(is_file("/etc/artica-postfix/orders.queue")){
@@ -291,7 +345,7 @@ function MemoryInstances(){
 	
 	
 		if(count($orders)==0){return null;}
-	
+		
 		$nice=$GLOBALS["EXEC_NICE"];
 		$nohup=$GLOBALS["NOHUP"];		
 		$orders_number=count($orders);
@@ -299,12 +353,23 @@ function MemoryInstances(){
 		if($count_max>4){$count_max=4;}
 		if($orders_number>10){if(!$GLOBALS["OVERLOAD"]){$count_max=10;}}
 		$count=0;
-	
+		$array_load=sys_getloadavg();
+		$internal_load=$array_load[0];
 	
 	
 		if($count_max+$MemoryInstances>10){$count_max=10-$MemoryInstances;}
+		
 	
 		if($GLOBALS["TOTAL_MEMORY_MB"]<400){$count_max=2;}
+		if($count_max>4){
+			if($internal_load>1){$count_max=4;}
+		}
+		
+		if(system_is_overloaded()){
+			$count_max=2;
+		}
+		
+		writelogs_framework(count($orders)." Orders in queue Max execution:{$count_max} Load:$internal_load",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 	
 		while (list ($num, $cmd) = each ($orders) ){
 			if(trim($cmd)==null){continue;}
@@ -313,14 +378,14 @@ function MemoryInstances(){
 			if(strpos($cmd,">")>0){$devnull=null;}
 	
 			if(preg_match("#artica-make#", $cmd)){
-				$this->ToSyslog("artica-make detected \"$cmd\", execute this task first...");
+				$this->ToSyslog("$file:: $function/$line artica-make detected \"$cmd\", execute this task first...");
 				shell_exec("$nice$cmd$devnull");
 				unset($orders[$num]);
 			}
 		}
 		
 		reset($orders);
-		$this->ToSyslog("Orders:$orders_number Loaded instances:$MemoryInstances Max to order:$count_max");
+		writelogs_framework("Orders:$orders_number Loaded instances:$MemoryInstances Max to order:$count_max",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		
 		
 	
@@ -332,7 +397,7 @@ function MemoryInstances(){
 			if(strpos($cmd,">")>0){$devnull=null;}
 	
 			if(system_is_overloaded(__FILE__)){
-				$this->ToSyslog("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, Memory free:{$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB return....");
+				$this->ToSyslog("$file:: $function/$line Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, Memory free:{$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB return....");
 				$this->flush_queue($orders);
 				break;
 			}
@@ -346,13 +411,15 @@ function MemoryInstances(){
 				__FUNCTION__, __FILE__, __LINE__, "tasks",$re[1]);
 			}
 			
+			
+			writelogs_framework("$file:: $function/$line Orders $count/$count_max: \"$nohup $nice$cmd$devnull &\"",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			shell_exec(trim("$nohup $nice$cmd$devnull &"));
 			unset($orders[$num]);
 			if($count>=$count_max){break;}
 		}
 	
 	
-		$this->ToSyslog("$count/$orders_number order(s) executed...end;");
+		$this->ToSyslog("$file:: $function/$line $count/$orders_number order(s) executed...end;");
 		$this->flush_queue($orders);
 	}	
 	
@@ -367,7 +434,7 @@ function MemoryInstances(){
 			fwrite($fh, $datas);
 		}
 		fclose($fh);
-		$this->ToSyslog("Queued ". count($orders)." order(s)");
+		$this->ToSyslog("$file:: $function/$line Queued ". count($orders)." order(s)");
 	}
 	
 }

@@ -43,7 +43,7 @@ function page(){
 
 	
 	
-	$add_computer_js="javascript:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 
 	
 	

@@ -82,7 +82,7 @@ function ParseKav4UriLogs(){
 	$sql="CREATE TABLE `artica_events`.`$tablename` (
 		`zmd5` VARCHAR( 90 ) NOT NULL ,
 		`zDate` DATETIME NOT NULL ,
-		`size` INT( 3 ) NOT NULL ,
+		`size` INT UNSIGNED NOT NULL,
 		`status` VARCHAR( 40 ) NOT NULL ,
 		`ICAP_SERVER` VARCHAR( 40 ) NOT NULL ,
 		`uid` VARCHAR( 128 ) NOT NULL ,

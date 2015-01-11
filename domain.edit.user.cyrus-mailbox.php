@@ -55,11 +55,19 @@ $user = new user ( $uid );
 $t=time();
 
 $cyr = new cyrus ( );
+if($GLOBALS["VERBOSE"]){echo "<H1> cyrus ( ) -> IfMailBoxExists($uid)</H1>\n";}
 $RealMailBox=$cyr->IfMailBoxExists($uid);
 
 if (! $RealMailBox) {
-	return USER_MAILBOX_NONEXISTENT ( $uid,nl2br($cyr->cyrus_infos));
+	
+	if(preg_match("#Authentication failed#i", $cyr->cyrus_infos)){
+		echo USER_MAILBOX_AUTHENTICATION_FAILED ( $uid,nl2br($cyr->cyrus_infos));
+		return;
+	}
+	
+	echo USER_MAILBOX_NONEXISTENT ( $uid,nl2br($cyr->cyrus_infos));
 	$no_mailbox = "<p class=caption style='color:red'>{user_no_mailbox} !!</p>";
+	return;
 }
 
 if ($user->MailboxActive == 'TRUE') {
@@ -222,8 +230,11 @@ $main_graph
 
 <script>
 	var xSave$t= function (obj) {
+		var MailBoxMaxSize='0';
 		var tempvalue=obj.responseText;
-		var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value
+		if(document.getElementById('MailBoxMaxSize')){
+			var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+		}
 		if(tempvalue.length>3){
 			
 			return;
@@ -288,13 +299,34 @@ $html = "
 				<div style='font-size:42px;color:#D32D2D'>{no_mailbox}</div>
 				<div style='font-size:22px;color:#D32D2D;margin:15px'>{user_no_mailbox}</div><hr>
 				<div style='margin-top:30px;text-align:right'>".
-										button("{create_mailbox2}","Loadjs('domains.edit.user.php?create-mailbox-wizard=yes&uid=$uid&MailBoxMaxSize=0')",32)."</td>
+				button("{create_mailbox2}",
+						"Loadjs('domains.edit.user.php?create-mailbox-wizard=yes&uid=$uid&MailBoxMaxSize=0')",32)."
 		</td>
+		
 	</tr>
 </table>";
 
 return $tpl->_ENGINE_parse_body ( $html );
-}			
+}
+
+function USER_MAILBOX_AUTHENTICATION_FAILED($uid,$error){
+	$page = CurrentPageName ();
+	$tpl = new templates ( );
+	$html = "
+<table style='width:100%;margin-top:20px'>
+	<tr>
+		<td valign='top' style='width:256px'><img src='img/inbox-error-256.png'></td>
+		<td valign='top' style='padding-left:30px'>
+			<div style='font-size:42px;color:#D32D2D'>{authentication_failed_cyrus}</div>
+			<div style='font-size:22px;color:#D32D2D;margin:15px'>{user_no_mailbox_authfailed}</div><hr>
+		</td>
+		
+	</tr>
+</table>";
+	
+	return $tpl->_ENGINE_parse_body ( $html );	
+	
+}
 
 function Save(){
 	$tpl=new templates();

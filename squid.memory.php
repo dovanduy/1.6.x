@@ -21,7 +21,7 @@ header("Pragma: no-cache");
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
-	
+	if(isset($_GET["squid-cache-mem-current"])){squid_cache_mem_current();exit;}
 	if(isset($_POST["cache_mem"])){Save();exit;}
 	
 page();
@@ -44,38 +44,61 @@ function page(){
 		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){$unit=$re[1];}
 		if($unit=="KB"){$maximum_object_size_in_memory=round($maximum_object_size_in_memory/1024);}
 	}
-	$SquidMemoryPools=$sock->GET_INFO("SquidMemoryPools");
-	if(!is_numeric($SquidMemoryPools)){$SquidMemoryPools=1;}
+	$SquidMemoryPools=intval($sock->GET_INFO("SquidMemoryPools"));
+	
 	$memory_pools_limit_suffix=null;
 	$SquidMemoryPoolsLimit=intval($sock->GET_INFO("SquidMemoryPoolsLimit"));
 	
+	$FF=1500;
+	$FF=$FF*1024;
+	$FF=$FF*1024;
+	$proposal=$meminfo["MEMTOTAL"]-$FF;
+	$proposal=$proposal/2;
+	$proposal=$proposal/1024;
+	$proposal=round($proposal/1024);
+	
 	$html="
-	<div style='font-size:22px;margin-bottom:20px'>{server_memory}: ". FormatBytes($meminfo["MEMTOTAL"]/1024)."</div>
-	<div class=explain style='font-size:16px'>{squid_cache_memory_explain}</div>
+	
+	<div class=text-info style='font-size:16px'>{squid_cache_memory_explain}</div>
 	<div style='margin:10px;padding:10px;width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{central_memory}:</td>
-		<td style='font-size:18px'>". Field_text("cache_mem-$t",$cache_mem,"font-size:18px;width:110px")."&nbsp;MB</td>
-		<td style='font-size:18px' width=1%>". help_icon("{cache_mem_text}")."</td>
-	</tr>			
+		<td colspan=3 style='font-size:32px;margin-bottom:20px'>{central_memory}</div>
+			<div class=explain style='font-size:18px'>{cache_mem_explain2}</div>
+		</td>		
 	<tr>
-		<td style='font-size:18px' class=legend>{maximum_object_size_in_memory}:</td>
-		<td align='left' style='font-size:18px'>" . Field_text("maximum_object_size_in_memory-$t",$maximum_object_size_in_memory,'width:90px;font-size:16px')."&nbsp;MB</td>
+		<td class=legend style='font-size:26px'>{central_memory}:</td>
+		<td style='font-size:26px'>". Field_text("cache_mem-$t",$cache_mem,"font-size:26px;width:150px;font-weight:bold")."&nbsp;MB</td>
+		<td style='font-size:26px' width=1% nowrap>" . help_icon('{cache_mem_text}',true)."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:26px'>{current}:</td>
+		<td style='font-size:26px'><span id='squid-cache-mem-current' style='font-size:26px;font-weight:bold'></span></td>
+		<td style='font-size:26px' width=1% nowrap>&nbsp;</td>
+	</tr>					
+	<tr>
+	<td colspan=3 style='font-size:20px;margin-bottom:20px;color:#8E8E8E;text-align:right'>{server_memory}: ". FormatBytes($meminfo["MEMTOTAL"]/1024)." ({proposal}: {$proposal}MB)</div>
+	</table>
+	</div>		
+	<div style='margin:10px;padding:10px;width:98%' class=form>	
+	<table style='width:100%'>
+	<tr>
+		<td style='font-size:26px' class=legend>{maximum_object_size_in_memory}:</td>
+		<td align='left' style='font-size:26px'>" . Field_text("maximum_object_size_in_memory-$t",$maximum_object_size_in_memory,'width:150px;font-size:26px')."&nbsp;MB</td>
 		<td width=1%>" . help_icon('{maximum_object_size_in_memory_text}',true)."</td>
 	</tr>
 	<tr>
-		<td style='font-size:18px' class=legend>{memory_pools}:</td>
-		<td align='left' style='font-size:18px'>" . Field_checkbox("SquidMemoryPools-$t", 1,$SquidMemoryPools,"SquidMemoryPools$t()")."</td>
+		<td style='font-size:26px' class=legend>{memory_pools}:</td>
+		<td align='left' style='font-size:26px'>" . Field_checkbox_design("SquidMemoryPools-$t", 1,$SquidMemoryPools,"SquidMemoryPools$t()")."</td>
 		<td width=1%>" . help_icon('{memory_pools_explain}',true)."</td>
 	</tr>
 	<tr>
-		<td style='font-size:18px' class=legend>{memory_pools_limit}:</td>
-		<td align='left' style='font-size:18px'>" . Field_text("SquidMemoryPoolsLimit-$t", $SquidMemoryPoolsLimit,"font-size:18px;width:110px")."&nbsp;MB</td>
+		<td style='font-size:26px' class=legend>{memory_pools_limit}:</td>
+		<td align='left' style='font-size:26px'>" . Field_text("SquidMemoryPoolsLimit-$t", $SquidMemoryPoolsLimit,"font-size:26px;width:150px")."&nbsp;MB</td>
 		<td width=1%>" . help_icon('{memory_pools_limit_explain}',true)."</td>
 	</tr>									
 </tr>	
-	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",18)."</td>
+	<tr><td colspan=3 style='text-align:right;pdding-top:50px'><hr>". button("{apply}","Save$t()",36)."</td>
 	</tr>
 </table>	
 <script>
@@ -100,6 +123,9 @@ function SquidMemoryPools$t(){
 	if(document.getElementById('SquidMemoryPools-$t').checked){
 		document.getElementById('SquidMemoryPoolsLimit-$t').disabled=false;
 	}
+	
+	LoadAjax('squid-cache-mem-current','$page?squid-cache-mem-current=yes');
+	
 }
 SquidMemoryPools$t();
 </script>";
@@ -123,3 +149,11 @@ function Save(){
 
 }
 
+function squid_cache_mem_current(){
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/Storage.Mem.capacity")){echo "-";return;}
+	$data=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/Storage.Mem.capacity"));
+	$tpl=new templates();
+	$data["CUR"]=FormatBytes($data["CUR"]);
+	echo $tpl->_ENGINE_parse_body("{used} {$data["USED"]}% ({$data["CUR"]}), {free} {$data["FREE"]}%");
+	
+}

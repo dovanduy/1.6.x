@@ -161,9 +161,10 @@ begin
         exit;
    end;
    end;
-  writeln('Removing old installations');
-  spamassassin_remove();
-
+  if FileExists(spamassassinbin) then  begin
+     writeln('Removing old installations');
+     spamassassin_remove();
+  end;
 
   writeln('Checking Artica repository');
   if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('Mail-SpamAssassin');

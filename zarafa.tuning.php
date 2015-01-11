@@ -156,7 +156,7 @@ for($i=0;$i<10;$i++){
 	
 	$html="
 	<div id='$t'>
-	<div class=explain style='font-size:16px'>{zarafa_tune_explain}</div>
+	<div class=text-info style='font-size:16px'>{zarafa_tune_explain}</div>
 	
 <div style='width:98%' class=form>	
 	<div id='locales-gen-running-$t'></div>

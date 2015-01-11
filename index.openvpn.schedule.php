@@ -11,7 +11,7 @@ if(!$users->AsSystemAdministrator){die("alert('no access');");}
 
 
 if(isset($_GET["popup"])){popup();exit;}
-if(isset($_GET["EnableOpenVPNServerSchedule"])){Save();exit;}
+if(isset($_POST["EnableOpenVPNServerSchedule"])){Save();exit;}
 js();
 
 
@@ -35,60 +35,56 @@ function popup(){
 	
 	$tpl=new templates();
 	$html="
-	<div class=explain>{OPENVPN_SCHEDULE_EXPLAIN}</div>
-	<div id='EnableOpenVPNServerScheduleDiv'>
-	<table style='width:100%'>
+	<div id='EnableOpenVPNServerScheduleDiv' style='width:98%' class=form>
+	<table style='width:70%'>
 	<tr>
-		<td class=legend style='font-size:13px' nowrap>{enable_openvpn_schedule}:</td>
-		<td colspan=2>". Field_checkbox("EnableOpenVPNServerSchedule",1,
-		$sock->GET_INFO("EnableOpenVPNServerSchedule"),"EnableOpenVPNServerScheduleSwitch()")."</td>
+<tr>
+		<td colspan=3>". Paragraphe_switch_img("{enable_openvpn_schedule}", 
+				"{OPENVPN_SCHEDULE_EXPLAIN}","EnableOpenVPNServerSchedule",$sock->GET_INFO("EnableOpenVPNServerSchedule"),null,850,
+				"EnableOpenVPNServerScheduleSwitch()")."</td>
+</tr>				
+	<tr>
+		<td class=legend style='font-size:32px' nowrap>{start_time}:</td>
+		<td width=1%>". Field_array_Hash($hoursT,"hour_begin",$params["hour_begin"],null,null,0,"font-size:32px;padding:3px")."</td>
+		<td width=1% style='font-size:32px'>:</td>
+		<td width=1%>". Field_array_Hash($MinsT,"min_begin",$params["min_begin"],null,null,0,"font-size:32px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px' nowrap>{start_time}:</td>
-		<td width=1%>". Field_array_Hash($hoursT,"hour_begin",$params["hour_begin"],null,null,0,"font-size:13px;padding:3px")."</td>
-		<td width=1% style='font-size:13px'>:</td>
-		<td width=1%>". Field_array_Hash($MinsT,"min_begin",$params["min_begin"],null,null,0,"font-size:13px;padding:3px")."</td>
+		<td class=legend style='font-size:32px' nowrap>{end_time}:</td>
+		<td width=1%>". Field_array_Hash($hoursT,"hour_end",$params["hour_end"],null,null,0,"font-size:32px;padding:3px")."</td>
+		<td width=1% style='font-size:32px'>:</td>
+		<td width=1%>". Field_array_Hash($MinsT,"min_end",$params["min_end"],null,null,0,"font-size:32px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px' nowrap>{end_time}:</td>
-		<td width=1%>". Field_array_Hash($hoursT,"hour_end",$params["hour_end"],null,null,0,"font-size:13px;padding:3px")."</td>
-		<td width=1% style='font-size:13px'>:</td>
-		<td width=1%>". Field_array_Hash($MinsT,"min_end",$params["min_end"],null,null,0,"font-size:13px;padding:3px")."</td>
-	</tr>
-	<tr>
-		<td colspan=4 align='right'><hr>". button("{apply}","SaveOpenVPNSchedule()")."</td>
+		<td colspan=4 align='right'><hr>". button("{apply}","SaveOpenVPNSchedule()",40)."</td>
 	</tr>	
 	</table>
 	</div>
 	<script>
-			var x_SaveOpenVPNSchedule= function (obj) {
-				var tempvalue=obj.responseText;
-				if(tempvalue.length>2){alert(tempvalue);}
-				YahooWin3Hide();
-			}				
+var x_SaveOpenVPNSchedule= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>2){alert(tempvalue);}
+}				
 			
 		function SaveOpenVPNSchedule(){
 			var XHR = new XHRConnection();
-			if(document.getElementById('EnableOpenVPNServerSchedule').checked){
-				XHR.appendData('EnableOpenVPNServerSchedule',1);
-			}else{
-				XHR.appendData('EnableOpenVPNServerSchedule',01);
-			}
+			XHR.appendData('EnableOpenVPNServerSchedule',document.getElementById('EnableOpenVPNServerSchedule').value);
 			XHR.appendData('hour_begin',document.getElementById('hour_begin').value);
 			XHR.appendData('min_begin',document.getElementById('min_begin').value);
 			XHR.appendData('hour_end',document.getElementById('hour_end').value);
 			XHR.appendData('min_end',document.getElementById('min_end').value);
 			document.getElementById('EnableOpenVPNServerScheduleDiv').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-			XHR.sendAndLoad('$page', 'GET',x_SaveOpenVPNSchedule);
+			XHR.sendAndLoad('$page', 'POST',x_SaveOpenVPNSchedule);
 		
 		}
 		
 		function EnableOpenVPNServerScheduleSwitch(){
+		var EnableOpenVPNServerSchedule=document.getElementById('EnableOpenVPNServerSchedule').value;
 			document.getElementById('hour_begin').disabled=true;
 			document.getElementById('min_begin').disabled=true;
 			document.getElementById('hour_end').disabled=true;
 			document.getElementById('min_end').disabled=true;
-			if(document.getElementById('EnableOpenVPNServerSchedule').checked){
+			if(EnableOpenVPNServerSchedule==1){
 			document.getElementById('hour_begin').disabled=false;
 			document.getElementById('min_begin').disabled=false;
 			document.getElementById('hour_end').disabled=false;
@@ -105,9 +101,9 @@ function popup(){
 
 function Save(){
 	$sock=new sockets();
-	$sock->SET_INFO("EnableOpenVPNServerSchedule",$_GET["EnableOpenVPNServerSchedule"]);
+	$sock->SET_INFO("EnableOpenVPNServerSchedule",$_POST["EnableOpenVPNServerSchedule"]);
 	
-	$sock->SaveConfigFile(base64_encode(serialize($_GET)),"EnableOpenVPNServerScheduleDatas");
+	$sock->SaveConfigFile(base64_encode(serialize($_POST)),"EnableOpenVPNServerScheduleDatas");
 	$sock->getFrameWork("cmd.php?openvpn-server-schedule=yes");
 	
 }

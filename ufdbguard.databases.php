@@ -64,7 +64,7 @@ function tabs(){
 function databases_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$html="<div class=explain>{ufdbgdb_explain}</div>
+	$html="<div class=text-info>{ufdbgdb_explain}</div>
 	<div style='font-size:16px;margin:10px'>{artica_community}:</div>
 	<div id='ufdbg-community' style='width:100%'></div>
 	
@@ -142,7 +142,7 @@ function maintenance_status(){
 		<table style='width:100%'>
 		<tr>
 		<td width=1% valign='top'><img src='img/database-error-48.png'></td>
-		<td width=99% valign='top'><div class=explain style='color:#8D0707'><strong style='font-size:16px'>$countDeToCompile !:</strong> {databases_are_not_compiled_warn}</div>
+		<td width=99% valign='top'><div class=text-info style='color:#8D0707'><strong style='font-size:16px'>$countDeToCompile !:</strong> {databases_are_not_compiled_warn}</div>
 		<td width=1% valign='top'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('ufdbguard-tabs-all')")."</td>
 		</td>
 		</tr>
@@ -393,7 +393,7 @@ function schedule(){
 	
 	
 	$html="
-	<div class=explain>{compilation_schedule_text}</div>
+	<div class=text-info>{compilation_schedule_text}</div>
 	<div id='ufdb-schedule-form'>
 	<table style='width:99%' class=form>
 	<tr>

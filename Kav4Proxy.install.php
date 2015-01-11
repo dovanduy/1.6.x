@@ -66,7 +66,7 @@ function step_uninstall(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$explain="
-	<div style='font-size:18px;margin:30px' class=explain>{KAV4PROXYINST_UNINST_EXPLAIN}</div>
+	<div style='font-size:18px;margin:30px' class=text-info>{KAV4PROXYINST_UNINST_EXPLAIN}</div>
 	<div style='width:100%;text-align:right'>". button("{uninstall}", "LoadAjax('div-$t','$page?stepuninst2=yes&t={$_GET["t"]}')",22)."</div>";
 	
 	echo $tpl->_ENGINE_parse_body($explain);	
@@ -79,8 +79,8 @@ function step1(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$explain="
-	<div style='font-size:18px;margin:30px' class=explain>{KAV4PROXYINST_STEP1_EXPLAIN}</div>
-	<div style='width:100%;text-align:right'>". button("{install}", "LoadAjax('div-$t','$page?step2=yes&t={$_GET["t"]}')",22)."</div>";
+	<div style='font-size:18px;margin:30px' class=text-info>{KAV4PROXYINST_STEP1_EXPLAIN}</div>
+	<div style='width:100%;text-align:right'>". button("{install_now}", "LoadAjax('div-$t','$page?step2=yes&t={$_GET["t"]}')",22)."</div>";
 	
 	echo $tpl->_ENGINE_parse_body($explain);
 }

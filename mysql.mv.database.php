@@ -47,7 +47,7 @@ function popup(){
 	$move_database_disk=$tpl->javascript_parse_text("{move_database_disk}");
 	$dir=base64_decode($sock->getFrameWork("mysql.php?database-path=". base64_encode($_GET["db"])));
 	$html="
-	<div style='font-size:14px' class=explain>{mv_database_explain}</div>
+	<div style='font-size:14px' class=text-info>{mv_database_explain}</div>
 	<table style='width:100%'>
 	<tr>
 	 <td style='font-size:16px' class=legend>{current_directory}:</td>

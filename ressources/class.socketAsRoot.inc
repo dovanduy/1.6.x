@@ -15,7 +15,7 @@ class SocketsAsRoot{
 // *************************************************************************************************************************		
 		
 		if($uri=="cmd.php?ldap-restart=yes"){
-			shell_exec("/etc/init.d/slapd restart &");
+			shell_exec("/etc/init.d/slapd restart --framework=". basename(__FILE__)." &");
 			$this->Runned=true;return;
 		}
 		

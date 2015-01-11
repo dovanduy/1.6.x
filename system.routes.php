@@ -10,7 +10,7 @@ include_once('ressources/class.ActiveDirectory.inc');
 include_once('ressources/class.external.ldap.inc');
 
 $usersmenus=new usersMenus();
-if(!$usersmenus->AsDansGuardianAdministrator){
+if(!$usersmenus->AsSystemAdministrator){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
@@ -284,37 +284,38 @@ function route_popup(){
 	
 	
 	$html="
-		<div style='font-size:22px;margin-bottom:20px'>{$ligne["pattern"]}</div>
+		<div style='font-size:24px;margin-bottom:20px'>{$ligne["pattern"]}</div>
 		<div style='width:98%' class=form>
 		<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:18px'>{nic}:</td>
-			<td>". Field_array_Hash($ETHZ,"nic-$t",$ligne["nic"],"style:font-size:18px")."</td>
+			<td class=legend style='font-size:24px'>{nic}:</td>
+			<td>". Field_array_Hash($ETHZ,"nic-$t",$ligne["nic"],"style:font-size:24px")."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:18px'>{type}:</td>
-			<td>". Field_array_Hash($types,"type-$t",$ligne["type"],"style:font-size:18px")."</td>
+			<td class=legend style='font-size:24px'>{type}:</td>
+			<td>". Field_array_Hash($types,"type-$t",$ligne["type"],"style:font-size:24px")."</td>
 		</tr>	
 							
 		<tr>
-			<td class=legend style='font-size:18px'>{item}:</td>
-			<td>". Field_text("pattern-$t",$ligne["pattern"],"font-size:18px;width:95%")."</td>
+			<td class=legend style='font-size:24px'>{item} <span style='font-size:14px'>({address}/{network2})</span>:</td>
+			<td>". Field_text("pattern-$t",$ligne["pattern"],"font-size:24px;width:95%")."</td>
 		</tr>
+				
 		<tr>
-			<td class=legend style='font-size:18px'>{order}:</td>
-			<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:18px;width:90px")."</td>
-		</tr>					
+			<td class=legend style='font-size:24px'>{gateway}:</td>
+			<td>". Field_ipv4("gateway-$t",$ligne["gateway"],"font-size:24px;width:95%")."</td>
+		</tr>	
 		<tr>
-			<td class=legend style='font-size:18px'>{gateway}:</td>
-			<td>". Field_text("gateway-$t",$ligne["gateway"],"font-size:18px;width:95%")."</td>
-		</tr>					
+			<td class=legend style='font-size:24px'>{order}:</td>
+			<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:24px;width:90px")."</td>
+		</tr>										
 		<tr>
-			<td class=legend style='font-size:18px'>{metric}:</td>
-			<td>". Field_text("metric-$t",$ligne["metric"],"font-size:18px;width:90px")."</td>
+			<td class=legend style='font-size:24px'>{metric}:</td>
+			<td>". Field_text("metric-$t",$ligne["metric"],"font-size:24px;width:90px")."</td>
 		</tr>	
 											
 		<tr>
-			<td colspan=2 align='right'><hr>". button($btname,"Save$t()",22)."</td>
+			<td colspan=2 align='right'><hr>". button($btname,"Save$t()",32)."</td>
 		</tr>
 		</table>
 		</div>
@@ -418,7 +419,7 @@ function table(){
 	],";
 	
 	$html="
-	<div class=explain style='font-size:16px'>$explain_section</div>		
+			
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	<script>
@@ -445,7 +446,7 @@ function table(){
 	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:18px>$explain_section</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -525,12 +526,12 @@ function search(){
 	if($searchstring<>null){
 		$search=$_POST["query"];
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
 	
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
 	}
 	

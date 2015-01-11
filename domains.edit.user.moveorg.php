@@ -61,7 +61,7 @@ function popup(){
 	$field=Field_array_Hash($ous,"nextou",null,"style:font-size:16px;padding:3px");
 	
 	$html="
-	<div class=explain id='useranimateddiv'>{change_user_organization_text}</div>
+	<div class=text-info id='useranimateddiv'>{change_user_organization_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{organization}:</td>

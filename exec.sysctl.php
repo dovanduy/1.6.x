@@ -98,6 +98,19 @@ function build(){
 	if(!is_numeric($EnableTCPOptimize)){$EnableTCPOptimize=0;}
 	$echo=$unix->find_program("echo");
 	$modprobe=$unix->find_program("modprobe");
+	
+	$DisableTCPEn=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableTCPEn")));
+	$DisableTCPWindowScaling=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableTCPWindowScaling")));
+	$EnableSystemOptimize=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSystemOptimize")));
+	
+	
+	
+	$tcp_ecn=2;
+	$tcp_window_scaling=1;
+	if($DisableTCPWindowScaling==1){$tcp_window_scaling=0;}
+	if($DisableTCPEn==1){$tcp_ecn=0;}
+	
+	
 	$f[]="#";
 	$f[]="# /etc/sysctl.conf - Configuration file for setting system variables";
 	$f[]="# See /etc/sysctl.d/ for additonal system variables";
@@ -117,23 +130,20 @@ function build(){
 	$memory=$unix->MEM_TOTAL_INSTALLEE()*1024;
 	$dirty_ratio=round($memory*0.8);
 	
-	
-	shell_exec("$echo 33554432 >/proc/sys/vm/dirty_background_bytes");
-	shell_exec("$echo $dirty_ratio >/proc/sys/vm/dirty_bytes");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Memory: $memory bytes\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} dirty_ratio = $dirty_ratio bytes \n";}
-	
+	if($EnableSystemOptimize==0){
+		shell_exec("$echo 33554432 >/proc/sys/vm/dirty_background_bytes");
+		shell_exec("$echo $dirty_ratio >/proc/sys/vm/dirty_bytes");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Memory: $memory bytes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} dirty_ratio = $dirty_ratio bytes \n";}
+	}else{
+		$swappiness=0;
+		shell_exec("$echo 1024 > /sys/block/sda/queue/nr_requests");
+		
+	}
 	
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	
-	if(is_file($squidbin)){
-		if(is_file("/proc/sys/net/local/dgram/recvspace")){
-			$f[]="net.local.dgram.recvspace=262144";
-		}
-		if(is_file("/proc/sys/net/local/dgram/maxdgram")){
-			$f[]="net.local.dgram.maxdgram=16384";
-		}
-	}
+
 	
 	$t=explode(".",$hostname);
 	if(count($t)>0){
@@ -145,12 +155,38 @@ function build(){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} `swappiness` = '{$swappiness}%'\n";}
 	$f[]="vm.swappiness = $swappiness";
 	$f[]="net.ipv4.icmp_ignore_bogus_error_responses = 1";
-	$f[]="net.ipv4.tcp_window_scaling =1";
+	$f[]="net.ipv4.tcp_window_scaling = $tcp_window_scaling";
+	$f[]="net.ipv4.tcp_ecn = $tcp_ecn";
 	$f[]="net.ipv4.tcp_sack = 1";
 	$f[]="net.ipv4.tcp_fack = 1";
 	$f[]="net.ipv4.tcp_timestamps = 1";
 	$f[]="net.ipv4.icmp_echo_ignore_broadcasts = 1";
 	$f[]="";
+	if($EnableSystemOptimize==1){	
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} set dirty pages\n";}		
+		$f[]="vm.dirty_background_ratio = 4";
+		$f[]="vm.dirty_background_bytes = 33554432";
+		$f[]="vm.dirty_ratio = 64";
+
+		shell_exec("$echo \"100663296\" > /proc/sys/vm/dirty_bytes");
+		shell_exec("$echo \"33554432\" > /proc/sys/vm/dirty_background_bytes");
+		
+		if(is_file($squidbin)){
+			if(is_file("/proc/sys/net/local/dgram/recvspace")){
+				$f[]="net.local.dgram.recvspace=262144";
+			}
+			if(is_file("/proc/sys/net/local/dgram/maxdgram")){
+				$f[]="net.local.dgram.maxdgram=16384";
+			}
+		}
+		
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} revert dirty pages to default\n";}
+		$f[]="vm.dirty_background_ratio = 10";
+		$f[]="vm.dirty_ratio = 20";
+		$f[]="vm.dirty_background_bytes = 0";
+		$f[]="vm.dirty_bytes = 0";
+	}
 	
 	if(is_file($conntrack)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} conntrack installed\n";}
@@ -266,7 +302,8 @@ function build(){
 		$f[]="net.ipv4.ip_local_port_range = 1024 65000";
 		
 		
-		$f[]="net.ipv4.tcp_window_scaling = 1";
+		$f[]="net.ipv4.tcp_window_scaling = $tcp_window_scaling";
+		$f[]="net.ipv4.tcp_ecn = $tcp_ecn";
 		$f[]="net.ipv4.tcp_low_latency =1 ";
 		$f[]="net.ipv4.tcp_timestamps=1";
 		$f[]="net.ipv4.tcp_sack=1";
@@ -299,7 +336,8 @@ function build(){
 		$f[]="net.ipv4.tcp_rmem = 4096	87380	1033696";
 		$f[]="net.ipv4.tcp_wmem = 4096	16384	1033696";
 		$f[]="net.ipv4.tcp_mem = 24225	32303	48450";
-		$f[]="net.ipv4.tcp_window_scaling = 1";
+		$f[]="net.ipv4.tcp_window_scaling = $tcp_window_scaling";
+		$f[]="net.ipv4.tcp_ecn = $tcp_ecn";
 		$f[]="net.ipv4.tcp_sack = 1";
 		$f[]="net.ipv4.tcp_no_metrics_save = 0";
 		$f[]="net.core.netdev_max_backlog = 1000";
@@ -327,14 +365,7 @@ function build(){
 	if($Isagetway){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Set as gateway...\n";}
 		$f[]="net.ipv4.ip_forward=1";
-		
-		
-		
-		
-		
-		
-
-		
+	
 		if($EnableipV6==1){
 			$f[]="net.ipv6.conf.all.send_redirects = $KernelSendRedirects";
 			$f[]="net.ipv6.conf.all.forwarding=1";
@@ -348,9 +379,6 @@ function build(){
 		}
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Set as normal server...\n";}
-		
-
-		
 		$f[]="net.ipv4.ip_forward=0";
 		
 		
@@ -367,7 +395,7 @@ function build(){
 		$f[]="net.ipv6.conf.default.disable_ipv6 = 1";
 		$f[]="net.ipv6.conf.lo.disable_ipv6 = 1";	
 	}
-
+	$f[]="";
 	@file_put_contents("/etc/sysctl.conf", @implode("\n", $f));
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/sysctl.conf done\n";}
 	if($GLOBALS["REBOOT"]){$reboot=$unix->find_program("reboot");shell_exec("$reboot");}

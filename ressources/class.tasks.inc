@@ -162,6 +162,8 @@ class system_tasks{
 			$this->tasks_array[75]="{backup_artica_settings}";
 			$this->tasks_array[76]="{blackwhite_automation}";
 			$this->tasks_array[77]="{backup_wordpress_websites}";
+			$this->tasks_array[78]="{create_a_snapshot}";
+			$this->tasks_array[79]="{clean_logs}";
 			
 			
 			
@@ -244,6 +246,8 @@ class system_tasks{
 			$this->tasks_explain_array[75]="{backup_artica_settings_explain}";
 			$this->tasks_explain_array[76]="{postfix_automation_about}";
 			$this->tasks_explain_array[77]="{backup_wordpress_websites}";
+			$this->tasks_explain_array[78]="{create_a_snapshot_explain}";
+			$this->tasks_explain_array[79]="{clean_logs_explain}";
 			
 			
 
@@ -328,6 +332,8 @@ class system_tasks{
 			$this->tasks_processes[75]="exec.backup.artica.php";
 			$this->tasks_processes[76]="exec.imap.blacklists.php";
 			$this->tasks_processes[77]="exec.wordpress-backup.php --exec";
+			$this->tasks_processes[78]="exec.backup.artica.php --snapshot";
+			$this->tasks_processes[79]="exec.clean.varlog.php";
 			
 			
 			$this->DisableTasks();
@@ -360,6 +366,19 @@ private function DisableTasks(){
 	}
 	
 	$MEMORY=$users->MEM_TOTAL_INSTALLEE;
+	
+	//setup-center
+	$this->task_disabled[7]=true;
+	$this->task_disabled[40]=true;
+	
+	$this->task_disabled[38]=true;
+	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
+	if($SquidPerformance>2){
+		$this->task_disabled[4]=true;
+	}
 	
 	if($MEMORY<624288){
 		$this->task_disabled[14]=true;
@@ -406,6 +425,9 @@ private function DisableTasks(){
 		$this->task_disabled[35]=true;
 		$this->task_disabled[60]=true;
 		$this->task_disabled[64]=true;
+		$this->task_disabled[47]=true;
+		$this->task_disabled[48]=true;
+		$this->task_disabled[52]=true;
 	}
 	
 	if(!$users->ZARAFA_INSTALLED){
@@ -477,7 +499,7 @@ public function CheckDefaultSchedules(){
 		$array[42]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Each hour");
 		$array[43]=array("TimeText"=>"30 * * * *","TimeDescription"=>"Each hour + 30mn");
 		$array[44]=array("TimeText"=>"35 * * * *","TimeDescription"=>"Each hour + 35mn");
-		$array[45]=array("TimeText"=>"* * * * *","TimeDescription"=>"Each 1mn");
+		$array[45]=array("TimeText"=>"3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * *","TimeDescription"=>"Each 3mn");
 		$array[46]=array("TimeText"=>"10 0,2,4,6,8,10,12,14,16,18,20,22 * * *","TimeDescription"=>"Each 2H +10mn");
 		$array[47]=array("TimeText"=>"5,10,15,20,25,30,35,40,45,50,55,59 * * * *","TimeDescription"=>"parse queue Each 5mn");
 		$array[48]=array("TimeText"=>"45 0,5,10,15,20 * * *","TimeDescription"=>"Days statistics each 5 Hours +45mn");
@@ -493,8 +515,8 @@ public function CheckDefaultSchedules(){
 		$array[66]=array("TimeText"=>"14 0,3,6,9,12,15,18,21 * * *","TimeDescription"=>"Restart Artica Web consoles each 3h");
 		$array[67]=array("TimeText"=>"17 0,4,8,12,16,18,22 * * *","TimeDescription"=>"Clean kernel caches each 4h");
 		$array[72]=array("TimeText"=>"0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *","TimeDescription"=>"DNS statistics each 2mn");
-		$array[72]=array("TimeText"=>"3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * *","TimeDescription"=>"Dahsboard statistics each 3mn");
-		$array[72]=array("TimeText"=>"30 3,6,12,18,22 * * *","TimeDescription"=>"Repair MySQL tables - non productive hours");
+		$array[73]=array("TimeText"=>"3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * *","TimeDescription"=>"Dahsboard statistics each 3mn");
+		$array[74]=array("TimeText"=>"30 3,6,12,18,22 * * *","TimeDescription"=>"Repair MySQL tables - non productive hours");
 		
 		
 		$c=0;

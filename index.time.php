@@ -2,6 +2,10 @@
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.ntpd.inc");
+
+
+if(isset($_GET["tabs"])){tabs();exit;}
+
 if(isset($_GET["about"])){about_section();exit;}
 if(isset($_GET["current-time"])){get_current_time();exit;}
 if(isset($_GET["settings"])){set_current_date_js();exit;}
@@ -9,6 +13,51 @@ if(isset($_GET["date-settings"])){set_current_date_page();exit;}
 if(isset($_GET["year"])){save_currenttime();exit;}
 if(isset($_POST["quick-change"])){quick_change();exit;}
 if(isset($_POST["timezone"])){SaveTimeZone();exit;}
+
+
+
+function tabs(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$users=new usersMenus();
+	if(!$users->AsSystemAdministrator){
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
+		die();
+	}
+	
+	$array["settings"]='{time}';
+	$array["ntp"]='{APP_NTPD}';
+	
+
+	
+	$fontsize=22;
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		
+			if($num=="ntp"){
+			$html[]= "<li style='font-size:{$fontsize}px'>
+			<a href=\"ntpd.index.php?bytabs=yes\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+			}
+
+	
+	
+			$html[]= "<li style='font-size:{$fontsize}px'>
+			<a href=\"$page?$num=yes&bytab=yes\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+	}
+	$t=time();
+	echo build_artica_tabs($html, "system_time_tab",1200);
+	
+	
+	
+	
+}
+
 
 set_current_date_js();
 
@@ -19,13 +68,25 @@ function set_current_date_js(){
 	$title=$tpl->_ENGINE_parse_body('{server_time2}');
 	$page=CurrentPageName();
 	$user=new usersMenus();
+	$bytab=false;
 	if(!$user->AsArticaAdministrator){
 		echo $tpl->_ENGINE_parse_body("alert('{ERROR_NO_PRIVS}')");
 		die();
 	}
 	
-	$timezone_def=trim($sock->GET_INFO('timezones'));
 	
+	
+	$timezone_def=trim($sock->GET_INFO('timezones'));
+	$LoadTimeParams="YahooWin6('650','$page?date-settings=yes','$title - $timezone_def');";
+	
+	if(isset($_GET["bytab"])){$bytab=true;}
+	
+	if($bytab){echo "
+		<div id='LoadTimeParams'></div>	
+		<script>";
+	$LoadTimeParams="LoadAjax('LoadTimeParams','$page?date-settings=yes&bytab=yes')";
+	
+	}
 	$html="
 	
 	var x_SaveServerTime= function (obj) {
@@ -37,7 +98,7 @@ function set_current_date_js(){
 	}	
 	
 		function LoadTimeParams(){
-			YahooWin6('650','$page?date-settings=yes','$title - $timezone_def');
+			$LoadTimeParams
 		
 		}
 		
@@ -60,8 +121,9 @@ function set_current_date_js(){
 	LoadTimeParams();
 	
 	";
-	
 	echo $html;
+	if($bytab){echo "</script>";}
+	
 	
 }
 
@@ -106,11 +168,13 @@ function set_current_date_page(){
 	$user=new usersMenus();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$bytab=false;
 	$titleabout=$tpl->_ENGINE_parse_body("{server_time2}::{about_this_section}");
 	if(!$user->AsArticaAdministrator){die();}
 	$sock=new sockets();
 	exec("/bin/date \"+%d-%m %H:%M:%S\"",$results);
 	$time=@implode("",$results);
+	if(isset($_GET["bytab"])){$bytab=true;}
 	$ntp=new ntpd(true);
 	$sock=new sockets();
 	
@@ -151,6 +215,14 @@ function set_current_date_page(){
 		$defmin=$re[4];
 		$defsec=$re[5];
 	}
+	
+	$ntplink="	<tr>
+		<td width=1%><img src='img/arrow-right-24.png'></td>
+		<td nowrap><a href=\"javascript:blur();\" OnClick=\"Loadjs('ntpd.index.php');\" 
+			style='font-size:14px;text-decoration:underline'>{APP_NTPD}</a></td>
+	</tr>";
+	
+	if($bytab){$ntplink=null;}
 	
 	$t=time();
 	$headstyle="style='font-weight:bold;font-size:14px'";
@@ -206,10 +278,7 @@ function set_current_date_page(){
 		<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:HelpTime();\" 
 		style='font-size:14px;text-decoration:underline'>{about_this_section}</a></td>
 	</tr>
-	<tr>
-		<td width=1%><img src='img/arrow-right-24.png'></td>
-		<td nowrap><a href=\"javascript:blur();\" OnClick=\"Loadjs('ntpd.index.php');\" style='font-size:14px;text-decoration:underline'>{APP_NTPD}</a></td>
-	</tr>
+$ntplink
 	</table>
 		
 	<script>
@@ -240,7 +309,7 @@ function set_current_date_page(){
 }
 function about_section(){
 	$tpl=new templates();
-	$html="<div class=explain style='font-size:13px'>{clocks_text}</div>";
+	$html="<div class=text-info style='font-size:13px'>{clocks_text}</div>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 

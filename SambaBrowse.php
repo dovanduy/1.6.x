@@ -261,7 +261,7 @@ function hidden_disk_popup(){
 	";
 	
 	$html="<h1>{invisible_disk}</H1>
-	<div class=explain>{add_invisible_disk_text}</div>
+	<div class=text-info>{add_invisible_disk_text}</div>
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'><img src='img/64-hd-plus.png'></td>
@@ -596,7 +596,7 @@ function TreeRightInfos(){
 		
 		$smb=new samba();
 		if($smb->main_shared_folders[$path]<>null){
-			$txt="<tr><td colspan=2><div class=explain><b>$path</b>&nbsp;({$smb->main_shared_folders[$path]})&nbsp;:{FOLDER_IS_SHARED}</div></td></tr>";
+			$txt="<tr><td colspan=2><div class=text-info><b>$path</b>&nbsp;({$smb->main_shared_folders[$path]})&nbsp;:{FOLDER_IS_SHARED}</div></td></tr>";
 			$unshare="<tr><td colspan=2><hr></td></tr>$txt<tr ".CellRollOver("UnShare('{$smb->main_shared_folders[$path]}')").">
 					<td width=1% valign='top'>" . imgtootltip('folder-32-share-delete.png','{delete_share}',"")."</td>
 					<td style='font-size:16px'>{delete_share}</td>	

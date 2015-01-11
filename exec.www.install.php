@@ -1213,7 +1213,19 @@ function GROUPOFFICE_INSTALL($servername,$root,$hash=array()){
 }
 
 
-
+function RC_VERSION($root){
+	
+	if(isset($GLOBALS["RC_VERSION"])){$GLOBALS["RC_VERSION"];} 
+	$f=explode("\n",@file_get_contents("$root/program/include/iniset.php"));
+	while (list ($num, $ligne) = each ($f) ){
+		$ligne=trim($ligne);
+		if(!preg_match("#RCMAIL_VERSION.*?([0-9\.]+)#", $ligne,$re)){continue;}
+		
+		$GLOBALS["RC_VERSION"]= trim($re[1]);
+		return $GLOBALS["RC_VERSION"];
+	}
+	
+}
 
 function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	$srcfolder=ROUNDCUBE_SRC_FOLDER();
@@ -1221,7 +1233,12 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	$ldap=new clladp();
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	
-	echo "Starting......: ".date("H:i:s")." Roundcube $servername\n"; 
+	
+	$RC_VERSION=RC_VERSION($root);
+	$RC_VERSION_EX=explode(".",$RC_VERSION);
+	$MAJOR=intval($RC_VERSION[0]);
+	
+	echo "Starting......: ".date("H:i:s")." Roundcube $servername v{$RC_VERSION} Major $MAJOR\n"; 
 	
 	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	if($root==null){events("Starting install roundcube Unable to stat root dir");return false;}
@@ -1469,25 +1486,27 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	}
 	$roundcube_class=new roundcube();
 	$roundcube_class->root_path=$root;
-	
-	if(!is_file("$root/plugins/msglistcols/msglistcols.php")){$roundcube_class->plugin_install($root,"msglistcols");}
-	if(!is_file("$root/plugins/sticky_notes/sticky_notes.php")){$roundcube_class->plugin_install($root,"sticky_notes");}
-	if(!is_file("$root/plugins/jqueryui/jqueryui.php")){$roundcube_class->plugin_install($root,"jqueryui");}
-	if(!is_file("$root/plugins/dkimstatus/dkimstatus.php")){$roundcube_class->plugin_install($root,"dkimstatus");}
-	if(!is_file("$root/plugins/fail2ban/fail2ban.php")){$roundcube_class->plugin_install($root,"fail2ban");}
-	
-	
-	if(is_file("$root/plugins/msglistcols/msglistcols.php")){$conf[]="\$rcmail_config['plugins'][] = 'msglistcols';";}
-	if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'dkimstatus';";}
-	//if(is_file("$root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
-	if($roundcube_class->plugin_password($root,$hash["OU"][0])){
-		if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'password';";}
-	}
-	
-	if(is_file("$root/plugins/jqueryui/jqueryui.php")){
-		$conf[]="\$rcmail_config['plugins'][] = 'jqueryui';";
-		$roundcube_class->plugin_jqueryui($root);
-		if(is_file("$root/plugins/sticky_notes/sticky_notes.php")){$conf[]="\$rcmail_config['plugins'][] = 'sticky_notes';";}	
+	if($MAJOR<1){
+		if(!is_file("$root/plugins/msglistcols/msglistcols.php")){$roundcube_class->plugin_install($root,"msglistcols");}
+		if(!is_file("$root/plugins/sticky_notes/sticky_notes.php")){$roundcube_class->plugin_install($root,"sticky_notes");}
+		if(!is_file("$root/plugins/jqueryui/jqueryui.php")){$roundcube_class->plugin_install($root,"jqueryui");}
+		if(!is_file("$root/plugins/dkimstatus/dkimstatus.php")){$roundcube_class->plugin_install($root,"dkimstatus");}
+		if(!is_file("$root/plugins/fail2ban/fail2ban.php")){$roundcube_class->plugin_install($root,"fail2ban");}
+		
+		
+		if(is_file("$root/plugins/msglistcols/msglistcols.php")){$conf[]="\$rcmail_config['plugins'][] = 'msglistcols';";}
+		if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'dkimstatus';";}
+		//if(is_file("$root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
+		if($roundcube_class->plugin_password($root,$hash["OU"][0])){
+			if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'password';";}
+		}
+		
+		if(is_file("$root/plugins/jqueryui/jqueryui.php")){
+			$conf[]="\$rcmail_config['plugins'][] = 'jqueryui';";
+			$roundcube_class->plugin_jqueryui($root);
+			if(is_file("$root/plugins/sticky_notes/sticky_notes.php")){$conf[]="\$rcmail_config['plugins'][] = 'sticky_notes';";}	
+		
+		}
 	
 	}
 	

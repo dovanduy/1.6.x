@@ -63,7 +63,7 @@ if(isset($_GET["spooler-restart"])){spooler_restart();exit;}
 
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
-writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
+writelogs_framework("Unable to understand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
 
 function orphan_link(){
 	$unix=new unix();
@@ -338,7 +338,7 @@ function recover_last(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.mysql.start.php --recover >/dev/null 2>&1 &");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.mysql.start.php --recover --framework=".__FILE__." >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
 }

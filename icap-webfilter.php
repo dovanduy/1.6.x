@@ -25,7 +25,7 @@ function tabs(){
 	
 	$tpl=new templates();
 	$array["status"]='{status}';
-	$array["rules"]='{webfiltering}';
+	//$array["rules"]='{webfiltering}';
 	$array["daemons"]='{daemon_settings}';
 	$array["clamav"]='ClamAV Antivirus';
 	$array["events"]='{events}';

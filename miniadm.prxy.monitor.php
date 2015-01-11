@@ -504,9 +504,7 @@ function proxy_service_values(){
 	$t=$_GET["t"];
 	$squid5mn=unserialize(base64_decode($sock->getFrameWork("squid.php?5mncounter=yes")));
 	$realMemory=unserialize(base64_decode($sock->getFrameWork("services.php?realMemory=yes")));
-	
 	$CounterInfos=unserialize(base64_decode($sock->getFrameWork("squid.php?CounterInfos=yes")));
-	
 	$StorageCapacity=unserialize(base64_decode($sock->getFrameWork("squid.php?StorageCapacity=yes")));
 	
 	

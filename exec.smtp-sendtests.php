@@ -83,26 +83,16 @@ function SendTest($Key){
 		return;
 	}	
 	
-	$random_hash = md5(date('r', time()));
-	$boundary="$random_hash/$instance";	
+	$boundary = md5(uniqid(microtime(), TRUE));
+	
 $body[]="Return-Path: <$sender>";
 $body[]="X-Original-To: $recipient";
 $body[]="Date: ". date("D, d M Y H:i:s"). " +0100 (CET)";
 $body[]="From: $sender (Mail Delivery System)";
 $body[]="Subject: Test Message";
 $body[]="To: $recipient";
-$body[]="Auto-Submitted: auto-replied";
-$body[]="MIME-Version: 1.0";
-$body[]="Content-Type: multipart/report; report-type=delivery-status;";
-$body[]="	boundary=\"$boundary\"";
-$body[]="Content-Transfer-Encoding: 8bit";
-$body[]="Message-Id: <$random_hash@$instance>";
+
 $body[]="";
-$body[]="This is a MIME-encapsulated message.";
-$body[]="";
-$body[]="--$boundary";
-$body[]="Content-Description: Notification";
-$body[]="Content-Type: text/plain; charset=us-ascii";
 $body[]="";
 $body[]="This is the mail system at host $instance.";
 $body[]="";
@@ -117,6 +107,7 @@ $body[]="";
 $body[]="                   The mail system";
 $body[]="";
 $body[]="";	
+$body[]="";
 $finalbody=@implode("\r\n", $body);
 
 	if(!$smtp->send(array("from"=>$sender,"recipients"=>$recipient,"body"=>$finalbody,"headers"=>null))){

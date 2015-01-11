@@ -115,7 +115,7 @@ $('#table-$t').flexigrid({
 	colModel : [
 		{display: '$date', name : 'date', width : 116, sortable : true, align: 'left'},
 		{display: '$type', name : 'GroupType', width : 31, sortable : false, align: 'center'},
-		{display: '$events', name : 'items', width : 633, sortable : false, align: 'left'},
+		{display: '$events', name : 'items', width : 921, sortable : false, align: 'left'},
 		
 	],
 	searchitems : [
@@ -129,7 +129,7 @@ $('#table-$t').flexigrid({
 	rp: 100,
 	rpOptions: [10, 20, 30, 50,100,200,500],
 	showTableToggleBtn: false,
-	width: 835,
+	width: '99%',
 	height: 500,
 	singleSelect: true
 	

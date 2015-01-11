@@ -10,17 +10,30 @@ include_once(dirname(__FILE__)."/ressources/class.ccurl.inc");
 include_once(dirname(__FILE__)."/ressources/class.groups.inc");
 $GLOBALS["UPDATE"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["PROGRESS"]=false;
 
 if(is_array($argv)){if(preg_match("#--update#",implode(" ",$argv))){$GLOBALS["UPDATE"]=true;}}
 if(is_array($argv)){if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}}
+if(is_array($argv)){if(preg_match("#--progress#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["UPDATE"]=true;$GLOBALS["PROGRESS"]=true;}}
 
 
 
 if($argv[1]=='--build'){build();die();}
+if($argv[1]=='--reload'){ReloadMacHelpers(true);die();}
 
 
 
 build();
+
+function build_progress($text,$pourc){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/squid.macToUid.progress", serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+	usleep(500);
+}
 
 function build(){
 	
@@ -50,6 +63,7 @@ function build(){
 	if(!function_exists("IsPhysicalAddress")){include_once(dirname(__FILE__)."/ressources/class.templates.inc");}
 	if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");}
 	
+	build_progress("{starting}",10);
 	
 	$unix=new unix();
 	$arpd=$unix->find_program("arpd");
@@ -58,6 +72,7 @@ function build(){
 		exec("$arpd -l 2>&1",$results);
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#([0-9]+)\s+([0-9\.]+)\s+([0-9a-z\:]+)#", $line,$re)){
+				build_progress("{$re[3]} = {$re[2]}",15);
 				$MACS["MACS"][$re[3]]["IP"]=$re[2];
 				$MACS["IPS"][$re[2]]=$re[3];
 			}
@@ -73,6 +88,7 @@ function build(){
 		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
 		$MACS["MACS"][$ligne["MAC"]]["UID"]=$ligne["uid"];
+		build_progress($ligne["MAC"],20);
 		UPDATE_HOURS_MAC($ligne["MAC"],$ligne["uid"]);
 		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["MAC"]]["HOST"]=$ligne["hostname"];}
 	}
@@ -85,11 +101,12 @@ function build(){
 		if(!IsPhysicalAddress($ligne["MacAddress"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MacAddress"]} = {$ligne["uid"]}\n";}
 		if(preg_match("#group:@(.+?):([0-9]+)#", $ligne["uid"],$re)){
+			build_progress($ligne["MacAddress"],30);
 			$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$re[1];
 			UPDATE_HOURS_MAC($ligne["MacAddress"],$re[1]);
 			continue;
 		}
-		UPDATE_HOURS_MAC($ligne["MacAddress"],$ligne["uid"]);
+		UPDATE_HOURS_MAC($ligne["MacAddress"],$ligne["uid"],30);
 		$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$ligne["uid"];
 		
 	}
@@ -98,15 +115,16 @@ function build(){
 	$sql="SELECT * FROM webfilters_ipaddr WHERE LENGTH(uid)>1";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
+		build_progress($ligne["ipaddr"],40);
 		$MACS["MACS"][$ligne["ipaddr"]]["UID"]=$ligne["uid"];
-		UPDATE_HOURS_IP($ligne["ipaddr"],$ligne["uid"]);
+		UPDATE_HOURS_IP($ligne["ipaddr"],$ligne["uid"],40);
 		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["ipaddr"]]["HOST"]=$ligne["hostname"];}
 	}
 	
 	
 	$CountDeMac=count($MACS["MACS"]);
 	$CountDeIP=count($MACS["IPS"]);
-	
+	build_progress("{saving}...",50);
 	@file_put_contents("/etc/squid3/usersMacs.db", serialize($MACS));
 	@file_put_contents("/usr/share/artica-postfix/ressources/databases/usersMacs.db",serialize($MACS));
 	shell_exec("$chmod 755 /etc/squid3/usersMacs.db");
@@ -117,24 +135,46 @@ function build(){
 			return;
 		}
 	}
-	
+	build_progress("$CountDeMac MACs, $CountDeIP Ips",70);
 	if($EnableWebProxyStatsAppliance==1){notify_remote_proxys_usersMacs();return;}
 	squid_admin_mysql(2, "Translation members database updated $CountDeMac MACs, $CountDeIP Ips", null,__FILE__,__LINE__);
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	squid_admin_mysql(1, "Ask to reload the proxy after update Translation members database", null,__FILE__,__LINE__);
-	$cmd="$nohup $php5 ". dirname(__FILE__)."/exec.squid.php --reconfigure-squid --force >/dev/null 2>&1 &";
-	shell_exec($cmd);
+	build_progress("{reloading}...",80);
+	ReloadMacHelpers();
+	build_progress("{done}...",100);
 	
 }
 
-function UPDATE_HOURS_MAC($MAC,$name){
+function ReloadMacHelpers($output=false){
+	
+	@mkdir("/var/log/squid/reload",0755,true);
+	$unix=new unix();
+	$pgrep=$unix->find_program("pgrep");
+	$rm=$unix->find_program("rm");
+	shell_exec("$rm /var/log/squid/reload/*.external_acl_squid.php");
+	
+	exec("$pgrep -l -f \"external_acl_squid.php\" 2>&1",$results);
+	
+	while (list ($index, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+#", $ligne,$re)){continue;}
+		if($output){echo "Reload PID {$re[1]}\n";}
+		@touch("/var/log/squid/reload/{$re[1]}.external_acl_squid.php");
+		@chown("/var/log/squid/reload/{$re[1]}.external_acl_squid.php","squid");
+		@chgrp("/var/log/squid/reload/{$re[1]}.external_acl_squid.php", "squid");
+		
+	}
+}
+
+function UPDATE_HOURS_MAC($MAC,$name,$prc){
 	if(!$GLOBALS["UPDATE"]){return;}
 	$q=new mysql_squid_builder();
 	$LIST_TABLES_HOURS_TEMP=$q->LIST_TABLES_HOURS_TEMP();
 	
 	while (list ($tablename, $ligne) = each ($LIST_TABLES_HOURS_TEMP) ){
+		build_progress("{update} $tablename",$prc);
 		$q->QUERY_SQL("UPDATE $tablename SET `uid`='$name' WHERE MAC='$MAC'");
 		
 	}

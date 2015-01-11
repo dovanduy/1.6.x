@@ -228,6 +228,7 @@ sub DeleteQuota{
 # -----------------------------------------------------------------------------------------------------------------
 sub listm {
 my @k;
+print "LIST\n";
       my @l=$cyrus->list('%','user/');
         if ($cyrus->error) {
                 print "Error: ", $mailbox," ", $cyrus->error, "\n";
@@ -243,6 +244,7 @@ my @k;
 sub lmexists {
 my @k;
 my $mailbox;
+
       my @l=$cyrus->list('%',"user/$user");
         if ($cyrus->error) {
                 print STDERR "Error: ", $mailbox," ", $cyrus->error, "\n";

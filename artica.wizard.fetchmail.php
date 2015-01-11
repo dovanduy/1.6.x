@@ -38,7 +38,7 @@ $fetchmail_explain="<div style='padding:2px;margin:5px'>
 <td valign='top'>
 <img src='img/fetchmail_explain.png'>
 </td>
-<td valign='top'><div class=explain>{fetchmail_explain}</div></td>
+<td valign='top'><div class=text-info>{fetchmail_explain}</div></td>
 </tr>
 </table>";
 

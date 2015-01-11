@@ -351,7 +351,8 @@ function mailbox_settings($ID,$tolog=array()){
 	$offlineImapConf[]="remotehost = $imap_server";
 	if($folderfilter<>null){$offlineImapConf[]=$folderfilter;}		
 		
-	$tolog[]="$ID: source server (where orginal messages are stored) : $remote_username@$imap_server password=".length($remote_password)." bytes";
+	$tolog[]="$ID: source server (where orginal messages are stored) : $remote_username@$imap_server password=".strlen($remote_password)." bytes";
+	
 	
 	if($usessl==1){
 			$offlineImapConf[]="ssl = 1";

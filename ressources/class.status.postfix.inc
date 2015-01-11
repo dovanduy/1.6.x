@@ -110,6 +110,17 @@ function milter_greylist(){
 		return implode("\n",$l);
 
 	}
+	
+	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".database.time";
+	$TimeExec=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($TimeFile);
+	if($TimeExec>5){
+		@unlink($TimeFile);
+		@file_put_contents($TimeFile, time());
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.milter-greylist.php --database >/dev/null 2>&1 &");
+	}
+	
+	
+	
 	$l[]="running=1";
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
@@ -202,7 +213,7 @@ function mailarchiver(){
 			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.mailarchiver.php >/dev/null 2>&1 &");
 		}
 	}
-	@mkdir("/etc/artica-postfix/pids",0755,true);
+	if(!is_dir("/etc/artica-postfix/pids")){ @mkdir("/etc/artica-postfix/pids",0755,true); }
 	$PurgeTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".purge.time";
 	$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($PurgeTime);
 	if($time>480){

@@ -31,7 +31,7 @@ end
 
 class Philesight
 
-	def initialize(ringcount=4, size=650, use_gradient=true)
+	def initialize(ringcount=4, size=800, use_gradient=false)
 		@max_files_per_dir = 50
 		@w = size
 		@h = size
@@ -334,8 +334,8 @@ class Philesight
 		end
 
 		total_path, child_path = Marshal::load( @db[path] )
-		draw_text(cr, @cx, 10,  "%s (%s)" % [ path, filesize_readable(total_path) ], 14, true)
-		draw_text(cr, @cx, @cy, "cd ..", 14, true)
+		draw_text(cr, @cx, 10,  "%s (%s)" % [ path, filesize_readable(total_path) ], 18, true)
+		draw_text(cr, @cx, @cy, "..", 14, true)
 
 		# Draw rings, recursively
 
@@ -356,8 +356,8 @@ class Philesight
 
 		@labels.each do |label|
 
-			cr.select_font_face("Arial", Cairo::FONT_SLANT_NORMAL, Cairo::FONT_WEIGHT_NORMAL)
-			cr.set_font_size(7)
+			cr.select_font_face("Arial")
+			cr.set_font_size(16)
 
 			# Draw text 4 times in a dark color, one time white on top
 

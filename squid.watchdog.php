@@ -99,9 +99,9 @@ function smtp_notifs(){
 	//Switchdiv
 	
 	$html="
-	<div id='notif1-$t'></div>
+	<div id='notif1-$t' class=form style='width:98%'>
 	
-	<table style='width:99%' class=form>
+	<table style='width:99%' >
 	<tr>
 	<td nowrap class=legend style='font-size:14px'>{smtp_enabled}:</strong></td>
 	<td>" . Field_checkbox("ENABLED_SQUID_WATCHDOG",1,$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"],"SMTPNotifArticaEnableSwitch$t()")."</td>
@@ -155,13 +155,11 @@ function smtp_notifs(){
 	<tr>
 		<td align='right' colspan=2>".button('{apply}',"SaveArticaSMTPNotifValues$t();",16)."</td>
 	</tr>
-	
-			</tr>
-			</table>
+</table>
+</div>
 <script>
 var x_SaveArticaSMTPNotifValues$t= function (obj) {
 	var results=obj.responseText;
-	document.getElementById('notif1-$t').innerHTML='';
 	if(results.length>3){alert(results);}
 	RefreshTab('watchdogsquid');
 }
@@ -184,7 +182,7 @@ var x_SaveArticaSMTPNotifValues$t= function (obj) {
 	XHR.appendData('smtp_auth_user',document.getElementById('smtp_auth_user').value);
 	XHR.appendData('smtp_auth_passwd',pp);
 	XHR.appendData('smtp_notifications','yes');
-	AnimateDiv('notif1-$t');
+	
 	XHR.sendAndLoad('$page', 'POST',x_SaveArticaSMTPNotifValues$t);
 	}
 	

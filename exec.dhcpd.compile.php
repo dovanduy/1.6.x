@@ -28,6 +28,17 @@ if($argv[1]=='--bind'){compile_bind();die();}
 
 BuildDHCP();
 
+function build_progress($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/dhcpd.progress";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
 function BuildDHCP($nopid=false){
 
 	$LOGBIN="DHCP Server";
@@ -44,6 +55,7 @@ function BuildDHCP($nopid=false){
 		}
 	}
 	
+	build_progress("{starting_service}",65);
 	$ldap=new clladp();
 	if($ldap->ldapFailed){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN ldap connection failed,aborting\n";return;}
 	if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: ".date("H:i:s")." DHCP SERVER dc=organizations,$ldap->suffix no such branch, aborting\n";return;	}
@@ -71,7 +83,7 @@ function BuildDHCP($nopid=false){
 	
 	@unlink($timefile);
 	@file_put_contents($timefile, time());
-	
+	build_progress("{starting_service}",70);
 	$sock=new sockets();
 	$sock->getFrameWork("dnsmasq.php?restart=yes");
 	$sock->getFrameWork("services.php?restart-monit=yes");
@@ -121,9 +133,19 @@ function start($aspid=false){
 	
 	
 	
-	if($EnableChilli==1){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN replaced by HotSpot feature...\n";}$EnableDHCPServer=0;}
-	if($EnableDHCPServer==0){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service disabled\n";}return;}	
+	if($EnableChilli==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN replaced by HotSpot feature...\n";}
+		$EnableDHCPServer=0;
+		
+	}
+	if($EnableDHCPServer==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service disabled\n";}
+		build_progress("{starting_service} {failed}",110);
+		return;
+	}	
 	
+	
+	build_progress("{starting_service}",60);
 	@mkdir("/var/run/dhcp3-server",0755,true);
 	@mkdir("/var/lib/dhcp3",0755,true);
 	
@@ -141,10 +163,10 @@ function start($aspid=false){
 	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN building settings...\n";
 	BuildDHCP(true);
 	
+	build_progress("{starting_service}",75);
 	$CMD[]="$binpath -q -pf ".PID_PATH();
 	$CMD[]="-cf ".dhcp3Config();
 	$CMD[]="-lf /var/lib/dhcp3/dhcpd.leases";
-	$CMD[]=$DHCP3ListenNIC;
 	$cmd=@implode(" ", $CMD);
 	
 	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service..\n";
@@ -152,9 +174,11 @@ function start($aspid=false){
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
 	
+	build_progress("{starting_service}",80);
 	for($i=0;$i<6;$i++){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
+		build_progress("{starting_service}  waiting $i/6",80);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service waiting $i/6...\n";}
 		sleep(1);
 	}
@@ -162,11 +186,12 @@ function start($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service Success service started pid:$pid...\n";}
+		build_progress("{starting_service}  {success}",100);
 		return;
 	}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service failed...\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: `$cmd`\n";}
-	
+	build_progress("{starting_service}  {failed}",110);
 	
 }
 //##############################################################################
@@ -182,10 +207,16 @@ function restart(){
 	}
 	@file_put_contents($pidfile, getmypid());
 	
+	
+	build_progress("{stopping_service}",10);
 	stop(true);
+	build_progress("{starting_service}",50);
 	start(true);
 
 }
+
+
+
 
 function reload_if_run(){
 	$pid=PID_NUM();
@@ -246,6 +277,8 @@ function stop($aspid=false){
 
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service Shutdown pid $pid...\n";}
+	
+	build_progress("{stopping_service} $pid",20);
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
@@ -260,6 +293,7 @@ function stop($aspid=false){
 		return;
 	}
 
+	build_progress("{stopping_service} $pid ( force)",30);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service shutdown - force - pid $pid...\n";}
 	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){

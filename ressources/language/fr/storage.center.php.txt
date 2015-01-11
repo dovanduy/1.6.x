@@ -9,7 +9,7 @@ Cliquez sur cet icon pour installer l'outil n&eacute;c&eacute;ssaire</APP_WINEXE
 <ExecuteAfter>Ex&eacute;cuter apr&egrave;s</ExecuteAfter>
 <MinutesToWait>Nombre de minutes maximum d'attente</MinutesToWait>
 <package>paquet</package>
-<refresh>rafra&icirc;chir</refresh>
+<refresh>Rafra&icirc;chir</refresh>
 <remote_install>Installation distante</remote_install>
 <remote_install_text>Cr&eacute;ez des t&acirc;ches afin d'effectuer des d&eacute;ploiements distants de logiciels</remote_install_text>
 <resfresh_software_list>Rafra&icirc;chir la liste des logiciels</resfresh_software_list>

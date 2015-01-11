@@ -14,6 +14,10 @@
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
+	
+	if(isset($_POST["SquidTemplateSimple"])){SquidTemplateSimple_save();exit;}
+	
+	if(isset($_GET["status"])){status();exit;}
 	if(isset($_GET["template-settings-js"])){template_settings_js();exit;}
 	if(isset($_POST["newtemplate"])){TEMPLATE_ADD_SAVE();exit;}
 	if(isset($_POST["template_body"])){ZOOM_SAVE();exit;}
@@ -48,16 +52,37 @@ function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$q=new mysql();
+	$sock=new sockets();
+	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
+	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
 	
-	$array["popup"]='{squid_templates_error}';
+	
+	
+	$array["status"]='{status}';
+	if($SquidTemplateSimple==1){
+	$array["skin-gene"]='{default_settings}';
+	$array["skin-popup"]='{squid_templates_error}';
+	$array["skin-logo"]='{logo}';
+	}else{
+		$array["popup"]='{squid_templates_error}';
+	}
 	//$array["ocsagent"]="{APP_OCSI_LNX_CLIENT}";
 	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
-		if($num=="ocsagent"){
-			$tab[]="<li><a href=\"ocs.agent.php?inline=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+		if($num=="skin-gene"){
+			$tab[]="<li><a href=\"squid.templates.skin.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
+		if($num=="skin-popup"){
+			$tab[]="<li><a href=\"squid.templates.skin.php?table=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="skin-logo"){
+			$tab[]="<li><a href=\"squid.templates.skin.php?skin-logo=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+				
 		$tab[]="<li><a href=\"$page?$num=yes&viatabs=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			
 	}
@@ -115,38 +140,54 @@ function IMPORT_DEFAULT_JS(){
 	echo $html;
 }
 function DefaultTemplatesInMysql(){
-	$q=new mysql_squid_builder();
-	$defaultdb=dirname(__FILE__)."/ressources/databases/squid.default.templates.db";
-	if(!is_file($defaultdb)){echo "$defaultdb no such file\n";return;}
-	$array=unserialize(@file_get_contents($defaultdb));
-	if(!is_array($array)){echo "$defaultdb no such array\n";return;}
-	$prefix="INSERT IGNORE INTO squidtpls (`zmd5`,`lang`,`template_name`,`template_body`,`template_title`) VALUES ";
-$c=0;
-	while (list ($language, $arrayTPL) = each ($array)){
-		while (list ($templateName, $templateData) = each ($arrayTPL)){
-			$title=$templateData["TITLE"];
-			
-			$body=base64_decode($templateData["BODY"]);
-			$md5=md5($language.$templateName);
-			$body=addslashes($body);
-			$title=addslashes($title);
-			
-			
-			
-			
-			$q->QUERY_SQL("DELETE FROM squidtpls WHERE `zmd5`='$md5'");
-			$body=utf8_decode($body);
-			$title=utf8_decode($title);
-			$ss="('$md5','$language','$templateName','$body','$title')";
-			
-			$q->QUERY_SQL($prefix.$ss);
-			$f=array();
-			if(!$q->ok){echo "$templateName ($language) FAILED ($q->mysql_error)\n";continue;}
-			$c++;
-		}
+
+}
+
+function status(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
+	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
+	$t=time();
+	$html="
+	<div style='width:98%' class=form>
+	". Paragraphe_switch_img("{use_simple_template_mode}", 
+			"{use_simple_template_mode_squid_explain}",
+			"SquidTemplateSimple",$SquidTemplateSimple,null,800)."
+	<div style='width:100%;text-align:right;margin-top:20px'>". button("{apply}","Save$t()",26)."		
+					
+	</div>	
+<script>	
+var xSave$t=function(obj){
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	AnimateDiv('BodyContent');
+	LoadAjax('BodyContent','squid.templates.php?tabs=yes');
+}	    
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+    XHR.appendData('SquidTemplateSimple',document.getElementById('SquidTemplateSimple').value);
+    XHR.sendAndLoad('$page', 'POST',xSave$t);          
+}
+
+</script>
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+function SquidTemplateSimple_save(){
+	$users=new usersMenus();
+	$sock=new sockets();
+	if(!$users->CORP_LICENSE){
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}",1);
+		$sock->SET_INFO("SquidTemplateSimple", 1);
 	}
 	
-	echo "Importing $c templates\n";
+	$sock->SET_INFO("SquidTemplateSimple", $_POST["SquidTemplateSimple"]);
 }
 
 
@@ -162,7 +203,7 @@ function REPLACE_POPUP(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();	
-	$html="<div class=explain style='font-size:16px'>{SQUID_TEMPLATE_REPLACE_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:16px'>{SQUID_TEMPLATE_REPLACE_EXPLAIN}</div>
 	<div id='$t'></div>
 	<div style='font-size:22px'>{from}:</div>
 	<textarea style='width:95%;height:100px;font-family:monospace;

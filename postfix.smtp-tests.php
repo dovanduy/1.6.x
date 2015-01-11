@@ -22,7 +22,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{TEST_SMTP_CONNECTION}::{$_GET["hostname"]}");
-	echo "YahooWin6('600','$page?popup=yes&servername={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}','$title');";	
+	echo "YahooWin6('990','$page?popup=yes&servername={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}','$title');";	
 	
 	
 }
@@ -32,10 +32,10 @@ function popup(){
 	$tpl=new templates();	
 	$t=time();
 	$title=$tpl->_ENGINE_parse_body("{TEST_SMTP_CONNECTION}::{$_GET["servername"]}");
-	$parameters=$tpl->javascript_parse_text("{parameters}");
+	$parameters=$tpl->javascript_parse_text("{write_message_and_send}");
 	$buttons="
 	buttons : [
-	{name: '$parameters', bclass: 'Settings', onpress : SMTPTestsSets},$BrowsAD
+	{name: '$parameters', bclass: 'apply', onpress : SMTPTestsSets},$BrowsAD
 	],";	
 	
 	$events=$tpl->_ENGINE_parse_body("{events}");
@@ -47,7 +47,7 @@ $('#flexRT$t').flexigrid({
 	url: '$page?events-search=yes&t=$t&servername={$_GET["servername"]}&ou={$_GET["ou"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$events', name : 'events', width : 550, sortable : true, align: 'left'},
+		{display: '$events', name : 'events', width : 926, sortable : true, align: 'left'},
 	
 		],
 	$buttons
@@ -57,11 +57,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 580,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -70,7 +70,7 @@ $('#flexRT$t').flexigrid({
 });	
 
 function SMTPTestsSets(){
-	YahooWin3('550','$page?popup-settings=yes&servername={$_GET["servername"]}&ou={$_GET["ou"]}','$parameters');
+	YahooWin3('850','$page?popup-settings=yes&servername={$_GET["servername"]}&ou={$_GET["ou"]}&t=$t','$parameters');
 
 }
 
@@ -90,35 +90,36 @@ function popup_settings(){
 	<div id='params-$t' style='text-align:right'><strong>Key:$Key</strong></div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_sender}:</strong></td>
-		<td>" . Field_text("smtp_sender-$t",trim($datas["smtp_sender"]),'font-size:14px;padding:3px;width:100%')."</td>
+		<td nowrap class=legend style='font-size:18px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text("smtp_sender-$t",trim($datas["smtp_sender"]),'font-size:18px;padding:3px;width:100%')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{recipient}:</strong></td>
-		<td>" . Field_text("smtp_dest-$t",trim($datas["smtp_dest"]),'font-size:14px;padding:3px;width:100%')."</td>
+		<td nowrap class=legend style='font-size:18px'>{recipient}:</strong></td>
+		<td>" . Field_text("smtp_dest-$t",trim($datas["smtp_dest"]),'font-size:18px;padding:3px;width:100%')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{use_local_service}:</strong></td>
-		<td>" . Field_checkbox("smtp_local-$t",1,$datas["smtp_local"])."</td>
+		<td nowrap class=legend style='font-size:18px'>{use_local_service}:</strong></td>
+		<td>" . Field_checkbox_design("smtp_local-$t",1,$datas["smtp_local"],"smtp_localcheck()")."</td>
+	</tr>	
+
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{relay}:</strong></td>
+		<td>" . Field_text("relay-$t",trim($datas["relay"]),'font-size:18px;padding:3px;width:100%')."</td>
 	</tr>	
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{authenticate}:</strong></td>
-		<td>" . Field_checkbox("smtp_auth-$t",1,$datas["smtp_auth"],"smtp_authCheck()")."</td>
-	</tr>
+		<td nowrap class=legend style='font-size:18px'>{authenticate}:</strong></td>
+		<td>" . Field_checkbox_design("smtp_auth-$t",1,$datas["smtp_auth"],"smtp_authCheck()")."</td>
+	</tr>					
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{relay}:</strong></td>
-		<td>" . Field_text("relay-$t",trim($datas["relay"]),'font-size:14px;padding:3px;width:100%')."</td>
-	</tr>		
-	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_auth_user}:</strong></td>
-		<td>" . Field_text("smtp_auth_user-$t",trim($datas["smtp_auth_user"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_user}:</strong></td>
+		<td>" . Field_text("smtp_auth_user-$t",trim($datas["smtp_auth_user"]),'font-size:18px;padding:3px;width:150px')."</td>
 	</tr>	
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_auth_passwd}:</strong></td>
-		<td>" . Field_password("smtp_auth_passwd-$t",trim($datas["smtp_auth_passwd"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password("smtp_auth_passwd-$t",trim($datas["smtp_auth_passwd"]),'font-size:18px;padding:3px;width:150px')."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{save_and_send}","SaveTestSend()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{save_and_send}","SaveTestSend()",35)."</td>
 	</tr>
 	</table>
 	<script>
@@ -126,13 +127,21 @@ function popup_settings(){
 		var results=obj.responseText;
 		document.getElementById('params-$t').innerHTML='';
 		if(results.length>0){alert(results);return;}
+		$('#flexRT$t').flexReload();
 		YahooWin3Hide();
+	}
+	
+	function smtp_localcheck(){
+		document.getElementById('relay-$t').disabled=false;
+		if(document.getElementById('smtp_local-$t').checked){
+			document.getElementById('relay-$t').disabled=true;
+			}
 	}
 	
 	function smtp_authCheck(){
 		document.getElementById('smtp_auth_user-$t').disabled=true;
 		document.getElementById('smtp_auth_passwd-$t').disabled=true;
-		document.getElementById('relay-$t').disabled=true;
+		
 		
 		if(document.getElementById('smtp_auth-$t').checked){
 			document.getElementById('smtp_auth_user-$t').disabled=false;
@@ -157,6 +166,7 @@ function popup_settings(){
 		XHR.sendAndLoad('$page', 'POST',x_SaveTestSend);
 	}
 	smtp_authCheck();
+	smtp_localcheck();
 </script>
 	";
 	
@@ -213,13 +223,13 @@ $data = array();
 				$function=$re[5];
 				$lineN=$re[6];
 				$line=$re[7];
-				$subtext="<div><i style='font-size:10px'>File:$script pid:$pid function:$function on line:$lineN</i></div>";
+				$subtext="<div><i style='font-size:16px'>File:$script pid:$pid function:$function on line:$lineN</i></div>";
 			}
 			
 			if($search<>null){if(!preg_match("#$search#i", $line)){continue;}}
 			if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed)#i", $line)){$color="#D61010";}
 				
-			$style="<span style='color:$color;font-size:12px'>";
+			$style="<span style='color:$color;font-size:16px'>";
 			$styleoff="</span>$subtext";
 			$line=str_replace("::", ":", $line);
 			$line=str_replace(":", ":<br>", $line);

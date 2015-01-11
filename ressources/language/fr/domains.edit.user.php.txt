@@ -59,7 +59,7 @@ L\'op&eacute;ration sera ex&eacute;cut&eacute;e en arri&egrave;re-plan ...</conf
 <DISCONNECT_FROM_GROUP>D&eacute;connecter cet utilisateur du groupe</DISCONNECT_FROM_GROUP>
 <displayName>Nom affich&eacute;</displayName>
 <DnsMXLength>Longueur MX</DnsMXLength>
-<DnsType>Enregistrement d'h&ocirc;te de type DNS</DnsType>
+<DnsType>Type de DNS</DnsType>
 <dnstypea>adresse h&ocirc;te</dnstypea>
 <DnsZoneName>domaine DNS</DnsZoneName>
 <DotClearUserEnabled>Activer DotClear</DotClearUserEnabled>
@@ -87,7 +87,7 @@ Apr&egrave;s avoir analyser les messages, ils seront automatiquement supprim&eac
 <FTPQuotaMBytes>Quota (en megabytes)</FTPQuotaMBytes>
 <FTPStatus>Acc&egrave;s FTP</FTPStatus>
 <FTPUploadBandwidth>Limitation de la vitesse Chargement (Kb/s)</FTPUploadBandwidth>
-<FTPUploadRatio>Ratio d'upload</FTPUploadRatio>
+<FTPUploadRatio>Ratio de chargement</FTPUploadRatio>
 <ftp_access>Acc&egrave;s FTP</ftp_access>
 <gidNumber>Membre de</gidNumber>
 <givenName>Pr&eacute;nom</givenName>

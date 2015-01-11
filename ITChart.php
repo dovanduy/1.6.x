@@ -36,7 +36,7 @@ function popup(){
 		
 	}
 	
-	$html="<div class=explain style='font-size:16px !important'>{IT_charter_explain}
+	$html="<div class=text-info style='font-size:16px !important'>{IT_charter_explain}
 			
 			</div><p class=text-error>{only_miniadm}</p>";
 	

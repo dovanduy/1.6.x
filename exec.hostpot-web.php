@@ -22,9 +22,17 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;apache_stop();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;apache_start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
+	if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;apache_config();die();}
 	
 	
-
+function build_progress_reconfigure($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.progress", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.progress",0777);
+	
+	}
 
 function restart($nopid=false){
 	$unix=new unix();
@@ -37,10 +45,15 @@ function restart($nopid=false){
 			return;
 		}
 	}
+	
 	@file_put_contents($pidfile, getmypid());
+	build_progress_reconfigure("{stopping_service} {webserver}",50);
 	apache_stop(true);
+	build_progress_reconfigure("{reconfiguring} {webserver}",60);
 	apache_config();
+	build_progress_reconfigure("{starting_service} {webserver}",80);
 	apache_start(true);	
+	build_progress_reconfigure("{starting_service} {webserver} {done}",85);
 }	
 
 function apache_stop(){
@@ -62,7 +75,7 @@ function apache_stop(){
 
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} testing $ArticaHttpsPort port...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} testing $ArticaSplashHotSpotPortSSL port...\n";}
 		fuser_port($ArticaSplashHotSpotPort);
 		fuser_port($ArticaSplashHotSpotPortSSL);
 		return;
@@ -240,11 +253,6 @@ function apache_start(){
 	
 }
 
-function apache_LOCATE_MIME_TYPES(){
-	if(is_file("/etc/mime.types")){return "/etc/mime.types";}
-	if(is_file("/etc/apache2/mime.types")){return "/etc/apache2/mime.types";}
-	if(is_file("/etc/httpd/mime.types")){return "/etc/httpd/mime.types";}
-}
 
 
 function apache_config(){
@@ -269,9 +277,13 @@ function apache_config(){
 	if(!is_numeric($ArticaSplashHotSpotPortSSL)){$ArticaSplashHotSpotPortSSL=16443;}
 	$ArticaHotSpotInterface=$sock->GET_INFO("ArticaHotSpotInterface");
 	
+	
+	
 	$unix=new unix();
 	$NETWORK_ALL_INTERFACES=$unix->NETWORK_ALL_INTERFACES();
 	$ipaddr=$NETWORK_ALL_INTERFACES[$ArticaHotSpotInterface]["IPADDR"];
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} HotSpot run as $ArticaHotSpotInterface ( $ipaddr )\n";}
 	
 	
 	if($ipaddr=="0.0.0.0"){$ipaddr="*";}
@@ -286,7 +298,7 @@ function apache_config(){
 	if(!is_file($phpfpm)){$EnableArticaApachePHPFPM=0;}	
 	
 	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/run/artica-apache");
-	$apache_LOCATE_MIME_TYPES=apache_LOCATE_MIME_TYPES();
+	$apache_LOCATE_MIME_TYPES=$unix->apache_LOCATE_MIME_TYPES();
 	
 	if($EnableArticaApachePHPFPM==1){
 		if(!is_file("$APACHE_MODULES_PATH/mod_fastcgi.so")){
@@ -520,7 +532,8 @@ $f[]="</VirtualHost>";
 	$f[]="\tAddOutputFilter INCLUDES .shtml";
 	$f[]="</IfModule>";
 
-	
+	$f[]="Alias /index.php /usr/share/artica-postfix/hotspot.php";
+	$f[]="Alias /index.html /usr/share/artica-postfix/hotspot.php";
 	
 	$f[]="<Directory \"/usr/share/artica-postfix\">";
 	$f[]="\tDirectorySlash On";
@@ -542,20 +555,6 @@ $f[]="</VirtualHost>";
 	$f[]="\tAllowOverride All";
 	$f[]="\tOrder allow,deny";
 	$f[]="\tAllow from all";
-	
-	$f[]="\tRewriteEngine On";
-	$f[]="\tRewriteCond %{REQUEST_URI} /img/(.*)";
-	$f[]="\tRewriteRule ^ /hotspot.php?imgload=%1 [L]";
-	
-	$f[]="\tRewriteCond %{REQUEST_URI} /ressources/templates/endusers/(.*)";
-	$f[]="\tRewriteRule ^ /hotspot.php?endusers=%1 [L]";
-	
-	
-	
-	
-	$f[]="\tRewriteCond %{REQUEST_URI} !/hotspot.php.*";
-	$f[]="\tRewriteRule ^ /hotspot.php?uri=%{REQUEST_URI} [R=301]";
-	
 	$f[]="</Directory>";	
 	
 	if($EnableArticaApachePHPFPM==1){	

@@ -88,7 +88,7 @@ $welcome_organization_register=$tpl->_ENGINE_parse_body("{welcome_organization_r
 
 	$html="
 <form id='welcome_organization_register_form'>
-	<div style='font-size:14px' class=explain>$welcome_organization_register</div>
+	<div style='font-size:14px' class=text-info>$welcome_organization_register</div>
 	<p><span></span></p>
 	<center>
 		<table style='width:85%' class=form>
@@ -679,7 +679,7 @@ return true;
 function getcredentials(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$html="<div class=explain>{form_get_credentials_upd}</div>
+	$html="<div class=text-info>{form_get_credentials_upd}</div>
 	<div id='retreive-connection-results'></div>
 	<form id='retreive-connection'>
 	<table class=form style='width:99%'>

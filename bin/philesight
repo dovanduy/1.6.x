@@ -1,8 +1,9 @@
-#!/usr/bin/ruby
+#!/usr/bin/ruby1.8
 # vi: ts=2 sw=2
 
+
 require 'getoptlong'
-require 'philesight'
+require '/usr/share/artica-postfix/bin/philesight'
 require 'set'
 
 opts = GetoptLong.new(

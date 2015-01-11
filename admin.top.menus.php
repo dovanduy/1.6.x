@@ -22,26 +22,73 @@ $AsSquid=false;
 $DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;$ActAsSMTPGatewayStatistics=0;}
 
-$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","ConfigureYourserver()");
-
-
-if($users->SQUID_INSTALLED){
-	$AsSquid=true;
-	if($users->AsSquidAdministrator){
-		$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{PROXY_SERVICE}","MessagesTopshowMessageDisplay('quicklinks_proxy');");
-		$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
+if($_SESSION["uid"]<>null){
+	if($users->AsAnAdministratorGeneric){
+		$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","ConfigureYourserver()");
 	}
 }
 
-if($users->KAV4PROXY_INSTALLED){
-	$tr[]=BuildIcons("Kaspersky-32-white.png","Kaspersky-32-white.png","{APP_KAV4PROXY}","LoadAjax('BodyContent','kav4proxy.php?inline=yes');");
+$AllowSquid=false;
+if($users->AsSquidAdministrator){$AllowSquid=true;$users->AsArticaMetaAdmin=true;}
+if($users->AsDansGuardianAdministrator){$AllowSquid=true;}
+if($users->AsProxyMonitor){$AllowSquid=true;}
+$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
+$EnableFreeWeb=intval($sock->GET_INFO("EnableFreeWeb"));
+$EnableNginxMail=intval($sock->GET_INFO("EnableNginxMail"));
+$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+$users=new usersMenus();
+if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
+if($AsCategoriesAppliance==1){$SQUIDEnable=0;}
+$AsMetaServer=intval($sock->GET_INFO("AsMetaServer"));
+if($AsMetaServer==1){$sock->SET_INFO("EnableArticaMetaServer",1);}
+$action=false;
+if($users->SQUID_INSTALLED){
+	$AsSquid=true;
 }
+
+if($SQUIDEnable==1){
+	if($users->SQUID_INSTALLED){
+		$AsSquid=true;
+		if($AllowSquid){
+			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{PROXY_SERVICE}","MessagesTopshowMessageDisplay('quicklinks_proxy');");
+			$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
+			$tr[]=BuildIcons("eye-32-w.png","eye-32-w.png","{events}","LoadAjax('BodyContent','squid.eye.php');");
+			$action=true;
+			if($users->KAV4PROXY_INSTALLED){
+				$tr[]=BuildIcons("Kaspersky-32-white.png","Kaspersky-32-white.png","{APP_KAV4PROXY}","LoadAjax('BodyContent','kav4proxy.php?inline=yes');");
+			}
+		}
+	}
+
+
+
+
+}
+
+if($SQUIDEnable==0){
+	if($users->NGINX_INSTALLED){
+		if($EnableNginx==1){
+			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","Reverse Proxy","AnimateDiv('BodyContent');LoadAjax('BodyContent','nginx.main.php');");
+			
+		}
+		
+		if($AsCategoriesAppliance==1){
+			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{APP_UFDBCAT}","AnimateDiv('BodyContent');
+					LoadAjax('BodyContent','ufdbcat.php');");
+			$action=true;
+			$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
+			
+		}
+	}
+	
+}
+
 
 if($users->POSTFIX_INSTALLED){
 	$postfixadded=true;
 	$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","MessagesTopshowMessageDisplay('quicklinks_postfix');");
 	$tr[]=BuildIcons("mail-secu-32.png","mail-secu-32.png","{security}","MessagesTopshowMessageDisplay('quicklinks_postfix_secu');");
-	
 }
 
 if($ActAsSMTPGatewayStatistics==1){
@@ -52,12 +99,16 @@ if($ActAsSMTPGatewayStatistics==1){
 
 
 if(!$users->AsArticaAdministrator){
-	$menus["{account}"]="javascript:Loadjs(\"users.account.php?js=yes\")";
+	if($_SESSION["uid"]<>null){
+		$menus["{account}"]="javascript:Loadjs(\"users.account.php?js=yes\")";
+	}
 }
-
-if($users->POSTFIX_INSTALLED){
-	if($users->AsPostfixAdministrator){
-		$tr[]=BuildIcons("fleche-32-white-tr.png","fleche-32-white.png","{compile_postfix}","Loadjs('postfix.compile.php')");
+if(!$action){
+	if($users->POSTFIX_INSTALLED){
+		if($users->AsPostfixAdministrator){
+			$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
+			
+		}
 	}
 }
 				
@@ -73,7 +124,15 @@ if($users->AsSystemAdministrator){
 	//$tr[]=BuildIcons("services-32-white-tr.png","services-32-white.png","{display_running_services}","Loadjs('admin.index.services.status.php?js=yes')");
 }
 
-
+if($users->AsArticaMetaAdmin){
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==1){
+		$ProductName="Artica";
+		$ProductNamef=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf";
+		if(is_file($ProductNamef)){$ProductName=trim(@file_get_contents($ProductNamef));}
+		$tr[]=BuildIcons("management-console-32.png","management-console-32.png","$ProductName Meta","LoadAjax('BodyContent','artica-meta.start.php');");
+	}
+}
 				
 
 
@@ -91,46 +150,64 @@ if(!$AsSquid){
 		}
 	}
 	
-	
-	
-	
-}
-
-if($users->AsWebMaster){
-	if($users->WORDPRESS_APPLIANCE){
-		$tr[]=BuildIcons("wp-32.png","wp-32.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
-	}else{
-		if($users->WORDPRESS_INSTALLED){
+	if($users->AsWebMaster){
+		if($users->WORDPRESS_APPLIANCE){
 			$tr[]=BuildIcons("wp-32.png","wp-32.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
+		}else{
+			if($users->WORDPRESS_INSTALLED){
+				$tr[]=BuildIcons("wp-32.png","wp-32.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
+			}
 		}
 	}
+
 }
 
 				
+if($users->AsSystemAdministrator){
+	$tr[]=BuildIcons("network-white-32.png","network-white-32.png","{networks}","MessagesTopshowMessageDisplay('quicklinks_section_networks');");
+}
 
-				//$tr[]="<div id='update-white-32-tr'></div>";
-				$tr[]=BuildIcons("network-white-32.png","network-white-32.png","{networks}","MessagesTopshowMessageDisplay('quicklinks_section_networks');");
-				$tr[]=BuildIcons("users-white-32.png","users-white-32.png","{members}","MessagesTopshowMessageDisplay('quicklinks_members');");
+if($_SESSION["uid"]<>null){
+	if($users->AsAnAdministratorGeneric){
+		$tr[]=BuildIcons("users-white-32.png","users-white-32.png","{members}","MessagesTopshowMessageDisplay('quicklinks_members');");
+	}
+}
 
 //32-settings-white.png
 //close-white-32.png
 				
 				
-				
+$fleche_js="MessagesTopshowMessageDisplay('quicklinks_main_menu');";
+if($_SESSION["uid"]==null){
+	$fleche_js="Loadjs('public.logon.php');";
+}
+
+if(!$users->AsAnAdministratorGeneric){
+	$fleche_js="Loadjs('public.logon.php');";
+	
+}
+
+$logo="/css/images/logo.gif";
+
+if(is_file(dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/img/logo.png")){
+	$logo="ressources/templates/{$_COOKIE["artica-template"]}/img/logo.png";
+}else{
+	$html[]="<!-- ".dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/img/logo.png no such file -->";
+}
 				
 $html[]="
+
 <table style='width:100%;'>
 		<tr>
 		<td style='margin:0;padding:0;vertical-align:middle;' width=1% nowrap>
-			<img src='/css/images/logo.gif' style='margin:0px;padding:0px;cursor:pointer'>
+			<img src='$logo' style='margin:0px;padding:0px;cursor:pointer'>
 		</td>
 		
 		<td valign='middle' 
 		style='border-left:1px solid white;padding-left:15px;padding-right:15px;margin:0;vertical-align:middle'
 		onmouseout=\"javascript:this.className='TopObjectsOut';\" 
 		onmouseover=\"javascript:this.className='TopObjectsOver';\"
-		OnClick=\"javascript:MessagesTopshowMessageDisplay('quicklinks_main_menu');\"
-		>
+		OnClick=\"javascript:$fleche_js\"	>
 		<img src='img/mini-arrow-down.png'>
 		</td>";
 
@@ -141,7 +218,10 @@ while (list ($num, $line) = each ($tr)){
 }
 $html[]= "</tr></table>
 
-<td align='center' style='margin:0;padding:0;vertical-align:middle' width=1% nowrap><span id='account-identity'></span></td>
+<td align='center' style='margin:0;padding:0;vertical-align:middle' width=1% nowrap>
+	<span id='account-identity'>
+	</span>
+</td>
 </tr>
 </tbody>
 </table>
@@ -288,7 +368,7 @@ function BuildIcons($imageoff,$imageon,$help,$js){
 
 function account_identity(){
 	$ldap=new clladp();
-	
+	$uid=$_SESSION["uid"];
 	if($_SESSION["uid"]==-100){
 		$uid=$ldap->ldap_admin;
 		
@@ -303,10 +383,34 @@ function account_identity(){
 		
 	}
 	
+	if($uid==null){
+		$tpl=new templates();
+		$logon=$tpl->_ENGINE_parse_body("{logon}");
+		$html="<table style='width:100%;padding:0;border:0;margin:0'>
+		<tr>
+		<td nowrap style='font-size:14px;color:#FFFFFF;text-transform:capitalize'
+		onmouseout=\"javascript:this.className='TopObjectsOut';\"
+		onmouseover=\"javascript:this.className='TopObjectsOver';\"
+		OnClick=\"javascript:Loadjs('public.logon.php');\"
+		>$logon</td>
+		<td width=1% nowrap
+		onmouseout=\"javascript:this.className='TopObjectsOut';\"
+		onmouseover=\"javascript:this.className='TopObjectsOver';\"
+		OnClick=\"javascript:Loadjs('public.logon.php');\"
+		
+		><img src='img/unknown-user-32.png'></td>
+		</tr>
+		</table>
+			
+		";
+		echo $html;
+		return;
+	}
+	
 	
 	$html="<table style='width:100%;padding:0;border:0;margin:0'>
 	<tr>
-		<td nowrap style='font-size:14px;color:#FFFFFF'
+		<td nowrap style='font-size:14px;color:#FFFFFF;text-transform:capitalize'
 		onmouseout=\"javascript:this.className='TopObjectsOut';\" 
 		onmouseover=\"javascript:this.className='TopObjectsOver';\"
 		OnClick=\"javascript:MessagesTopshowMessageDisplay('quicklinks_account');\"

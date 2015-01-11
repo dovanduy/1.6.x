@@ -19,6 +19,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.settings.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+include_once(dirname(__FILE__).'/ressources/class.lighttpd.certificate.php');
 
 
 
@@ -80,6 +81,7 @@ function start($aspid=false){
 	$EnableUfdbGuard=$sock->EnableUfdbGuard();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if(!is_numeric($EnableSquidGuardHTTPService)){$EnableSquidGuardHTTPService=1;}
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
@@ -87,7 +89,7 @@ function start($aspid=false){
 	if($EnableUfdbGuard==0){$EnableSquidGuardHTTPService=0;}
 	if($SQUIDEnable==0){$SQUIDEnable=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableSquidGuardHTTPService=1;}
-
+	if($SquidPerformance>2){$EnableSquidGuardHTTPService=0;}
 
 	if($EnableSquidGuardHTTPService==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
@@ -226,6 +228,7 @@ function build(){
 	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
 	if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort="9020";}
 	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
+	$SquidGuardWebSSLCertificate=$sock->GET_INFO("SquidGuardWebSSLCertificate");
 	
 	if($username==null){
 		$username="www-data";
@@ -386,9 +389,11 @@ $f[]="";
 $f[]='';
 $f[]="\$SERVER[\"socket\"]== \":$SquidGuardApacheSSLPort\" {";
 $f[]="\tssl.engine                 = \"enable\"";
-$f[]="\tssl.pemfile                = \"/opt/artica/ssl/certs/lighttpd.pem\"";
+$cert=new lighttpd_certificate($SquidGuardWebSSLCertificate);
+$f[]=$cert->build();
 $f[]="}";	
 if(!is_file("/opt/artica/ssl/certs/lighttpd.pem")){
+	@chmod("/usr/share/artica-postfix/bin/artica-install", 0755);
 	shell_exec("/usr/share/artica-postfix/bin/artica-install -lighttpd-cert");
 	
 }

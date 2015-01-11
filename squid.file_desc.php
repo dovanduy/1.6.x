@@ -47,7 +47,7 @@ function popup(){
 	
 	
 	$html="
-	<div id='$t' class=explain>{file_descriptors_squid_explain}</div>
+	<div id='$t' class=text-info>{file_descriptors_squid_explain}</div>
 	<table style='width:99%' class=form>
 		<tr>
 			<td class=legend style='font-size:16px'>{file_descriptors}:</td>

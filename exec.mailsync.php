@@ -411,6 +411,7 @@ function cron(){
  	}
  	echo "Starting......: ".date("H:i:s")." Daemon (cron) set securities permissions on /etc/cron.d\n";
  	shell_exec("/bin/chmod 640 /etc/cron.d/* >/dev/null 2>&1");
+ 	shell_exec("/etc/init.d/cron reload");
 	
 }
 

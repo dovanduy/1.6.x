@@ -25,7 +25,7 @@ function page(){
 	$free=new freeweb($_GET["servername"]);
 	$t=time();
 	echo $tpl->_ENGINE_parse_body("<div style='width:98%' class=form>
-		<div class=explain style='font-size:16px'>{freeweb_content_plus_explain}</div>
+		<div class=text-info style='font-size:16px'>{freeweb_content_plus_explain}</div>
 		<center><textarea 
 		style='width:99%;height:350px;overflow:auto;border:5px solid #CCCCCC;font-size:14px !important;
 		font-weight:bold;padding:3px;font-family:Courier New;'

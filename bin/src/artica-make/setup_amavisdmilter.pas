@@ -742,6 +742,12 @@ if not FileExists(postfix.POSFTIX_POSTCONF_PATH()) then begin
 end;
 
 result:=false;
+
+if FileExists('/usr/lib/libGeoIP.so') then begin
+   writeln('libGeoIP looks good');
+   exit(true);
+end;
+
 if FileExists('/usr/local/lib/libGeoIP.so') then begin
    writeln('libGeoIP looks good');
    exit(true);

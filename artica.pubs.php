@@ -16,11 +16,18 @@ js();
 
 function js(){
 	
-	$sock=new sockets();
+	
 	$users=new usersMenus();
 	if(!$users->SQUID_INSTALLED){die();}
+	if($users->WEBSECURIZE){die();}
+	if($users->LANWANSAT){die();}
+	$sock=new sockets();
+	$AsMetaServer=intval($sock->GET_INFO("AsMetaServer"));
+	if($AsMetaServer==1){die();}
 	$KasperskyPromo022014=$sock->GET_INFO("KasperskyPromo022014");
+	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
 	if(!is_numeric($KasperskyPromo022014)){$KasperskyPromo022014=0;}
+	if($AsCategoriesAppliance){$KasperskyPromo022014=1;}
 	if($KasperskyPromo022014==0){KasperskyPromo022014();return;}
 	
 
@@ -65,7 +72,7 @@ function KasperskyPromo022014_fr_text(){
 	
 			
 			
-	<div style='font-size:14px' class=explain><strong>*Offre soumise à conditions :</strong><br>
+	<div style='font-size:14px' class=text-info><strong>*Offre soumise à conditions :</strong><br>
 	Prix pour un an par serveur Artica proxy protégé.<br>
 	Prix de la licence Kaspersky valable uniquement via l'opération &laquo;Kaspersky for Artica&raquo;.<br>
 	A activer au travers de l'interface Artica Proxy. Durée de la licence Kaspersky d'une année à compter de la date d’achat.
@@ -128,7 +135,7 @@ function KasperskyPromo022014_us_text(){
 	<center style='margin:30px'>$button</center>
 	<center style='margin:30px'>". button("No, thank you","ClosePub$t()",22)."</center>
 
-<div style='font-size:14px' class=explain><strong>*Offer subject to conditions :</strong><br>
+<div style='font-size:14px' class=text-info><strong>*Offer subject to conditions :</strong><br>
 700€ (Price for 1 year and for 1 protected Artica proxy server).<br>
 Kaspersky license price only valid for ‘Kaspersky for Artica’ operation.<br>
 To be activated through Artica proxy Web Interface.<br>

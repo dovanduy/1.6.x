@@ -187,7 +187,7 @@ echo $tpl->_ENGINE_parse_body($html);
 
 function help(){
 	$tpl=new templates();
-	$html="<div class=explain style='font-size:16px'>
+	$html="<div class=text-info style='font-size:16px'>
 	<strong style='font-size:18px'>{TEXT_MEMBERS_TO_CSV}</strong><br>
 	{csv_to_ldap_howto}
 	<hr>

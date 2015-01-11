@@ -240,7 +240,7 @@ function wizard5(){
 	$html="
 	<div id='$tt'>
 	<div style='width:98%' class=form>
-	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_2}</div>
+	<div class=text-info style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_2}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{APP_SYSLOG_DB} {listen_port}:</td>
@@ -504,10 +504,11 @@ function wizard11(){
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
 	$t=$_GET["t"];
 	$tt=time()+rand(0,time());
-	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=explain>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>")."
+	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=text-info>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>")."
 
 	<script>
 		Loadjs('squid.compile.progress.php');
+		RefreshTab('artica_squid_stats_tabs');
 	</script>
 	";
 
@@ -578,48 +579,48 @@ function wizard1(){
 	$arrcp[null]="{default}";
 	
 	$WgetBindIpAddress=$sock->GET_INFO("WgetBindIpAddress");
-	$WgetBindIpAddress=Field_array_Hash($arrcp,"WgetBindIpAddress",$WgetBindIpAddress,null,null,0,"font-size:19px;padding:3px;");
+	$WgetBindIpAddress=Field_array_Hash($arrcp,"WgetBindIpAddress",$WgetBindIpAddress,null,null,0,"font-size:20px;padding:3px;");
 		
 	$html="
 	<div id='$t'>		
-	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_1}</div>
+	<div class=text-info style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_1}</div>
 	<div class=form style='width:95%'>
 	<table style='width:100%'>	
 	<tr>
-		<td class=legend style='font-size:16px'>{WgetBindIpAddress}:</td>
+		<td class=legend style='font-size:20px'>{WgetBindIpAddress}:</td>
 		<td style='font-size:14px'>$WgetBindIpAddress</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{hostname}/IP:</td>
-		<td style='font-size:14px'>". Field_text("SERVER-$t",$WizardStatsAppliance["SERVER"],"font-size:19px;font-weight:bold;width:200px")."</td>
+		<td class=legend style='font-size:20px'>{hostname}/IP:</td>
+		<td style='font-size:14px'>". Field_text("SERVER-$t",$WizardStatsAppliance["SERVER"],"font-size:20px;font-weight:bold;width:200px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{listen_port}:</td>
-		<td style='font-size:14px'>". Field_text("PORT-$t",$WizardStatsAppliance["PORT"],"font-size:19px;width:90px")."</td>
+		<td class=legend style='font-size:20px'>{listen_port}:</td>
+		<td style='font-size:20px'>". Field_text("PORT-$t",$WizardStatsAppliance["PORT"],"font-size:20px;width:90px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{use_ssl}:</td>
-		<td style='font-size:14px'>". Field_checkbox("SSL-$t",1,$WizardStatsAppliance["SSL"])."</td>
+		<td class=legend style='font-size:20px'>{use_ssl}:</td>
+		<td style='font-size:14px'>". Field_checkbox_design("SSL-$t",1,$WizardStatsAppliance["SSL"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td colspan=3><p>&nbsp;</p>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{disconnected_mode}:</td>
-		<td style='font-size:14px'>". Field_checkbox("AS_DISCONNECTED-$t",1,$WizardStatsAppliance["AS_DISCONNECTED"],"DisconnectCheck$t()")."</td>
+		<td class=legend style='font-size:20px'>{disconnected_mode}:</td>
+		<td style='font-size:14px'>". Field_checkbox_design("AS_DISCONNECTED-$t",1,$WizardStatsAppliance["AS_DISCONNECTED"],"DisconnectCheck$t()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{manager}:</td>
-		<td style='font-size:14px'>". Field_text("MANAGER-$t",$WizardStatsAppliance["MANAGER"],"font-size:19px;font-weight:bold;width:200px")."</td>
+		<td class=legend style='font-size:20px'>{manager}:</td>
+		<td style='font-size:14px'>". Field_text("MANAGER-$t",$WizardStatsAppliance["MANAGER"],"font-size:20px;font-weight:bold;width:200px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
+		<td class=legend style='font-size:20px'>{password}:</td>
 		<td style='font-size:14px'>". Field_password("MANAGER-PASSWORD-$t",$WizardStatsAppliance["MANAGER-PASSWORD"],"font-size:19px;font-weight:bold;width:200px")."</td>
 		<td>&nbsp;</td>
 	</tr>				
@@ -676,7 +677,7 @@ function popup(){
 	
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
+	$EnableRemoteSyslogStatsAppliance=intval($sock->GET_INFO("EnableRemoteSyslogStatsAppliance"));
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
 	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
@@ -721,7 +722,7 @@ function popup(){
 	</tr>						
 	<tr>
 		<td class=legend style='font-size:14px'>{send_syslogs_to_server}:</td>
-		<td style='font-size:14px'>". Field_checkbox("EnableRemoteSyslogStatsAppliance",1,$EnableRemoteSyslogStatsAppliance)."</td>
+		<td style='font-size:14px'>". Field_checkbox_design("EnableRemoteSyslogStatsAppliance",1,$EnableRemoteSyslogStatsAppliance)."</td>
 		<td>". help_icon("{send_syslogs_to_server_client_explain}")."</td>
 	</tr>	
 
@@ -731,7 +732,7 @@ function popup(){
 	</tr>
 	</tbody>
 	</table>
-		<div class=explain style='font-size:13px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
+		<div class=text-info style='font-size:13px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
 	<script>
 		var x_SaveStatsApp=function (obj) {
 			var results=obj.responseText;

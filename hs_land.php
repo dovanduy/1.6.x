@@ -165,7 +165,7 @@
 </div>
 </td>
 </tr>
-</tboyd>
+</tbody>
 </table>
 </div>
 

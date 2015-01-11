@@ -77,7 +77,7 @@ $html="
 
 
 
-	<div class=explain style='font-size:18px'>{smtpd_client_restrictions_text}</div>
+	<div class=text-info style='font-size:18px'>{smtpd_client_restrictions_text}</div>
 	<input type='hidden' id='EnableGenericrDNSClientsDisabled' value='$EnableGenericrDNSClientsDisabled'>
 	<div id='smtpd_client_restrictions_div' style='width:98%' class=form>
 	

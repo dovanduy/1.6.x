@@ -109,7 +109,7 @@ ParagrapheTEXT('cache-refresh-48.png','{address_verify_map}','{address_verify_ma
 </td>
 </tr>
 </table>
-<div class=explain style='font-size:14px'>{performances_settings_text}</div>
+<div class=text-info style='font-size:14px'>{performances_settings_text}</div>
 ";
 
 

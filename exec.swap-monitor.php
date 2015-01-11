@@ -64,7 +64,7 @@ function events($text){
 }
 
 
-function FreeMem($aspid=false){
+function FreeMem($aspid=false,$SwapOffOn=array()){
 	$unix=new unix();
 	
 	if(!$aspid){
@@ -75,11 +75,26 @@ function FreeMem($aspid=false){
 			return;
 		}
 	}
+	if(count($SwapOffOn)==0){
+		$sock=new sockets();
+		$SwapOffOn=unserialize(base64_decode($sock->GET_INFO("SwapOffOn")));
+		if(!is_numeric($SwapOffOn["AutoMemWatchdog"])){$SwapOffOn["AutoMemWatchdog"]=1;}
+		if(!is_numeric($SwapOffOn["AutoMemPerc"])){$SwapOffOn["AutoMemPerc"]=90;}
+		if(!is_numeric($SwapOffOn["AutoMemInterval"])){$SwapOffOn["AutoMemInterval"]=180;}
+	}
 	
+	$text[]="Configuration was:";
+	$text[]="--------------------------------------";
+	$text[]="Free memory when Swap exceed {$SwapOffOn["AutoMemPerc"]}%";
+	$text[]="Watchdog scanning interval: each {$SwapOffOn["AutoMemInterval"]}mn";
+	if(isset($SwapOffOn["CURRENT"])){$text[]=$SwapOffOn["CURRENT"];}
+	$text[]=ps_mem_report();
 	
 	$TOTAL_MEMORY_MB_FREE=$unix->TOTAL_MEMORY_MB_FREE();
+	$text[]="{$TOTAL_MEMORY_MB_FREE}MB before operation";
 	$sync=$unix->find_program("sync");
 	$sysctl=$unix->find_program("sysctl");
+	$squid=$unix->LOCATE_SQUID_BIN();
 	shell_exec($sync);
 	shell_exec("$sysctl -w vm.drop_caches=3");
 	shell_exec($sync);
@@ -87,20 +102,26 @@ function FreeMem($aspid=false){
 	if(is_file("/etc/init.d/ssh")){
 		shell_exec("/etc/init.d/ssh restart");
 	}
-	$q=new mysql();
-	$q->EXECUTE_SQL("RESET QUERY CACHE;");
+	if($unix->is_socket("/var/run/mysqld/mysqld.sock")){
+		$q=new mysql();
+		$q->EXECUTE_SQL("RESET QUERY CACHE;");
+	}
+	
 	if($unix->is_socket("/var/run/mysqld/squid-db.sock")){
 		$q=new mysql_squid_builder();
-		$TOTAL_MEMORY_MB_FREE2=$unix->TOTAL_MEMORY_MB_FREE();
 		$q->EXECUTE_SQL("RESET QUERY CACHE;");
-		$TOTAL_MEMORY_MB=$TOTAL_MEMORY_MB_FREE2-$TOTAL_MEMORY_MB_FREE;
-		squid_admin_mysql(2,"Free memory operation has been executed - {$TOTAL_MEMORY_MB}MB restored",null,__FILE__,__LINE__);
 	}
 	
 	$TOTAL_MEMORY_MB_FREE2=$unix->TOTAL_MEMORY_MB_FREE();
+	$text[]="{$TOTAL_MEMORY_MB_FREE2}MB After operation";
 	$TOTAL_MEMORY_MB=$TOTAL_MEMORY_MB_FREE2-$TOTAL_MEMORY_MB_FREE;
-	system_admin_events("Free memory operation has been executed - {$TOTAL_MEMORY_MB}MB restored",__FUNCTION__,__FILE__,__LINE__);
+	$text[]="{$TOTAL_MEMORY_MB}MB restored";
+	$FINAL_TEXT=@implode("\n", $text);
 	
+	system_admin_events("Free memory operation has been executed - {$TOTAL_MEMORY_MB}MB restored\n$FINAL_TEXT",__FUNCTION__,__FILE__,__LINE__);
+	if(is_file($squid)){
+		squid_admin_mysql(1, "Swap exceed rule: Free memory operation has been executed - {$TOTAL_MEMORY_MB}MB restored", $FINAL_TEXT,__FILE__,__LINE__);
+	}	
 }
 
 
@@ -149,9 +170,25 @@ function Watch(){
 	
 	$TOTAL_MEMORY_MB_FREE=$unix->TOTAL_MEMORY_MB_FREE();
 	$TOTAL_MEM_POURCENT_USED=$unix->TOTAL_MEM_POURCENT_USED();
+	$TOTAL_MEMORY=$unix->TOTAL_MEMORY_MB();
+	
+	$SwapOffOn["CURRENT"]="Before operation: Server memory {$TOTAL_MEMORY}MB {$TOTAL_MEMORY_MB_FREE}Mb Free used {$TOTAL_MEM_POURCENT_USED}%";
 	if($GLOBALS["VERBOSE"]){echo "TOTAL_MEM_POURCENT_USED = $TOTAL_MEM_POURCENT_USED / {$SwapOffOn["AutoMemPerc"]}% FREE: {$TOTAL_MEMORY_MB_FREE}MB\n";}
-	if($TOTAL_MEM_POURCENT_USED>$SwapOffOn["AutoMemPerc"]){FreeMem(true);}
+	if($TOTAL_MEM_POURCENT_USED>$SwapOffOn["AutoMemPerc"]){FreeMem(true,$SwapOffOn);}
 }
-
+function ps_mem_report(){
+	$unix=new unix();
+	$python=$unix->find_program("python");
+	$results[]="************* Memory summarize ************************";
+	$results[]="";
+	exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
+	return @implode("\n", $results);
+	$ps=$unix->find_program("ps");
+	$results[]="";
+	$results[]="";
+	$results[]="************* Processes ************************";
+	exec("$ps auxww 2>&1",$results);
+	return @implode("\n", $results);
+}
 
 ?>

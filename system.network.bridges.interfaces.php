@@ -340,7 +340,7 @@ function Bridge_table(){
 		}
 		$reboot_network_explain=$tpl->_ENGINE_parse_body("{interface_bridges_explain}<p>&nbsp;</p>{reboot_network_explain}");
 		$html="$error
-		<div class=explain style='font-size:16px'>$reboot_network_explain</div>
+		<div class=text-info style='font-size:16px'>$reboot_network_explain</div>
 		<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	
 		<script>
@@ -444,7 +444,7 @@ $associate_interface_explain=$tpl->_ENGINE_parse_body("{associate_interface_expl
 $associate_interface_explain=str_replace("%s", $ligne["name"], $associate_interface_explain);
 $html="
 <div style='font-size:32px;margin-bottom:20px'>$title</div>
-<div class=explain style='font-size:16px'>$associate_interface_explain</div>
+<div class=text-info style='font-size:16px'>$associate_interface_explain</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -518,10 +518,8 @@ function bridge_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-	
-	if($_POST["query"]<>null){
-		$search=string_to_sql_search($_POST["query"]);
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT( * ) AS tcount FROM $table WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		if(!$q->ok){json_error_show($q->mysql_error."<hr>".$sql,1);}
@@ -590,21 +588,21 @@ function bridge_list(){
 		$data['rows'][] = array(
 			'id' => $ligne['ID'],
 			'cell' => array(
-				"<div style='font-size:18px;font-weight:bold;color:$color'>{$ligne['ID']}</div>",
-				"<div style='font-size:18px;font-weight:normal;color:$color'>$href$eth_text</a></div>",
+				"<span style='font-size:18px;font-weight:bold;color:$color'>{$ligne['ID']}</span>",
+				"<span style='font-size:18px;font-weight:normal;color:$color'>$href$eth_text</a></span>",
 				"
-				<div style='margin:5px;float:right'>
+				<span style='margin:5px;float:right'>
 					<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?network-bridge-associates-js=yes&ID={$ligne['ID']}&t=$t',true);\">
 					<img src='img/add-32.png'></a>
-				</div>		
-				<div style='font-size:18px;font-weight:normal;color:$color'>
+				</span>		
+				<span style='font-size:18px;font-weight:normal;color:$color'>
 
 				{$ligne["name"]}
 				$bridgedTo
 				
-				</div>",
-				"<div style='font-size:18px;font-weight:normal;color:$color'>{$ligne["ipaddr"]}</div>",
-				"<div style='font-size:18px;font-weight:normal;color:$color'>{$ligne["netmask"]}</div>",
+				</span>",
+				"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["ipaddr"]}</span>",
+				"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["netmask"]}</span>",
 				$delete
 			)
 		);
@@ -623,7 +621,7 @@ function bridgedTo($ID){
 	$sql="SELECT `Interface` FROM `nics` WHERE `BridgedTo`='br{$ID}'";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	if(mysql_num_rows($results)==0){
-		return $tpl->_ENGINE_parse_body("<i style=\"font-size:14px\">{click_on_plus_to_link_interface}</i>");
+		return $tpl->_ENGINE_parse_body("<br><i style=\"font-size:12px\">{click_on_plus_to_link_interface}</i>");
 	}
 	
 	$html[]="<ul style=\"border:0px;margin-top:10px\">";

@@ -15,19 +15,85 @@ class external_ad_search{
 		}
 		
 		if($connectionEncoded<>null){$this->connectionEncoded=$connectionEncoded;}
-		
+		$this->ADLdap_init();
 		$this->BuildDefault();
 		
 	}
 	
+	private function ADLdap_init(){
+	
+		if($GLOBALS["VERBOSE"]){
+			ini_set('display_errors', 1);
+			ini_set('html_errors',0);
+			ini_set('display_errors', 1);
+			ini_set('error_reporting', E_ALL);
+		}
+	
+		if(class_exists("adLDAP")){return;}
+		$lib=dirname(__FILE__)."/externals/adLDAP/adLDAP.php";
+		if(!is_file($lib)){return array();}
+		if($GLOBALS["VERBOSE"]){echo "Include $lib\n";}
+		include($lib);
+	}
+	
+	private function ADLdap_options(){
+	
+		$array=$this->KerbAuthInfos;
+		$GLOBALS["SUFFIX"]=$array["LDAP_SUFFIX"];
+		$recursive=false;
+		if($GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"]==1){
+			if($GLOBALS["VERBOSE"]){echo "RECURSIVE_GROUPS = TRUE\n";}
+			$recursive=true;
+		}
+	
+		$options=array(
+				'base_dn'=>$GLOBALS["SUFFIX"],
+				'ad_username'=>$array["WINDOWS_SERVER_ADMIN"],
+				'ad_password'=>$array["WINDOWS_SERVER_PASS"],
+				'recursive_groups'=>$recursive,
+				'domain_controllers'=>array($array["LDAP_SERVER"]),
+				'account_suffix'=>"@{$array["WINDOWS_DNS_SUFFIX"]}");
+	
+		return $options;
+	
+	}
+	
 	
 	function CheckUserAuth($username,$password){
+		
+		
+		
+		
 		if($this->KerbAuthInfos["LDAP_SERVER"]==null){
 			$this->Debuglogs("Failed to connect to DC Could not obtain `LDAP_SERVER`",__FUNCTION__,__LINE__);
 			$this->error="Failed to connect to DC Could not obtain `LDAP_SERVER`";
 			writelogs("$this->error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
+		
+		$this->ADLdap_init();
+		$options=$this->ADLdap_options();
+		try {
+			$adldap = new adLDAP($options);
+		}
+		catch (adLDAPException $e) {
+			$this->error=$e;
+			return false;
+		}
+		
+		try {
+			if(!$adldap->authenticate($username,$password)){
+				return false;
+			}
+		
+		}
+			catch (adLDAPException $e) {
+				$this->error=$e;
+				return false;
+			}
+			
+		return true;
+		
 	
 		$this->ldap_connection=@ldap_connect($this->KerbAuthInfos["LDAP_SERVER"],$this->KerbAuthInfos["LDAP_PORT"]);
 		if(!$this->ldap_connection){
@@ -181,7 +247,7 @@ class external_ad_search{
 			$q->QUERY_SQL($sql,'artica_backup');
 			if(!$q->ok){writelogs("Fatal: $this->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
-		
+		if(!isset($this->KerbAuthInfos["KerbAuthInfos"]["RECURSIVE_GROUPS"])){$this->KerbAuthInfos["KerbAuthInfos"]["RECURSIVE_GROUPS"]=0;}
 		$this->suffix=$this->KerbAuthInfos["LDAP_SUFFIX"];
 	
 	}
@@ -345,6 +411,33 @@ class external_ad_search{
 			writelogs("samaccountname no such attribute",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return null;}
 		return $hash[0]["samaccountname"][0];
+	}
+	
+	
+	Public function MembersFromGroupName($GroupName){
+		
+		$this->ADLdap_init();
+		$options=$this->ADLdap_options();
+		try {
+			$adldap = new adLDAP($options);
+		}
+		catch (adLDAPException $e) {
+			if($GLOBALS["VERBOSE"]){echo "$e\n";}
+			return array();
+		}
+		
+		try {
+			$adldap->authenticate($options["ad_username"],$options["ad_password"]);}
+			catch (adLDAPException $e) {
+				if($GLOBALS["VERBOSE"]){echo "$e\n";}
+				return array();
+			}
+		
+			$array=$adldap->group()->members($GroupName);
+			if($GLOBALS["VERBOSE"]){echo "MembersFromGroupName $GroupName -> ".count($array)."\n";}
+			return $array;		
+		
+		
 	}
 	
 	

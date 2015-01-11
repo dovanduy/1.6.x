@@ -1,5 +1,6 @@
 <?php
 include_once(dirname(__FILE__).'/class.mysql.inc');
+include_once(dirname(__FILE__)."/externals/adLDAP/adLDAP.php");
 class ActiveDirectory{
 	
 	var $ldapbind;
@@ -16,6 +17,9 @@ class ActiveDirectory{
 	var $LDAP_RECURSIVE=0;
 	var $ARRAY_MEMBERS=array();
 	var $UseDynamicGroupsAcls=0;
+
+	private $WINDOWS_SERVER_ADMIN=null;
+	private $WINDOWS_DNS_SUFFIX=null;
 	
 	function ActiveDirectory($AdSourceID=0){
 			if(!is_numeric($AdSourceID)){$AdSourceID=0;}
@@ -85,8 +89,8 @@ class ActiveDirectory{
 	
 	private function LoadAdSettingsFromSquid(){
 		$sock=new sockets();
-		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-		if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
+		$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+	
 		if($EnableKerbAuth==0){
 			if($GLOBALS["VERBOSE"]){writelogs("EnableKerbAuth is disabled", __CLASS__ . "/" . __FUNCTION__,__FILE__,__LINE__);}
 			return;
@@ -105,9 +109,11 @@ class ActiveDirectory{
 			
 			$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
 		}
+		
+		
 		//cn=$this->ldap_admin,cn=Users,
 		
-		
+		if(!isset($array["RECURSIVE_GROUPS"])){$array["RECURSIVE_GROUPS"]=0;}
 		if(!isset($array["LDAP_PASSWORD"])){$array["LDAP_PASSWORD"]=null;}
 		if(!isset($array["LDAP_RECURSIVE"])){$array["LDAP_RECURSIVE"]=0;}
 		if(!isset($array["LDAP_DN"])){$array["LDAP_DN"]=null;}
@@ -121,10 +127,15 @@ class ActiveDirectory{
 		$this->ldap_host=$array["LDAP_SERVER"];
 		$this->ldap_port=$array["LDAP_PORT"];
 		$this->LDAP_RECURSIVE=$array["LDAP_RECURSIVE"];
+		if($array["RECURSIVE_GROUPS"]==1){$this->LDAP_RECURSIVE=1;}
 		
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $array["WINDOWS_DNS_SUFFIX"])){
 			if($array["FQDN"]<>null){$FGH=explode(".",$array["FQDN"]);unset($FGH[0]);$array["WINDOWS_DNS_SUFFIX"]=@implode(".", $FGH);}
 		}
+		
+
+		$this->WINDOWS_SERVER_ADMIN=$array["WINDOWS_SERVER_ADMIN"];
+		$this->WINDOWS_DNS_SUFFIX=$array["WINDOWS_DNS_SUFFIX"];
 		
 		if($array["LDAP_DN"]==null){
 			$this->ldap_dn_user="{$array["WINDOWS_SERVER_ADMIN"]}@{$array["WINDOWS_DNS_SUFFIX"]}";
@@ -370,40 +381,57 @@ class ActiveDirectory{
 		return $FINAL;
 	}
 	
-	function search_users_from_group($dn,$entriesNumber=50){
+	function search_users_from_group($dn,$entriesNumber=1000){
 		$this->ldap_last_error=null;
-		//$link_identifier, $base_dn, $filter, array $attributes = null, $attrsonly = null, $sizelimit = null, $timelimit = null, $deref = null
-		if(!is_numeric($entriesNumber)){$entriesNumber=50;}
-		$res=@ldap_read($this->ldap_connection,$dn,"(objectClass=*)",array("member","MemberOf"),null,$entriesNumber,20);
-		if(!$res){
-			$this->ldap_last_error='Error LDAP search number ' . ldap_errno($this->ldap_connection) . "\nAction:LDAP search\ndn:$this->suffix\n(objectClass=*)\n" . 
-			ldap_err2str(ldap_errno($this->ldap_connection));
-			if($GLOBALS["VERBOSE"]){writelogs("$this->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		$recursive=false;
+		if($this->LDAP_RECURSIVE==1){$recursive=true;}
+		
+		if($GLOBALS["VERBOSE"]){echo "Dn = $dn<br>\n";}
+		
+		$props=$this->ObjectProperty($dn);
+		$name=$props["name"];
+		
+		$options=array(
+				'base_dn'=>$this->suffix,
+				'ad_username'=>$this->WINDOWS_SERVER_ADMIN,
+				'ad_password'=>$this->ldap_password,
+				'recursive_groups'=>$recursive,
+				'domain_controllers'=>array($this->ldap_host),
+				'account_suffix'=>"@{$this->WINDOWS_DNS_SUFFIX}");
+		
+		
+		try {
+			$adldap = new adLDAP($options);
+		}
+		catch (adLDAPException $e) {
+			if($GLOBALS["VERBOSE"]){echo $e."<br>\n";}
 			return array();
 		}
-		$hash=ldap_get_entries($this->ldap_connection,$res);
-	
-		if(isset($hash[0]["member"])){
-			if($GLOBALS["VERBOSE"]){writelogs("$dn: Members {$hash[0]["member"]["count"]} items",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			for($i=0;$i<$hash[0]["member"]["count"];$i++){
-				$dn=$hash[0]["member"][$i];
-				if($dn==null){continue;}
-				$Props=$this->ObjectProperty($dn);
-				if(!is_array($Props)){continue;}
-				$array[$dn]=$Props;
+		
+		try {
+			$adldap->authenticate($this->WINDOWS_SERVER_ADMIN,$this->ldap_password);}
+			catch (adLDAPException $e) {
+				if($GLOBALS["VERBOSE"]){echo $e."<br>\n";}
+				return array();
 			}
-		}		
-		if(isset($hash[0]["memberof"])){	
-			for($i=0;$i<$hash[0]["memberof"]["count"];$i++){
-				$dn=$hash[0]["memberof"][$i];
-				if($dn==null){continue;}	
-				$Props=$this->ObjectProperty($dn);
-				if(!is_array($Props)){continue;}
-				$array[$dn]=$Props;
-			}
+			$MEMBERS=$adldap->group()->members($name);
+		
+			
+		if(count($MEMBERS)==0){return array();}
+		
+		while (list ($num, $uid) = each ($MEMBERS) ){
+			$info=$adldap->user()->info($uid);
+			$dn=$info[0]["dn"];
+			if($GLOBALS["VERBOSE"]){echo $uid."->$dn\n";}
+			$props=$this->ObjectProperty($dn);
+			if(!is_array($props)){continue;}
+			$array[$dn]=$props;
 		}
+			
+			
 		
 		return $array;
+
 		
 		
 	}
@@ -436,6 +464,7 @@ class ActiveDirectory{
 		if(isset($types["group"])){
 			$ARRAY["TYPE"]="group";
 			$ARRAY["MEMBERS"]=$Config["member"]["count"];
+			$ARRAY["name"]=$Config["name"][0];
 			return $ARRAY;
 		}
 		if(isset($types["foreignSecurityPrincipal"])){
@@ -447,15 +476,11 @@ class ActiveDirectory{
 		}
 		
 		
-		$ARRAY["name"]=utf8_decode($Config["name"][0]);
-		$ARRAY["uid"]=utf8_decode($Config["samaccountname"][0]);
-		$ARRAY["displayname"]=utf8_decode($Config["displayname"][0]);
+		$ARRAY["name"]=$Config["name"][0];
+		$ARRAY["uid"]=$Config["samaccountname"][0];
+		$ARRAY["displayname"]=$Config["displayname"][0];
 		if(isset($Config["userprincipalname"])){$ARRAY["userprincipalname"]=$Config["userprincipalname"][0];}
 		if(isset($Config["mail"][0])){$ARRAY["mail"]=$Config["mail"][0];}
-		
-		
-		
-		
 		return $ARRAY;
 	}
 		

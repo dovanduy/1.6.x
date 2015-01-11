@@ -57,7 +57,7 @@ function popup(){
 		
 		
 		
-		$html="$form<div class=explain>{visible_hostname_text}</div>";
+		$html="$form<div class=text-info>{visible_hostname_text}</div>";
 		
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body($html,'squid.index.php');	

@@ -160,6 +160,7 @@ function cron(){
 		@chmod("/etc/cron.d/imapsync-{$ligne["ID"]}",600);
 		unset($f);
  	}
+ 	shell_exec("/etc/init.d/cron reload");
 	
 }
 

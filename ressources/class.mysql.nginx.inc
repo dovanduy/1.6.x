@@ -42,7 +42,7 @@ class nginx_stats{
 		$this->EnableSyslogDB=$sock->GET_INFO("EnableNginxStats");
 		if(!is_numeric($this->EnableSyslogDB)){$this->EnableSyslogDB=0;}
 		if(!is_numeric($this->MySQLSyslogType)){$this->MySQLSyslogType=1;}
-		if($this->MySQLSyslogType==0){$this->MySQLSyslogType=1;}
+		if($this->MySQLSyslogType==0){$this->MySQLSyslogType=4;}
 		
 		unset($GLOBALS["MYSQL_PARAMETERS"]);
 		unset($_SESSION["MYSQL_PARAMETERS"]);

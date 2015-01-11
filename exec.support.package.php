@@ -16,6 +16,12 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
+if(!isset($GLOBALS["ARTICALOGDIR"])){
+	$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir");
+	if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; }
+}
+
+
 if($argv[1]=="--step1"){support_step1();die();}
 if($argv[1]=="--step2"){support_step2();die();}
 if($argv[1]=="--step3"){support_step3();die();}
@@ -72,7 +78,7 @@ function support_step1(){
 	$files[]="/var/log/lighttpd/squidguard-lighttpd.start";
 	$files[]="/etc/init.d/tproxy";
 	$files[]="/etc/init.d/artica-ifup";
-	$files[]="/var/log/net-start.log";
+
 
 	if(is_dir("/usr/share/artica-postfix/ressources/support")){
 		shell_exec("/bin/rm -rf /usr/share/artica-postfix/ressources/support");
@@ -153,9 +159,11 @@ function support_step2(){
 	$files[]="/var/log/samba/log.smbd";
 	$files[]="/var/run/mysqld/mysqld.err";
 	$files[]="/etc/init.d/artica-ifup";
-	
-	
-	
+	$files[]="/var/log/net-start.log";
+	$files[]="/var/log/artica-ufdb.log";
+	$files[]="/var/log/artica-meta.log";
+	$files[]="/var/log/webfiltering-update.log";
+	$files[]="{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug";
 
 	$unix=new unix();
 	$cp=$unix->find_program("cp");
@@ -192,6 +200,7 @@ function support_step2(){
 	progress("{get_all_logs}",48);
 	while (list ($a, $b) = each ($files) ){
 		if(is_file($b)){
+			progress("{get_all_logs}:".basename($b),48);
 			$destfile=basename("$b.gz");
 			$unix->compress($b, "/usr/share/artica-postfix/ressources/support/$destfile");
 			

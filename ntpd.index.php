@@ -21,21 +21,41 @@
 	if(isset($_GET["list"])){echo main_server_list();exit;}
 	if(isset($_POST["country"])){ntpdAddCountry();exit;}
 	if(isset($_GET["ntpd-server"])){ntpd_server_mode();exit;}
+	if(isset($_GET["bytabs"])){bytabs();exit;}
+	if(isset($_GET["client-conf"])){client_conf();exit;}
+	if(isset($_POST["NTPDClientPool"])){client_conf_save();exit;}
 	js();
 	
 	
+function bytabs(){
+	
+	echo "
+	<div id='ntp_index_php'></div>		
+	<script>";
+	js();
+	echo "</script>";
+}	
+	
+	
 function js(){
-
+	$bytabs=false;
 	$page=CurrentPageName();
 	$prefix="ntpdpage";
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{APP_NTPD}');
+	if(isset($_GET["bytabs"])){$bytabs=true;}
 	$give_server_name=$tpl->_ENGINE_parse_body('{give_server_name}');
+	
+	$start="YahooSetupControl(1077,'$page?popup=yes','$title');";
+	if($bytabs){
+		$start="LoadAjax('ntp_index_php','$page?popup=yes&bytabs=yes')";
+	}
+	
 	
 $html= "
 
 		function {$prefix}load(){
-			YahooSetupControl(650,'$page?popup=yes','$title');
+			$start
 			{$prefix}timeout=0;
 			
 		}
@@ -108,58 +128,30 @@ function ntpd_server_mode(){
 	
 	
 function popup(){
-	
-echo main_tabs();
-exit;
-	
-	$html=
-	"
-	
-
-	<p class=caption>{ntp_about}</p>
-	<table style='width:100%'>
-	<tr>
-	<td valign='top'>".Paragraphe('connection-add-64.png','{add_title_server}','{add_text_server}',"javascript:ntpdAdd();",'add_title_server')."</td>
-	<td valign='top'><div id='ntpd_services_status'></div><br></td>
-	</tr>
-	<tr>
-		<td colspan=2 valign='top'><br>
-			<div id='ntpd_main_config'></div>
-		</td>
-	</tr>
-	</table>
-	";
-	
-
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
-	
-	}
+	echo main_tabs();
+}
 
 
 
 function main_tabs(){
+	$bytabs=false;
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	$fontsize=20;	
 	$array["index"]="{index}";
 	$array["yes"]='{main_settings}';
+	$array["client-conf"]='{client_mode}';
 	$array["logs"]='{events}';	
 	$array["ntpdconf"]='{ntpdconf}';
+	
+	if(isset($_GET["bytabs"])){$bytabs=true;$suffix="&bytabs=yes";$fontsize=18;}
+	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]=$tpl->_parse_body("<li><a href=\"$page?main=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_parse_body("<li><a href=\"$page?main=$num\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 		}
 	
-	return "
-	<div id=ntpd_main_config style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#ntpd_main_config').tabs();
-			
-		
-			});
-		</script>";			
+	return build_artica_tabs($html, "ntpd_main_config");
 		
 }
 
@@ -168,20 +160,25 @@ function index(){
 	$page=CurrentPageName();
 	
 
+	$users=new usersMenus();
+	if(!$users->NTPD_INSTALLED){
+		$error=FATAL_ERROR_SHOW_128("{ntpd_server_not_installed_only_client_mode}");
+	}
 	
-	$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://nas-appliance.org/index.php?cID=143','1024','900');");
 	
 
 	$html="
+	<div class=text-info style='font-size:16px'>{ntp_about}</div>
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'>
-		<div class=explain style='font-size:16px'>{ntp_about}</div>
-		<div id='ntpd-server'></div>
-		$help
-	</td>
-	<td valign='top'>
+	<td valign='top' style='width:220px'>
+		
 		<div id='ntpd-status'></div>
+		<div id='ntpd-server'></div>
+		
+	</td>
+	<td valign='top' style='width:95%'>
+		$error
 		<div id='enable-ntpd' style='width:98%' class=form></div>
 	</td>
 	</tr>
@@ -189,7 +186,7 @@ function index(){
 	
 	
 	<script>
-		LoadAjax('enable-ntpd','$page?enable-ntpd-switch=yes');
+		
 		
 	
 		var X_SaveEnableNTPDSwitch= function (obj) {
@@ -213,6 +210,7 @@ function index(){
 			LoadAjax('ntpd-server','$page?ntpd-server=yes');
 		
 		}
+		LoadAjax('enable-ntpd','$page?enable-ntpd-switch=yes');
 		NTPD_STATUS();
 	</script>
 	";
@@ -234,19 +232,68 @@ function ntpd_switch(){
 	}
 	
 	
-	$enable=Paragraphe_switch_img("{ENABLE_APP_NTPD}","{APP_NTPD_ENABLE_TEXT}","NTPDEnabled",$NTPDEnabled,550);
+	$enable=Paragraphe_switch_img("{ENABLE_APP_NTPD}","{APP_NTPD_ENABLE_TEXT}","NTPDEnabled",$NTPDEnabled,null,750);
 	$tpl=new templates();
 	
 	$enable=$enable."
-	<div style='text-align:right'>".button("{apply}","SaveEnableNTPDSwitch()",16)."</div>";
+	<div style='text-align:right'><hr>".button("{apply}","SaveEnableNTPDSwitch()",32)."</div>";
 	
 	echo $tpl->_ENGINE_parse_body($enable);	
 }	
 
 
+function client_conf(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$NTPDClientEnabled=intval($sock->GET_INFO("NTPDClientEnabled"));
+	$NTPDClientPool=intval($sock->GET_INFO("NTPDClientPool"));
+	if($NTPDClientPool==0){$NTPDClientPool=120;}
+	
+	$enable=Paragraphe_switch_img("{ENABLE_APP_NTPDCLI}","{ENABLE_APP_NTPDCLI_TEXT}","NTPDClientEnabled",$NTPDClientEnabled,null,750);
+	
+	$html="
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr><td colspan=2>$enable</td></tr>
+		". Field_text_table("NTPDClientPool","{each} ({minutes})",$NTPDClientPool,22,null,140)
+		.Field_button_table_autonome("{apply}", "Save$t",30).
+		"</table>
+	</div>
+				
+	 	<script>
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	RefreshTab('ntpd_main_config');
+}	
+	 	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('NTPDClientPool',document.getElementById('NTPDClientPool').value);
+	XHR.appendData('NTPDClientEnabled',document.getElementById('NTPDClientEnabled').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);    
+}
+</script>				
+";
+echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function client_conf_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("NTPDClientPool", $_POST["NTPDClientPool"]);
+	$sock->SET_INFO("NTPDClientEnabled", $_POST["NTPDClientEnabled"]);
+	$sock->getFrameWork("system.php?ntp-client=yes");
+	
+}
+
+
 function main_switch(){
 	
 	switch ($_GET["main"]) {
+		case "client-conf":client_conf();exit;break;
 		case "index":index();exit;break;
 		case "yes":ntpd_main_config();exit;break;
 		case "logs":main_logs();exit;break;
@@ -269,9 +316,11 @@ function main_status(){
 	$status=DAEMON_STATUS_ROUND("NTPD",$ini,null);
 	$tpl=new templates();
 	
+	$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://nas-appliance.org/index.php?cID=143','1024','900');");
+	
 	$refresh="<div style='text-align:right'>".imgtootltip("refresh-24.png","{refresh}","NTPD_STATUS()")."</div>";
 	
-	return $tpl->_ENGINE_parse_body($status.$refresh);		
+	return $tpl->_ENGINE_parse_body($help.$status.$refresh);		
 	
 	
 }
@@ -312,7 +361,7 @@ $choose=Field_array_Hash($i,'ntpd_servers_choosen',null,null,null,0,'font-size:1
 				
 				
 	 </table>
-	 <div class=explain>{how_to_find_timeserver}</div><hr>
+	 <div class=text-info>{how_to_find_timeserver}</div><hr>
 
 	 
 	

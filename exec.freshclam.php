@@ -142,11 +142,12 @@ function execute(){
 	
 	
 	@file_put_contents($pidfile, getmypid());
-	
-	$TimEx=$unix->file_time_min($pidTime);
-	if($TimEx<120){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Only each 120mn, current is {$TimEx}mn\n";}
-		return;
+	if(!$GLOBALS["FORCE"]){
+		$TimEx=$unix->file_time_min($pidTime);
+		if($TimEx<120){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Only each 120mn, current is {$TimEx}mn\n";}
+			return;
+		}
 	}
 	@unlink($pidTime);
 	@file_put_contents("$pidTime", time());
@@ -164,8 +165,12 @@ function execute(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service freshclam not installed\n";}
 		return;
 	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building settings\n";}
 	build();
-	shell_exec("$Masterbin --config-file=/etc/clamav/freshclam.conf --pid=/var/run/clamav/freshclam.pid --user=clamav --log=/var/log/clamav/freshclam.log >/dev/null 2>&1");
+	$cmd="$Masterbin --config-file=/etc/clamav/freshclam.conf --pid=/var/run/clamav/freshclam.pid --user=clamav --log=/var/log/clamav/freshclam.log >/dev/null 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	shell_exec($cmd);
 	
 	
 }

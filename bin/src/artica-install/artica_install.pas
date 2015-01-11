@@ -2112,7 +2112,7 @@ end;
 
 if paramStr(1)='--postfix-sasldb2' then
 begin
-zpostfix.POSTFIX_CHECK_SASLDB2();
+
 halt(0);
 end;
 

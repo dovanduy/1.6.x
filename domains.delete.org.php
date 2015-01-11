@@ -84,7 +84,7 @@ $html="
 	<tr>
 		<td width=1%><img src='img/org-128.png'></td>
 		<td valign='top'>
-			<div class=explain style='font-size:14px'>{delete_ou_text}</p>
+			<div class=text-info style='font-size:14px'>{delete_ou_text}</p>
 			<table style='width:100%'>
 				$cyrus
 			</table>			

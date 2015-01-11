@@ -1,4 +1,5 @@
 <?php
+if(!isset($GLOBALS["VERBOSE2"])){$GLOBALS["VERBOSE2"]=false;}
 include_once(dirname(__FILE__) . '/HTTP/Request2.php');
 include_once(dirname(__FILE__) . '/class.templates.inc');
 class httpget{

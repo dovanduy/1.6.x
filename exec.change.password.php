@@ -21,13 +21,25 @@ $squid->SaveToLdap();
 $squid->SaveToServer();
 
 
-
-system('/etc/init.d/postfix restart');
-system('/etc/init.d/artica-postfix restart samba');
-system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
-system('/etc/init.d/cyrus-imapd restart');
+$users=new usersMenus();
+if($users->POSTFIX_INSTALLED){
+	echo "Restarting Postfix service...\n";
+	system('/etc/init.d/postfix restart');
+}
+if($users->SAMBA_INSTALLED){
+	echo "Restarting Samba service...\n";
+	system('/etc/init.d/artica-postfix restart samba');
+}
+if($users->cyrus_imapd_installed){
+	echo "Restarting Cyrus service...\n";
+	system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
+	system('/etc/init.d/cyrus-imapd restart');
+}
+echo "Restarting SASL AUTHD service...\n";
 system('/etc/init.d/artica-postfix restart saslauthd');
-system('/etc/init.d/artica-postfix restart zarafa');
+if($users->ZARAFA_INSTALLED){
+	system('/etc/init.d/artica-postfix restart zarafa');
+}
 system('/etc/init.d/artica-status reload');
 system('/etc/init.d/artica-postfix restart arkeia');
 system('/etc/init.d/artica-postfix restart artica-back');

@@ -106,7 +106,7 @@ function messages_add(){
 	
 	$html="
 	<div style='font-size:16px;color:red' id='post-message-results'></div>
-	<div class=explain>{spamass_analyze_post_explain}</div>
+	<div class=text-info>{spamass_analyze_post_explain}</div>
 	<hr>
 	<table style='width:99%' class=form>
 	<tr>

@@ -291,6 +291,17 @@ function parseURL($url){
 
 function GetMacToUid($mac){
 	if($mac==null){return;}
+	$filereload="/var/log/squid/reload/{$GLOBALS["PID"]}.external_acl_squid.php";
+	if(is_file("/var/log/squid/reload/{$GLOBALS["PID"]}.external_acl_squid.php")){
+		WLOG("Flush memory...");
+		unset($GLOBALS["GetMacToUidMD5"]);
+		unset($GLOBALS["GetMacToUid"]);
+		unset($GLOBALS["USERSDB"]);
+		@unlink($filereload);
+	}
+	
+	
+	
 	
 	$uid=$GLOBALS["Q"]->MacToUid($mac);
 	if($uid<>null){return $uid;}

@@ -16,6 +16,9 @@ if(function_exists("posix_getuid")){
 	include_once('ressources/class.html.pages.inc');
 	include_once('class.highcharts.inc');
 	
+	if(isset($_GET["graphProtoHits"])){proto_hits();exit;}
+	if(isset($_GET["graphProtoSize"])){proto_size();exit;}
+	if(isset($_GET["graphMime"])){top_mime();exit;}
 	if(isset($_GET["graph1"])){graph1();exit;}
 	if(isset($_GET["graph2"])){graph2();exit;}
 	if(isset($_GET["graph3"])){graph3();exit;}
@@ -31,6 +34,23 @@ function PageDeGarde(){
 	$time=time();
 	$tpl=new templates();
 	$f1[]=$tpl->_ENGINE_parse_body("<div style='font-size:26px;margin-bottom:20px'>{top_web} {today}</div>");
+	
+	
+	$file="/usr/share/artica-postfix/ressources/logs/web/TOP_MIME.db";
+	if(is_file($file)){
+		$tr[]="<div style='width:500px;height:500px' id='$time-000'></div>";
+		$f2[]="function X000$time(){
+		AnimateDiv('$time-000');
+		Loadjs('$page?graphMime=yes&container=$time-000&time=$time',true);
+	}
+	setTimeout(\"X000$time()\",500);";
+	}	
+	
+
+	
+	
+	
+	
 	
 	$file1="/usr/share/artica-postfix/ressources/logs/web/TOP_CACHED.db";
 	$file2="/usr/share/artica-postfix/ressources/logs/web/TOP_NOT_CACHED.db";
@@ -52,7 +72,30 @@ function PageDeGarde(){
 		Loadjs('$page?graph002=yes&container=$time-002&time=$time',true);
 		}
 		setTimeout(\"X002$time()\",500);";
+	}
+
+	
+	$file="/usr/share/artica-postfix/ressources/logs/web/TOP_PROTO_SIZE.db";
+	if(is_file($file)){
+		$tr[]="<div style='width:500px;height:500px' id='$time-100'></div>";
+		$f2[]="function X100$time(){
+		AnimateDiv('$time-100');
+		Loadjs('$page?graphProtoSize=yes&container=$time-100&time=$time',true);
+	}
+	setTimeout(\"X100$time()\",500);";
+	}
+	
+	$file="/usr/share/artica-postfix/ressources/logs/web/TOP_PROTO_HITS.db";
+	if(is_file($file)){
+		$tr[]="<div style='width:500px;height:500px' id='$time-200'></div>";
+		$f2[]="function X200$time(){
+		AnimateDiv('$time-200');
+		Loadjs('$page?graphProtoHits=yes&container=$time-200&time=$time',true);
+	}
+	setTimeout(\"X200$time()\",500);";
 	}	
+	
+	
 	
 	$tr[]="<div style='width:500px;height:500px' id='$time-01'></div>";
 	$tr[]="<div style='width:500px;height:500px' id='$time-02'></div>";
@@ -67,6 +110,11 @@ function PageDeGarde(){
 	setTimeout(\"XDeux$time()\",500);";
 	
 	}
+	
+	
+	
+	
+	
 
 	$html=@implode("\n", $f1)."<script>".@implode("\n", $f2)."</script>";
 	echo $html;
@@ -98,11 +146,65 @@ function top_cached_sites(){
 	$highcharts->AxisFontsize="12px";
 	$highcharts->container=$_GET["container"];
 	$highcharts->PieDatas=$PieData;
+	$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.bandwidth.cached.week.php?js=yes');\" style='text-decoration:underline'>{more_details}</a>";
 	$highcharts->ChartType="pie";
 	$highcharts->PiePlotTitle="{size} MB";
 	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_cached_websites}");
 	echo $highcharts->BuildChart();
 }
+
+function top_mime(){
+	$page=CurrentPageName();
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_MIME.db"));
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.stats.filetypes.php');\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{size} MB";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_filetypes}");
+	echo $highcharts->BuildChart();
+}
+
+function proto_size(){
+	$page=CurrentPageName();
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_PROTO_SIZE.db"));
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.stats.filetypes.php');\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{size} MB";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{protocol} {size}");
+	echo $highcharts->BuildChart();	
+	
+}
+
+function proto_hits(){
+	$page=CurrentPageName();
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_PROTO_HITS.db"));
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.stats.filetypes.php');\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{hits}";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{protocol} {hits}");
+	echo $highcharts->BuildChart();	
+	
+}
+
+
+
 function top_not_cached_sites(){
 	$page=CurrentPageName();
 	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_NOT_CACHED.db"));

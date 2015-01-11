@@ -19,6 +19,9 @@ class highcharts{
 	public $AxisFontsize="14px";
 	public $subtitle=null;
 	public $OnErrorEvent=null;
+	public $SetRefreshCallBack=null;
+	public $RemoveLock=false;
+
 	public function highcharts($params=array()){
 		
 		while (list ($key, $value) = each ($params) ){
@@ -59,12 +62,20 @@ class highcharts{
 		$f[]="function $FunctioName(){";
 		$f[]="if(!document.getElementById('$this->container')){return;}";
 		$f[]="if($ChartString){ $ChartString.destroy(); }";
-		$f[]="LockPage();";
+		if(!$this->RemoveLock){
+			$f[]="LockPage();";
+		}
 		$f[]="\tvar $ChartString = new Highcharts.Chart({";
 		$f[]="\t\tchart: {";
 		$f[]="\t\tevents: {";
 		$f[]="\t\t\tload: function(event) {";
-		$f[]="\t\t\t\tUnlockPage();";
+		if(!$this->RemoveLock){
+			$f[]="\t\t\t\tUnlockPage();";
+		}
+		$f[]="\t\t\t\tvar series=this.series[0];";
+		if($this->SetRefreshCallBack<>null){
+			$f[]="\t\t\t\t$this->SetRefreshCallBack(series);";
+		}
 		$f[]="\t\t\t}";
 		$f[]="\t\t},";
 		$f[]="\t\t\ttype: '$this->ChartType',";

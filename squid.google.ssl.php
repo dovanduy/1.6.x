@@ -24,7 +24,7 @@ function js() {
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{disable_google_ssl}");
 	$page=CurrentPageName();
-	$html="YahooWin3('550','$page?popup=yes','$title')";
+	$html="YahooWin3('850','$page?popup=yes','$title')";
 	echo $html;	
 	
 }
@@ -43,10 +43,10 @@ function popup(){
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	$t=time();
 	
-	$button=button("{apply}","DisableGoogleSSLSave$t()",18);
-	if($EnableRemoteStatisticsAppliance==1){$button=null;}
+	$button=button("{apply}","DisableGoogleSSLSave$t()",32);
+	
 	$enable=Paragraphe_switch_img("{enforce_google_to_non_ssl}",
-	 "{enforce_google_to_non_ssl_text}","DisableGoogleSSL-$t",$DisableGoogleSSL,null,400);
+	 "{enforce_google_to_non_ssl_text}","DisableGoogleSSL-$t",$DisableGoogleSSL,null,750);
 	
 	$html="
 	<div id='$t-div'></div>
@@ -58,7 +58,7 @@ function popup(){
 	<tr>
 		
 		<td width=99% align='right'><a href=\"javascript:blur();\" OnClick=\"javascript:YahooWin4('500','$page?google-dns=yes','$display_dns_items')\"
-		style='font-size:16px;text-decoration:underline'>$display_dns_items</a>
+		style='font-size:22px;text-decoration:underline'>$display_dns_items</a>
 		</td>
 	</tr>	
 	
@@ -73,15 +73,14 @@ function popup(){
 	var x_DisableGoogleSSLSave$t=function(obj){
      	var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
-      	Loadjs('squid.compile.progress.php');
-      	YahooWin3Hide();
+      	Loadjs('squid.google.compile.progress.php');
+      	
      	}	
 
 	function DisableGoogleSSLSave$t(){
 		if(confirm('$warn_squid_restart')){
 			var XHR = new XHRConnection();
 			XHR.appendData('DisableGoogleSSL',document.getElementById('DisableGoogleSSL-$t').value);
-			AnimateDiv('$t-div');
 			XHR.sendAndLoad('$page', 'POST',x_DisableGoogleSSLSave$t);		
 		}
 	

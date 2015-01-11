@@ -67,7 +67,7 @@ function popup(){
 	<div style='margin-left:-10px'>
 	<table class='mysql-table-$t' style='display: none' id='mysql-table-$t' style='width:100%;margin:-10px'></table>
 	</div>
-	<div class=explain style='font-size:14px'>$POSTFIX_DEBUG_TEXT</div>
+	<div class=text-info style='font-size:14px'>$POSTFIX_DEBUG_TEXT</div>
 <script>
 sid='';
 $(document).ready(function(){

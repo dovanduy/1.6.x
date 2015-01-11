@@ -4,8 +4,9 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["NOSQUIDOUTPUT"]=true;
+$GLOBALS["AS_ROOT"]=true;
 $GLOBALS["TITLENAME"]="Cyrus IMAP Daemon";
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG_CHOWN"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
@@ -42,13 +43,17 @@ function restart() {
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-	
+	$unix->CreateUnixUser("postfix","postfix");
+	$php=$unix->LOCATE_PHP5_BIN();
 	if($GLOBALS["OUTPUT"]){echo "Restarting....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Stopping service\n";}
 	stop(true);
+	if($GLOBALS["OUTPUT"]){echo "Restarting....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Stopping saslauthd service\n";}
+	system("$php /usr/share/artica-postfix/exec.saslauthd.php --stop");
 	sleep(1);
 	if($GLOBALS["OUTPUT"]){echo "Restarting....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Starting service\n";}
 	start(true);
-	
+	if($GLOBALS["OUTPUT"]){echo "Restarting....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Starting saslauthd\n";}
+	system("$php /usr/share/artica-postfix/exec.saslauthd.php --start");
 }
 
 function reload($aspid=false){
@@ -78,6 +83,8 @@ function reload($aspid=false){
 	if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} cyrus-imapd running since {$time}mn\n";}
 	$kill=$unix->find_program("kill");
 	unix_system_HUP($pid);
+	
+	$unix->CreateUnixUser("postfix","postfix");
 	
 	$lmtpsocket="/var/spool/postfix/var/run/cyrus/socket/lmtp";
 	for($i=1;$i<5;$i++){
@@ -140,7 +147,7 @@ function start($aspid=false){
 		return;
 	}	
 	
-	
+	$unix->CreateUnixUser("postfix","postfix");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$EnableCyrusImap=$sock->GET_INFO("EnableCyrusImap");
 	if(!is_numeric($EnableCyrusImap)){$EnableCyrusImap=1;}
@@ -437,12 +444,31 @@ if($EnableCyrusMasterCluster==1){
 
 $cur_email[]="cyrus";
 $cur_email[]="cyrus@$DOMAIN";
-if($CyrusAdmPlus<>null){
-	$cur_email[]=$CyrusAdmPlus;
+
+if($EnableVirtualDomainsInMailBoxes==1){
+	$ldap=new clladp();
+	if($ldap->ldapFailed){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed to connect to LDAP server, checking cache\n";}
+		$cur_email=unserialize(@file_get_contents("/etc/artica-postfix/CYRUS_ADMINS_CACHE"));
+		
+	}else{
+		$domains=$ldap->hash_get_all_local_domains();
+		while (list ($domain, $cyrusadm) = each ($domains) ){
+			$ldap->CyrusAdminOtherCreate("cyrus@$domain",null,true);
+			$cur_email[]="cyrus@$domain";
+		}
+		@file_put_contents("/etc/artica-postfix/CYRUS_ADMINS_CACHE", serialize($cur_email));
+	}
 }
 
 
+if($CyrusAdmPlus<>null){$cur_email[]=$CyrusAdmPlus; }
 
+while (list ($index, $cyrusadm) = each ($cur_email) ){$cyrusadm=trim($cyrusadm);if($cyrusadm==null){continue;}$_cyrusadms[$cyrusadm]=$cyrusadm;}
+while (list ($cyrusadm, $xcyrusadm) = each ($_cyrusadms) ){
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Cyrus Admin..............: `$cyrusadm`\n";}
+	$_cyrusadms2[]=$cyrusadm;}
 
 if($EnableVirtualDomainsInMailBoxes==1){
 	$f[]="virtdomains: userid";
@@ -455,7 +481,7 @@ $f[]="sasl_mech_list: $sasl_mech_list";
 
 if($CyrusEnableBackendMurder==1){$cur_email[]="murder";}
 if($CyrusEnableImapMurderedFrontEnd==1){ $cur_email[]="murder";}
-$cur_emails=@implode(" ", $cur_email);
+$cur_emails=@implode(" ", $_cyrusadms2);
 $f[]="admins: $cur_emails";
 $f[]="username_tolower: 1";
 $f[]="ldap_uri: ldap://$ldap->ldap_host:$ldap->ldap_port";
@@ -1003,12 +1029,12 @@ if($CyrusLMTPListenPattern<>null){
 
 
 if(is_file( sieved_path() ) ){
-	$MAIN[]='  \tsieve		cmd="'.sieved_path().'" listen="localhost:sieve" prefork=0 maxchild=100';
+	$MAIN[]='	sieve		cmd="'.sieved_path().'" listen="localhost:sieve" prefork=0 maxchild=100';
 	if(strlen($SieveListenIp)>0){$MAIN[]='  	sieveremote		cmd="'.sieved_path().'" listen="'.$SieveListenIp.'" prefork=0 maxchild=100'; }
 }
 
 if(is_file( notify_path() ) ){
-	$MAIN[]='\tnotify		cmd="'.notify_path().'" listen="/var/run/cyrus/socket/notify" proto="udp" prefork=1';
+	$MAIN[]='	notify		cmd="'.notify_path().'" listen="/var/run/cyrus/socket/notify" proto="udp" prefork=1';
 }
 
 if($CyrusEnableBackendMurder==1){

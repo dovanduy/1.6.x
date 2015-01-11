@@ -3,6 +3,7 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.inc');
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	$users=new usersMenus();
 	if(!$users->AsOrgAdmin){
@@ -52,10 +53,10 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{MAILBOXES_MIGRATION}");
 	$html="
-		YahooWin3(780,'$page?popup=yes&ou={$_GET["ou"]}','$title');
+		YahooWin3(990,'$page?popup=yes&ou={$_GET["ou"]}','$title');
 		
 		function MigrShowLogs(MD){
-			YahooWin4(550,'$page?users-events='+MD+'&ou={$_GET["ou"]}',MD);
+			YahooWin4(750,'$page?users-events='+MD+'&ou={$_GET["ou"]}',MD);
 		}
 	";
 	
@@ -110,7 +111,7 @@ function item_edit_source_folders(){
 	$Array=$Folders["SourceServer"];
 	$ArraySelected=$Folders["FoldersSelectedSourceServer"];
 	$t=time();
-	$html="<div style='font-size:14px' class=explain>{explain_sourcefolder_offlineimap}</div>
+	$html="<div style='font-size:14px' class=text-info>{explain_sourcefolder_offlineimap}</div>
 	<div style='height:450px;width:100%;overflow:auto'>
 	<table style='width:99%' class=form>";
 	
@@ -200,7 +201,7 @@ function as_gateway_popup(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	$t=time();
 	$html="
-	<div class=explain style='font-size:14px'>{offlineimap_gateway_explain}</div>
+	<div class=text-info style='font-size:14px'>{offlineimap_gateway_explain}</div>
 <div id='form-$t'></div>
 	<table style='width:99%' class=form>
 	<tr>
@@ -300,7 +301,7 @@ function item_edit_popup(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{MAILBOXES_MIGRATION}::{new_rule}");	
 	$md5=$_GET["md5"];
-	$field=Field_text("uid-$t",$ligne["imap_server"],"font-size:16px;width:240px");
+	
 	$btname="{add}";
 	$CountDeFolders=0;
 	
@@ -324,7 +325,7 @@ function item_edit_popup(){
 		$buttonf=button("{folders}...", "YahooWin5('650','$page?source-folders=$md5','{$ligne["imap_server"]}::{folders}...');");
 		
 	}
-	
+	$field=Field_text("uid-$t",$ligne["uid"],"font-size:16px;width:240px");
 	
 
 	$html="
@@ -409,6 +410,7 @@ var x_SaveOfflineRule$t= function (obj) {
 		var XHR = new XHRConnection();
 		XHR.appendData('md5','$md5');
 		var pp=encodeURIComponent(document.getElementById('password-$t').value);
+		XHR.appendData('uid',document.getElementById('uid-$t').value);
 		XHR.appendData('imap_server',document.getElementById('imap_server-$t').value);
 		if(document.getElementById('usessl-$t').checked){XHR.appendData('usessl',1);}else{XHR.appendData('usessl',0);}
 		if(document.getElementById('verbosed-$t').checked){XHR.appendData('verbosed',1);}else{XHR.appendData('verbosed',0);}
@@ -441,6 +443,10 @@ var x_SaveOfflineRule$t= function (obj) {
 	echo $tpl->_ENGINE_parse_body($html);
 }
 function item_edit_save(){
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	
+	
+	
 	$_POST["password"]=addslashes(url_decode_special_tool($_POST["password"]));
 	if($_POST["md5"]==null){
 		$md5=md5(serialize($_POST));	
@@ -528,7 +534,10 @@ function status(){
 }
 	
 function import(){
-	$ou=base64_decode($_GET["ou"]);
+	$ou=$_GET["ou"];
+	if(is_base64_encoded($ou)){
+		$ou=base64_decode($ou);
+	}
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ldap=new clladp();
@@ -539,7 +548,8 @@ function import(){
 	$html="
 	
 	<div id='import-task-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{domain}:</td>
 		<td>". Field_array_Hash($domains,"domain",null,null,null,0,"font-size:16px;padding:3px")."&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:YahooWinBrowse('500','$page?about=yes','$about_this_section');\" style='font-size:14px;text-decoration:underline'>$about_this_section</a></td>
@@ -548,7 +558,7 @@ function import(){
 	<tr>
 		<td class=legend nowrap style='font-size:16px'>{file_path}:</td>
 		<td width=99%>". Field_text("IMPORTATION_FILE_PATH","",'width:85%;font-size:16px;padding:3px'). " </td>
-		<td width=1%>". button("{browse}","javascript:Loadjs('tree.php?select-file=txt&target-form=IMPORTATION_FILE_PATH')","16px")."</td>
+		<td width=1%>". button("{browse}","Loadjs('tree.php?select-file=txt&target-form=IMPORTATION_FILE_PATH')","16px")."</td>
 	</tr>
 	<tr>
 		<td colspan=3 align='right'><hr>". button("{import_datas}","MigrationImportDatas()","18px")."</td>
@@ -566,6 +576,7 @@ function import(){
 		if(results.length>0){alert(results);}
 		document.getElementById('import-task-$t').innerHTML='';
 		$('#flexRT$t').flexReload();
+		LoadAjax('taskslistMigr','$page?tasks-list=yes&ou={$_GET["ou"]}');
 		
 	}	
 	
@@ -703,13 +714,22 @@ function MIGRATION_RELAUNCH_TASKS(){
 }
 
 function MIGRATION_DELETE_TASK(){
-	$ou=base64_decode($_GET["ou"]);
+	$ou=$_GET["ou"];
+	if(is_base64_encoded($ou)){
+		$ou=base64_decode($ou);
+	}
+	
+	
 	if(!is_numeric($_GET["DELETE_TASK"])){echo "Not numeric!";return;}
 	$sql="DELETE FROM mbx_migr WHERE ID='{$_GET["DELETE_TASK"]}' AND ou='$ou'";
 	$q=new mysql();
+	
+	if($GLOBALS["VERBOSE"]){echo "<br><strong>$sql</strong>\n";}
+	
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;}
 	$sql="DELETE FROM mbx_migr_users WHERE 	mbx_migr_id='{$_GET["DELETE_TASK"]}' AND ou='$ou'";
+	if($GLOBALS["VERBOSE"]){echo "<br><strong>$sql</strong>\n";}
 	$q->QUERY_SQL($sql,"artica_backup");
 }
 
@@ -774,11 +794,11 @@ $('#flexRT$t').flexigrid({
 		{display: '$members', name : 'uid', width :184, sortable : true, align: 'left'},
 		{display: '$imap_server', name : 'imap_server', width :170, sortable : true, align: 'left'},
 		{display: '$account', name : 'username', width : 141, sortable : true, align: 'left'},
-		{display: '$events', name : 'exec', width : 31, sortable : false, align: 'center'},
-		{display: 'exec', name : 'exec', width : 31, sortable : false, align: 'center'},
-		{display: '$schedule', name : 'schedule', width : 31, sortable : true, align: 'center'},
-		{display: '$terminated', name : 'imported', width : 31, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'DEL', width : 31, sortable : false, align: 'center'},
+		{display: '$events', name : 'exec', width : 65, sortable : false, align: 'center'},
+		{display: 'exec', name : 'exec', width : 65, sortable : false, align: 'center'},
+		{display: '$schedule', name : 'schedule', width : 65, sortable : true, align: 'center'},
+		{display: '$terminated', name : 'imported', width : 65, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'DEL', width : 65, sortable : false, align: 'center'},
 		],$buttons
 	
 	searchitems : [
@@ -792,7 +812,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 768,
+	width: '99%',
 	height: 380,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1141,7 +1161,7 @@ function MIGRATION_RESTART_MEMBERS(){
 }
 function about(){
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{MAILBOXES_MIGRATION_EXPLAIN}<hr>
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{MAILBOXES_MIGRATION_EXPLAIN}<hr>
 	{MAILBOXES_MIGRATION_EXPLAIN_2}
 	
 	</div>");

@@ -81,7 +81,7 @@ function tabs(){
 function popup(){
 	$page=CurrentPageName();
 	$html="
-	<div class=explain style='font-size:14px'>{tune_squid_performances_explain}</div>
+	<div class=text-info style='font-size:14px'>{tune_squid_performances_explain}</div>
 	<div id='squidperfs'></div>
 	
 	<script>

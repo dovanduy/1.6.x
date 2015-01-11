@@ -4,12 +4,14 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["NOSQUIDOUTPUT"]=true;
+$GLOBALS["PROGRESS"]=false;
 $GLOBALS["TITLENAME"]="NTLM Proxy";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
+if(preg_match("#--progress#",implode(" ",$argv),$re)){$GLOBALS["PROGRESS"]=true;}
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
@@ -37,14 +39,28 @@ function restart() {
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
+		build_progress("{failed} Already Artica task running PID $pid since {$time}mn",110);
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-		
+	build_progress("{stopping_service}",10);
 	stop(true);
-	sleep(1);
-	start(true);
 	
+	sleep(1);
+	build_progress("{starting_service}",50);
+	start(true);
+	build_progress("{done}",100);
+	
+}
+function build_progress($text,$pourc){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	echo $text."\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/cntlm.restart.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	sleep(1);
 }
 
 
@@ -74,6 +90,7 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		build_progress("{starting_service}",90);
 		return;
 	}
 	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
@@ -84,6 +101,7 @@ function start($aspid=false){
 	if($EnableKerbAuth==0){$EnableCNTLM=0;}
 
 	if($EnableCNTLM==0){
+		build_progress("Service disabled",110);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableKerbAuth,EnableCNTLM)\n";}
 		return;
 	}
@@ -95,6 +113,7 @@ function start($aspid=false){
 
 	
 	$cmd=build();
+	build_progress("{starting_service}",60);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	
 	shell_exec($cmd);
@@ -105,7 +124,7 @@ function start($aspid=false){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
 	}
-
+	build_progress("{starting_service}",70);
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
@@ -113,7 +132,7 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}
-
+	build_progress("{starting_service}",90);
 
 }
 
@@ -135,6 +154,7 @@ function stop($aspid=false){
 
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		build_progress("{stopping_service}",45);
 		return;
 	}
 	$pid=PID_NUM();
@@ -147,19 +167,22 @@ function stop($aspid=false){
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	unix_system_kill($pid);
+	build_progress("{stopping_service}",15);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
-
+	build_progress("{stopping_service}",20);
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		build_progress("{stopping_service}",45);
 		return;
 	}
 
+	build_progress("{stopping_service}",25);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
@@ -171,9 +194,10 @@ function stop($aspid=false){
 
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		build_progress("{stopping_service}",45);
 		return;
 	}
-
+	build_progress("{stopping_service}",45);
 	
 	
 
@@ -185,7 +209,8 @@ function PID_NUM(){
 	$pid=trim(@file_get_contents($filename));
 	$unix=new unix();
 	if($unix->process_exists($pid)){return $pid;}
-	return $unix->PIDOF($unix->find_program("cntlm"));
+	$cntlm=$unix->find_program("cntlm");
+	return $unix->PIDOF_PATTERN("$cntlm.*?cntlm\.pid");
 }
 
 function PID_PATH(){
@@ -217,7 +242,7 @@ function build(){
 		$CnTLMPORT=rand(35000, 64000);
 		$sock->SET_INFO("CnTLMPORT", $CnTLMPORT);
 	}	
-	
+	build_progress("Listen port $CnTLMPORT -> $SquidListen",60);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen Port...: `$CnTLMPORT`\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Proxy to......: `$SquidListen`\n";}
 	
@@ -267,6 +292,7 @@ function get_squid_listen_ports(){
 	
 	
 }
+
 
 
 

@@ -70,7 +70,7 @@ $buttons="buttons : [
 
 	
 echo "
-<div class=explain>$IndexIgnore_explain</div>
+<div class=text-info>$IndexIgnore_explain</div>
 <table class='$t' style='display: none' id='$t' style='width:99%'></table>
 <script>
 var MEMMDAUTHIX='';

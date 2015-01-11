@@ -1,5 +1,7 @@
 <?php
 include_once(dirname(__FILE__)."/class.system.network.inc");
+include_once(dirname(__FILE__)."/class.mysql.inc");
+include_once(dirname(__FILE__)."/class.squid.familysites.inc");
 
 if (!defined('CURLOPTTYPE_OBJECTPOINT')){define('CURLOPTTYPE_OBJECTPOINT', 10000);}
 if (!defined('CURLOPT_NOPROXY')){define('CURLOPT_NOPROXY', CURLOPTTYPE_OBJECTPOINT + 177);}
@@ -17,6 +19,7 @@ class ccurl{
 	var $NoHTTP_POST=false;
 	var $GET_HEADERS=false;
 	var $error;
+	var $errors;
 	var $ArticaProxyServerEnabled="no";
 	var $ArticaProxyServerName='';
 	var $ArticaProxyServerPort=3128;
@@ -39,6 +42,7 @@ class ccurl{
 	var $CURLOPT_NOPROXY="localhost,127.0.0.1";
 	var $CURLOPT_HEADER=true;
 	var $CURLINFO_HTTP_CODE=0;
+	public $CURLINFO_SIZE=0;
 	var $CURL_ALL_INFOS=array();
 	var $CurlBandwith=0;
 	
@@ -72,7 +76,7 @@ class ccurl{
 			
 			if(is_numeric($NoCheckSquid)){ 
 				if($NoCheckSquid==1){
-					$this->OutPutlogs("ccurl(): NoCheckSquid -> TRUE");
+					$this->OutPutlogs("NoCheckSquid: TRUE");
 					$this->NoCheckSquid=true;
 				} 
 			}
@@ -81,10 +85,11 @@ class ccurl{
 			if(!is_numeric($this->Timeout)){$this->Timeout=3600;}
 			if($this->Timeout<720){$this->Timeout=3600;}
 			
-			$this->OutPutlogs("ccurl(): CurlBandwith -> $this->CurlBandwith");
-			$this->OutPutlogs("ccurl(): Timeout -> $this->Timeout seconds");
-			
+			$this->OutPutlogs("CurlBandwith: $this->CurlBandwith");
+			$this->OutPutlogs("Timeout.....: $this->Timeout seconds");
+			$this->OutPutlogs("Bind Network: {$GLOBALS["WgetBindIpAddress"]}");
 			$this->WgetBindIpAddress=$GLOBALS["WgetBindIpAddress"];
+			
 			$this->LoadProxy();
 
 			
@@ -92,6 +97,7 @@ class ccurl{
 	
 	private function LoadProxy(){
 		if($GLOBALS["NOT_FORCE_PROXY"]){
+			$this->OutPutlogs("NOT_FORCE_PROXY: TRUE");
 			$this->ArticaProxyServerEnabled="no";
 			$this->ArticaProxyServerUsername=null;
 			$this->ArticaProxyServerPort=null;
@@ -103,6 +109,7 @@ class ccurl{
 			$datas=$sock->GET_INFO("ArticaProxySettings");
 			if(trim($datas)<>null){
 				$ini->loadString($datas);
+				$this->OutPutlogs("ArticaProxyServerEnabled: {$ini->_params["PROXY"]["ArticaProxyServerEnabled"]}");
 				$this->ArticaProxyServerEnabled=$ini->_params["PROXY"]["ArticaProxyServerEnabled"];
 				$this->ArticaProxyServerName=$ini->_params["PROXY"]["ArticaProxyServerName"];
 				$this->ArticaProxyServerPort=$ini->_params["PROXY"]["ArticaProxyServerPort"];
@@ -117,9 +124,9 @@ class ccurl{
 		}
 		if($this->ArticaProxyServerEnabled=="yes"){return;}
 		if($this->NoCheckSquid){
-			
-			$this->OutPutlogs("LoadProxy() -> NoCheckSquid - TRUE, abort");
-			return;}
+			$this->OutPutlogs("NoCheckSquid - TRUE, abort");
+			return;
+		}
 		
 		
 		if(!$GLOBALS["AS_ROOT"]){return;}
@@ -129,11 +136,11 @@ class ccurl{
 		if(!is_file($squid)){return;}
 		$SQUIDEnable=@file_get_contents("/etc/artica-postfix/settings/Daemons/SQUIDEnable");
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__." SQUIDEnable=$SQUIDEnable\n";}
+		$this->OutPutlogs("SQUIDEnable=$SQUIDEnable");
 		if($SQUIDEnable==0){return;}
 		$SquidMgrListenPort=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidMgrListenPort"));
 		if(!is_numeric($SquidMgrListenPort)){return;}
-		if($GLOBALS["VERBOSE"]){echo "Using Proxy 127.0.0.1:$SquidMgrListenPort\n";}
+		$this->OutPutlogs("Using Proxy 127.0.0.1:$SquidMgrListenPort");
 		$this->ArticaProxyServerName="127.0.0.1";
 		$this->ArticaProxyServerPort=$SquidMgrListenPort;
 		if($this->TestProxy()){
@@ -175,11 +182,114 @@ class ccurl{
 		
 	}
 	
+	private function sql_logs($array){
+		
+		$url=$array["url"];
+		$size_download=$array["size_download"];
+		$speed_download=$array["speed_download"];
+		// bytes per second 
+		$total_time=$array["total_time"];
+		$size_upload=$array["size_upload"];
+		$speed_upload=$array["speed_upload"];
+		$q=new mysql();
+		$HourTable=date("YmdH");
+		
+		$HR=parse_url($url);
+		
+		$squid=new squid_familysite();
+		$www=$squid->GetFamilySites($HR["host"]);
+		$time = intval($array['total_time'])
+		- intval($array['namelookup_time'])
+		- intval($array['connect_time'])
+		- intval($array['pretransfer_time'])
+		- intval($array['starttransfer_time'])
+		- intval($array['redirect_time']);
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `{$HourTable}_curl` (
+			`zDate` DATETIME NOT NULL ,
+			`url` VARCHAR(256) ,
+			`www` VARCHAR(128) ,
+			`size_download` INT UNSIGNED ,
+			`time` INT UNSIGNED ,
+			KEY `zDate` (`zDate`),
+			KEY `url` (`url`),
+			KEY `www` (`www`),
+			KEY `size_download` (`size_download`),
+			KEY `time` (`time`)
+			)  ENGINE = MEMORY;";
+		$q->QUERY_SQL($sql,"artica_events");
+		if(!$q->ok){$this->ToSyslog("Fatal: $q->mysql_error");}
+		
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO `{$HourTable}_curl` (`zDate`,`url`,`size_download`,`time`,`www`) 
+		VALUES (NOW(),'$url','$size_download','$time','$www')","artica_events");
+		if(!$q->ok){$this->ToSyslog("Fatal: $q->mysql_error");}
+	}
+	
 	private function OutPutlogs($text){
+		
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){
+				$file=basename($trace[1]["file"]);
+				$function=$trace[1]["function"];
+				$line=$trace[1]["line"];
+				
+			}
+		
+		}
+		
+		
+		$GLOBALS["OutPutlogs"][]=date("H:i:s")." $function/$line: ".$text;
 		if($GLOBALS["VERBOSE"]){echo "DEBUG:: $text\n";}
 		if(!isset($GLOBALS["CURLDEBUG"])){$GLOBALS["CURLDEBUG"]=array();}
 		$GLOBALS["CURLDEBUG"][]=$text;
+		
 	}
+	
+	private function buildErrors(){
+		while (list ($index, $ligne) = each ($GLOBALS["OutPutlogs"]) ){
+			$this->errors[]=$ligne;
+		}
+		while (list ($index, $ligne) = each ($this->CURL_ALL_INFOS) ){
+			if(is_array($ligne)){
+				while (list ($a, $b) = each ($ligne) ){
+					$this->errors[]="INFO: `$index`:$a = `$b`";
+				}
+				continue;
+			}
+			$this->errors[]="INFO: `$index` = `$ligne`";
+		}
+		$GLOBALS["OutPutlogs"]=array();
+		return false;
+	}
+	
+	function ToSyslog($text){
+	
+	
+		if(function_exists("openlog")){openlog("libcurl", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog(LOG_INFO, $text);}
+		if(function_exists("closelog")){closelog();}
+	}
+	
+	private function Writelogs($text){
+		$file="/var/log/http.curl.log";
+			@mkdir(dirname($file));
+			$logFile=$file;
+			if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+			if (is_file($logFile)) {
+				$size=filesize($logFile);
+				if($size>100000){unlink($logFile);}
+			}
+			$logFile=str_replace("//","/",$logFile);
+			$f = @fopen($logFile, 'a');
+		
+			@fwrite($f, "$text\n");
+			@fclose($f);
+		}
+		
+	
 	
 	
 	private function getdirect_HTTP_Request2(){
@@ -223,7 +333,7 @@ class ccurl{
 					$response = null;
 					$this->OutPutlogs("getdirect_HTTP_Request2() -> $es $ets $egc $egl $egm $egt");
 					$this->error="$es $ets $egc $egl $egm $egt";
-					return false;
+					return $this->buildErrors();;
 					
 				}
 				$this->data = $response->getBody();	
@@ -233,7 +343,7 @@ class ccurl{
 }
 
 	private function pear_install_HTTP_Request2(){
-		if(!$GLOBALS["AS_ROOT"]){return false;}
+		if(!$GLOBALS["AS_ROOT"]){return $this->buildErrors();;}
 		$unix=new unix();
 		$pear=$unix->find_program("pear");
 		if(!is_file($pear)){if($GLOBALS["VERBOSE"]){echo "pear_install_HTTP_Request2() `pear` no such binary\n";}return;}
@@ -241,7 +351,7 @@ class ccurl{
 		shell_exec("$hohup $pear install HTTP_Request2 >/dev/null 2>&1 &");
 	}
 	private function  pear_install_Net_URL2(){
-		if(!$GLOBALS["AS_ROOT"]){return false;}
+		if(!$GLOBALS["AS_ROOT"]){return $this->buildErrors();;}
 		$unix=new unix();
 		$pear=$unix->find_program("pear");
 		if(!is_file($pear)){if($GLOBALS["VERBOSE"]){echo "pear_install_Net_URL2() `pear` no such binary\n";}return;}
@@ -312,7 +422,7 @@ class ccurl{
 			
 			$this->error=$e->getMessage();
 			$this->OutPutlogs("getdirect() -> $this->error");
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		
@@ -320,7 +430,7 @@ class ccurl{
 		if(!$result){
 			$this->error=$this->error ." Failed to get $this->uri in context (timeout ($this->Timeout)";
 			if($GLOBALS["VERBOSE"]){echo "Failed to get $this->uri in context\n";}
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		$this->OutPutlogs("getdirect() -> ".strlen($result)." bytes");
@@ -329,7 +439,7 @@ class ccurl{
 		if(!$this->ParseTextError()){
 			$this->error="ParseTextError() -> Return False data:".strlen($result)." bytes";
 			$this->OutPutlogs("ParseTextError() -> Return False....");
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		return true;
@@ -371,14 +481,14 @@ class ccurl{
 	
 	
 	private function TestProxy(){
-		if($this->NoCheckSquid){$GLOBALS["CCURL_TEST_PROXY"]=false;return false;}
+		if($this->NoCheckSquid){$GLOBALS["CCURL_TEST_PROXY"]=false;return $this->buildErrors();;}
 		if(isset($GLOBALS["CCURL_TEST_PROXY"])){return $GLOBALS["CCURL_TEST_PROXY"];}
 		$f=@fsockopen ($this->ArticaProxyServerName, $this->ArticaProxyServerPort, $errno, $errstr, 2);
 
 		if(!$f){
-			$this->OutPutlogs("TestProxy() $this->ArticaProxyServerName:$this->ArticaProxyServerPort failed");
+			$this->OutPutlogs("$this->ArticaProxyServerName:$this->ArticaProxyServerPort failed");
 			$GLOBALS["CCURL_TEST_PROXY"]=false;
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		fclose($f);
@@ -393,12 +503,14 @@ class ccurl{
 	}
 	
 	public function NoLocalProxy(){
-		$this->OutPutlogs( __CLASS__."/".__FUNCTION__.":: ".__LINE__.":: -> NoCheckSquid TRUE");
+		$this->OutPutlogs("NoCheckSquid: TRUE");
 		$this->NoCheckSquid=true;
 	}
 	
 	function get(){
-		if (!extension_loaded('curl')) {return $this->wget();}
+		if (!extension_loaded('curl')) {
+			$this->OutPutlogs("curl extension is not loaded -> wget()");
+			return $this->wget();}
 		if($this->UseDirect){
 			$this->OutPutlogs( __CLASS__."/".__FUNCTION__.":: ".__LINE__.":: ->getdirect()");
 			return $this->getdirect();
@@ -416,6 +528,10 @@ class ccurl{
 			
 			
 			$this->OutPutlogs("CURLOPT_TIMEOUT: {$this->Timeout}s");
+			
+			curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, TRUE);
+			curl_setopt($this->ch, CURLOPT_DNS_CACHE_TIMEOUT, 360);
+			curl_setopt($this->ch, CURLOPT_FORBID_REUSE, TRUE);
 			curl_setopt($this->ch, CURLOPT_FRESH_CONNECT, TRUE);
 			curl_setopt($this->ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache,must-revalidate", "Cache-Control: no-cache,must revalidate",'Expect:'));
 			curl_setopt ($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
@@ -434,7 +550,7 @@ class ccurl{
 			curl_setopt($this->ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache", "Cache-Control: no-cache"));
 			
 			if($this->authname<>null){
-				if($GLOBALS["VERBOSE"]){writelogs("Enable website authentication has $this->authname",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				$this->OutPutlogs("Enable website authentication has $this->authname");
 				curl_setopt($this->ch, CURLOPT_USERPWD, "$this->authname:$this->authpass");
 			}
 			
@@ -456,9 +572,11 @@ class ccurl{
 			$this->orginal_data=$this->data;
 			$this->CURLINFO_HTTP_CODE=curl_getinfo($this->ch,CURLINFO_HTTP_CODE);
 			$this->CURL_ALL_INFOS=curl_getinfo($this->ch);
+			$this->sql_logs($this->CURL_ALL_INFOS);
+			
 			if($GLOBALS["VERBOSE"]){echo curl_getinfo($this->ch, CURLINFO_HEADER_OUT);}
 			if($GLOBALS["VERBOSE"]){echo "***** $this->CURLINFO_HTTP_CODE *****\n";}
-			if(!$this->ParseCodeError()){$this->OutPutlogs("ParseCodeError return false -> Failed");return false;}
+			if(!$this->ParseCodeError()){$this->OutPutlogs("ParseCodeError return $this->buildErrors(); -> Failed");return $this->buildErrors();;}
 			
 			$header_size = curl_getinfo($this->ch,CURLINFO_HEADER_SIZE);
 			$this->headers=substr($this->data, 0, $header_size);
@@ -472,7 +590,7 @@ class ccurl{
 			
 			if(!$this->ParseTextError()){
 				$this->OutPutlogs("Return False....");
-				return false;
+				return $this->buildErrors();;
 			}
 			
 			
@@ -483,11 +601,11 @@ class ccurl{
 	private function ParseCodeError(){
 		
 		if($this->CURLINFO_HTTP_CODE==300){
-			if($GLOBALS["VERBOSE"]){echo "ParseCodeError:: $this->CURLINFO_HTTP_CODE == 300 (300 Multiple Choices) return false\n";}
+			if($GLOBALS["VERBOSE"]){echo "ParseCodeError:: $this->CURLINFO_HTTP_CODE == 300 (300 Multiple Choices) return $this->buildErrors();\n";}
 			$this->data=null;
 			$this->error="503 Multiple Choices";
 			$this->error_num=300;
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		if($this->CURLINFO_HTTP_CODE<400){
@@ -498,7 +616,7 @@ class ccurl{
 			$this->data=null;
 			$this->error="503 Service Unavailable";
 			$this->error_num=503;
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		if($GLOBALS["VERBOSE"]){echo "ParseCodeError:: Parsing CURLINFO_HTTP_CODE:$this->CURLINFO_HTTP_CODE\n";}
@@ -514,7 +632,7 @@ class ccurl{
 			$this->data=null;
 			$this->error_num=$this->CURLINFO_HTTP_CODE;
 			$this->error=$array[$this->CURLINFO_HTTP_CODE];
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		return true;
@@ -528,14 +646,14 @@ class ccurl{
 			$this->data=null;
 			$this->error="503 Service Unavailable";
 			$this->error_num=503;
-			return false;
+			return $this->buildErrors();;
 			}
 			
 			if($this->CURLINFO_HTTP_CODE==403){
 				$this->data=null;
 				$this->error="403: Access denied";
 				$this->error_num=403;
-				return false;
+				return $this->buildErrors();;
 			}			
 		
 		
@@ -543,7 +661,7 @@ class ccurl{
 				$this->data=null;
 				$this->error="407 Proxy Authentication Required";
 				$this->error_num=407;
-				return false;
+				return $this->buildErrors();;
 			}
 		
 		
@@ -552,7 +670,7 @@ class ccurl{
 					writelogs("404 Not found !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->data=null;
 					$this->error_num=404;
-					return false;
+					return $this->buildErrors();;
 				}
 				
 				if(strpos(strtolower($this->data), strtolower("<title>400 - Bad Request</title>"))>0){
@@ -560,7 +678,7 @@ class ccurl{
 					writelogs("400 Bad Request !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->data=null;
 					$this->error_num=400;
-					return false;				
+					return $this->buildErrors();;				
 					
 				}
 					
@@ -568,7 +686,7 @@ class ccurl{
 					$this->error="Access denied ".strlen($this->data)." bytes length";
 					writelogs("Access Denied !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->data=null;
-					return false;
+					return $this->buildErrors();;
 				}	
 				if(strpos(strtolower($this->data), strtolower("<title>403 Forbidden"))>0){
 					$this->error="403: Access denied ".strlen($this->data)." bytes length";
@@ -576,14 +694,14 @@ class ccurl{
 						$this->error="Error 403: Access denied please try again in {$re[1]} {$re[2]}";
 					}
 					$this->error_num=403;
-					return false;
+					return $this->buildErrors();;
 				}
 				
 				 if(strpos(strtolower($this->data), strtolower("<title>500 - Internal Server Error"))>0){
 					$this->error="500 - Internal Server Error ".strlen($this->data)." bytes length";
 					$this->error_num=500;
 					$this->data=null;
-					return false;
+					return $this->buildErrors();;
 				}
 				
 				if(strpos(strtolower($this->data), strtolower("X-Squid-Error:"))>0){
@@ -594,7 +712,7 @@ class ccurl{
 					$this->error_num=$re[1];
 					$this->data=null;
 					if($this->error_num<400){return true;}
-					return false;
+					return $this->buildErrors();;
 				}
 				
 				
@@ -619,25 +737,25 @@ class ccurl{
 		if($error==6){
 			writelogs("error 6 Couldn't resolve host. The given remote host was not resolved $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->error="{CURLE_COULDNT_RESOLVE_HOST}";
-			return false;
+			return $this->buildErrors();;
 			}
 			
 		if($error==7){
 			writelogs("error 7 Failed to connect() to host or proxy (Proxy: $this->ArticaProxyServerEnabled, $this->ArticaProxyServerName:$this->ArticaProxyServerPort) $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->error="{CURLE_COULDNT_CONNECT} (Proxy: $this->ArticaProxyServerEnabled,$this->ArticaProxyServerName:$this->ArticaProxyServerPort)";
-			return false;
+			return $this->buildErrors();;
 		}
 			
 		if($error==23){
 			writelogs("Curl:: error 23 An error occurred when writing received data to a local file. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->error="{CURLE_WRITE_ERROR}";
-			return false;
+			return $this->buildErrors();;
 			}			
 			
 		if($error==26){
 			writelogs("Curl:: error 26 There was a problem reading a local file or an error returned by the read callback. $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->error="{CURLE_READ_ERROR}";
-			return false;
+			return $this->buildErrors();;
 			}
 			
 			
@@ -645,25 +763,25 @@ class ccurl{
 			if($error==56){
 				writelogs("Curl:: error 56 Failure with receiving network data. $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_RECV_ERROR}";
-				return false;
+				return $this->buildErrors();;
 			}
 			if($error==52){
 				writelogs("Curl:: error 52 Nothing was returned from the server. $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_52_ERROR}";
-				return false;
+				return $this->buildErrors();;
 			}
 			
 
 			if($error==28){
 				writelogs("Curl:: error 28 Operation timeout. The specified time-out period was reached according to the conditions. $this->called $trace",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_OPERATION_TIMEDOUT} - {$this->Timeout}s";
-				return false;
+				return $this->buildErrors();;
 			}
 			
 			if($error==18){
 				writelogs("Curl:: error 18 Partial file. ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$this->error="{CURLE_CURLE_PARTIAL_FILE}";
-				return false;
+				return $this->buildErrors();;
 			}			
 			
 		return true;
@@ -674,6 +792,16 @@ class ccurl{
 	private function ChooseInterface(){
 		if(isset($GLOBALS["CURL_ChooseInterface"])){return $GLOBALS["CURL_ChooseInterface"];}
 		$ips=new networking();
+		$sock=new sockets(); 
+		$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
+		if($MikrotikTransparent==1){
+			
+			$MikrotikVirtualIP=$sock->GET_INFO('MikrotikVirtualIP');
+			$this->OutPutlogs("Mikrotik is enabled on $MikrotikVirtualIP");
+			$GLOBALS["CURL_ChooseInterface"]=$MikrotikVirtualIP;
+			return $GLOBALS["CURL_ChooseInterface"];
+		}
+		
 		$array=$ips->ALL_IPS_GET_ARRAY();
 		unset($array["127.0.0.1"]);
 		unset($array["127.0.0.2"]);
@@ -767,16 +895,18 @@ class ccurl{
 		
 		if($this->interface==null){
 			$this->interface=$this->ChooseInterface();
-			$GLOBALS["CURLDEBUG"][]="CURLOPT_INTERFACE: \"$this->interface\" Line ". __LINE__;
-			if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: \"$this->interface\" Line ". __LINE__."\n";}
+			$this->OutPutlogs("CURLOPT_INTERFACE: \"$this->interface\"");
+			
 		}
 		
 		if($this->interface=="127.0.0.1"){$this->EXEC_INTERFACE_NOLOCAL();}
 		if(trim($this->interface)==null){
+			$this->OutPutlogs("CURLOPT_INTERFACE: \"NONE\"");
 			$GLOBALS["CURLDEBUG"][]="CURLOPT_INTERFACE: \"NONE\" Line ". __LINE__;
 			if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: NONE\n";}
 			return;
 		}
+		$this->OutPutlogs("CURLOPT_INTERFACE: \"$this->interface\"");
 		if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: `$this->interface`\n";}
 		$GLOBALS["CURLDEBUG"][]="CURLOPT_INTERFACE: \"$this->interface\" Line ". __LINE__;
 		curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
@@ -787,7 +917,7 @@ class ccurl{
 	function GetHeads(){
 		$SUFFIX_VERBOSE=__CLASS__."/".__FUNCTION__;
 		if (!extension_loaded('curl') or ($this->ch = curl_init($this->uri)) === false) {echo "No curl extentions can be loaded\n";return;}
-		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER,true);
+		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER,TRUE);
 		curl_setopt($this->ch, CURLOPT_URL, "$this->uri");
 		curl_setopt($this->ch, CURLOPT_FRESH_CONNECT, TRUE);
 		curl_setopt($this->ch, CURLOPT_NOBODY, TRUE);
@@ -801,23 +931,38 @@ class ccurl{
 		
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('Expect:'));
 		curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
+		curl_setopt($this->ch, CURLOPT_HEADER, TRUE);
+		
+		
+		
 		$result=curl_exec($this->ch);
+		
 		$this->CURL_ALL_INFOS=curl_getinfo($this->ch);
+		
+		$this->sql_logs($this->CURL_ALL_INFOS);
 		$this->CURLINFO_HTTP_CODE=curl_getinfo($this->ch,CURLINFO_HTTP_CODE);
+		$this->CURLINFO_SIZE = curl_getinfo($this->ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
 		$error=curl_errno($this->ch);
 		if($GLOBALS["VERBOSE"]){echo "GetHeads:: Error N.$error\n";}
 		
 		curl_close($this->ch);
-		if(!$this->ParseError($error)){return false;}
+		if(!$this->ParseError($error)){return $this->buildErrors();;}
 		return $this->ParseCodeError();
 	}
 	
 	
 	function GetFile($targetpath){
+		$GLOBALS["OutPutlogs"]=array();
 		$SUFFIX_VERBOSE=__CLASS__."/".__FUNCTION__;
 		if (!extension_loaded('curl') or ($this->ch = curl_init($this->uri)) === false) {echo "No curl extentions can be loaded\n";return;}
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER,true);
 		$this->OutPutlogs("CURLOPT_FILE = $targetpath");
+		
+		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, TRUE);
+		curl_setopt($this->ch, CURLOPT_DNS_CACHE_TIMEOUT, 360);
+		curl_setopt($this->ch, CURLOPT_FORBID_REUSE, TRUE);
+		curl_setopt($this->ch, CURLOPT_FRESH_CONNECT, TRUE);
+		
 		curl_setopt($this->ch, CURLOPT_FILE, $fp = fopen($targetpath,'w'));
 		curl_setopt($this->ch, CURLOPT_URL, "$this->uri");
 		curl_setopt($this->ch, CURLOPT_FRESH_CONNECT, TRUE);
@@ -839,6 +984,8 @@ class ccurl{
 		}
 		
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('Expect:'));
+		
+		curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, $this->Timeout);
 		curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
 			
 		if($this->WriteProgress){
@@ -870,6 +1017,9 @@ class ccurl{
 		
 		
 		$this->CURL_ALL_INFOS=curl_getinfo($this->ch);
+		$GLOBALS["CURL_LAST_SIZE_DOWNLOAD"]=$this->CURL_ALL_INFOS["size_download"];
+		
+		$this->sql_logs($this->CURL_ALL_INFOS);
 		
 		fclose($fp);
 		$error=curl_errno($this->ch);	
@@ -879,11 +1029,11 @@ class ccurl{
 		if($GLOBALS["VERBOSE"]){echo "Check \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 		
 		if(!$this->ParseTextError()){
-			$this->OutPutlogs("* * * ParseTextError() return false * * * ");
+			$this->OutPutlogs("* * * ParseTextError() return $this->buildErrors(); * * * ");
 			@unlink($targetpath);
 			$this->OutPutlogs("Return False....");
 			writelogs("*** FAILED *** datas: $this->uri Error.$this->CURLINFO_HTTP_CODE",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			return false;
+			return $this->buildErrors();;
 		}
 		
 		
@@ -893,23 +1043,25 @@ class ccurl{
 			$this->error_num=404;
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** [".__LINE__."]\n";}
 			writelogs("*** FAILED *** datas: $this->uri 404 not Found error: $error",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			return false;
+			return $this->buildErrors();;
 		}
+		$this->OutPutlogs("Check \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]");
 		
-		if($GLOBALS["VERBOSE"]){echo "Check \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 		if(!is_file($targetpath)){
 			$this->OutPutlogs("* * * $targetpath no such file * * * ");
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 			if($GLOBALS["VERBOSE"]){echo "path \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE no such file\n";}
-			return false;
+			return $this->buildErrors();;
 		}
 			
-		if($GLOBALS["VERBOSE"]){echo "Check \"ParseError($error) - ERR: $this->CURLINFO_HTTP_CODE\" [".__LINE__."]\n";}	
+		$this->OutPutlogs("Check \"ParseError($error) - ERR: $this->CURLINFO_HTTP_CODE\" [".__LINE__."]");
+			
 		if(!$this->ParseError($error)){
-			$this->OutPutlogs("* * * $error return false * * * ");
+			$this->OutPutlogs("* * * $error return $this->buildErrors(); * * * ");
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** [".__LINE__."]\n";}
 			writelogs("*** FAILED *** datas: $this->uri (". strlen($this->data)." bytes) error: $error",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			return false;
+			
+			return $this->buildErrors();;
 		}
 		
 		$filesize=filesize($targetpath);
@@ -924,7 +1076,7 @@ class ccurl{
 			
 		if($filesize<10000){
 			$this->data=@file_get_contents($targetpath);
-			if(!$this->ParseTextError()){$this->data=null;return false;}
+			if(!$this->ParseTextError()){$this->data=null;return $this->buildErrors();;}
 			$this->data=null;
 			return true;
 		}	
@@ -996,6 +1148,9 @@ class ccurl{
 	    
 	    writelogs("$this->uri: Executing posting _FILE(S)[$fieldname] $filepath ($size $UNIT)",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	    $this->data = curl_exec($this->ch);
+	    $this->CURL_ALL_INFOS=curl_getinfo($this->ch);
+	    $this->sql_logs($this->CURL_ALL_INFOS);
+	    
 	    if($GLOBALS["VERBOSE"]){
 	    	print_r(curl_getinfo($this->ch));
 	    }
@@ -1004,7 +1159,7 @@ class ccurl{
 		if(!$this->ParseError($error)){
 			writelogs("Returned datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			curl_close($this->ch);
-			return false;
+			return $this->buildErrors();
 		}
 		
 		curl_close($this->ch);

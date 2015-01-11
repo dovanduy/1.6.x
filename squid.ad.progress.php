@@ -246,7 +246,7 @@ function popup_old(){
 	
 	
 	$html="
-	<div class=explain>{APPLY_SETTINGS_SQUID}</div>
+	<div class=text-info>{APPLY_SETTINGS_SQUID}</div>
 	<table style='width:100%'>
 	<tr>
 		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div></td>

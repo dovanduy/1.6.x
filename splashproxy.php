@@ -273,10 +273,7 @@ function page(){
 <div id=\"UnityDiv\" style='width:0;height:0'></div>
 <div id='PopUpInfos' style='position:absolute'></div>
 <div id='find' style='position:absolute'></div>
-<div class=\"info message\" id='AcaNotifyMessInfo'></div>
-<div class=\"error message\" id='AcaNotifyMessError'></div>
-<div class=\"warning message\" id='AcaNotifyMessWarn'></div>
-<div class=\"success message\" id='AcaNotifyMessSuccess'></div>
+
 
 </body>
 </html>";

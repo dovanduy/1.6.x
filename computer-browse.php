@@ -29,6 +29,7 @@ if(isset($_GET["EnableArpDaemon"])){EnableArpDaemonSave();exit;}
 
 if(isset($_GET["browse-computers"])){index();exit;}
 if(isset($_GET["browse-computer-list"])){computer_list();exit;}
+if(isset($_GET["network-js"])){network_js();exit;}
 
 if(isset($_GET["browse-networks"])){networks();exit;}
 if(isset($_GET["browse-networks-list"])){networks_items();exit;}
@@ -114,6 +115,24 @@ function scan_net_js(){
 	
 }
 
+function network_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{networks}");
+	$t=time();
+	echo "
+function Network$t(){
+	$('#main_networks').remove();
+	$('main_networks').remove();
+	$('flexRTNETWORKLIST').remove();
+	YahooWin6('1021','$page?networks-tabs=yes','$title');     
+	
+}
+Network$t();";
+	
+}
+
 function computer_delete_js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
@@ -148,17 +167,17 @@ function computer_delete_js(){
 function tabs(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$array["browse-computers"]='{parameters}';
+	
 	$array["search-computers"]='{search_computers}';
 	
 	
 	if($users->nmap_installed){
-		
-		$array["nmap"]='{APP_NMAP}';
+		if($_GET["callback"]==null){
+			$array["analyze"]='{analyze}';
+			$array["nmap"]='{APP_NMAP}';
+		}
 	}
 	
-	if($_GET["OnlyOCS"]==1){unset($array["browse-computers"]);}
-	if($_GET["OnlyOCS"]=="yes"){unset($array["browse-computers"]);}
 	
 	
 	if(!is_numeric($_GET["CorrectMac"])){$_GET["CorrectMac"]=0;}
@@ -170,16 +189,21 @@ function tabs(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="search-computers"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"ocs.search.php?start=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"ocs.search.php?start=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="nmap"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"nmap.index.php?tabs=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"nmap.index.php?tabs=yes\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+		if($num=="analyze"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"nmap.ping.php\"><span style='font-size:22px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -312,7 +336,7 @@ buttons : [
 });
 
 function NewComputer$t(){
-	YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
+	YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
 }
 
 </script>
@@ -569,11 +593,11 @@ function index(){
 
 	
 	
-	$add_computer_js="javascript:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 
 	
-	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
-	if(!is_numeric($EnableScanComputersNet)){$EnableScanComputersNet=0;}
+	$EnableScanComputersNet=intval($sock->GET_INFO("EnableScanComputersNet"));
+	
 	if($users->nmap_installed){
 		$ScanComputersNet="{name: '$periodic_scan', bclass: 'Schedule', onpress : PerScanz},";
 	}	
@@ -876,124 +900,7 @@ for($i=0;$i<$hash["count"];$i++){
 	
 }
 
-function computer_list_old(){
-	$tofindorg=$_GET["tofind"];
-	if($_GET["tofind"]=='*'){$_GET["tofind"]=null;}
-	if($_GET["tofind"]==null){$tofind="*";}else{$tofind="*{$_GET["tofind"]}*";}
-	$tofind=str_replace("**", "*", $tofind);
-	$filter_search="(&(objectClass=ArticaComputerInfos)(|(cn=$tofind)(ComputerIP=$tofind)(uid=$tofind))(gecos=computer))";
-	
-$ldap=new clladp();
-$attrs=array("uid","ComputerIP","ComputerOS","ComputerMachineType","ComputerMacAddress");
-$dn="$ldap->suffix";
-$hash=$ldap->Ldap_search($dn,$filter_search,$attrs,20);
 
-if(IsPhysicalAddress($tofindorg)){
-	$tofind=strtolower($tofindorg);
-	$tofind=str_replace('-',":",$tofind);
-	$patternMac="(&(objectclass=posixAccount)(ComputerMacAddress=$tofind))";
-	$hash2=$ldap->Ldap_search($dn,$patternMac,$attrs,20);
-}
-
-
-
-$PowerDNS="<td width=1%><h3>&nbsp;|&nbsp;</h3></td><td><h3>". texttooltip('{APP_PDNS}','{APP_PDNS_TEXT}',"javascript:Loadjs('pdns.php')")."</h3></td>";
-
-if($_GET["mode"]=="selection"){$PowerDNS=null;}
-
-$html="
-
-<input type='hidden' id='mode' value='{$_GET["mode"]}' name='mode'>
-<input type='hidden' id='value' value='{$_GET["value"]}' name='value'>
-<input type='hidden' id='callback' value='{$_GET["callback"]}' name='callback'>
-<table style='width:100%'>
-	<tr>
-		<td width=1% nowrap><H3>{$hash["count"]} {computers}</H3></td>
-		$PowerDNS
-	</tr>
-</table>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView'>
-<thead class='thead'>
-	<tr>
-	<th colspan=4>$tofind</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";
-
-
-
-for($i=0;$i<$hash["count"];$i++){
-	$realuid=$hash[$i]["uid"][0];
-	$hash[$i]["uid"][0]=str_replace('$','',$hash[$i]["uid"][0]);
-	
-	$js=MEMBER_JS($realuid,1);
-	$Alreadyrealuid[$realuid]=true;
-	if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
-	if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
-	$ip=$hash[$i][strtolower("ComputerIP")][0];
-	$os=$hash[$i][strtolower("ComputerOS")][0];
-	$type=$hash[$i][strtolower("ComputerMachineType")][0];
-	$name=$hash[$i]["uid"][0];
-	if(strlen($name)>25){$name=substr($name,0,23)."...";}
-	if($os=="Unknown"){if($type<>"Unknown"){$os=$type;}}
-	if(strlen($os)>20){$os=texttooltip(substr($os,0,17).'...',$os,null,null,1);}
-	if(strlen($ip)>20){$ip=texttooltip(substr($ip,0,17).'...',$ip,null,null,1);}
-	
-	
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-	$js=str_replace("javascript:",'',$js);
-	$html=$html . 
-	"<tr>
-	<td width=1% class=$classtr><img src='img/computer-32.png'></td>
-	<td $roolover nowrap><a href='#' OnClick=\"javascript:$js\" style='font-size:13px;text-decoration:underline'>$name</a></td>
-	<td $roolover style='font-size:13px'>$ip</a></td>
-	<td $roolover style='font-size:13px'>$os</a></td>
-	$js_add
-	</tr>
-	";
-	}
-	
-	if(is_array($hash2)){
-		for($i=0;$i<$hash2["count"];$i++){
-			$realuid=$hash2[$i]["uid"][0];
-			if(isset($Alreadyrealuid[$realuid])){continue;}
-			$hash2[$i]["uid"][0]=str_replace('$','',$hash2[$i]["uid"][0]);
-			$js=MEMBER_JS($realuid,1);
-			$Alreadyrealuid[$realuid]=true;
-			if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
-			if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
-			$ip=$hash2[$i][strtolower("ComputerIP")][0];
-			$os=$hash2[$i][strtolower("ComputerOS")][0];
-			$type=$hash2[$i][strtolower("ComputerMachineType")][0];
-			$name=$hash2[$i]["uid"][0];
-			if(strlen($name)>25){$name=substr($name,0,23)."...";}
-			if($os=="Unknown"){if($type<>"Unknown"){$os=$type;}}
-			if(strlen($os)>20){$os=texttooltip(substr($os,0,17).'...',$os,null,null,1);}
-			if(strlen($ip)>20){$ip=texttooltip(substr($ip,0,17).'...',$ip,null,null,1);}
-			
-			
-			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$js=str_replace("javascript:",'',$js);
-			$html=$html . 
-			"<tr>
-			<td width=1% class=$classtr><img src='img/computer-32.png'></td>
-			<td $roolover nowrap><a href='#' OnClick=\"javascript:$js\" style='font-size:13px;text-decoration:underline'>$name</a></td>
-			<td $roolover style='font-size:13px'>$ip</a></td>
-			<td $roolover style='font-size:13px'>$os</a></td>
-			$js_add
-			</tr>
-			";	
-		}		
-		
-	}
-	
-	
-	
-$html=$html . "</tbody></table>";
-$tpl=new templates();
-return  $tpl->_ENGINE_parse_body($html);		
-	
-}
 
 
 function menus_right(){
@@ -1002,7 +909,7 @@ function menus_right(){
 	$users=new usersMenus();
 	$findcomputer=Paragraphe("64-samba-find.png","{scan_your_network}",'{scan_your_network_text}',"javascript:Loadjs('computer-browse.php?scan-nets-js=yes')","scan_your_network",210);
 	$networs=Paragraphe("64-win-nic-loupe.png","{edit_networks}",'{edit_networks_text}',"javascript:ViewNetwork()","edit_networks",210);
-	$add_computer_js="javascript:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 	$add_computer=Paragraphe("64-add-computer.png","{ADD_COMPUTER}","{ADD_COMPUTER_TEXT}",$add_computer_js);
 	
 	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
@@ -1333,7 +1240,7 @@ function artica_import_popup(){
 	$ini->loadString($sock->GET_INFO("ComputersImportArtica"));	
 	$array=$ini->_params[$_GET["ip"]];
 	$html="
-	<div class=explain>{import_artica_computers_explain}</div>
+	<div class=text-info>{import_artica_computers_explain}</div>
 	<div id='import_artica_computers'>
 		<table style='width:99%' class=form>
 			<tr>
@@ -1437,7 +1344,7 @@ function artica_import_save(){
 
 function artica_importlist_popup(){
 	$page=CurrentPageName();
-	$html="<div class=explain style='font-size:16px'>{computer_popup_import_explain}</div>
+	$html="<div class=text-info style='font-size:16px'>{computer_popup_import_explain}</div>
 	<div id='popup_import_div' class=form style='width:95%'>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:99%;height:546px;border:5px solid #8E8E8E;
@@ -1499,11 +1406,12 @@ function networkslist($noecho=1){
 	$apply_firewall_rules=$tpl->javascript_parse_text("{apply_firewall_rules}");
 	
 	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
 	$html="
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
-	<script>
+<table class='flexRTNETWORKLIST' style='display: none' id='flexRTNETWORKLIST' style='width:99%'></table>
+<script>
 	$(document).ready(function(){
-	$('#flexRT$t').flexigrid({
+	$('#flexRTNETWORKLIST').flexigrid({
 	url: '$page?browse-networks-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
@@ -1540,7 +1448,7 @@ function networkslist($noecho=1){
 	});
 	
 function NewNetwork$t(){
-	AddNetwork();
+	YahooWin3(700,'$page?browse-networks-add=yes&t=flexRTNETWORKLIST','$networks');
 }
 
 function FW$t(){
@@ -1552,23 +1460,23 @@ function Import$t(){
 }
 	
 var x_NetWorksDisable$t= function (obj) {
-		$('#flexRT$t').flexReload();
+		$('#flexRTNETWORKLIST').flexReload();
 	}	
 	
 	function NetWorksDisable$t(mask){
 			var XHR = new XHRConnection();
 			XHR.appendData('NetWorksDisable',mask);
-			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable); 
+			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable$t); 
 	} 
 	
 	function NetWorksEnable$t(mask){
 			var XHR = new XHRConnection();
 			XHR.appendData('NetWorksEnable',mask);
-			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable); 
+			XHR.sendAndLoad('$page', 'GET',x_NetWorksDisable$t); 
 	} 	
 	var x_NetworkDelete= function (obj) {
 		if(document.getElementById('main_config_snort')){RefreshTab('main_config_snort');}
-		RefreshNetworklist();
+		$('#flexRTNETWORKLIST').flexReload();
 	}	
 	
 	var x_IPBanSelect= function (obj) {

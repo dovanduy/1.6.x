@@ -19,7 +19,7 @@
 	
 	if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
 	if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}	
-	
+	if(isset($_POST["EnableVirtualDomainsInMailBoxes"])){EnableVirtualDomainsInMailBoxes_save();exit;}
 	if(isset($_GET["MailBoxesDomainList"])){MailBoxesDomainList_js();exit;}
 	if(isset($_GET["main"])){main_switch();exit;}
 	if(isset($_GET["status"])){echo main_status();exit;}
@@ -113,6 +113,15 @@ function SQUATTER_SERVICE(){
 SQUATTER_SERVICE();";
 	
 	echo $html;
+}
+
+function EnableVirtualDomainsInMailBoxes_save(){
+	
+	$sock=new sockets();
+	$sock->SET_INFO("EnableVirtualDomainsInMailBoxes",$_POST["EnableVirtualDomainsInMailBoxes"]);
+	$sock->getFrameWork("cmd.php?reconfigure-cyrus=yes");
+	$sock->getFrameWork("cmd.php?restart-cyrus=yes");
+	$sock->getFrameWork("cmd.php?postfix-hash-aliases=yes");
 }
 
 function ipurge_js(){
@@ -468,6 +477,14 @@ function popup_index(){
 function popup_status(){
 	$page=CurrentPageName();
 	$time=time();
+	$sock=new sockets();
+	$EnableVirtualDomainsInMailBoxes=intval($sock->GET_INFO("EnableVirtualDomainsInMailBoxes"));
+	$t=time();
+	$EnableVirtualDomainsInMailBoxes_field=Paragraphe_switch_img('{multidomains}',
+			'{multidomains_text}<br>{multidomains_explain}',"EnableVirtualDomainsInMailBoxes-$t",$EnableVirtualDomainsInMailBoxes,
+			'{enable_disable}',750);
+	
+	
 	$html="
 	<table style='width:100%'>
 	<tbody>
@@ -478,18 +495,41 @@ function popup_status(){
 	
 	<center><img src='img/bg-cyrus.jpg'></center></td>
 	<td valign='top'>
-	
-		<div id='services_status_mbx_cyrus'>". main_status() . "</div><br>
-		<div style='font-size:14px;' class=explain>{about_cyrus}</div>
+		<div id='services_status_mbx_cyrus'>". main_status() . "</div>
+		<div style='font-size:18px;' class=text-info>{about_cyrus}</div>
+		<div style='text-align:right;width:100%;font-size:16px'><hr>
+				". button('{sync_services}',"Loadjs('cyrus.sync-services.progress.php')",26)."
+				". button('{create_a_mailbox}',"Loadjs('create-user.php')",26)."</div>
+		
+		
+		
 	</td>
-	
-	
 	</tr>
 	</tbody>
 	</table>
+	
+	<div class=form style='width:98%;margin-top:15px;margin-bottom:20px'>
+	$EnableVirtualDomainsInMailBoxes_field
+	<div style='text-align:right;width:100%'><hr>". button('{apply}',"ApplyMultidomains$t()",26)."</div>
+	</div>
+	
+	
 	<center style='width:100%'><div id='$time' class=form style='width:80%'></div></center>
 	<script>
-		LoadAjax('$time','postfix.index.php?mailbox-section=yes');
+var X_ApplyMultidomains$t= function (obj) {
+	var results=trim(obj.responseText);
+	if(results.length>0){alert(results);}
+	Loadjs('cyrus.sync-services.progress.php');
+}
+		
+function ApplyMultidomains$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('EnableVirtualDomainsInMailBoxes',document.getElementById('EnableVirtualDomainsInMailBoxes-$t').value);
+	XHR.sendAndLoad('$page', 'POST',X_ApplyMultidomains$t);				
+}
+	
+	
+LoadAjax('$time','postfix.index.php?mailbox-section=yes');
 	</script>
 	
 	";
@@ -516,7 +556,15 @@ function main_tabs(){
 	$style="style='font-size:18px'";
 
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="logs"){
+			$html[]="<li><a href=\"cyrus.events.php?hostname=$hostname\"><span $style>$ligne</span></a></li>\n";
+			continue;
+		}
 		
+		if($num=="cyrquota"){
+			$html[]="<li><a href=\"cyrus.quota.php?hostname=$hostname\"><span $style>$ligne</span></a></li>\n";
+			continue;
+		}
 		$html[]="<li><a href=\"$page?main=$num&hostname=$hostname\"><span $style>$ligne</span></a></li>\n";
 			
 		}	
@@ -970,13 +1018,13 @@ function main_cyrusconf(){
 	
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>{allowallsubscribe}:</stong></td>
-	<td>" . Field_checkbox('allowallsubscribe',1,$cyrus->impad_array["allowallsubscribe"])."</td>
+	<td>" . Field_checkbox_design('allowallsubscribe',1,$cyrus->impad_array["allowallsubscribe"])."</td>
 	<td width=1%>". help_icon("{allowallsubscribe_text}")."</td>
 	</tr>
 
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>{allowanonymouslogin}:</stong></td>
-	<td>" . Field_checkbox('allowanonymouslogin',1,$cyrus->impad_array["allowanonymouslogin"])."</td>
+	<td>" . Field_checkbox_design('allowanonymouslogin',1,$cyrus->impad_array["allowanonymouslogin"])."</td>
 	<td width=1%>". help_icon("{allowanonymouslogin_text}")."</td>
 	</tr>		
 	
@@ -984,13 +1032,13 @@ function main_cyrusconf(){
 	
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>{createonpost}:</stong></td>
-	<td>" . Field_checkbox('createonpost',1,$cyrus->impad_array["createonpost"])."</td>
+	<td>" . Field_checkbox_design('createonpost',1,$cyrus->impad_array["createonpost"])."</td>
 	<td width=1%>". help_icon("{createonpost_text}")."</td>
 	</tr>		
 	
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>{duplicatesuppression}:</stong></td>
-	<td>" . Field_checkbox('duplicatesuppression',1,$cyrus->impad_array["duplicatesuppression"])."</td>
+	<td>" . Field_checkbox_design('duplicatesuppression',1,$cyrus->impad_array["duplicatesuppression"])."</td>
 	<td width=1%>". help_icon("{duplicatesuppression_text}")."</td>
 	</tr>	
 	
@@ -1032,25 +1080,25 @@ function main_cyrusconf(){
 
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>plain:</stong></td>
-	<td>" . Field_checkbox('plain',1,$EnableMechPlain)."</td>
+	<td>" . Field_checkbox_design('plain',1,$EnableMechPlain)."</td>
 	<td width=1%></td>
 	</tr>
 
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>login:</stong></td>
-	<td>" . Field_checkbox('login',1,$EnableMechLogin)."</td>
+	<td>" . Field_checkbox_design('login',1,$EnableMechLogin)."</td>
 	<td width=1%></td>
 	</tr>	
 
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>cram-md5:</stong></td>
-	<td>" . Field_checkbox('cram-md5',1,$EnableMechCramMD5)."</td>
+	<td>" . Field_checkbox_design('cram-md5',1,$EnableMechCramMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 	
 	<tr>
 	<td align='right' class=legend style='font-size:18px'>digest-md5:</stong></td>
-	<td>" . Field_checkbox('digest-md5',1,$EnableMechDigestMD5)."</td>
+	<td>" . Field_checkbox_design('digest-md5',1,$EnableMechDigestMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 
@@ -1076,7 +1124,7 @@ function main_cyrusconf(){
 	
 	$defaultsDomain=Field_array_Hash($hash,'defaultdomain',$cyrus->impad_array["defaultdomain"],null,null,0,'font-size:18px;padding:3px');
 	$html="
-	<div class=explain style='font-size:16px'>{services_settings_text}</div>
+	<div class=text-info style='font-size:16px'>{services_settings_text}</div>
 	
 			<div style='font-size:40px'>{ports}</a></div>
 	<div id='cyrusconf' style='width:98%' class=form>
@@ -1250,74 +1298,7 @@ function CyrusMasterSaveConfig(){
 }
 
 
-function main_cyrquota(){
-	
-	
-	
-$sock=new sockets();
-	$page=CurrentPageName();
-	$tpl=new templates();
 
-	
-	$html="$form";
-	
-	
-	$sock=new sockets();
-	$datas=$sock->getfile('cyrquota');
-	
-	$styleRoll="
-	style='border:1px solid white;'
-	OnMouseOver=\"this.style.cursor='pointer'\"
-	OnMouseOut=\"this.style.cursor='auto'\"";
-	
-	$tbl=explode("\n",$datas);
-	$html=$html ."
-	<div align='center' style='height:250px;overflow:auto;width:99%'>
-	<table style='width:70%;border:1px solid #CCCCCC'>
-	<tr style='background-color:#CCCCCC;font-size:14px;font-weight:bold'>
-	<td>&nbsp;</td>
-	<td>{user}</td>
-	<td nowrap>{quota}</td>
-	<td>{used}%</td>
-	<td>{used}</td>
-	</tr>
-	
-	";
-	while (list ($num, $ligne) = each ($tbl) ){
-	if(preg_match('#(.*)\s+(.*)\s+(.*)\s+user\/(.+)#',$ligne,$re)){
-		
-		if(trim($re[1])==null){$re[1]="{illimited}";}
-		if(trim($re[2])<>null){$re[2]=$re[2]."%";}
-		
-		$html=$html . "
-		<tr " . CellRollOver().MEMBER_JS($re[4]).">
-		<td width=1%><img src='img/fw_bold.gif'></td>
-		<td $styleRoll>{$re[4]}</td>
-		<td width=1% align='right' $styleRoll>{$re[1]}</td>
-		<td width=1% $styleRoll align='center'>{$re[2]}</td>
-		<td width=1% $styleRoll>{$re[3]}</td>
-		</tr>
-		";
-	}else{
-	
-	if(preg_match('#([0-9]+)\s+([0-9]+)\s+user\/(.+)#',$ligne,$re)){
-		$html=$html . "
-		<tr " . CellRollOver().MEMBER_JS($re[3]).">
-		<td width=1% $styleRoll><img src='img/fw_bold.gif'></td>
-		<td $styleRoll>{$re[3]}</td>
-		<td width=1% align='right' v>{$re[1]}</td>
-		<td width=1% $styleRoll align='center'>-</td>
-		<td width=1% $styleRoll>{$re[2]}</td>
-		</tr>
-		";
-	}}	
-	}
-	
-	$html=$html ."</table></div>";
-	echo RoundedLightWhite($tpl->_ENGINE_parse_body($html));
-	
-	
-}
 
 function Save_services(){
 	$cyrus=new cyrus_conf();

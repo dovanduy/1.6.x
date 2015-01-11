@@ -538,7 +538,15 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('rdpproxy')) then list.Add('$_GLOBAL["RDPPROXY_INSTALLED"]=True;') else list.Add('$_GLOBAL["RDPPROXY_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('shorewall')) then list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=True;') else list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('conntrackd')) then list.Add('$_GLOBAL["CONNTRACK_INSTALLED"]=True;') else list.Add('$_GLOBAL["CONNTRACK_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('wifidog')) then list.Add('$_GLOBAL["WIFIDOG_INSTALLED"]=True;') else list.Add('$_GLOBAL["WIFIDOG_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('l7-filter')) then list.Add('$_GLOBAL["l7FILTER_INSTALLED"]=True;') else list.Add('$_GLOBAL["l7FILTER_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('syncthing')) then list.Add('$_GLOBAL["SYNCTHING_INSTALLED"]=True;') else list.Add('$_GLOBAL["SYNCTHING_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('policyd-spf')) then list.Add('$_GLOBAL["POLICYD_SPF"]=True;') else list.Add('$_GLOBAL["POLICYD_SPF"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('sensors-detect')) then list.Add('$_GLOBAL["SENSORS_INSTALLED"]=True;') else list.Add('$_GLOBAL["SENSORS_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('ss5')) then list.Add('$_GLOBAL["SS5_INSTALLED"]=True;') else list.Add('$_GLOBAL["SS5_INSTALLED"]=False;');
 
+   if FileExists('/etc/artica-postfix/WEBSECURIZE') then list.Add('$_GLOBAL["WEBSECURIZE"]=True;') else list.Add('$_GLOBAL["WEBSECURIZE"]=False;');
+   if FileExists('/etc/artica-postfix/LANWANSAT') then list.Add('$_GLOBAL["LANWANSAT"]=True;') else list.Add('$_GLOBAL["LANWANSAT"]=False;');
 
 
    phpfpm:=SYS.LOCATE_GENERIC_BIN('php5-fpm')  ;
@@ -884,7 +892,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('mount.davfs')) then list.Add('$_GLOBAL["DAVFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["DAVFS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('shorewall')) then list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=True;') else list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('vsftpd')) then list.Add('$_GLOBAL["VSFTPD_INSTALLED"]=True;') else list.Add('$_GLOBAL["VSFTPD_INSTALLED"]=False;');
-
+   if FileExists(SYS.LOCATE_GENERIC_BIN('miniupnpd')) then list.Add('$_GLOBAL["MINIUPNPD_INSTALLED"]=True;') else list.Add('$_GLOBAL["MINIUPNPD_INSTALLED"]=False;');
 
    //auditd
    auditd:=Tauditd.Create(SYS);

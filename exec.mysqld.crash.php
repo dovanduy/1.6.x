@@ -36,7 +36,6 @@ function check_crashed_squid(){
 
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$pidTime=$unix->PROCCESS_TIME_MIN($pid);
-		events("Already process PID: $pid running since $pidTime minutes", __FUNCTION__, __FILE__, __LINE__, "mysql");
 		if($pidTime>120){
 			$kill=$unix->find_program("kill");
 			unix_system_kill_force($pid);
@@ -75,11 +74,13 @@ function check_crashed_squid(){
 		}
 
 		if(preg_match("#Incorrect key file for table './(.+?)\/(.+?)\.MYI'; try to repair it#", $line,$re)){
+			mysql_admin_mysql(1, "{$re[1]}/{$re[2]} Incorrect key file for table [action=repair]", @implode("\n", $xxx));
 			$GLOBALS["CRASHED"][$re[1]][]=$re[2];
 			continue;
 		}
 		
 		if(preg_match("#Got error 127 when reading table './(.+?)\/(.+?)'#", $line,$re)){
+			mysql_admin_mysql(1, "{$re[1]}/{$re[2]} Got error 127 when reading table [action=repair]", @implode("\n", $xxx));
 			$GLOBALS["CRASHED"][$re[1]][]=$re[2];
 			continue;			
 		}
@@ -109,11 +110,13 @@ function check_crashed_squid(){
 	while (list ($filepath, $none) = each ($PATHS)){
 
 		$t=time();
+		
 		$cmd="$myisamchk -f -r $filepath 2>&1";
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		$results=array();
 		exec("$cmd",$results);
 		$Took=$unix->distanceOfTimeInWords($t,time());
+		mysql_admin_mysql(1,basename($filepath)." repair report, took $Took", @implode("\n", $results));
 		system_admin_events(basename($filepath)." repair report, took $Took",@implode("\n", $results),__FILE__,__LINE__,"mysql");
 	}
 

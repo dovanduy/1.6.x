@@ -46,18 +46,17 @@ while (list ($index, $line) = each ($f) ){
 	
 }
 
-if(!is_array($DEFAULTS)){
-	echo "{$GLOBALS["PREFIX_OUPUT"]} tuning not set..";
-}else{
-	$DEFAULTS["vm.overcommit_memory"]=1;
-	while (list ($key, $value) = each ($DEFAULTS) ){
+
+$DEFAULTS["vm.overcommit_memory"]=1;
+$DEFAULTS["kernel.panic"]=10;
+while (list ($key, $value) = each ($DEFAULTS) ){
 		echo "{$GLOBALS["PREFIX_OUPUT"]} tuning $key = `$value`\n";
 		if($value==null){continue;}
 		$SYSCTLCONF[$key]=$value;
 		$cmd[]="$sysctl -w $key=$value";
 		
 	}
-}
+
 
 
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("kernel_values")));

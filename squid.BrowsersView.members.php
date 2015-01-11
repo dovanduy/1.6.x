@@ -32,6 +32,15 @@ table();
 function table(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		return;
+	}
+	
+	
 	$tt=time();
 	$t=$_GET["t"];
 	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");

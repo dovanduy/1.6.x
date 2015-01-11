@@ -35,7 +35,7 @@ function manual_update(){
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
 	<H2>{manual_update}</H2>
-	<div class=explain style='font-size:16px'>{artica_manual_update_text}</div>
+	<div class=text-info style='font-size:16px'>{artica_manual_update_text}</div>
 	<center>
 	<table style='width:80%'>
 	<tr>

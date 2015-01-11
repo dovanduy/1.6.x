@@ -4,6 +4,94 @@ include_once(dirname(__FILE__)."/class.tcpip.inc");
 class squid_familysite{
 	
 	
+	public function filldomains($MAIN,$www){
+		$array["com"]=true;
+		$array["at"]=true;
+		$array["es"]=true;
+		$array["pt"]=true;
+		$array["ua"]=true;
+		$array["fr"]=true;
+		$array["ru"]=true;
+		$array["ph"]=true;
+		$array["hu"]=true;
+		$array["com.ar"]=true;
+		$array["com.au"]=true;
+		$array["com.br"]=true;
+		$array["com.sg"]=true;
+		$array["com.mx"]=true;
+		$array["com.hk"]=true;
+		$array["com.my"]=true;
+		$array["com.cn"]=true;
+		$array["com.tr"]=true;
+		
+		$array["de.nu"]=true;
+		
+		$array["co.nz"]=true;
+		$array["tn"]=true;
+		$array["co.tz"]=true;
+		$array["co.zw"]=true;
+		$array["com.fj"]=true;
+		$array["com.ly"]=true;
+		$array["com.pe"]=true;
+		$array["dz"]=true;
+		$array["bf"]=true;
+		$array["be"]=true;
+		$array["si"]=true;
+		$array["ht"]=true;
+		$array["st"]=true;
+		$array["cl"]=true;
+		$array["com.sa"]=True;
+		$array["com.sv"]=True;
+		$array["com.bo"]=True;
+		$array["com.cu"]=True;
+		$array["com.pk"]=True;
+		$array["com.do"]=true;
+		$array["com.ni"]=true;
+		$array["com.jm"]=true;
+		$array["id"]=True;
+		$array["co.jp"]=true;
+		$array["co.za"]=true;
+		$array["co.id"]=true;
+		$array["co.uk"]=true;
+		$array["co.mz"]=true;
+		$array["co.in"]=true;
+		$array["co.zm"]=true;
+		$array["co.cr"]=true;
+		$array["co.ve"]=true;
+		
+		
+		
+		$array["de"]=true;
+		$array["de.tf"]=true;
+		$array["de.vu"]=true;
+		$array["in"]=true;
+		$array["iq"]=true;
+		$array["it"]=true;
+		$array["ro"]=true;
+		$array["pl"]=true;
+		$array["dk"]=true;
+		$array["tr"]=true;
+		$array["kz"]=true;
+		$array["ma"]=true;
+		$array["net"]=true;
+		$array["by"]=true;
+		$array["com.my"]=true;
+		$array["se"]=true;
+		$array["lan"]=true;
+		$array["ro"]=true;
+		$array["cl"]=true;
+		$array["com.ph"]=true;
+		$array["de"]=true;
+		$array["ca"]=true;
+		$array["jp"]=true;
+		
+		while (list ($ext, $in) = each ($array) ){
+			$MAIN["{$www}.$ext"]=true;
+		
+		}
+		return $MAIN;
+	}
+	
 	public function GetFamilySites($sitename){
 		if(!isset($GLOBALS["TCP_CLASS"])){$GLOBALS["TCP_CLASS"]=new IP();}
 		if(!isset($GLOBALS["DEBUG_FAMILIY"])){$GLOBALS["DEBUG_FAMILIY"]=false;}
@@ -120,165 +208,191 @@ class squid_familysite{
 	
 	public function GetFamilySitestt($domain,$getpartOnly=false){
 		$tlds = array(
-				'com'=>array('ya'=>true,"com"=>true,"gr"=>true,"org"=>true),
-				'ac'=>array('gob' => true,'edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true,"co"=>true),
-				'al'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ar' => array('gob' => true,"com"=>true,"org"=>true,"gov"=>true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
-				'as'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'am'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ae'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
+				'com'=>array('cn'=>true,"uk"=>true,'us'=>true,'ya'=>true,"com"=>true,"gr"=>true,"org"=>true,"eu"=>true),
+				'ac'=>array('gob' => true,"com"=>true,"org"=>true,"co"=>true),
+				'ai'=>array('gob' => true,"com"=>true,"org"=>true,"co"=>true),
+				'al'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ar' => array('net'=>true,'gob' => true,"com"=>true,"org"=>true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'as'=>array("com"=>true,"org"=>true),
+				'am'=>array("com"=>true,"org"=>true),
+				'ae'=>array("com"=>true,"org"=>true),
+				'ag'=>array("com"=>true,"org"=>true),
 				
-				'at'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'az'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'name'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'bg'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'be'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'bh'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'bo'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ba'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'by'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ca'=>array('qc'=>true,'co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'ar'=>array('co'=>true,'net'=>true,"com"=>true,"org"=>true,"ua"=>true),
+				'at'=>array('co'=>true,"com"=>true,"org"=>true,"ua"=>true),
+				'az'=>array("com"=>true,"org"=>true),
+				'name'=>array("com"=>true,"org"=>true),
+				'bb'=>array("com"=>true,"org"=>true),
+				'bg'=>array("com"=>true,"org"=>true),
+				'be'=>array("com"=>true,"org"=>true,'de'=>true),
+				'bh'=>array("com"=>true,"org"=>true),
+				'bo'=>array("com"=>true,"org"=>true),
+				'ba'=>array("com"=>true,"org"=>true),
+				'br'=>array('com' => true,"org"=>true,"tv"=>true,"inf"=>true,'net'=>true),
+				'by'=>array("com"=>true,"org"=>true),
+				'ca'=>array('ab'=>true,'bc'=>true,'on'=>true,'qc'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'cc'=>array("za"=>true,"com"=>true,"org"=>true,'co'=>true,'cx'=>true,'on'=>true,'cz'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				'cd'=>array('gouv'=>true,"com"=>true,"org"=>true),
 				'ci'=>array('gouv'=>true,"com"=>true,"org"=>true),
-				'cl'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'cn'=>array('com'=>true,'net'=>true,"org"=>true),
-				'ffr'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				're'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ru'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ws'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'tv'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'us'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'org'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'net'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'do'=>array('edu'=>true,"com"=>true,"gob"=>true,"org"=>true,"ac"=>true),
-				'de'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'dk'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'edu'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
+				'cl'=>array("com"=>true,"org"=>true),
+				'cn'=>array('sh'=>true,'com'=>true,'net'=>true,"org"=>true,"za"=>true),
+				'cm'=>array('com'=>true,'net'=>true,"org"=>true,"za"=>true),
+				'cx'=>array('com'=>true,'net'=>true,"org"=>true,"za"=>true),
+				'co' => array('mz'=>true,'net'=>true,"za"=>true,"com"=>true,"org"=>true,'cc'=>true),
+				
+				'ffr'=>array("com"=>true,"org"=>true),
+				're'=>array("com"=>true,"org"=>true),
+				'ru'=>array('msk'=>true,'da'=>true,"com"=>true,"org"=>true),
+				'ws'=>array("com"=>true,"org"=>true),
+				'tv'=>array("com"=>true,"org"=>true),
+				
+				'org'=>array("com"=>true,"org"=>true,'us'=>true),
+				'net'=>array('uk'=>true,"com"=>true,"org"=>true),
+				'do'=>array("com"=>true,"gob"=>true,"org"=>true),
+				'de'=>array('tf'=>true,"com"=>true,"org"=>true),
+				'dk'=>array("com"=>true,"org"=>true),
+				'edu'=>array("com"=>true,"org"=>true),
 				'arpa'=>array("in-addr"=>true),
-				'fo'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'fr' => array('gouv' => true,'net'=>true),
-				'ec'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'eg'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ee' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
-				'es'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true),
-				
-				
-				
+				'fo'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'fr' => array('net'=>true),
+				'ec'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'eg'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ee' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'es'=>array("com"=>true,"org"=>true,"nom"=>true),
+				'click'=>true,
+				'hosting'=>true,
+				'help'=>true,
+				'host'=>true,
+				'solutions'=>true,
 				
 				
 				
 				'biz'=>array("com"=>true),
-				'uk' => array('co' => true,"ac"=>true,"gov"=>true,"org"=>true,"me"=>true,"gov"=>true,"org"=>true),
-				'ie' => array('net' => true,"web"=>true,"ac"=>true,"co"=>true,"or"=>true,"gov"=>true,"org"=>true),
-				'id' => array('net' => true,"web"=>true,"ac"=>true,"co"=>true,"or"=>true,"gov"=>true,"org"=>true),
-				'is' => array('net' => true,"web"=>true,"ac"=>true,"co"=>true,"or"=>true,"gov"=>true,"org"=>true),
-				'ua' => array('dn' => true,"dp"=>true,"od"=>true,"gov"=>true,"org"=>true,"com"=>true),
-				'au' => array('net' => true,"com"=>true,"gov"=>true,"org"=>true),
 				
-				'pt' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
-				'gr' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
-				'lu' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
-				'np' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
-				'jo' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
+				'ie' => array('net' => true,"web"=>true,"co"=>true,"or"=>true,"org"=>true),
+				'id' => array('net' => true,"web"=>true,"co"=>true,"or"=>true,"org"=>true),
+				'is' => array('net' => true,"web"=>true,"co"=>true,"or"=>true,"org"=>true),
+				
+				'au' => array('net' => true,"com"=>true,"org"=>true),
+				
+				'pt' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'gr' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'lk' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'lu' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'np' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
+				'jo' => array('com' => true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
 				'ph'=> array('com'=>true,"gov"=>true),
-				'tw' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true,'ac'=>true,"com"=>true,"net"=>true,"org"=>true),
-				'th' =>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'tr' =>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'to' =>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'co' => array('gov' => true,"za"=>true,"gov"=>true,"com"=>true,"org"=>true),
-				'cc' => array('gov' => true,"za"=>true,"gov"=>true,"com"=>true,"org"=>true),
-				'gi' =>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'gov' => true,
-				'la'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'tw' => array('co' => true,"go"=>true,"in"=>true,"com"=>true,"net"=>true,"org"=>true),
+				'th' =>array('go'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tr' =>array('biz'=>true ,'com'=>true ,'info'=>true,'tv'=>true,'av'=>true,'bbs'=>true,'bel'=>true,'dr'=>true,'gen'=>true,'name'=>true,'nc'=>true,'net'=>true,'org'=>true,'pol'=>true,'tel'=>true,'tsk'=>true,'web'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'to' =>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				
-				'ch'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'cl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'cn'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'cz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'cu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ee'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'eu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'gl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ge'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'hk'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'hu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'hr'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'il'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ir'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'it'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'im'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'in'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true,"ind"=>true),
-				'id'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'io'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'is'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'pl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				
+				'gi' =>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				
+				'la'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				
+				'ch'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'cl'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'cn'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'cz'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'cu'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ee'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'eu'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'gl'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'gs'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ge'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'hk'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'hu'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'hr'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'il'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ir'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'it'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'im'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'in'=>array('ua'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true,"ind"=>true),
+				'id'=>array('sch'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'io'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'is'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'pl'=>array('info'=>true,'za'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				'info'=>array('com' => true,"net"=>true,"org"=>true),
-				'lb'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'li'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'lb'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'li'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'kg'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				
 				
-				'ly'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'lv'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'lt'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'jp'=>array('ne'=>true,'org' => true,"co"=>true,"gov"=>true,"ac"=>true),
-				'na'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ni'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'nl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'net'=>array('fr'=>true,'it'=>true),
-				'jobs'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'ly'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'lv'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'lt'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'jp'=>array('ed'=>true,'gr'=>true,'or'=>true,'ne'=>true,'org' => true,"co"=>true),
+				'na'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ni'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'nl'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'net'=>array('fr'=>true,'it'=>true,"za"=>true),
+				'mn'=>array('fr'=>true,'it'=>true),
+				'jobs'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				'invalid'=>true,
-				'no'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'nu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'bz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'nz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'br'=>array('com' => true,"org"=>true,"gov"=>true,"tv"=>true),
-				'fi'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'no'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'nu'=>array('de'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'bz'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'nz'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				
-				'fm'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'pm'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'pg'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'fi'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				
+				'fm'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'pm'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'pg'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 
-				'md'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'md'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 				'local'=>true,
 				'team'=>true,
 				'travel'=>true,
-				'aero'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
-				'ma'=>array('co'=>true,'cu'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ms'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'me'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'mobi'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'gbl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'mx'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true,"tv"=>true),
-				'my'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'fr'=>array('gouv' => true,"gov"=>true,"org"=>true),
-				'pe'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'pk'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ua'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true,"dn"=>true),
-				'uy'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'kz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'kr'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true,"or"=>true),
-				've'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'vn'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'za'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'rs'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'ro'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'sa'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'se'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'sg'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'sq'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'sh'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'si'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'sk'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'st'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'su'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'tl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'tc'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'uz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'tv'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'uy'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'vc'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				'vu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
-				've'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'aero'=>array("com"=>true,"org"=>true),
+				'ma'=>array('co'=>true,'cu'=>true,'com'=>true,"org"=>true,"net"=>true),
+				'ms'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'me'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'mobi'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'gbl'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'mx'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true,"tv"=>true),
+				'my'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'fr'=>array("org"=>true),
+				'om'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'pe'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'pk'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				
+				'kz'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'kr'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true,"or"=>true),
+				've'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'vn'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'za'=>array('pl'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'rs'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ro'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				
+				'sa'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'se'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'sg'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'sq'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'sh'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'si'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'sk'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'st'=>array('fr'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'su'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'sy'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tf'=>array('de'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tl'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tc'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tk'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'to'=>array('uk'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'tv'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'ua'=>array('kh'=>true,'pl'=>true,'ck'=>true,'vn'=>true,'if'=>true,'pp'=>true,'dp'=>true,'dn' => true,"dp"=>true,"od"=>true,'at'=>true,'in'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true,"dn"=>true),
+				'uk' => array('net'=>true,'co' => true,"org"=>true,"me"=>true,"org"=>true),
+				'us'=>array('ca'=>true,'wi'=>true,"com"=>true,"org"=>true,'sd'=>true),
+				'uz'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'uy'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'vc'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'vi'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'vu'=>array('de'=>true,'co'=>true,'com'=>true,"ch"=>true,"org"=>true,"net"=>true),
+				've'=>array('info'=>true,'co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
+				'yu'=>array('co'=>true,'com'=>true,"org"=>true,"net"=>true,"biz"=>true),
 					
 	
 	

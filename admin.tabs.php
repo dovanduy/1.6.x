@@ -275,7 +275,7 @@ function admin_system(){
 	$perfs=Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
 	
 	
-	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
+	
 	
 	
 	
@@ -292,7 +292,7 @@ function admin_system(){
 	$tr[]=$disks;
 	$tr[]=$browse;
 	$tr[]=$backup;
-	$tr[]=$ldap;
+	
 	$tr[]=$reactivate_squid;
 	$tr[]=$phpldapadmin;
 	$tr[]=$phpmyadmin;

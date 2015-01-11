@@ -2,6 +2,7 @@
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["TITLENAME"]="Kaspersky Anti-Virus for Proxy Server";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -15,6 +16,10 @@ if($argv[1]=="--reload"){BuilAndReload();die();}
 if($argv[1]=="--umount"){umountfs();die();}
 if($argv[1]=="--license"){license_infos();die();}
 if($argv[1]=="--templates"){templates();die();}
+if($argv[1]=="--enable-icap"){enable_icap();die();}
+if($argv[1]=="--disable-icap"){disable_icap();die();}
+
+if($argv[1]=="--build"){build();die();}
 
 
 
@@ -54,8 +59,116 @@ function umountfs(){
 	}
 }
 
+function progress($text,$pourc){
+	if(trim($text)==null){return;}
+	if($GLOBALS["VERBOSE"]){echo "{$pourc}% ".getmypid()." ".date("Y-m-d H:i:s")."] $text\n";}
+	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/kav4Proxy.enable.progress";
+	$data=unserialize(@file_get_contents($cacheFile));
+	$data["TEXT"]=$text;
+	$data["POURC"]=$pourc;
+	@file_put_contents($cacheFile, serialize($data));
+	@chmod($cacheFile,0755);
+
+
+}
+
+function disable_icap(){
+		$unix=new unix();
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			echo basename(__FILE__).":Already executed pid $pid.. aborting the process\n";
+			progress("{failed}",110);
+			return;
+		}
+	
+		$sock=new sockets();
+		$sock->SET_INFO("kavicapserverEnabled", 0);
+		
+	
+		$q=new mysql_squid_builder();
+		progress("{verify_icap_center}",10);
+		$q->CheckTablesICAP();
+	
+		if($q->COUNT_ROWS("c_icap_services")==0){
+			progress("{verify_icap_center} {failed}",110);
+		}
+	
+		progress("{unhooking_local_service}",10);
+		$q->QUERY_SQL("UPDATE c_icap_services SET `enabled`=0 WHERE ID=6");
+		if(!$q->ok){echo $q->mysql_error."\n";progress("{unhooking_local_service} {failed}",110);}
+		$q->QUERY_SQL("UPDATE c_icap_services SET `enabled`=0 WHERE ID=5");
+		if(!$q->ok){echo $q->mysql_error."\n";progress("{unhooking_local_service} {failed}",110);}
+	
+		progress("{configuring} {APP_SQUID}",20);
+		$php=$unix->LOCATE_PHP5_BIN();
+		system("$php /usr/share/artica-postfix/exec.squid.php --build --force --noverifcaches");
+		progress("{restarting} {APP_SQUID}",30);
+		system("/etc/init.d/squid restart --force");
+		progress("{restarting} Artica-status",50);
+		system("/etc/init.d/artica-status restart --force");
+		progress("{stopping} {APP_KAV4PROXY}",90);
+		system("/etc/init.d/kav4proxy stop");
+		progress("{success} {unhooking_local_service}",100);
+}
+	
+
+
+function enable_icap(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo basename(__FILE__).":Already executed pid $pid.. aborting the process\n";
+		progress("{failed}",110);
+		return;
+	}
+	
+	$sock=new sockets();
+	$sock->SET_INFO("kavicapserverEnabled", 1);
+	$MEM=$unix->MEM_TOTAL_INSTALLEE();
+	
+	if($unix->MEM_TOTAL_INSTALLEE()<624288){
+		$sock->SET_INFO("kavicapserverEnabled", 0);
+		if($GLOBALS["OUTPUT"]){echo "Not enough memory - $MEM\n";}
+		progress("{failed}",110);
+		return;
+	}
+	
+	$q=new mysql_squid_builder();
+	progress("{verify_icap_center}",10);
+	$q->CheckTablesICAP();
+	
+	if($q->COUNT_ROWS("c_icap_services")==0){
+		progress("{verify_icap_center} {failed}",110);
+	}
+	
+	progress("{hooking_local_service}",10);
+	$q->QUERY_SQL("UPDATE c_icap_services SET `enabled`=1 WHERE ID=6");
+	if(!$q->ok){echo $q->mysql_error."\n";progress("{hooking_local_service} {failed}",110);}
+	$q->QUERY_SQL("UPDATE c_icap_services SET `enabled`=1 WHERE ID=5");
+	if(!$q->ok){echo $q->mysql_error."\n";progress("{hooking_local_service} {failed}",110);}	
+	progress("{reloading} {APP_KAV4PROXY}",20);
+	build();
+	system("/etc/init.d/kav4proxy reload");
+	progress("{configuring} {APP_SQUID}",50);
+	$php=$unix->LOCATE_PHP5_BIN();
+	system("$php /usr/share/artica-postfix/exec.squid.php --build --force --noverifcaches");
+	progress("{restarting} {APP_SQUID}",70);
+	system("/etc/init.d/squid restart --force");
+	progress("{restarting} Artica-status",80);
+	system("/etc/init.d/artica-status restart --force");
+	progress("{refresh} License",90);
+	$GLOBALS["FORCE"]=true;license_infos(true);
+	progress("{success} {hooking_local_service}",100);
+}
+
+
 function license_infos($nopid=false){
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "Time: $pidTime\n"; }
 	$unix=new unix();
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
@@ -92,7 +205,9 @@ function license_infos($nopid=false){
 	$time=$unix->file_time_min("/etc/artica-postfix/KAV4PROXY_LICENSE_INFO");
 	if($GLOBALS["FORCE"]){$time=100000;}
 	if($time>2880){
-		shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -s -c /etc/opt/kaspersky/kav4proxy.conf >/etc/artica-postfix/KAV4PROXY_LICENSE_INFO 2>&1");
+		$cmd="/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -s -c /etc/opt/kaspersky/kav4proxy.conf >/etc/artica-postfix/KAV4PROXY_LICENSE_INFO 2>&1";
+		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+		shell_exec($cmd);
 	}
 	
 	

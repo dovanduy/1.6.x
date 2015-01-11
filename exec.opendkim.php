@@ -244,7 +244,7 @@ if(is_array($domainsH)){
 		$results[]="\n\n$dig TXT +short default._domainkey.$DOMAIN :\n-------------------------------\n";
 		exec("$dig TXT +short default._domainkey.$DOMAIN 2>&1",$results);
 		$results[]="\n\n";
-		exec("$opendkim -d $DOMAIN -s default -k /etc/mail/dkim/keys/$DOMAIN/default -vvvv 2>&1",$results);
+		exec("$opendkim -d $DOMAIN -s default -k /etc/mail/dkim/keys/$DOMAIN/default 2>&1",$results);
 		$array[$DOMAIN]=@implode("\n",$results);
 	}
 }
@@ -332,7 +332,7 @@ function start($aspid=false){
 	
 	@unlink("/var/run/opendkim/opendkim.pid");
 	$f[]=$Masterbin;
-	$f[]="-p /var/run/opendkim/opendkim.sock";
+	$f[]="-p //var/run/opendkim/opendkim.sock";
 	$f[]="-x /etc/opendkim.conf";
 	$f[]="-u postfix";
 	$f[]="-P {$GLOBALS["PID_FILE"]}";
@@ -425,6 +425,7 @@ function stop($aspid=false){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 			return;
 		}
+		@unlink("/var/run/opendkim/opendkim.sock");
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		
 } 

@@ -89,7 +89,9 @@ function link_user_save(){
 	
 	
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 }
 
 function link_user_popup(){

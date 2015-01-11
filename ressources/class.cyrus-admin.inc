@@ -126,6 +126,12 @@ class CyrusAdmin
     	if(function_exists("writelogs")){
     		writelogs($text,$function,$file_source,$line);
     	}
+    	
+    	if($GLOBALS["VERBOSE"]){
+    		if(!$GLOBALS["AS_ROOT"]){
+    			echo "<li><span style='color:blue'>$line</span></li>\n";
+    		}
+    	}
     }    
     
     
@@ -178,6 +184,7 @@ class CyrusAdmin
 		    return true;
 		} else {
 			writelogs("unable to login -> disconnect",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->error=$this->error." {logon_failed} ";
 			$this->_disconnect();
 			return false;
 		}
@@ -217,18 +224,28 @@ class CyrusAdmin
 	 *
      * @returns boolean  True on success, false on failure
      */
+	
+	private function OutputDebug($line){
+		if($GLOBALS["VERBOSE"]){ if(!$GLOBALS["AS_ROOT"]){echo "<li><span style='color:blue'>$line</span></li>\n"; }}
+		$this->writelogs($line);
+		
+	}
+	
+	
 	function sendCommand($command,&$return)
 	{
 		if ($this->connected) {
 			if (!empty($command)) {
 				// Send command
 				fputs($this->imap,"01 ");
+				$this->OutputDebug("SEND: $command");
 				$this->writelogs("\"$command\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				fputs($this->imap,$command."\r\n");
 			}
 			// read response
 			$return = array();
 			while ($line = fgets($this->imap)) {
+				$this->OutputDebug("RECEIVE: $line");
 				$this->writelogs("RECEIVE \"$line\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				if(preg_match("#BAD Unexpected#",$line)){
 					$this->error="BAD Unexpected";
@@ -249,6 +266,11 @@ class CyrusAdmin
 					return false;
 				}
 				
+				if(preg_match("#NO Login failed.*?authentication failure#",$line)){
+					$this->error="Authentication failed";
+					return false;
+				}
+				
 				if(preg_match("#NO Mailbox already exists#",$line)){
 					return true;
 				}
@@ -265,7 +287,7 @@ class CyrusAdmin
 				
 				
 				
-				//$this->writelogs("UNDERSTAND [$line]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+				$this->writelogs("UNDERSTAND [$line]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 				if (preg_match("/^(\*|01) (.*)\r\n$/",$line,$arg)) {
 					if (empty($command) && $arg[1]=="*") {
 						$return[] = $arg[2];
@@ -317,6 +339,8 @@ class CyrusAdmin
     function listmbox($filter="*"){
 		$mboxes = array();
 		$zMboxes=array();
+		
+		$this->OutputDebug("Filter: $filter");
 		if ($this->sendCommand('LIST "" "'.$filter.'"',$mboxes)) {
 			
 			while (list ($num, $boxes) = each ($mboxes) ){
@@ -414,9 +438,10 @@ class CyrusAdmin
 	 * @returns bool		true on success, or false on error
      */
     function setacl($mailbox,$user,$rights){
+    	$mdkey=md5("$mailbox$user$rights");
     	if(isset($GLOBALS["SETACL"][$mdkey])){return true;}
     	$ret=array();
-    	$mdkey=md5("$mailbox$user$rights");
+    	
     	
     	if (!$this->connected) {
     		$this->writelogs("setacl() *** *** FAILED NOT CONNECTED *** ***",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);

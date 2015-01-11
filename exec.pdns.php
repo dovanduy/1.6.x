@@ -32,12 +32,35 @@ if(!is_file("/usr/share/poweradmin/index.php")){
 	return;
 }
 
+$sock=new sockets();
+$PowerAdminUser=$sock->GET_INFO("PowerAdminUser");
+$PowerAdminPassword=$sock->GET_INFO("PowerAdminPassword");
+
+if($PowerAdminUser==null){
+	$PowerAdminUser=time();
+	$sock->SET_INFO("PowerAdminUser", $PowerAdminUser);
+	
+}
+
+if($PowerAdminPassword==null){
+	$PowerAdminPassword=microtime(false);
+	$sock->SET_INFO("PowerAdminPassword", $PowerAdminPassword);
+}
 $q=new mysql();
+$q->PRIVILEGES($PowerAdminUser,$PowerAdminPassword,"powerdns");
+
+
+
+
 $unix=new unix();
+
+
+
+
 $f[]="<?php";
 $f[]="\$db_host		= '$q->mysql_server';";
-$f[]="\$db_user		= '$q->mysql_admin';";
-$f[]="\$db_pass		= '$q->mysql_password';";
+$f[]="\$db_user		= '$PowerAdminUser';";
+$f[]="\$db_pass		= '$PowerAdminPassword';";
 $f[]="\$db_name		= 'powerdns';";
 $f[]="\$db_port		= '$q->mysql_port';";
 $f[]="\$db_type		= 'mysql';";
@@ -49,7 +72,7 @@ $f[]="\$iface_style		= 'example';";
 $f[]="\$iface_rowamount	= 50;";
 $f[]="\$iface_expire	= 1800;";
 $f[]="\$iface_zonelist_serial	= false;";
-$f[]="\$iface_title = 'Poweradmin For Artica';";
+$f[]="\$iface_title = 'PowerAdmin DNS WebConsole';";
 $f[]="\$password_encryption='md5';";
 $f[]="\$dns_ttl		= 86400;";
 $f[]="\$dns_fancy	= false;";
@@ -396,7 +419,12 @@ if($resultTables){echo "Starting......: ".date("H:i:s")." PowerDNS Success...\n"
 	
 	if(!$q->TABLE_EXISTS("zone_templ", "powerdns")){
 		echo "Starting......: ".date("H:i:s")." PowerDNS creating 'zone_templ' table\n";
-		$sql="CREATE TABLE IF NOT EXISTS `zone_templ` ( `id` bigint(20) NOT NULL AUTO_INCREMENT, `name` varchar(128) NOT NULL DEFAULT '0', `descr` varchar(1024) NOT NULL DEFAULT '0', `owner` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) ) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
+		$sql="CREATE TABLE IF NOT EXISTS `zone_templ` ( 
+				`id` bigint(20) NOT NULL AUTO_INCREMENT, 
+				`name` varchar(128) NOT NULL DEFAULT '0', 
+				`descr` varchar(1024) NOT NULL DEFAULT '0', 
+				`owner` bigint(20) NOT NULL DEFAULT '0', PRIMARY KEY (`id`) 
+				) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;";	
 		$q->QUERY_SQL($sql,"powerdns");
 		if(!$q->ok){
 			echo "Starting......: ".date("H:i:s")." PowerDNS creating 'zone_templ' table FAILED\n";
@@ -406,6 +434,26 @@ if($resultTables){echo "Starting......: ".date("H:i:s")." PowerDNS Success...\n"
 	}else{
 		echo "Starting......: ".date("H:i:s")." PowerDNS 'zone_templ' table success\n";	
 	}	
+
+	
+$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS zone_templ_records (
+	id            INTEGER      NOT NULL AUTO_INCREMENT,
+	zone_templ_id INTEGER      NOT NULL,
+	name          VARCHAR(255) NOT NULL,
+	`type`        VARCHAR(6)   NOT NULL,
+	content       VARCHAR(255) NOT NULL,
+	ttl           INTEGER      NOT NULL,
+	prio          INTEGER      NOT NULL,
+	PRIMARY KEY (id)
+	) ENGINE=InnoDB DEFAULT CHARSET=latin1;","powerdns");
+	
+$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS records_zone_templ (
+	domain_id INTEGER NOT NULL,
+	record_id INTEGER NOT NULL,
+	zone_templ_id INTEGER NOT NULL
+	) ENGINE=InnoDB DEFAULT CHARSET=latin1;"
+	);
+	
 	
 if(!$q->TABLE_EXISTS("zone_templ_records", "powerdns")){
 		echo "Starting......: ".date("H:i:s")." PowerDNS creating 'zone_templ_records' table\n";
@@ -476,6 +524,12 @@ if($q->TABLE_EXISTS("records", "powerdns")){
 		if(!$q->ok){echo "Starting......: ".date("H:i:s")." PowerDNS patching database/records failed $q->mysql_error\n";}
 		
 	}
+	
+	if(!$q->FIELD_EXISTS("records","disabled","powerdns") ){
+		$q->QUERY_SQL("alter table records add `disabled` TINYINT(1) DEFAULT 0, ADD INDEX `disabled`(`disabled`)","powerdns");
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." PowerDNS patching database/records/disabled failed $q->mysql_error\n";}
+	
+	}	
 	
 	$q->QUERY_SQL("alter table records change column type type VARCHAR(10);","powerdns");
 	
@@ -608,9 +662,7 @@ function reload_service(){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($DisablePowerDnsManagement)){$DisablePowerDnsManagement=0;}
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 	$unix=new unix();
 	$kill=$unix->find_program("kill");
 	$pdns_server_bin=$unix->find_program("pdns_server");

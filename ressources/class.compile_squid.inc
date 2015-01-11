@@ -8,8 +8,7 @@ function create_package_squid($t){
 	$Architecture=Architecture();
 	$version=squid_version();
 	$debian=DebianVersion();
-
-	shell_exec("wget http://www.articatech.net/download/anthony-icons.tar.gz -O /tmp/anthony-icons.tar.gz");
+		shell_exec("wget http://www.articatech.net/download/anthony-icons.tar.gz -O /tmp/anthony-icons.tar.gz");
 	@mkdir("/usr/share/squid3/icons",0755,true);
 	shell_exec("tar -xf /tmp/anthony-icons.tar.gz -C /usr/share/squid3/icons/");
 	shell_exec("/bin/chown -R squid:squid /usr/share/squid3/icons/");
@@ -20,6 +19,7 @@ function create_package_squid($t){
 	mkdir("/root/squid-builder/usr/lib",0755,true);
 	mkdir("/root/squid-builder/usr/lib32",0755,true);
 	mkdir("/root/squid-builder/etc/squid3",0755,true);
+	mkdir("/root/squid-builder/etc/miniupnpd/netfilter",0755,true);
 	mkdir("/root/squid-builder/lib/squid3",0755,true);
 	mkdir("/root/squid-builder/usr/sbin",0755,true);
 	mkdir("/root/squid-builder/usr/bin",0755,true);
@@ -29,6 +29,7 @@ function create_package_squid($t){
 	mkdir("/root/squid-builder/opt/kaspersky/KasperskyUpdateUtility",0755,true);
 	mkdir("/root/squid-builder/usr/share/nmap",0755,true);
 	mkdir("/root/squid-builder/usr/share/squid27",0755,true);
+	mkdir("/root/squid-builder/usr/share/man/man8",0755,true);
 	mkdir("/root/squid-builder/usr/lib/squid27",0755,true);
 	mkdir("/root/squid-builder/etc/squid27",0755,true);
 	mkdir("/root/squid-builder/etc/streamcache",0755,true);
@@ -37,9 +38,10 @@ function create_package_squid($t){
 	mkdir("/root/squid-builder/usr/include/libecap/host",0755,true);
 	mkdir("/root/squid-builder/usr/include/jasper",0755,true);
 	mkdir("/root/squid-builder/usr/share/man/man1",0755,true);
+	mkdir("/root/squid-builder/usr/lib/c_icap",0755,true);
+	mkdir("/root/squid-builder/opt/ufdbcat",0755,true);
 
 	shell_exec("$cp -rf /usr/share/squid3/* /root/squid-builder/usr/share/squid3/");
-	if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf /usr/share/squid3/errors/templates/* /root/squid-builder/usr/share/squid3/errors/templates/");}
 	shell_exec("$cp -rf /etc/squid3/* /root/squid-builder/etc/squid3/");
 	shell_exec("$cp -rf /lib/squid3/* /root/squid-builder/lib/squid3/");
 	shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/squid-langpack/");
@@ -110,11 +112,31 @@ function create_package_squid($t){
 	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.la /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.so /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.a /root/squid-builder/usr/lib/");
+	
+	shell_exec("$cp -fd /usr/bin/upnpc /root/squid-builder/usr/bin/");
+	shell_exec("$cp -fd /usr/lib/libminiupnpc.so.10 /root/squid-builder/usr/lib/");
+	shell_exec("$cp -fd /usr/lib/libminiupnpc.so /root/squid-builder/usr/lib/");
+	shell_exec("$cp -fd /usr/sbin/miniupnpd /root/squid-builder/usr/sbin/");
+	shell_exec("$cp -fd /etc/miniupnpd/netfilter/iptables_init.sh /root/squid-builder/etc/miniupnpd/netfilter/");
+	shell_exec("$cp -fd /etc/miniupnpd/netfilter/iptables_removeall.sh /root/squid-builder/etc/miniupnpd/netfilter/");
+	shell_exec("$cp -fd /etc/miniupnpd/netfilter/ip6tables_init.sh /root/squid-builder/etc/miniupnpd/netfilter/");
+	shell_exec("$cp -fd /etc/miniupnpd/netfilter/ip6tables_removeall.sh /root/squid-builder/etc/miniupnpd/netfilter/");
+	shell_exec("$cp -fd /etc/miniupnpd/miniupnpd.conf /root/squid-builder/etc/miniupnpd/");
+	shell_exec("$cp -fd /usr/share/man/man8/miniupnpd.8 /root/squid-builder/usr/share/man/man8/");
 
+	
+	shell_exec("$cp -rfd /usr/lib/c_icap/* /root/squid-builder/usr/lib/c_icap/");
 	shell_exec("$cp -rfd /usr/share/squid27/* /root/squid-builder/usr/share/squid27/");
 	shell_exec("$cp -rfd /usr/lib/squid27/* /root/squid-builder/usr/lib/squid27/");
 	shell_exec("$cp -rfd /etc/squid27/* /root/squid-builder/etc/squid27/");
 	shell_exec("$cp -rfd /etc/streamcache/* /root/squid-builder/etc/streamcache/*");
+	shell_exec("$cp -rfd /opt/ufdbcat/* /root/squid-builder/opt/ufdbcat/");
+	
+	shell_exec("$cp -fd /usr/local/lib/libhttpd.a /root/squid-builder/usr/lib/");
+	shell_exec("$cp -fd /usr/local/lib/libhttpd.so.0.0.0 /root/squid-builder/usr/lib/");
+	shell_exec("$cp -fd /usr/local/lib/libhttpd.so.0 /root/squid-builder/usr/lib/");
+	shell_exec("$cp -fd /usr/local/bin/wifidog /root/squid-builder/usr/bin/");
+	shell_exec("$cp -fd /usr/local/bin/wdctl /root/squid-builder/usr/bin/");
 
 	$f[]="/usr/bin/bwm-ng";
 	$f[]="/usr/share/info/msmtp.info";
@@ -128,9 +150,11 @@ function create_package_squid($t){
 	$f[]="/usr/sbin/cntlm";
 	$f[]="/usr/lib/libmysqlclient.so.18";
 	$f[]="/usr/lib/libmysqlclient.so.18.0.0";
-	$f[]="/usr/lib/libicapapi.so.3.0.1";
-	$f[]="/usr/lib/libicapapi.so.3.0.2";
-	$f[]="/usr/lib/libicapapi.so.3.0.3";
+	$f[]="/usr/lib/libicapapi.la";
+	//$f[]="/usr/lib/libicapapi.so.3.0.1";
+	//$f[]="/usr/lib/libicapapi.so.3.0.2";
+	//$f[]="/usr/lib/libicapapi.so.3.0.3";
+	$f[]="/usr/lib/libicapapi.so.3.0.4";
 	$f[]="/usr/lib/libicapapi.so.3";
 	$f[]="/usr/bin/ufdbguardd";
 	$f[]="/usr/bin/ufdbgclient";
@@ -169,6 +193,20 @@ function create_package_squid($t){
 	$f[]="/usr/man/man8/vsftpd.8";
 	$f[]="/usr/share/man/man5/vsftpd.conf.5";
 	$f[]="/usr/share/man/man8/vsftpd.8";
+	$f[]="/usr/lib/libsocks.so.0.1.1";
+	$f[]="/usr/lib/libsocks.so";
+	$f[]="/usr/lib/libsocks.la";
+	$f[]="/usr/lib/libsocks.a";
+	$f[]="/usr/sbin/sockd";
+	$f[]="/usr/share/man/man8/sockd.8";
+	$f[]="/usr/share/man/man1/socksify.1";
+	$f[]="/usr/share/man/man5/sockd.conf.5";
+	$f[]="/usr/share/man/man5/socks.conf.5";
+	$f[]="/usr/bin/socksify";
+	$f[]="/usr/include/socks.h";
+	$f[]="/var/lib/ss5";
+	$f[]="/usr/sbin/ss5";
+	$f[]="/usr/sbin/ss5srv";
 
 	//  mkdir -p /var/spool/squid27/cache && mkdir /var/spool/squid27/logs && chown -R nobody:nobody /var/spool/squid27 && squid27 -z
 	// pour démarer squid27 : /usr/sbin/squid27
@@ -260,9 +298,14 @@ echo "Compressing $TARGET_TGZ....\n";
 shell_exec("$tar -czf $TARGET_TGZ *");
 
 if(!is_file($TARGET_TGZ)){
-echo "$TARGET_TGZ no such file ???\n";
-return;
+	echo "$TARGET_TGZ no such file ???\n";
+	return;
 }
+
+echo "********************************************\n";
+echo "$TARGET_TGZ\n";
+echo "********************************************\n\n";
+
 
 system_admin_events("$TARGET_TGZ  ready...",__FUNCTION__,__FILE__,__LINE__);
 if(is_file("/root/ftp-password")){
@@ -309,13 +352,11 @@ function c_icap_array(){
 	$f[]="/usr/lib/c_icap/srv_content_filtering.so";
 	$f[]="/usr/lib/libicapapi.la";
 	$f[]="/usr/lib/libicapapi.so";
-	$f[]="/usr/lib/libicapapi.so.0";
-	$f[]="/usr/lib/libicapapi.so.0.0.7";
-	$f[]="/usr/lib/libicapapi.so.0.0.1";
-	$f[]="/usr/lib/libicapapi.so.2" ;
-	$f[]="/usr/lib/libicapapi.so.2.0.2";
-	$f[]="/usr/lib/libicapapi.so.2.0.3";
-	$f[]="/usr/lib/libicapapi.so.2.0.5";
+	//$f[]="/usr/lib/libicapapi.so.3.0.1";
+	//$f[]="/usr/lib/libicapapi.so.3.0.2";
+	//$f[]="/usr/lib/libicapapi.so.3.0.3";
+	$f[]="/usr/lib/libicapapi.so.3.0.4";
+	$f[]="/usr/lib/libicapapi.so.3";
 	$f[]="/usr/share/c_icap/templates/srv_content_filtering/en/BLOCK";
 	$f[]="/usr/share/c_icap/templates/srv_url_check/en/DENY";
 	$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_HEAD";
@@ -487,8 +528,8 @@ while (list ($num, $filename) = each ($dirs)){
 
 function compile_sarg(){
 
-	mkdir("/root/squid-builder/usr/bin",0755,true);
-	mkdir("/root/squid-builder/usr/share/locale",0755,true);
+	@mkdir("/root/squid-builder/usr/bin",0755,true);
+	@mkdir("/root/squid-builder/usr/share/locale",0755,true);
 
 
 	$f[]="/usr/bin/sarg";
@@ -549,8 +590,12 @@ function package_redemption(){
 	cd redemption && unzip master.zip
 	cd redemption-master
 	bjam
+	bjam install
 	*/
 
+
+	
+	
 	$f["/usr/local/share/rdpproxy"]=true;
 	$f["/usr/local/share/rdpproxy/dejavu_16.fv1"]=true;
 	$f["/usr/local/share/rdpproxy/xrdp24b.png"]=true;
@@ -611,8 +656,14 @@ function package_redemption(){
 
 	}
 	@mkdir("$base/etc/rdpproxy/tools",0755,true);
-	shell_exec("/bin/cp -rfv /root/redemption/redemption-master/tools $base/etc/rdpproxy/tools/");
-
+	if(is_dir("/root/redemption/redemption-master/tools")){
+		shell_exec("/bin/cp -rfv /root/redemption/redemption-master/tools $base/etc/rdpproxy/tools/");
+	}
+	
+	if(is_dir("/root/redemption/tools")){
+		shell_exec("/bin/cp -rfv /root/redemption/tools $base/etc/rdpproxy/tools/");
+	}
+//rdproxy-debian7-64-0.9.353.tar.gz
 
 }
 

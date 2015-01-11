@@ -21,6 +21,7 @@ if(is_file("/etc/artica-postfix/FROM_ISO")){
 	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
 }
 
+
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--register"){register();die();}
@@ -79,7 +80,7 @@ if($argv[1]=="--drop-categorize"){drop_categorize(true);die();}
 	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$cachetime="/etc/artica-postfix/pids/exec.web-community-filter.php.MAIN.time";
 	$unix=new unix();
 	$myFile=basename(__FILE__);	
 	$pid=@file_get_contents($pidfile);
@@ -557,6 +558,7 @@ function build_progress($text,$pourc){
 
 
 function register_lic(){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	$sock=new sockets();
 	$unix=new unix();
 	$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
@@ -585,8 +587,17 @@ function register_lic(){
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	if(!isset($LicenseInfos["GoldKey"])){$LicenseInfos["GoldKey"]=null;}
 	
 	$LicenseInfos["COMPANY"]=str_replace("%uFFFD", "é", $LicenseInfos["COMPANY"]);
+	if($WizardSavedSettings["GoldKey"]<>null){
+		if($sock->IsGoldKey($WizardSavedSettings["GoldKey"])){
+			if($LicenseInfos["GoldKey"]==null){
+				echo "Gold Key: {$WizardSavedSettings["GoldKey"]}\n";
+				$LicenseInfos["GoldKey"]=$WizardSavedSettings["GoldKey"];
+			}
+		}
+	}
 	
 	build_progress("Check information {$LicenseInfos["COMPANY"]}",20);
 	
@@ -611,16 +622,11 @@ function register_lic(){
 	}	
 	$LicenseInfos["UUID"]=$uuid;
 
-	
-	
-	
-	
 	//if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]="yes";}
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	if(!isset($LicenseInfos["license_number"])){$LicenseInfos["license_number"]=null;}
 	if($LicenseInfos["license_number"]=="--"){$LicenseInfos["license_number"]=null;}
-	
 	if(strpos($LicenseInfos["license_number"], "(")>0){$LicenseInfos["license_number"]=null;}
-	
 	echo "License number:{$LicenseInfos["license_number"]}\n";
 	
 	@mkdir($WORKDIR,640,true);
@@ -647,26 +653,30 @@ function register_lic(){
 		}
 	}	
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	
 	$verbosed="?VERBOSE=yes&time=".time();
 	build_progress("Checking license on the cloud server...",40);
 	echo "Contacting $URIBASE\n";
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
+	echo "Set to not use Local proxy\n";
 	$curl->NoLocalProxy();
 	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=yes;}
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($WizardSavedSettings));
+	echo "Send request... please wait...\n";
 	if(!$curl->get()){
 		build_progress("Failed to contact cloud server",110);
 		echo "Error: ".$curl->error."\n";
+		echo @implode("\n", $curl->errors);
 		$LicenseInfos["TIME"]=time();
 		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 		return;
 		
 	}
-	
+	echo "Request passed\n";
 	build_progress("Cheking license on the cloud server done.",50);
 	if($GLOBALS["VERBOSE"]){echo "***** $curl->data ****\n";}
 	
@@ -684,11 +694,14 @@ function register_lic(){
 	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
 			echo "***** LICENSE_OK ****\n";
 			@file_put_contents($WORKPATH, "TRUE");
-			build_progress("{license_active} {success}",100);
+			
 			$LicenseInfos["license_status"]="{license_active}";
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 			if($cmdADD<>null){shell_exec($cmdADD);}
+			build_progress("{license_active} {refresh}",100);
+			system("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+			build_progress("{license_active} {success}",100);
 			return;
 	}
 	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
@@ -714,6 +727,7 @@ function register_lic(){
 		$LicenseInfos["TIME"]=time();
 		$unix->Process1(true);
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose ".time()." >/dev/null 2>&1");
 		build_progress("Community Edition - limited",110);
 		return;
 	}	
@@ -722,7 +736,7 @@ function register_lic(){
 		system_admin_events("License registration failed with error $curl->error", "GetLicense", "license", 0, "license");
 	}
 	
-	
+	build_progress("Unknown registration?",110);
 	if(!is_file($WORKPATH)){
 		build_progress("{registration_failed} {failed}",110);
 		echo "***** Registration_failed ****\n";
@@ -771,7 +785,8 @@ function ExportPersonalCategories($asPid=false){
 	WriteMyLogs("Exporting ". count($PERSONALSCATS)." personal category",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($PERSONALSCATS));
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["PERSO_CAT_POST"]=$f;
 
@@ -792,67 +807,7 @@ function ExportPersonalCategories($asPid=false){
 }	
 
 function export_deleted_categories($asPid=false){
-	$sock=new sockets();
-	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	
-	if($asPid){
-		
-		$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-		$unix=new unix();	
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid)){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}	
-		
-	}	
-	
-	@file_put_contents($pidfile,getmypid());
-	$uuid=$unix->GetUniqueID();
-	
-	if($uuid==null){
-		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
-		return;
-	}
-	
-	$q=new mysql_squid_builder();
-	$ALLCOUNT=$q->COUNT_ROWS("categorize_delete");
-	if($ALLCOUNT==0){return;}
-	
-
-	
-	$results=$q->QUERY_SQL("SELECT * FROM categorize_delete");
-	if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($ligne["category"]==null){continue;}
-		if($ligne["sitename"]==null){continue;}
-		if($ligne["zmd5"]==null){continue;}
-		
-		$array[$ligne["zmd5"]]=array(
-				"category"=>$ligne["category"],
-				"sitename"=>$ligne["sitename"],
-			    "uuid"=>$uuid
-		);
-	}
-
-	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
-	
-	$f=base64_encode(serialize($array));
-	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
-	$curl->parms["COMMUNITY_POST_CATEGORIES_DELETE"]=$f;
-
-	if(!$curl->get()){
-		writelogs("Failed exporting ".count($array)." deleted websites from categories to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__);
-		$unix->send_email_events("Failed exporting ".count($array)." deleted websites from categories to Artica cloud repository servers",null,"proxy");
-		writelogs_squid("Failed exporting ".count($array)." deleted websites from categories to Artica cloud repository servers \"$curl->error\"",__FUNCTION__,__FILE__,__LINE__,"export");
-		return null;
-	}
-	
-	if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){
-		WriteMyLogs("Exporting success ". count($array)." deleted websites from categories",__FUNCTION__,__FILE__,__LINE__);
-		writelogs_squid("Success exporting ".count($array)." deleted websites from categories to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__,"export");
-		$q->QUERY_SQL("TRUNCATE TABLE categorize_delete");
-	}
-
+return;
 }
 
 function ExportNoCategorized($asPid=false){
@@ -867,8 +822,9 @@ function ExportNoCategorized($asPid=false){
 		if($unix->process_exists($pid)){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}	
 		@file_put_contents($pidfile,getmypid());
 	}	
-	
+	$array=array();
 	$sock=new sockets();
+	$uuid=$unix->GetUniqueID();
 	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -887,38 +843,63 @@ function ExportNoCategorized($asPid=false){
 	
 	if($WizardStatsAppliance["SERVER"]<>null){return;}
 	
-	
-	$q=new mysql_squid_builder();
-	$sql="SELECT * FROM visited_sites WHERE LENGTH(category)=0 AND NotVisitedSended=0 LIMIT 0,5000";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){if(strpos($q->mysql_error, "Unknown column 'NotVisitedSended'")>0){$q->CheckTables();}$results=$q->QUERY_SQL($sql);}
-	if(mysql_num_rows($results)==0){return;}
-	
-	$sock=new sockets();
-	$uuid=$unix->GetUniqueID();
-	
 	if($uuid==null){
 		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
 		return;
 	}
 	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$md5=md5("$uuid{$ligne["sitename"]}{$ligne["familysite"]}");
-		$ligne["sitename"]=mysql_escape_string2($ligne["sitename"]);
-		$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
-		$array[]="('$md5','$uuid','{$ligne["sitename"]}','{$ligne["HitsNumber"]}','{$ligne["familysite"]}')";
-		
-	}
-	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
-	$f=base64_encode(serialize($array));
-	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM visited_sites WHERE LENGTH(category)=0 AND NotVisitedSended=0 LIMIT 0,5000";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){if(strpos($q->mysql_error, "Unknown column 'NotVisitedSended'")>0){$q->CheckTables();}$results=$q->QUERY_SQL($sql);}
+	if(mysql_num_rows($results)>0){
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$md5=md5("$uuid{$ligne["sitename"]}{$ligne["familysite"]}");
+			$ligne["sitename"]=mysql_escape_string2($ligne["sitename"]);
+			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
+			$array[]="('$md5','$uuid','{$ligne["sitename"]}','{$ligne["HitsNumber"]}','{$ligne["familysite"]}')";
+			
+		}
+	
+	}
+	
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==1){
+		$q1=new mysql_meta();
+		$results=$q1->QUERY_SQL("SELECT SUM(HitsNumber) as HitsNumber, sitename,familysite,sended FROM dansguardian_community_nocat GROUP BY sitename,familysite HAVING sended=0 LIMIT 0,5000");
+		if(mysql_num_rows($results)>0){
+			$md5=md5("$uuid{$ligne["sitename"]}{$ligne["familysite"]}");
+			$ligne["sitename"]=mysql_escape_string2($ligne["sitename"]);
+			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
+			$array[]="('$md5','$uuid','{$ligne["sitename"]}','{$ligne["HitsNumber"]}','{$ligne["familysite"]}')";
+		}
+	}
+	
+	if(count($array)==0){return;}
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
+	$nochecksquid=false;
+	$f=base64_encode(serialize($array));
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){
+		$ArticaMetaPort=intval($sock->GET_INFO("ArticaMetaPort"));
+		$ArticaMetaHostname=$sock->GET_INFO("ArticaMetaHost");
+		$ArticaMetaUseLocalProxy=intval($sock->GET_INFO("ArticaMetaUseLocalProxy"));
+		if($ArticaMetaUseLocalProxy==0){$nochecksquid=true;}
+		if($ArticaMetaPort==0){$ArticaMetaPort=9000;}
+		$URIBASE="https://$ArticaMetaHostname:$ArticaMetaPort";
+	}
+	
+
+	$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+	$curl=new ccurl("$URIBASE/shalla-orders.php",$nochecksquid,null,true);
 	if($GLOBALS["VERBOSE"]){echo "COMMUNITY_POST_VISITED = array of ". count($array)." elements\n";}
 	$curl->parms["COMMUNITY_POST_VISITED"]=$f;
 	if(!$curl->get()){
 		writelogs("Failed exporting ".count($array)." not categorized websites from categories to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__);
-		squid_admin_mysql(1,"Failed exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers \"$curl->error\"",null,__FILE__,__LINE__,"export");
+		squid_admin_mysql(1,"Failed exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers \"$curl->error\"",@implode("\n",$curl->errors),__FILE__,__LINE__,"export");
 		return null;
 	}
 	
@@ -926,6 +907,11 @@ function ExportNoCategorized($asPid=false){
 		if($GLOBALS["VERBOSE"]){echo "Success...\n";}
 		squid_admin_mysql(2,"Success exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers",null,__FILE__,__LINE__,"export");
 		$q->QUERY_SQL("UPDATE visited_sites SET NotVisitedSended=1 WHERE LENGTH(category)=0 AND NotVisitedSended=0 LIMIT 5000");
+		if($EnableArticaMetaServer==1){
+			$q1=new mysql_meta();
+			$q1->QUERY_SQL("UPDATE dansguardian_community_nocat SET sended=1 LIMIT 5000");
+			$q1->QUERY_SQL("DELETE FROM dansguardian_community_nocat WHERE sended=1");
+		}
 	}	
 	
 	if($GLOBALS["VERBOSE"]){echo "Returned datas:\n\n$curl->data\n\n";}
@@ -949,6 +935,7 @@ function Export_Weighted(){
 	$unix=new unix();
 	echo count($tables)." tables\n";
 	while (list ($table, $www) = each ($tables)){
+		if($table=="categoryuris_malware"){continue;}
 		$c++;
 		echo "Push $table $c/$count\n";
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(zmd5) as tcount FROM $table WHERE sended=0 and enabled=1"));
@@ -964,9 +951,11 @@ function Export_Weighted(){
 			
 		}
 		$unix=new unix();
-		$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+		$URIBASE=$unix->MAIN_URI();
+		$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 		if(!is_array($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(count($array)==0){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}	
+		
 		$f=base64_encode(serialize($array));
 		$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 		echo "Push $table -> " .count($array)." entries\n";
@@ -1003,10 +992,13 @@ function drop_categorize(){
 
 	
 function Export($asPid=false){
+	return;
 	$unix=new unix();
 	$restartProcess=false;
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
+	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "CacheTime: $cachetime\n";}
 	$restart_cmd=trim("$nohup $php5 ".__FILE__." --export >/dev/null 2>&1 &");
 	$sock=new sockets();
 	
@@ -1014,7 +1006,7 @@ function Export($asPid=false){
 	
 	if($asPid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		
 		$unix=new unix();	
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}	
@@ -1027,13 +1019,14 @@ function Export($asPid=false){
 		return;
 	}
 	
-	export_deleted_categories();
 	$q=new mysql_squid_builder();
 	$tables=$q->LIST_TABLES_CATEGORIES();
 	$c=0;
 	while (list ($table, $www) = each ($tables)){
 		$limit=null;
 		$limitupate=null;
+		if(!preg_match("#category_(.+?)$#", $table)){continue;}
+		if(!$q->TABLE_EXISTS($table)){continue;}
 		$sql="SELECT COUNT(zmd5) as tcount FROM $table WHERE sended=0 and enabled=1";
 		$q->CreateCategoryTable(null,$table);
 		
@@ -1086,7 +1079,7 @@ function Export($asPid=false){
 			    "uuid"=>$ligne["uuid"]
 		);
 	}
-
+if(!isset($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 if(!is_array($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 if(count($array)==0){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 
@@ -1096,14 +1089,14 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 	if(!isset($WHITELISTED[$uuid])){
 		if(count($array)>500){
 			$q->QUERY_SQL("TRUNCATE TABLE categorize_delete");
-			writelogs_squid("Too much categories to export ".count($array).">500, aborting",__FUNCTION__,__FILE__,__LINE__,"export");
+			WriteMyLogs("Too much categories to export ".count($array).">500, aborting",__FUNCTION__,__FILE__,__LINE__,"export");
 		}
 	}	
 
 	WriteMyLogs("Exporting ". count($array)." websites",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($array));
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+	$URIBASE=$unix->MAIN_URI();
 	if($GLOBALS["VERBOSE"]){echo "Sending ". strlen($f)." bytes to repository server\n";}
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["COMMUNITY_POST"]=$f;
@@ -1303,6 +1296,7 @@ function mycnf_change_value($key,$value_to_modify){
 	
 
 function WriteMyLogs($text,$function,$file,$line){
+	if(isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	writelogs($text,$function,__FILE__,$line);
 	$logFile="/var/log/artica-postfix/".basename(__FILE__).".log";

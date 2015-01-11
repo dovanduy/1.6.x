@@ -600,7 +600,7 @@ function popup_postqueue(){
 	$page=CurrentPageName();
 	
 	$html="
-		<div class=explain>{postqueue_list_explain}</div>
+		<div class=text-info>{postqueue_list_explain}</div>
 		<div id='postqueue-details-form' style='margin:5px'></div>
 		<div id='postqueue-details' style='heigth:550px;overflow:auto'></div>
 		

@@ -126,7 +126,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain style='font-size:13px'>{FIRST_WIZARD_NIC1}</div>
+	<div class=text-info style='font-size:13px'>{FIRST_WIZARD_NIC1}</div>
 	<div id='$t-dns'></div>
 	<div id='wizard-nic-list'></div>
 	
@@ -275,7 +275,7 @@ function wizard_list_nic(){
 	";
 	
 	if($configured){
-		$html=$html."<div class=explain style='font-size:14px'>{FIRST_WIZARD_NIC2}</div>
+		$html=$html."<div class=text-info style='font-size:14px'>{FIRST_WIZARD_NIC2}</div>
 		<center>". button("{SaveToDisk}","ApplyNetSettingsWizard()",18)."</center>
 		
 		";

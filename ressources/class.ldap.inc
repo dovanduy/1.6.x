@@ -111,13 +111,13 @@ class LdapUserInfos{
 
 
 class clladp{
-	var $ldap_admin;
-	var $ldap_password;
+	var $ldap_admin=null;
+	var $ldap_password=null;
 	var $ldap_host;
 	var $ldap_port=389;
 	var $ldap_connection;
 	var $ldapbind;
-	var $suffix;
+	var $suffix=null;
 	var $ldap_last_error;
 	var $ldapFailed=false;
 	var $use_suse_schema=false;
@@ -168,11 +168,17 @@ class clladp{
 		}
 		
 		if(!isset($GLOBALS["SETTINGS_INC"])){
-			if(!is_file(dirname(__FILE__) . '/settings.inc')){return;}
+			if(!is_file(dirname(__FILE__) . '/settings.inc')){
+				$_GLOBAL["ldap_host"]="127.0.0.1";
+				return;
+			}
 			@include(dirname(__FILE__) . "/settings.inc");
 			$GLOBALS["SETTINGS_INC"]=$_GLOBAL;
 		}
 		$_GLOBAL=$GLOBALS["SETTINGS_INC"];
+		if(!isset($_GLOBAL["ldap_host"])){$_GLOBAL["ldap_host"]="127.0.0.1";}
+		$_GLOBAL["ldap_host"]=trim($_GLOBAL["ldap_host"]);
+		
 		$sock=new sockets();
 		$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
 		if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}
@@ -183,9 +189,26 @@ class clladp{
 		if(!is_numeric($EnableOpenLdapProxy)){$EnableOpenLdapProxy=0;}			
 		
 		
-		$this->ldap_admin=$_GLOBAL["ldap_admin"];
-		$this->ldap_password=$_GLOBAL["ldap_password"];
-		$this->suffix=$_GLOBAL["ldap_root_database"];
+		if($GLOBALS["AS_ROOT"]){
+			if(is_file("/etc/artica-postfix/ldap_settings/admin")){
+				$this->ldap_admin=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/admin"));
+			}
+			if(is_file("/etc/artica-postfix/ldap_settings/suffix")){
+				$this->suffix=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/suffix"));
+			}
+			if(is_file("/etc/artica-postfix/ldap_settings/password")){
+				$this->ldap_password=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/password"));
+			}			
+		}else{
+			$this->ldap_admin=null;
+			$this->ldap_password=null;
+			$this->suffix=null;
+		}
+		
+		
+		if($this->ldap_admin==null){$this->ldap_admin=$_GLOBAL["ldap_admin"];}
+		if($this->ldap_password==null){$this->ldap_password=$_GLOBAL["ldap_password"];}
+		if($this->suffix==null){$this->suffix=$_GLOBAL["ldap_root_database"];}
 		$this->ldap_host=$_GLOBAL["ldap_host"];
 		$this->ldap_port=$_GLOBAL["ldap_port"];
 		if(!isset($_GLOBAL["USE_SUSE_SCHEMA"])){$_GLOBAL["USE_SUSE_SCHEMA"]=false;}
@@ -232,7 +255,8 @@ class clladp{
 						$errornumber=@ldap_errno($this->ldap_connection);
 						$error_text=@ldap_err2str($this->ldap_connection);
 						$error= "[$errornumber] `$error_text`";
-						writelogs("Fatal: line ". __LINE__." unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} (cn=$this->ldap_admin,$this->suffix) $error $called"
+						$this->ldapFailed=true;
+						writelogs("Fatal: line ". __LINE__." unable to bind to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} (cn=$this->ldap_admin,$this->suffix) $error $called"
 						,__CLASS__."/" .__FUNCTION__,__FILE__);	
 						
 				switch (ldap_errno($this->ldap_connection)) {
@@ -1383,7 +1407,7 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 		
 	}
 	
-	function CyrusAdminOtherCreate($cyrus_admin,$cyrus_password){
+	function CyrusAdminOtherCreate($cyrus_admin,$cyrus_password=null,$OnlyCreate=false){
 		if(trim($cyrus_password)==null){
 			writelogs("no password set...define has cyrus default",__CLASS__ . '/' . __FUNCTION__,__FILE__,__LINE__);
 			$cyrus_password=$this->CyrusPassword();
@@ -1406,8 +1430,13 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 			$upd["userPassword"][]=$cyrus_password;
 			$this->ldap_add($dn,$upd);
 		}else{
-			$upd["userPassword"][]=$cyrus_password;
-			$this->Ldap_modify($dn,$upd);
+			if($GLOBALS["AS_ROOT"]){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $dn exists\n";}
+			}
+			if(!$OnlyCreate){
+				$upd["userPassword"][]=$cyrus_password;
+				$this->Ldap_modify($dn,$upd);
+			}
 		}
 		
 		
@@ -3289,8 +3318,9 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 		
 			
 		$hashdoms=$this->hash_get_all_domains();
-		writelogs("hashdoms[$domain]={$hashdoms[$domain]}",__CLASS__."/".__FUNCTION__,__FILE__);
 		if(!isset($hashdoms[$domain])){$hashdoms[$domain]=null;}
+		writelogs("hashdoms[$domain]={$hashdoms[$domain]}",__CLASS__."/".__FUNCTION__,__FILE__);
+		
 		if($hashdoms[$domain]<>null){
 			include_once(dirname(__FILE__).'/class.templates.inc');
 			$tpl=new templates();
@@ -3818,9 +3848,11 @@ function load_mynetworks(){
 		$sr =@ldap_read($this->ldap_connection,$dn,'objectClass=PostfixMynetworks');
 		if ($sr) {
 			$hash=ldap_get_entries($this->ldap_connection,$sr);	
-			for($i=0;$i<$hash[0]["mynetworks"]["count"];$i++){
-				if(trim($hash[0]["mynetworks"][$i])==null){continue;}
-					$nets[trim($hash[0]["mynetworks"][$i])]=$hash[0]["mynetworks"][$i];
+			if(isset($hash[0]["mynetworks"])){
+				for($i=0;$i<$hash[0]["mynetworks"]["count"];$i++){
+					if(trim($hash[0]["mynetworks"][$i])==null){continue;}
+						$nets[trim($hash[0]["mynetworks"][$i])]=$hash[0]["mynetworks"][$i];
+					}
 				}
 			}
 			
@@ -4254,7 +4286,11 @@ function getobjectDNClass($dn,$fulldn=0){
   			
   			if(function_exists("debug_backtrace")){
   				$trace=debug_backtrace();
-  				if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
+  				if(isset($trace[1])){
+  					if(!isset($trace[1]["class"])){$trace[1]["class"]=null;}
+  					$called=" called by ". 
+  					basename($trace[1]["file"]).
+  					" {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
   			}
   			
 			$nolog=false;

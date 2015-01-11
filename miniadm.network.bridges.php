@@ -41,7 +41,7 @@ function bridges_section(){
 	$boot=new boostrap_form();
 	$OPTIONS["BUTTONS"][]=button("{new_net_bridge}","Loadjs('$page?bridge-js=0')",16);
 	$tpl=new templates();
-	$expl="<div class=explain>{interface_bridges_explain}</div>";
+	$expl="<div class=text-info>{interface_bridges_explain}</div>";
 	echo $expl.$boot->SearchFormGen("ipaddr,name","search-bridge",null,$OPTIONS);
 
 

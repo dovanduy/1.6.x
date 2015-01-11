@@ -150,8 +150,15 @@ function start($aspid=false){
 		return;
 	}
 
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix checking postfix user\n";}
 	$unix->CreateUnixUser("postfix","postfix");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix checking clamav user\n";}
 	$unix->CreateUnixUser("clamav","clamav");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix checking postdrop group\n";}
+	$unix->SystemCreateGroup("postdrop");
+	
+	
+	
 	shell_exec("$usermod -a -G postfix clamav >/dev/null 2>&1");
 	@mkdir("/var/amavis",0755,true);
 	@chmod("/var/amavis", 0755);

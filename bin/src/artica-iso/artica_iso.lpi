@@ -34,7 +34,7 @@
         <Filename Value="artica_iso.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="artica_iso"/>
-        <CursorPos X="11" Y="134"/>
+        <CursorPos X="118" Y="145"/>
         <TopLine Value="115"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="207"/>
@@ -68,8 +68,8 @@
       <Unit4>
         <Filename Value="../artica-install/global_conf.pas"/>
         <UnitName Value="global_conf"/>
-        <CursorPos X="38" Y="11859"/>
-        <TopLine Value="11846"/>
+        <CursorPos X="38" Y="11582"/>
+        <TopLine Value="11527"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="98"/>
         <Loaded Value="True"/>

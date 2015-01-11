@@ -66,7 +66,7 @@ function popup(){
 	$array=unserialize(@file_get_contents("ressources/logs/web/squidlogs.stats"));
 
 	$html="
-	<div class=explain style='font-size:14px'>{squidlogs_explain}</div>
+	<div class=text-info style='font-size:14px'>{squidlogs_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td>
@@ -95,7 +95,7 @@ function popup(){
 		</td>
 		</tr>
 	</table>
-	<div class=explain style='font-size:14px'>{syslogstore_explain}</div>	
+	<div class=text-info style='font-size:14px'>{syslogstore_explain}</div>	
 	<table style='width:100%'>
 	<tr>
 		<td>

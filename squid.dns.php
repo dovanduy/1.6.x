@@ -55,8 +55,9 @@ function table(){
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$dns_nameservers=$tpl->javascript_parse_text("{dns_nameservers}");
-	$new_dns=$tpl->_ENGINE_parse_body("{new_dns_server}");
-	$blacklist=$tpl->_ENGINE_parse_body("{blacklist}");
+	$new_dns=$tpl->javascript_parse_text("{new_dns_server}");
+	$blacklist=$tpl->javascript_parse_text("{blacklist}");
+	$domains=$tpl->javascript_parse_text("{domains}");
 	$restart_service=$tpl->javascript_parse_text("{restart_service}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
@@ -67,7 +68,7 @@ function table(){
 	$buttons="
 	buttons : [
 		$newdns
-		{name: '$blacklist', bclass: 'Copy', onpress : BlackList$t},
+		{name: '$domains: $blacklist', bclass: 'Copy', onpress : BlackList$t},
 		{name: '$restart_service', bclass: 'ReConf', onpress : RestartService$t},
 	],";
 
@@ -104,14 +105,7 @@ $('#table-$t').flexigrid({
 });
 
 function RestartService$t(){
-	var SQUID_INSTALLED=$SQUID_INSTALLED;
-	if(SQUID_INSTALLED==0){
-		Loadjs('system.services.cmd.php?APPNAME=APP_DNSMASQ&action=restart&cmd=%2Fetc%2Finit.d%2Fdnsmasq&appcode=DNSMASQ');
-		return;
-	}
-
-	Loadjs('squid.restart.php?onlySquid=yes');
-
+	Loadjs('system.services.cmd.php?APPNAME=APP_DNSMASQ&action=restart&cmd=%2Fetc%2Finit.d%2Fdnsmasq&appcode=DNSMASQ');
 }
 
 function BlackList$t(){

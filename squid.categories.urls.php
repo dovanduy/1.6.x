@@ -9,10 +9,8 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
-	$user=new usersMenus();
-	if(!$user->AsSquidAdministrator){
-		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
+	if(!CategoriesCheckRightsRead()){
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}<hr>".@implode("<br>", $GLOBALS["CategoriesCheckRights"]));
 		exit;
 		
 	}
@@ -34,6 +32,7 @@
 js();	
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$width=950;
@@ -122,7 +121,7 @@ function add_uris_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-	<div class=explain style='font-size:16px !important'>{webfiltering_add_uris_explain}</div>		
+	<div class=text-info style='font-size:16px !important'>{webfiltering_add_uris_explain}</div>		
 	<textarea 
 		style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:95%;height:150px;border:5px solid #8E8E8E;
@@ -177,6 +176,8 @@ function popup(){
 	$category_text=$tpl->_ENGINE_parse_body("{category}");
 	$removedAll=$tpl->javascript_parse_text("{delete_all}");
 	$removedisabled_warn=$tpl->javascript_parse_text("{remove_disabled_items_warn}");
+	$CategoriesCheckRightsWrite=CategoriesCheckRightsWrite();
+	$export=$tpl->javascript_parse_text("{export}");
 	if($category==null){
 		
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){
@@ -198,8 +199,14 @@ function popup(){
 		
 		
 	}
-	
+	$xls="{name: '$export:CSV', bclass: 'xls', onpress : xls$t},";
 	$RemoveEnabled="{name: '$removedAll', bclass: 'Delz', onpress : DeleteAll$t},";
+	$BUTTON_ADD="{name: '$add_websites', bclass: 'Add', onpress : AddWebSites$t},";
+	
+	if(!$CategoriesCheckRightsWrite){
+		$RemoveEnabled=null;$BUTTON_ADD=null;
+	}
+	
 		$buttons="buttons : [
 			$RemoveEnabled
 				],	";	
@@ -210,8 +217,8 @@ function popup(){
 		if($_GET["category"]<>null){
 			$table_title="$category_text::$category";
 		$buttons="buttons : [
-			{name: '$add_websites', bclass: 'Add', onpress : AddWebSites$t},
-			$RemoveEnabled
+			$BUTTON_ADD
+			$RemoveEnabled $xls
 				],";
 		
 		$searchitem="	searchitems : [
@@ -260,6 +267,10 @@ $searchitem
 	
 	});   
 });
+
+function xls$t(){
+	Loadjs('squid.categories.url.export.php?category={$_GET["category"]}&t=$t');
+}
 
 	function AddWebSites$t(){
 		Loadjs('$page?add-uris-js=yes&category={$_GET["category"]}&t=$t');
@@ -339,6 +350,7 @@ function query(){
 	
 	writelogs("Category:$category",__FUNCTION__,__FILE__,__LINE__);
 	$table="categoryuris_".$q->category_transform_name($category);
+	$CategoriesCheckRightsWrite=CategoriesCheckRightsWrite();
 	$q->CreateCategoryUrisTable(null,$table);
 	$search='%';
 	$page=1;
@@ -396,7 +408,12 @@ function query(){
 		
 $jscat="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.categorize.php?www={$ligne["pattern"]}');\"
-		style='font-size:14px;text-decoration:underline;$color'>";		
+		style='font-size:14px;text-decoration:underline;$color'>";	
+
+if(!$CategoriesCheckRightsWrite){
+	$jscat=null;
+	$delete=null;
+}
 		
 	$data['rows'][] = array(
 		'id' => $ligne['zmd5'],

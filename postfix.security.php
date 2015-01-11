@@ -55,7 +55,6 @@ function tabs(){
 	
 	$array["default"]='{default}';
 	$array["synthesis"]='{synthesis}';
-	$array["postfix"]='{mta_policies}';
 	$array["status"]='{mailplugins}';
 	
 	
@@ -88,10 +87,7 @@ function tabs(){
 			continue;
 		}
 
-		if($num=="postfix"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=security_settings&hostname=master\"><span style='$fontsize'>$ligne</span></a></li>\n");
-			continue;
-		}
+
 		
 		if($num=="synthesis"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.synthesis.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");

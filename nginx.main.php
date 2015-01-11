@@ -22,29 +22,75 @@
 		echo "<p class=text-error>". $tpl->_ENGINE_parse_body("{ERROR_NO_PRIVS}")."</p>";
 		die();exit();
 	}
+	
+	if(isset($_GET["EnableNginx"])){EnableNginx_js();exit;}
+	
+	
 
 tabs();
+
+
+function EnableNginx_js(){
+	header("content-type: application/x-javascript");
+	echo "Loadjs('nginx.enable.progress.php')";
+	
+}
+
 
 
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql();
+	
+	$sock=new sockets();
+	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
+	$EnableNginxMail=intval($sock->GET_INFO("EnableNginxMail"));
+	if($EnableNginx==0){
+		
+		echo FATAL_WARNING_SHOW_128("
+		<center style='margin:30px'>". button("{enable_reverse_proxy_service}","Loadjs('$page?EnableNginx=yes')",50)."</center>");
+		return;
+		
+	}
 
-
+	$array["status"]="{status}";
 	$array["websites"]="{websites}";
 	$array["destinations"]='{destinations}';
 	$array["caches"]='{caches}';
+	if($EnableNginxMail==1){
+		$array["mail"]='{mail}';
+	}
 	$array["events"]='{events}';
+	$array["watchdog"]="{watchdog}";
+	
+	$array["backup"]='{backup_restore}';
+	
+	
 
 
 	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="status"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.satus.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="watchdog"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.watchdog-events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 
 		if($num=="websites"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.www.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="mail"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.mail.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="events"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
@@ -55,7 +101,17 @@ function tabs(){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.destinations.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
-
+		
+		if($num=="caches"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.caches.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
+		if($num=="backup"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.backup.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
 
 		$tab[]="<li style='font-size:{$fontsize}px'><a href=\"$page?$num=yes\"><span >$ligne</span></a></li>\n";
 			
@@ -66,6 +122,6 @@ function tabs(){
 	$t=time();
 	//
 
-	echo build_artica_tabs($tab, "main_artica_nginx",1100)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
+	echo build_artica_tabs($tab, "main_artica_nginx",1200)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
 
 }

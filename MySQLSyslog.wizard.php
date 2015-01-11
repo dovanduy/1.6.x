@@ -43,11 +43,11 @@ function popup(){
 	$t=time();
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
-	$P1="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_EXPLAIN}</div>";
+	$P1="<div style='font-size:22px;margin:20px'>{LOGROTATE_EXPLAIN}</div>";
 	
 	if($EnableSyslogDB==1){
 		$P1="<div id='status-$t'></div>
-		<div class=explain style='font-size:14px'>{MYSQLSYSLOG_EXPLAIN}</div>";
+		<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_EXPLAIN}</div>";
 		
 	}
 	
@@ -56,14 +56,14 @@ function popup(){
 	$P1
 	<table style='width:100%'>
 	<tr>
-		<td align='left' style='width:50%'>". button("{close}","Close$t()",18)."</td>
-		<td align='right' style='width:50%'>". button("{next}","Next1$t()",18)."</td>
+		<td align='left' style='width:50%'>". button("{close}","Close$t()",26)."</td>
+		<td align='right' style='width:50%'>". button("{next}","Next1$t()",26)."</td>
 	</tr>
 	</table>
 	</div>	
 	
 	<script>
-		var Close$t= function (obj) {
+		var xClose$t= function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
 			YahooWin3Hide();
@@ -72,7 +72,6 @@ function popup(){
 		function Close$t(){
 			var XHR = new XHRConnection();
 			XHR.appendData('CloseWizard','yes');
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',xClose$t);
 		}
 		
@@ -142,13 +141,13 @@ function Next1(){
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=3;}
 	
-	$array[1]="{server}";
-	$array[2]="{client}";
+	//$array[1]="{server}";
+	//$array[2]="{client}";
 	$array[3]="{NAS_storage}";
 	$array[4]="{local}";
 	
 
-	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:18px'>{SYSLOG_TYPE_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -158,8 +157,8 @@ function Next1(){
 	<p><hr></p>			
 	<table style='width:100%'>
 	<tr>
-		<td align='left' style='width:50%'>". button("{close}","Close$tt()",18)."</td>
-		<td align='right' style='width:50%'>". button("{next}","Next$tt()",18)."</td>
+		<td align='left' style='width:50%'>". button("{close}","Close$tt()",26)."</td>
+		<td align='right' style='width:50%'>". button("{next}","Next$tt()",26)."</td>
 	</tr>
 	</table>
 	</div>	
@@ -173,8 +172,7 @@ function Next1(){
 		function Close$tt(){
 			var XHR = new XHRConnection();
 			XHR.appendData('CloseWizard','yes');
-			AnimateDiv('$t');
-			XHR.sendAndLoad('$page', 'POST',xClose$t);
+			XHR.sendAndLoad('$page', 'POST',xClose$tt);
 		}
 		
 		var xNext$tt= function (obj) {
@@ -222,30 +220,30 @@ function Next2_local(){
 	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	if(!is_numeric($BackupMaxDaysAccess)){$BackupMaxDaysAccess=365;}
-$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_LOCAL_EXPLAIN}</div>
+$html="<div class=text-info style='font-size:18px'>{MYSQLSYSLOG_TYPE_LOCAL_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 			<td align='right' nowrap class=legend style='font-size:18px'>{storage_directory}:</strong></td>
-			<td align='left'>" . Field_text("BackupMaxDaysDir-$tt",$BackupMaxDaysDir,'width:219px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td align='left'>" . Field_text("BackupMaxDaysDir-$tt",$BackupMaxDaysDir,'width:309px;padding:3px;font-size:18px',null,null,'')."</td>
 			<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=BackupMaxDaysDir-$tt')",16)."</td>
 		</tr>	
 		<tr>
 			<td align='right' nowrap class=legend style='font-size:18px'>{max_storage_days}:</strong></td>
-			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDays-$tt",$BackupMaxDays,'width:110px;padding:3px;font-size:18px',null,null,'')."&nbsp;{days}</td>
+			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDays-$tt",$BackupMaxDays,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;{days}</td>
 			<td>&nbsp;</td>
 		</tr>
 		<tr>
 			<td align='right' nowrap class=legend style='font-size:18px'>{max_storage_days_accesses}:</strong></td>
-			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDaysAccess-$tt",$BackupMaxDaysAccess,'width:110px;padding:3px;font-size:18px',null,null,'')."&nbsp;{days}</td>
+			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDaysAccess-$tt",$BackupMaxDaysAccess,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;{days}</td>
 			<td>&nbsp;</td>
 		</tr>		
 	</table>
 	<p><hr></p>
 <table style='width:100%'>
 	<tr>
-		<td align='left' style='width:50%'>". button("{previous}","Close$tt()",18)."</td>
-		<td align='right' style='width:50%'>". button("{next}","Next$tt()",18)."</td>
+		<td align='left' style='width:50%'>". button("{previous}","Close$tt()",26)."</td>
+		<td align='right' style='width:50%'>". button("{next}","Next$tt()",26)."</td>
 	</tr>
 </table>
 </div>
@@ -292,7 +290,7 @@ function Next2_nas(){
 	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
 
 	
-	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -381,7 +379,7 @@ function Next2_client(){
 	$array[2]="{client}";
 	
 	
-	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -457,7 +455,7 @@ function Next2_server(){
 	$array[2]="{client}";
 
 
-	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_SERVER_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_SERVER_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -524,16 +522,16 @@ function Next3(){
 	if($MySQLSyslogType==1){
 		$results[]="
 		<tr>
-			<td class=legend style='font-size:16px'>{type}:</td>
-			<td style='font-size:16px;font-weight:bold'>{server}</td>
+			<td class=legend style='font-size:26px'>{type}:</td>
+			<td style='font-size:26px;font-weight:bold'>{server}</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:16px'>{listen_port}:</td>
-			<td style='font-size:16px;font-weight:bold'>$ListenPort</td>
+			<td class=legend style='font-size:26px'>{listen_port}:</td>
+			<td style='font-size:26px;font-weight:bold'>$ListenPort</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{directory}:</td>
-			<td style='font-size:16px;font-weight:bold'>$MySQLSyslogWorkDir</td>
+			<td class=legend style='font-size:26px'>{directory}:</td>
+			<td style='font-size:26px;font-weight:bold'>$MySQLSyslogWorkDir</td>
 		</tr>";
 		
 	}
@@ -546,16 +544,16 @@ function Next3(){
 		
 		$results[]="
 		<tr>
-		<td class=legend style='font-size:16px'>{type}:</td>
-		<td style='font-size:16px;font-weight:bold'>{client}</td>
+		<td class=legend style='font-size:26px'>{type}:</td>
+		<td style='font-size:26px;font-weight:bold'>{client}</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{mysqlserver}:</td>
-		<td style='font-size:16px;font-weight:bold'>$mysqlserver:$ListenPort</td>
+		<td class=legend style='font-size:26px'>{mysqlserver}:</td>
+		<td style='font-size:26px;font-weight:bold'>$mysqlserver:$ListenPort</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{username}:</td>
-		<td style='font-size:16px;font-weight:bold'>$username</td>
+		<td class=legend style='font-size:26px'>{username}:</td>
+		<td style='font-size:26px;font-weight:bold'>$username</td>
 		</tr>";		
 		
 	}
@@ -568,16 +566,16 @@ function Next3(){
 	
 		$results[]="
 		<tr>
-		<td class=legend style='font-size:16px'>{type}:</td>
-		<td style='font-size:16px;font-weight:bold'>{NAS_storage}</td>
+		<td class=legend style='font-size:26px'>{type}:</td>
+		<td style='font-size:26px;font-weight:bold'>{NAS_storage}</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{hostname}:</td>
+		<td class=legend style='font-size:26px'>{hostname}:</td>
 		<td style='font-size:16px;font-weight:bold'>\\$BackupSquidLogsNASIpaddr\{$BackupSquidLogsNASFolder}</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{username}:</td>
-		<td style='font-size:16px;font-weight:bold'>$BackupSquidLogsNASUser</td>
+		<td class=legend style='font-size:26px'>{username}:</td>
+		<td style='font-size:26px;font-weight:bold'>$BackupSquidLogsNASUser</td>
 		</tr>";
 	
 	}	
@@ -591,16 +589,16 @@ function Next3(){
 	
 		$results[]="
 		<tr>
-		<td class=legend style='font-size:16px'>{type}:</td>
-		<td style='font-size:16px;font-weight:bold'>{local}</td>
+		<td class=legend style='font-size:26px'>{type}:</td>
+		<td style='font-size:26px;font-weight:bold'>{local}</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{directory}:</td>
+		<td class=legend style='font-size:26px'>{directory}:</td>
 		<td style='font-size:16px;font-weight:bold'>$BackupMaxDaysDir</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{ttl}:</td>
-		<td style='font-size:16px;font-weight:bold'>$BackupMaxDays {days} / $BackupMaxDaysAccess {days}</td>
+		<td class=legend style='font-size:26px'>{ttl}:</td>
+		<td style='font-size:26px;font-weight:bold'>$BackupMaxDays {days} / $BackupMaxDaysAccess {days}</td>
 		</tr>";
 	
 	}	
@@ -609,8 +607,8 @@ function Next3(){
 	<p><hr></p>
 	<table style='width:100%'>
 	<tr>
-		<td align='left' style='width:50%'>". button("{previous}","Close$tt()",18)."</td>
-		<td align='right' style='width:50%'>". button("{apply}","Next$tt()",18)."</td>
+		<td align='left' style='width:50%'>". button("{previous}","Close$tt()",26)."</td>
+		<td align='right' style='width:50%'>". button("{apply}","Next$tt()",26)."</td>
 	</tr>
 </table>
 <script>

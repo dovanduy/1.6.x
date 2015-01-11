@@ -30,12 +30,12 @@ if($argv[1]=="--run"){run();die();}
 
 if($argv[1]=="--moveolds"){moveolds2();die();}
 if($argv[1]=="--reconfigure"){reconfigure();die();}
-if($argv[1]=="--mysql"){InstertIntoMysql();die();}
+if($argv[1]=="--mysql"){die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
 if($argv[1]=="--clean"){CleanMysqlDatabase(false);die();}
 if($argv[1]=="--purge-nas"){CleanMysqlDatabase(true);die();}
 if($argv[1]=="--squid"){check_all_squid();die();}
-if($argv[1]=="--convert"){ConvertToDedicatedMysql(true);die();}
+if($argv[1]=="--convert"){die();}
 if($argv[1]=="--test-nas"){tests_nas(true);die();}
 
 
@@ -115,10 +115,6 @@ function run(){
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
 	
-	$q=new mysql_syslog();
-	$table="logrotate";
-	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
-	if($q->COUNT_ROWS($table)==0){$q->CheckDefaults();}
 	reconfigure();
 	
 	$cmd=$unix->EXEC_NICE().$logrotate." -s /var/log/logrotate.state /etc/logrotate.conf 2>&1";
@@ -131,130 +127,9 @@ function run(){
 	system_admin_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	events("Success took: $took\n".@implode("<br>", $results));
 	rotate_events("Success took: $took\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
-	InstertIntoMysql();
-	ConvertToDedicatedMysql();
-	
 }
 
-function InstertIntoMysql(){
-	$unix=new unix();
-	
-	$bzip2=$unix->find_program("bzip2");
-	$cpbin=$unix->find_program("cp");
-	$sql="SELECT *  FROM `logrotate` WHERE enabled=1";	
-	$q=new mysql_syslog();
-	$syslog=new mysql_storelogs();
-	$q->CheckTables();
-	$results = $q->QUERY_SQL($sql);	
-	if(!$q->ok){return;}	
-	
-	if(system_is_overloaded(basename(__FILE__))){return;}
-	$sock=new sockets();
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
-	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
-	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
-	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
-	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}	
-	
-	$paths=array();
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$RotateFiles=$ligne["RotateFiles"];
-		$dirname=dirname($RotateFiles);
-		$paths[$dirname]=true;
-	}
-	
-	if($ApacheLogRotate==1){
-			$q2=new mysql();
-			$sql2="SELECT servername FROM freeweb";
-			$results2=$q2->QUERY_SQL($sql2,'artica_backup');
-			if(mysql_num_rows($results)==0){return;}
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				$servername=$ligne["servername"];
-				$paths["/var/log/apache2/$servername"]=true;				
-			}	
-		}
-	
-	
-	
-	if(count($paths)==0){return;}
-	
-	
-	while (list ($path,$none) = each ($paths) ){
-		foreach (glob("$path/*-TASK-*") as $filename) {
-			$filedate=date('Y-m-d H:i:s',filemtime($filename));
-			
-			$basename=basename($filename);
-			if(strpos($basename, ".bz2")==0){
-				if($LogRotateCompress==1){
-					shell_exec("$bzip2 -z $filename");
-					$filename=$filename.".bz2";
-					$basename=basename($filename);
-				}
-			}
-			
-			if(!preg_match("#-TASK-([0-9]+)#",$basename,$re)){continue;}
-			$taskid=$re[1];
-			$filesize=$unix->file_size($filename);
-			rotate_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			if(preg_match("#^store\.log-#", $basename)){@unlink($filename);continue;}
-			if(preg_match("#^php\.log-#", $basename)){@unlink($filename);continue;}
-			if($unix->maillog_to_backupdir($filename)){continue;}
-			
-			if($syslog->ROTATE_TOMYSQL($filename,$filedate)){
-				@unlink($filename);
-				continue;
-			}else{
-				rotate_events("FAILED Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			}
-	
 
-		}
-	}
-	
-	if($LogRotateCompress==0){return;}
-	
-	reset($paths);
-	while (list ($path,$none) = each ($paths) ){
-		
-		foreach (glob("$path/*") as $filename) {
-			if(system_is_overloaded(basename(__FILE__))){return;}
-			if(preg_match("#ipband\.#", $filename)){continue;}
-			$basename=basename($filename);
-			
-			if(preg_match("#^php\.log-#", $basename)){@unlink($filename);continue;}
-			if(preg_match("#^store\.log-#", $basename)){@unlink($filename);continue;}
-			
-			$extension = pathinfo($filename, PATHINFO_EXTENSION);
-			if(is_dir($filename)){continue;}
-			if($extension==null){continue;}
-			if($extension=="log"){continue;}
-			echo "$filename = $extension\n";
-			$filedate=date('Y-m-d H:i:s',filemtime($filename));
-			if($extension=="gz"){
-				system_admin_events("$filename => Converting to bz2",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				$filename=ConvertGZToBzip($filename);
-				if($filename==null){continue;}
-				$extension="bz2";
-			}
-			
-			events("Task:$taskid File $basename ($filedate)");	
-			if($unix->maillog_to_backupdir($filename)){continue;}
-			
-			
-			if($syslog->ROTATE_TOMYSQL($filename,$filedate)){
-				@unlink($filename);
-				continue;
-			}
-			
-			
-		}
-	}
-	
-	
-}
 
 
 
@@ -535,7 +410,7 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
-	if($MySQLSyslogType==0){$MySQLSyslogType=1;}
+	if($MySQLSyslogType==0){$MySQLSyslogType=4;}
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
@@ -550,8 +425,8 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	
 	
 	
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	$LogRotateCompress=1;
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
@@ -567,8 +442,8 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	
 	
 	
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	
+	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}	
@@ -762,13 +637,12 @@ function reconfigure(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$postfix=$unix->find_program("postfix");
 	$squidbin=$unix->find_program("squid3");
+	$gzip=$unix->find_program("gzip");
 	if($squidbin==null){$squidbin=$unix->find_program("squid");}
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if(!is_numeric($LogRotatePath)){$LogRotatePath="/home/logrotate";}		
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	
@@ -799,18 +673,20 @@ function reconfigure(){
 		if(is_numeric($ligne["MaxSize"])){$ligne["MaxSize"]=100;}
 		if(!is_numeric($ligne["RotateCount"])){$ligne["RotateCount"]=5;}
 		
-		if(preg_match("#\/var\/log\/squid#", $ligne["RotateFiles"])){continue;}
+		if(preg_match("#\/var\/log\/squid#is", $ligne["RotateFiles"])){continue;}
 		
 		$f[]="{$ligne["RotateFiles"]} {";
 		$f[]="\t{$ligne["RotateFreq"]}";
 		$f[]="\tmissingok";
 		if($ligne["MaxSize"]>0){$f[]="\tsize {$ligne["MaxSize"]}M";}
 		if($ligne["RotateCount"]>0){$f[]="\trotate {$ligne["RotateCount"]}";}
-		if($LogRotateCompress==1){$f[]="\tcompress";}
+		$f[]="\tcompress";
 		$f[]="\tsharedscripts";
 		$f[]="\tcreate 640 root";
 		$f[]="\tdateext";
-		if($LogRotateCompress==1){$f[]="\tcompressext .bz2";}
+		$f[]="\tcompresscmd $gzip";
+		$f[]="\tcompressoptions -9";
+		$f[]="\tcompressext .gz";
 		$f[]="\textension -TASK-{$ligne["ID"]}";
 		
 		if($ligne["postrotate"]<>null){
@@ -836,9 +712,7 @@ function LoagRotateApache(){
 	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
 	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
 	if($ApacheLogRotate==0){return;}
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	
+	$gzip=$unix->find_program("gzip");
 	$ligneC=unserialize(base64_decode($sock->GET_INFO("ApacheLogRotateParams")));
 	if(!is_numeric($ligneC["RotateType"])){$ligneC["RotateType"]=0;}
 	if(!is_numeric($ligneC["MaxSize"])){$ligneC["MaxSize"]=100;}
@@ -858,11 +732,13 @@ function LoagRotateApache(){
 			$f[]="\tmissingok";
 			if($ligneC["MaxSize"]>0){$f[]="\tsize {$ligneC["MaxSize"]}M";}
 			if($ligneC["RotateCount"]>0){$f[]="\trotate {$ligneC["RotateCount"]}";}
-			if($LogRotateCompress==1){$f[]="\tcompress";}
+			$f[]="\tcompress";
 			$f[]="\tsharedscripts";
 			$f[]="\tcreate 640 root";
 			$f[]="\tdateext";
-			if($LogRotateCompress==1){$f[]="\tcompressext .bz2";}
+			$f[]="\tcompressext .gz";
+			$f[]="\tcompresscmd $gzip";
+			$f[]="\tcompressoptions -9";
 			$f[]="\textension -TASK-99999";
 			$f[]="\tpostrotate";
 			$f[]="$php5 /usr/share/artica-postfix/exec.freeweb.php --reload";
@@ -1019,17 +895,15 @@ function check_all_squid(){
 	@file_put_contents($timefile, time());
 	
 	
-	
+	$php=$unix->LOCATE_PHP5_BIN();
 	$bzip2=$unix->find_program("bzip2");
 	$ALREADYCOMP["gz"]=true;
 	$ALREADYCOMP["bz2"]=true;
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	$LogRotateCompress=1;
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
 	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}	
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}	
@@ -1040,12 +914,31 @@ function check_all_squid(){
 		$time=$unix->file_time_min($filename);
 		$size=round(($size/1024)/1000,2);
 		
+		
 		if($size>$LogsRotateDefaultSizeRotation){
+			if($filename=="/var/log/squid/access.log"){
+				events("$filename -> is a production log for Squid, launch the rotation procedure.");
+				squid_admin_mysql(1, "$filename {$size}M exceed {$LogsRotateDefaultSizeRotation}M, launch rotation", null,__FILE__,__LINE__);
+				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --rotate");
+				continue;
+			}
+			
+			
 			$TOROT[$filename]=true;
 			events("$filename -> Add to queue {$size}M exceed {$LogsRotateDefaultSizeRotation}M");
 			continue;
 		}
+		
+		
+		
 		if($time>1440){
+			if($filename=="/var/log/squid/access.log"){
+				events("$filename -> is a production log for Squid, launch the rotation procedure.");
+				squid_admin_mysql(1, "$filename {$size}M exceed {$LogsRotateDefaultSizeRotation}M, launch rotation", null,__FILE__,__LINE__);
+				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --rotate");
+				continue;
+			}
+			
 			events("$filename -> Add to queue {$time}mn exceed 1440mn");
 			$TOROT[$filename]=true;
 			continue;
@@ -1066,18 +959,15 @@ function check_all_squid(){
 			continue;
 		}
 		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
-			@mkdir("/home/squid/access_logs",0755,true);
-			if(@copy($filename, "/home/squid/access_logs/".basename($filename).".".filemtime($filename))){@unlink($filename);}
 			continue;
 		}	
 		
 		
-		if($LogRotateCompress==1){
-			if($extension<>"bz2"){
-				if(!ROTATE_COMPRESS_FILE($filename)){continue;}
-				$filename=$filename.".bz2";
-				$extension="bz2";
-			}
+		if($extension<>"gz"){
+			if(!$unix->compress($filename, "$filename.gz")){continue;}
+			$filename=$filename.".gz";
+			$extension="gz";
+			
 		}
 			
 		echo "[$filedate]: $filename ($extension)\n";
@@ -1090,7 +980,7 @@ function check_all_squid(){
 	
 	foreach (glob("/home/squid/cache-logs/*") as $filename) {
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
-		$filename=$filename.".bz";
+		$filename=$filename.".gz";
 		if($syslog->ROTATE_TOMYSQL($filename, $filedate)){@unlink($filename);}
 		
 	}
@@ -1099,113 +989,7 @@ function check_all_squid(){
 	
 }
 
-function ConvertToDedicatedMysql($aspid=false){
-	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";	
-	if(system_is_overloaded(basename(__FILE__))){
-		events("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting...");
-		return;
-	}
-	
-	if($aspid){
-		$pid=@file_get_contents("$pidfile");
-		if($unix->process_exists($pid,basename(__FILE__))){
-			system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			return;
-		}
-		$pidTime=$unix->file_time_min($pidTime);
-		if($pidTime<5){return;}
-		
-		
-	}
-	
 
-	@unlink($pidTime);
-	@file_put_contents($pidTime, getmypid());
-	@file_put_contents($pidfile, getmypid());
-	
-	
-	$sock=new sockets();
-	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
-	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
-	if($EnableSyslogDB==0){
-		events("EnableSyslogDB = 0, aborting...");
-		return;
-	}
-	
-	$q=new mysql_storelogs();
-	$q1=new mysql_syslog();
-	
-	if(!$q->BD_CONNECT()){
-		events("$q->mysql_error, aborting...");
-		return;
-	}
-	$q->checkTables();
-	if(!$q->TABLE_EXISTS("files_store")){
-		events("files_store no such table...");
-		return;
-	}
-	if(!$q->TABLE_EXISTS("files_info")){
-		events("files_info no such table...");
-		return;
-	}	
-	$unix=new unix();
-	$rm=$unix->find_program("rm");
-	$hostname=$unix->hostname_g();
-	$MaxCount=$q1->COUNT_ROWS("store");
-	if($MaxCount==0){
-		events("Old store table store no logs...");
-		return;
-	}
-	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` LIMIT 0,500";
-	$results=$q1->QUERY_SQL($sql);
-	if(!$q1->ok){events("$q->mysql_error, $sql");return;}
-	
-	$tmpdir="/home/syslog-migration/".time();
-	
-	@mkdir($tmpdir,0777,true);
-	@chmod($tmpdir,0777);
-	@chmod("/home/syslog-migration",0777);
-	@chown($tmpdir,"mysql");
-	@chgrp($tmpdir,"mysql");
-	
-	
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$filename=mysql_escape_string2($ligne["filename"]);
-		$taskid=mysql_escape_string2($ligne["taskid"]);
-		$filesize=mysql_escape_string2($ligne["filesize"]);
-		$filetime=mysql_escape_string2($ligne["filetime"]);
-		events("Converting $filename task [$taskid] ($filesize bytes) time:$filetime ->$tmpdir/$filename");
-		$sql="SELECT filedata INTO DUMPFILE '$tmpdir/$filename' FROM store WHERE filename = '$filename'";
-		$q1->QUERY_SQL($sql);
-		if(!$q1->ok){
-			shell_exec("$rm -rf $tmpdir");
-			events("$q->mysql_error, $sql");
-			return;
-		}
-		
-		if(!$q->InjectFile("$tmpdir/$filename",$filetime)){
-			shell_exec("$rm -rf $tmpdir");
-			return false;
-		}
-		
-		
-		$q1->QUERY_SQL("DELETE FROM store WHERE filename = '$filename'");
-		if(!$q1->ok){
-			shell_exec("$rm -rf $tmpdir");
-			events("$q->mysql_error, $sql");
-			return;
-		}		
-		events("Success converted $filename");
-		@unlink($tmpdir/$filename);
-		
-	}
-	shell_exec("$rm -rf $tmpdir");
-	
-	
-	
-}
 
 
 

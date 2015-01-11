@@ -61,7 +61,7 @@ function popup(){
 	$t=time();
 	$html="
 	<center id='$t-div'></center>
-	<div class=explain style='font-size:14px'>{convertto_innodb_file_per_table_text}</div>
+	<div class=text-info style='font-size:14px'>{convertto_innodb_file_per_table_text}</div>
 	<div style='text-align:right;text-decoration:underline'><a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=278','1024','900');\" style='font-size:16px;'>{online_help}</a></div>
 	<table style='width:99%' class=form>
 	<tr>

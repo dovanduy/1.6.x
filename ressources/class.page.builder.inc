@@ -75,7 +75,7 @@ class pagebuilder{
 		
 			$html=$html . $backspace.$mouse_position_js;
 			
-
+			//$html=$html . "<link href='/css.php'    rel='styleSheet'  type='text/css' />";
 			$html=$html . "$backspace<!-- Artica javascript  -->";
 			$html=$html . $this->jsArtica();
 			$html=$html . "$backspace<!-- js Artica  -->";
@@ -139,6 +139,7 @@ class pagebuilder{
 	
 	
 	public function jsArtica(){
+		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return $GLOBALS[__CLASS__][__FUNCTION__];}
 		if(!isset($GLOBALS["JS_HEAD_PREPREND"])){$GLOBALS["JS_HEAD_PREPREND"]=null;}
 		if(!isset($GLOBALS["JS_NO_CACHE"])){$GLOBALS["JS_NO_CACHE"]=false;}
 		
@@ -248,15 +249,22 @@ class pagebuilder{
 			$jsTablesrc[]="/js/jquery.watermark.min.js";
 			$jsTablesrc[]="/js/jquery.uilock.min.js";
 			$jsTablesrc[]="/js/jquery.blockUI.js";
+			$jsTablesrc[]="/js/justgage.1.0.1.min.js";
+			$jsTablesrc[]="/js/raphael.2.1.0.min.js";
+			
 			$jsTablesrc[]="/bootstrap/js/bootstrap-tab.js";
 			$jsTablesrc[]="/bootstrap/js/bootstrap-tooltip.js";
 			$jsTablesrc[]="/bootstrap/js/bootstrap-button.js";
 			
+			$favicon="ressources/templates/default/favicon.ico";
+			$favicon_path=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/favicon.ico";
+			if(is_file($favicon_path)){
+				$favicon="ressources/templates/{$_COOKIE["artica-template"]}/favicon.ico";
+			}
 			
 			
-			
-			$chrome[]="$backspace<link rel=\"icon\" type=\"image/x-icon\" href=\"ressources/templates/default/favicon.ico\" />";
-			$chrome[]="$backspace<!--[if IE]><link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"ressources/templates/default/favicon.ico\" /><![endif]-->";
+			$chrome[]="$backspace<link rel=\"icon\" type=\"image/x-icon\" href=\"$favicon\" />";
+			$chrome[]="$backspace<!--[if IE]><link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"$favicon\" /><![endif]-->";
 			
 
 
@@ -302,7 +310,7 @@ class pagebuilder{
 				$html=$html . "\n$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/head.min.js\"></script>";
 				$html=$html . "$backspace".@implode("\n",$f);				
 			}
-
+			$GLOBALS[__CLASS__][__FUNCTION__]=$html;
 			return "$html\n";		
 	}
 	
@@ -473,11 +481,17 @@ class pagebuilder{
 
 		public function JqueryUiCss($theme){
 			if($GLOBALS["EXECUTED_AS_ROOT"]){return;}
+			$fileDesign="/templates/{$_COOKIE["artica-template"]}/jquery-custom/custom.min.css";
+			$Design=dirname(__FILE__) . $fileDesign;
+			
+			
+			
 			$files["jquery-ui.custom.css"]=true;
 			$files["jquery-ui-1.8.10.custom.css"]=true;
 			$files["jquery-ui-1.8.6.custom.css"]=true;
 			$files["jquery-ui-1.7.2.custom.css"]=true;
 			$files["jquery-ui-1.8.16.custom.css"]=true;
+			
 			$template=$this->GetTemplateMemory();
 			
 			if($template<>"default"){
@@ -515,11 +529,6 @@ class pagebuilder{
 			$conf=$conf ."<div id=\"UnityDiv\" style='width:0;height:0'></div>\n";	
 			$conf=$conf ."<div id='PopUpInfos' style='position:absolute'></div>\n";
 			$conf=$conf ."<div id='find' style='position:absolute'></div>\n";	
-			$conf=$conf ."<div class=\"info message\" id='AcaNotifyMessInfo'></div>\n";	
-			$conf=$conf ."<div class=\"error message\" id='AcaNotifyMessError'></div>\n";	
-			$conf=$conf ."<div class=\"warning message\" id='AcaNotifyMessWarn'></div>\n";	
-			$conf=$conf ."<div class=\"success message\" id='AcaNotifyMessSuccess'></div>\n";
-			$conf=$conf ."<div class=\"success message\" id='AcaNotifyMessSuccess'></div>\n";
 			$conf=$conf ."<div class=\"messageMenuDisplay messageMenu\" id='messageMenuDiv'></div>\n";
 			
 			return $conf;		

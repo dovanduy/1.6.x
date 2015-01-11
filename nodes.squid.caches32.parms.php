@@ -349,7 +349,7 @@ function popupBooster(){
 
 	$html="
 
-	<div class=explain style='font-size:14px;' id='$t-div'>{squid_booster_text}</div>
+	<div class=text-info style='font-size:14px;' id='$t-div'>{squid_booster_text}</div>
 	<div style='font-size:16px;font-weight:bold;text-align:center;color:#E71010' id='$t-multi'></div>
 
 	<table style='width:99%' class=form>

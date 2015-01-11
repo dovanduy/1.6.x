@@ -69,7 +69,7 @@ function popup(){
 	if($SquidRockStorePath==null){$SquidRockStorePath="/home/squid";}
 	$t=time();
 	$html="
-	<div style='font-size:14px' class=explain>{SQUID_ROCK_STORE_EXPLAIN}</div>
+	<div style='font-size:14px' class=text-info>{SQUID_ROCK_STORE_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<div id='waitcache-$t'></div>
 	<table style='width:100%'>

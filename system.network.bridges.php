@@ -103,11 +103,19 @@ function network_bridge_save(){
 		if(!$q->ok){echo "ALTER TABLE STP failed\n$q->mysql_error\n";return;}
 	}	
 	
+	if(!$q->FIELD_EXISTS("pnic_bridges", "DenyDHCP", "artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE pnic_bridges ADD DenyDHCP smallint(1) DEFAULT 1","artica_backup");
+		if(!$q->ok){echo "ALTER TABLE DenyDHCP failed\n$q->mysql_error\n";return;}
+	}	
+	
 	$zMD5=md5($nic_from.$nic_to);
-	if($ID==0){$sql="INSERT INTO pnic_bridges (zMD5,nic_from,nic_to,enabled,STP) 
-	VALUES ('$zMD5','$nic_from','$nic_to','{$_POST["enabled"]}','{$_POST["STP"]}')";}
+	if($ID==0){$sql="INSERT INTO pnic_bridges (zMD5,nic_from,nic_to,enabled,STP,DenyDHCP) 
+	VALUES ('$zMD5','$nic_from','$nic_to','{$_POST["enabled"]}','{$_POST["STP"]}','{$_POST["DenyDHCP"]}')";}
 	if($ID>0){$sql="UPDATE pnic_bridges SET `zMD5`='$zMD5',
-	`nic_from`='$nic_from',nic_to='$nic_to',enabled={$_POST["enabled"]},`STP`='{$_POST["STP"]}' WHERE ID=$ID";}
+	`nic_from`='$nic_from',nic_to='$nic_to',enabled={$_POST["enabled"]},
+	`STP`='{$_POST["STP"]}',
+	`DenyDHCP` ='{$_POST["DenyDHCP"]}'
+	WHERE ID=$ID";}
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;}
 }
@@ -138,6 +146,7 @@ function network_bridge_popup(){
 		}
 	
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
+	if(!is_numeric($ligne["DenyDHCP"])){$ligne["DenyDHCP"]=1;}
 	
 	$html="
 	<div style='font-size:32px;margin-bottom:20px'>$title</div>		
@@ -154,8 +163,12 @@ function network_bridge_popup(){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px' nowrap>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$t", $ligne["enabled"])."</td>
-	</tr>				
+		<td>". Field_checkbox_design("enabled-$t",1, $ligne["enabled"])."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px' nowrap>{deny_dhcp_requests}:</td>
+		<td>". Field_checkbox_design("DenyDHCP-$t", 1,$ligne["DenyDHCP"])."</td>
+	</tr>									
 	<tr>
 		<td colspan=2 align='right'><hr>". button($but,"Save$t();","24")."</td>
 	</tr>
@@ -178,6 +191,7 @@ function Save$t(){
 	XHR.appendData('nic_from', document.getElementById('nic_from-$t').value);	
 	XHR.appendData('nic_to', document.getElementById('nic_to-$t').value);	
 	if(document.getElementById('enabled-$t').checked){XHR.appendData('enabled',1);}else{XHR.appendData('enabled',0);};	      
+	if(document.getElementById('DenyDHCP-$t').checked){XHR.appendData('DenyDHCP',1);}else{XHR.appendData('DenyDHCP',0);};
 	XHR.sendAndLoad('$page', 'POST',xSave$t);  			
 }
 </script>	
@@ -197,7 +211,7 @@ function tabs(){
 	$array["bro"]="{interfaces_bridges}";
 	
 	
-	$fontsize="font-size:16px";
+	$fontsize="font-size:22px";
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -248,9 +262,11 @@ function table(){
 		$bts=array();
 		$add=$tpl->_ENGINE_parse_body("{new_network_bridge}");
 		$delete=$tpl->javascript_parse_text("{delete}");
+		$about=$tpl->javascript_parse_text("{about2}");
 		$reconstruct=$tpl->javascript_parse_text("{build_the_network}");
 		$bts[]="{name: '$add', bclass: 'add', onpress :RuleAdd$t},";
-		$bts[]="{name: '$reconstruct', bclass: 'apply', onpress : BuildVLANs$t},";
+		$bts[]="{name: '<strong>$reconstruct</strong>', bclass: 'apply', onpress : BuildVLANs$t},";
+		$bts[]="{name: '$about', bclass: 'help', onpress : About$t},";
 	
 	
 	
@@ -262,9 +278,9 @@ function table(){
 		if(count($bts)>0){
 			$buttons="buttons : [".@implode("\n", $bts)." ],";
 		}
-		$reboot_network_explain=$tpl->_ENGINE_parse_body("{bridges_iptables_explain}<p>&nbsp;</p>{reboot_network_explain}");
+		$reboot_network_explain=$tpl->javascript_parse_text("{bridges_iptables_explain}\n\n{reboot_network_explain}");
 		$html="
-		<div class=explain style='font-size:16px'>$reboot_network_explain</div>
+		
 		<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 		
 		<script>
@@ -288,7 +304,7 @@ function table(){
 		sortname: 'ID',
 		sortorder: 'desc',
 		usepager: true,
-		title: '$network_bridges',
+		title: '<span style=font-size:22px>$network_bridges</span>',
 		useRp: true,
 		rp: 25,
 		showTableToggleBtn: false,
@@ -306,6 +322,10 @@ function table(){
 	function BuildVLANs$t(){
 		Loadjs('network.restart.php?t=$t');
 	
+	}
+	
+	function About$t(){
+		alert('$reboot_network_explain');
 	}
 	
 	
@@ -355,13 +375,20 @@ function rules_list(){
 		`nic_from` varchar(50) NOT NULL,
 		`nic_to` varchar(50) NOT NULL,
 		`enabled` smallint(1) NOT NULL DEFAULT 1,
+		`DenyDHCP` smallint(1) NOT NULL DEFAULT 1,
 		PRIMARY KEY (`ID`),
 		UNIQUE KEY (`zMD5`),
 		KEY `nic_from` (`nic_from`),
 		KEY `nic_to` (`nic_to`),
+		KEY `DenyDHCP` (`DenyDHCP`),
 		KEY `enabled` (`enabled`)
 		) ENGINE=MYISAM;";
 		$q->QUERY_SQL($sql,$database);
+	}
+	
+	if(!$q->FIELD_EXISTS("pnic_bridges", "DenyDHCP", "artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE pnic_bridges ADD DenyDHCP smallint(1) DEFAULT 1","artica_backup");
+		if(!$q->ok){echo "ALTER TABLE DenyDHCP failed\n$q->mysql_error\n";return;}
 	}
 	
 	if(!$q->TABLE_EXISTS("pnic_bridges", "artica_backup")){
@@ -403,7 +430,7 @@ function rules_list(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	
-	
+	$deny_dhcp_requests=$tpl->_ENGINE_parse_body("<br><span style='font-size:18px'><i>{deny_dhcp_requests}</i></span>");
 	$sql="SELECT * FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";
 	$results = $q->QUERY_SQL($sql,$database);
 	if(!$q->ok){json_error_show($q->mysql_error."<hr>".$sql,1);}
@@ -418,6 +445,7 @@ function rules_list(){
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
+		$deny_dhcp_requeststxt=null;
 		$arrow="arrow-right-32.png";
 		if($ligne["enabled"]==0){$color="#ABABAB";$arrow="arrow-right-32-grey.png";}
 		$ip=new IP();
@@ -425,7 +453,9 @@ function rules_list(){
 		$nic_to=$ligne["nic_to"];
 		
 		
-		
+		if($ligne["DenyDHCP"]==1){
+			$deny_dhcp_requeststxt=$deny_dhcp_requests;
+		}
 		
 		$nic=new system_nic($nic_from);
 		$nic_from_text="<strong style='color:$color'>$nic_from</strong> $nic->IPADDR/$nic->NETMASK $nic->NICNAME";
@@ -444,7 +474,7 @@ function rules_list(){
 						"<div style='font-size:18px;font-weight:bold;color:$color'>{$ligne['ID']}</div>",
 						"<div style='font-size:18px;font-weight:normal;color:$color'>$href{$nic_from_text}</a></div>",
 						"<div style='font-size:18px;font-weight:normal;color:$color'><img src=\"img/$arrow\"></div>",
-						"<div style='font-size:18px;font-weight:normal;color:$color'>$nic_to_text</div>",
+						"<div style='font-size:18px;font-weight:normal;color:$color'>$nic_to_text$deny_dhcp_requests</div>",
 						$delete
 				)
 		);

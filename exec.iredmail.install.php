@@ -92,7 +92,7 @@ function install(){
 	@mkdir($tmpdir,0755,true);
 	shell_exec("$tar xf /usr/share/artica-postfix/bin/install/postfix/iredapd.tar.gz -C /" );
 	if(!is_file("/opt/iRedAPD/iredapd.py")){return;}
-	@chmod(0755,"/opt/iRedAPD/iredapd.py");
+	@chmod("/opt/iRedAPD/iredapd.py",0755);
 	
 
 	

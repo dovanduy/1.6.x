@@ -166,7 +166,7 @@ begin
      spamassassin_remove();
   end;
 
-  writeln('Checking Artica repository');
+  writeln('Checking Artica repository -> COMPILE_GENERIC_APPS');
   if length(source_folder)=0 then source_folder:=libs.COMPILE_GENERIC_APPS('Mail-SpamAssassin');
 
 

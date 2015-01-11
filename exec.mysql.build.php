@@ -152,48 +152,101 @@ $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB
 			}
 		}
 		
-	}else{
-		if($GLOBALS["VERBOSE"]){echo "/usr/share/artica-postfix/bin/install/ocsbase_new.sql no such file...\n";}
 	}
-	
-	
 	reset($tableEngines);
+	
 	if($execute){
-		$q->CREATE_DATABASE("ocsweb");
-		$mysql=$unix->find_program("mysql");
-		$password=$q->mysql_password;
-		if(strlen($password)>0){$password=" -p$password";}
-		$cmd="$mysql -u $q->mysql_admin$password --batch -h $q->mysql_server -P $q->mysql_port -D ocsweb < /usr/share/artica-postfix/bin/install/ocsbase_new.sql";
-		exec($cmd,$results);
-		while (list ($a, $b) = each ($results) ){
-			if($GLOBALS["VERBOSE"]){echo "$b";}
-		}
 		$results=array();
 
 		while (list ($table, $ligne) = each ($tableEngines) ){
 			if(!$q->TABLE_EXISTS($table,"ocsweb")){
+				repairocsweb();
 				if($GLOBALS["VERBOSE"]){echo "Unable to create OCS table (missing $table) table\n";}
-				$unix->send_email_events("Unable to create OCS table (missing $table) table" , "$cmd\nmysql results\n".@implode("\n", $results),"system");break;}
-		}
-	}else{
-		
-		$sql="SELECT COUNT(networks.HARDWARE_ID),networks.*,hardware.* FROM networks,hardware WHERE networks.HARDWARE_ID=hardware.ID";
-		$q->QUERY_SQL($sql,"ocsweb");
-		if(!$q->ok){
-			if(preg_match("#Table '(.*?)' doesn't exist#", $q->mysql_error)){
-				if(!$nodestroy){
-					$q->DELETE_DATABASE("ocsweb");
-					if(is_dir("$MYSQL_DATA_DIR/ocsweb")){echo "Starting......: ".date("H:i:s")." OCS removing $MYSQL_DATA_DIR/ocsweb\n";shell_exec("$rm -rf $MYSQL_DATA_DIR/ocsweb");}
-					checks(true);
-				}
+				return;
+			
 			}
 		}
+	}
 		
+	$sql="SELECT COUNT(networks.HARDWARE_ID),networks.*,hardware.* FROM networks,hardware WHERE networks.HARDWARE_ID=hardware.ID";
+	$q->QUERY_SQL($sql,"ocsweb");
+	if(!$q->ok){
+		if(preg_match("#Table '(.*?)' doesn't exist#", $q->mysql_error)){
+			if(!$nodestroy){
+				$q->DELETE_DATABASE("ocsweb");
+				if(is_dir("$MYSQL_DATA_DIR/ocsweb")){echo "Starting......: ".date("H:i:s")." OCS removing $MYSQL_DATA_DIR/ocsweb\n";shell_exec("$rm -rf $MYSQL_DATA_DIR/ocsweb");}
+				checks(true);
+			}
+		}
 	}
 	
 	
+}
+
+
+function repairocsweb(){
+	$unix=new unix();
+	$q=new mysql();
+	$q->CREATE_DATABASE("ocsweb");
+	
+	
+	$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `hardware` (
+				  `ID` int(11) NOT NULL AUTO_INCREMENT,
+				  `DEVICEID` varchar(255) NOT NULL,
+				  `NAME` varchar(255) DEFAULT NULL,
+				  `WORKGROUP` varchar(255) DEFAULT NULL,
+				  `USERDOMAIN` varchar(255) DEFAULT NULL,
+				  `OSNAME` varchar(255) DEFAULT NULL,
+				  `OSVERSION` varchar(255) DEFAULT NULL,
+				  `OSCOMMENTS` varchar(255) DEFAULT NULL,
+				  `PROCESSORT` varchar(255) DEFAULT NULL,
+				  `PROCESSORS` int(11) DEFAULT '0',
+				  `PROCESSORN` smallint(6) DEFAULT NULL,
+				  `MEMORY` int(11) DEFAULT NULL,
+				  `SWAP` int(11) DEFAULT NULL,
+				  `IPADDR` varchar(255) DEFAULT NULL,
+				  `DNS` varchar(255) DEFAULT NULL,
+				  `DEFAULTGATEWAY` varchar(255) DEFAULT NULL,
+				  `ETIME` datetime DEFAULT NULL,
+				  `LASTDATE` datetime DEFAULT NULL,
+				  `LASTCOME` datetime DEFAULT NULL,
+				  `QUALITY` decimal(7,4) DEFAULT NULL,
+				  `FIDELITY` bigint(20) DEFAULT '1',
+				  `USERID` varchar(255) DEFAULT NULL,
+				  `TYPE` int(11) DEFAULT NULL,
+				  `DESCRIPTION` varchar(255) DEFAULT NULL,
+				  `WINCOMPANY` varchar(255) DEFAULT NULL,
+				  `WINOWNER` varchar(255) DEFAULT NULL,
+				  `WINPRODID` varchar(255) DEFAULT NULL,
+				  `WINPRODKEY` varchar(255) DEFAULT NULL,
+				  `USERAGENT` varchar(50) DEFAULT NULL,
+				  `CHECKSUM` bigint(20) unsigned DEFAULT '262143',
+				  `SSTATE` int(11) DEFAULT '0',
+				  `IPSRC` varchar(255) DEFAULT NULL,
+				  `UUID` varchar(255) DEFAULT NULL,
+				  PRIMARY KEY (`DEVICEID`,`ID`),
+				  KEY `NAME` (`NAME`),
+				  KEY `CHECKSUM` (`CHECKSUM`),
+				  KEY `USERID` (`USERID`),
+				  KEY `WORKGROUP` (`WORKGROUP`),
+				  KEY `OSNAME` (`OSNAME`),
+				  KEY `MEMORY` (`MEMORY`),
+				  KEY `DEVICEID` (`DEVICEID`),
+				  KEY `ID` (`ID`)
+				) ENGINE=InnoDB DEFAULT CHARSET=UTF8;","ocsweb");
+	$mysql=$unix->find_program("mysql");
+	$password=$q->mysql_password;
+	if(strlen($password)>0){$password=" -p$password";}
+	$cmd="$mysql -u $q->mysql_admin$password --batch -h $q->mysql_server -P $q->mysql_port -D ocsweb < /usr/share/artica-postfix/bin/install/ocsbase_new.sql";
+	exec($cmd,$results);
+	
+	while (list ($a, $b) = each ($results) ){
+		if($GLOBALS["VERBOSE"]){echo "$b";}
+	}	
 	
 }
+
+
 function mysqld_version(){
 	if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}

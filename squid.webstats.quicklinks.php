@@ -245,7 +245,7 @@ function section_members(){
 		<tr>
 			<td style='width:1%' valign='top'><div id='members-status'></div></td>
 			<td style='width:99%;padding-left:10px' valign='top'>
-			<div class=explain>{squid_members_explain}</div>
+			<div class=text-info>{squid_members_explain}</div>
 			<div id='members-content' class=form style='width:99%'></div></td>
 		</tr>
 	</tbody>
@@ -266,7 +266,7 @@ function section_architecture_filters(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=explain>{squid_basic_filters_explain}</div>
+	<div class=text-info>{squid_basic_filters_explain}</div>
 	<div id='basic_filters-content'></div>	
 	<script>
 		LoadAjax('basic_filters-content','$page?basic_filters-tabs=yes');
@@ -295,7 +295,7 @@ function section_architecture_start(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=explain>{squid_architecture_explain}</div>
+	<div class=text-info>{squid_architecture_explain}</div>
 	
 	<table style='width:100%'>
 	<tbody>
@@ -502,7 +502,7 @@ function section_architecture_users(){
 	";	
 	
 	$html="
-	<div class=explain>{squid_members_explain}</div>
+	<div class=text-info>{squid_members_explain}</div>
 	<center><div style='width:700px'>".CompileTr3($tr)."</div></center>";
 	$tpl=new templates();
 	$html= $tpl->_ENGINE_parse_body($html,'squid.index.php');
@@ -547,8 +547,7 @@ $users=new usersMenus();
 	$forwarded_for=Paragraphe("icon-html-64.png", "x-Forwarded-For", "{x-Forwarded-For_explain}",
 			"javascript:Loadjs('squid.forwarded_for.php')");
 	
-    $timeouts=Paragraphe("clock-gold-64.png", "{timeouts}", "{timeouts_squid_parameters}",
-    "javascript:Loadjs('squid.timeouts.php')");
+
 
     if($users->SQUID_REVERSE_APPLIANCE){
     	$sslbump=null;

@@ -157,7 +157,7 @@ function item_popup(){
 	
 	
 	$html="
-	<div class=explain style='font-size:13px'>{{$_GET["type"]}_text}</div>
+	<div class=text-info style='font-size:13px'>{{$_GET["type"]}_text}</div>
 	<div id='$t'>
 	
 		<table style='width:98%' class=form>

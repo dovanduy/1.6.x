@@ -112,12 +112,12 @@ function purge_bydate(){
 </div>
 <div style='width:98%' class=form>
 	<div style='font-size:22px'>{empty_database}</div>
-	<div class=explain style='font-size:16px'>{empty_database_explain}</div>
+	<div class=text-info style='font-size:16px'>{empty_database_explain}</div>
 	<div style='text-align:right'><hr>". button("{empty_database}", "Loadjs('$page?remove-db-js=yes',true)",22)."</div>
 </div>
 <div style='width:98%' class=form>
 	<div style='font-size:22px'>{backup_database}</div>
-	<div class=explain style='font-size:16px'>{backup_database_explain}</div>
+	<div class=text-info style='font-size:16px'>{backup_database_explain}</div>
 	<div style='text-align:right'><hr>". button("{backup_database}", "Loadjs('$page?backup-db-js=yes',true)",22)."</div>
 </div>
 
@@ -247,7 +247,7 @@ function popup(){
 	$EnableSquidRemoteMySQL_text
 	<div id='$t'></div>
 	<div id='title-$t'></div>
-	<div style='font-size:14px;' class=explain>{purge_statistics_database_explain2}</div>	
+	<div style='font-size:14px;' class=text-info>{purge_statistics_database_explain2}</div>	
 
 	<table style='width:99%' class=form>
 		<tr>

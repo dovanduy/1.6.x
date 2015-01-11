@@ -330,7 +330,7 @@ function PageOrganisations(){
 		<table style='width:100%'>
 		<tr>
 		<td width='1%'><img src='img/add-22.png'></td>
-		<td><input type='button' value='{add_new_organisation}&nbsp;&raquo;' OnClick=\"javascript:TreeAddNewOrganisation();\"></td>
+		<td><input type='button' value='{add_new_organisation}&nbsp;&raquo;' OnClick=\"javascript:loadjs('organization.js.php?add-ou=yes');;\"></td>
 		</tr>";
 	
 		$ldap=new clladp();

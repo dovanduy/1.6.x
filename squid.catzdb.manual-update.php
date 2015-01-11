@@ -56,7 +56,7 @@ function nas_popup(){
 	if($ArticaDBNasUpdt["filename"]==null){$ArticaDBNasUpdt["filename"]="articadb.tar.gz";}
 	
 	$html="
-	<div style='font-size:16px' class=explain>{artica_db_shared_folder_explain}</div>
+	<div style='font-size:16px' class=text-info>{artica_db_shared_folder_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -155,7 +155,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div style='width:98%' class=form>
-	<div class=explain style='font-size:16px'>{squid_catz_dbs_manual_update_explain}</div>
+	<div class=text-info style='font-size:16px'>{squid_catz_dbs_manual_update_explain}</div>
 			
 	<center style='font-size:16px;text-decoration:underline;margin:20px' 
 			OnClick=\"javascript:s_PopUp('http://www.artica.fr/artica-catzdb.php',800,800);\">{where_to_find_package} ?</center>		

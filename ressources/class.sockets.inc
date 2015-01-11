@@ -1,4 +1,5 @@
 <?php
+if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 if(isset($_SESSION["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($_SESSION["TIMEZONES"]);}}
 if(isset($GLOBALS["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($GLOBALS["TIMEZONES"]);}}
 //error_reporting(E_ALL & ~E_NOTICE);
@@ -14,16 +15,15 @@ if(function_exists("debug_mem")){debug_mem();}
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 
 if(function_exists("posix_getuid")){
-	if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else
-	{$GLOBALS["AS_ROOT"]=false;}}
+	if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 	
 	if(!$GLOBALS["AS_ROOT"]){
-		if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
-			if(!$GLOBALS["KAV4PROXY_NOSESSION"]){
-				if(function_exists("debug_mem")){debug_mem();
-			}
+		if(!isset($GLOBALS["HERLPER_LOADED_BY_SQUID"])){
+			if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
+			if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(function_exists("debug_mem")){debug_mem();}
 			if(!isset($_SESSION["uid"])){session_start();}
 			}
+		}
 	}
 }
 class sockets{
@@ -80,22 +80,131 @@ class sockets{
 	function file_ext($filename){
 	        return strtolower(str_replace(".", "", strrchr($filename, ".")));
 	}	
+	
+	public function DisableUfdbCat(){
+		$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
+		
+		if($AsCategoriesAppliance==1){
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: AsCategoriesAppliance ENABLED !\n";}
+			$GLOBALS["DisableUfdbCat"]=0;
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		
+		$EnableLocalUfdbCatService=intval($this->GET_INFO("EnableLocalUfdbCatService"));
+		
+		$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"]=array();
+		$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="EnableLocalUfdbCatService = $EnableLocalUfdbCatService";
+		
+		if($EnableLocalUfdbCatService==1){
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="EnableLocalUfdbCatService: Return OK, service must running";
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: EnableLocalUfdbCatService = $EnableLocalUfdbCatService ENABLED !\n";}
+			$GLOBALS["DisableUfdbCat"]=0;
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		
+		if($GLOBALS["AS_ROOT"]){
+			if(!is_file("/etc/artica-postfix/settings/Daemons/SquidPerformance")){
+				$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="SquidPerformance No such file return BAD service must be stopped";
+				if($GLOBALS["VERBOSE"]){echo "SquidPerformance No such file return 1\n";}
+				return 1; }
+		}
+		
+		if(isset($GLOBALS["DisableUfdbCat"])){
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="Return DisableUfdbCat By memory";
+			if($GLOBALS["VERBOSE"]){echo "Return DisableUfdbCat By memory\n";}
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		$RemoteUfdbCat=intval($this->GET_INFO("RemoteUfdbCat"));
+		$SquidPerformance=intval($this->GET_INFO("SquidPerformance"));
+		$DisableLocalStatisticsTasks=intval($this->GET_INFO("DisableLocalStatisticsTasks"));
+		
+		$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="RemoteUfdbCat = $RemoteUfdbCat";
+		$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="SquidPerformance = $SquidPerformance";
+		$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="DisableLocalStatisticsTasks = $DisableLocalStatisticsTasks";
+		
+		
+		if($RemoteUfdbCat==1){
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="DisableUfdbCat:: RemoteUfdbCat = $RemoteUfdbCat -> Service must be disabled";
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: RemoteUfdbCat = $RemoteUfdbCat -> Service must be disabled\n";}
+			$GLOBALS["DisableUfdbCat"]=1;return $GLOBALS["DisableUfdbCat"];}
+		
+		if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: SquidPerformance = $SquidPerformance\n";}
+		if($SquidPerformance>0){
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="SquidPerformance > 0 ( $SquidPerformance) -> Service must be disabled";
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: YES\n";}
+			$GLOBALS["DisableUfdbCat"]=1;
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		if($DisableLocalStatisticsTasks==1){
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="DisableLocalStatisticsTasks > 0  -> Service must be disabled";
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: DisableLocalStatisticsTasks = $DisableLocalStatisticsTasks\n";}
+			$GLOBALS["DisableUfdbCat"]=1;
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		
+		$SQUIDEnable=$this->GET_INFO("SQUIDEnable");
+		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+		
+		if($SQUIDEnable==0){
+			$GLOBALS["DisableUfdbCat"]=1;
+			$GLOBALS["CLASS_SOCKETS_DisableUfdbCat"][]="SQUIDEnable == 0  -> Service must be disabled";
+			if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: SQUIDEnable = $SQUIDEnable\n";}
+			return $GLOBALS["DisableUfdbCat"];
+		}
+		
+		
+		$EnableUfdbCat=intval($this->GET_INFO("EnableUfdbCat"));
+		if($EnableUfdbCat==0){$GLOBALS["DisableUfdbCat"]=1;}
+		if($GLOBALS["VERBOSE"]){echo "DisableUfdbCat:: EnableUfdbCat = $EnableUfdbCat\n";}
+		
+		
+		return $GLOBALS["DisableUfdbCat"];
+		
+		
+	}
+	
+	
+	public function EnableUfdbGuardArtica(){
+		
+		$EnableGoogleSafeBrowsing=intval($this->GET_INFO("EnableGoogleSafeBrowsing"));
+		if($EnableGoogleSafeBrowsing==1){return 1;}
+		
+		$EnableUfdbGuard=$this->EnableUfdbGuard();
+		if($EnableUfdbGuard==0){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: EnableUfdbGuard = 0 return FALSE\n";}
+			return 0;}
+		$UfdbUseArticaClient=$this->GET_INFO("UfdbUseArticaClient");
+		if(!is_numeric($UfdbUseArticaClient)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: UfdbUseArticaClient = $UfdbUseArticaClient return TRUE\n";}
+			return 1;}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: RETURN $UfdbUseArticaClient\n";}
+		return $UfdbUseArticaClient;
+		
+	}
 
 	public function EnableUfdbGuard(){
 		if(isset($GLOBALS["EnableUfdbGuard"])){return $GLOBALS["EnableUfdbGuard"];}
-		$EnableUfdbGuard=$this->GET_INFO('EnableUfdbGuard');
-		$EnableUfdbGuard2=$this->GET_INFO('EnableUfdbGuard2');
-		$SquidUrgency=$this->GET_INFO("SquidUrgency");
-		if(!is_numeric($SquidUrgency)){$SquidUrgency=0;}
-		if(!is_numeric($EnableUfdbGuard2)){$EnableUfdbGuard2=0;}
-		if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
+		$EnableUfdbGuard=intval($this->GET_INFO('EnableUfdbGuard'));
+		$EnableUfdbGuard2=intval($this->GET_INFO('EnableUfdbGuard2'));
+		$SquidUrgency=intval($this->GET_INFO("SquidUrgency"));
+		$UseRemoteUfdbguardService=intval($this->GET_INFO("UseRemoteUfdbguardService"));
+
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: UseRemoteUfdbguardService: $UseRemoteUfdbguardService\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: EnableUfdbGuard..........: $EnableUfdbGuard\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: EnableUfdbGuard2.........: $EnableUfdbGuard2\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: SquidUrgency.............: $SquidUrgency\n";}
+		
+		if($UseRemoteUfdbguardService==1){return true;}
+		
+		
 		if($EnableUfdbGuard==0){
 			if($EnableUfdbGuard2==1){
 				$this->SET_INFO("EnableUfdbGuard", 1);
 				$EnableUfdbGuard=1;
 			}
 		}
-		if($SquidUrgency==1){$EnableUfdbGuard=0;}
+		if($SquidUrgency==1){
+			$EnableUfdbGuard=0;}
 		
 		$GLOBALS["EnableUfdbGuard"]=$EnableUfdbGuard;
 		return $EnableUfdbGuard;
@@ -139,40 +248,27 @@ class sockets{
 	
 	public function dnsmasq_enabled(){
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
-		$EnableDNSMASQ=$this->GET_INFO("EnableDNSMASQ");
-		$EnableLocalDNSMASQ=$this->GET_INFO("EnableLocalDNSMASQ");
-		$DHCPDEnableCacheDNS=intval($this->GET_INFO("DHCPDEnableCacheDNS"));
-		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-		if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
-	
+		$EnableLocalDNSMASQ=intval($this->GET_INFO('EnableLocalDNSMASQ'));
+		if($EnableLocalDNSMASQ==1){return 1;}
+		return intval($this->GET_INFO("EnableDNSMASQ"));
 		
-		if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
-		if($GLOBALS["CLASS_USERS"]->POWER_DNS_INSTALLED){
-			$EnablePDNS=$this->GET_INFO("EnablePDNS");
-			if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-			if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
-		}
-		if($GLOBALS["CLASS_USERS"]->POWER_DNS_INSTALLED){if($EnablePDNS==1){$EnableDNSMASQ=0;}}
-		if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
-		if($EnableLocalDNSMASQ==1){$EnableDNSMASQ=1;}
-		return $EnableDNSMASQ;
 	}	
 
 public function SQUID_LOCAL_STATS_DISABLED(){
-	
-	
-	
-	$DisableLocalStatisticsTasks=$this->GET_INFO("DisableLocalStatisticsTasks");
+	$SquidPerformance=intval($this->GET_INFO("SquidPerformance"));
+	$DisableLocalStatisticsTasks=intval($this->GET_INFO("DisableLocalStatisticsTasks"));
 	
 	$EnableRemoteSyslogStatsAppliance=$this->GET_INFO("EnableRemoteSyslogStatsAppliance");
 	$squidEnableRemoteStatistics=$this->GET_INFO("squidEnableRemoteStatistics");
 	$EnableRemoteStatisticsAppliance=$this->GET_INFO("EnableRemoteStatisticsAppliance");
 	
-	if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
+	
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
 	
 	if(!is_numeric($squidEnableRemoteStatistics)){$squidEnableRemoteStatistics=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	
+	if($SquidPerformance>1){$DisableLocalStatisticsTasks=1;}
 	
 
 	
@@ -393,7 +489,7 @@ function downloadFile($url,$hostname)  {
    
    private function _is_socket($socketpath){
    	if(isset($GLOBALS["_is_socket"][$socketpath])){return $GLOBALS["_is_socket"][$socketpath];}
-   	$stat=_alt_stat($socketpath);
+   	$stat=$this->_alt_stat($socketpath);
    	$type=$stat["filetype"]["type"];
    	if($type=="socket"){
    		$GLOBALS["_is_socket"][$socketpath]=true;
@@ -423,6 +519,8 @@ function downloadFile($url,$hostname)  {
    	
    }
    
+   
+   
    function EnableClamavDaemon(){
 	   	$EnableClamavDaemon=$this->GET_INFO("EnableClamavDaemon");
 	   	$EnableClamavDaemonForced=$this->GET_INFO("EnableClamavDaemonForced");
@@ -438,16 +536,271 @@ function downloadFile($url,$hostname)  {
 	   	return $EnableClamavDaemon;
    }
    
+   
+   private function BuildTemplatesConfig_find_rule($ARRAY){
+   	$q=new mysql_squid_builder();
+   	if(!$q->TABLE_EXISTS("ufdb_design")){return;}
+   	$ruleid=$ARRAY["RULE_ID"];
+   	$category=$ARRAY["CATEGORY_KEY"];
+   	if(isset($_SESSION["UfdbGuardHTTP"][$ruleid][$category])){
+   		return $_SESSION["UfdbGuardHTTP"][$ruleid][$category];
+   	}
+   	
+   	$sql="SELECT zmd5 FROM ufdb_design WHERE category='$category' AND ruleid='$ruleid'";
+   	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+   	if($ligne["zmd5"]<>null){
+   		$_SESSION["UfdbGuardHTTP"][$ruleid][$category]=$ligne["zmd5"];
+   		return $ligne["zmd5"];
+   	}
+   	
+   	$sql="SELECT * FROM ufdb_design WHERE category='*' AND ruleid='$ruleid'";
+   	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+   	if($ligne["zmd5"]<>null){
+   		$_SESSION["UfdbGuardHTTP"][$ruleid][$category]=$ligne["zmd5"];
+   		return $ligne["zmd5"];
+   	}
+   	
+   	$sql="SELECT * FROM ufdb_design WHERE category='$category' AND ruleid='0'";
+   	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+   	if($ligne["zmd5"]<>null){
+   		$_SESSION["UfdbGuardHTTP"][$ruleid][$category]=$ligne["zmd5"];
+   		return $ligne["zmd5"];
+   	}  	
+   	
+   	$sql="SELECT * FROM ufdb_design WHERE category='*' AND ruleid='0'";
+   	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+   	if($ligne["zmd5"]<>null){
+   		$_SESSION["UfdbGuardHTTP"][$ruleid][$category]=$ligne["zmd5"];
+   		return $ligne["zmd5"];
+   	}
+   	
+   	return null;
+   	
+   	
+   	
+   }
+   
+   private function BuildTemplatesConfig_from_mysql($ARRAY){
+   		if(!$GLOBALS["CORP_LICENSE"]){
+   			if($GLOBALS["VERBOSE"]){echo "<h1 style='color:yellow'>NO LICENSE!\n<br></H1>";}
+   			return;}
+   		if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
+   		$md5=$this->BuildTemplatesConfig_find_rule($ARRAY);
+		if($md5==null){return;}
+   		
+		$q=new mysql_squid_builder();
+		$sql="SELECT * FROM ufdb_design WHERE zmd5='$md5'";
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:yellow'>$sql</span>\n<br>";}
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+   		
+		$GLOBALS["UfdbGuardHTTP"]["AllowUnblock"]=intval($this->GET_INFO("UfdbGuardHTTPAllowUnblock"));
+		$SquidHTTPTemplateLogoPath=$ligne["SquidHTTPTemplateLogoPath"];
+		$SquidHTTPTemplateLogoEnable=intval($ligne["SquidHTTPTemplateLogoEnable"]);
+		$SquidHTTPTemplateLogoPositionH=$ligne["SquidHTTPTemplateLogoPositionH"];
+		$SquidHTTPTemplateLogoPositionL=$ligne["SquidHTTPTemplateLogoPositionL"];
+		$SquidHTTPTemplateSmiley=$ligne["SquidHTTPTemplateSmiley"];
+		$picturealign=$ligne["picturealign"];
+		
+		$UfdbGuardHTTPNoVersion=$ligne["UfdbGuardHTTPNoVersion"];
+		$UfdbGuardHTTPBackgroundColor=$ligne["UfdbGuardHTTPBackgroundColor"];
+		$UfdbGuardHTTPFamily=$ligne["UfdbGuardHTTPFamily"];
+		$UfdbGuardHTTPFontColor=$ligne["UfdbGuardHTTPFontColor"];
+		$UFDBGUARD_TITLE_1=$ligne["UFDBGUARD_TITLE_1"];
+		$UFDBGUARD_PARA1=$ligne["UFDBGUARD_PARA1"];
+		$UFDBGUARD_TITLE_2=$ligne["UFDBGUARD_TITLE_2"];
+		$UFDBGUARD_PARA2=$ligne["UFDBGUARD_PARA2"];
+		$UfdbGuardHTTPEnablePostmaster=$ligne["UfdbGuardHTTPEnablePostmaster"];
+		
+		$UfdbGuardHTTPEnablePostmaster=$ligne["UfdbGuardHTTPEnablePostmaster"];
+		$UfdbGuardHTTPBackgroundColorBLK=$ligne["UfdbGuardHTTPBackgroundColorBLK"];
+		
+		if($GLOBALS["VERBOSE"]){echo "<h1 style='color:yellow'>UfdbGuardHTTPBackgroundColorBLK = $UfdbGuardHTTPBackgroundColorBLK\n<br></H1>";}
+		
+		$UfdbGuardHTTPBackgroundColorBLKBT=$ligne["UfdbGuardHTTPBackgroundColorBLKBT"];
+		$UfdbGuardHTTPDisableHostname=intval($ligne["UfdbGuardHTTPDisableHostname"]);
+		
+		if($UFDBGUARD_TITLE_1==null){$UFDBGUARD_TITLE_1="{UFDBGUARD_TITLE_1}";}
+		if($UFDBGUARD_PARA1==null){$UFDBGUARD_PARA1="{UFDBGUARD_PARA1}";}
+		if($UFDBGUARD_PARA2==null){$UFDBGUARD_PARA2="{UFDBGUARD_PARA2}";}
+		if($UFDBGUARD_TITLE_2==null){$UFDBGUARD_TITLE_2="{UFDBGUARD_TITLE_2}";}
+		
+		
+		if(!is_numeric($UfdbGuardHTTPEnablePostmaster)){$UfdbGuardHTTPEnablePostmaster=1;}
+		if($UfdbGuardHTTPBackgroundColor==null){$UfdbGuardHTTPBackgroundColor="#8c1919";}
+		if($UfdbGuardHTTPBackgroundColorBLK==null){$UfdbGuardHTTPBackgroundColorBLK="#0300AC";}
+		if($UfdbGuardHTTPBackgroundColorBLKBT==null){$UfdbGuardHTTPBackgroundColorBLKBT="#625FFD";}
+		if($UfdbGuardHTTPFontColor==null){$UfdbGuardHTTPFontColor="#FFFFFF";}
+		
+		if(substr($UfdbGuardHTTPFontColor,0 ,1)<>"#"){$UfdbGuardHTTPFontColor="#$UfdbGuardHTTPFontColor";}
+		if(substr($UfdbGuardHTTPBackgroundColor,0 ,1)<>"#"){$UfdbGuardHTTPBackgroundColor="#$UfdbGuardHTTPBackgroundColor";}
+		if(substr($UfdbGuardHTTPBackgroundColorBLK,0 ,1)<>"#"){$UfdbGuardHTTPBackgroundColorBLK="#$UfdbGuardHTTPBackgroundColorBLK";}
+		if(substr($UfdbGuardHTTPBackgroundColorBLKBT,0 ,1)<>"#"){$UfdbGuardHTTPBackgroundColorBLKBT="#$UfdbGuardHTTPBackgroundColorBLKBT";}
+		
+		if($UfdbGuardHTTPFamily==null){$UfdbGuardHTTPFamily="Calibri, Candara, Segoe, \"Segoe UI\", Optima, Arial, sans-serif";}
+		
+		
+		
+		if(!is_numeric($SquidHTTPTemplateLogoPositionH)){$SquidHTTPTemplateLogoPositionH=10;}
+		if(!is_numeric($SquidHTTPTemplateLogoPositionL)){$SquidHTTPTemplateLogoPositionL=10;}
+		
+		if(!is_numeric($SquidHTTPTemplateSmiley)){$SquidHTTPTemplateSmiley=2639;}
+		
+		
+		
+		$GLOBALS["UfdbGuardHTTP"]["picturename"]=$ligne["picturename"];
+		$GLOBALS["UfdbGuardHTTP"]["picturemode"]=$ligne["picturemode"];
+		$GLOBALS["UfdbGuardHTTP"]["picturealign"]=$ligne["picturealign"];
+		
+		
+		
+		$GLOBALS["UfdbGuardHTTP"]["Family"]=$UfdbGuardHTTPFamily;
+		$GLOBALS["UfdbGuardHTTP"]["md5"]=$md5;
+		$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoEnable"]=$SquidHTTPTemplateLogoEnable;
+		$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoPositionH"]=$SquidHTTPTemplateLogoPositionH;
+		$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoPositionL"]=$SquidHTTPTemplateLogoPositionL;
+		
+		if(!is_file("/usr/share/artica-postfix/ressources/logs/web/$md5{$ligne["picturename"]}")){
+			@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/$md5{$ligne["picturename"]}", $ligne["picture"]);
+			
+		}
+		$GLOBALS["UfdbGuardHTTP"]["picture_path"]="ressources/logs/web/$md5{$ligne["picturename"]}";
+		$GLOBALS["UfdbGuardHTTP"]["NoVersion"]=$UfdbGuardHTTPNoVersion;
+		$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]=$UfdbGuardHTTPBackgroundColor;
+		$GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"]=$UfdbGuardHTTPEnablePostmaster;
+		$GLOBALS["UfdbGuardHTTP"]["FontColor"]=$UfdbGuardHTTPFontColor;
+		$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"]=$UFDBGUARD_TITLE_1;
+		$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"]=$UFDBGUARD_PARA1;
+		$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"]=$UFDBGUARD_TITLE_2;
+		$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"]=$UFDBGUARD_PARA2;
+		$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]=$UfdbGuardHTTPBackgroundColorBLK;
+		$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]=$UfdbGuardHTTPBackgroundColorBLKBT;
+		
+		
+   		
+   }
+   
+   private function BuildTemplatesConfig_defaults(){
+   	if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["NoVersion"])){$GLOBALS["UfdbGuardHTTP"]["NoVersion"]=0;}
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]=$this->GET_INFO("UfdbGuardHTTPBackgroundColor");}
+   	}
+   	
+   	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoEnable"])){
+   		$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateLogoEnable"]=0;
+   	}
+   	
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["Family"]==null){
+   		$GLOBALS["UfdbGuardHTTP"]["Family"]="Calibri, Candara, Segoe, \"Segoe UI\", Optima, Arial, sans-serif";
+   		
+   	}
+   	if(	$GLOBALS["UfdbGuardHTTP"]["FontColor"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){	$GLOBALS["UfdbGuardHTTP"]["FontColor"]=$this->GET_INFO("UfdbGuardHTTPFontColor");}
+   	}
+   	if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"])){
+   		if($GLOBALS["CORP_LICENSE"]){	$GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"]=$this->GET_INFO("UfdbGuardHTTPEnablePostmaster");}
+   	}
+   	if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["NoVersion"])){
+   		if($GLOBALS["CORP_LICENSE"]){	$GLOBALS["UfdbGuardHTTP"]["NoVersion"]=$this->GET_INFO("UfdbGuardHTTPNoVersion");}
+   	}   	
+   	if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){	$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]=$this->GET_INFO("UfdbGuardHTTPBackgroundColorBLK");}
+   	}
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]=$this->GET_INFO("UfdbGuardHTTPBackgroundColorBLKBT");}
+   	}
+   	
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"]=$this->GET_INFO("UFDBGUARD_TITLE_1");}
+   	}
+   	 
+   	if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"]=$this->GET_INFO("UFDBGUARD_TITLE_2");}
+   	}
+   	 
+   	if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"]=$this->GET_INFO("UFDBGUARD_PARA1");}
+   		
+   	}
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"]==null){
+   		if($GLOBALS["CORP_LICENSE"]){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"]=$this->GET_INFO("UFDBGUARD_PARA2");}
+   	} 
+   	
+   	if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["AllowUnblock"])){
+   		$GLOBALS["UfdbGuardHTTP"]["AllowUnblock"]=intval($this->GET_INFO("UfdbGuardHTTPAllowUnblock"));
+   	}
+   	
+   	if($GLOBALS["UfdbGuardHTTP"]["AllowUnblock"]==1){
+   		$GLOBALS["UfdbGuardHTTP"]["UnbblockText1"]=$this->GET_INFO("UfdbGuardHTTPUnbblockText1");
+   		$GLOBALS["UfdbGuardHTTP"]["UnbblockText2"]=$this->GET_INFO("UfdbGuardHTTPUnbblockText2");
+   		$GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]=intval($this->GET_INFO("UfdbGuardHTTPUnbblockMaxTime"));
+   		if($GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]<5){$GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]=30;}
+   	}
+   	
+   	// DEF DEF
+   		if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"])){$GLOBALS["UfdbGuardHTTP"]["EnablePostmaster"]=1;}
+   		if(!is_numeric($GLOBALS["UfdbGuardHTTP"]["NoVersion"])){$GLOBALS["UfdbGuardHTTP"]["NoVersion"]=0;}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]="#8c1919";}
+   		if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"]==null){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"]="{UFDBGUARD_TITLE_1}";}
+   		if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"]==null){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"]="{UFDBGUARD_TITLE_2}";}
+   		if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"]==null){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"]="{UFDBGUARD_PARA1}";}
+   		if($GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"]==null){$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"]="{UFDBGUARD_PARA2}";}
+   		if(	$GLOBALS["UfdbGuardHTTP"]["FontColor"]==null){$GLOBALS["UfdbGuardHTTP"]["FontColor"]="#FFFFFF";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]="#0300AC";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]="#625FFD";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"]="#0300AC";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"]="#625FFD";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]="#8c1919";}
+   		if($GLOBALS["UfdbGuardHTTP"]["Family"]==null){$GLOBALS["UfdbGuardHTTP"]["Family"]="Calibri, Candara, Segoe, \"Segoe UI\", Optima, Arial, sans-serif";}
+   		if($GLOBALS["UfdbGuardHTTP"]["FontColor"]==null){$GLOBALS["UfdbGuardHTTP"]["FontColor"]="#FFFFFF";}
+   		if($GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]==null){$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]="#8c1919";}
+
+   		if($GLOBALS["VERBOSE"]){echo "<hr><strong style='color:yellow'>CORP_LICENSE={$GLOBALS["CORP_LICENSE"]}</strong><hr>";}
+   		if(!$GLOBALS["CORP_LICENSE"]){
+   			$GLOBALS["UfdbGuardHTTP"]["FOOTER"]="
+   			<table style='width:75%;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};margin-top:15px'>
+   			<tr><td colspan=2>&nbsp;</td></tr>
+   			<tr>
+   			<td width=64px><img src='img/logo-artica-64.png'></td>
+   			<td style='font-size:14px;padding-left:10px' width=99%>
+   			You using Artica Proxy Appliance v{$GLOBALS["ARTICA_VERSION"]} in Community mode.<br>
+   					<i>Visit our  <a href=\"http://artica-proxy.com\">website</a> for technical informations or to purchase an Entreprise Edition License</i>
+   					</td>
+   					</tr>
+   					</table>
+   					</div>";
+   		}
+   		
+   }
+   
+   
+   public function BuildTemplatesConfig($ARRAY=array()){
+   		if(!isset($GLOBALS["CORP_LICENSE"])){
+   			if(class_exists("usersMenus")){$users=new usersMenus();$GLOBALS["CORP_LICENSE"]=$users->CORP_LICENSE;}
+   		}
+   		if(!isset($GLOBALS["ARTICA_VERSION"])){$GLOBALS["ARTICA_VERSION"]=@file_get_contents("/usr/share/artica-postfix/VERSION");}
+   		
+   		if($GLOBALS["VERBOSE"]){echo "<p style='color:yellow'>BuildTemplatesConfig ARRAY=".count($ARRAY)." elements\n<br></p>";}
+   		$this->BuildTemplatesConfig_from_mysql($ARRAY);
+   		$this->BuildTemplatesConfig_defaults();
+   		return $GLOBALS["UfdbGuardHTTP"];
+	 }
+   
 
    function GET_INFO($key,$nocache=false){
       	$uid=null;
+      	$value=null;
       	if(!isset($GLOBALS["MEMCACHE_ENABLED"])){$this->MEMCACHE_ENABLED();}
   		if(isset($_SESSION["uid"])){ $uid=$_SESSION["uid"];}
   		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=posix_getuid();}
   		
   		
   		if($GLOBALS["posix_getuid"]==0){
-  			$value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+  			if(is_file("/etc/artica-postfix/settings/Daemons/$key")){ $value=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key")); }
 			if($key=="SystemV5CacheEnabled"){if($value==null){$value=0;}}
   			$GLOBALS["GET_INFO"][$key]=$value;
   			if($GLOBALS["VERBOSE_MASTER"]){echo "\$GLOBALS[\"GET_INFO\"][$key]=$value ". basename(__FILE__). " line ".__LINE__."\n";}
@@ -466,8 +819,9 @@ function downloadFile($url,$hostname)  {
 	
    	
    	if(!is_file("/etc/artica-postfix/settings/Daemons/$key")){
-   		if($GLOBALS["VERBOSE"]){echo "/etc/artica-postfix/settings/Daemons/$key no such file<br>\n";}
-   		return null;}
+   		
+   		return null;
+   	}
    	if($GLOBALS["VERBOSE"]){
    		$value=trim(file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
    		echo "OPEN /etc/artica-postfix/settings/Daemons/$key = <b>$value</b><br>\n";
@@ -523,6 +877,7 @@ function downloadFile($url,$hostname)  {
    	   
    		if($GLOBALS["posix_getuid"]==0){
    			@file_put_contents("/etc/artica-postfix/settings/Daemons/$key",$value);
+   			@chmod("/etc/artica-postfix/settings/Daemons/$key", 0755);
    			$this->SET_APC_STORE($key,$value);
    			if($this->ArticaMetaEnabled==1){$this->getFrameWork("cmd.php?artica-meta-push=$key");}
    			return true;
@@ -1004,7 +1359,8 @@ private function GetUniqueID(){
 		if(preg_match('#<articadatascgi>(.+)</ar\s+ticadatascgi>#s',$line,$regs)){$results=trim($regs[1]);return $results;}
 		if(preg_match('#<articadatascgi>(.+)</a\s+rticadatascgi>#s',$line,$regs)){$results=trim($regs[1]);return $results;}
 		if($GLOBALS["VERBOSE"]){echo "Fatal:Unable to preg_match \"$line\" uri=$uri<br>\n";}
-		writelogs("Fatal:Unable to preg_match \"$line\" uri=$uri",__FUNCTION__,__FILE__);
+		$line=trim($line);
+		writelogs("Fatal:Uri: uri=$uri Unable to preg_match \"$line\"",__FUNCTION__,__FILE__);
 		
 	}
 	
@@ -1147,6 +1503,8 @@ private function GetUniqueID(){
    
 		
 	function getfile($uri,$hostname=null){
+		$uid=null;
+		if(isset($_SESSION["uid"])){$uid=$_SESSION["uid"];}
 		$line=null;
 		if($this->GetFileCache($uri)==true){
 			if(isset($_SESSION["CACHEINFOS_{$uri}"])){
@@ -1165,7 +1523,7 @@ private function GetUniqueID(){
 		
 		$uri=str_replace(" ","%20",$uri);
 		if(!$this->TestArticaPort()){
-			error_log("[{$_SESSION["uid"]}]::ERROR: unable to open remote file http://$this->remote_ip:$this->remote_port/$uri line ".__LINE__);
+			error_log("[$uid]::ERROR: unable to open remote file http://$this->remote_ip:$this->remote_port/$uri line ".__LINE__);
 			if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://$this->remote_ip:$this->remote_port/$uri ",__CLASS__ . "=>" . __FUNCTION__,__FILE__);};return null;$this->error=true;}
 			if($this->error==true){return null;}
 		

@@ -80,7 +80,7 @@ function popup(){
 		<td valign='top'>
 			<img src='img/change-mysql-128.png'>
 		</td>
-		<td valign='top'><div class=explain style='font-size:14px'>{{$title}}</div>
+		<td valign='top'><div class=text-info style='font-size:14px'>{{$title}}</div>
 			<table style='width:99.5%' class=form>
 				<tr>
 					<td valign='top' class=legend nowrap style='font-size:14px'>{username}:</td>

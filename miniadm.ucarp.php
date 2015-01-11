@@ -32,7 +32,7 @@ function tabs(){
 		
 	}
 	
-	$explain=$explain.$tpl->_ENGINE_parse_body("<div class=explain>{UCARP_HOWTO_EXPLAIN}</div>");
+	$explain=$explain.$tpl->_ENGINE_parse_body("<div class=text-info>{UCARP_HOWTO_EXPLAIN}</div>");
 	$array["{parameters}"]="$page?parameters=yes";
 	$array["{system_events}"]='miniadm.ucarp.events.php';
 	echo $explain.$boot->build_tab($array);	

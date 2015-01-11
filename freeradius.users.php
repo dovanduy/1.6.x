@@ -187,7 +187,7 @@ function page(){
 
 	
 echo "
-<div class=explain style='font-size:14px'>$freeradius_users_explain</div>
+<div class=text-info style='font-size:14px'>$freeradius_users_explain</div>
 <table class='$t' style='display: none' id='$t' style='width:99%;text-align:left'></table>
 <script>
 	var MEMM$t='';

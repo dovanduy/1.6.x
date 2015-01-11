@@ -16,7 +16,8 @@ $usersprivs = new usersMenus ( );
 $change_aliases = GetRights_aliases();
 
 if ($change_aliases == 0) {
-	echo "alert('".$tpl->_ENGINE_parse_body ( "{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}" )."');";
+	$tpl=new templates();
+	echo "alert('".$tpl->javascript_parse_text( "{ERROR_NO_PRIVILEGES_OR_PLUGIN_DISABLED}" )."');";
 	return;
 }
 if(isset($_POST["NewHostname"])){changecomputername();exit;}
@@ -49,7 +50,7 @@ var x_ChangeComputerName= function (obj) {
 	if(document.getElementById('main_dansguardiangroups_tabs')){RefreshTab('main_dansguardiangroups_tabs');}
 	RTMMailHide();
 	YahooUserHide();
-	YahooUser(986,'domains.edit.user.php?userid='+x_$t+'&ajaxmode=yes',x_$t);	
+	YahooUser(1051,'domains.edit.user.php?userid='+x_$t+'&ajaxmode=yes',x_$t);	
 	
 	}		
 	

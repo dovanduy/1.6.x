@@ -3,6 +3,11 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
+if(isset($_GET["remove-site"])){remove_website();exit;}
+
+if(isset($_GET["checking-service"])){checking_service();exit;}
+if(isset($_GET["enable-service"])){enable_service();exit;}
+if(isset($_GET["execute-wizard"])){execute_wizard();exit;}
 if(isset($_GET["import"])){import();exit;}
 if(isset($_GET["status-infos"])){status_info();exit;}
 if(isset($_GET["delete-cache"])){delete_cache();exit;}
@@ -18,6 +23,13 @@ if(isset($_GET["purge-cache"])){purge_cache();exit;}
 if(isset($_GET["import-bulk"])){import_bulk();exit;}
 if(isset($_GET["reconfigure-progress"])){reconfigure_progress();exit;}
 if(isset($_GET["access-query"])){events_all();exit;}
+if(isset($_GET["compile-single"])){compile_single();exit;}
+if(isset($_GET["compile-destination"])){compile_destination();exit;}
+if(isset($_GET["refresh-caches"])){refresh_caches();exit;}
+if(isset($_GET["access-real"])){access_real();exit;}
+if(isset($_GET["clean-websites"])){clean_websites();exit;}
+if(isset($_GET["backup"])){backup();exit;}
+if(isset($_GET["restore"])){restore();exit;}
 
 
 
@@ -39,6 +51,88 @@ function status_info(){
 	
 	echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
 
+}
+
+function remove_website(){
+	
+	$website=$_GET["remove-site"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.single.php --remove \"$website\" --output=yes >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+function execute_wizard(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-wizard.progress";
+	$GLOBALS["CACHEFILE"]=$GLOBALS["PROGRESS_FILE"];
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/rnginx-wizard.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.wizard.php >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+function compile_single(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-single.progress";
+	$GLOBALS["CACHEFILE"]=$GLOBALS["PROGRESS_FILE"];
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-single.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.single.php \"{$_GET["servername"]}\" --output=yes >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function checking_service(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-enable.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-enable.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.enable.php --verif >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function enable_service(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-enable.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-enable.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.enable.php >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
 }
 
 function events_all(){
@@ -82,33 +176,9 @@ function conf_save(){
 	$unix=new unix();
 	$nginx=$unix->find_program("nginx");
 	$servername=$_GET["replic-conf"];
-	$filename=$_GET["dest"];
-	$nginxconfPath="/usr/share/artica-postfix/ressources/logs/web/$servername";
-	
-	writelogs_framework("servername=$servername",__FUNCTION__,__FILE__,__LINE__);
-	writelogs_framework("nginxconf=$nginxconfPath",__FUNCTION__,__FILE__,__LINE__);
-	writelogs_framework("filename=$filename",__FUNCTION__,__FILE__,__LINE__);
-	
-	if(!is_file($nginxconfPath)){
-		writelogs_framework("nginxconfPath=$nginxconfPath failed",__FUNCTION__,__FILE__,__LINE__);
-		echo "<articadatascgi>".base64_encode("$nginxconfPath no such file\n")."</articadatascgi>";
-		return;
-	}
-	
-	$destinationPath="/etc/nginx/sites-enabled/$filename";
-	
-	if(!is_file($destinationPath)){
-		echo "<articadatascgi>".base64_encode("$destinationPath no such file\n")."</articadatascgi>";
-		return;
-	}
-	$OK=false;
-	
-	$tmp=$unix->TEMP_DIR();
-	$tempfile="$tmp/".basename($filename);
-	@copy($destinationPath, $tempfile);
-	@copy($nginxconfPath, $destinationPath);
-	
-	$results[]=$destinationPath;
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.single.php \"$servername\" --replic-conf >/dev/null 2>&1 &");
 	
 	writelogs_framework("$nginx -c /etc/nginx/nginx.conf -t 2>&1",__FUNCTION__,__FILE__,__LINE__);
 	exec("$nginx -c /etc/nginx/nginx.conf -t 2>&1",$results);
@@ -118,19 +188,14 @@ function conf_save(){
 	}
 	
 	if(!$OK){
-		@copy($tempfile, $destinationPath);
-		@unlink($tempfile);
-		@unlink($nginxconfPath);
 		writelogs_framework("FAILED",__FUNCTION__,__FILE__,__LINE__);
 		echo "<articadatascgi>".base64_encode(@implode("\n", $results))."</articadatascgi>";
 		return;
 	}
-	@unlink($tempfile);
-	@unlink($nginxconfPath);
+	
 	writelogs_framework("SUCCESS",__FUNCTION__,__FILE__,__LINE__);
 	echo "<articadatascgi>".base64_encode("SUCCESS\n******************\n".@implode("\n", $results))."</articadatascgi>";
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");
+
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --force-restart >/dev/null 2>&1 &");
 	
 }
@@ -255,6 +320,15 @@ function reconfigure_single(){
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --reconfigure \"$servername\" >>$cachefile 2>&1 &");
 }
 
+function clean_websites(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.wizard.php --check-http >/dev/null 2>&1 &");
+	
+	
+}
+
 
 function nginx_version(){
 	$unix=new unix();
@@ -284,6 +358,112 @@ function reconfigure_progress(){
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --reconfigure-all-reboot >{$GLOBALS["LOG_FILE"]} 2>&1 &");
 	
 }
+
+function compile_destination(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-destination.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-destination.log";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.destinations.php {$_GET["cacheid"]} >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+		
+}
+
+function backup(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-dump.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-dump.log";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.dump.php --dump --output >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function restore(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-dump.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-dump.log";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.dump.php --restore \"{$_GET["filename"]}\" --output >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+}
+
+
+
+function refresh_caches(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx-caches.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/nginx-caches.log";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --caches-status --output >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
+}
+function access_real(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$servername=$_GET["servername"];
+	$targetfile="/usr/share/artica-postfix/ressources/logs/access.log.$servername.tmp";
+	$sourceLog="/var/log/apache2/$servername/nginx.access.log";
+	
+	$rp=$_GET["rp"];
+	writelogs_framework("access_real -> $rp" ,__FUNCTION__,__FILE__,__LINE__);
+
+
+	$query=$_GET["query"];
+	$grep=$unix->find_program("grep");
+
+
+	$cmd="$tail -n $rp $sourceLog >$targetfile 2>&1";
+
+	if($query<>null){
+		if(preg_match("#regex:(.*)#", $query,$re)){$pattern=$re[1];}else{
+			$pattern=str_replace(".", "\.", $query);
+			$pattern=str_replace("*", ".*?", $pattern);
+			$pattern=str_replace("/", "\/", $pattern);
+		}
+	}
+	if($pattern<>null){
+
+		$cmd="$grep -E \"$pattern\" $sourceLog| $tail -n $rp  >$targetfile 2>&1";
+	}
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	@chmod("$targetfile",0755);
+}
+
 
 function purge_cache(){
 	$unix=new unix();

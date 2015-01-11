@@ -313,7 +313,7 @@ $html="
 	
 	
 	<tr>
-		<td colspan=2><div class=explain style='text-align:left;font-size:16px'>{fetchmail_about}</div></td>
+		<td colspan=2><div class=text-info style='text-align:left;font-size:16px'>{fetchmail_about}</div></td>
 	</tr>
 	</table>
 	
@@ -365,7 +365,7 @@ function fetch_popup_enable(){
 			<div style='text-align:right'><hr>
 			". button("{apply}","FetchMailEnable$t()",42)."</div>
 			
-			<div class=explain style='font-size:18px;margin-top:30px'>{fetchmail_about}</div>
+			<div class=text-info style='font-size:18px;margin-top:30px'>{fetchmail_about}</div>
 			</td>
 		</tr>
 	</table>

@@ -124,7 +124,11 @@ function checklogonCreds($Aspost=false){
 			[AllowEditAsWbl]="yes"
 			[AsSystemAdministrator]="yes"
 			[AsPostfixAdministrator]="yes"
-			[AsArticaAdministrator]="yes"';
+			[AsArticaAdministrator]="yes"
+			[AsArticaMetaAdmin]="yes"		
+					
+					';
+			
 			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 			$_SESSION["AsWebStatisticsAdministrator"]=true;
 			header("location:miniadm.index.php");
@@ -153,6 +157,8 @@ function checklogonCreds($Aspost=false){
 			BuildSession($username);
 			header("location:miniadm.index.php");
 			if($Aspost){return;}
+		}else{
+			
 		}
 	}	
 	

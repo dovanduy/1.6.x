@@ -92,27 +92,21 @@ function tabs2(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="members-ad"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.group.membersad.php?dn=$dn&yahoo={$_GET["yahoo"]}&t=$t&tt=$tt\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"dansguardian2.group.membersad.php?dn=$dn&yahoo={$_GET["yahoo"]}&t=$t&tt=$tt\">
+			<span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}&t=$t&tt=$tt&yahoo={$_GET["yahoo"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li>
+				<a href=\"$page?$num=yes&ID={$_GET["ID"]}&t=$t&tt=$tt&yahoo={$_GET["yahoo"]}\">
+					<span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	
-	
-	echo"<div id=main_filter_rule_edit_group style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_filter_rule_edit_group').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_filter_rule_edit_group");
+		
 	
 	
 }
@@ -184,8 +178,8 @@ function group_edit(){
 	
 	
 	
-	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",26);
-	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",26);
+	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",32);
+	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",32);
 	$LaunchBTBrowse=1;
 	$bt_browse=button("{browse}...","MemberBrowsePopup();");
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=$bt_bt2;$bt_browse=null;$LaunchBTBrowse=0;}}
@@ -200,30 +194,30 @@ function group_edit(){
 	<table style='width:100%' >
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:16px'>$ID)&nbsp;{groupname}:</td>
-		<td>". Field_text("groupname-$t",$ligne["groupname"],"font-size:16px;")."</td>
-		<td>&nbsp;</td>
+		<td class=legend style='font-size:20px' nowrap>{groupname}:</td>
+		<td colspan=2>". Field_text("groupname-$t",$ligne["groupname"],"font-size:26px;width:470px")."</td>
+		
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'{groupmode}:</td>
-		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,"font-size:16px")."</td>
+		<td class=legend style='font-size:20px'{groupmode}:</td>
+		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,"font-size:20px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{groupid}:</td>
-		<td>". Field_text("gpid",$ligne["gpid"],"font-size:16px;width:65px")."</td>
+		<td class=legend style='font-size:20px'>{groupid}:</td>
+		<td>". Field_text("gpid",$ligne["gpid"],"font-size:20px;width:65px")."</td>
 		<td><span id='button-$t'>$bt_browse</span></td>
 	</tr>		
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:20px'>{enabled}:</td>
+		<td>". Field_checkbox_design("enabled",1,$ligne["enabled"],"CheckEnabled$t()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{description}:</td>
+		<td class=legend style='font-size:20px'>{description}:</td>
 		<td><textarea name='description' id='description' 
-					style='width:100%;height:50px;overflow:auto;font-size:16px'>". $ligne["description"]."</textarea></td>
+					style='width:100%;height:50px;overflow:auto;font-size:18px !important'>". $ligne["description"]."</textarea></td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
@@ -291,6 +285,7 @@ function group_edit(){
 		var res=obj.responseText;
 		var ID='$ID';
 		var t=$t;
+		RefreshMainFilterTable();
 		$('#flexRT$t').flexReload(); 
 		$('#flexRT$tt').flexReload(); 
 		if (res.length>3){alert(res);}
@@ -305,6 +300,11 @@ function group_edit(){
 		
 	}
 	
+function CheckEnabled$t(){
+	var ID='$ID';
+	if(ID>0){SaveDansGUardianGroupRule();}
+}
+	
 		function SaveDansGUardianGroupRule(){
 		      var XHR = new XHRConnection();
 		      XHR.appendData('groupname', document.getElementById('groupname-$t').value);
@@ -313,7 +313,7 @@ function group_edit(){
 		      XHR.appendData('gpid', document.getElementById('gpid').value);
 		      if(document.getElementById('enabled').checked){ XHR.appendData('enabled',1);}else{ XHR.appendData('enabled',0);}
 		      XHR.appendData('ID','$ID');
-		      AnimateDiv('dansguardinMainGroupDiv');
+		      
 		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianGroupRule);  		
 		}
 		
@@ -324,7 +324,7 @@ function group_edit(){
 			XHR.appendData('description', document.getElementById('description').value);
 			XHR.appendData('gpid', document.getElementById('gpid').value);
 			if(document.getElementById('enabled').checked){ XHR.appendData('enabled',1);}else{ XHR.appendData('enabled',0);}
-		    AnimateDiv('dansguardinMainGroupDiv');
+		    
 		    XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianGroupRule);  			
 		
 		} 
@@ -357,7 +357,9 @@ function group_explain_type(){
 	$ID=$_GET["ID"];
 	$LaunchBTBrowse=$_GET["LaunchBTBrowse"];
 	$page=CurrentPageName();
-	$html="<div class=explain style='font-size:14px'>{group_explain_proxy_acls_type_{$type}}</div>
+	$html="<div style='border-top:1px solid #CCCCCC;margin-top:20px;padding-top:18px'>
+		<i style='font-size:16px;'>{group_explain_proxy_acls_type_{$type}}</i>
+		</div>
 	<script>
 		function LaunchBTBrowse$t(){
 			var LaunchBTBrowse=$LaunchBTBrowse;
@@ -497,7 +499,7 @@ function members(){
 		],";		
 	
 	$html="
-	<div class=explain>{dansguardian2_addedit_members_explain}</div>
+	<div class=text-info>{dansguardian2_addedit_members_explain}</div>
 	<div style='margin-right:-10px;margin-left:-15px'>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	</div>	
@@ -524,7 +526,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 685,
+	width: '99%',
 	height: 300,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -544,6 +546,7 @@ $('#flexRT$t').flexigrid({
 		var res=obj.responseText;
 		var ID='$ID';
 		if (res.length>3){alert(res);}
+		RefreshMainFilterTable();
 		if(document.getElementById('row'+tmp$t)){ $('#row'+tmp$t).remove();}else{ $('#flexRT$t').flexReload(); }
 		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
 	}
@@ -715,6 +718,7 @@ function members_edit(){
 		if (res.length>3){alert(res);}
 		YahooWin5Hide();
 		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
+		RefreshMainFilterTable();
 		$('#flexRT$t').flexReload(); 
 		
 		

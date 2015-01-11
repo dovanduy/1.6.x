@@ -154,7 +154,7 @@ function section_rules(){
 	if(!$_SESSION["CORP"]){
 		$tpl=new templates();
 		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
-		$content="<div class=explain style='font-size:16px'>$refresh_pattern_intro</div> <p class=text-error>$onlycorpavailable</p>";
+		$content="<div class=text-info style='font-size:16px'>$refresh_pattern_intro</div> <p class=text-error>$onlycorpavailable</p>";
 		echo $content;
 		return;
 	}
@@ -163,7 +163,7 @@ function section_rules(){
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_rule}", "Loadjs('squid.cached.sitesinfos.php?AddCachedSitelist-js=yes&t=$t')"));
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{add_default_settings}", "Loadjs('$page?rules_add_default_js=yes')"));
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply}", "Loadjs('squid.restart.php?onlySquid=yes&ApplyConfToo=yes');"));
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>$refresh_pattern_intro</div>"). $boot->SearchFormGen("domain","search-rules",null,$EXPLAIN);
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>$refresh_pattern_intro</div>"). $boot->SearchFormGen("domain","search-rules",null,$EXPLAIN);
 	
 	
 }
@@ -176,7 +176,7 @@ function section_webrules(){
 	if(!$_SESSION["CORP"]){
 		$tpl=new templates();
 		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
-		$content="<div class=explain style='font-size:16px'>$refresh_pattern_intro</div> <p class=text-error>$onlycorpavailable</p>";
+		$content="<div class=text-info style='font-size:16px'>$refresh_pattern_intro</div> <p class=text-error>$onlycorpavailable</p>";
 		echo $content;
 		return;
 	}
@@ -184,7 +184,7 @@ function section_webrules(){
 	$boot=new boostrap_form();
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_rule}", "Loadjs('$page?section_webrules_add_js=yes')"));
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply}", "Loadjs('squid.restart.php?onlySquid=yes&ApplyConfToo=yes');"));
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>$refresh_pattern_intro</div>"). 
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>$refresh_pattern_intro</div>"). 
 	$boot->SearchFormGen("sitename","search-webrules",null,$EXPLAIN);
 		
 	

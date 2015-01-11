@@ -1,4 +1,6 @@
 <?php
+if(!isset($GLOBALS["postmulti"])){$GLOBALS["postmulti"]=null;}
+if(!isset($GLOBALS["postconf"])){$GLOBALS["postconf"]=null;}
 include_once(dirname(__FILE__)."/class.mysql.inc");
 include_once(dirname(__FILE__)."/class.postfix.externaldbs.inc");
 include_once(dirname(__FILE__)."/class.tcpip.inc");
@@ -142,7 +144,53 @@ public function SET_BIGDATA($key,$value){
 			return false;
 		}
 		return true;
-	}	
+	}
+
+	
+public function RelayToPattern($hostname,$port,$lookups){
+	$relay_port_text=null;
+	if($port<>25){
+		$relay_port_text=":{$port}";
+	}
+	
+	if($lookups==1){
+		$hostname="[$hostname]$relay_port_text";
+		return $hostname;
+	}
+	
+	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$hostname)){
+		$hostname="[$hostname]$relay_port_text";
+		return $hostname;
+	}
+	return "$hostname$relay_port_text";
+}	
+	
+public function relayhost(){
+
+	if($GLOBALS["postconf"]==null){$unix=new unix();$GLOBALS["postconf"]=$unix->find_program("postconf");}
+	if($GLOBALS["postmulti"]==null){$unix=new unix();$GLOBALS["postmulti"]=$unix->find_program("postmulti");}
+	
+	$q=new mysql();
+	$relay_port_text=null;
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM relay_host WHERE hostname='$this->myhostname'","artica_backup"));
+	if($ligne["relay"]==null){$ligne["enabled"]=0;}
+	
+	
+	if(intval($ligne["enabled"])==0){
+		if($this->myhostname=="master"){
+			shell_exec("{$GLOBALS["postconf"]} -X \"relayhost\" >/dev/null 2>&1");
+			shell_exec("{$GLOBALS["postconf"]} -X \"default_transport\" >/dev/null 2>&1");
+		return;}
+		return null;
+	}
+		
+	if(intval($ligne["relay_port"]==0)){$ligne["relay_port"]=25;}
+	
+	$relayhost=$this->RelayToPattern($ligne["relay"],$ligne["relay_port"],$ligne["lookups"]);
+	if($this->myhostname=="master"){shell_exec("{$GLOBALS["postconf"]} -e \"default_transport = smtp:$relayhost\" >/dev/null 2>&1");return;}	
+	//default_transport = smtp:[relay.example.com]
+	return "default_transport=smtp:$relayhost";
+}	
 
 	
 	
@@ -2490,6 +2538,10 @@ private function smtp_sasl_password_map(){
 			$conf[]="qmgr_message_recipient_limit=$qmgr_message_recipient_limit";
 			$conf[]="qmgr_message_recipient_minimum=$qmgr_message_recipient_minimum";
 			
+			$enable_original_recipient=$this->GET("enable_original_recipient");
+			if(!is_numeric($enable_original_recipient)){$enable_original_recipient=1;}
+			$undisclosed_recipients_header=$this->GET("undisclosed_recipients_header");
+			if($undisclosed_recipients_header==null){$undisclosed_recipients_header="To: undisclosed-recipients:;";}
 			
 			$conf[]="smtpd_timeout=300";
 			$conf[]="enable_original_recipient=yes";
@@ -2502,9 +2554,14 @@ private function smtp_sasl_password_map(){
 			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" smtp_destination_concurrency_limit...:`$smtp_destination_concurrency_limit`\n";
 			
 			
-			
-			$conf[]="smtp_sender_dependent_authentication = yes";
-			$conf[]="undisclosed_recipients_header=To: undisclosed-recipients:;";
+			if($enable_original_recipient==1){
+				$conf[]="smtp_sender_dependent_authentication = yes";
+			}else{
+				$conf[]="smtp_sender_dependent_authentication = no";
+			}
+			$smtpd_discard_ehlo_keywords=$this->GET("smtpd_discard_ehlo_keywords");
+			if($smtpd_discard_ehlo_keywords<>null){$conf[]="smtpd_discard_ehlo_keywords=$smtpd_discard_ehlo_keywords";}
+			$conf[]="undisclosed_recipients_header=$undisclosed_recipients_header";
 			$conf[]="initial_destination_concurrency=$initial_destination_concurrency";
 			$conf[]="default_destination_concurrency_limit=$default_destination_concurrency_limit";
 			$conf[]="local_destination_concurrency_limit=$local_destination_concurrency_limit";
@@ -2606,20 +2663,13 @@ private function smtp_sasl_password_map(){
 			$conf[]="disable_vrfy_command=yes";
 			$conf[]="smtpd_delay_reject=yes";
 			$conf[]="smtpd_helo_required=yes";
+			$conf[]=$this->relayhost();
 			
 			
-			$relayhost=$this->GET("relayhost");
 			
 			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" relayhost ?? ($relayhost)\n";
 			
-			if($relayhost<>null){
-				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$relayhost)){
-					$relayhost="[$relayhost]";
-				}
-				$conf[]="#  RELAYHOST ---------------------------------";
-				$conf[]="relayhost = $relayhost";
-				$conf[]="";
-			}
+			
 			
 			$conf[]="";	
 			$conf[]="#Checks headers and bodys ---------------------------------";
@@ -3980,7 +4030,7 @@ private function certificate_openssl_conf(){
 		$conf[]="commonName_max=128";
 		$conf[]="emailAddress=Email Address";
 		$conf[]="emailAddress_value=$emailAddress";
-		$conf[]="emailAddress_max=128";
+		$conf[]="emailAddress_max=".strlen($emailAddress);
 		$conf[]="unique_subject=no";
 		$conf[]="";
 		$conf[]="[extensions]";

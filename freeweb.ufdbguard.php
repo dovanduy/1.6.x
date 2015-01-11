@@ -48,7 +48,7 @@ function page(){
 	
 	$html="
 	<div id='anim-$t'></div>
-	<div class=explain style='font-size:14px;font-family:\"Courier New\",
+	<div class=text-info style='font-size:14px;font-family:\"Courier New\",
 				Courier,monospace;'>-URL- -IP- -REASONGIVEN- -CATEGORIES- -REASONLOGGED- -BYPASS- -JSPACK-</div>
 	<table style='width:100%' class=form>
 	<tr>

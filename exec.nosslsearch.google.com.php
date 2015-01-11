@@ -29,9 +29,11 @@ function run(){
 	if($DisableGoogleSSL==0){
 		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (disabled)\n";
 		remove();
+		build_progress("{disabled}",110);
 		return;
 	}
 	echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (enabled)\n";
+	build_progress("{enabled}",5);
 	addDNSGOOGLE();
 	
 }
@@ -48,7 +50,20 @@ function GetWebsitesList(){
 	
 }
 
+function build_progress($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.google.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
+	@chmod($GLOBALS["CACHEFILE"],0755);
+	if($GLOBALS["PROGRESS"]){sleep(1);}
+
+}
+
 function addDNSGOOGLE(){
+	
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: nosslsearch.google.com-> ?\n";}
 	$ipaddr=gethostbyname("nosslsearch.google.com");
 	$ip=new IP();
 	$unix=new unix();
@@ -58,35 +73,76 @@ function addDNSGOOGLE(){
 	if(!$OK){
 		if($ip->isIPv6($ipaddr)){$OK=true;}
 	}
-	if(!$OK){echo "Starting......: ".date("H:i:s")." Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";return;}	
+	if(!$OK){
+		echo "Starting......: ".date("H:i:s")." Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";
+		build_progress("nosslsearch.google.com {failed}",110);
+		return;
+	}	
 	$q=new mysql();
 	
-	$ligne=@mysql_fetch_array($this->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup"));
+	build_progress("nosslsearch.google.com {checking}",5);
+	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup"));
 	
 	
 	$entry=$ligne["ipaddr"];
 	if($entry==$ipaddr){
 		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com no changes...\n";
+		if($GLOBALS["OUTPUT"]){
+			build_progress("nosslsearch.google.com {no_changes}",50);
+			sleep(3);
+			build_progress("Patching host file",95);
+			shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
+			build_progress("Reloading proxy service",95);
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
+			reload_pdns();
+			sleep(5);
+			build_progress("{success}",100);
+			return;
+		}
+		
+		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
 		reload_pdns();
 		return; 
 	}
+	
 	if($entry<>null){
-	echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com [$entry]...\n";
+		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com [$entry]...\n";
 	}
+	build_progress("nosslsearch.google.com [$entry]",5);
+	
+	
 	$array=GetWebsitesList();
 	
-	
-	
+	$max=count($array);
+	$c=0;
 	while (list ($table, $fff) = each ($array) ){
+		$c++;
+		$prc=$c/$max;
+		$prc=$prc*100;
+		if($prc>5){
+			if($prc<90){
+				build_progress("$fff [$ipaddr]",$prc);
+			}
+		}
 		$md5=md5("$ipaddr$fff");
 		$f[]="('$md5','$ipaddr','$fff')";
 		
 	}
 	if(count($f)>0){
-		$q->QUERY_SQL("INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`) VALUES ".@implode("\n", $f));
+		$q->QUERY_SQL("INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`) VALUES ".@implode(",\n", $f),"artica_backup");
+		if(!$q->ok){
+			build_progress("Table net_hosts failed",110);
+			return;
+		}
+		
+		build_progress("Patching host file",95);
 		echo "Starting......: ".date("H:i:s")." Squid : adding ".count($f)." google servers [$ipaddr] from /etc/hosts\n";
 		shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
+		build_progress("Reloading proxy service",95);
+		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
 		reload_pdns();
+		sleep(5);
+		build_progress("{success}",100);
 	}		
 }
 

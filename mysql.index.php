@@ -327,7 +327,7 @@ function mysql_settings($notitle=false){
 		</tr>	
 	</table>
 	
-	<div class=explain style='font-size:14px'>{mysqldefault_php_text}</div>
+	<div class=text-info style='font-size:14px'>{mysqldefault_php_text}</div>
 <table style='width:99%' class=form>	
 		<tr>
 			<td align='right' nowrap class=legend>{UseSamePHPMysqlCredentials}:</strong></td>

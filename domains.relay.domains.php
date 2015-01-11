@@ -202,7 +202,7 @@ function duplicate(){
 	<table style='width:100%'>
 	<tr>
 	<td width=99%'>
-		<div class=explain id='div-duplicate-{$_GET["domain"]}'>{duplicate_domain_explain}</div>
+		<div class=text-info id='div-duplicate-{$_GET["domain"]}'>{duplicate_domain_explain}</div>
 	</td>
 	<td width=1%>$delete</td>
 	</tr>
@@ -308,7 +308,7 @@ function config(){
 
 	$html="
 	<div style='font-size:16px'>{$_GET["domain"]}</div>
-	<div class=explain id='div-{$_GET["domain"]}'>{relaydomain_explain}</div>
+	<div class=text-info id='div-{$_GET["domain"]}'>{relaydomain_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>
@@ -393,7 +393,7 @@ $tpl=new templates();
 	$domain=$_GET["domain"];
 	$md5=md5($domain);
 	$html="
-	<div class=explain>{aliases_domains_explain}</div>
+	<div class=text-info>{aliases_domains_explain}</div>
 	
 		<center>
 		<table style='width:450px' class=form>
@@ -602,7 +602,7 @@ function users_database(){
 	if($ldap->ExistsDN($dn)){$trusted_smtp_domain=1;}
 	
 	if($trusted_smtp_domain==1){
-		$html="<div class=explain>{DOMAIN_TRUSTED_NO_USERDB_TEXT}</div>";
+		$html="<div class=text-info>{DOMAIN_TRUSTED_NO_USERDB_TEXT}</div>";
 		echo $tpl->_ENGINE_parse_body($html);return;
 	}
 	
@@ -652,7 +652,7 @@ function users_import_form(){
 	$domain=$_GET["domain"];	
 	$importing=$tpl->javascript_parse_text("{importing}");
 	$html="
-	<div class=explain>{DOMAIN_NO_TRUSTED_IMPORT_TEXT}</div>
+	<div class=text-info>{DOMAIN_NO_TRUSTED_IMPORT_TEXT}</div>
 	<p>&nbsp;</p>
 	<div style='text-align:right;width:100%'>". button("{import}","ImportUsersIntoDB()")."</div><hr>
 	<textarea style='width:100%;height:350px;overflow:auto' id='domain-relay-import-field'></textarea>
@@ -690,7 +690,7 @@ function aliases_import_form(){
 	$domain=$_GET["domain"];	
 	$importing=$tpl->javascript_parse_text("{importing}");
 	$html="
-	<div class=explain>{DOMAIN_ALIASES_IMPORT_TEXT}</div>
+	<div class=text-info>{DOMAIN_ALIASES_IMPORT_TEXT}</div>
 	<p>&nbsp;</p>
 	<div style='text-align:right;width:100%'>". button("{import}","ImportAliasesIntoDB()")."</div><hr>
 	<textarea style='width:100%;height:350px;overflow:auto' id='domain-relay-import-field'></textarea>

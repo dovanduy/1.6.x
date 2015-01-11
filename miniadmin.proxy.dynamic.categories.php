@@ -161,6 +161,11 @@ function tabs(){
 	$q=new mysql_squid_builder();
 	
 	while (list ($category, $val) = each ($arrayACLS) ){
+		$table=$q->cat_totablename($category);
+		if(!$q->TABLE_EXISTS($table)){
+			$q->QUERY_SQL("DELETE FROM webfilter_catprivs WHERE categorykey='$category'");
+			continue;
+		}
 		$categoryenc=urlencode($category);
 		$array[$category]="$page?category-tab=yes&category=$categoryenc";
 		
@@ -195,11 +200,11 @@ function category_section(){
 	
 	$OPTIONS["BUTTONS"][]=button("{new_item}","Loadjs('$page?add-www-js=yes&category=$categoryenc')",16);
 	if($_SESSION["ProxyCategoriesPermissions"][$_GET["category"]]==1){
-		$OPTIONS["BUTTONS"][]=button("{compile_database}","Loadjs('ufdbguard.compile.category.php?category=$categoryenc')",16);
+		$OPTIONS["BUTTONS"][]=button("{apply_modifications_to_the_proxy}","Loadjs('ufdbguard.compile.category.php?category=$categoryenc')",16);
 	}
 	$category_explain=category_explain($_GET["category"]);
 	
-	echo "<div class=explain>$category_explain</div>".$boot->SearchFormGen("pattern,zDate","category-search","&category=$categoryenc",$OPTIONS);
+	echo "<div class=text-info style='margin:20px;font-size:18px'>$category_explain</div>".$boot->SearchFormGen("pattern,zDate","category-search","&category=$categoryenc",$OPTIONS);
 
 
 }

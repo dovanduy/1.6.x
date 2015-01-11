@@ -82,7 +82,9 @@ if($prc==100){
 	$('#progress-$t').progressbar({ value: $prc });
 	LayersTabsAllAfter();
 	RTMMailHide();
-	CacheOff();
+	if(document.getElementById('FICHE_COMPUTER_OPEN_PORTS')){
+		$('#FICHE_COMPUTER_OPEN_PORTS').flexReload();
+	}
 }
 setTimeout(\"Start$time()\",1000);
 ";

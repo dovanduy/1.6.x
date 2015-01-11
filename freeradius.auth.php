@@ -214,7 +214,7 @@ function connection_form_mysql_local(){
 	
 	$tt=time();
 	$html="
-	<div style='font-size:16px' class=explain>{radius_local_mysqldb_explain}</div>
+	<div style='font-size:16px' class=text-info>{radius_local_mysqldb_explain}</div>
 	<div id='$tt'></div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
@@ -279,7 +279,7 @@ function connection_form_ldap(){
 	$tt=time();
 	$html="
 	<div id='$tt'></div>
-	<div class=explain style='font-size:14px'>{ldap_cleartext_warn}</div>
+	<div class=text-info style='font-size:14px'>{ldap_cleartext_warn}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{hostname}:</td>

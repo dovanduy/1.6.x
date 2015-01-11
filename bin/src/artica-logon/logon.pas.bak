@@ -105,6 +105,7 @@ var
    CURRENTIP:string;
    squidbin:string;
    ARTICA_VERSION:string;
+   ARTICA_PRODUCT_NAME:string;
    ARTICA_NIGHTLY_VERSION:string;
    htop_bin:string;
    ISOCanDisplayUserNamePassword,ISOCanChangeIP,ISOCanReboot,ISOCanShutDown,ISOCanChangeRootPWD,ISOCanChangeLanguage:integer;
@@ -118,6 +119,9 @@ if not TryStrToInt(SYS.GET_INFO('ISOCanReboot'),ISOCanReboot) then ISOCanReboot:
 if not TryStrToInt(SYS.GET_INFO('ISOCanShutDown'),ISOCanShutDown) then ISOCanShutDown:=1;
 if not TryStrToInt(SYS.GET_INFO('ISOCanChangeRootPWD'),ISOCanChangeRootPWD) then ISOCanChangeRootPWD:=1;
 if not TryStrToInt(SYS.GET_INFO('ISOCanChangeLanguage'),ISOCanChangeLanguage) then ISOCanChangeLanguage:=1;
+ ARTICA_PRODUCT_NAME='Artica';
+
+if FileExists('/etc/artica-postfix/WEBSECURIZE') then ARTICA_PRODUCT_NAME:='Web Securize';
 
 if not FileExists('/usr/share/artica-postfix/ressources/settings.inc') then begin
     writeln('');
@@ -187,7 +191,7 @@ if Not FileExists(squidbin) then squidbin:=SYS.LOCATE_GENERIC_BIN('squid3');
 if not  ArticaAgent then  begin
    ARTICA_VERSION:= trim(SYS.ARTICA_VERSION());
    ARTICA_NIGHTLY_VERSION:=GetLatestNightlyVersion();
-   writeln('Artica version ' + ARTICA_VERSION);
+   writeln(''+ARTICA_PRODUCT_NAME+' version ' + ARTICA_VERSION);
    fpsystem('/usr/bin/nohup /etc/init.d/artica-webconsole start >/dev/null 2>&1 &');
    fpsystem('/usr/bin/nohup /etc/init.d/artica-framework start >/dev/null 2>&1 &');
    fpsystem('/usr/bin/nohup /etc/init.d/artica-process1 start >/dev/null 2>&1 &');
@@ -204,7 +208,7 @@ if not  ArticaAgent then  begin
    end;
        logs.Debuglogs('display menu....');
 
-       writeln('Artica "'+ARTICA_VERSION+'" WebAccess');
+       writeln(ARTICA_PRODUCT_NAME+' "'+ARTICA_VERSION+'" WebAccess');
        writeln('Uri(s) you can use with your web browser:');
        writeln(uris);
 end else begin
@@ -229,19 +233,19 @@ end;
 
 
 writeln('Menu :');
-if not  ArticaAgent then writeln('[A]..... Restart all artica services');
+if not  ArticaAgent then writeln('[A]..... Restart all '+ARTICA_PRODUCT_NAME+' services');
 if FileExists('/opt/kaspersky/klms/bin/klms-control') then begin
    writeln('[B]..... Reset Kaspersky Web Administration password');
    writeln('[C]..... Restart Kaspersky Services');
 end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
-writeln('[D]..... Upgrade Artica (',ARTICA_NIGHTLY_VERSION,')');
+writeln('[D]..... Upgrade '+ARTICA_PRODUCT_NAME+' (',ARTICA_NIGHTLY_VERSION,')');
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
-writeln('[G]..... Artica service setup');
+writeln('[G]..... '+ARTICA_PRODUCT_NAME+' service setup');
 if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
 writeln('[L]..... Configure languages');
 writeln('[N]..... Network settings');
-writeln('[O]..... Install Broadcom driver (if it required)');
+writeln('[O]..... Meta client tasks');
 writeln('[P]..... Modify root password');
 writeln('[R]..... Reboot');
 writeln('[S]..... Shutdown');
@@ -422,7 +426,7 @@ if a='L' then begin
 end;
 
 if a='O' then begin
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.bnx2.enable.php');
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.user.ask.meta-client.php');
    Menu();
    exit;
 end;
@@ -584,6 +588,7 @@ end;
    writeln('Create an Artica Web console with FreeWebs: [F]');
    writeln('Restart the framework service.............: [G]');
    writeln('Generate the Main configuration file......: [H]');
+   writeln('Rebuild Web console certificate...........: [I]');
 
 
 
@@ -604,7 +609,7 @@ end;
 
    if a='D' then begin
       fpsystem('clear');
-      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.users.mysql-menu.php');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.users.SuperAdmin.php');
       writeln('Press [Enter] key to Exit');
       readln();
       WebConsoleSetup();
@@ -620,6 +625,21 @@ end;
       WebConsoleSetup();
       exit;
    end;
+
+   if a='R' then begin
+      fpsystem('rm -f /opt/artica/ssl/certs/*');
+      fpsystem('rm -f /etc/ssl/certs/apache/server.crt');
+      fpsystem('rm -f /etc/ssl/certs/apache/server.key');
+      writeln('Please wait... Restarting the Artica Web console service...');
+      fpsystem('/etc/init.d/artica-webconsole restart');
+      fpsystem('clear');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+
+
 
  if a='N' then begin
  writeln('Activate NGNIX as web engine...');

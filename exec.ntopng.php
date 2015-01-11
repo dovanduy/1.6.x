@@ -59,7 +59,7 @@ function reload($nopid=false){
 
 	$sock=new sockets();
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
-	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
@@ -153,7 +153,9 @@ function start($nopid=false){
 	}
 	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
-	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){$Enablentopng=0;}
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
@@ -380,7 +382,7 @@ function cleanstorage(){
 	$arrayConf=unserialize(base64_decode($sock->GET_INFO("ntopng")));
 	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
-	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
 	if(!is_numeric($arrayConf["ENABLE_LOGIN"])){$arrayConf["ENABLE_LOGIN"]=0;}
 	if(!is_numeric($arrayConf["MAX_DAYS"])){$arrayConf["MAX_DAYS"]=30;}

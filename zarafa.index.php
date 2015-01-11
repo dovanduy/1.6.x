@@ -162,7 +162,7 @@ function popup_status(){
 	$ini->loadString($datas);
 	$users=new usersMenus();
 	if($users->YAFFAS_INSTALLED){
-		$yaffas="<div class=explain>{APP_YAFFAS_TEXT}</div>";
+		$yaffas="<div class=text-info>{APP_YAFFAS_TEXT}</div>";
 	}
 	if($ini->_params["APP_ZARAFA"]["master_version"]==null){unset($ini->_params["APP_ZARAFA"]["master_version"]);}
 	
@@ -182,7 +182,7 @@ function popup_status(){
 		<td valign='top' width=99%>
 			<H3 style='font-size:22px;font-weight:bold'>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
 			<div id='zarafa-error' style='color:#FB0808;font-weight:bold;font-size:14px'></div>
-			<div class=explain style='font-size:14px'>{APP_ZARAFA_TEXT}</div>$yaffas
+			<div class=text-info style='font-size:14px'>{APP_ZARAFA_TEXT}</div>$yaffas
 			<table style='width:100%'>
 			<tr>
 				<td width=1%><img src='img/arrow-right-24.png'></td>
@@ -610,7 +610,7 @@ function popup_license(){
 	</center>
 	<hr>
 	
-	<div class=explain>{ZARAFA_UPDATE_SERIAL_EXPLAIN}</div>
+	<div class=text-info>{ZARAFA_UPDATE_SERIAL_EXPLAIN}</div>
 	<center>
 	<div id='zarafa-license-form'>
 	<table class=form>

@@ -94,7 +94,7 @@ $('#$t-table2').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 250,
 	singleSelect: true
 	
@@ -185,7 +185,7 @@ function rules_browse_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne['groupname']=str_replace("'", "`", $ligne['groupname']);
 		$tt=array();
@@ -247,7 +247,7 @@ function rules_link_popup(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
 	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
-	$expressions=$tpl->_ENGINE_parse_body("{expressions}::{groups}");
+	$expressions=$tpl->_ENGINE_parse_body("{expressions}::{groups2}");
 	$add=$tpl->_ENGINE_parse_body("{link}");
 	$ufdbguard_terms_explain=$tpl->_ENGINE_parse_body("{ufdbguard_terms_explain}");
 	$give_the_rulename=$tpl->javascript_parse_text("{give_the_rulename}");
@@ -284,7 +284,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 250,
 	singleSelect: true
 	
@@ -371,18 +371,14 @@ function rules_link_list(){
 	$total=0;
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
 	
-	if($q->COUNT_ROWS($table,"artica_backup")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_backup")==0){json_error_show("no rules");}
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	$search=null;
-
-	if(trim($_POST["query"])<>null){
-		$_POST["query"]="*{$_POST["query"]}*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		
 		
 		$searchstring="AND webfilter_termsg.groupname LIKE '{$_POST["query"]}'";
@@ -421,6 +417,7 @@ function rules_link_list(){
 	$divstop="</div>";
 	$noneTXT=$tpl->_ENGINE_parse_body("{none}");
 	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5("ruleexpLink".$ligne["ID"]);
 		$color="black";
@@ -433,7 +430,7 @@ function rules_link_list(){
 		$sql="SELECT webfilter_terms.term,webfilter_termsassoc.ID,webfilter_terms.enabled as termenabled,
 		webfilter_terms.ID as termzID
 		FROM `webfilter_termsassoc`,webfilter_terms WHERE webfilter_terms.ID=`webfilter_termsassoc`.termid
-		AND `webfilter_termsassoc`.term_group={$ligne["termsgid"]}";
+		AND `webfilter_termsassoc`.term_group={$ligne["termsgid"]} $searchstring";
 		
 		
 		$results2 = $q->QUERY_SQL($sql,"artica_backup");
@@ -520,7 +517,7 @@ function table(){
 	$t=time();
 	
 	$html="
-	<div id='TableExpressionsParReglesLiees' class=explain>$ufdbguard_terms_explain</div>
+	<div id='TableExpressionsParReglesLiees' class=text-info>$ufdbguard_terms_explain</div>
 	<table class='$t-table' style='display: none' id='$t-table' style='width:99%'></table>
 <script>
 var IDRULEEXP=0;
@@ -552,7 +549,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
@@ -649,11 +646,10 @@ function rules_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -684,6 +680,9 @@ function rules_list(){
 	$divstop="</div>";
 	$noneTXT=$tpl->_ENGINE_parse_body("{none}");
 	if(!$q->ok){json_error_show("$q->mysql_error");}
+	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5("ruleexp".$ligne["ID"]);
 		$color="black";
@@ -707,20 +706,23 @@ function rules_list(){
 			$color1="black";
 			$fontstyle="normal";
 			if($ligne2["enabled"]==0){$color1="#737373";$fontstyle="italic";}
-			$tt[]="<a href=\"javascript:blur();\" OnClick=\"javascript:RuleLink$t('{$ligne["ID"]}');\" style='text-decoration:underline;font-size:12px;color:$color1;font-style:$fontstyle'>{$ligne2["rulename"]}</a>";
+			$tt[]="<a href=\"javascript:blur();\" OnClick=\"javascript:RuleLink$t('{$ligne["ID"]}');\" 
+			style='text-decoration:underline;font-size:16px;color:$color1;font-style:$fontstyle'>{$ligne2["rulename"]}</a>";
 		}	
 
-		if(count($tt)==0){$description="<a href=\"javascript:blur();\" OnClick=\"javascript:RuleLink$t('{$ligne["ID"]}');\" style='text-decoration:underline;'>$no_expression_group</a>";}else{
-			$description=@implode(" $and ", $tt);
+		if(count($tt)==0){$description="<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:RuleLink$t('{$ligne["ID"]}');\" 
+			style='text-decoration:underline;'>$no_expression_group</a>";}else{
+			$description=@implode("<br>$and ", $tt);
 		}
 		
 		
 	$data['rows'][] = array(
 		'id' => "ruleexp".$ligne['ID'],
 	'cell' => array(
-		"<span style='font-size:13px'>$jsrule$RuleName</a></strong>",
-		"<span style='font-size:12px'>{$description}</span>",
-		"<div style='margin-top:5px'>$disable</div>",$link,$delete)
+		"<span style='font-size:18px'>$jsrule$RuleName</a></strong>",
+		"<span style='font-size:16px'>{$description}</span>",
+		"<span style='margin-top:5px'>$disable</span>",$link,$delete)
 		);
 		
 	}

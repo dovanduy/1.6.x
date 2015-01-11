@@ -22,7 +22,9 @@ if($unix->process_exists($pid,(basename(__FILE__)))){
 
 $t=time();
 $unix=new unix();
-exec("/etc/init.d/mysql restart 2>&1",$results);
+$unix->ToSyslog("Restarting MySQL service");
+mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+exec("/etc/init.d/mysql restart --framework=".__FILE__." 2>&1",$results);
 $took=$unix->distanceOfTimeInWords($t,time());
 system_admin_events("Restarting MySQL service done took $took:\n".@implode("\n", $results), __FUNCTION__, __FILE__, __LINE__, "mysql");
 

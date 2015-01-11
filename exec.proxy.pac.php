@@ -99,6 +99,7 @@ function writeproxypac(){
 	
 	if(is_array($datas["isInNet"])){
 		while (list ($num, $array) = each ($datas["isInNet"])){
+			if($array[1]==null){$array[1]="255.255.255.0";}
 			$isInNet[]="\tif(isInNet(host,\"{$array[0]}\",\"{$array[1]}\")){return \"DIRECT\";}";
 		}
 	}

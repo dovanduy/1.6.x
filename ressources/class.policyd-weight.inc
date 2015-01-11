@@ -86,9 +86,7 @@ class policydweight{
 		$this->rhsbl_array["multi.surbl.org"]["MISS"]="0";
 		$this->rhsbl_array["multi.surbl.org"]["LOG"]="SURBL";			
 		
-		$this->rhsbl_array["rhsbl.ahbl.org"]["HIT"]="4";
-		$this->rhsbl_array["rhsbl.ahbl.org"]["MISS"]="0";
-		$this->rhsbl_array["rhsbl.ahbl.org"]["LOG"]="AHBL";			
+	
 		
 		$this->rhsbl_array["dsn.rfc-ignorant.org"]["HIT"]="3.5";
 		$this->rhsbl_array["dsn.rfc-ignorant.org"]["MISS"]="0";

@@ -81,7 +81,7 @@ function initd(){
 	$datas2=@implode("\n",unserialize(base64_decode($sock->getFrameWork("system.php?ifconfig-initdcontent=yes"))));
 	if(trim($datas2)==null){$datas2="#!/bin/sh -e\n#Content here\nexit 0\n";}
 	$html= "
-	<div class=explain>$explain</div>		
+	<div class=text-info>$explain</div>		
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:12px !important'
 	id='NetFileGeneratedConfig'>$datasTXT</textarea>

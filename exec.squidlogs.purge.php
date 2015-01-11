@@ -162,6 +162,20 @@ function purge(){
 	
 	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
 	$ArticaProxyStatisticsBackupFolder=GetMountPoint();
+	$BackupSquidStatsUseNas=intval($sock->GET_INFO("BackupSquidStatsUseNas"));
+	
+	if($BackupSquidStatsUseNas==0){
+		$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
+		if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
+		$percent=$unix->DIRECTORY_USEPERCENT($ArticaProxyStatisticsBackupFolder);
+		if($percent>90){
+			squid_admin_purge(0, "Fatal backup partition is over 90% {$percent}%, aborting backup",
+			"Directory is :$ArticaProxyStatisticsBackupFolder",__FILE__,__LINE__,"backup",null,__FILE__,__LINE__);
+			squid_admin_mysql(0,"Fatal backup partition is over 90% {$percent}%, aborting backup","Directory is :$ArticaProxyStatisticsBackupFolder",__FILE__,__LINE__);
+			die();
+		}
+	}
+	
 	
 	$ArticaProxyStatisticsBackupFolderORG=$ArticaProxyStatisticsBackupFolder;
 	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
@@ -463,13 +477,13 @@ function GetMountPoint(){
 	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
 
 	
-	$BackupSquidStatsUseNas=$sock->GET_INFO("BackupSquidStatsUseNas");
+	$BackupSquidStatsUseNas=intval($sock->GET_INFO("BackupSquidStatsUseNas"));
 	$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidStatsNASIpaddr");
 	$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidStatsNASFolder");
 	$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidStatsNASUser");
 	$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
 	$BackupSquidStatsNASRetry=$sock->GET_INFO("BackupSquidStatsNASRetry");
-	if(!is_numeric($BackupSquidStatsUseNas)){$BackupSquidStatsUseNas=0;}
+	
 	if(!is_numeric($BackupSquidStatsNASRetry)){$BackupSquidStatsNASRetry=0;}
 
 	$GLOBALS["MountedNAS"]=false;

@@ -60,7 +60,7 @@ function main_settings(){
 	
 	$html="
 	<div id='smboptions2div'>
-	<div class=explain style='font-size:14px'>{smb_perf_explain}</div>
+	<div class=text-info style='font-size:14px'>{smb_perf_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>	
 		<td align='right' nowrap valign='top' class=legend style='font-size:14px'>{samba_strict_allocate}:</td>

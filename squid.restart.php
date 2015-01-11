@@ -39,6 +39,10 @@ function title(){
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{reload_service}");
 	}
 	
+	if(isset($_GET["wccp"])){
+		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{WCCP_LAYER3}");
+	}	
+	
 	if(isset($_GET["CheckCaches"])){
 		$warn=$tpl->javascript_parse_text("{check_caches_warning}");
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{check_caches}");
@@ -66,6 +70,10 @@ function suffix(){
 	
 	}
 	
+	if(isset($_GET["wccp"])){
+		$wccp="&wccp=yes";
+	}
+	
 	if(isset($_GET["ApplyConfToo"])){
 		$ApplyConfToo="&ApplyConfToo=yes";
 	}
@@ -83,7 +91,7 @@ function suffix(){
 		$onlySquid="&firewall=yes";
 	}
 
-	return "$onlySquid$ApplyConfToo$reconfigure";
+	return "$onlySquid$wccp$ApplyConfToo$reconfigure";
 	
 }
 
@@ -116,8 +124,6 @@ function js(){
 		$warn
 		RTMMail('800','$page?popup=yes$suffix','$title');
 	}
-	
-	
 	Start$t();";
 	
 	
@@ -136,19 +142,32 @@ function buildjs(){
 	$prc=intval($array["POURC"]);
 	$title=$tpl->javascript_parse_text($array["TEXT"]);
 	
+	if($prc==0){
+		$prc=intval(trim(@file_get_contents("/usr/share/artica-postfix/ressources/logs/squid.restart.progress2")));
+	}
 	
 	
-if($prc==0){
-echo "
-function Start$time(){
-		if(!RTMMailOpen()){return;}
-		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}');
-}
-setTimeout(\"Start$time()\",1000);";
-return;
+	$md5file=trim(md5_file($GLOBALS["LOGSFILES"]));
+	
+	echo "// CACHE FILE: {$GLOBALS["CACHEFILE"]} {$prc}%\n";
+	echo "// LOGS FILE: {$GLOBALS["LOGSFILES"]} - $md5file ". strlen($md5file)."\n";
+	
+if ($prc==0){
+	if(strlen($md5file)<32){
+	echo "
+	// PRC = $prc ; md5file=$md5file
+	function Start$time(){
+			if(!RTMMailOpen()){return;}
+			Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}');
+	}
+	setTimeout(\"Start$time()\",1000);";
+	
+	
+	return;
+	}
 }
 
-$md5file=md5_file($GLOBALS["LOGSFILES"]);
+
 if($md5file<>$_GET["md5file"]){
 	echo "
 	var xStart$time= function (obj) {
@@ -197,7 +216,7 @@ if($prc==100){
 		$('#progress-$t').progressbar({ value: $prc });
 		LayersTabsAllAfter();
 		RTMMailHide();
-		CacheOff();
+		
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	
@@ -213,15 +232,6 @@ function Start$time(){
 	}
 	setTimeout(\"Start$time()\",1500);
 ";
-
-
-
-
-//Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}');
-		
-	
-	
-	
 }
 
 function Launch(){
@@ -229,6 +239,27 @@ function Launch(){
 	if(isset($_GET["ApplyConfToo"])){
 		$ApplyConfToo="&ApplyConfToo=yes";
 	}	
+	
+	$onlyreload=false;
+	
+	if($_GET["onlyreload"]=="yes"){
+		$onlyreload=true;
+	}
+	
+	
+	if($_GET["onlySquid"]=="yes"){
+		if($_GET["ApplyConfToo"]=="yes"){
+			if(!$onlyreload){
+				$cmd="squid.php?restart-and-reconfigure=yes";
+				writelogs("launch $cmd",__FUNCTION__,__FILE__,__LINE__);
+				$sock->getFrameWork($cmd);
+				return;
+			}
+		}
+		
+	}
+	
+	
 	
 	
 	$cmd="cmd.php?force-restart-squid=yes$ApplyConfToo";
@@ -242,6 +273,10 @@ function Launch(){
 		
 	}
 	
+	if(isset($_GET["wccp"])){
+		$cmd="cmd.php?force-restart-squid=yes$ApplyConfToo&wccp=yes";
+	}
+	
 	if(isset($_GET["CheckCaches"])){
 		$cmd="squid.php?squid-z-reconfigure=yes&force=yes";
 	}
@@ -252,6 +287,7 @@ function Launch(){
 	
 	if($GLOBALS["VERBOSE"]){echo "<H1>RUN $cmd</H1>";}
 	
+	writelogs("launch $cmd",__FUNCTION__,__FILE__,__LINE__);
 	$sock->getFrameWork($cmd);
 }
 

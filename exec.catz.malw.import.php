@@ -65,7 +65,7 @@ $c++;
 			
 
 			$md5=md5($www);
-			$www=mysql_escape_string($www);
+			$www=mysql_escape_string2($www);
 			$n[]="('$md5',NOW(),'$www','1')";
 
 

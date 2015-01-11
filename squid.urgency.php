@@ -96,6 +96,8 @@ function other_options(){
 	if(!is_numeric($EnableSquidUrgencyPublic)){$EnableSquidUrgencyPublic=0;}
 	if(!$user->AsSquidAdministrator){return;}
 	
+	
+	
 	$html="
 	<table style='width:100%;margin-top:20px'>
 	<tbody>
@@ -159,6 +161,8 @@ function popup(){
 	
 	$t=time();
 	
+	$SquidUrgency_admin="<div style='font-size:16px' class=text-info>{squid_urgency_explain}</div>";
+	
 	if(!$user->AsSquidAdministrator){
 		$askpassword="
 			<tr>
@@ -170,12 +174,23 @@ function popup(){
 		
 	}
 	
+	if($user->AsSquidAdministrator){
+		if($SquidUrgency==1){
+			
+			$SquidUrgency_admin="<center style='margin:20px'>".button("{disable_emergency_mode}","Loadjs('squid.urgency.remove.progress.php')",26)."</center>";
+		}
+		
+		
+	}
+	
 	
 	$html="
+	<span id='SQUID_URGENCY_FORM_ADM'></span>
 	<div id='$t'>
 	
 	
-	<div style='font-size:16px' class=explain>{squid_urgency_explain}</div>
+	
+	$SquidUrgency_admin
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
@@ -200,6 +215,12 @@ function popup(){
 		if( document.getElementById('squid-status') ){
 			LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');
 		}
+		
+		if( document.getElementById('main_dansguardian_mainrules') ){
+			RefreshTab('main_dansguardian_mainrules');
+		}
+		if(document.getElementById('admin_perso_tabs-ID')){RefreshTab(document.getElementById('admin_perso_tabs-ID').value);}
+		
 	}	
 	
 	function SaveUrg$t(){

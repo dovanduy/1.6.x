@@ -21,7 +21,7 @@ Donnez l'adresse de votre serveur Active Directory et cliquez sur le bouton {bro
 <APP_DDCLIENT>Client DNS Dynamique</APP_DDCLIENT>
 <APP_GROUPWARE_APACHE_TEXT>Activer/D&eacute;sactiver la possibilit&eacute; de cr&eacute;er des application groupwares dans les organisations</APP_GROUPWARE_APACHE_TEXT>
 <APP_LIBGSL>librairie Libgsl</APP_LIBGSL>
-<APP_MYSQLHOTCOPY>MysqlHotCopy</APP_MYSQLHOTCOPY>
+<APP_MYSQLHOTCOPY>MySQLHotCopy</APP_MYSQLHOTCOPY>
 <APP_OPENSSL>librairie OpenSSL</APP_OPENSSL>
 <APP_PERL>Syst&egrave;me PERL</APP_PERL>
 <APP_SQUID_CLAMAV_TAIL>squidclamav RealTime log</APP_SQUID_CLAMAV_TAIL>

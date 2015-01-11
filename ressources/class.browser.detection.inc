@@ -27,6 +27,13 @@ function browser_detection( $which_test=null,$getIeVer=0 ) {
 
 		//make navigator user agent string lower case to make sure all versions get caught
 		// isset protects against blank user agent failure
+		
+		$md5=md5(strtolower($_SERVER["HTTP_USER_AGENT"]));
+		$IE1[md5(strtolower("Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko"))]=true;
+		if(isset($IE1[$md5])){return "ie";}
+		
+		
+		
 		$browser_user_agent = ( isset( $_SERVER['HTTP_USER_AGENT'] ) ) ? strtolower( $_SERVER['HTTP_USER_AGENT'] ) : '';
 		if(strpos($browser_user_agent,'msie ')>0){
 			if($getIeVer==1){

@@ -95,7 +95,7 @@ function master_service_add_popup(){
 	
 	$html="
 	<div id='qosdivadd'>
-	<div class=explain>{add_qos_service_explain}</div>
+	<div class=text-info>{add_qos_service_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{qos_service_name}:</td>
@@ -230,7 +230,7 @@ function index(){
 			</table>
 			
 			<img src='img/qos-bg.png' style='margin-top:5px;margin-bottom:5px'>
-			<div class=explain>{qos_artica_explain}
+			<div class=text-info>{qos_artica_explain}
 			
 			<div style='text-align:right' class=legend><i>tc utility, iproute2 $users->tc_version</i></div>
 			</div>
@@ -390,7 +390,7 @@ function class_popup(){
 	if(trim($qos_class->prio)==null){$qos_class->prio=50;}
 	$html="
 	<div id='classdiv'>
-	<div class=explain>{qos_class_explain}</div>
+	<div class=text-info>{qos_class_explain}</div>
 	<div style='font-size:16px;text-align:right'>{container}: ". FormatBytes($qos->master_service_bandwidth)."</div>
 	<input type='hidden' id='prio' value='$qos_class->prio'>
 	<table style='width:100%'>
@@ -640,7 +640,7 @@ function class_rules_index(){
 	
 	
 	$html="
-	<div class=explain>$qos->name ({$qos->rate}kbs - {$qos->ceil}kbs)</div>
+	<div class=text-info>$qos->name ({$qos->rate}kbs - {$qos->ceil}kbs)</div>
 	<div style='width:100%;text-align:right;margin-bottom:8px'>". button("{add_rule}","YahooWin4('500','$page?class-rules-id=yes&rule_id=0&class_id={$_GET["class_id"]}','{add_rule}')")."</div>
 	
 	<div style='width:100%;height:350px;overflow:auto' id='class-rules-list'></div>

@@ -16,7 +16,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}	
-	if(isset($_POST["StreamCachePort"])){save_parameters();exit;}
+	if(isset($_POST["StreamCacheBindHTTP"])){save_parameters();exit;}
 	if(isset($_GET["status"])){status();exit;}
 	if(isset($_GET["services-videocache-status"])){status_videocache();exit;}
 	if(isset($_GET["videocache-graph1"])){status_videocache_graph1();exit;}
@@ -49,6 +49,7 @@ function tabs(){
 	$array["status"]='{status}';
 	$array["parameters"]='{parameters}';
 	$array["events"]='{events}';
+	$array["events-retriver"]='{retreiver_events}';
 	if($q->TABLE_EXISTS("videocacheA")){
 		$array["stats"]='{statistics}';
 	}
@@ -61,7 +62,11 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.videocache.events.php\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
-	
+		if($num=="events-retriver"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.videocache.events-retreiver.php\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		if($num=="master"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-proxy.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
@@ -70,7 +75,7 @@ function tabs(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 		}
 	
-	echo build_artica_tabs($html, "main_squid_videocache_tabs",1034)."<script>LeftDesign('videocache-256-white-opac20.png');</script>";
+	echo build_artica_tabs($html, "main_squid_videocache_tabs",1200)."<script>LeftDesign('videocache-256-white-opac20.png');</script>";
 }
 
 function reinstall_js(){
@@ -109,6 +114,7 @@ function status(){
 	$page=CurrentPageName();
 	$t=time();
 	$sock=new sockets();
+	$squid=new squidbee();
 	$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
 	$EnableStreamCacheP=Paragraphe_switch_img("{EnableStreamCache}", 
 			"{EnableStreamCache_text}","EnableStreamCache",$EnableStreamCache,null,600);
@@ -116,6 +122,19 @@ function status(){
 	
 	if(!$users->CORP_LICENSE){
 		$error_license="<p class=text-error>{error_corp_30day}</p>";
+	}
+	
+	$SSL_BUMP=$squid->SSL_BUMP;
+	
+	
+	if($SSL_BUMP==0){
+		$error_license=$error_license.
+		"<table style='margin-top:10px'>
+		<tr>
+			<td valign='top' nowrap><img src=img/warning-panneau-64.png'></td>
+			<td style='padding-left:15px' style='font-size:18px'>{warn_videocache_nossl}</td>
+		</tr>
+		</table>";
 	}
 	
 
@@ -166,7 +185,7 @@ function status_videocache(){
 			"Loadjs('$page?reinstall-js=yes')",26)."</center>");
 	
 	$ini->loadString(base64_decode($sock->getFrameWork("squid.php?videocache-status=yes")));
-	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE",$ini,null,1);
+	
 	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_SCHEDULER",$ini,null,1);
 	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_CLIENT",$ini,null,1);
 	echo $tpl->_ENGINE_parse_body(@implode("<p>&nbsp;</p>", $STATUS).
@@ -225,48 +244,11 @@ function status_videocache_graph1(){
 	$highcharts->LegendSuffix=" MB";
 	echo $highcharts->BuildChart();
 	
-	echo "
-	AnimateDiv('videocache-graph2');
-	Loadjs('$page?videocache-graph2=yes&container=videocache-graph2',true);
-
-	";
+	
 
 }
 
-function status_videocache_graph2(){
-	$tpl=new templates();
-	$page=CurrentPageName();
-	$filecache="/usr/share/artica-postfix/ressources/logs/web/videocache.dirs.status.db";
-	$MAIN=unserialize(@file_get_contents($filecache));
-	$MAIN_TABLE=$MAIN["SQUID"];
-	$SIZE=$MAIN_TABLE["SIZE"];
-	$SIZE2=($SIZE/1024)/1000;
-	$TOTAL_TEXT=FormatBytes($MAIN_TABLE["PART"]["TOT"]/1024);
-	
-	$PieData[$tpl->javascript_parse_text("{APP_VIDEOCACHE}")." ".$tpl->javascript_parse_text(FormatBytes($SIZE/1024))]=$SIZE2;
-	
-	$OTHER=intval($MAIN_TABLE["PART"]["USED"]-$SIZE);
-	$FREE=$MAIN_TABLE["PART"]["AIV"];
-	
-	$OTHER2=($OTHER/1024)/1000;
-	$FREE2=($FREE/1024)/1000;
-	
-	$other_text=$tpl->javascript_parse_text("{other}");
-	$free_text=$tpl->javascript_parse_text("{free}");
-	$PieData["$other_text ".FormatBytes($OTHER/1024)]=$OTHER2;
-	$PieData["$free_text ".FormatBytes($FREE/1024)]=$FREE2;
-	
-	$tpl=new templates();
-	$highcharts=new highcharts();
-	$highcharts->container=$_GET["container"];
-	$highcharts->PieDatas=$PieData;
-	$highcharts->ChartType="pie";
-	$highcharts->PiePlotTitle=$tpl->javascript_parse_text("{APP_VIDEOCACHE}");
-	$highcharts->Title=$tpl->javascript_parse_text("{APP_VIDEOCACHE}")."  \"{$MAIN_TABLE["PART"]["MOUNT"]}\" $TOTAL_TEXT";
-	$highcharts->LegendSuffix=" MB";
-	echo $highcharts->BuildChart();	
-	
-}
+
 
 
 function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
@@ -282,16 +264,7 @@ function parameters(){
 	$t=time();
 	$sock=new sockets();
 
-	$StreamCachePort=intval($sock->GET_INFO("StreamCachePort"));
-	$StreamCacheSize=intval($sock->GET_INFO("StreamCacheSize"));
-	$StreamCacheSSLPort=intval($sock->GET_INFO("StreamCacheSSLPort"));
-	$StreamCacheICPPort=intval($sock->GET_INFO("StreamCacheICPPort"));
-	$StreamCacheUrlRewiteNumber=intval($sock->GET_INFO("StreamCacheUrlRewiteNumber"));
-	if($StreamCacheSize==0){$StreamCacheSize=1500;}
-	if($StreamCachePort==0){$StreamCachePort=5559;}
-	if($StreamCacheSSLPort==0){$StreamCacheSSLPort=5560;}
-	if($StreamCacheICPPort==0){$StreamCacheICPPort=5562;}
-	if($StreamCacheUrlRewiteNumber==0){$StreamCacheUrlRewiteNumber=15;}
+
 	
 	$StreamCacheCache=$sock->GET_INFO("StreamCacheCache");
 	if($StreamCacheCache==null){$StreamCacheCache="/home/squid/videocache";}
@@ -299,7 +272,7 @@ function parameters(){
 	if($StreamCacheMainCache==null){$StreamCacheMainCache="/home/squid/streamcache";}
 	$StreamCacheBindHTTP=$sock->GET_INFO("StreamCacheBindHTTP");
 	$StreamCacheBindProxy=$sock->GET_INFO("StreamCacheBindProxy");
-	$StreamCacheOutProxy=$sock->GET_INFO("StreamCacheOutProxy");
+	
 	
 	$ip=new networking();
 	$ips=$ip->ALL_IPS_GET_ARRAY();
@@ -317,68 +290,25 @@ function parameters(){
 $html="<div style=width:98% class=form>
 	<table style='width:100%'>
 	<tr>
-		<td colspan=3 style='font-size:22px'>{APP_VIDEOCACHE}<hr></td>
+		<td colspan=3 style='font-size:32px'>{APP_VIDEOCACHE}<hr></td>
 	</tr>
+	
 	<tr>
-		<td class=legend style='font-size:18px'>{listen_address}:</td>
-		<td style='font-size:18px'>". Field_array_Hash($ips2,"StreamCacheBindProxy",$StreamCacheBindProxy,"style:font-size:18px")."<td>
-		<td>&nbsp;</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px'>{forward_address}:</td>
-		<td style='font-size:18px'>". Field_array_Hash($ips3,"StreamCacheOutProxy",$StreamCacheOutProxy,"style:font-size:18px")."<td>
-		<td style='font-size:18px' width=1%><td>
-	</tr>					
-	<tr>
-		<td class=legend style='font-size:18px'>{main_port}:</td>
-		<td>". Field_text("StreamCachePort",$StreamCachePort,"font-size:18px;width:110px")."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:18px'>{main_ssl_port}:</td>
-		<td>". Field_text("StreamCacheSSLPort",$StreamCacheSSLPort,"font-size:18px;width:110px")."</td>
-		<td>&nbsp;</td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:18px'>{icp_port}:</td>
-		<td>". Field_text("StreamCacheICPPort",$StreamCacheICPPort,"font-size:18px;width:110px")."</td>
-		<td>&nbsp;</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px'>{webserver} ({listen_address}):</td>
-		<td style='font-size:18px'>". Field_array_Hash($ips,"StreamCacheBindHTTP",$StreamCacheBindHTTP,"style:font-size:18px")."<td>
+		<td class=legend style='font-size:22px'>{webserver} ({listen_address}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($ips,"StreamCacheBindHTTP",$StreamCacheBindHTTP,"style:font-size:22px")."<td>
 		<td style='font-size:18px' width=1%><td>
 	</tr>				
-				
-	<tr>
-		<td colspan=3 style='font-size:22px'>{performances}<hr></td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:18px'>{max_plugins}:</td>
-		<td>". Field_text("StreamCacheUrlRewiteNumber",$StreamCacheUrlRewiteNumber,"font-size:18px;width:110px")."</td>
-		<td>&nbsp;</td>
-	</tr>	
+	
 	<tr>
 		<td colspan=3 style='font-size:22px'>{caches}<hr></td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{main_cache}:</td>
-		<td>". Field_text("StreamCacheMainCache",$StreamCacheMainCache,"font-size:18px;width:350px")."</td>
-		<td>". button_browse("StreamCacheMainCache")."</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px'>{cache_size}:</td>
-		<td style='font-size:18px'>". Field_text("StreamCacheSize",$StreamCacheSize,"font-size:18px;width:110px")."&nbsp;MB</td>
-		<td></td>
-	</tr>	
-	
-	<tr>
-		<td class=legend style='font-size:18px'>{videos_storage}:</td>
-		<td style='font-size:18px'>". Field_text("StreamCacheCache",$StreamCacheCache,"font-size:18px;width:350px")."</td>
+		<td class=legend style='font-size:22px'>{videos_storage}:</td>
+		<td style='font-size:22px'>". Field_text("StreamCacheCache",$StreamCacheCache,"font-size:18px;width:350px")."</td>
 		<td>". button_browse("StreamCacheCache")."</td>
 	</tr>	
 	<tr>
-	<td colspan=3 align='right'><hr>". button("{apply}", "Save$t()",26)."</td>
+	<td colspan=3 align='right' style='padding-top:20px'><hr>". button("{apply}", "Save$t()",32)."</td>
 	</tr>
 	
 	</table>
@@ -391,20 +321,8 @@ var xSave$t= function (obj) {
 }
 function Save$t(){
 	var XHR = new XHRConnection();
-	XHR.appendData('StreamCachePort', document.getElementById('StreamCachePort').value);
-	XHR.appendData('StreamCacheSSLPort', document.getElementById('StreamCacheSSLPort').value);
-	XHR.appendData('StreamCacheICPPort', document.getElementById('StreamCacheICPPort').value);
-	XHR.appendData('StreamCacheUrlRewiteNumber', document.getElementById('StreamCacheUrlRewiteNumber').value);
-	XHR.appendData('StreamCacheMainCache', document.getElementById('StreamCacheMainCache').value);
-	XHR.appendData('StreamCacheSize', document.getElementById('StreamCacheSize').value);
 	XHR.appendData('StreamCacheCache', document.getElementById('StreamCacheCache').value);
 	XHR.appendData('StreamCacheBindHTTP', document.getElementById('StreamCacheBindHTTP').value);
-	XHR.appendData('StreamCacheBindProxy', document.getElementById('StreamCacheBindProxy').value);
-	XHR.appendData('StreamCacheOutProxy', document.getElementById('StreamCacheOutProxy').value);
-	
-	
-	
-	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);		
 }
 </script>";	

@@ -510,9 +510,9 @@ function writelogs($text=null,$function=null,$line=0){
 		}
 		
 		if(!$this->BD_CONNECT(false,$called)){
-			if($GLOBALS["VERBOSE"]){echo "Unable to BD_CONNECT class mysql/QUERY_SQL $this->mysql_admin@$this->mysql_server:$this->mysql_port\n";}
+			if($GLOBALS["VERBOSE"]){echo "Unable to BD_CONNECT class mysql/QUERY_SQL $this->mysql_admin@$this->mysql_server:$this->mysql_port \n";}
 			if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL error DB:\"$database\" Error, unable to connect to MySQL server, request failed\n$called" , __FUNCTION__, __FILE__, __LINE__, "mysql-error");}
-			$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error, unable to connect to MySQL server, request failed",__CLASS__.'/'.__FUNCTION__,__LINE__);
+			$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error, unable to connect to MySQL server, request failed called:$called",__CLASS__.'/'.__FUNCTION__,__LINE__);
 			$this->ok=false;
 			$this->mysql_error=$this->mysql_error ." Error, unable to connect to MySQL server";
 			return false;
@@ -1269,6 +1269,37 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		
 	}
 	
+	public function LIST_TABLES_CURL_HOUR(){
+		if(isset($GLOBALS["LIST_TABLES_CURL_HOUR"])){return $GLOBALS["LIST_TABLES_CURL_HOUR"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'artica_events' AND table_name LIKE '%_curl'";
+		$results=$this->QUERY_SQL($sql,"mysql");
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#[0-9]+_curl$#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_CURL_HOUR"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$this->TIME_FROM_HOUR_GENERIC_TABLE($ligne["c"]);
+			}
+		}
+		return $array;
+	
+	}
+	
+	private function TIME_FROM_HOUR_GENERIC_TABLE($tablename){
+		preg_match("#([0-9]+)_[a-z]+$#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		$CHour=substr($intval,8,2);
+		$xtime="$Cyear-$CMonth-$CDay $CHour:00:00";
+	//	if($GLOBALS["VERBOSE"]){echo "$tablename -> $xtime\n";}
+		return strtotime("$Cyear-$CMonth-$CDay $CHour:00:00");
+	}
+	
 	
 	function PRIVILEGES_DELETE($database){
 		$sql="DELETE FROM `mysql`.`db` WHERE `db`.`Db` = '$database'";
@@ -1699,6 +1730,8 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	private function DATABASE_INFOS($database){
 		$sql="show TABLE STATUS";
 		$results=$this->QUERY_SQL($sql,$database);
+		$count=0;
+		$dbsize=0;
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$dbsize += $ligne['Data_length'] + $ligne['Index_length']; 
 			$count=$count+1;}
@@ -1878,6 +1911,25 @@ function mysql_real_escape_string2($query){
 		return $array;
 	
 	}
+	
+	public function LIST_TABLES_POWERDNS(){
+		if(isset($GLOBALS["LIST_TABLES_POWERDNS"])){return $GLOBALS["LIST_TABLES_POWERDNS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'powerdns'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_POWERDNS"]=$array;
+		return $array;
+	
+	}	
+	
+	
+	
 	public function LIST_TABLES_ARTICA_SQUIDLOGS(){
 		if(isset($GLOBALS["LIST_TABLES_ARTICA_SQUIDLOGS"])){return $GLOBALS["LIST_TABLES_ARTICA_SQUIDLOGS"];}
 		$array=array();

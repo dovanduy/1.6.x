@@ -31,7 +31,7 @@ function tabs(){
 	$array["{status}"]="$page?status=yes&groupby=familysite&xtime={$_GET["xtime"]}";
 	$array["{events}"]="$page?events=yes&groupby=familysite&xtime={$_GET["xtime"]}";
 	$title= $tpl->_ENGINE_parse_body("<h4>$title</H4>
-	<div class=explain>{not_categorized_day_explain}</div>");
+	<div class=text-info>{not_categorized_day_explain}</div>");
 	echo "
 	$title
 	".$boot->build_tab($array);
@@ -82,7 +82,7 @@ function status(){
 	
 	if($CUR==$MAX){
 		$tpl=new templates();
-		echo $tpl->_ENGINE_parse_body("<div class=explain>{this_table_is_categorized}</div>");
+		echo $tpl->_ENGINE_parse_body("<div class=text-info>{this_table_is_categorized}</div>");
 		
 	}
 	
@@ -93,7 +93,7 @@ function status(){
 	}else{
 		$text="$CUR/$MAX - $pourc% - {running} {since}: {$PP["PROCESS_TIME"]}";
 	}
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:18px;font-weight:bold'>$text</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:18px;font-weight:bold'>$text</div>");
 }
 
 function section_events_search(){

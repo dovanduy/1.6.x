@@ -55,6 +55,9 @@ if($argv[1]=="--hosts-defaults"){etc_hosts_defaults();exit;}
 if($argv[1]=="--iptables-bridge-delete"){bridges_delete();exit;}
 if($argv[1]=="--ucarp-notify"){ucarp_notify($argv[2],$argv[3],$argv[4],$argv[5],$argv[6]);exit;}
 if($argv[1]=="--ucarp-notify-down"){ucarp_notify_down($argv[2],$argv[3],$argv[4],$argv[5],$argv[6]);exit;}
+if($argv[1]=="--wccp-build"){nics_wccp_build(true);exit;}
+if($argv[1]=="--ucarp-active"){print_r(ucarp_interface_active(true));exit;}
+
 
 
 
@@ -347,6 +350,7 @@ function etc_hosts(){
 	$echo=$unix->find_program("echo");
 	$sock=new sockets();
 	$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	$q=new mysql();
 	$DisableEtcHosts=$sock->GET_INFO("DisableEtcHosts");
 	if(!is_numeric($DisableEtcHosts)){$DisableEtcHosts=0;}
@@ -417,6 +421,37 @@ function etc_hosts(){
 		
 		
 	}
+	
+	
+	$q=new mysql_squid_builder();
+	
+	$sql="SELECT * FROM dnsmasq_records";
+	$results=$q->QUERY_SQL($sql);
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ipaddr=trim($ligne["ipaddr"]);
+		$hostname=trim($ligne["hostname"]);
+		
+		if(strpos($hostname, ".")>0){
+				$hostname_EXPLODED=explode(".",$hostname); 
+				$alias=$hostname_EXPLODED[0]; 
+		}
+		
+		$results2=$q->QUERY_SQL("SELECT hostname FROM dnsmasq_cname WHERE recordid={$ligne["ID"]}");
+		$aliases=array();
+		while ($ligne2 = mysql_fetch_assoc($results2)) {
+			if(trim($ligne2["hostname"])==null){continue;}
+			$alias=$ligne2["hostname"];
+			break;
+		}
+		$lineExe=trim("{$ipaddr}\t{$hostname}\t{$alias}");
+		$GLOBALS["SCRIPTS"][]="$echo \"$lineExe\" >> /etc/hosts";
+	
+	}	
+	
+	
+	
+	
 	
 	$GLOBALS["SCRIPTS"][]="#";
 	
@@ -679,6 +714,34 @@ function ucarp_build($nopid=false){
 }
 
 
+function ucarp_interface_active(){
+	
+	$unix=new unix();
+	$ifconfig=$unix->find_program("ifconfig");
+	exec("$ifconfig -a 2>&1",$results);
+	$interface=null;
+	$ipaddr=null;
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#(.+?):ucarp.*?HWaddr\s+(.+)#",$ligne,$re)){
+			$interface=$re[1];
+			$MAC=$re[2];
+			continue;
+		}
+		if($interface<>null){
+			if(preg_match("#inet\s+addr:([0-9\.]+)\s+Bcast:#",$ligne,$re)){
+				$ipaddr=$re[1];
+				break;
+			}
+			
+		}
+		
+	}
+	
+	return array("NIC"=>$interface,"MAC"=>$MAC,"IP"=>$ipaddr);
+	
+}
+
+
 
 
 function ucarp_start(){
@@ -732,6 +795,7 @@ function ucarp_start(){
 			system_failover_events("Daemon:<br>`$eth` linking to network",__FUNCTION__,basename(__FILE__),__LINE__);
 			echo "Starting......: ".date("H:i:s")." UCARP `$eth` linking to network...\n";
 			shell_exec("/usr/share/ucarp/vip-$eth-up.sh");
+			echo "Starting......: ".date("H:i:s")." UCARP `$eth` linking to network success...\n";
 		}
 	}
 	
@@ -773,9 +837,10 @@ function IPTABLES_NETWORK_BRIDGES(){
 	}
 	
 	if(mysql_num_rows($results)==0){
-		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] No rule set";
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] No rule set in `pnic_bridges` table";
 		$GLOBALS["SCRIPTS"][]="# Enable TimeStamps";
 		$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/tcp_timestamps";
+		
 		return;
 	}
 	
@@ -791,15 +856,22 @@ function IPTABLES_NETWORK_BRIDGES(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$nic_from=$ligne["nic_from"];
 		$nic_to=$ligne["nic_to"];
+		$DenyDHCP=$ligne["DenyDHCP"];
 		
 		$nic_from=$NetBuilder->NicToOther($nic_from);
 		$nic_to=$NetBuilder->NicToOther($nic_to);
 		
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Inbound $nic_from outbound $nic_to $comment DenyDHCP=$DenyDHCP";
 		
-		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Inbound $nic_from outbound $nic_to $comment";
+
 		$GLOBALS["SCRIPTS"][]="$iptables -t nat -A POSTROUTING -o $nic_to -j MASQUERADE $comment";
 		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i $nic_from -o $nic_to -m state --state RELATED,ESTABLISHED -j ACCEPT $comment";
 		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT $comment";
+		
+		if($DenyDHCP==1){
+			$GLOBALS["SCRIPTS"][]="$iptables -I FORWARD -i $nic_from -o $nic_to -p udp --dport 67:68 --sport 67:68 -j DROP $comment";
+		}
+		
 	}
 	
 }
@@ -1103,10 +1175,12 @@ function build(){
 	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script executed (start)\" || true";
 	$mkdir=$unix->find_program("mkdir");
 	$sh[]="mkdir -p /run/network >/dev/null 2>&1";
+	$sh[]="$php5 /usr/share/artica-postfix/exec.virtuals-ip-notify.php --start || true";
 	etc_hosts();
 	routes_main();
 	ucarp_build(true);
 	bridges_build();
+	nics_wccp_build();
 	IPTABLES_NETWORK_BRIDGES();
 	
 	
@@ -1246,11 +1320,10 @@ function build(){
 	$sh[]=nics_vde_build();
 	
 	
+	
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;$EnableDNSMASQ=1;}
+
 	$unix=new unix();
 	$squid=$unix->LOCATE_SQUID_BIN();
 	$ip=$unix->find_program("ip");
@@ -1290,6 +1363,11 @@ function build(){
 	$sh[]="# [".__LINE__."] Starting FrameWork";
 	$sh[]="$echo \"Starting FrameWork\"";
 	$sh[]="$nohup $php5 /usr/share/artica-postfix/exec.framework.php --start >/dev/null 2>&1 &";
+	
+	$sh[]="# [".__LINE__."] Starting Artica Meta Client";
+	$sh[]="$echo \"Starting FrameWork\"";
+	$sh[]="$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-client.php --ping --force >/dev/null 2>&1 &";
+	
 	
 	if($EnablePDNS==1){
 		$sh[]="# [".__LINE__."] Reloading PowerDNS...";
@@ -1390,6 +1468,9 @@ function build(){
 	$inter[]="";
 	$inter[]="";
 	if(is_file("/etc/network/interfaces")){ @file_put_contents("/etc/network/interfaces", @implode("\n", $inter)); }
+	
+	squid_admin_mysql(1, "Network script was rebuilded", null,__FILE__,__LINE__);
+	
 	echo "Starting......: ".date("H:i:s")." Building FireWall rules.\n";
 	system("$php5 /usr/share/artica-postfix/exec.firewall.php");
 	echo "Starting......: ".date("H:i:s")." done...\n";
@@ -1447,6 +1528,91 @@ function ifconfig_tests(){
 function nics_vde_build(){
 	if(isset($GLOBALS["nics_vde_build"])){return;}
 	$GLOBALS["nics_vde_build"]=true;
+}
+
+function nics_wccp_build($finalsh=false){
+	$unix=new unix();
+	$modeprobe=$unix->find_program("modprobe");
+	$ipbin=$unix->find_program("ip");
+	$ifconfig=$unix->find_program("ifconfig");
+	$echobin=$unix->find_program("echo");
+	$iptables=$unix->find_program("iptables");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$route=$unix->find_program("route");
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for SQUID/WCCP Layer 3 ****";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+	
+	$sock=new sockets();
+	$SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
+	
+	if($SquidWCCPL3Enabled==0){
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Not enabled.";
+		$GLOBALS["SCRIPTS"][]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php";
+		return;
+	}
+	
+	$SquidWCCPL3Addr=$sock->GET_INFO("SquidWCCPL3Addr");
+	$SquidWCCPL3Inter=$sock->GET_INFO("SquidWCCPL3Inter");
+	$SquidWCCPL3Eth=$sock->GET_INFO("SquidWCCPL3Eth");
+	$SquidWCCPL3LocIP=$sock->GET_INFO("SquidWCCPL3LocIP");
+	$SquidWCCPL3ProxPort=intval($sock->GET_INFO("SquidWCCPL3ProxPort"));
+	$SquidWCCPL3Route=$sock->GET_INFO("SquidWCCPL3Route");
+	$SquidWCCPL3SSLProxPort=intval($sock->GET_INFO("SquidWCCPL3SSLProxPort"));
+	if($SquidWCCPL3ProxPort==0){
+		$SquidWCCPL3ProxPort=rand(35000,62680);
+		$sock->SET_INFO("SquidWCCPL3ProxPort", $SquidWCCPL3ProxPort);
+	}
+	
+	$nic=new system_nic($SquidWCCPL3Eth);
+	$SquidWCCPL3LocIP=$nic->IPADDR;
+	
+	
+	$MARKLOG="-m comment --comment \"ArticaWCCPL3Transparent\"";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Local Interface: $SquidWCCPL3Eth/$SquidWCCPL3LocIP building gre tunnel from $SquidWCCPL3Inter to local $SquidWCCPL3LocIP";
+	$GLOBALS["SCRIPTS"][]="modprobe ip_gre";
+	
+
+	$GLOBALS["SCRIPTS"][]="$ipbin link del dev wccp50";
+	$GLOBALS["SCRIPTS"][]="$ipbin tunnel add wccp50 mode gre remote $SquidWCCPL3Inter local $SquidWCCPL3LocIP dev $SquidWCCPL3Eth";
+	$GLOBALS["SCRIPTS"][]="$ipbin addr add $SquidWCCPL3LocIP dev wccp50";
+	$GLOBALS["SCRIPTS"][]="$ipbin link set wccp50 up";
+	if($SquidWCCPL3Route<>null){
+		$GLOBALS["SCRIPTS"][]="$route add -net $SquidWCCPL3Route dev wccp50";
+	}
+	
+	$GLOBALS["SCRIPTS"][]="$echobin 0 >/proc/sys/net/ipv4/conf/wccp50/rp_filter";
+	$GLOBALS["SCRIPTS"][]="$echobin 0 >/proc/sys/net/ipv4/conf/$SquidWCCPL3Eth/rp_filter";
+	
+	$GLOBALS["SCRIPTS"][]="$echobin 1 >/proc/sys/net/ipv4/ip_forward";
+	$GLOBALS["SCRIPTS"][]="$iptables -I INPUT -s 0.0.0.0/0 -d $SquidWCCPL3LocIP -p gre -j ACCEPT $MARKLOG";
+	$GLOBALS["SCRIPTS"][]="$iptables -t nat -A PREROUTING -i wccp50 -p tcp --dport 80 -j REDIRECT --to-port $SquidWCCPL3ProxPort $MARKLOG";
+	
+	$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+	if($SquidWCCPL3SSLEnabled==1){
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] SSL enabled redirect to port: $SquidWCCPL3SSLProxPort";
+		$GLOBALS["SCRIPTS"][]="$iptables -t nat -A PREROUTING -i wccp50 -p tcp --dport 443 -j REDIRECT --to-port $SquidWCCPL3SSLProxPort $MARKLOG";
+	}
+	$GLOBALS["SCRIPTS"][]="$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG";
+	
+	
+	if($finalsh){
+		$unix=new unix();
+		$php=$unix->LOCATE_PHP5_BIN();
+		$sh[]="#!/bin/sh";
+		$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php --wccp";
+		while (list ($arecord, $cmdline) = each ($GLOBALS["SCRIPTS"]) ){
+			$sh[]=$cmdline;
+		}
+		
+	}
+	$sh[]="exit 0\n";
+	@file_put_contents("/bin/artica-wccp.sh", @implode("\n", $sh));
+	@chmod("/bin/artica-wccp.sh",0755);
+	
+	
 }
 
 
@@ -2141,6 +2307,11 @@ function routes_main_host($ligne){
 	}
 	
 	
+	if(preg_match("#(.+?)\/([0-9]+)#", $pattern,$re)){
+		$pattern=$re[1];
+	}
+	
+	
 	if(!$ipClass->isValid($pattern)){
 		$pattern=gethostbyname($pattern);
 	
@@ -2277,6 +2448,7 @@ function routes(){
 	$f[]="255\tlocal";
 	$f[]="254\tmain";
 	$f[]="253\tdefault";
+	$f[]="299\tproxy";
 	$f[]="0\tunspec";
 	$c=1;
 	if(count($TABLES)>0){

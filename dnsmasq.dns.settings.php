@@ -131,6 +131,7 @@ echo $tpl->_ENGINE_parse_body($html);
 function EnableDNSMASQ_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableDNSMASQ", $_POST["EnableDNSMASQ"]);
+	$sock->SET_INFO("EnableLocalDNSMASQ", $_POST["EnableDNSMASQ"]);
 	$sock->SET_INFO("EnableDNSMASQLDAPDB",$_POST["EnableDNSMASQLDAPDB"]);
 	
 }
@@ -146,14 +147,9 @@ function main_form(){
 	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:16px;padding:3px;");
 	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:16px;padding:3px;");
 	$sock=new sockets();
-	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
-	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
+	$EnableDNSMASQ=intval($sock->GET_INFO("EnableDNSMASQ"));
 
 
-	
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
 	
 	
 	
@@ -323,7 +319,7 @@ function page_status(){
 	<tr>
 		<td width=1% style='font-size:18px;vertical-align:top;'><div id='get-status'></div></td>
 		<td width=99% style='font-size:18px;vertical-align:top;'>
-			<div class=explain id='dnsmaskrool' style='font-size:16px'>{dnsmasq_intro_settings}</div>
+			<div class=text-info id='dnsmaskrool' style='font-size:16px'>{dnsmasq_intro_settings}</div>
 			<div id='enable-$t'></div>
 			
 			
@@ -518,7 +514,7 @@ function wpad(){
 	
 	
 	$html="
-	<div id='div-$t' class=explain style='font-size:16px'>{dnsmasq_wpad_explain}</div>
+	<div id='div-$t' class=text-info style='font-size:16px'>{dnsmasq_wpad_explain}</div>
 	 <div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
@@ -647,10 +643,7 @@ function EnableDNSMASQSave(){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
-	
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 	
 	
 	
@@ -668,6 +661,7 @@ function EnableDNSMASQSave(){
 				$tpl=new templates();
 				echo $tpl->javascript_parse_text("{COULD_NOT_PERF_OP_SOFT_ENABLED}:\n{APP_PDNS}");
 				$sock->SET_INFO("EnableDNSMASQ",0);
+				$sock->SET_INFO("EnableLocalDNSMASQ",0);
 				return;
 			}
 		}
@@ -675,9 +669,10 @@ function EnableDNSMASQSave(){
 	}
 	writelogs("Save EnableDNSMASQ: {$_GET["EnableDNSMASQ"]}",__FUNCTION__,__FILE__,__LINE__);
 	$sock->SET_INFO("EnableDNSMASQ",$_GET["EnableDNSMASQ"]);
+	$sock->SET_INFO("EnableLocalDNSMASQ",$_GET["EnableDNSMASQ"]);
 	if($_GET["EnableDNSMASQ"]==1){
-		$sock->SET_INFO("EnableDNSMASQ",0);
 		$sock->SET_INFO("EnableDNSMASQ",1);
+		$sock->SET_INFO("EnableLocalDNSMASQ",1);
 	}
 	
 	
@@ -696,7 +691,7 @@ function page_localdomains(){
 	$domains=$tpl->_ENGINE_parse_body("{domains}");
 	$dnsmasq_localdomains_explain=$tpl->_ENGINE_parse_body("{dnsmasq_localdomains_explain}");
 	$new_domain=$tpl->javascript_parse_text("{new_domain}");
-	$html="<div class=explain style='font-size:16px'>$dnsmasq_localdomains_explain</div>
+	$html="<div class=text-info style='font-size:16px'>$dnsmasq_localdomains_explain</div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	<script>

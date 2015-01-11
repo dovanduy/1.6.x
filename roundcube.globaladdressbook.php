@@ -144,7 +144,7 @@ function admins(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$add_member=$tpl->_ENGINE_parse_body("{add_member}");
-	$html="<div class=explain style='margin:10px'>{global_addressbook_admin_users_text}</div>
+	$html="<div class=text-info style='margin:10px'>{global_addressbook_admin_users_text}</div>
 	<div style='text-align:right'>". button("$add_member","AddGBLMember()")."</div>
 	<div id='admin_users_div' style='margin:20px'></div>
 	

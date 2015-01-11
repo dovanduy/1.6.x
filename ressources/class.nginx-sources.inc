@@ -19,6 +19,7 @@ class nginx_sources{
 	public $proxy_cache_min_uses=1;
 	public $proxy_buffer_size=8;
 	public $proxy_buffers="8 8k";
+	public $proxy_cookie_domain=1;
 	function nginx_source($cache_peer_id=0){
 		if(!is_numeric($cache_peer_id)){return;}
 		if($cache_peer_id>0){$this->load($cache_peer_id);}
@@ -55,6 +56,7 @@ class nginx_sources{
 		$this->proxy_buffer_size=$ligne["proxy_buffer_size"];
 		$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
 		$this->proxy_buffers=$ligne["proxy_buffers"];
+		$this->proxy_cookie_domain=$ligne["proxy_cookie_domain"];
 	}
 	
 	public function PatchTables(){
@@ -68,15 +70,20 @@ class nginx_sources{
 			  `ssl` smallint(1)  NOT NULL,
 			  `sslport` smallint(3)  NOT NULL DEFAULT '443',
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
-			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '1',
+			  `ssl_remotecert` smallint(1)  NOT NULL DEFAULT '0',
+			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '0',
 			  `IsCas` smallint(1)  NOT NULL DEFAULT '0',
 			  `Imported` smallint(1)  NOT NULL DEFAULT '0',
 			  `ssl_commname` CHAR(128) NULL,
 			  `forceddomain` CHAR(255) NULL,
+			  `remote_path` CHAR(255) NULL,
+			  `certificate` CHAR(128) NULL,
+				
+			  `cacheid` INT(10) NOT NULL DEFAULT '0',
 			  PRIMARY KEY (`ID`),
 			  KEY `ipaddr` (`ipaddr`),
 			  KEY `port` (`port`),
-			  KEY `ssl` (`ssl`),
+			  KEY `ssl_remotecert` (`ssl_remotecert`),
 			  KEY `IsCas` (`IsCas`),
 			  KEY `sslport` (`sslport`),
 			  KEY `enabled` (`enabled`)
@@ -102,6 +109,15 @@ class nginx_sources{
 		if(!$q->FIELD_EXISTS("reverse_sources", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `proxy_read_timeout` SMALLINT(5) NOT NULL DEFAULT '300'");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "Imported")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `Imported` smallint(1) NOT NULL DEFAULT '0',ADD INDEX ( `Imported`)");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "proxy_cookie_domain")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `proxy_cookie_domain` smallint(1) NOT NULL DEFAULT '1',ADD INDEX ( `proxy_cookie_domain`)");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "remote_path")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `remote_path` CHAR(255) NULL");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "cacheid")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `cacheid` INT(10) NOT NULL DEFAULT '0'");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "ssl_remotecert")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `ssl_remotecert` smallint(1) NOT NULL DEFAULT '0'");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "certificate")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `certificate` CHAR(128) NULL");}
+		
+		
+		
+		
 		$GLOBALS[__CLASS__.__FUNCTION__]=true;
 	}
 	

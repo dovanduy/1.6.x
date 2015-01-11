@@ -572,8 +572,9 @@ function start($aspid=false){
 	$rm=$unix->find_program("rm");
 
 	shell_exec("$rm -f /var/lib/c_icap/temporary/* >/dev/null 2>&1");
-	
-	$cmd="$nohup $daemonbin -f /etc/c-icap.conf -d 10 >$tmpdir/c_icap_start 2>&1 &";
+	$debug=" -d 10";
+	$debug=null;
+	$cmd="$nohup $daemonbin -f /etc/c-icap.conf $debug >$tmpdir/c_icap_start 2>&1 &";
 	echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service run daemon\n";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);

@@ -1,5 +1,5 @@
 <addfind_computer_text>Chercher un ordinateur et l'ajouter &agrave; ce groupe</addfind_computer_text>
-<add_attach_rule>Ajouter une nouvelle r&egrave;gle de rattachement &agrave; ce groupe</add_attach_rule>
+<add_attach_rule>Nouvelle r&egrave;gle de rattachement &agrave; ce groupe</add_attach_rule>
 <add_computer>Ajouter un ordinateur</add_computer>
 <add_computer_confirm>Ajouter cet ordinateur &agrave; votre groupe ?</add_computer_confirm>
 <add_computer_text>Cr&eacute;ez une nouvelle entr&eacute;e informatique...</add_computer_text>

@@ -479,7 +479,7 @@ function table(){
 	],";
 	
 	$html="
-	<div class=explain style='font-size:16px'>$explain_section</div>		
+	<div class=text-info style='font-size:16px'>$explain_section</div>		
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	<script>

@@ -35,7 +35,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-	<div class=explain style='margin-top:10px'>{ipblocks_explain}</div>
+	<div class=text-info style='margin-top:10px'>{ipblocks_explain}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

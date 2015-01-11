@@ -191,12 +191,12 @@ function node_infos_js(){
 	if($_GET["MAC"]<>null){
 		$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
-		$html="YahooWin5('940','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+		$html="YahooWin5('1056','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
 	}
 	
 	if($_GET["ipaddr"]<>null){
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["ipaddr"]}");
-		$html="YahooWin5('940','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
+		$html="YahooWin5('1056','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
 	}	
 	
 	echo $html;	
@@ -325,13 +325,25 @@ function node_infos_tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
+	$q=new mysql_squid_builder();
+	
+	$tablesrc="WEEK_RTTH";
+	
+	
 	$array["node-infos-status"]="{status}";
 	$array["node-infos-UserAgents"]="{UserAgents}";
 	$array["node-infos-IPADDRS"]="{ip_addresses}";
+	
+	if($_GET["MAC"]<>null){
+		$array["SQUIDBLK"] = "{internet_access}";
+	}
+	
 	$array["node-infos-RTIME"]="{realtime_requests}";
 	$array["node-infos-GROUPS"]="{proxy_objects}";
-	$array["node-infos-WEBACCESS"]="{webaccess}";
-	$array["node-infos-RULES"]="{access_rules}";
+	if($q->TABLE_EXISTS("WEEK_RTTH")){
+		$array["node-infos-WEBACCESS"]="{statistics}";
+	}
+	
 	
 	if($users->PROXYTINY_APPLIANCE){
 		unset($array["node-infos-WEBACCESS"]);
@@ -342,20 +354,37 @@ function node_infos_tabs(){
 		unset($array["node-infos-IPADDRS"]);
 	}
 	
-	$textsize="14px";
+	$textsize="16px";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
 	if($num=="node-infos-WEBACCESS"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.access.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
+		$link=null;
+			if($_GET["MAC"]<>null){
+				$link="squid.users-stats.currentmonth.php?tabs=yes&field=MAC&value={$_GET["MAC"]}";
+			}
+			if($link==null){
+				if($_GET["ipaddr"]<>null){
+					$link="squid.users-stats.currentmonth.php?tabs=yes&field=ipaddr&value={$_GET["ipaddr"]}";
+				}
+			}
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$link\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 	if($num=="node-infos-GROUPS"){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.groups.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
-	}		
+	}	
+
+	
+	if($num=="SQUIDBLK"){
+		$link="squid.computer.access.php?mac={$_GET["MAC"]}&t={$_GET["t"]}&increment=";
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$link\"><span>$ligne</span></a></li>\n");
+		continue;
+	}	
+	
 
 	if($num=="node-infos-RULES"){
 			//$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");

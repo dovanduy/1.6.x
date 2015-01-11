@@ -423,7 +423,7 @@ function js_popup_old(){
 	
 	
 		if(!$users->cyrus_imapd_installed){
-			$add_local_domain_warn="<div class=explain>{no_backendmailbox_installed_explain}</div>";
+			$add_local_domain_warn="<div class=text-info>{no_backendmailbox_installed_explain}</div>";
 		}
 	
 	

@@ -18,7 +18,31 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 if(isset($_GET["parameters"])){page();exit;}
 if(isset($_POST["LogRotateCompress"])){settings_save();exit;}
 if(isset($_POST["BackupSquidLogsUseNas"])){remote_nas_save();exit;}
+if(isset($_GET["BackupLogsMaxStoragePercent-info"])){BackupLogsMaxStoragePercent_info();exit;}
 tabs();
+
+
+function BackupLogsMaxStoragePercent_info(){
+	
+	$sock=new sockets();
+	$tpl=new templates();
+	$data=$sock->getFrameWork("system.php?BackupLogsMaxStoragePercent-info=yes");
+
+	$DIRPART_INFO=unserialize(base64_decode($data));
+	
+	$percent=$_GET["BackupLogsMaxStoragePercent-info"]/100;
+	$TOTAL_PART=$DIRPART_INFO["TOT"]/1024;
+	$CURSIZE=$DIRPART_INFO["CURSIZE"];
+	
+	$TOTAL_PART_SIZE=FormatBytes($TOTAL_PART);
+	$finalsize=FormatBytes($TOTAL_PART*$percent);
+	$CURSIZE_TEXT=FormatBytes($CURSIZE/1024);
+	$line="<div style='font-size:18px'><strong>{backup_folder} ({size}):$TOTAL_PART_SIZE {used}:$CURSIZE_TEXT/$finalsize</div>";
+	echo $tpl->_ENGINE_parse_body($line);
+	
+}
+
+
 
 function tabs(){
 	
@@ -52,8 +76,8 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
@@ -68,8 +92,7 @@ function page(){
 	
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
 	
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	
 	
@@ -88,6 +111,11 @@ function page(){
 	$SquidLogRotateFreq=intval($sock->GET_INFO("SquidLogRotateFreq"));
 	if($SquidLogRotateFreq<10){$SquidLogRotateFreq=1440;}
 	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
+	$SquidRotateMergeFiles=$sock->GET_INFO("SquidRotateMergeFiles");
+	if(!is_numeric($SquidRotateMergeFiles)){$SquidRotateMergeFiles=1;}
+	$BackupLogsMaxStoragePercent=intval($sock->GET_INFO("BackupLogsMaxStoragePercent"));
+	if($BackupLogsMaxStoragePercent==0){$BackupLogsMaxStoragePercent=50;}
+
 	
 	$freq[10]="10mn";
 	$freq[20]="20mn";
@@ -103,14 +131,19 @@ function page(){
 	
 	$html="
 <div style='width:100%;font-size:22px;margin-bottom:20px'>{log_retention}</div>
-	<div class=explain style='font-size:16px'>{log_retention_mysql_text}</div>	
+	<div class=text-info style='font-size:16px'>{log_retention_mysql_text}</div>	
 			
 			
 	<div style='width:98%'  class=form>	
 
 ". Paragraphe_switch_img("{only_by_schedule}","{only_by_schedule_squid_rotation_explain}","SquidRotateOnlySchedule" ,$SquidRotateOnlySchedule,null,650)."		
+". Paragraphe_switch_img("{merge_access_logs}","{merge_access_logs_explain}","SquidRotateMergeFiles" ,$SquidRotateMergeFiles,null,650)."		
+
 			
-			
+<div style='text-align:right;font-size:22px;text-align:right;text-decoration:underline;margin-top:20px'>
+		". button("{squid_logs_urgency_section}","Loadjs('system.log.emergency.php')",20)."
+					
+				</div>			
 			
 <table style='width:100%'>
 	<tr>
@@ -133,36 +166,61 @@ function page(){
 		<td style='font-size:18px'>". Field_text("LogsRotateDefaultSizeRotation",$LogsRotateDefaultSizeRotation,"font-size:18px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
 	</tr>
-	<tr>
-		<td class=legend style='font-size:18px'>{compress_files}:</td>
-		<td>". Field_checkbox("LogRotateCompress", 1,$LogRotateCompress)."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:18px'>{insert_in_mysql}:</td>
-		<td>". Field_checkbox("LogRotateMysql", 1,$LogRotateMysql,"LogRotateMysqlCheck()")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:18px'>{storage_files_path}:</td>
-		<td>". Field_text("LogRotatePath",$LogRotatePath,"font-size:18px;width:420px")."</td>
-		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=LogRotatePath')",12)."</td>
-	</tr>
+
+
+				
 	<tr>
 		<td class=legend style='font-size:18px'>{system_logs_path}:</td>
 		<td>". Field_text("SystemLogsPath",$SystemLogsPath,"font-size:18px;width:420px")."</td>
 		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=SystemLogsPath')",12)."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{max_day_in_database}:</td>
-		<td style='font-size:18px;'>". Field_text("BackupMaxDays",$BackupMaxDays,"font-size:18px;width:90px")."&nbsp;{days}</td>
-		<td>&nbsp;</td>
+		<td colspan=3>&nbsp;</td>
+	</tr>					
+	<tr>
+		<td colspan=3><div class=text-info>{system_logs_path_explain}</div></td>
+	</tr>					
+				
+	<tr>
+		<td class=legend style='font-size:18px'>{temporay_storage_path}:</td>
+		<td>". Field_text("LogRotatePath",$LogRotatePath,"font-size:18px;width:420px")."</td>
+		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=LogRotatePath')",12)."</td>
 	</tr>
+				
+	<tr>
+		<td colspan=3><div class=text-info>{temporay_storage_path_explain}</div></td>
+	</tr>		
+					
+				
 	<tr>
 		<td class=legend style='font-size:18px'>{backup_folder}:</td>
 		<td style='font-size:18px;'>". Field_text("BackupMaxDaysDir",$BackupMaxDaysDir,"font-size:18px;width:420px")."</td>
 		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=BackupMaxDaysDir')",12)."</td>
 	</tr>
-	
+				
+	<tr>
+		<td colspan=3><div class=text-info>{BackupMaxDaysDir_explain}</div></td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{max_storage_days}:</td>
+		<td style='font-size:18px;'>". Field_text("BackupMaxDays",$BackupMaxDays,"font-size:18px;width:90px")."&nbsp;{days}</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td colspan=3><div class=text-info>{max_storage_days_log_explain}</div></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{max_percent_storage}:</td>
+		<td style='font-size:18px;'>". Field_text("BackupLogsMaxStoragePercent",$BackupLogsMaxStoragePercent,
+				"font-size:18px;width:90px",null,"BackupLogsMaxStoragePercent_infos()",null,false,"BackupLogsMaxStoragePercent_infos()")."&nbsp;%</td>
+		<td><span id='BackupLogsMaxStoragePercent-info'></span></td>
+	</tr>
+	<tr>
+		<td colspan=3><div class=text-info>{BackupLogsMaxStoragePercent_explain}</div></td>
+	</tr>				
+
+
+				
 	<tr>
 		<td colspan=3 align=right><hr>". button("{apply}", "SaveRotateOptions$t()",28)."</td>
 	</tr>
@@ -170,7 +228,7 @@ function page(){
 </div>
 <p><hr></p>
 <div style='width:100%;font-size:22px'>{NAS_storage}</div>
-	<div class=explain style='font-size:16px'>{log_retention_nas_text}</div>	
+	<div class=text-info style='font-size:16px'>{log_retention_nas_text}</div>	
 	<div style='width:95%'  class=form>
 	<table style='width:100%'>
 	<tr>
@@ -216,24 +274,12 @@ var x_SaveSettsLogRotate$t=function (obj) {
 	if(results.length>0){alert(results);}
 }
 	
-function LogRotateMysqlCheck$t(){
-	document.getElementById('LogRotatePath').disabled=false;
-	document.getElementById('BackupMaxDays').disabled=true;
-	document.getElementById('BackupMaxDaysDir').disabled=true;
-	if(document.getElementById('LogRotateMysql').checked){
-		document.getElementById('LogRotatePath').disabled=true;
-		document.getElementById('BackupMaxDays').disabled=false;
-		document.getElementById('BackupMaxDaysDir').disabled=false;
-	}
-}
-	
-	
 function SaveRotateOptions$t(){
 	var XHR = new XHRConnection();
-	if(document.getElementById('LogRotateCompress').checked){XHR.appendData('LogRotateCompress',1);}
-	else{XHR.appendData('LogRotateCompress',0);}
-	if(document.getElementById('LogRotateMysql').checked){XHR.appendData('LogRotateMysql',1);}
-	else{XHR.appendData('LogRotateMysql',0);}
+	XHR.appendData('LogRotateCompress',1);
+	XHR.appendData('LogRotateMysql',0);
+	
+	XHR.appendData('BackupLogsMaxStoragePercent',document.getElementById('BackupLogsMaxStoragePercent').value);
 	XHR.appendData('LogRotatePath',document.getElementById('LogRotatePath').value);
 	XHR.appendData('LogsRotateRemoveApacheMaxSize',document.getElementById('LogsRotateRemoveApacheMaxSize').value);
 	XHR.appendData('SquidLogRotateFreq',document.getElementById('SquidLogRotateFreq-$t').value);
@@ -243,13 +289,19 @@ function SaveRotateOptions$t(){
 	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);
 	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize').value);
 	XHR.appendData('SquidRotateOnlySchedule',document.getElementById('SquidRotateOnlySchedule').value);
-	
+	XHR.appendData('SquidRotateMergeFiles',document.getElementById('SquidRotateMergeFiles').value);
 	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate$t);
-	}
+}
 	
 var x_SaveSettsLogRotate$t=function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);}
+}
+
+function BackupLogsMaxStoragePercent_infos(){
+	BackupLogsMaxStoragePercent=document.getElementById('BackupLogsMaxStoragePercent').value;
+	LoadAjaxSilent('BackupLogsMaxStoragePercent-info','$page?BackupLogsMaxStoragePercent-info='+BackupLogsMaxStoragePercent);
+
 }
 	
 function SaveBackupSquidNasCheck$t(){
@@ -277,7 +329,8 @@ function SaveBackupSquidNas$t(){
 	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate$t);
 }
 SaveBackupSquidNasCheck$t();	
-LogRotateMysqlCheck$t();
+BackupLogsMaxStoragePercent_infos();
+
 </script>";
 echo $tpl->_ENGINE_parse_body($html);
 }
@@ -291,6 +344,7 @@ function remote_nas_save(){
 	if(isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
 
 	while (list ($key, $value) = each ($_POST) ){
+		$value=url_decode_special_tool($value);
 		$sock->SET_INFO($key, $value);
 	}
 

@@ -269,7 +269,7 @@ function DansGuardianNewRule(){
 	}
 
 	function DansGuardianEditRule(ID,rname){
-		YahooWin3('935','dansguardian2.edit.php?ID='+ID+'&t=$t','$rule_text::'+ID+'::'+rname);
+		YahooWin3('1010','dansguardian2.edit.php?ID='+ID+'&t=$t','$rule_text::'+ID+'::'+rname);
 	}
 	
 	function CompileUfdbGuardRules(){

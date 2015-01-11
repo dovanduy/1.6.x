@@ -245,41 +245,8 @@ end;
 
 
 procedure topenldap.LDAP_STOP();
-var pid:string;
-count:integer;
-D:boolean;
-tmp:string;
-l:Tstringlist;
-top:string;
 begin
-  d:=COMMANDLINE_PARAMETERS('debug');
-  pid:=LDAP_PID();
-  count:=0;
-
-  if SYS.COMMANDLINE_PARAMETERS('--monit') then begin
-       logs.DebugLogs('slapd: [INFO] is stopped from monit !');
-       tmp:=logs.FILE_TEMP();
-       top:=SYS.LOCATE_GENERIC_BIN('top');
-       if length(top)>0 then fpsystem(top+' -b -n 1 >'+tmp+' 2>&1');
-       logs.NOTIFICATION('[ARTICA]: ' + SYS.HOSTNAME_g()+': Stopping LDAP PID '+pid+' from Process Monitor','Process Monitor has decided to start OpenLDAP because it found a CPU overload or slpad was not running...'+LOGS.ReadFromFile(tmp),'system');
-       LOGS.DeleteFile(tmp);
-  end;
-
-  if not SYS.PROCESS_EXIST(pid) then begin
-      logs.Syslogs('Stopping openLdap server.....: Already stopped');
-      exit;
-  end;
-
-  fpsystem('kill '+pid);
-  pid:=LDAP_PID();
-  sleep(900);
-   if not SYS.PROCESS_EXIST(pid) then begin
-      logs.Syslogs('Stopping openLdap server.....: '+pid+' Stopped');
-      exit;
-  end;
-
-  fpsystem(INITD_PATH()+' stop');
-
+  logs.Syslogs('Stopping openLdap server.....: DEPRECIATED !');
 end;
 //##############################################################################
 function topenldap.LDAP_VERSION():string;
@@ -375,33 +342,9 @@ end;
 
 
 procedure topenldap.LDAP_START();
-var
-   pid:string;
-   ck,i:integer;
-   cmd:string;
-   ldaps:string;
-   ldapl:string;
-   EnableNonEncryptedLdapSession:integer;
-   LdapListenIPAddr:Tstringlist;
-   CertificateCreated:boolean;
 begin
-  ck:=0;
-  pid:=LDAP_PID();
-  CertificateCreated:=false;
+  logs.Syslogs('Starting OpenLDAP via artica-install is depreciated');
 
-  if SYS.COMMANDLINE_PARAMETERS('--monit') then begin
-       logs.DebugLogs('slapd: [INFO] is started from monit !');
-       logs.NOTIFICATION('[ARTICA]: ' + SYS.HOSTNAME_g()+': Starting LDAP from Process Monitor','Process Monitor has decided to start OpenLDAP because it found a CPU overload or slpad was not running...','system');
-  end;
-  if SYS.PROCESS_EXIST(pid) then exit;
-  logs.Syslogs('slapd: [INFO] server');
-  logs.DebugLogs('slapd: [INFO] Pid Path="' + PID_PATH() + '"');
-  logs.DebugLogs('slapd: [INFO] Pid "' + LDAP_PID() + '"');
-  forceDirectories('/var/lib/ldap');
-  forceDirectories('/var/run/slapd');
-  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php');
-  SAVE_SLAPD_CONF();
-  fpsystem(INITD_PATH()+' start');
 end;
 //##############################################################################
 function topenldap.SLAPD_BIN_PATH():string;
@@ -602,8 +545,7 @@ begin
       if length(LDAPSyncProvClientBindPassword)=0 then EnableLDAPSyncProvClient:=0;
    end;
 
-    logs.WriteToFile(ldap_settings.password,'/etc/ldap.secret');
-    logs.OutputCmd('/bin/chmod 0600 /etc/ldap.secret');
+
     fpsystem(SYS.LOCATE_GENERIC_BIN('addgroup')+' nvram >/dev/null 2>&1');
 
    

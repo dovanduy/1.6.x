@@ -158,11 +158,12 @@ function sync_categories(){
 	if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}return;}
 	
 	
-	stats_admin_events(1,"Starting analyzing $num_rows not categorized websites",null,__FILE__,__LINE__);
+	stats_admin_events(0,"Starting analyzing $num_rows not categorized websites",null,__FILE__,__LINE__);
 	
 	$c=0;$d=0;
 	$CATZP=0;
 	$TTIME=0;
+	$NOTCATZ=array();
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$website=trim($ligne["sitename"]);
 		$category=null;
@@ -179,11 +180,15 @@ function sync_categories(){
 		if(trim($category)<>null){
 			$CATZP++;
 			$took=$unix->distanceOfTimeInWords($t2,time());
-			ufdbguard_admin_events("New category found for `$website` = `$category` $took",__FUNCTION__,__FILE__,__LINE__,"stats");
 			$GLOBALS["Q"]->UPDATE_CATEGORIES_TABLES($website,$category);
 			if($GLOBALS["VERBOSE"]){echo "UPDATE_CATEGORIES_TABLES DONE..\n";}
 			$GLOBALS["Q"]->QUERY_SQL("UPDATE visited_sites SET category='$category' WHERE sitename='$website'");
-			if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal error while update visited_sites {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			if(!$GLOBALS["Q"]->ok){
+				stats_admin_events(0,"Fatal error while update visited_sites",$GLOBALS["Q"]->mysql_error,__FILE__,__LINE__);
+			}
+			
+		}else{
+			$NOTCATZ[]=$website;
 		}
 		
 		if($TTIME>10){
@@ -198,8 +203,12 @@ function sync_categories(){
 	
 	if($CATZP>0){
 		$took=$unix->distanceOfTimeInWords($t,time());
-		stats_admin_events(1,"$CATZP new categorized website task:finish ($took)",null,__FILE__,__LINE__);
+		stats_admin_events(2,"$CATZP new categorized website task:finish ($took)",null,__FILE__,__LINE__);
 		
+	}
+	
+	if(count($NOTCATZ)>0){
+		stats_admin_events(1,count($NOTCATZ)." unknown websites",@implode("\n", $NOTCATZ),__FILE__,__LINE__);
 	}
 	
 	$unix=new unix();
@@ -1040,36 +1049,49 @@ function members_central_grouped(){
 	
 	$sql="SELECT ipaddr, hostname, uid, MAC, account, SUM( QuerySize ) AS QuerySize, SUM( hits ) AS hits 
 	FROM UserAuthDays GROUP BY ipaddr, hostname, uid, MAC, account";
-	
+	$q=new mysql_squid_builder();
 	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
-	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	$results=$q->QUERY_SQL($sql);
 	$count=mysql_num_rows($results);
 	if($GLOBALS["VERBOSE"]){echo "$count items...\n";}
-	if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");return;}	
+	
+	if(!$q->ok){ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");
+	if($GLOBALS["VERBOSE"]){echo "{$q->mysql_error}\n";}
+	return;}	
 	$cc=0;
 	$f=array();
 	$prefix="INSERT INTO UserAuthDaysGrouped (`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`QuerySize`,`hits`) VALUES ";
+	
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: {$ligne["uid"]}; {$ligne["MAC"]}\n";}
+		
 		$ligne["uid"]=trim($ligne["uid"]);
 		$ligne["MAC"]=trim($ligne["MAC"]);
-		if(trim($ligne["ipaddr"])==null){continue;}
-		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["ipaddr"])){continue;}
-		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["uid"])){continue;}
-		if($ligne["MAC"]<>null){if(!preg_match("#[0-9a-z\:]+$#", $ligne["MAC"])){continue;}}
-		if(strpos($ligne["hostname"], ":")>0){continue;}
-		if(strpos($ligne["hostname"], "%")>0){continue;}
-		if(strpos($ligne["ipaddr"], ":")>0){continue;}
-		if(strpos($ligne["ipaddr"], "%")>0){continue;}
-		if(strpos($ligne["uid"], "/")>0){continue;}
-		if(strpos($ligne["uid"], "&")>0){continue;}
-		writeDebugLogs("Insert {$ligne["ipaddr"]} {$ligne["hostname"]} {$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
+		if(trim($ligne["ipaddr"])==null){
+			if($GLOBALS["VERBOSE"]){echo "ipaddr is null\n";}
+			continue;}
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["ipaddr"])){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}
+			continue;}
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$ligne["uid"])){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if($ligne["MAC"]<>null){if(!preg_match("#[0-9a-z\:]+$#", $ligne["MAC"])){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}}
+		if(strpos($ligne["hostname"], ":")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if(strpos($ligne["hostname"], "%")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if(strpos($ligne["ipaddr"], ":")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if(strpos($ligne["ipaddr"], "%")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if(strpos($ligne["uid"], "/")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		if(strpos($ligne["uid"], "&")>0){if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: FAILED CONTINUE\n";}continue;}
+		$cc++;
+		if($GLOBALS["VERBOSE"]){echo "$cc) Insert {$ligne["ipaddr"]} {$ligne["hostname"]} {$ligne["uid"]}\n";}
+		
 		
 		$f[]="('{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}')";
 		
 		if(count($f)>500){
-			$cc=$cc+count($f);
 			if($GLOBALS["VERBOSE"]){echo "$cc/$count\n";}
-			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
+			$q->QUERY_SQL($prefix.@implode(",", $f));
 			unset($f);
 			$f=array();
 		}
@@ -1080,7 +1102,7 @@ function members_central_grouped(){
 	
 	if(count($f)>0){
 		if($GLOBALS["VERBOSE"]){echo "$cc/$count\n";}
-		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
+		$q->QUERY_SQL($prefix.@implode(",", $f));
 	}
 	
 }
@@ -1141,6 +1163,7 @@ function members_central($aspid=false){
 	$c=0;
 	if($GLOBALS["VERBOSE"]){echo "checking ".mysql_num_rows($results)." items\n";}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if($GLOBALS["VERBOSE"]){echo "->_members_central_perform({$ligne["tablename"]},{$ligne["zDate"]})\n";}
 		if(_members_central_perform($ligne["tablename"],$ligne["zDate"])){
 			$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET memberscentral=1 WHERE tablename='{$ligne["tablename"]}'");
 			if(!$GLOBALS["Q"]->ok){
@@ -1172,11 +1195,18 @@ function members_central($aspid=false){
 
 function _members_central_perform($tablesource,$date){
 	$f=array();
-	if(!$GLOBALS["Q"]->TABLE_EXISTS("$tablesource")){return true;}
+	if(!$GLOBALS["Q"]->TABLE_EXISTS("$tablesource")){
+		
+		if($GLOBALS["VERBOSE"]){echo "->_members_central_perform: $tablesource no such table\n";}
+		return true;}
 	if($GLOBALS["VERBOSE"]){echo "checking table $tablesource\n";}
 	$sql="SELECT SUM(hits) as thits,SUM(QuerySize) as tsize,CLIENT,hostname,uid,MAC,account FROM `$tablesource`
 	GROUP BY CLIENT,hostname,uid,MAC,account";
 	$unix=new unix();
+	if(preg_match("#[0-9]+_hour$#", $tablesource)){
+		$sql="SELECT SUM(hits) as thits,SUM(size) as tsize,client as `CLIENT`,hostname,uid,MAC,account FROM `$tablesource`
+		GROUP BY client,hostname,uid,MAC,account";
+	}
 	
 	
 	
@@ -1371,6 +1401,24 @@ function visited_sites_whois(){
 	
 }
 
+function visited_sites_percentage($text){
+
+
+	$array["TITLE"]="Visited Websites: ".$text." ".date("H:i:s");
+	$array["POURC"]=46;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [46] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
+
+
+
 function visited_sites(){
 	if($GLOBALS["VERBOSE"]){$GLOBALS["FORCE"]=true;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
@@ -1400,7 +1448,7 @@ function visited_sites(){
 	
 	squid_status_sub_percentage();
 	
-	$sql="SELECT sitename,country,category FROM visited_sites";
+	$sql="SELECT sitename,country,category FROM visited_sites WHERE LENGTH(category)=0 LIMIT 0,1500";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	$num_rows = mysql_num_rows($results);
 	events("visited_sites(): $num_rows items");
@@ -1411,7 +1459,7 @@ function visited_sites(){
 		if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}
 		return;
 	}
-	
+	visited_sites_percentage("$num_rows entries");
 	if($GLOBALS["VERBOSE"]){echo "$num_rows entries... in ". __FUNCTION__." ".__LINE__."\n";}
 	
 	
@@ -1442,7 +1490,7 @@ function visited_sites(){
 				$GLOBALS["Q"]->QUERY_SQL($ROWS_visited_sites_prefix.@implode(",", $ROWS_visited_sites_catz));
 				$ROWS_visited_sites_catz=array();
 			}
-			events("visited_sites()::$perc% $z/$num_rows rows");
+			visited_sites_percentage("$perc% $z/$num_rows rows");
 			stats_admin_events(2,"$perc% $z/$num_rows rows" ,null,__FILE__,__LINE__);
 			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 			@unlink($MinutesFile);

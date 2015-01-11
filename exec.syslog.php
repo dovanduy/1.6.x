@@ -26,6 +26,7 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
+$GLOBALS["BASE_ROOT"]="/usr/share/artica-postfix";
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/xapian",0755,true);
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/infected-queue",0755,true);
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/snort-queue",0755,true);
@@ -132,8 +133,12 @@ function Parseline($buffer){
 //kernel dustbin
 	if(strpos($buffer,"ext4_dx_add_entry: Directory index full")>0){return true;}
 	if(strpos($buffer,"] ll header:")>0){return true;}
+	if(strpos($buffer,"exec.squid.watchdog.php")>0){return true;}
+	if(strpos($buffer,"using local addresses only for domain")>0){return true;}
 	
 	//squid dustbin
+	if(strpos($buffer,"Load average increasing, re-enabling all cpus for irq balancing")>0){return true;}
+	if(strpos($buffer,"artica-watchdog[")>0){return true;}
 	if(strpos($buffer,"exec.syslog-engine.php")>0){return true;}
 	if(strpos($buffer,"exec.postfix-logger.php")>0){return true;}
 	if(strpos($buffer,"]: WARNING: ")>0){return true;}
@@ -166,11 +171,16 @@ function Parseline($buffer){
 	if(preg_match("#: CACHEMGR:#",$buffer)){return true;}
 	if(preg_match("#exec\.postfix-logger\.php:#",$buffer)){return true;}
 	if(preg_match("#artica-install\[#",$buffer)){return true;}
+	
+	// monit dustbin
 	if(preg_match("#monitor action done#",$buffer)){return true;}
 	if(preg_match("#monitor service.+?on user request#",$buffer)){return true;}
 	if(preg_match("#CRON\[.+?\(root\).+CMD#",$buffer)){return true;}
 	if(preg_match("#winbindd\[.+?winbindd_listen_fde_handler#",$buffer)){return true;}
+	if(strpos($buffer,"Other action already in progress -- please try again later")>0){return true;}
 	if(strpos($buffer,"class.cronldap.inc")>0){return true;}
+	if(strpos($buffer,"Awakened by User defined")>0){return true;}
+	if(strpos($buffer,": Checking summary")>0){return true;}
 	
 	//Zarafa dustbin
 	if(strpos($buffer,": End of session (logoff)")>0){return true;}
@@ -396,11 +406,59 @@ function Parseline($buffer){
 	if(strpos($buffer,": monit HTTP server started")>0){return;}
 	if(strpos($buffer,"Awakened by the")>0){return;}
 	
+	
+	
+//nginx
+if(preg_match("#nginx:.*?notice.+?gracefully shutting down#", $buffer)){
+	squid_admin_mysql(1, "Reverse Proxy service gracefully shutting down", $buffer,__FILE__,__LINE__);
+	return;
+}
+if(preg_match("#nginx:.+?start worker processes#", $buffer)){
+	squid_admin_mysql(2, "Reverse Proxy service starting", $buffer,__FILE__,__LINE__);
+	return;
+}
+
+if(preg_match("#nginx:.*?:\s+reconfiguring#", $buffer)){
+	squid_admin_mysql(1, "Reverse Proxy service was reconfigured", $buffer,__FILE__,__LINE__);
+	return;
+}
+	
+	
+if(preg_match("#wifidog.*?Failed to open HTML message file#", $buffer)){
+	squid_admin_mysql(1, "Creating HTML message for the Hotspot", null,__FILE__,__LINE__);
+	shell_exec2("{$GLOBALS["LOCATE_PHP5_BIN"]} {$GLOBALS["BASE_ROOT"]}/hostpot.php --templates >/dev/null 2>&1");
+	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} {$GLOBALS["BASE_ROOT"]}/exec.wifidog.php --restart");
+	return;
+}
+	
+if(preg_match("#wifidog\[.*?Removing Firewall rules#",$buffer,$re)){
+	squid_admin_mysql(1, "HotSpot is stopped", null,__FILE__,__LINE__);
+	return;
+}
+	
+	
 //Crash kernel
+
+if(preg_match("#nf_queue: full at [0-9]+ entries,\s+dropping packets#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/nf_queue.full";
+	if(IfFileTime($file,5)){
+		system_admin_events("Fatal! nf_queue is full\n$buffer\nYou should consider increase your hardware memory and CPU\nor disable Network application detection", __FUNCTION__, __FILE__, __LINE__, "system");
+		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Fatal! nf_queue is full", "$buffer\nYou should consider increase your hardware memory and CPU\nor disable Network application detection",__FILE__,__LINE__);}
+	}
+	return;
+}
+
 
 if(preg_match("#glibc detected.*?\/(.+?):\s+(.+?):#",$buffer,$re)){
 	system_admin_events("Fatal! Crash {$re[1]} {$re[2]} [action=Run Sync]\n$buffer", __FUNCTION__, __FILE__, __LINE__, "system");
+	if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Fatal! Crash {$re[1]} {$re[2]} [action=Run Sync]", $buffer,__FILE__,__LINE__);}
 	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["SYNC_BIN"]} >/dev/null 2>&1 &");
+	return;
+}
+
+if(preg_match("#kernel:\[.*?general protection fault:\s+[0-9]+\s+\[\#([0-9]+)\]\s+SMP#", $buffer,$re)){
+	if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Kernel crash !! general protection fault on SMP processor", $buffer,__FILE__,__LINE__);}
+	system_admin_events("Kernel crash !! general protection fault on SMP Processor\n$buffer", __FUNCTION__, __FILE__, __LINE__, "system");
 	return;
 }
 	
@@ -416,9 +474,6 @@ if(preg_match("#class\.sockets\.inc.*?Fatal ERROR 500#",$buffer)){
 	return;
 }
 		
-
-
-	
 if(strpos($buffer,"rdpproxy:")>0){
 	if(!isset($GLOBALS["CLASS_RDPPROXY_MONITOR"])){ $GLOBALS["CLASS_RDPPROXY_MONITOR"]=new rdpproxy_monitor(); }
 	$GLOBALS["CLASS_RDPPROXY_MONITOR"]->parse($buffer);
@@ -485,25 +540,29 @@ if(preg_match("#Shorewall:(.+?)2(.+?):(.+?):IN=(.*?)\s+OUT=(.*?)\s+MAC=(.*?)\s+S
 
 if(preg_match("#kernel:.*?:\s+(.+?):\s+link down#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface Down\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(0, "{$re[1]}: Network Interface Down", $buffer);
+	squid_admin_mysql(0, "{$re[1]}: Network Interface Down", $buffer,__FILE__,__LINE__);
 	return;
 }
+
+
+
+
 	
 if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link is not ready#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface not ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(0, "{$re[1]}: Network Interface not ready", $buffer);	
+	squid_admin_mysql(0, "{$re[1]}: Network Interface not ready", $buffer,__FILE__,__LINE__);
 	return;
 }
 
 if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link becomes ready#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface becomes ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(0, "{$re[1]}: Network Interface becomes ready", $buffer);
+	squid_admin_mysql(0, "{$re[1]}: Network Interface becomes ready", $buffer,__FILE__,__LINE__);
 	return;
 }
 
 if(preg_match("#kernel:.*?:\s+(.+?):\s+link up#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface Up\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(2, "{$re[1]}: Network Interface Up", $buffer);
+	squid_admin_mysql(2, "{$re[1]}: Network Interface Up", $buffer,__FILE__,__LINE__);
 	return;
 }
 
@@ -682,7 +741,7 @@ if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,
 			email_events("Memory full: System will be rebooted after running after $uptime","System claim \"$buffer\" the operating system will be rebooted ($reboot).",'proxy');
 			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;		
 		}
 	}
@@ -990,7 +1049,7 @@ if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,
 		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.samba.php --fix-etc-hosts >/dev/null 2>&1 &");
 		$file="/etc/artica-postfix/croned.1/net-ldap-bind";
 		if(IfFileTime($file,5)){
-			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart --framework=". basename(__FILE__)." >/dev/null 2>&1 &");
 			WriteFileCache($file);
 			return;	
 		}	
@@ -1213,7 +1272,7 @@ if(strpos($buffer,"pam_ldap: ldap_simple_bind Can't contact LDAP server")>0){
 		events("pam_ldap -> LDAP FAILED");
 		email_events("LDAP server is unavailable","System claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart --framework=". basename(__FILE__)." >/dev/null 2>&1 &");
 		return;	
 	}	
 }
@@ -1224,7 +1283,7 @@ if(preg_match("#net:\s+failed to bind to server.+?Error:\s+Can.?t\s+contact LDAP
 		events("NET -> LDAP FAILED");
 		email_events("LDAP server is unavailable","System claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart --framework=". basename(__FILE__)." >/dev/null 2>&1 &");
 		return;	
 	}	
 }
@@ -1235,7 +1294,7 @@ if(preg_match("#winbindd\[.+?failed to bind to server\s+(.+?)\s+with dn.+?Error:
 		events("winbindd -> LDAP FAILED");
 		email_events("LDAP server is unavailable","Samba claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart --framework=". basename(__FILE__)." >/dev/null 2>&1 &");
 		return;	
 	}
 }
@@ -1370,8 +1429,6 @@ if(preg_match("#zarafa-server.+?INNODB engine is disabled#",$buffer)){
 	$file="/etc/artica-postfix/croned.1/zarafa.INNODB.engine";
 	if(IfFileTime($file,2)){
 			events("Zarafa innodb errr");
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/mysql restart');
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart zarafa');
 			WriteFileCache($file);
 			return;
 		}else{
@@ -1425,7 +1482,7 @@ if(preg_match("#kernel:.+?Out of memory:\s+kill\s+process\s+#",$buffer,$re)){
 			WriteFileCache($file);
 			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;	
 		}else{
 			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
@@ -1446,7 +1503,7 @@ if(preg_match("#kernel:\s+\[.+?Out of memory\s+\(oom_kill_allocating_task#",$buf
 			WriteFileCache($file);
 			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;	
 		}else{
 			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
@@ -1473,7 +1530,7 @@ if(preg_match("#kernel:.+?ata.+?status:\s+{\s+DRDY#",$buffer,$re)){
 		email_events("Hard Disk issue: reboot action performed","Kernel claim \"$buffer\" the server will be rebooted\n".@implode("\n",$results),'system');
 		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
 		UcarpDown();
-		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 		return;
 	}
 }
@@ -2144,7 +2201,7 @@ function squid_parser($buffer){
 		email_events("Memory full: System will be rebooted after $uptime uptime","SQUID claim \"$buffer\" the operating system will be rebooted ($reboot).",'proxy');
 		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
 		UcarpDown();
-		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 	}
 	
 
@@ -2423,7 +2480,7 @@ function Kernel_parser($buffer){
 			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: [".__LINE__."] System will be rebooted after running after $uptime", 
 			"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;
 		}
 			
@@ -2438,7 +2495,7 @@ function Kernel_parser($buffer){
 			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full:[".__LINE__."] System will be rebooted after running after $uptime", 
 			"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;
 		}
 	}
@@ -2454,7 +2511,7 @@ function Kernel_parser($buffer){
 				"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);
 				}
 			UcarpDown();
-			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -rF now");
 			return;
 		}
 	}	

@@ -633,7 +633,7 @@ $main=new maincf_multi($_GET["hostname"],$_GET["ou"]);
 
 
 $html="
-	<div class=explain>{smtp_virtual_hostname_text}</div>
+	<div class=text-info>{smtp_virtual_hostname_text}</div>
 	<div id='VirtualHostNameToChangeID' style='padding:10px'>
 	<table style='width:90%' align='center'>
 	<tr>

@@ -373,9 +373,6 @@ function transport(){
 			"{diffusion_lists_text}",
 			"javascript:Loadjs('postfix.routing.diffusion.php?js=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')");
 
-	$tr[]=Paragraphe("generic-maps-64.png", "{smtp_generic_maps}",
-			"{smtp_generic_maps_text}",
-			"javascript:Loadjs('postfix.smtp.generic.maps.php?ou=$ou_encoded')");
 	
 	$tr[]=Paragraphe("64-settings.png", "{title_postfix_tuning}",
 			"{title_postfix_tuning_text}",
@@ -390,9 +387,7 @@ function transport(){
 			"javascript:Loadjs('postfix.banner.php?ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')");	
 	
 		
-	$tr[]=Paragraphe("mass-mailing-postfix-64.png", "{TEST_SMTP_CONNECTION}",
-			"{TEST_SMTP_CONNECTION_TEXT}",
-			"javascript:Loadjs('postfix.smtp-tests.php?ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')");
+
 	
 	$tr[]=Paragraphe("64-advanced-routing.png", "{advanced_ISP_routing}",
 			"{advanced_ISP_routing_text}",

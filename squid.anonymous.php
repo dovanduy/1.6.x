@@ -23,6 +23,7 @@
 	if(isset($_POST["ipsrc"])){proxies_add();exit;}
 	if(isset($_POST["paranoid-anonymous"])){paranoid_anonymous();exit;}
 	if(isset($_POST["standard-anonymous"])){standard_anonymous();exit;}
+	if(isset($_POST["standard"])){standard();exit;}
 	if(isset($_POST["header-enable"])){header_active();exit;}
 	if(isset($_POST["header-allow"])){header_allow();exit;}
 	if(isset($_POST["header-change"])){header_change();exit;}
@@ -67,6 +68,7 @@ function popup(){
 	$enabled=$tpl->_ENGINE_parse_body("{enable}");
 	$allow=$tpl->_ENGINE_parse_body("{allow}");
 	$active=$tpl->javascript_parse_text("{activew}");
+	$standard=$tpl->javascript_parse_text("{standard}");
 	$anonymous_browsing=$tpl->_ENGINE_parse_body("{anonymous_browsing}");
 	$standard_anonymous=$tpl->javascript_parse_text("{standard_anonymous}");
 	$paranoid_anonymous=$tpl->javascript_parse_text("{paranoid_anonymous}");
@@ -93,6 +95,7 @@ $('#table-$t').flexigrid({
 		
 	],
 buttons : [
+	{name: '$standard', bclass: 'Script', onpress : standard$t},
 	{name: '$standard_anonymous', bclass: 'Script', onpress : standard_anonymous},
 	{name: '$paranoid_anonymous', bclass: 'Script', onpress : paranoid_anonymous},
 	{name: '$restart_onlysquid', bclass: 'Reload', onpress : RestartProxy$t},
@@ -118,6 +121,8 @@ function AddProxyChild(){
 	YahooWin5('380','$page?add-proxy=yes&t=$t','$new_proxy');
 
 }
+
+
 
 	var x_DeleteSquidChild$t= function (obj) {
 			var results=obj.responseText;
@@ -151,6 +156,12 @@ function AddProxyChild(){
 		XHR.appendData('standard-anonymous',1);
 		XHR.sendAndLoad('$page', 'POST',x_standard_anonymous$t);	
 	}
+	
+function standard$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('standard',1);
+		XHR.sendAndLoad('$page', 'POST',x_standard_anonymous$t);
+}	
 	
 	function paranoid_anonymous(){
 		var XHR = new XHRConnection();
@@ -370,6 +381,12 @@ function proxies_add(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 
+}
+
+function standard(){
+	$q=new mysql();
+	$q->QUERY_SQL("UPDATE squid_header_access SET active=0, allow=1","artica_backup");
+	
 }
 
 function standard_anonymous(){

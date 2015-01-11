@@ -94,7 +94,7 @@ function status(){
 			<hr>
 			<div style='text-align:right;width:100%'>". button("{apply}","SaveArkeiaEnable()",16)."</div>
 			<br>
-			<div class=explain style='font-size:13.5px'>{APP_ARKEIA_FREEWEB_HOWTO}</div>	
+			<div class=text-info style='font-size:13.5px'>{APP_ARKEIA_FREEWEB_HOWTO}</div>	
 			<div style='text-align:right;margin-top:5px'><a href=\"javascript:blur();\" OnClick=\"javascript:QuickLinkSystems('section_freeweb');\" 
 			style='font-size:16px;font-weight:bold;text-decoration:underline'>FreeWebs</a></div>
 		</td>

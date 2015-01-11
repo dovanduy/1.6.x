@@ -244,7 +244,13 @@ function tabs(){
 	$users=new usersMenus();
 	$tpl=new templates();	
 	$array["panel"]='{panel}';
-	$array["mysql_statistics_engine"]='{mysql_statistics_engine}';
+	
+	if($users->SARG_INSTALLED){
+		//$array["sarg"]='{APP_SARG2}';
+	}
+	
+	
+	$array["mysql_statistics_engine"]='{APP_MYSQL1}';
 	$array["status-1"]='{status}';
 	$array["schedule-1"]='{schedule}';
 	$array["stats_admin_events"]='{events}';
@@ -255,11 +261,17 @@ function tabs(){
 		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["status"]='{globally}';}
 		//$array["panel-week"]='{this_week}';
 		//$array["events-squidaccess"]='{realtime_requests}';
-		$array["events-mysar"]='{summary}';
+		//$array["events-mysar"]='{summary}';
 	
 		$font="style='font-size:16px'";
-		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["not_categorized"]='{not_categorized}';}
+		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){
+			$array["reports"]='{reports_center}';
+		}
 	}
+	$array["sources"]='{sources_files}';
+	
+	
+	
 	
 while (list ($num, $ligne) = each ($array) ){
 	
@@ -267,6 +279,16 @@ while (list ($num, $ligne) = each ($array) ){
 			$html[]= "<li $font><a href=\"squid.traffic.panel.php?$num\"><span>$ligne</span></a></li>\n";
 			continue;
 		}	
+		
+		if($num=="sarg"){
+			$html[]= "<li $font><a href=\"sarg.php?popup=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="sources"){
+			$html[]= "<li $font><a href=\"squid.sourceslogs.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
 		
 		if($num=="stats_admin_events"){
 			$html[]= "<li $font><a href=\"stats.admin.events.php?$num\"><span>$ligne</span></a></li>\n";
@@ -338,14 +360,19 @@ while (list ($num, $ligne) = each ($array) ){
 		if($num=="events"){
 			$html[]= "<li $font><a href=\"squid.stats.events.php\"><span>$ligne</span></a></li>\n";
 			continue;
-		}		
+		}	
+
+		if($num=="reports"){
+			$html[]= "<li $font><a href=\"squid.stats.reports.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
 	
 	
 		$html[]= "<li $font><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	echo build_artica_tabs($html, "squid_stats_central",1100)."
+	echo build_artica_tabs($html, "squid_stats_central",1250)."
 			<script>LeftDesign('statistics-white-256-opac20.png');</script>";
 	
 }
@@ -431,8 +458,12 @@ function status_category_database(){
 	$categories=$q->COUNT_CATEGORIES();
 	if(!is_numeric($categories)){$categories=0;}
 	$categories=numberFormat($categories,0,""," ");
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
-	
+	if($SquidPerformance>0){
+		$LOCAL_VERSION="{disabled}";
+		$categories="{disabled}";
+	}
 	
 	return Paragraphe32("noacco:$title", "
 	<strong>Version</strong>:&nbsp;v.$LOCAL_VERSION<br>
@@ -542,11 +573,11 @@ function central_information(){
 		
 	}
 	
-	if(!$users->CORP_LICENSE){$more_features="<div class=explain style='font-size:16px;'>{squid_stats_nolicence_explain}</div>";}
+	if(!$users->CORP_LICENSE){$more_features="<div class=text-info style='font-size:16px;'>{squid_stats_nolicence_explain}</div>";}
 	
 	
 	if($DisableArticaProxyStatistics==1){
-		$more_features="<div class=explain style='font-size:16px;'>{squid_stats_disabled_explain}</div>";
+		$more_features="<div class=text-info style='font-size:16px;'>{squid_stats_disabled_explain}</div>";
 		
 	}
 	
@@ -574,7 +605,7 @@ function central_information(){
 	$garphsjs="Loadjs('$page?graphique_heure=yes&container=graph1-$t');";
 	
 	if($sock->SQUID_LOCAL_STATS_DISABLED()){
-		$garphs=null;
+		$garphs=$tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
 		$garphsjs=null;
 		
 	}

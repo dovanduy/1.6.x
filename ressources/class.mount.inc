@@ -196,9 +196,7 @@ class mount{
 			$this->events("smb_mount() mount.smbfs:$mount_smbfs Line::".__LINE__);
 		}
 		$password_cmdline=null;
-		if($username==null){
-			$this->events("smb_mount() WARNING, No username defined, are you sure web can access to share in this method ???");
-		}
+		
 		
 		if($password<>null){
 			$password=$this->shellEscapeChars($password);

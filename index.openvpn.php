@@ -536,21 +536,35 @@ function startpage(){
 	}
 	
 	$array["index"]='{index}';
-	
-	$array["server-settings"]="{OPENVPN_SERVER_SETTINGS}";
+	//
+	$array["server-settings"]="{service_parameters}";
+	$array["additional_routes"]="{additional_routes}";
 	$array["remote-sites"]="{REMOTE_SITES_VPN}";
 	$array["events-session"]="{sessions}";
+	$array["OPENVPN_SCHEDULE_RUN"]="{OPENVPN_SCHEDULE_RUN}";
 	$array["events"]="{events}";
 	$width=755;
 	
 	if(isset($_GET["newinterface"])){
 		$width="100%";
-		$font="font-size:16px";
+		
 		$newinterface="&newinterface=yes";
 	}
-	
+	$font="font-size:20px";
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="OPENVPN_SCHEDULE_RUN"){
+			$tab[]="<li><a href=\"index.openvpn.schedule.php?popup=yes\"><span style='$font'>$ligne</span></a></li>\n";
+			continue;
+		
+		}
+		
+		if($num=="additional_routes"){
+			$tab[]="<li><a href=\"index.openvpn.routes.php\"><span style='$font'>$ligne</span></a></li>\n";
+			continue;
+		
+		}		
 		
 		if($num=="remote-sites"){
 			$tab[]="<li><a href=\"openvpn.remotesites.php?infront=yes$newinterface\"><span style='$font'>$ligne</span></a></li>\n";
@@ -596,8 +610,7 @@ function index_page(){
 	$ncc=Paragraphe('64-win-nic-loupe.png','{NETWORK_CONTROL_CENTER}',
 	'{NETWORK_CONTROL_CENTER_TEXT}',"javascript:OpenVPNNCC()",null,210,null,0,false);
 	
-	$remote_add=Paragraphe('HomeNone-64.png','{REMOTE_SITES_VPN}',
-	'{REMOTE_SITES_VPN_TEXT}',"javascript:Loadjs('openvpn.remotesites.php')",null,210,null,0,false);
+
 	
 	
 	
@@ -651,16 +664,16 @@ function index_page(){
 	$status=status(1);
 	
 	$html="
-	<table style='width:100%'>
-	<tr>
-		<td valign='top'><div class=explain style='font-size:16px'>{APP_OPENVPN_TEXT}</div></td>
-		<td valign='top' ><img src='img/bg_openvpn.png'></td>
-	</tr>
-	</table>
+	<div style='font-size:30px;margin-bottom:20px'>{APP_OPENVPN_TEXT}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=280px><div id='openvpn-status'></div></td>
-	<td valign='top'><center>$table</center></td>
+	<td valign='top'>
+	<div class=text-info style='font-size:18px'>{openvpn_whatis}</div>
+	<br>
+	<center><img src='img/OpenVPN.png'></center>
+	
+	<center>$table</center></td>
 	</tr>
 	</table>
 	<script>
@@ -681,7 +694,7 @@ function index_page(){
 function wizard(){
 	
 	$html="<H1>{WELCOME_WIZARD}</H1>
-	<div class=explain>{WELCOME_WIZARD_TEXT}</div>
+	<div class=text-info>{WELCOME_WIZARD_TEXT}</div>
 	" . RoundedLightWhite("
 	<div id='wizarddiv'>
 		<div style='text-align:right'><input type='button' OnClick=\"javascript:StartWizard()\" value='{START_WIZARD}&nbsp;&raquo;'></div>
@@ -703,7 +716,7 @@ function wizard_key(){
 		<td valign='top' width=1%><img src='img/64-key.png'></td>
 		<td valign='top'>
 		<H3>{PKI}</H3>
-		<div class=explain>{WIZARD_STEP1}</div>
+		<div class=text-info>{WIZARD_STEP1}</div>
 		</td>
 		<table style='width:100%'>
 			<tr>
@@ -817,7 +830,7 @@ $DEV_TYPE=$vpn->main_array["GLOBAL"]["DEV_TYPE"];
 $dev=Field_array_Hash(
 	array("tun"=>"{routed_IP_tunnel}","tap0"=>"{ethernet_tunnel}"),
 	"DEV_TYPE",$vpn->main_array["GLOBAL"]["DEV_TYPE"],
-	"OpenVPNChangeServerMode()",null,0,'font-size:13px;padding:3px'
+	"OpenVPNChangeServerMode()",null,0,'font-size:16px;padding:3px'
 	);
 	
 	
@@ -844,28 +857,28 @@ $vpn->main_array["GLOBAL"]["IP_START"];
 $vpn->main_array["GLOBAL"]["IPTABLES_ETH"];
 
 if($vpn->main_array["GLOBAL"]["PUBLIC_IP"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{public_ip_addr}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["LISTEN_PORT"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["CLIENT_NAT_PORT"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}:{public_ip_addr}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}:{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["IP_START"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["NETMASK"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["LISTEN_PROTO"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{protocol}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{protocol}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["IP_START"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["NETMASK"]==null){
-$status=LocalParagraphe("MISSING_PARAMETER","{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong>","Loadjs('index.openvpn.server.php')","42-red.png");
+$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 $LDAP_AUTH="{no}";
 $EnableOpenVPNEndUserPage="{no}";
@@ -877,32 +890,34 @@ $tcp_ip=new ip();
 if(!$tcp_ip->isValid($wake_up_ip)){$wake_up_ip="{disabled}";}
 
 
-$ahref_edit="<a href=\"javascript:blur();\" OnClick=\"Loadjs('index.openvpn.server.php');\" style='font-size:13px;text-decoration:underline'>";
+$ahref_edit="<a href=\"javascript:blur();\" OnClick=\"Loadjs('index.openvpn.server.php');\" style='font-size:16px;text-decoration:underline'>";
+
+$button_edit=button("{change_settings}", "Loadjs('index.openvpn.server.php')",34);
 
 $openvpn_local="
 			<tr>
-				<td class=legend style='font-size:13px'>$ahref_edit{openvpn_local}</a>:</td>
-				<td style='font-size:13px'>$ahref_edit{$vpn->main_array["GLOBAL"]["LOCAL_BIND"]}</a></td>
+				<td class=legend style='font-size:20px'>{openvpn_local}</a>:</td>
+				<td style='font-weight:bold;font-size:20px'>{$vpn->main_array["GLOBAL"]["LOCAL_BIND"]}</a></td>
 				<td>&nbsp;</td>
 			</tr>";	
 
 
 
-$mandatories="<table style='width:99%' class=form>
+$mandatories="<table style='width:99%'>
 			<tr>
-				<td class=legend style='font-size:13px'>$ahref_edit{listen_port}:</a></td>
-				<td style='font-size:13px'>$ahref_edit{$vpn->main_array["GLOBAL"]["LISTEN_PORT"]}&nbsp;{$vpn->main_array["GLOBAL"]["LISTEN_PROTO"]}</a></td>
+				<td class=legend style='font-size:20px'>{listen_port}:</a></td>
+				<td style='font-weight:bold;font-size:20px'>{$vpn->main_array["GLOBAL"]["LISTEN_PORT"]}&nbsp;{$vpn->main_array["GLOBAL"]["LISTEN_PROTO"]}</a></td>
 				<td>&nbsp;</td>
 			</tr>
 			$openvpn_local
 			<tr>
-				<td class=legend style='font-size:13px'>$ahref_edit{public_ip_addr}</a>:</td>
-				<td style='font-size:13px;'>$ahref_edit{$vpn->main_array["GLOBAL"]["PUBLIC_IP"]}:$CLIENT_NAT_PORT</a></td>
+				<td class=legend style='font-size:20px'>{public_ip_addr}</a>:</td>
+				<td style='font-weight:bold;font-size:20px;'>{$vpn->main_array["GLOBAL"]["PUBLIC_IP"]}:$CLIENT_NAT_PORT</a></td>
 				<td>&nbsp;</td>
 			<tr>	
 			<tr>
-				<td class=legend style='font-size:13px'>$ahref_edit{password}:</a></td>
-				<td style='font-size:13px'>$ahref_edit*****</a></td>
+				<td class=legend style='font-size:20px'>{password}:</a></td>
+				<td style='font-weight:bold;font-size:20px'>*****</a></td>
 				<td>&nbsp;</td>
 			<tr>
 			</table>";
@@ -913,41 +928,41 @@ if($vpn->main_array["GLOBAL"]["USE_RPROXY"]==1){
 
 if($vpn->main_array["GLOBAL"]["IPTABLES_ETH"]==null){$vpn->main_array["GLOBAL"]["IPTABLES_ETH"]="{no}";}
 				
-$mode_tun="<table style='width:99%' class=form>
+$mode_tun="<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{enable_authentication}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit{$LDAP_AUTH}</td>
+		<td class=legend style='font-size:20px'>{enable_authentication}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>{$LDAP_AUTH}</td>
 		<td>&nbsp;</td>
 	<tr>
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{EnableOpenVPNEndUserPage}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit{$EnableOpenVPNEndUserPage}</td>
+		<td class=legend style='font-size:20px'>{EnableOpenVPNEndUserPage}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>{$EnableOpenVPNEndUserPage}</td>
 		<td>&nbsp;</td>
 	<tr>	
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{reverse_proxy}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit$proxy</td>
+		<td class=legend style='font-size:20px'>{reverse_proxy}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>$proxy</td>
 		<td>&nbsp;</td>
 	<tr>	
 	
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{from_ip_address}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit{$vpn->main_array["GLOBAL"]["IP_START"]}</td>
+		<td class=legend style='font-size:20px'>{from_ip_address}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>{$vpn->main_array["GLOBAL"]["IP_START"]}</td>
 		<td>&nbsp;</td>
 	<tr>
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{netmask}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit{$vpn->main_array["GLOBAL"]["NETMASK"]}</a></td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{openvpn_access_interface}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit{$vpn->main_array["GLOBAL"]["IPTABLES_ETH"]}</a></td>
+		<td class=legend style='font-size:20px'>{netmask}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>{$vpn->main_array["GLOBAL"]["NETMASK"]}</a></td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px'>$ahref_edit{wake_up_ip}</a>:</td>
-		<td style='font-size:13px'>$ahref_edit$wake_up_ip</a></td>
+		<td class=legend style='font-size:20px'>{openvpn_access_interface}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>{$vpn->main_array["GLOBAL"]["IPTABLES_ETH"]}</a></td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:20px'>{wake_up_ip}</a>:</td>
+		<td style='font-weight:bold;font-size:20px'>$wake_up_ip</a></td>
 		<td>&nbsp;</td>
 	</tr>	
 	
@@ -977,30 +992,30 @@ $mode_tap="
 					<div id='nicvpninfo' style='float:right;margin:5px;'>".ShowIPConfig($vpn->main_array["GLOBAL"]["BRIDGE_ETH"])."</div>
 				</td>
 				<td valign='top'>
-					<div class=explain>{SERVER_MODE_TAP}</div>
+					<div class=text-info>{SERVER_MODE_TAP}</div>
 				</td>
 			</tr>
 		</table>
 	</div>
 <table style='width:100%'>
 	<tr>
-		<td class=legend nowrap style='font-size:13px'>{BRIDGE_ETH}:</td>
+		<td class=legend nowrap style='font-size:20px'>{BRIDGE_ETH}:</td>
 		<td width=1% nowrap>$nics</td>
-		<td align='left' width=1% nowrap>". texttooltip("{add_virtual_ip_address}","{add_virtual_ip_address}","Loadjs('system.nic.config.php?js-add-nic=yes')",null,0,"font-size:13px;padding:3px")."</td>
+		<td align='left' style='font-weight:bold;font-size:20px' width=1% nowrap>". texttooltip("{add_virtual_ip_address}","{add_virtual_ip_address}","Loadjs('system.nic.config.php?js-add-nic=yes')",null,0,"font-size:16px;padding:3px")."</td>
 	<tr>
 	<tr>
-		<td class=legend nowrap style='font-size:13px'>{BRIDGE_ADDR}:</td>
-		<td width=1% nowrap>" . Field_text('BRIDGE_ADDR',$vpn->main_array["GLOBAL"]["BRIDGE_ADDR"],'width:120px;font-size:13px;padding:3px')."</td>
+		<td class=legend nowrap style='font-size:20px'>{BRIDGE_ADDR}:</td>
+		<td width=1% style='font-weight:bold;font-size:20px' nowrap >" . Field_text('BRIDGE_ADDR',$vpn->main_array["GLOBAL"]["BRIDGE_ADDR"],'width:120px;font-size:16px;padding:3px')."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend nowrap style='font-size:13px'>{VPN_DHCP_FROM}:</td>
-		<td width=1% nowrap>" . Field_text('VPN_DHCP_FROM',$vpn->main_array["GLOBAL"]["VPN_DHCP_FROM"],'width:120px;font-size:13px;padding:3px')."</td>
+		<td class=legend nowrap style='font-size:20px'>{VPN_DHCP_FROM}:</td>
+		<td width=1% style='font-weight:bold;font-size:20px' nowrap>" . Field_text('VPN_DHCP_FROM',$vpn->main_array["GLOBAL"]["VPN_DHCP_FROM"],'width:120px;font-size:16px;padding:3px')."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend nowrap style='font-size:13px'>{VPN_DHCP_TO}:</td>
-		<td width=1% nowrap>" . Field_text('VPN_DHCP_TO',$vpn->main_array["GLOBAL"]["VPN_DHCP_TO"],'width:120px;font-size:13px;padding:3px')."</td>
+		<td class=legend nowrap style='font-size:20px'>{VPN_DHCP_TO}:</td>
+		<td width=1% style='font-weight:bold;font-size:20px' nowrap>" . Field_text('VPN_DHCP_TO',$vpn->main_array["GLOBAL"]["VPN_DHCP_TO"],'width:120px;font-size:16px;padding:3px')."</td>
 		<td>&nbsp;</td>
 	</tr>			
 	<tr>
@@ -1018,35 +1033,31 @@ if($vpn->main_array["GLOBAL"]["ENABLE_BRIDGE_MODE"]==1){
 	$mode=$mode_tap;
 }
 
-$schedule=LocalParagraphe("OPENVPN_SCHEDULE_RUN","OPENVPN_SCHEDULE_RUN_TEXT","Loadjs('index.openvpn.schedule.php')",
-"ScheduleSettings-48.png");
 
-if($vpn->main_array["GLOBAL"]["ENABLE_SERVER"]<>1){$status=LocalParagraphe("OPENVPN_NOT_ENABLED","OPENVPN_NOT_ENABLED_TEXT","Loadjs('index.openvpn.server.php')","warning42.png");}
+if($vpn->main_array["GLOBAL"]["ENABLE_SERVER"]<>1){
+	$status=FATAL_WARNING_SHOW_128("<strong style='font-size:22px'>{OPENVPN_NOT_ENABLED}</strong><hr>
+			{OPENVPN_NOT_ENABLED_TEXT}
+			<center>". button("{enable_service}","Loadjs('index.openvpn.enable.progress.php')",42)."</center>");
+}
 
 if($status==null){
-	$status=LocalParagraphe("OPENVPN_APPLY_CONFIG","OPENVPN_APPLY_CONFIG_TEXT","YahooWin3(500,'index.openvpn.php?restart-server=yes','{APP_OPENVPN_APPLY}')","reconfigure-42.png");
-	$script=LocalParagraphe("BUILD_OPENVPN_CLIENT_CONFIG","BUILD_OPENVPN_CLIENT_CONFIG_TEXT","Loadjs('index.openvpn.build.client.php')","script-42.png");
-	
+	$button_apply=button("{OPENVPN_APPLY_CONFIG}", "Loadjs('index.openvpn.apply.progress.php')",34)."&nbsp;|&nbsp;";
+	$button_script=button("{BUILD_OPENVPN_CLIENT_CONFIG}", "Loadjs('index.openvpn.build.client.php')",22);
 }
 
 $html="
-<table style='width:100%'>
-<tr>
-<td valign='top'>
+<div style='font-size:28px;margin-bottom:30px'>{OPENVPN_SERVER_SETTINGS}</div>
+$status
+<div style='width:98%' class=form>
+
+
 <div id='OPENVPN_SERVER_SETTINGS'>
-<table style='width:100%'>
-		<tr>
-			<td style='padding-right:5px;border-right:5px solid #CCCCCC;width:30%;vertical-align:top'>$script$status$schedule</td>
-			<td style='width:70%;vertical-align:top'>
-			<div style='font-size:28px'>{service_parameters}</div>
-			$mandatories$mode</td>
-		</tr>
-		</table>
-		
-	</div>
-</td>
-</tr>
-</table>";
+<div style='text-align:right'>$button_script</div>
+$mandatories
+$mode
+<div style='margin-top:15px;text-align:right;font-size:34px'><hr>$button_apply$button_edit</div>	
+</div>
+";
 $tpl=new templates();
 echo $tpl->_ENGINE_parse_body($html);		
 // openvpn --remote touzeau.ath.cx --port 1194 --dev tun --comp-lzo --tls-client --ca /home/dtouzeau/ca.crt --cert /home/dtouzeau/dtouzeau.crt --key /home/dtouzeau/dtouzeau.key --verb 5 --pull	
@@ -1209,15 +1220,15 @@ function SaveCertificate(){
 function routes_settings(){
 	$list=routes_list(1);
 	$html="
-	<div class=explain>{routes_explain}</div>
+	<div class=text-info>{routes_explain}</div>
 	<table style='width:99%' class=form>
 	 <tr>
 	 	<td class=legend>{from_ip_address}:</td>
-	 	<td>" . Field_text('ROUTE_FROM',null,'width:110px;font-size:13px;padding:3px',null,'RouteShouldbe()',null,false,'RouteShouldbe()')."</td>
+	 	<td>" . Field_text('ROUTE_FROM',null,'width:110px;font-size:16px;padding:3px',null,'RouteShouldbe()',null,false,'RouteShouldbe()')."</td>
 	 </tr>
 	<tr>
 	 	<td class=legend>{netmask}:</td>
-	 	<td>" . Field_text('ROUTE_MASK',null,'width:110px;font-size:13px;padding:3px')."</td>
+	 	<td>" . Field_text('ROUTE_MASK',null,'width:110px;font-size:16px;padding:3px')."</td>
 	 </tr>	
 	<tr>
 	<td colspan=2 class='legend' style='padding-right:50px'><span id='shouldbe'></span></td>
@@ -1385,7 +1396,7 @@ if(is_array($route)){
 	
 	$html="
 	<H1>{NETWORK_CONTROL_CENTER}</H1>
-	<div style='background-image:url(img/bg_vpn1.png);width:750px;height:420px;background-repeat:no-repeat;font-size:13px'></div>
+	<div style='background-image:url(img/bg_vpn1.png);width:750px;height:420px;background-repeat:no-repeat;font-size:16px'></div>
 	<div style='position:absolute;top:30px;left:700px;'><input type='button' OnClick=\"javascript:OpenVPNNCC()\" value='{refresh}'></div>
 	<div style='position:absolute;top:240px;left:210px;font-size:14px;text-align:center'>{BRIDGE_ETH}<br>$listen_eth</div>
 	<div style='position:absolute;top:450px;left:80px;font-size:14px;text-align:center'>{local_network}<br>$local_network<br>$routes</div>

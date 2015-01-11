@@ -587,6 +587,15 @@ function popup(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$sock=new sockets();
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{software_is_disabled_performance}"));
+		return;
+	
+	}
+	
+	
 	$array["index"]='{status}';
 	$array["webs"]='{squid_accel_websites}';
 	$array["params"]='{parameters}';
@@ -607,9 +616,7 @@ function popup(){
 	}
 	
 	$array["modules"]='{available_modules}';
-	if($users->PUREFTP_INSTALLED){
-		$array["pure-ftpd"]='{APP_PUREFTPD}';
-	}
+	
 	if($users->TOMCAT_INSTALLED){
 		$array["tomcat"]='{APP_TOMCAT}';
 	}
@@ -747,22 +754,24 @@ function index(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>
-			<center>". imgtootltip("free-web-128.png","{refresh}::{status}","statusRefresh()")."</center>
+			<div id='traffic-today2'></div>
+
+				
 			<hr>
 			<div id='apache-src-status'></div>
 		</td>
 		<td valign='top'>
 				<table class=form>
 				<tr>
-					<td class=legend style='font-size:14px'>{add_to_menu}:</td>
-					<td>". Field_checkbox("FreeWebLeftMenu",1,$FreeWebLeftMenu,"FreeWebLeftMenuCheck()")."</td>
+					<td class=legend style='font-size:18px'>{add_to_menu}:</td>
+					<td>". Field_checkbox_design("FreeWebLeftMenu",1,$FreeWebLeftMenu,"FreeWebLeftMenuCheck()")."</td>
 				</tr>
 				<tr>
 				<td colspan=2>
 					$p_error
 					$p
 					<hr>
-					<div style='width:100%;text-align:right'>". button("{apply}","EnableFreeWebSave()",22)."</div>
+					<div style='width:100%;text-align:right'>". button("{apply}","EnableFreeWebSave()",30)."</div>
 				</td>
 				</tr>
 				</table>
@@ -833,6 +842,7 @@ function index(){
 	statusRefresh();
 	FreeWebDisableFreeWebLeftMenu();
 	LoadWatchdogConfig();
+	LoadAjax('traffic-today2','freeweb.edit.status.php?status=yes');
 	</script>";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -853,7 +863,7 @@ function saveEnableFreeWeb(){
 	if($_GET["EnableFreeWeb"]==1){$sock->SET_INFO("PureFtpdEnabled",1);}
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	$sock->getFrameWork("cmd.php?freeweb-restart=yes");
-	$sock->getFrameWork("cmd.php?pure-ftpd-restart=yes");
+	
 	}
 
 function popup_webs(){
@@ -1398,7 +1408,7 @@ function mode_evasive_form(){
 	
 	
 	$html="
-	<div class=explain id='modeevasivedef'>{mod_evasive_explain}</div>
+	<div class=text-info id='modeevasivedef'>{mod_evasive_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{DOSHashTableSize}:</td>
@@ -1655,53 +1665,53 @@ function watchdog_form(){
 		<table style='width:99%' class=form>
 		<tbody>
 			<tr>
-				<td class=legend style='font-size:14px' nowrap>{ZarafaWebAccessInFrontEnd}:</td>
-				<td>". Field_checkbox("$t-ZarafaWebAccessInFrontEnd", 1,$ZarafaWebAccessInFrontEnd,"ZarafaWebAccessInFrontEnd{$t}()")."</td>
+				<td class=legend style='font-size:22px' nowrap>{ZarafaWebAccessInFrontEnd}:</td>
+				<td>". Field_checkbox_design("$t-ZarafaWebAccessInFrontEnd", 1,$ZarafaWebAccessInFrontEnd,"ZarafaWebAccessInFrontEnd{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:14px' nowrap>{EnableNginx}:</td>
-				<td>". Field_checkbox("$t-EnableNginx", 1,$EnableNginx,"EnableNginx{$t}()")."</td>
+				<td class=legend style='font-size:22px' nowrap>{EnableNginx}:</td>
+				<td>". Field_checkbox_design("$t-EnableNginx", 1,$EnableNginx,"EnableNginx{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:14px' nowrap>{ArticaWebConsoleAsFrontEnd}:</td>
-				<td>". Field_checkbox("$t-EnableArticaInNGINX", 1,$EnableArticaInNGINX,"EnableArticaInNGINX{$t}()")."</td>
+				<td class=legend style='font-size:22px' nowrap>{ArticaWebConsoleAsFrontEnd}:</td>
+				<td>". Field_checkbox_design("$t-EnableArticaInNGINX", 1,$EnableArticaInNGINX,"EnableArticaInNGINX{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px' nowrap>{EnablePHPFPM}:</td>
-				<td>". Field_checkbox("$t-EnablePHPFPM", 1,$EnablePHPFPM,"EnableEnablePHPFPM{$t}()")."</td>
+				<td class=legend style='font-size:22px' nowrap>{EnablePHPFPM}:</td>
+				<td>". Field_checkbox_design("$t-EnablePHPFPM", 1,$EnablePHPFPM,"EnableEnablePHPFPM{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>		
 		
 			<tr>
-				<td class=legend style='font-size:14px'>{enable_watchdog}:</td>
-				<td>". Field_checkbox("$t-watchdog", 1,$MonitConfig["watchdog"],"InstanceCheckWatchdog{$t}()")."</td>
+				<td class=legend style='font-size:22px'>{enable_watchdog}:</td>
+				<td>". Field_checkbox_design("$t-watchdog", 1,$MonitConfig["watchdog"],"InstanceCheckWatchdog{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:14px'>{notify_when_cpu_exceed}:</td>
-				<td style='font-size:14px'>". Field_text("$t-watchdogCPU", $MonitConfig["watchdogCPU"],"font-size:14px;width:60px")."&nbsp;%</td>
+				<td class=legend style='font-size:22px'>{notify_when_cpu_exceed}:</td>
+				<td style='font-size:14px'>". Field_text("$t-watchdogCPU", $MonitConfig["watchdogCPU"],"font-size:22px;width:90px")."&nbsp;%</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{notify_when_memory_exceed}:</td>
-				<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:14px;width:60px")."&nbsp;MB</td>
+				<td class=legend style='font-size:22px'>{notify_when_memory_exceed} (&nbsp;MB):</td>
+				<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:22px;width:90px")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px'>{restart_each}:</td>
-				<td style='font-size:14px'>". Field_text("$t-watchdogTTL", $MonitConfig["watchdogTTL"],"font-size:14px;width:60px")."&nbsp;{minutes}</td>
+				<td class=legend style='font-size:22px'>{restart_each}&nbsp;({minutes}):</td>
+				<td style='font-size:14px'>". Field_text("$t-watchdogTTL", $MonitConfig["watchdogTTL"],"font-size:22px;width:90px")."</td>
 				<td>". help_icon("{restart_each_explain}")."</td>
 			</tr>						
 			<tr>
-				<td class=legend style='font-size:14px'>{change_initd}:</td>
-				<td>". Field_checkbox("$t-FreeWebChangeInit", 1,$FreeWebChangeInit,"FreeWebChangeInit()")."</td>
+				<td class=legend style='font-size:22px'>{change_initd}:</td>
+				<td>". Field_checkbox_design("$t-FreeWebChangeInit", 1,$FreeWebChangeInit,"FreeWebChangeInit()")."</td>
 				<td>". help_icon("{change_initd_explain}")."</td>
 			</tr>			
 			<tr>
-				<td colspan=3 align='right'><hr>". button("{apply}", "SaveWatchdog{$t}()",16)."</td>
+				<td colspan=3 align='right'><hr>". button("{apply}", "SaveWatchdog{$t}()",30)."</td>
 			</tr>	
 		</tbody>
 	</table>
@@ -1889,7 +1899,7 @@ function log_rotate_popup(){
 
 	
 	$html="
-	<div class=explain style='font-size:14px'>{ApacheLogRotate_explain}</div>
+	<div class=text-info style='font-size:14px'>{ApacheLogRotate_explain}</div>
 	<div id='div-$t'>
 	<table style='width:99%' class='form'>
 	<tr>

@@ -2,6 +2,7 @@
 function CategoryCodeToCatName($category){
 	if(preg_match("#^art(.+)#", $category,$re)){$category=$re[1];}
 	if(preg_match("#^tls(.+)#", $category,$re)){$category=$re[1];}
+	if(preg_match("#^category_(.+)#", $category,$re)){$category=$re[1];}
 	if($category=="listebu"){$category="liste_bu";}
 	if($category=="adult"){$category="porn";}
 	if($category=="agressivecat"){$category="agressive";}
@@ -23,6 +24,14 @@ function CategoryCodeToCatName($category){
 	if($category=="listebu"){$category="liste_bu";}
 	if($category=="adult"){$category="porn";}
 	if($category=="audiovideo"){$category="audio-video";}
+	if($category=="audio_video"){$category="audio-video";}
+	if($category=="remote_control"){$category="remote-control";}
+	if($category=="science_weather"){$category="science/weather";}
+	if($category=="mobile_phone"){$category="mobile-phone";}
+	
+	if(preg_match("#^([a-z]+)_([a-z]+)$#", $category,$re)){
+		$category=$re[1]."/".$re[2];
+	}
 	return $category;
 
 }

@@ -49,8 +49,9 @@ class mysql_status{
 		$ParseErrors=$this->ParseErrors($results);
 		if($ParseErrors==0){return;}
 		if($ParseErrors==1){
+			mysql_admin_mysql(0,"Fatal: Too Many connections, restart mysql service.", null,__FILE__,__LINE__);
 			$GLOBALS["CLASS_UNIX"]->send_email_events("Fatal: Too Many connections, restart mysql service.",__CLASS__."/".__FUNCTION__." in file ".basename(__FILE__), "system");
-			shell_exec("$this->nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+			shell_exec("$this->nohup /etc/init.d/mysql restart --force --framework=".__FILE__." >/dev/null 2>&1 &");
 		}
 	}
 	
@@ -102,7 +103,9 @@ class mysql_status{
 		reset($array);
 		while (list ($index, $line) = each ($array) ){
 			if($GLOBALS["VERBOSE"]){echo "*** Analyze: \"$line\"\n";}
+			
 			if(preg_match("#error.*?Too many connections#", $line)){
+				mysql_admin_mysql(0,"Fatal: Too Many connections, restart mysql service.", $line,__FILE__,__LINE__);
 				return 1;
 			}
 			

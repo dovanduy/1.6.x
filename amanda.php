@@ -132,7 +132,7 @@ function dumptypes(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$html="
-	<div class=explain>{Amandadumptypes_explain}</div>
+	<div class=text-info>{Amandadumptypes_explain}</div>
 	<div id='amanda-dumptypes-list' style='width:100%;height:300px;overflow:auto'></div>
 	
 	
@@ -412,7 +412,7 @@ function backup_server_popup(){
 	$sock=new sockets();
 	$backup_server=$sock->GET_INFO("AmandaBackupServer");
 	$html="
-	<div class=explain>{amanda_backup_server_explain}</div>
+	<div class=text-info>{amanda_backup_server_explain}</div>
 	<div id='amandabckserv'>
 	<table style='width:100%'>
 	<tr>

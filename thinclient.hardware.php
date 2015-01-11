@@ -639,7 +639,7 @@ $wifi=array(
 
 $html="
 <div style='float:right'>". button("{rebuild_defaults}","RebuildDefaultModules()")."</div>
-<div class=explain>{thinclient_network_modules_explain}</div>
+<div class=text-info>{thinclient_network_modules_explain}</div>
 
 <table cellspacing='0' cellpadding='0' border='0' class='tableView'>
 <thead class='thead'>

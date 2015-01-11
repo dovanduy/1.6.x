@@ -102,7 +102,7 @@ function WebFilterRepository(){
 	$UpdateCategoriesRepositoryUrl=$sock->GET_INFO("UpdateCategoriesRepositoryUrl");
 	if($UpdateCategoriesRepositoryUrl==null){$UpdateCategoriesRepositoryUrl="http://www.articatech.net/blacklist";}
 	
-	$html="<div class=explain>{APP_PROXY_CATS_TEXT}</div>
+	$html="<div class=text-info>{APP_PROXY_CATS_TEXT}</div>
 	<div id='WebFilterRepository-parms-div'>
 	<table style='width:99%' class=form>
 	<tbody>

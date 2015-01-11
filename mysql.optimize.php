@@ -88,15 +88,8 @@ function tabs(){
 	}
 	
 	
-	$html= "
-	<div id=main_config_mysql_optimize style='width:100%;height:630px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_mysql_optimize').tabs();
-			});
-		</script>";		
+	$html= build_artica_tabs($html, "main_config_mysql_optimize");
+	
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
@@ -123,7 +116,7 @@ function popup(){
 	<tbody>
 	<tr>
 	<td valign='top' width=1%>". Paragraphe("database-restore-64.png", "{launch_optimize}", "{launch_optimize_text}","javascript:Loadjs('$page?launch-opimize-js=yes')")."</td>
-	<td valign='top'><div class=explain>{mysql_defrag_explain}</div></td>
+	<td valign='top'><div class=text-info>{mysql_defrag_explain}</div></td>
 	</tr>
 	</tbody>
 	</table>

@@ -1,6 +1,6 @@
 <?php
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
@@ -14,8 +14,77 @@ if(isset($_GET["item-popup"])){item_popup();exit;}
 if(isset($_GET["items"])){items();exit;}
 if(isset($_GET["delete-js"])){items_delete_js();exit;}
 if(isset($_POST["delete"])){items_delete();exit;}
+if(isset($_GET["move-item-js"])){move_items_js();exit;}
+if(isset($_POST["move-item"])){move_items();exit;}
 if(isset($_POST["ID"])){save();exit;}
 table();
+
+function move_items_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$t=time();
+
+$html="
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){ alert(results); return; }
+	$('#flexRT{$_GET["t"]}').flexReload();
+}
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('move-item','{$_GET["ID"]}');
+	XHR.appendData('t','{$_GET["t"]}');
+	XHR.appendData('dir','{$_GET["dir"]}');
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+
+Save$t();
+
+";
+
+echo $html;
+
+}
+function move_items(){
+	$q=new mysql_squid_builder();
+	$ID=$_POST["move-item"];
+	$t=$_POST["t"];
+	$dir=$_POST["dir"];
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zorder FROM hotspot_networks WHERE ID='$ID'"));
+	if(!$q->ok){echo "Line:".__LINE__.":$sql\n".$q->mysql_error;}
+
+
+	$CurrentOrder=$ligne["zorder"];
+
+	if($dir==0){
+		$NextOrder=$CurrentOrder-1;
+	}else{
+		$NextOrder=$CurrentOrder+1;
+	}
+
+	$sql="UPDATE hotspot_networks SET zorder=$CurrentOrder WHERE zorder='$NextOrder'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo  "Line:".__LINE__.":$sql\n".$q->mysql_error;}
+
+
+	$sql="UPDATE hotspot_networks SET zorder=$NextOrder WHERE ID='$ID'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo  "Line:".__LINE__.":$sql\n".$q->mysql_error;}
+
+	$results=$q->QUERY_SQL("SELECT ID FROM hotspot_networks ORDER by zorder","artica_backup");
+	if(!$q->ok){echo "Line:".__LINE__.":".$q->mysql_error;}
+	$c=1;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ID=$ligne["ID"];
+		$sql="UPDATE hotspot_networks SET zorder=$c WHERE ID='$ID'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "Line:".__LINE__.":$sql\n".$q->mysql_error;}
+		$c++;
+	}
+
+
+}
 
 function item_js(){
 	$page=CurrentPageName();
@@ -76,7 +145,7 @@ function items_delete(){
 	$q->QUERY_SQL("DELETE FROM hotspot_networks WHERE ID={$_POST["delete"]}");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("hotspot.php?restart-firewall=yes");
+	
 }
 
 function item_popup(){
@@ -89,27 +158,65 @@ function item_popup(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM hotspot_networks WHERE ID='$ID'"));
 		$button="{apply}";
 	}
+	$array[100]="{garbage}";
+	$array[0]="{global}";
+	$array[1]="{known-users}";
+	$array[2]="{unknown-users}";
+	
+	
+
+	
+	$action["block"]="{block}";
+	$action["drop"]="{drop}";
+	$action["allow"]="{allow}";
+	$action["log"]="{log2}";
+	
+	$protocol[null]="{all}";
+	$protocol["tcp"]="TCP";
+	$protocol["udp"]="udp";
+	$protocol["icmp"]="icmp";
+	
+	
+	$direction[0]="{outgoing}";
+	$direction[1]="{incoming2}";
 	
 	$t=time();
 	$html="<div class=form style='width:95%'>
-	<div class=explain style='font-size:14px'>{hostpot_pattern_explain}</div>
+	<div class=text-info style='font-size:14px'>{hostpot2_pattern_explain}</div>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{network2}:</td>
+		<td class=legend style='font-size:18px'>{network2} ({outgoing}):</td>
 		<td>". Field_text("pattern-$t",$ligne["pattern"],"font-size:18px;font-weight:bold;width:300px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{hotspoted}:</td>
-		<td>". Field_checkbox("hotspoted-$t",1,$ligne["hotspoted"])."</td>
+		<td class=legend style='font-size:18px'>{direction}:</td>
+		<td>". Field_array_Hash($direction,"direction-$t",$ligne["direction"],"SwichDir$t()",'',0,"font-size:18px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{network2} ({incoming2}):</td>
+		<td>". Field_text("destination-$t",$ligne["destination"],"font-size:18px;font-weight:bold;width:300px")."</td>
+	</tr>							
+	<tr>
+		<td class=legend style='font-size:18px'>{order}:</td>
+		<td>". Field_text("zorder-$t",$ligne["zorder"],"font-size:18px;font-weight:bold;width:90px")."</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:18px'>{restricted}:</td>
-		<td>". Field_checkbox("restrict_web-$t",1,$ligne["restrict_web"])."</td>
+		<td class=legend style='font-size:18px'>{type}:</td>
+		<td>". Field_array_Hash($array,"hotspoted-$t",$ligne["hotspoted"],"style:font-size:18px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{uid}:</td>
-		<td>". Field_text("uid-$t",$ligne["uid"],"font-size:18px;width:300px")."</td>
+		<td class=legend style='font-size:18px'>{port}:</td>
+		<td>". Field_text("port-$t",$ligne["port"],"font-size:18px;font-weight:bold;width:90px")."</td>
+	</tr>							
+				
+	<tr>
+		<td class=legend style='font-size:18px'>{protocol}:</td>
+		<td>". Field_array_Hash($protocol,"proto-$t",$ligne["proto"],"style:font-size:18px")."</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{action}:</td>
+		<td>". Field_array_Hash($action,"action-$t",$ligne["action"],"style:font-size:18px")."</td>
+	</tr>				
 <tr>
 	<td colspan=2 align='right'><hr>". button($button,"Save$t();",22)."</td>
 </tr>
@@ -130,17 +237,34 @@ function SaveCHK$t(e){
 	if(!checkEnter(e)){return;}
 	Save$t();
 }
+
+function SwichDir$t(){
+	document.getElementById('destination-$t').disabled=false;
+	document.getElementById('hotspoted-$t').disabled=false;
+	
+	
+	var direction=document.getElementById('direction-$t').value;
+	if(direction==0){
+		document.getElementById('destination-$t').disabled=true;
+		document.getElementById('hotspoted-$t').disabled=true;
+	}
+}
 	
 
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('ID',  '$ID');
 	XHR.appendData('pattern',  document.getElementById('pattern-$t').value);
-	XHR.appendData('userid',  document.getElementById('uid-$t').value);
-	if(document.getElementById('hotspoted-$t').checked){ XHR.appendData('hotspoted',  1); }else{ XHR.appendData('hotspoted',  0); }
-	if(document.getElementById('restrict_web-$t').checked){ XHR.appendData('restrict_web',  1); }else{ XHR.appendData('restrict_web',  0); }	
+	XHR.appendData('zorder',  document.getElementById('zorder-$t').value);
+	XHR.appendData('hotspoted',  document.getElementById('hotspoted-$t').value);
+	XHR.appendData('action',  document.getElementById('action-$t').value);
+	XHR.appendData('proto',  document.getElementById('proto-$t').value);
+	XHR.appendData('port',  document.getElementById('port-$t').value);
+	XHR.appendData('destination',  document.getElementById('destination-$t').value);
+	XHR.appendData('direction',  document.getElementById('direction-$t').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
+SwichDir$t()
 </script>	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -151,6 +275,7 @@ function Save(){
 	$table="hotspot_networks";
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
 
+	if(!$q->FIELD_EXISTS("hotspot_networks", "direction")){$q->CheckTables();}
 
 	$editF=false;
 	$ID=$_POST["ID"];
@@ -173,9 +298,6 @@ function Save(){
 
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo "Mysql error: `$q->mysql_error`";;return;}
-	$tpl=new templates();
-	$sock=new sockets();
-	$sock->getFrameWork("hotspot.php?restart-firewall=yes");
 
 }
 
@@ -191,22 +313,30 @@ function table(){
 	$rule=$tpl->javascript_parse_text("{rule}");
 	$delete=$tpl->javascript_parse_text("{delete} {zone} ?");
 	$rewrite_rules_fdb_explain=$tpl->javascript_parse_text("{rewrite_rules_fdb_explain}");
-	$new_network=$tpl->javascript_parse_text("{new_network}");
+	$new_network=$tpl->javascript_parse_text("{new_rule}");
 	$comment=$tpl->javascript_parse_text("{comment}");
 	$rules=$tpl->javascript_parse_text("{rules}");
 	$rule=$tpl->javascript_parse_text("{rule}");
 	$apply=$tpl->javascript_parse_text("{apply}");
 	$action=$tpl->javascript_parse_text("{action}");
-	$restricted_ports=$tpl->javascript_parse_text("{restricted_ports}");
+	$order=$tpl->javascript_parse_text("{order}");
 	$networks=$tpl->javascript_parse_text("{networks}");
 	$restricted=$tpl->javascript_parse_text("{restricted}");
+	$type=$tpl->javascript_parse_text("{type}");
+	$protocol=$tpl->javascript_parse_text("{protocol}");
+	$port=$tpl->javascript_parse_text("{port}");
+	$trusted_MAC=$tpl->javascript_parse_text("{trusted_MAC}");
+	$trusted_sslwebsites=$tpl->javascript_parse_text("{trusted_ssl_sites}");
 	$title=$networks;
 	$tt=time();
+	$q=new mysql_squid_builder();
+	$q->check_hotspot_tables();
 	
 	$buttons="
 	buttons : [
 	{name: '$new_network', bclass: 'add', onpress : NewRule$tt},
-	{name: '$restricted_ports', bclass: 'Settings', onpress : rports},
+	{name: '$trusted_MAC', bclass: 'Settings', onpress : rports},
+	{name: '$trusted_sslwebsites', bclass: 'Settings', onpress : rssls},
 	{name: '$apply', bclass: 'Reconf', onpress : Apply$tt},
 	],";
 
@@ -218,17 +348,21 @@ function table(){
 	url: '$page?items=yes&t=$tt&tt=$tt&t-rule={$_GET["t"]}&ruleid={$_GET["ruleid"]}',
 	dataType: 'json',
 	colModel : [
-	
-	{display: '$networks', name : 'pattern', width :273, sortable : true, align: 'left'},
-	{display: 'hotspot', name : 'hotspoted', width :100, sortable : false, align: 'center'},
-	{display: '$restricted', name : 'restrict_web', width :100, sortable : false, align: 'center'},
+	{display: '$order', name : 'zorder', width :55, sortable : true, align: 'center'},
+	{display: '$protocol', name : 'proto', width :55, sortable : true, align: 'center'},
+	{display: '$networks', name : 'pattern', width :448, sortable : true, align: 'left'},
+	{display: '$type', name : 'hotspoted', width :100, sortable : false, align: 'center'},
+	{display: '$action', name : 'action', width :100, sortable : true, align: 'center'},
+	{display: 'up', name : 'up', width :55, sortable : false, align: 'center'},
+	{display: 'down', name : 'down', width :55, sortable : false, align: 'center'},
 	{display: '&nbsp;', name : 'delete', width : 100, sortable : false, align: 'center'},
 	],
 	$buttons
 	searchitems : [
 	{display: '$networks', name : 'pattern'},
+	{display: '$port', name : 'port'},
 	],
-	sortname: 'pattern',
+	sortname: 'zorder',
 	sortorder: 'asc',
 	usepager: true,
 	title: '$title',
@@ -251,7 +385,7 @@ var xNewRule$tt= function (obj) {
 }
 
 function Apply$tt(){
-	Loadjs('system.services.cmd.php?APPNAME=HOTSPOT_FW&action=restart&cmd=%2Fetc%2Finit.d%2Fartica-hotfw&appcode=HOTSPOT_FW');
+	Loadjs('squid.webauth.restart.php');
 }
 
 
@@ -281,7 +415,11 @@ function INOUT$tt(ID){
 }
 
 function rports(){
-	Loadjs('squid.webauth.hotspots.restricted.ports.php',true);
+	Loadjs('squid.webauth.hotspots.allowed.macs.php',true);
+}
+
+function rssls(){
+	Loadjs('squid.webauth.hotspots.ssl.objects.php',true);
 }
 
 function reverse$tt(ID){
@@ -370,41 +508,80 @@ function items(){
 	$check32="<img src='img/check-32.png'>";
 	$AllSystems=$tpl->_ENGINE_parse_body("{AllSystems}");
 	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql",1);}
-	if(mysql_num_rows($results)==0){
-		
-		$data['rows'][] = array(
-				'id' => $ligne['ID'],
-				'cell' => array(
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>* - $AllSystems</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$check32</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>&nbsp;</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>&nbsp;</span>",)
-		);
-		$data['total'] = 1;
-		echo json_encode($data);
-	return;}
+	
+	if(mysql_num_rows($results)==0){json_error_show($no_rule,1);}
+	
+	$Typearray[100]=$tpl->_ENGINE_parse_body("{garbage}");
+	$Typearray[0]=$tpl->_ENGINE_parse_body("{global}");
+	$Typearray[1]=$tpl->_ENGINE_parse_body("{known-users}");
+	$Typearray[2]=$tpl->_ENGINE_parse_body("{unknown-users}");
+	
+	$ActionArray[]="cloud-deny-42.png";
+	
+	$ActionArray["block"]="cloud-deny-42.png";
+	$ActionArray["drop"]="cloud-drop-32.png";
+	$ActionArray["allow"]="cloud-goto-32.png";
+	$ActionArray["log"]="cloud-log-32.png";
+	
+	$direction[0]=$tpl->javascript_parse_text("{outgoing}");
+	$direction[1]=$tpl->javascript_parse_text("{incoming2}");
+	$hostpot_net=$tpl->javascript_parse_text("{hostpot_net}");
+	$all_text=$tpl->javascript_parse_text("{all}");
+	$to_text=$tpl->javascript_parse_text("{to} $hostpot_net");
+	$from_text=$tpl->javascript_parse_text("{from}");
 
 	$fontsize="18";
 	$check32="<img src='img/check-32.png'>";
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
-		$hostspoted="&nbsp;";
-		$restrict_web="&nbsp;";
-
+		$hotspoted=$ligne["hotspoted"];
+		$proto=strtoupper($ligne["proto"]);
+		$port=$ligne["port"];
+		if($port==0){$port=null;}
 		$delete=imgsimple("delete-32.png",null,"Loadjs('$MyPage?delete-js={$ligne["ID"]}&t={$_GET["t"]}',true)");
 		$pattern=$ligne["pattern"];
-		if($ligne["hotspoted"]==1){$hostspoted=$check32;}
-		if($ligne["restrict_web"]==1){$restrict_web=$check32;}
-		if($ligne["userid"]<>null){$pattern=$pattern." - <i>{$ligne["uid"]}</i>";}
+		$entrant_text=null;
+		
+		$icon_action=$ActionArray[$ligne["action"]];
+		
+		if($hotspoted==100){
+			$color="#8a8a8a";
+			$icon_action="cloud-filtered-32-grey.png";
+		}
+		
+		
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?item-js=yes&ID={$ligne["ID"]}&t={$_GET["t"]}',true)\"
 		style='font-size:{$fontsize}px;font-weight:normal;color:$color;text-decoration:underline'>";
+		
+		$order=$ligne["zorder"];
+		if($port<>null){$pattern="$pattern:$port";}
+		
+		$up=imgsimple("arrow-up-32.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=0&t={$_GET["t"]}')");
+		$down=imgsimple("arrow-down-32.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=1&t={$_GET["t"]}')");
+		
+		if($pattern==null){$pattern=$all_text;}
+		$direction_text=$direction[$ligne["direction"]];
+		$entrant_text="{from} $hostpot_net {to} ";
+		$hostpoted_text=$Typearray[$hotspoted];
+		
+		if($ligne["direction"]==1){
+			$entrant_text="$from_text: {$ligne["destination"]}<br>$to_text:";
+			$hostpoted_text="*";
+		}
+		
+		if($proto==null){$proto=$all_text;}
+		
 		
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$pattern</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$hostspoted</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$restrict_web</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$order</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$proto</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$direction_text $entrant_text $pattern</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$hostpoted_text</span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". imgsimple($icon_action)."</span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $up."</span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $down."</span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</span>",)
 		);
 	}

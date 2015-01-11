@@ -456,7 +456,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/cron.mysql-databases.php','artica-cron-mysqldb');
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/exec.vacationtime.php','artica-cron-vacation');
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/exec.quotaroot.php --quota-check','artica-cron-quotas');
-
+      SYS.CRON_CREATE_SCHEDULE('@hourly',artica_path+'/bin/process1 --force -123456','artica-process1-hourly');
 
 
      // ################  SQUID

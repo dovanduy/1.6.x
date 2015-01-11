@@ -83,7 +83,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain>{mod_evasive_explain}</div>
+	<div class=text-info>{mod_evasive_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{FreeWebsEnableModEvasive}:</td>
@@ -199,7 +199,7 @@ function whitelist(){
 
 
 	$html="
-	<div class=explain>{DDOS_WHITE_EXPLAIN}</div>
+	<div class=text-info>{DDOS_WHITE_EXPLAIN}</div>
 <center>
 <table style='width:98%' class=form>
 <tr>

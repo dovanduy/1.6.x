@@ -344,11 +344,12 @@ function Build_defaults(){
 					echo "Starting......: ".date("H:i:s")." Kav4proxy current version is $this->VERSION (revision $rev)\n";
 				}
 				$sock=new sockets();
-				$bases="/var/opt/kaspersky/kav4proxy/bases";
+				$Kav4ProxyDatabasePath=$sock->GET_INFO("Kav4ProxyDatabasePath");
+				if($Kav4ProxyDatabasePath==null){$Kav4ProxyDatabasePath="/home/artica/squid/kav4proxy/bases";}
 				
 				$this->Build_defaults();
 				$conf[]="[path]\n";
-				$conf[]="BasesPath=$bases";
+				$conf[]="BasesPath=$Kav4ProxyDatabasePath";
 				$conf[]="LicensePath=/var/opt/kaspersky/kav4proxy/licenses";
 				$conf[]="TempPath=/tmp";
 				if($rev>=67){$conf[]="KLPluginsPath=/opt/kaspersky/kav4proxy/lib/ppl";}
@@ -631,171 +632,125 @@ function Build_defaults(){
 	
 	
 	function LoadTemplates(){
-			$objetcs["object_infected"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied Virus found</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\nul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>%VERDICT%</h4>\n
-					<h1>Virus found in this web page</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>\nThe requested object at the URL:</b><br><br>%URL%<br>
-					<br> \n<b>%VERDICT% detected:</b><br> <br><div style='font-size:12px'>Virus:&nbsp%VIRUS_LIST%</div>
-					<br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br></div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-			
-			$objetcs["bases_error"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n<title>Access Denied Databases issue</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n<h1>Antivirus databases were not loaded</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Databases Error</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-			
-			$objetcs["license_error"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n<title>Access Denied License error</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n<h1>License information was not loaded</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Databases Error</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
+		//%PRODUCT%
+		$REBUILD_TEMPLATES=false;
+		$objetcs["object_infected"]["TITLE"]="Access Denied Virus found";
+		$objetcs["object_infected"]["SUBTTITLE"]="Virus found in this web page:<br>%VERDICT% detected";
+		$objetcs["object_infected"]["TR1"]="Virus";
+		$objetcs["object_infected"]["TR2"]="%VIRUS_LIST%";
+		$objetcs["object_infected"]["TR3"]="Page";
+		$objetcs["object_infected"]["TR4"]="<div class=\"break-word\">%URL%</div>";
+		
+		$objetcs["bases_error"]["TITLE"]="Access Denied Databases issue";
+		$objetcs["bases_error"]["SUBTTITLE"]="Antivirus databases were not loaded";
+		$objetcs["bases_error"]["TR1"]="Generic error";
+		$objetcs["bases_error"]["TR2"]="<div class=\"break-word\">%URL%</div>";
+
+		$objetcs["license_error"]["TITLE"]="Access Denied License error";
+		$objetcs["license_error"]["SUBTTITLE"]="License information was not loaded";
+		$objetcs["license_error"]["TR1"]="Generic error";
+		$objetcs["license_error"]["TR2"]="<div class=\"break-word\">%URL%</div>";
+		
+		
+		$objetcs["object_corrupted"]["TITLE"]="Access Denied corrupted object";
+		$objetcs["object_corrupted"]["SUBTTITLE"]="Corrupted file";
+		$objetcs["object_corrupted"]["TR1"]="Generic error";
+		$objetcs["object_corrupted"]["TR2"]="<div class=\"break-word\">%URL%</div>";			
+		
+		$objetcs["object_cured"]["TITLE"]="Access Denied Virus found (cured)";
+		$objetcs["object_cured"]["SUBTTITLE"]="Virus found in this web page:<br>%VERDICT% detected";
+		$objetcs["object_cured"]["TR1"]="Virus";
+		$objetcs["object_cured"]["TR2"]="%VIRUS_CURED% were cured";
+		$objetcs["object_cured"]["TR3"]="Page";
+		$objetcs["object_cured"]["TR4"]="<div class=\"break-word\">%URL%</div>";
+		
+		
+		$objetcs["object_error"]["TITLE"]="Access Denied scanning error";
+		$objetcs["object_error"]["SUBTTITLE"]="Antivirus engine error occured";
+		$objetcs["object_error"]["TR1"]="Error on file";
+		$objetcs["object_error"]["TR2"]="<div class=\"break-word\">%URL%</div>";
+		
+		$objetcs["object_protected"]["TITLE"]="Access Denied protected object";
+		$objetcs["object_protected"]["SUBTTITLE"]="Antivirus engine error occured";
+		$objetcs["object_protected"]["TR1"]="Protected file";
+		$objetcs["object_protected"]["TR2"]="<div class=\"break-word\">%URL%</div>";
+		
+		
+		$objetcs["object_suspicious"]["TITLE"]="Access Denied Suspicious Virus found";
+		$objetcs["object_suspicious"]["SUBTTITLE"]="Virus found in this web page:<br>%VERDICT% detected";
+		$objetcs["object_suspicious"]["TR1"]="Virus";
+		$objetcs["object_suspicious"]["TR2"]="%SUSP_LIST% were suspicious";
+		$objetcs["object_suspicious"]["TR3"]="Page";
+		$objetcs["object_suspicious"]["TR4"]="<div class=\"break-word\">%URL%</div>";
+		
+		
+		$objetcs["object_warning"]["TITLE"]="Access Denied Warning!";
+		$objetcs["object_warning"]["SUBTTITLE"]="Warning found in this web page:<br>%VERDICT% detected";
+		$objetcs["object_warning"]["TR1"]="Virus";
+		$objetcs["object_warning"]["TR2"]="%WARN_LIST% were in warning detection";
+		$objetcs["object_warning"]["TR3"]="Page";
+		$objetcs["object_warning"]["TR4"]="<div class=\"break-word\">%URL%</div>";
+		
+		
+		while (list ($templateName, $ARRAYTPL) = each ($objetcs) ){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building template $templateName\n";}
+			$CONTENT=$this->parseTemplate_build_main($ARRAYTPL);
+			if(is_array($CONTENT)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building template $templateName ARRAY RETURNED!!\n";}
+			}
+			$this->templates_data[$templateName]=$CONTENT;
+			$ARRAY_TPLS[$templateName]=$CONTENT;
+		}
+		
+		
+		if(!is_file("/etc/artica-postfix/KAV4PROXY_TEMPLATESv2")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Rebuilding template = TRUE\n";}
+			$REBUILD_TEMPLATES=true;
+		}
 					
-		
-			$objetcs["object_corrupted"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n<title>Access Denied corrupted object</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n
-					<h1>The requested object is corrupted</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Corrupted file</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-		
-			$objetcs["object_corrupted"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied corrupted object</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n
-					<h1>The requested object is corrupted</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Corrupted file</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";		
-		
-			$objetcs["object_cured"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied Virus found (cured)</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\nul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>%VERDICT%</h4>\n
-					<h1>Virus found in this web page</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>\nThe requested object at the URL:</b><br><br>%URL%<br>
-					<br> \n<b>%VERDICT% detected:</b><br> <br><div style='font-size:12px'>Virus:&nbsp%VIRUS_CURED% were cured</div>
-					<br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br></div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-		
-			$objetcs["object_error"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied scanning error</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n
-					<h1>Antivirus engine error occured</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Error on file</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";		
-		
-			$objetcs["object_protected"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied protected object</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}
-					\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n
-					.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\n
-					ul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>
-					\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>
-					\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>
-					\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>Access Denied</h4>\n
-					<h1>Antivirus engine error occured</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n
-					<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>
-					\nThe requested object at the URL:</b><br><br>%URL%<br><br> \n<b>Generic error:</b><br>
-					<br><div style='font-size:12px'>Protected object</div><br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n
-					<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br>
-					</div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";		
+		if(!$GLOBALS["CORP_LICENSE"]){if($GLOBALS["OUTPUT"]){
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} No Artica license, keep defaults\n";}
+			return;
+		}
+			
+		$q=new mysql();
+		$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `artica_backup`.`kav4proxy_templates` (`template` VARCHAR( 50 ) NOT NULL PRIMARY KEY,`content` TEXT NOT NULL) ENGINE=MYISAM;","artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+		$this->templates_data=array();
+			
+			while (list ($templateName, $TemplateContent) = each ($ARRAY_TPLS) ){
+				
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Rebuilding template $templateName Default:". strlen($TemplateContent)." bytes\n";}
+				if(is_array($TemplateContent)){echo "$templateName: $TemplateContent =  Array!\n";return;}
+				if(strlen($TemplateContent)<100){echo "$templateName: $TemplateContent =  No lenght supported!\n";return; }	
 					
-			$objetcs["object_suspicious"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied Suspicious Virus found</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\nul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>%VERDICT%</h4>\n
-					<h1>Suspicious Virus(es) found in this web page</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>\nThe requested object at the URL:</b><br><br>%URL%<br>
-					<br> \n<b>%VERDICT% detected:</b><br> <br><div style='font-size:12px'>Virus:&nbsp%SUSP_LIST%</div>
-					<br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br></div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-			
-			$objetcs["object_warning"]="<html>\n<head>\n<meta http-equiv='content-type' content='text/html;charset=utf-8'>\n
-					<title>Access Denied Warning!</title>\n<style type='text/css'>\nhtml,body{height:100%}\nbody{\nwidth:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;\nfont-family:'Tahoma', 'Verdana';\nfont-size:11px;\nbackground:#FFF\n}\nform{margin:0}\ntable,input,select{font:normal 100% tahoma}\nimg{border:0;margin:0}\ntable{border-collapse:collapse}\na{color:#62707D}\n.t,tr.t td{vertical-align:top}\n.m{vertical-align:middle}\n.b,tr.b td{vertical-align:bottom}\ntr.t td td,tr.b td td{vertical-align:auto}\n.l{text-align:left}\n.c{text-align:center}\n.r{text-align:right}\n.nobr{white-space:nowrap}\n.rel{position:relative}\n.abs{position:absolute}\n.fl{float:left}\n.fr{float:right}\n.cl{clear:both}\n.w100{width:100%}\n.h100{height:100%}\nbig,.big{font-size:125%}\nsmall,.small{font-size:95%}\n.micro{color:#DDD;font:normal 9px tahoma}\nh1{font:bold 20px arial; margin:0}\nh4{font:bold 12px arial; margin:0}\np{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}\n.z{border:1px solid red}\n.h1px{height:1px;font-size:1px;line-height:1px}\nul{margin:6px 0 6px 20px;padding:0}\nul li{margin:3px 0}\n</style>\n</head>\n
-					<body>﻿\n<table class='w100 h100'>\n<tr>\n<td class='c m'>\n<table style='margin:0 auto;border:solid 1px #560000'>\n<tr>\n<td class='l' style='padding:1px'>\n<div style='width:346px;background:#E33630'>\n<div style='padding:3px'>\n<div style='background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF'>\n
-					<h4>%VERDICT%</h4>\n
-					<h1>Warnings found in this web page</h1>\n</div>\n
-					<div class='c' style='font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0'>Access denied</div>\n<div style='background:#F7F7F7;padding:20px 28px 36px'>\nThe requested URL cannot be provided<br><br> <b>\nThe requested object at the URL:</b><br><br>%URL%<br>
-					<br> \n<b>%VERDICT% detected:</b><br> <br><div style='font-size:12px'>Warning:&nbsp%WARN_LIST%</div>
-					<br>\n</i><strong>Rule:&nbsp;</strong>%PRODUCT%</i>\n</div>\n<div style='background:#F7F7F7;padding:0 2px 2px'>\n<div style='background:#E9E9E9;padding:12px 30px 14px'><br></div>\n</div>\n</div>\n</div>\n</td>\n</tr>\n</table>\n</td>\n</tr>\n</table>\n\n\n</body>\n</html>";
-			
-			
-			$array=$this->templates;
-			$q=new mysql();
-			$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `artica_backup`.`kav4proxy_templates` (`template` VARCHAR( 50 ) NOT NULL PRIMARY KEY,`content` TEXT NOT NULL) ENGINE=MYISAM;","artica_backup");
-			if(!$q->ok){echo $q->mysql_error;}
-			
-			while (list ($templateName, $val) = each ($array) ){
-				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `template`,`content` FROM kav4proxy_templates WHERE `template`='$templateName'","artica_backup"));
-				if(strlen($ligne["content"])<5){
-					if($ligne["template"]==null){
-						$d=mysql_escape_string2($objetcs[$templateName]);
-						$q->QUERY_SQL("INSERT IGNORE INTO kav4proxy_templates (`template`,`content`) VALUES ('$templateName','$d')","artica_backup");
-						if(!$q->ok){echo $q->mysql_error;}
-					}else{
-						$d=mysql_escape_string2($objetcs[$templateName]);
-						$q->QUERY_SQL("UPDATE kav4proxy_templates SET `content`='$d' WHERE `template`='$templateName'","artica_backup");
-						if(!$q->ok){echo $q->mysql_error;}
-					}
-					
-					$this->templates_data[$templateName]=$objetcs[$templateName];
+				$ligne["content"]=null;
+				$ligne["template"]=null;
+				if(!$REBUILD_TEMPLATES){
+					$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `template`,`content` FROM kav4proxy_templates WHERE `template`='$templateName'","artica_backup"));
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Rebuilding template $templateName From MySQL:". strlen($ligne["content"])." bytes\n";}
+				}
+
+				
+				
+				if(strlen($ligne["content"])<100){
+					$d=mysql_escape_string2($TemplateContent);
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $templateName: Inserting ". strlen($d)." Into MySQL\n";}
+					$q->QUERY_SQL("DELETE FROM kav4proxy_templates WHERE `template`='$templateName'","artica_backup");
+					if(!$q->ok){echo $q->mysql_error;}
+					$q->QUERY_SQL("INSERT IGNORE INTO kav4proxy_templates (`template`,`content`) VALUES ('$templateName','$d')","artica_backup");
+					if(!$q->ok){echo $q->mysql_error;}
+					$this->templates_data[$templateName]=$TemplateContent;
 					continue;
 				}
-				
+					
+					
+					
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $templateName: Get template of ". strlen($ligne["content"])." bytes\n";}
 				$this->templates_data[$templateName]=$ligne["content"];
 			}
+			
+			@touch("/etc/artica-postfix/KAV4PROXY_TEMPLATESv2");
 			
 				
 	}
@@ -808,6 +763,160 @@ function Build_defaults(){
 		$sock=new sockets();
 		$sock->getFrameWork("squid.php?kav4proxy-templates=yes");
 		return true;
+	}
+	
+	
+	function parseTemplate_build_main($ARRAY){
+		$sock=new sockets();
+		$sock->BuildTemplatesConfig();
+		$FOOTER=null;
+		if(!$GLOBALS["CORP_LICENSE"]){
+			$FOOTER="
+			<table style='width:75%;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};margin-top:15px'>
+			<tr><td colspan=2>&nbsp;</td></tr>
+			<tr>
+			<td width=64px><img src='img/logo-artica-64.png'></td>
+			<td style='font-size:14px;padding-left:10px' width=99%>
+			You using Artica Proxy Appliance v{$GLOBALS["ARTICA_VERSION"]} in Community mode.<br>
+			<i>Visit our  <a href=\"http://artica-proxy.com\">website</a> for technical informations or to purchase an Entreprise Edition License</i>
+			</td>
+			</tr>
+			</table>
+			</div>";
+		}
+	
+		
+		$f[]="<!DOCTYPE HTML>";
+		$f[]="<html>";
+		$f[]="<head>";
+		$f[]="<title>{$ARRAY["TITLE"]}</title>";
+		$f[]="<script type=\"text/javascript\">";
+		$f[]="    function checkIfTopMostWindow()";
+		$f[]="    {";
+		$f[]="        if (window.top != window.self) ";
+		$f[]="        {  ";
+		$f[]="            document.body.style.opacity    = \"0.0\";";
+		$f[]="            document.body.style.background = \"#FFFFFF\";";
+		$f[]="        }";
+		$f[]="        else";
+		$f[]="        {";
+		$f[]="            document.body.style.opacity    = \"1.0\";";
+		$f[]="            document.body.style.background = \"{$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]}\";";
+		$f[]="        } ";
+		$f[]="    }";
+		$f[]="</script>";
+		$f[]="<style type=\"text/css\">";
+		$f[]="    body {";
+		$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+		$f[]="        background-color: #FFFFFF; ";
+		$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+		$f[]="        font-weight:      lighter;";
+		$f[]="        font-size:        14pt; ";
+		$f[]="        ";
+		$f[]="        opacity:            0.0;";
+		$f[]="        transition:         opacity 2s;";
+		$f[]="        -webkit-transition: opacity 2s;";
+		$f[]="        -moz-transition:    opacity 2s;";
+		$f[]="        -o-transition:      opacity 2s;";
+		$f[]="        -ms-transition:     opacity 2s;    ";
+		$f[]="    }";
+		$f[]="    h1 {";
+		$f[]="        font-size: 72pt; ";
+		$f[]="        margin-bottom: 0; ";
+		$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+		$f[]="        margin-top: 0 ;";
+		$f[]="    }    ";
+		$f[]=".bad{ font-size: 110px; float:left; margin-right:30px; }";
+		$f[]=".bad:before{ content: \"\\2639\";}";
+		$f[]="    h2 {";
+		$f[]="        font-size: 22pt; ";
+		$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+		$f[]="        font-weight: lighter;";
+		$f[]="    }   ";
+		$f[]="    h3 {";
+		$f[]="        font-size: 18pt; ";
+		$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+		$f[]="        font-weight: lighter;";
+		$f[]="        margin-bottom: 0 ;";
+		$f[]="    }   ";
+		$f[]="    #wrapper {";
+		$f[]="        width: 700px ;";
+		$f[]="        margin-left: auto ;";
+		$f[]="        margin-right: auto ;";
+		$f[]="    }    ";
+		$f[]="    #info {";
+		$f[]="        width: 600px ;";
+		$f[]="        margin-left: auto ;";
+		$f[]="        margin-right: auto ;";
+		$f[]="    }    ";
+		$f[]="    td.info_title {    ";
+		$f[]="        text-align: right;";
+		$f[]="        font-size:  12pt;  ";
+		$f[]="        min-width: 100px;";
+		$f[]="    }";
+		$f[]="    td.info_content {";
+		$f[]="        text-align: left;";
+		$f[]="        padding-left: 10pt ;";
+		$f[]="        font-size:  12pt;  ";
+		$f[]="    }";
+		$f[]="    .break-word {";
+		$f[]="        width: 500px;";
+		$f[]="        word-wrap: break-word;";
+		$f[]="    }    ";
+		$f[]="    a {";
+		$f[]="        text-decoration: underline;";
+		$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+		$f[]="    }";
+		$f[]="    a:visited{";
+		$f[]="        text-decoration: underline;";
+		$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+		$f[]="    }";
+		$f[]="</style>";
+		$f[]="</head>";
+		$f[]="<body onLoad='checkIfTopMostWindow()'>";
+		$f[]="<div id=\"wrapper\">";
+		$f[]="    <h1 class=bad></h1>";
+		$f[]="    <h2>{$ARRAY["SUBTTITLE"]}</h2>    ";
+		
+		$f[]="    ";
+		$f[]="    <div id=\"info\">";
+		$f[]="    <table width='100%'>";
+
+		if(isset($ARRAY["TR1"])){
+			$f[]="        <tr><td class=\"info_title\">{$ARRAY["TR1"]}</td><td class=\"info_content\">{$ARRAY["TR2"]}</td></tr>";
+		}
+		
+		if(isset($ARRAY["TR3"])){
+			$f[]="        <tr><td class=\"info_title\">{$ARRAY["TR3"]}</td><td class=\"info_content\">{$ARRAY["TR4"]}</td></tr>";
+		}		
+		
+		if($GLOBALS["UfdbGuardHTTP"]["NoVersion"]==0){
+			$f[]="        <tr><td class=\"info_title\">Artica</td><td class=\"info_content\">Artica Proxy, version {$GLOBALS["ARTICA_VERSION"]}</td></tr>";
+			$f[]="        <tr><td class=\"info_title\">Scanner</td><td class=\"info_content\">%PRODUCT%</td></tr>";
+		}
+		$f[]="    </table>";
+		$f[]="    </div>    $FOOTER";
+		$f[]="</div>";
+		$f[]="</body>";
+		$f[]="<!-- ";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		$f[]="-->";
+		$f[]="</html>";
+		
+		return @implode("\n", $f);
 	}
 	 
 	

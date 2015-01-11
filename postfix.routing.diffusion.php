@@ -269,7 +269,7 @@ function main_table(){
 $explain=$tpl->_ENGINE_parse_body("{mysql_routing_table_list_explain}");
 	
 $html="
-<div class=explain style='font-size:14px'>$explain</div>
+<div class=text-info style='font-size:14px'>$explain</div>
 <input type='hidden' id='ou' value='$ou'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 

@@ -232,6 +232,11 @@ class icap{
 			$this->icap_lines[]="# Adaptation for service $servicekey/$ID [".__LINE__."]";
 			$this->icap_lines[]="adaptation_service_set class_{$servicekey} $servicekey";
 			if($SquidDebugPort==1){$this->icap_lines[]="adaptation_access class_{$servicekey} deny MyTestPort";}
+			$this->icap_lines[]="adaptation_access class_{$servicekey} deny ToArticaWWW";
+			$this->icap_lines[]="adaptation_access class_{$servicekey} deny UrlRewriteDenyList";
+			$this->icap_lines[]="adaptation_access class_{$servicekey} deny ArticaMetaWhiteDoms";
+			$this->icap_lines[]="adaptation_access class_{$servicekey} deny ArticaMetaWhiteIPs";
+			
 			if($ID==1){$ACL_AV=true;}
 			if($ID==2){$ACL_AV=true;}
 			if($ID==3){$ACL_AV=true;}
@@ -241,7 +246,6 @@ class icap{
 			if($ID==7){$ACL_AV=true;}
 			if($ID==8){$ACL_AV=true;}	
 
-			$this->icap_lines[]="adaptation_access class_{$servicekey} deny ToArticaWWW";
 			
 			if($ACL_AV){
 				if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){

@@ -136,7 +136,7 @@ function status(){
 	<tr>
 		<td valign='top' style='vertical-align:top'><img src='img/smartphone-256.png' style='margin-right:15px'></td>
 		<td valign='top' style='vertical-align:top'><div style='font-size:24px'>Z-Push V$zpush_version</div>
-		<div class=explain style='font-size:18px;margin-top:15px'>{APP_Z_PUSH_TEXT}</div>
+		<div class=text-info style='font-size:18px;margin-top:15px'>{APP_Z_PUSH_TEXT}</div>
 		<div style='height:450px'>&nbsp;</div>
 		</td>
 	</tr>

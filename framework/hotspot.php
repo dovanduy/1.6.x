@@ -3,6 +3,9 @@ $GLOBALS["CACHE_FILE"]="/etc/artica-postfix/iptables-hostspot.conf";
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
+
+if(isset($_GET["clean-all-sessions"])){wifidog_clean_all_session();exit;}
+if(isset($_GET["wifidog-check-status"])){wifidog_check_status();exit;}
 if(isset($_GET["release-mac-period"])){release_mac_period();exit;}
 if(isset($_GET["release-mac"])){release_mac();exit;}
 if(isset($_GET["services-status"])){services_status();exit;}
@@ -10,8 +13,13 @@ if(isset($_GET["restart-firewall"])){restart_firewall();exit;}
 if(isset($_GET["stop-firewall"])){stop_firewall();exit;}
 if(isset($_GET["stop-web"])){stop_web();exit;}
 if(isset($_GET["restart-web"])){restart_web();exit;}
+if(isset($_GET["restart-wifidog"])){restart_wifidog();exit;}
 if(isset($_GET["remove-session"])){remove_session();exit;}
 if(isset($_GET["ArticaHotSpotInterface"])){ArticaHotSpotInterface();exit;}
+if(isset($_GET["force-restart-progress"])){restart_progress();exit;}
+if(isset($_GET["reconfigure-progress"])){reconfigure_progress();exit;}
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -71,6 +79,15 @@ function release_mac_period(){
 	shell_exec("$conntrack -D -s $ip");
 	shell_exec("$php /usr/share/artica-postfix/exec.squid.php --kreconfigure");
 }
+
+
+function wifidog_login(){
+	
+	print_r($_GET);
+}
+
+
+
 
 function release_mac(){
 	$ip=$_GET["ip"];
@@ -178,9 +195,14 @@ function ArticaHotSpotInterface(){
 	$unix=new unix();
 	$NETWORK_ALL_INTERFACES=$unix->NETWORK_ALL_INTERFACES();
 	
+	
 	while (list ($interface, $line) = each ($NETWORK_ALL_INTERFACES) ){
 		$IP2=$line["IPADDR"];
 		if($interface=="lo"){continue;}
+		
+		
+		
+		
 		if($IP2==null){continue;}
 		if($IP2=="0.0.0.0"){continue;}
 		$AVAIINT[]=$interface;
@@ -238,10 +260,69 @@ function restart_web(){
 function services_status(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
-	exec("$php /usr/share/artica-postfix/exec.status.php --hotspot 2>&1",$results);
+	$cmd="$php /usr/share/artica-postfix/exec.status.php --hotspot --nowachdog 2>&1";
+	writelogs_framework($cmd,__FILE__,__FUNCTION__,__LINE__);
+	exec($cmd,$results);
 	echo "<articadatascgi>". base64_encode(@implode("\n", $results))."</articadatascgi>";
 	
 }
 
+function  restart_wifidog(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.wifidog.php --restart >/dev/null 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	$cmd="$nohup /etc/init.d/artica-status restart --force >/dev/null 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+}
 
+function wifidog_check_status(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.wifidog.php --testcnx --force --norestart >/dev/null 2>&1";
+	shell_exec($cmd);	
+}
+function wifidog_clean_all_session(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	//$cmd="$nohup $php /usr/share/artica-postfix/exec.wifidog.php --clean-all-sessions --force >/dev/null 2>&1 &";
+	shell_exec($cmd);
+}
+function restart_progress(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.webauth.restart.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/squid.webauth.restart.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.wifidog.php --restart --force >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	shell_exec($cmd);	
+	
+}
+function reconfigure_progress(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.logs";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.wifidog.php --reconfigure-progress --force >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	shell_exec($cmd);	
+	
+}
 

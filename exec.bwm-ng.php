@@ -23,27 +23,40 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 
 $GLOBALS["ARGVS"]=implode(" ",$argv);
+$sock=new sockets();
+$DisableBWMng=intval($sock->GET_INFO("DisableBWMng"));
+if($DisableBWMng==1){stop();die();}
+
+
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--rotate"){$GLOBALS["OUTPUT"]=true;rotate();die();}
+if($argv[1]=="--purge"){$GLOBALS["OUTPUT"]=true;purge();die();}
 
 
 
 
-function restart() {
+function restart($aspid=false) {
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
-		return;
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
 	}
-	@file_put_contents($pidfile, getmypid());
 		
 	stop(true);
 	start(true);
+	
+}
+
+function clean(){
+	
 	
 }
 
@@ -77,14 +90,23 @@ function rotate(){
 	if(!$q->DATABASE_EXISTS("bwmng")){ $q->CREATE_DATABASE("bwmng"); }
 	if(!$q->DATABASE_EXISTS("bwmng",true)){return;}
 	@copy("/home/artica/bwm-ng/interfaces.csv", "/home/artica/bwm-ng/interfaces.csv.".time());
-	shell_exec("$echo '' > /home/artica/bwm-ng/interfaces.csv");
+	@unlink("/home/artica/bwm-ng/interfaces.csv");
 	
 	$files=$unix->DirFiles("/home/artica/bwm-ng");
+	
+	if(system_is_overloaded(__FILE__)){
+		if($GLOBALS["VERBOSE"]){echo "OVERLOADED !!!!\n";}
+		
+		return;}
+	
 	while (list($filename,$notused)=each($files)){
 		if($filename=="interfaces.csv"){continue;}
 		$filepath="/home/artica/bwm-ng/$filename";
 		
-		if($GLOBALS["VERBOSE"]){echo "Open $filepath\n";}
+		$filetime=$unix->file_time_min($filepath);
+		if($filetime>60){@unlink($filepath);continue;}
+		
+		if($GLOBALS["VERBOSE"]){echo "Open $filepath {$filetime}mn\n";}
 		
 		$row = 1;
 		if (($handle = fopen($filepath, "r")) !== FALSE) {
@@ -118,21 +140,30 @@ function rotate(){
 					$array_eths[$table][]="('$uniq_key','$Interface_Name','$Date','$BytesOut','$BytesIn')";
 				}
 			fclose($handle);
+			if(system_is_overloaded(__FILE__)){break;}
 		}
 		
 		
 		if($GLOBALS["VERBOSE"]){echo "$filepath CLOSED: ".count($array_eths)." eths, ". count($array_total)." total\n";}
+		
 		if(array_to_interfaces($array_eths)){
 			if(array_to_total($array_total)){
 				if($GLOBALS["VERBOSE"]){echo "$filepath > DELETE\n";}
 				@unlink($filepath);
 			}
+		}else{
+			@unlink($filepath);
 		}
 		
 		$array_eths=array();
 		$array_total=array();
 
 	}
+	
+	restart(true);
+	if(system_is_overloaded(__FILE__)){
+		if($GLOBALS["VERBOSE"]){echo "OVERLOADED !!!!\n";}
+		return;}
 	build_days();
 	build_current_time();
 	
@@ -178,6 +209,7 @@ function TIME_FROM_TABLE($tablename){
 	$CDay=substr($intval,6,2);
 	$CDay=str_replace("_", "", $CDay);
 	$CHour=substr($intval,8,2);
+	if(trim($CHour)==null){$CHour="00";}
 	return strtotime("$Cyear-$CMonth-$CDay $CHour:00:00");
 }
 
@@ -198,6 +230,8 @@ function build_days(){
 		if(!_build_days_hours($tablename)){continue;}
 		$q->QUERY_SQL("DROP TABLE $tablename","bwmng");
 	}	
+	
+	purge();
 	
 }
 function _build_days_hours($tablesource){
@@ -351,6 +385,118 @@ function array_to_total($array){
 	return true;
 }
 
+function LIST_TABLES_HOUR(){
+	if(isset($GLOBALS["LIST_TABLES_HOUR"])){return $GLOBALS["LIST_TABLES_HOUR"];}
+	$array=array();
+	$q=new mysql();
+	$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'bwmng' AND table_name LIKE '%_bwmdh'";
+	$results=$q->QUERY_SQL($sql,"bwmng");
+	if(!$q->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(preg_match("#[0-9]+_bwmdh$#", $ligne["c"])){
+			$GLOBALS["LIST_TABLES_HOUR"][$ligne["c"]]=$ligne["c"];
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+	}
+	return $array;
+
+}
+function LIST_TABLES_DAY(){
+	if(isset($GLOBALS["LIST_TABLES_DAY"])){return $GLOBALS["LIST_TABLES_DAY"];}
+	$array=array();
+	$q=new mysql();
+	$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'bwmng' 
+			AND table_name LIKE '%_bwmdt'";
+	$results=$q->QUERY_SQL($sql,"bwmng");
+	if(!$q->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(preg_match("#[0-9]+_bwmdt$#", $ligne["c"])){
+			$GLOBALS["LIST_TABLES_DAY"][$ligne["c"]]=$ligne["c"];
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+	}
+	return $array;
+
+}
+
+function purge(){
+	
+	$q=new mysql();
+	$currentDay=date("Ymd")."_bwmdh";
+	$currentDayT=date("Ymd")."_bwmdt";
+	$LIST_TABLES_HOUR=LIST_TABLES_HOUR();
+	
+	while (list($tablename,$arrz)=each($LIST_TABLES_HOUR)){
+		if($currentDay==$tablename){continue;}
+		echo "Cleaning $tablename\n";
+		$q->QUERY_SQL("DROP TABLE `$tablename`","bwmng");
+		
+	}
+	
+	
+	$LIST_TABLES_DAY=LIST_TABLES_DAY();
+	while (list($tablename,$arrz)=each($LIST_TABLES_DAY)){
+		if($currentDayT==$tablename){continue;}
+		$xtime=TIME_FROM_TABLE($tablename);
+		
+		
+		if(_purgeMonth($tablename)){
+			echo "Cleaning $tablename ". date("Y-m-d",$xtime)."\n";
+			$q->QUERY_SQL("DROP TABLE `$tablename`","bwmng");
+			
+		}
+	
+	}	
+	
+}
+
+function _purgeMonth($tablesource){
+	
+	$xtime=TIME_FROM_TABLE($tablesource);
+	$q=new mysql();
+	$tablename=date("Ym",$xtime)."_bwmdm";
+	$zDay=date("d",$xtime);
+	if($GLOBALS['VERBOSE']){echo "$tablesource -> $xtime -> $tablename\n";}
+	
+	if(!$q->TABLE_EXISTS($tablename,"bwmng")){
+		$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+		`zMD5` varchar(90) NOT NULL,
+		`zDay` smallint(2) NOT NULL,
+		`BytesOut` BIGINT UNSIGNED,
+		`BytesIn` BIGINT UNSIGNED,
+		PRIMARY KEY (`zMD5`),
+		KEY `zDay` (`zDay`)
+		) ENGINE=MYISAM;";
+	
+		$q->QUERY_SQL($sql,"bwmng");
+		if(!$q->ok){echo $q->mysql_error."\n"; return false;}
+		}
+	
+		$sql="SELECT AVG(BytesOut) as BytesOut, AVG(BytesIn) as BytesIn FROM `$tablesource`";
+		$results=$q->QUERY_SQL($sql,"bwmng");
+	if(mysql_num_rows($results)==0){
+		if($GLOBALS["VERBOSE"]){echo "$sql\nOnly ". mysql_num_rows($results)." results\n";}
+		return true;
+		}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+	
+		$zmd5=md5(serialize($ligne).$zDay);
+		$sql="INSERT IGNORE INTO bwmng.`$tablename` (`zMD5`,`zDay`,`BytesOut`,`BytesIn`)
+		VALUES ('$zmd5','{$zDay}','{$ligne["BytesOut"]}','{$ligne["BytesIn"]}')";
+		$q->QUERY_SQL($sql,"bwmng");
+		if(!$q->ok){echo $q->mysql_error."\n"; return false;}
+		}
+	
+		return true;	
+	
+	
+}
+
 function build_current_time(){
 	
 	$q=new mysql();
@@ -416,11 +562,18 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
-	$EnableBwmNG=$sock->GET_INFO("EnableBwmNG");
-	if(!is_numeric($EnableBwmNG)){$EnableBwmNG=1;}
+	$EnableBwmNG=intval($sock->GET_INFO("EnableBwmNG"));
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){$EnableBwmNG=0;}
 
 
 	if($EnableBwmNG==0){
+		if(is_dir("/home/artica/bwm-ng")){
+			$rm=$unix->find_program("rm");
+			shell_exec("$rm -rf /home/artica/bwm-ng");
+		}
+		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableKerbAuth,EnableCNTLM)\n";}
 		return;
 	}
@@ -436,10 +589,13 @@ function start($aspid=false){
 	$NETWORK_ALL_INTERFACES=$unix->NETWORK_ALL_INTERFACES();
 	unset($NETWORK_ALL_INTERFACES["lo"]);
 	while (list($eth,$xmain)=each($NETWORK_ALL_INTERFACES)){
+		if($GLOBALS["VERBOSE"]){echo "Report $eth {$xmain["IPADDR"]} state:{$xmain["STATE"]}\n";}
+		if($xmain["STATE"]=="UNKNOWN"){$xmain["STATE"]="UP";}
 		$eth=trim($eth);
 		if($eth==null){continue;}
 		if($xmain["IPADDR"]=="0.0.0.0"){continue;}
 		if($xmain["STATE"]<>"UP"){continue;}
+		if($GLOBALS["VERBOSE"]){echo "Added $eth {$xmain["IPADDR"]}\n";}
 		$ETHZ[]=$eth;
 	}
 	

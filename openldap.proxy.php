@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',1);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $GLOBALS["ICON_FAMILY"]="PARAMETERS";
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -85,11 +86,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'cnxstring',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -190,7 +191,7 @@ function items(){
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 
-	
+	if(!is_numeric($rp)){$rp=1;}
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
@@ -203,7 +204,9 @@ function items(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){json_error_show($q->mysql_error);}	
+	if(!$q->ok){json_error_show($q->mysql_error);}
+
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 	$ID=$ligne["ID"];

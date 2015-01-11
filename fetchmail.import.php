@@ -60,7 +60,7 @@ $page=CurrentPageName();
 	if(!isset($_COOKIE["fetchmail-import-compiled-path"])){$_COOKIE["fetchmail-import-compiled-path"]="/etc/fetchmailrc";}	
 	$html="
 	<center id='simple-$tt'></center>
-	<div class=explain style='font-size:13px'>{fetchmail_importcomp_explain}</div>
+	<div class=text-info style='font-size:13px'>{fetchmail_importcomp_explain}</div>
 	<div style='width:100%;text-align:right;font-size:13px'><a href=\"javascript:blur();\" 
 	OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=288','1024','900');\" 
 	style='font-weight:bold;text-decoration:underline'>{online_help}</a></strong>
@@ -108,7 +108,7 @@ function popup(){
 	$tt=time();
 	$t=$_GET["t"];	
 	$html="
-	<div class=explain style='font-size:13px'>{fetchmail_import_explain}</div>
+	<div class=text-info style='font-size:13px'>{fetchmail_import_explain}</div>
 	<div style='width:100%;text-align:right;font-size:13px'><a href=\"javascript:blur();\" 
 	OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=288','1024','900');\" 
 	style='font-weight:bold;text-decoration:underline'>{online_help}</a></strong>
@@ -217,7 +217,7 @@ function dump(){
 	
 	$html="
 	
-	<div class=explain style='font-size:16px'>{restore_fetchmail_container}</div>
+	<div class=text-info style='font-size:16px'>{restore_fetchmail_container}</div>
 	<center style='margin:10px;width:99%'>
 			<center id='file-uploader-demo1' style='width:100%;text-align:center'></center>
 			</center>

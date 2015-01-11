@@ -12,7 +12,7 @@
 	if(isset($_GET["daemon_stop"])){echo daemon_stop();exit;}
 	
 $usersmenus=new usersMenus();
-if($usersmenus->AsArticaAdministrator==true){}else{header('location:users.index.php');exit;}	
+if($usersmenus->AsArticaAdministrator==true){}else{echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();}	
 
 services_page();
 function services_page(){

@@ -185,7 +185,6 @@ function start($nopid=false){
 }
 function CheckFilesAndSecurity(){
 	$unix=new unix();
-	$f[]="/usr/share/squid3/errors";
 	$f[]="/etc/ziproxy";
 	while (list ($num, $val) = each ($f)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} checking \"$val\"\n";}
@@ -617,8 +616,11 @@ function build(){
 	$f[]="## instead of the ones configured in /etc/resolv.conf";
 
 	if(count($dns_nameservers)>0){
-		while (list ($num, $dns) = each ($dns_nameservers) ){$FDNS[]="\"$dns\""; }
-		$f[]="Nameservers = { ".@implode(",", $FDNS)."}";
+		$dnscompiled=trim(@implode(",", $FDNS));
+		if($dnscompiled<>null){
+			while (list ($num, $dns) = each ($dns_nameservers) ){$FDNS[]="\"$dns\""; }
+			$f[]="Nameservers = { ".@implode(",", $FDNS)."}";
+		}
 	}
 
 	$f[]="";
@@ -1134,8 +1136,8 @@ function build(){
 	while (list ($code, $template_data) = each ($tpls) ){
 		if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: Template $code\n";}
 		$template_data=str_replace("%SERV%", $unix->hostname_g(), $template_data);
-		@file_put_contents("/usr/share/squid3/errors/ZIPROXY_$code.html", $template_data);
-		$f[]="CustomError{$code}=\"/usr/share/squid3/errors/ZIPROXY_$code.html\"";
+		@file_put_contents("/usr/share/squid-langpack/ZIPROXY_$code.html", $template_data);
+		$f[]="CustomError{$code}=\"/usr/share/squid-langpack/ZIPROXY_$code.html\"";
 
 	}
 	$f[]="";
@@ -1477,7 +1479,7 @@ function zipproxy_rotate(){
 	$size=@filesize($filename);
 	$size=$size/1024;
 	$size=round($size/1024);
-	if(!@copy($filename, "/home/squid/access_logs/".basename($filename).".".time())){
+	if(!@copy($filename, "/home/squid/zipproxy_logs/".basename($filename).".".time())){
 		squid_admin_mysql(1, "Rotate HTTP Compressor logs failed", "",__FILE__,__LINE__);
 		return;
 	}

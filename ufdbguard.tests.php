@@ -45,23 +45,24 @@ function popup() {
 	if($ipaddr==null){$ipaddr=$_SERVER["REMOTE_ADDR"];}
 	if($www==null){$www="http://www.youporn.com";}
 	
-	$html="<div style='font-size:16px' class=explain>{ufdbguard_verify_rules_explain}</div>
+	$html="<div style='font-size:18px' class=text-info>{ufdbguard_verify_rules_explain}</div>
 	<div style='width:95%;padding:15px' class=form>
 	<center>
+	<div id='check-$t'></div>
 	<table style='width:99%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{request}:</td>
-			<td>". Field_text("www-$t",$www,"font-size:16px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
+			<td class=legend style='font-size:22px'>{request}:</td>
+			<td>". Field_text("www-$t",$www,"font-size:22px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:16px'>{ipaddr}:</td>
-			<td>". Field_text("ipaddr-$t",$ipaddr,"font-size:16px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
+			<td class=legend style='font-size:22px'>{ipaddr}:</td>
+			<td>". Field_text("ipaddr-$t",$ipaddr,"font-size:22px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{username}:</td>
-			<td>". Field_text("user-$t",$username,"font-size:16px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
+			<td class=legend style='font-size:22px'>{username}:</td>
+			<td>". Field_text("user-$t",$username,"font-size:22px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."</td>
 		</tr>	
-				<td colspan=2 align='right'>". button("{check}", "check$t()",18)."</td>
+				<td colspan=2 align='right'>". button("{check}", "check$t()",32)."</td>
 		</tr>
 	</table>
 	</center>
@@ -71,7 +72,10 @@ function popup() {
 	
 	var xRun$t= function (obj) {
 			var results=obj.responseText;
-			if(results.length>2){alert(results);return;}
+			document.getElementById('check-$t').innerHTML='';
+			if(results.length>2){
+				document.getElementById('check-$t').innerHTML=results;
+			}
 			
 		}		
 	
@@ -85,6 +89,7 @@ function popup() {
 		
 	function check$t(){
 		var XHR = new XHRConnection();
+		document.getElementById('check-$t').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 		XHR.appendData('www',document.getElementById('www-$t').value);
 		XHR.appendData('user',document.getElementById('user-$t').value);
 		XHR.appendData('ipaddr',document.getElementById('ipaddr-$t').value);
@@ -149,21 +154,39 @@ function test(){
 			$address="-S 127.0.0.1 -p {$datas["listen_port"]} ";
 		}
 	}
-	if($address==null){echo "Cannot determine address\n";return;}
+	if($address==null){echo "<strong style='color:red'>Cannot determine address</strong>\n";return;}
 	
 	$cmdline="$address $www $ipaddr $user";
 	$cmdline=urlencode(base64_encode($cmdline));
 	$datas=base64_decode($sock->getFrameWork("squid.php?ufdbclient=$cmdline"));
 	
-	
-	if(trim($datas)==null){echo "**** OK PASS ****\n";return;}
+	$tpl=new templates();
+	$title_pass=$tpl->_ENGINE_parse_body("{access_to_internet}");
+	$redirected=$tpl->_ENGINE_parse_body("{redirected}");
+	if(trim($datas)==null){echo "
+			<table style='width:100%'>
+			<tr>
+				<td valign='top' style='width:256px'><img src='img/ok-pass-256.png'>
+				<td valign='top' style='width:99%;vertical-align:middle'>
+					<div style='font-size:26px;color:#46a346'>$title_pass</div></td>
+			</tr>
+			</table>
+			
+			\n";return;}
 	
 	
 	$url=parse_url($datas);
 
 	if(!is_numeric($url["port"])){$url["port"]=80;}
 	
-	echo "\n************\n******** BLOCK ********\n************\nAnd redirected to: {$url["scheme"]}://{$url["host"]}:{$url["port"]}{$url["path"]}\n";
+	
+	echo "<table style='width:100%'>
+			<tr>
+				<td valign='top' style='width:256px'><img src='img/stop-256.png'>
+				<td valign='top' style='width:99%;vertical-align:middle'>
+			<div style='font-size:18px;color:#d32d2d'>";
+				
+	echo "$redirected: {$url["scheme"]}://{$url["host"]}:{$url["port"]}<br>";
 	
 	
 	$queries=explode("&",$url["query"]);
@@ -179,19 +202,19 @@ function test(){
 		if(isset($array["rule-id"])){
 			$sql="SELECT * FROM webfilter_rules WHERE ID={$array["rule-id"]}";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-			echo "Rule: {$ligne["rulename"]} - {$array["clientgroup"]}\n";
+			echo $tpl->_ENGINE_parse_body("{rulename}: {$ligne["rulename"]} - {$array["clientgroup"]}<br>");
 		}
 		if(isset($array["clientaddr"])){
-			echo "IP: {$array["clientaddr"]}\n";
+			echo $tpl->_ENGINE_parse_body("{address}: {$array["clientaddr"]}<br>");
 		}
 		if(isset($array["clientuser"])){
-			echo "Uid: {$array["clientuser"]}\n";
+			echo $tpl->_ENGINE_parse_body("{member}: {$array["clientuser"]}<br>");
 		}	
 		if(isset($array["targetgroup"])){
-			echo "Category: {$array["targetgroup"]}\n";
+			echo $tpl->_ENGINE_parse_body("{category}: {$array["targetgroup"]}<br>");
 		}		
 	}
 	
-	
+	echo "</div></td></tr></table>";
 	
 }

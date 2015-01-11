@@ -50,7 +50,7 @@ function popup(){
 	$table=Status(0);
 	$color="#5DD13D";
 	$html="
-	<div class=explain>{APPLY_SETTINGS_FETCHMAIL}</div>
+	<div class=text-info>{APPLY_SETTINGS_FETCHMAIL}</div>
 	<table style='width:100%'>
 	<tr>
 		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div>

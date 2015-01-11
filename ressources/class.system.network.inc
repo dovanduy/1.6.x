@@ -133,6 +133,7 @@ class networking{
 	
 	function LoadIPs(){
 		include_once(dirname(__FILE__) . '/class.sockets.inc');
+		if(!class_exists("usersMenus")){include_once(dirname(__FILE__) . '/class.users.menus.inc');}
 		$users=new usersMenus();
 		if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
 		$this->array_TCP=$users->TCP_ARRAY;

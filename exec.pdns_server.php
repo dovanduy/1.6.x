@@ -108,11 +108,11 @@ function start($aspid=false){
 	$PowerDNSLogLevel=$sock->GET_INFO("PowerDNSLogLevel");
 	$PowerDNSDNSSEC=$sock->GET_INFO("PowerDNSDNSSEC");
 	$PowerDNSLogsQueries=$sock->GET_INFO("PowerDNSLogsQueries");
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	
 	if(!is_numeric($PowerDNSLogLevel)){$PowerDNSLogLevel=0;}
 	if(!is_numeric($PowerDNSDNSSEC)){$PowerDNSDNSSEC=0;}
 	if(!is_numeric($PowerDNSLogsQueries)){$PowerDNSLogsQueries=0;}
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	
 	
 	
 	
@@ -139,11 +139,7 @@ function start($aspid=false){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
-	if($DHCPDEnableCacheDNS==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service turned to cached DNS via dnsMasq\n";}
-		stop(true);
-		return;
-	}
+
 	
 	if($EnablePDNS==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnablePDNS)\n";}
@@ -207,7 +203,7 @@ function start($aspid=false){
 	$cmds[]="--recursive-cache-ttl={$PowerDNSPerfs["recursive-cache-ttl"]}";
 
 	if($PowerDNSLogLevel>8){
-		$cmds[]="--log-dns-details --log-failed-updates --loglevel=$PowerDNSLogLevel";
+		$cmds[]="--log-dns-details --loglevel=$PowerDNSLogLevel";
 	}else{
 		if($PowerDNSLogsQueries==1){
 			$cmds[]="--log-dns-details";
@@ -543,7 +539,7 @@ if($PdnsHotSpot==1){
 	//$f[]="query-local-address6=::1";
 	$f[]="local-port=53";
 	$f[]="log-dns-details=on";
-	$f[]="log-failed-updates=on";
+	
 	//$f[]="logfile=/var/log/pdns.log";
 	$f[]="# logging-facility=";
 	$f[]="loglevel=$PowerDNSLogLevel";
@@ -598,6 +594,9 @@ if($PdnsHotSpot==1){
 		$G[]="gmysql-dbname=powerdns";
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.pdns.php --mysql >/dev/null 2>&1 &");
 		
+		
+		
+		
 	}
 
 	if($PowerDNSMySQLType==2){
@@ -644,7 +643,7 @@ if($PdnsHotSpot==1){
 	@mkdir("/etc/powerdns/pdns.d",0755,true);
 	
 	if(is_file("/etc/pdns/pdns.conf")){@file_put_contents("/etc/pdns/pdns.conf", @implode("\n", $f));}
-	if(is_file("/etc/powerdns/pdns.conf")){@file_put_contents("/etc/powerdns/pdns.conf", @implode("\n", $f));}
+	@file_put_contents("/etc/powerdns/pdns.conf", @implode("\n", $f));
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} pdns.conf done...\n";}
 	

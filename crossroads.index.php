@@ -187,7 +187,7 @@ function status(){
 		</td>
 		<td valign='top' width=99%>
 			<H1>{APP_CROSSROADS}</H1>
-			<div class=explain>{crossroads_explain}</div>
+			<div class=text-info>{crossroads_explain}</div>
 			<div style='margin-top:20px' id='crossroads_status'></div>
 		</td>
 	</tr>

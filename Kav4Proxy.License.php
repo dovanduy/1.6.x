@@ -21,7 +21,7 @@ kav4proxy_license_js();
 
 function kav4proxy_license_delete(){
 	$sock=new sockets();
-	$datas=base64_decode($sock->getFrameWork('cmd.php?Kav4ProxyLicenseDelete&type='.$_GET["license-type"]));	
+	$datas=base64_decode($sock->getFrameWork('kav4proxy.php?license-infosDelete&type='.$_GET["license-type"]));	
 }
 
 function kav4proxy_license_js(){
@@ -57,7 +57,7 @@ function kav4proxy_license_js(){
 function kav4proxy_license_popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$datas=base64_decode($sock->getFrameWork('cmd.php?Kav4ProxyLicense&type='.$_GET["license-type"]));
+	$datas=base64_decode($sock->getFrameWork('kav4proxy.php?license-infos&type='.$_GET["license-type"]));
 	
 	
 	
@@ -76,7 +76,7 @@ function kav4proxy_license_popup(){
 	</table>
 	
 	
-	<div style='width:100%;height:240px;overflow:auto' id='kav4licenseDiv'>
+	<div style='width:100%;height:440px' id='kav4licenseDiv'>
 	<div id='kav4LicenseUploaded'></div>	
 	<div id='Kav4ProxyLicenseInfos'></div>
 		
@@ -85,22 +85,7 @@ function kav4proxy_license_popup(){
 	
 	
 <center>
-<table style='width:99%' class=form align='center'>
-	<tr>
-		<td class=legend valign='middle'>{upload_new_license}:</td>
-		<td>
-			". Field_text("license-path",null,"font-size:14px")."
-			<input type=\"hidden\" id='license-type' name=\"license-type\" value='{$_GET["license-type"]}'>
-		</td>
-		<td>
-			". button("{browse}...","Loadjs('tree.php?select-file=key&target-form=license-path')",14)."
-			
-		</td>
-	</tr>
-</table>	
-<hr>
-	<div style='text-align:right'><hr>". button("{add}", "AddKey()",16)."</div>	
-	
+		".button("{upload_new_license}","Loadjs('Kav4Proxy.license.upload.php')",32)."</td>
 </center>
 
 <script>
@@ -135,15 +120,19 @@ echo $tpl->_ENGINE_parse_body($html);
 
 function license_info(){
 	$sock=new sockets();
-	$datas=base64_decode($sock->getFrameWork('cmd.php?Kav4ProxyLicense&type='.$_GET["license-type"]));	
+	$datas=base64_decode($sock->getFrameWork('kav4proxy.php?license-infos&type='.$_GET["license-type"]));	
 	$tp=explode("\n",$datas);
-	$html="<center><table style='width:97%' class=form>
+	$html="<center style='width:97%' class=form><table style='width:100%' >
 	<tbody>";
 	while (list ($num, $val) = each ($tp)){
 			if(trim($val)==null){continue;}
 			$val=htmlspecialchars($val);
 			if(strlen($val)>89){$val=texttooltip(substr($val,0,86).'...',$val,null,null,1);}
 			if(preg_match("#Error checking#", $val)){$val="<strong style='color:red'>$val</strong>";}
+			if(preg_match("#Expiration date#", $val)){$val="<strong style='color:blue'>$val</strong>";}
+			if(preg_match("#Count:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
+			if(preg_match("#Lifespan:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
+			if(preg_match("#Objs:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
 			$html=$html . "
 			<tr>
 				<td style='font-size:12px'>

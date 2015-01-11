@@ -19,6 +19,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if($argv[1]=="--exec"){start();die();}
 if($argv[1]=="--dirs"){ScanDirs();die();}
 if($argv[1]=="--remove-dirs"){RemoveDirs();die();}
+if($argv[1]=="--clean-dirs"){Clean_dirs();die();}
 if($argv[1]=="--ftp"){ftp_backup();die();}
 
 
@@ -50,6 +51,21 @@ function start(){
 	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
 	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
 		
+	$php=$unix->LOCATE_PHP5_BIN();
+	if(!is_file("/etc/cron.d/artica-zarafacleanbck")){
+		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+		$f[]="MAILTO=\"\"\n";
+		$f[]="30 6 * * *\troot\t$php ".__FILE__." --clean-dirs >/dev/null 2>&1";
+		
+		file_put_contents("/etc/cron.d/artica-zarafacleanbck",@implode("\n", $f));
+		chmod("/etc/cron.d/artica-zarafacleanbck",0640);
+		chown("/etc/cron.d/artica-zarafacleanbck","root");
+		
+		
+	}
+	 
+	
+	
 	
 	build_script();
 	$t=time();
@@ -129,6 +145,35 @@ function ftp_backup(){
 	return;		
 }
 
+function Clean_dirs(){
+	
+	$sock=new sockets();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "TimeFile:$TimeFile\n";}
+	$unix=new unix();
+	$me=basename(__FILE__);
+	
+	if($unix->process_exists(@file_get_contents($pidfile),$me)){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
+		system_admin_events("--> Already executed.. ". @file_get_contents($pidfile). " aborting the process", __FUNCTION__, __FILE__, __LINE__, "zarafa");
+		die();
+	}
+	
+	@file_put_contents($pidfile, getmypid());
+	$TimeFileEx=$unix->file_time_min($TimeFile);
+	if(!$GLOBALS["FORCE"]){
+		if($TimeFileEx<1440){return;}
+	}
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, time());
+	
+	ScanDirs();
+	RemoveDirs();
+	
+	
+}
+
 
 function ScanDirs(){
 	$sock=new sockets();
@@ -159,7 +204,7 @@ function ScanDirs(){
 			$sizeDBG=round(($size/1024)/1000,2);
 			echo "Found: Container saved on: $date took:$took $directory/zarafa.gz Size:$sizeDBG MB\n";
 		}
-		$directory=addslashes($directory);
+		$directory=mysql_escape_string2($directory);
 		$f[]="('$directory','$size','$took','$date')";
 	}
 	
@@ -178,6 +223,10 @@ function RemoveDirs(){
 	$database="artica_backup";
 	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
 	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!isset($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
+	if(!isset($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
+	
+	
 	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
 	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
 	if($ZarafaBackupParams["DELETE_OLD_BACKUPS"]==0){return;}
@@ -193,12 +242,14 @@ function RemoveDirs(){
 	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$filepath=$ligne["filepath"];
-		
+		if($GLOBALS["VERBOSE"]){echo "Scanning $filepath ({$ligne["zDate"]})\n";}
 		if(is_dir($filepath)){
 			$c++;
-			echo "Removing $filepath ({$ligne["zDate"]})\n";
+			
 			$tt[]=$filepath;
-			recursive_remove_directory($filepath);
+			echo "Removing $filepath ({$ligne["zDate"]})\n";
+			shell_exec("$rm -rf $filepath");
+			
 			$q->QUERY_SQL("DELETE FROM zarafa_backup WHERE `filepath`='$filepath'","artica_backup");
 		}
 		

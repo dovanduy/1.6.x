@@ -115,7 +115,8 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 	
 	
 	
-	
+	$CategoriesDatabasesByCron=@file_get_contents("/etc/artica-postfix/settings/Daemons/CategoriesDatabasesByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}else{$CategoriesDatabasesByCron=0;}
 	
 	
 	
@@ -133,14 +134,16 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 		}	
 	}
 	
-	$UpdateCategoriesArticaTime=$unix->file_time_min($UpdateCategoriesArticaTimeFile);
-	if($UpdateCategoriesArticaTime>720){
-		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.blacklists.php --ufdb --force --nologs --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
-		events("$cmd");
-		shell_exec($cmd);
-		@unlink($UpdateCategoriesArticaTimeFile);
-		@file_put_contents($UpdateCategoriesArticaTimeFile, time());
-	}	
+	if($CategoriesDatabasesByCron==0){
+		$UpdateCategoriesArticaTime=$unix->file_time_min($UpdateCategoriesArticaTimeFile);
+		if($UpdateCategoriesArticaTime>720){
+			$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.blacklists.php --ufdb --force --nologs --schedule-id={$GLOBALS["SCHEDULE_ID"]} --".__FUNCTION__."-".__LINE__." >/dev/null 2>&1 &");
+			events("$cmd");
+			shell_exec($cmd);
+			@unlink($UpdateCategoriesArticaTimeFile);
+			@file_put_contents($UpdateCategoriesArticaTimeFile, time());
+		}	
+	}
 	$CachePerfs=$unix->file_time_min($CachePerfsFile);
 	if($CachePerfs>800){
 		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.stats.days.cached.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
@@ -405,47 +408,8 @@ function ParseUserAuthNew(){
 	
 	}
 }
-function ParseUserAuthNewDir($directory){
-	if (!$handle = opendir($directory)) {
-		ufdbguard_admin_events("Fatal: $directory no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
-		return;
-	}
-	
-	$prefix="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ";
-	$f=array();
-	$unix=new unix();
-	$countDefile=$unix->COUNT_FILES($directory);
-	events("ParseUserAuthNewDir:: $directory  $countDefile files on Line: ".__LINE__);
-	if($countDefile==0){
-		events("ParseUserAuthNewDir:: $directory:  remove... on Line: ".__LINE__);
-		@rmdir($directory);
-		return;
-	}
-	
-	while (false !== ($filename = readdir($handle))) {
-		if($filename=="."){continue;}
-		if($filename==".."){continue;}
-		$targetFile="$directory/$filename";
-		$arrayFile=unserialize(@file_get_contents($targetFile));
-		if(!is_array($arrayFile)){@unlink($targetFile);continue;}
-		while (list ($index,$array) = each ($arrayFile) ){
-			$ParseUserAuthArray=ParseUserAuthArray($array);
-			if($ParseUserAuthArray<>null){
-				$f[]=$ParseUserAuthArray;
-			}
-				
-		}
-		@unlink($targetFile);
-	
-	}
-	
-	if(count($f)>0){
-		events("ParseUserAuthNewDir:: inject ".count($f)." rows on Line: ".__LINE__);
-		$q=new mysql_squid_builder();
-		$q->QUERY_SQL($prefix.@implode(",", $f));
-	}
-	
-}
+function ParseUserAuthNewDir($directory){return;}
+
 
 function ParseUserAuth($checkpid=false){
 	$unix=new unix();
@@ -531,6 +495,10 @@ function nmap_scan(){
 		$GLOBALS["nmap_scan_executed"]=true;
 		return;
 	}
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){return;}
+	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$exec_nice=$unix->EXEC_NICE();

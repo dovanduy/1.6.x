@@ -3,12 +3,14 @@ $GLOBALS["BYPASS"]=true;
 $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["FORCE_TIME"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
+	if(preg_match("#--force-time#",implode(" ",$argv))){$GLOBALS["FORCE_TIME"]=true;}
 }
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -30,10 +32,6 @@ if($argv[1]=="--tables-dayh"){repair_table_days_hours();die();}
 if($argv[1]=="--tables-visited-sites"){repair_visited_sites();die();}
 if($argv[1]=="--coherences-tables"){repair_from_sources_tables();die();}
 if($argv[1]=="--youtube"){Repair_youtube_objects();die();}
-
-
-
-
 if($argv[1]=="--repair-table-hour"){repair_table_hour($argv[2]);die();}
 
 
@@ -86,6 +84,14 @@ function repair_from_sources_tables(){
 			@file_put_contents($pidfile,$mypid);
 		}
 	}
+	
+	if($GLOBALS["FORCE_TIME"]){
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<240){return;}
+	}
+	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
 	$Prefix="/usr/share/artica-postfix";
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
@@ -96,6 +102,7 @@ function repair_from_sources_tables(){
 	$array=$q->LIST_TABLES_dansguardian_events();
 	$current="dansguardian_events_".date("Ymd");
 	while (list ($tablename,$none) = each ($array) ){
+		if($tablename==$current){continue;}
 		$time=$q->TIME_FROM_DANSGUARDIAN_EVENTS_TABLE($tablename);
 		$xtime=date("Y-m-d",$time);
 		$hour_table=date("Ymd",$time)."_hour";
@@ -149,6 +156,11 @@ function repair_from_sources_tables(){
 function _repair_members_sources_tables($sourcetable,$member_table){
 	$f=array();
 	$q=new mysql_squid_builder();
+	
+	if(!$q->TABLE_EXISTS("$member_table")){
+		$q->CreateMembersDayTable($member_table);
+	}
+	
 	$q->QUERY_SQL("TRUNCATE TABLE $member_table");
 	$sql="SELECT SUM( QuerySize ) AS QuerySize, SUM(hits) as hits,cached, HOUR( zDate ) AS `HOUR` ,
 	CLIENT, uid,MAC,hostname,account FROM $sourcetable GROUP BY cached, HOUR( zDate ) , CLIENT, uid,MAC,hostname,account HAVING QuerySize>0";
@@ -223,7 +235,7 @@ function _repair_from_sources_tables($sourcetable,$daytable){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$zMD5=md5(serialize($ligne));
 		$familysite=$q->GetFamilySites($ligne["sitename"]);
-		while (list ($key,$val) = each ($ligne) ){$ligne[$key]=mysql_escape_string($val); }
+		while (list ($key,$val) = each ($ligne) ){$ligne[$key]=mysql_escape_string2($val); }
 		
 		$f[]="('$zMD5','{$ligne["sitename"]}','$familysite','{$ligne["CLIENT"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["account"]}','{$ligne["hour"]}','{$ligne["MAC"]}','{$ligne["size"]}','{$ligne["hits"]}')";
 		
@@ -253,21 +265,6 @@ function _repair_from_sources_tables($sourcetable,$daytable){
 
 
 
-function repair_visited_sites(){
-
-	$q=new mysql_squid_builder();
-	echo "Delete table visited_sites\n";
-	$q->DELETE_TABLE("visited_sites");
-	$q->DELETE_TABLE("phraselists_weigthed");
-	$q->DELETE_TABLE("squidtpls");
-	$q->DELETE_TABLE("webfilters_databases_disk");
-	$q->DELETE_TABLE("squidservers");
-	$q->DELETE_TABLE("webfilters_schedules");
-	echo "Check databases...\n";
-	$q->CheckTables();
-
-
-}
 
 function repair_table_hour($xtime){
 	if(!is_numeric($xtime)){
@@ -302,6 +299,8 @@ function writelogs_repair($xtime,$progress,$text){
 	
 	
 }
+
+
 function percentage($text,$purc){
 
 

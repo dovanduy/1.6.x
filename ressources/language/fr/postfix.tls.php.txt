@@ -14,14 +14,14 @@ par exemple:[br]
 [/blk]</client_certificate_fingerprints_text>
 <download_certificates>T&eacute;l&eacute;chargez les certificats</download_certificates>
 <download_windows_certificate>T&eacute;l&eacute;chargez le certificat pour MS Outlook</download_windows_certificate>
-<enable_tls_postfix>Activer le TLS dans postfix...</enable_tls_postfix>
-<encrypt_explain>Annonce le support du STARTTLS aux clients SMTP et l'obligation aux clints d'utiliser l'encryption TLS.[br]En rapport avec la RFC 2487, cela ne doit pas &ecirc;tre appliqu&eacute; dans le cas d'un serveur SMTP r&eacute;f&eacute;renc&eacute; dans les domaines Publiques.[br]Cette option doit &ecirc;tre utilis&eacute;e sur des serveurs d&eacute;di&eacute;s.</encrypt_explain>
+<enable_tls_postfix>Activer le support TLS</enable_tls_postfix>
+<encrypt_explain>Annonce le support du STARTTLS aux clients SMTP et l\'obligation aux clients d\'utiliser l\'encryption TLS.[br]En rapport avec la RFC 2487, cela ne doit pas &ecirc;tre appliqu&eacute; dans le cas d\'un serveur SMTP r&eacute;f&eacute;renc&eacute; dans les domaines publiques.[br]Cette option doit &ecirc;tre utilis&eacute;e sur des serveurs d&eacute;di&eacute;s.</encrypt_explain>
 <fingerprint>Empreintes digitales</fingerprint>
 <generate_certificate>G&eacute;n&eacute;rer un nouveau certificat</generate_certificate>
 <generate_cert_ok>Ordre de g&eacute;n&eacute;ration de certificat OK, tester le</generate_cert_ok>
 <host>H&ocirc;te</host>
-<may_explain>Annonce le support du  STARTTLS mais ne requi&egrave;re pas l'utilisation du chiffrement TLS</may_explain>
-<none_explain>Le TLS ne sera pas utilis&eacute;</none_explain>
+<may_explain>Annonce le support du  STARTTLS mais ne le rend pas obligatoire dans la communication.</may_explain>
+<none_explain>Ne pas utiliser TLS</none_explain>
 <restarting_postfix>Appliquez les param&egrave;tres vers Postfix et red&eacute;marrer le OK</restarting_postfix>
 <save_cert_ok>Sauvegarder le certificat sur le disque OK</save_cert_ok>
 <smtpd_tls_ask_ccert>Demandez un certificat client &agrave; un client SMTP distant</smtpd_tls_ask_ccert>

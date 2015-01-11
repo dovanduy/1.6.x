@@ -351,7 +351,9 @@ end;
 
 procedure tmysql_daemon.SERVICE_STOP();
 begin
-     fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.mysql.start.php --stop'+VerboseCMDLIne);
+     logs.Syslogs('Stopping MySQL by artica-install is depreciated !');
+     exit;
+
 end;
 //##################################################################################
 function tmysql_daemon.VERSION():string;

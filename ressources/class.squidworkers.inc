@@ -231,8 +231,8 @@ class squidworkers{
 		for($i=1;$i<$CPUS+1;$i++){
 			$f[]="if \${process_number} = $i";
 				$this->CPU_FINAL++;
-				$boost_cache=$boost->cache_booster_SMP($i);
-				if($boost_cache<>null){$f[]=$boost_cache;}
+				
+				
 				if($this->SquidBoosterOnly==0){
 					if($i==1){if($olders_caches<>null){$f[]=$olders_caches;}}
 					$CurrentDirectorySizeAvailable=$CurrentDirectorySizeAvailable-$globalCachesize;
@@ -297,9 +297,6 @@ class squidworkers{
 		
 		if($this->DisableAnyCache==0){
 			$q=new mysql();
-			$boost=new squidbooster();
-			$boost_cache=$boost->cache_booster_SMP($cpuindex);
-			if($boost_cache<>null){$count++;}
 			if($this->SquidBoosterOnly==0){
 				$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 
 					AND uuid='$uuid' AND cpunum=$cpuindex AND ToDelete=0 AND Building=2","artica_backup");
@@ -340,9 +337,7 @@ class squidworkers{
 			}
 			
 			if($this->DisableAnyCache==0){
-				$boost_cache=$boost->cache_booster_SMP($i);
-				if($boost_cache<>null){$f[]=$boost_cache;}
-				if($this->SquidBoosterOnly==1){continue;}
+				
 				$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND cpunum=$i AND ToDelete=0 AND Building=2","artica_backup");
 				if(!$q->ok){echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i `$q->mysql_error`\n";continue;}
 			

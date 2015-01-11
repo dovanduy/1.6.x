@@ -173,7 +173,7 @@ $q->QUERY_SQL("TRUNCATE TABLE syspackages_updt","artica_backup");
 			
 		}else{
 			if(preg_match("#dpkg was interrupted.+?dpkg --configure -a#",$val)){
-				send_email_events("dpkg was interrupted","Reconfigure all will be performed\n$val",
+				send_email_events("dpkg was interrupted","{reconfigure} all will be performed\n$val",
 				"update");
 				shell_exec("DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold >/dev/null");
 				return;
@@ -181,7 +181,7 @@ $q->QUERY_SQL("TRUNCATE TABLE syspackages_updt","artica_backup");
 			
 			if(preg_match("#dpkg --configure -a#", $val)){
 		 		send_email_events("dpkg was interrupted",
-		 		"Reconfigure all will be performed\n$val","update");
+		 		"{reconfigure} all will be performed\n$val","update");
 				shell_exec("DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confold >/dev/null");
 				return ;
 			}			
@@ -730,9 +730,10 @@ if(!is_file("/var/lib/dpkg/available")){@touch("/var/lib/dpkg/available");}
 
 if(!is_numeric($Major)){ echo "CheckSourcesList: Debian version failed \"$ver\"\n";return;}
 
-
+$unix=new unix();
 $detected=false;
-
+$gpg=$unix->find_program("gpg");
+$aptkey=$unix->find_program("apt-key");
 if($Major==7){
 	$f[]="deb http://http.debian.net/debian wheezy main";
 	$f[]="deb-src http://http.debian.net/debian wheezy main";
@@ -743,6 +744,11 @@ if($Major==7){
 	$f[]="deb-src http://packages.dotdeb.org wheezy all";
 	$f[]="deb http://packages.dotdeb.org wheezy all";
 	@file_put_contents("/etc/apt/sources.list",@implode("\n",$f));
+	
+	shell_exec("$gpg --keyserver keys.gnupg.net --recv-key 89DF5277");
+	shell_exec("$gpg -a --export 89DF5277 | $aptkey add -");
+	
+	
 	return;
 }
 

@@ -185,7 +185,7 @@ $tpl=new Templates();
 $time=time();
 
 $html="
-<div class=explain style='font-size:14px'>{smtp_fallback_relay_tiny}<br>{smtp_fallback_relay_text}</div>
+<div class=text-info style='font-size:14px'>{smtp_fallback_relay_tiny}<br>{smtp_fallback_relay_text}</div>
 
 ";
 
@@ -237,7 +237,7 @@ function PostfixAddFallBackServer(){
 	<td align='right' colspan=2><hr>". button("{add}","XHRPostfixAddFallBackerserverSave()",16)."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><div class=explain>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><div class=text-info>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>

@@ -13,8 +13,37 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_se
 if($argv[1]=="--install"){install($argv[2]);exit;}
 
 
+function parsefilename($filename){
+	echo "Uploaded $filename\n";
+	if(preg_match("#^(.+?)-(.+?)([0-9]+)-([0-9]+)-([0-9\.\-]+)\.tar\.gz$#", $filename,$re)){
+		$ARCHBIN=$re[4];
+		$VERSION=$re[5];
+		$distri=$re[2].$re[3];
+		$array["ARCHBIN"]=$ARCHBIN;
+		$array["VERSION"]=$VERSION;
+		$array["DISTRI"]=$distri;
+		return $array;
+	}
+	
+	if(preg_match("#^(.+?)-(.+?)([0-9]+)-([a-z]+)([0-9]+)-(.+?)\.tar\.gz$#", $filename,$re)){
+		$array["VERSION"]=$re[6];
+		$array["DISTRI"]=$re[4].$re[5];
+		$array["ARCHBIN"]=$re[3];
+		return $array;
+	}
+	
+	
+		
+	
+	
+	return array();
+}
+
 
 function install($filename){
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.progress";
+	$GLOBALS["DOWNLOAD_PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.download.progress";
 	
 	echo "Starting $filename\n";
 	$unix=new unix();
@@ -29,6 +58,7 @@ function install($filename){
 	
 	$t=time();
 	build_progress("Analyze...$filename",10);
+	echo "Operating system........: $DebianVer\n";
 	
 	if(!is_file($UPLOADED_FILE)){
 		echo "$UPLOADED_FILE no such file\n";
@@ -48,15 +78,20 @@ function install($filename){
 	
 	if(is_file($UPLOADED_FILE)){
 		echo "Uploaded $UPLOADED_FILE\n";
-		if(!preg_match("#^(.+?)-(.+?)([0-9]+)-([0-9]+)-([0-9\.]+)\.tar\.gz#", $filename,$re)){
+		
+		$EXTRACT=parsefilename($filename);
+		
+		if(count($EXTRACT)<2){
+			echo "$filename did not match defined pattern...\n";
 			build_progress("{failed}...$filename Not supported",110);
+			@unlink($UPLOADED_FILE);
 			sleep(5);
 			return;
 		}
 		
-		$ARCHBIN=$re[4];
-		$VERSION=$re[5];
-		$distri=$re[2].$re[3];
+		$ARCHBIN=$EXTRACT["ARCHBIN"];
+		$VERSION=$EXTRACT["VERSION"];
+		$distri=$EXTRACT["DISTRI"];
 		//$DebianVer=$re[3];
 		$TMP_FILE=$UPLOADED_FILE;
 		$SIZE=@filesize($TMP_FILE);
@@ -64,8 +99,6 @@ function install($filename){
 	
 
 		
-	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.progress";
-	$GLOBALS["DOWNLOAD_PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.download.progress";
 	
 	
 	
@@ -119,6 +152,11 @@ function install($filename){
 	$squid=$unix->LOCATE_SQUID_BIN();
 	build_progress("{extracting} $filename...",50);
 	
+	if(preg_match("#^hotspot#", $filename)){
+		$AS_HOSTPOT=true;
+	}
+	
+	
 	if(preg_match("#^squid32#", $filename)){
 		echo "Removing /lib/squid3\n";
 		shell_exec("$rm -rf /lib/squid3");
@@ -149,17 +187,46 @@ function install($filename){
 	system("/etc/init.d/artica-status reload --force");
 	
 	if(preg_match("#^squid32#", $filename)){
+		@unlink(dirname(__FILE__)."/ressources/logs/squid.compilation.params");
 		build_progress("{restart_services}: Squid-Cache...",51);
-		shell_exec("/etc/init.d/squid restart --force");
-		shell_exec("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
-		shell_exec("/etc/init.d/ufdb restart");
+		system("/etc/init.d/squid restart --force");
+		build_progress("{restart_services}: exec.squid.php...",51);
+		system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
+		build_progress("{restart_services}: exec.squidguard.php...",51);
+		system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
+		build_progress("{reconfiguring} {APP_UFDBGUARD}...",51);
+		system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
+		build_progress("{restarting} {APP_UFDBGUARD}...",51);
+		system("/etc/init.d/ufdb restart");
+		build_progress("{restart_services}: squid restart --force...",51);
+		system("/etc/init.d/squid restart --force");
+	}
+	
+	if(preg_match("#^pdnsc#", $filename)){
+		$sock=new sockets();
+		$sock->SET_INFO("EnablePDNS",1);
+		$sock->SET_INFO("EnableDNSMASQ", 0);
+		build_progress("{restart_services}: PowerDNS...",51);
+		shell_exec("/etc/init.d/dnsmasq stop");
+		shell_exec("/etc/init.d/pdns restart");
+		shell_exec("/etc/init.d/pdns-recursor restart");
 	}
 	
 	if(preg_match("#^nginx#", $filename)){
 		build_progress("{restart_services}: NGINX...",51);
-		shell_exec("/etc/init.d/nginx restart --force");
+		system("/etc/init.d/nginx restart --force");
+	}
+	if(preg_match("#^ntopng#", $filename)){
+		build_progress("{restart_services}: NTOPNG...",51);
+		system("$php /usr/share/artica-postfix/exec.initslapd.php --ntopng --force");
+		system("/etc/init.d/ntopng restart --force");
 	}	
-	
+
+	if($AS_HOSTPOT){
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.initslapd.php --wifidog >/dev/null 2>&1 &");
+	}
+	build_progress("Learning the system...",52);
+	system("/usr/share/artica-postfix/bin/process1 --force --verbose -6464646464");
 	build_progress("{restart_services}: Auth TAIL...",52);
 	system("/etc/init.d/auth-tail restart");
 	build_progress("{restart_services}: Building collection...",60);
@@ -190,6 +257,19 @@ function build_progress($text,$pourc){
 	$array["TEXT"]=$text;
 	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
 	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+	$info=2;
+	if($pourc>100){$info=0;}
+	$sock=new sockets();
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==0){return;}
+	meta_admin_mysql($info, "{$pourc}%: $text", null,__FILE__,__LINE__);
+	if($pourc==100){
+		$unix=new unix();
+		$php=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		system("$php /usr/share/artica-postfix/exec.artica-meta-client.php --ping --force >/dev/null 2>&1 &");
+	}
+	
 
 }
 function download_progress( $download_size, $downloaded_size, $upload_size, $uploaded_size ){

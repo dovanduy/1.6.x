@@ -162,17 +162,17 @@ function acl_rule_tab(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="acl-items"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"squid.acls-rules.items.php?$num=yes&aclid=$ID&t=$t\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"squid.acls-rules.items.php?$num=yes&aclid=$ID&t=$t\"><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		if($num=="acl-rule-group"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&aclgroup-id=$ID&t=$t\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=yes&aclgroup-id=$ID&t=$t\"><span>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&ID=$ID&t=$t\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=yes&ID=$ID&t=$t\"><span>$ligne</span></a></li>\n");
 	
 	}
 
@@ -408,7 +408,7 @@ function acl_rule_settings(){
 		$q2=new mysql();
 		$sql="SELECT rulename FROM squid_pools WHERE ID='$delay_access_id'";
 		$ligne=mysql_fetch_array($q2->QUERY_SQL($sql,"artica_backup"));	
-		$delay_access_id_text=$ligne["rulename"];
+		$delay_access_id_text=$tpl->javascript_parse_text(utf8_encode($ligne["rulename"]));
 	}
 	
 	$ipz=new networking();
@@ -422,16 +422,16 @@ function acl_rule_settings(){
 	<div style='width:98%' class=form>
 	<table style='width:100%' class=TableRemove>
 	<tr>
-		<td class=legend style='font-size:14px'>{rule_name}:</td>
-		<td>". Field_text("aclrulename",$aclname,"font-size:14px;width:220px")."</td>
+		<td class=legend style='font-size:18px'>{rule_name}:</td>
+		<td>". Field_text("aclrulename",$aclname,"font-size:18px;width:360px",null,null,null,false,"SaveAclRule{$ID}Check(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{method}:</td>
-		<td>". Field_array_Hash($PortDirectionS,"PortDirection-$t",$PortDirection,null,null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:18px'>{method}:</td>
+		<td>". Field_array_Hash($PortDirectionS,"PortDirection-$t",$PortDirection,null,null,0,"font-size:18px")."</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:14px'>{rule_group}:</td>
-		<td>". Field_array_Hash($ACLSGROUPS,"aclgpid-$t",$aclgpid,null,null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:18px'>{rule_group}:</td>
+		<td>". Field_array_Hash($ACLSGROUPS,"aclgpid-$t",$aclgpid,null,null,0,"font-size:18px")."</td>
 	</tr>
 				
 	
@@ -440,71 +440,71 @@ function acl_rule_settings(){
 	
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{allow}:</td>
-		<td>". Field_checkbox("access_allow",1,$access_allow,"access_allow_check()")."</td>
+		<td class=legend style='font-size:18px'>{allow}:</td>
+		<td>". Field_checkbox_design("access_allow",1,$access_allow,"access_allow_check()")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{deny_access}:</td>
-		<td>". Field_checkbox("access_deny",1,$access_deny,"access_deny_check()")."</td>
+		<td class=legend style='font-size:18px'>{deny_access}:</td>
+		<td>". Field_checkbox_design("access_deny",1,$access_deny,"access_deny_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{deny_reply_access}:</td>
-		<td>". Field_checkbox("http_reply_access_deny",1,$http_reply_access_deny,"http_reply_access_deny_check()")."</td>
+		<td class=legend style='font-size:18px'>{deny_reply_access}:</td>
+		<td>". Field_checkbox_design("http_reply_access_deny",1,$http_reply_access_deny,"http_reply_access_deny_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{allow_reply_access}:</td>
-		<td>". Field_checkbox("http_reply_access_allow",1,$http_reply_access_allow,"http_reply_access_allow_check()")."</td>
+		<td class=legend style='font-size:18px'>{allow_reply_access}:</td>
+		<td>". Field_checkbox_design("http_reply_access_allow",1,$http_reply_access_allow,"http_reply_access_allow_check()")."</td>
 	</tr>
 				
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{deny_access_except}:</td>
-		<td>". Field_checkbox("deny_access_except",1,$deny_access_except,"deny_access_except_check()")."</td>
+		<td class=legend style='font-size:18px'>{deny_access_except}:</td>
+		<td>". Field_checkbox_design("deny_access_except",1,$deny_access_except,"deny_access_except_check()")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{pass_trough_thewebfilter_engine}:</td>
-		<td>". Field_checkbox("url_rewrite_access_deny",1,$url_rewrite_access_deny,"url_rewrite_access_deny_check()")."</td>
+		<td class=legend style='font-size:18px'>{pass_trough_thewebfilter_engine}:</td>
+		<td>". Field_checkbox_design("url_rewrite_access_deny",1,$url_rewrite_access_deny,"url_rewrite_access_deny_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{pass_trough_antivirus_engine}:</td>
-		<td>". Field_checkbox("adaptation_access_deny",1,$adaptation_access_deny,"adaptation_access_deny_check()")."</td>
+		<td class=legend style='font-size:18px'>{pass_trough_antivirus_engine}:</td>
+		<td>". Field_checkbox_design("adaptation_access_deny",1,$adaptation_access_deny,"adaptation_access_deny_check()")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{allow_snmp_access}:</td>
-		<td>". Field_checkbox("snmp_access_allow",1,$snmp_access_allow,"snmp_access_allow_check()")."</td>
+		<td class=legend style='font-size:18px'>{allow_snmp_access}:</td>
+		<td>". Field_checkbox_design("snmp_access_allow",1,$snmp_access_allow,"snmp_access_allow_check()")."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{do_not_cache}:</td>
-		<td>". Field_checkbox("cache_deny",1,$cache_deny,"cache_deny_check()")."</td>
+		<td class=legend style='font-size:18px'>{do_not_cache}:</td>
+		<td>". Field_checkbox_design("cache_deny",1,$cache_deny,"cache_deny_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'><a href=\"javascript:blur();\"
+		<td class=legend style='font-size:18px'><a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.acls.proxy.parent.php?aclid=$ID');\"
 		style='text-decoration:underline'>
 		{use_parent_proxy}</a>:</td>
-		<td>". Field_checkbox("cache_parent",1,$cache_parent,"cache_parent_check()")."</td>
+		<td>". Field_checkbox_design("cache_parent",1,$cache_parent,"cache_parent_check()")."</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:14px'>{log_to_csv}:</td>
-		<td>". Field_checkbox("log_access",1,$log_access,"log_access_check()")."</td>
+		<td class=legend style='font-size:18px'>{log_to_csv}:</td>
+		<td>". Field_checkbox_design("log_access",1,$log_access,"log_access_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{deny_logging}:</td>
-		<td>". Field_checkbox("deny_log",1,$deny_log,"deny_log_check()")."</td>
+		<td class=legend style='font-size:18px'>{deny_logging}:</td>
+		<td>". Field_checkbox_design("deny_log",1,$deny_log,"deny_log_check()")."</td>
 	</tr>
 	</table>
 
 	<hr>
 		<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:14px'>{limit_bandwidth}:</td>
-			<td>". Field_checkbox("delay_access",1,$delay_access,"limit_bandwidth_check()")."</td>
+			<td class=legend style='font-size:18px'>{limit_bandwidth}:</td>
+			<td>". Field_checkbox_design("delay_access",1,$delay_access,"limit_bandwidth_check()")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{bandwidth}:</td>
+			<td class=legend style='font-size:18px'>{bandwidth}:</td>
 			<td>
-				<span id='delay_access_id_text' style='font-size:14px;font-weight:bold'>$delay_access_id_text</span>
+				<span id='delay_access_id_text' style='font-size:18px;font-weight:bold'>$delay_access_id_text</span>
 				<input type='hidden' id='delay_access_id' value='$delay_access_id'>
 			</td>
 			<td width=1%>". button('{browse}...',"Loadjs('squid.bandwith.php?browser-acl-js=yes&aclruleid=$ID')")."</td>
@@ -515,13 +515,13 @@ function acl_rule_settings(){
 	<hr>		
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{affect_quota_rule}:</td>
-		<td>". Field_checkbox("deny_quota_rule",1,$deny_quota_rule,"deny_quota_rule_check()")."</td>
+		<td class=legend style='font-size:18px'>{affect_quota_rule}:</td>
+		<td>". Field_checkbox_design("deny_quota_rule",1,$deny_quota_rule,"deny_quota_rule_check()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{quota_rule}:</td>
+		<td class=legend style='font-size:18px'>{quota_rule}:</td>
 		<td>
-			<span id='deny_quota_rule_id_text' style='font-size:14px;font-weight:bold'>[$deny_quota_rule_id]:$deny_quota_rule_value</span>
+			<span id='deny_quota_rule_id_text' style='font-size:18px;font-weight:bold'>[$deny_quota_rule_id]:$deny_quota_rule_value</span>
 			<input type='hidden' id='deny_quota_rule_id' value='$deny_quota_rule_id'>
 		</td>
 		<td width=1%>". button('{browse}...',"Loadjs('squid.ext_time_quota_acl.php?browser-quota-js=yes&checkbowid=deny_quota_rule&textid=deny_quota_rule_id_text&idnum=deny_quota_rule_id')")."</td>
@@ -532,16 +532,16 @@ function acl_rule_settings(){
 	<hr>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{request_header_add}:</td>
-		<td>". Field_checkbox("request_header_add",1,$request_header_add,"request_header_addCheck()")."</td>
+		<td class=legend style='font-size:18px'>{request_header_add}:</td>
+		<td>". Field_checkbox_design("request_header_add",1,$request_header_add,"request_header_addCheck()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{header_name}:</td>
-		<td>". Field_text("request_header_add_name",$request_header_add_name,'font-size:14px;width:210px')."</td>
+		<td class=legend style='font-size:18px'>{header_name}:</td>
+		<td>". Field_text("request_header_add_name",$request_header_add_name,'font-size:18px;width:210px')."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{header_value}:</td>
-		<td>". Field_text("request_header_add_value",$request_header_add_value,'font-size:14px;width:210px')."</td>
+		<td class=legend style='font-size:18px'>{header_value}:</td>
+		<td>". Field_text("request_header_add_value",$request_header_add_value,'font-size:18px;width:210px')."</td>
 	</tr>					
 	</table>
 	<div><i style='font-size:11px'>$explain_no33squid</i></div>	
@@ -550,24 +550,24 @@ function acl_rule_settings(){
 	<hr>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:14px'>{reply_body_max_size_acl}:</td>
-			<td>". Field_checkbox("reply_body_max_size",1,$reply_body_max_size,"reply_body_max_sizeCheck()")."</td>
+			<td class=legend style='font-size:18px'>{reply_body_max_size_acl}:</td>
+			<td>". Field_checkbox_design("reply_body_max_size",1,$reply_body_max_size,"reply_body_max_sizeCheck()")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{max_size}:</td>
-			<td style='font-size:14px'>". Field_text("reply_body_max_size_value",$reply_body_max_size_value,'font-size:14px;width:90px')."&nbsp;MB</td>
+			<td class=legend style='font-size:18px'>{max_size}:</td>
+			<td style='font-size:18px'>". Field_text("reply_body_max_size_value",$reply_body_max_size_value,'font-size:18px;width:90px')."&nbsp;MB</td>
 		</tr>	
 	</table>
 	
 	<hr>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:14px'>{tcp_outgoing_tos}:</td>
-			<td>". Field_checkbox("tcp_outgoing_tos",1,$tcp_outgoing_tos,"tcp_outgoing_tosCheck()")."</td>
+			<td class=legend style='font-size:18px'>{tcp_outgoing_tos}:</td>
+			<td>". Field_checkbox_design("tcp_outgoing_tos",1,$tcp_outgoing_tos,"tcp_outgoing_tosCheck()")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{tcp_outgoing_tos_value}:</td>
-			<td>". Field_text("tcp_outgoing_tos_value",$tcp_outgoing_tos_value,'font-size:14px;width:90px')."</td>
+			<td class=legend style='font-size:18px'>{tcp_outgoing_tos_value}:</td>
+			<td>". Field_text("tcp_outgoing_tos_value",$tcp_outgoing_tos_value,'font-size:18px;width:90px')."</td>
 		</tr>	
 	</table>
 
@@ -576,12 +576,12 @@ function acl_rule_settings(){
 	<hr>
 	<table style='width:100%'>	
 	<tr>
-		<td class=legend style='font-size:14px'>{acl_tcp_outgoing_address}:</td>
-		<td>". Field_checkbox("tcp_outgoing_address-$t",1,$tcp_outgoing_address,"tcp_outgoing_address_check$t()")."</td>
+		<td class=legend style='font-size:18px'>{acl_tcp_outgoing_address}:</td>
+		<td>". Field_checkbox_design("tcp_outgoing_address-$t",1,$tcp_outgoing_address,"tcp_outgoing_address_check$t()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{ipaddr}:</td>
-		<td>". Field_array_Hash($ipss,"tcp_outgoing_address_value",$tcp_outgoing_address_value,null,null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:18px'>{ipaddr}:</td>
+		<td>". Field_array_Hash($ipss,"tcp_outgoing_address_value",$tcp_outgoing_address_value,null,null,0,"font-size:18px")."</td>
 	</tr>	
 	</table>	
 	
@@ -589,7 +589,7 @@ function acl_rule_settings(){
 	
 	<table style='width:100%'>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}", "SaveAclRule$ID()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}", "SaveAclRule$ID()",22)."</td>
 	</tr>
 	</table>
 	</div>
@@ -597,12 +597,15 @@ function acl_rule_settings(){
 	<script>
 	
 		var x_SaveAclRule$ID= function (obj) {
-			document.getElementById('divid$t').innerHTML='';	
 			var res=obj.responseText;
 			if(res.length>3){alert(res);return;}
-			RefreshTab('main_acl_rule_zoom');
 			$('#table-$t').flexReload();
 			ExecuteByClassName('SearchFunction');
+		}
+		
+		function  SaveAclRule{$ID}Check(e){
+			if(!checkEnter(e)){return;}
+			SaveAclRule$ID();
 		}
 	
 		function SaveAclRule$ID(){
@@ -649,7 +652,6 @@ function acl_rule_settings(){
 			XHR.appendData('deny_quota_rule_id', document.getElementById('deny_quota_rule_id').value);
 			XHR.appendData('request_header_add_name', document.getElementById('request_header_add_name').value);
 			XHR.appendData('request_header_add_value', document.getElementById('request_header_add_value').value);
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveAclRule$ID);  		
 		
 		}
@@ -701,59 +703,72 @@ function acl_rule_settings(){
 		});	
 	}
 	
-	function limit_bandwidth_check(){
+	function limit_bandwidth_check(nosave){
+		if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('delay_access').checked){DisableAllInstead('delay_access');}else{CheckAll();}
 		
 	}
 	
-	function access_allow_check(){
+	function access_allow_check(nosave){
+		if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('access_allow').checked){DisableAllInstead('access_allow');}else{CheckAll();}
 	}
 	
 	
-	function access_deny_check(){
+	function access_deny_check(nosave){
+		if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('access_deny').checked){DisableAllInstead('access_deny');}else{CheckAll();}
 	}
 	
-	function http_reply_access_deny_check(){
+	function http_reply_access_deny_check(nosave){
+		if(!nosave){SaveAclRule$ID(nosave);}	
 		if(document.getElementById('http_reply_access_deny').checked){DisableAllInstead('http_reply_access_deny');}else{CheckAll();}
 	}
 	
-	function http_reply_access_allow_check(){
+	function http_reply_access_allow_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('http_reply_access_allow').checked){DisableAllInstead('http_reply_access_allow');}else{CheckAll();}
 	}
 	
-	function deny_log_check(){
+	function deny_log_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('deny_log').checked){DisableAllInstead('deny_log');}else{CheckAll();}
 	}
 
-	function cache_deny_check(){
+	function cache_deny_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('cache_deny').checked){DisableAllInstead('cache_deny');}else{CheckAll();}
 	
 	}
 	
-	function cache_parent_check(){
+	function cache_parent_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('cache_parent').checked){DisableAllInstead('cache_parent');}else{CheckAll();}
 	}
 	
-	function adaptation_access_deny_check(){
+	function adaptation_access_deny_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('adaptation_access_deny').checked){DisableAllInstead('adaptation_access_deny');}else{CheckAll();}
 	}
 	
-	function url_rewrite_access_deny_check(){
+	function url_rewrite_access_deny_check(nosave){
+		if(!nosave){SaveAclRule$ID(nosave);}	
 		if(document.getElementById('url_rewrite_access_deny').checked){DisableAllInstead('url_rewrite_access_deny');}else{CheckAll();}
 	}
 	
-	function snmp_access_allow_check(){
+	function snmp_access_allow_check(nosave){
+		if(!nosave){SaveAclRule$ID(nosave);}	
 		if(document.getElementById('snmp_access_allow').checked){DisableAllInstead('snmp_access_allow');}else{CheckAll();}
 	}
 	
-	function log_access_check(){
+	function log_access_check(nosave){
+		if(!nosave){SaveAclRule$ID(nosave);}	
 		if(document.getElementById('log_access').checked){DisableAllInstead('log_access');}else{CheckAll();}
 	}
 	
 	
-	function deny_quota_rule_check(){
+	function deny_quota_rule_check(nosave){
+		if(!nosave){SaveAclRule$ID();}	
 		if(document.getElementById('deny_quota_rule').checked){
 			DisableAllInstead('deny_quota_rule');
 
@@ -763,8 +778,8 @@ function acl_rule_settings(){
 	 } 
 	
 	
-	function tcp_outgoing_address_check$t(){
-		//alert(document.getElementById('tcp_outgoing_address-$t').checked);
+	function tcp_outgoing_address_check$t(nosave){
+		if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('tcp_outgoing_address-$t').checked){
 		
 			
@@ -779,8 +794,8 @@ function acl_rule_settings(){
 	}	
 	
 
-	function tcp_outgoing_tosCheck(){
-		
+	function tcp_outgoing_tosCheck(nosave){
+				if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('tcp_outgoing_tos').checked){
 			DisableAllInstead('tcp_outgoing_tos');
 			document.getElementById('tcp_outgoing_tos_value').disabled=false;
@@ -790,13 +805,15 @@ function acl_rule_settings(){
 		}
 	}
 	
-	function deny_access_except_check(){
+	function deny_access_except_check(nosave){
+			if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('deny_access_except').checked){DisableAllInstead('deny_access_except');}else{CheckAll();}
 	}
 	
-	function request_header_addCheck(){
+	function request_header_addCheck(nosave){
 		var is33=$is33;
 		if(is33==0){return;}
+		if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('request_header_add').checked){
 			DisableAllInstead('request_header_add');
 			document.getElementById('request_header_add_name').disabled=false;
@@ -810,7 +827,8 @@ function acl_rule_settings(){
 	}
 	
 	
-	function reply_body_max_sizeCheck(){
+	function reply_body_max_sizeCheck(nosave){
+			if(!nosave){SaveAclRule$ID();}
 		if(document.getElementById('reply_body_max_size').checked){
 			DisableAllInstead('reply_body_max_size');
 			document.getElementById('reply_body_max_size').disabled=false;
@@ -828,6 +846,7 @@ function acl_rule_settings(){
 		document.getElementById('request_header_add_value').disabled=true;
 		document.getElementById('request_header_add_name').disabled=true;
 		if(is33==0){return;}
+
 		document.getElementById('request_header_add').disabled=false;
 		if(document.getElementById('request_header_add').checked){
 			DisableAllInstead('request_header_add');
@@ -838,21 +857,22 @@ function acl_rule_settings(){
 	}
 	
 	
-	limit_bandwidth_check();
-	access_allow_check();
-	access_deny_check();
-	deny_access_except_check();
-	tcp_outgoing_tosCheck();
-	cache_deny_check();
-	adaptation_access_deny_check();
-	url_rewrite_access_deny_check();
-	tcp_outgoing_address_check$t();
-	snmp_access_allow_check();
-	log_access_check();
-	features33_check();
-	deny_quota_rule_check();
-	http_reply_access_deny_check();	
-	http_reply_access_allow_check();
+	limit_bandwidth_check(true);
+	access_allow_check(true);
+	access_deny_check(true);
+	deny_access_except_check(true);
+	tcp_outgoing_tosCheck(true);
+	cache_deny_check(true);
+	adaptation_access_deny_check(true);
+	url_rewrite_access_deny_check(true);
+	tcp_outgoing_address_check$t(true);
+	snmp_access_allow_check(true);
+	log_access_check(true);
+	features33_check(true);
+	deny_quota_rule_check(true);
+	http_reply_access_deny_check(true);	
+	http_reply_access_allow_check(true);
+	CheckBoxDesignRebuild();
 	</script>
 	
 	
@@ -968,6 +988,8 @@ function acl_rule_save(){
 	if(!isset($_POST["aclgpid"])){$_POST["aclgpid"]=0;}
 	if(!isset($_POST["aclport"])){$_POST["aclport"]=0;}
 	if(is_numeric($_POST["aclport"])){$_POST["aclport"]=0;}
+	
+	$aclname=str_replace("'", "`", $aclname);
 	
 	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclgroup")){
 		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgroup` smallint(1) NOT NULL,ADD INDEX(`aclgroup`)");
@@ -1153,6 +1175,8 @@ function page(){
 	$session_manager="{name: '$session_manager', bclass: 'clock', onpress : SessionManager$t},";
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	$create_a_snapshot=$tpl->javascript_parse_text("{create_a_snapshot}");
+	$delete_all_acls=$tpl->javascript_parse_text("{delete_all_acls}");
 	$Table_title=null;
 	if($EnableWebProxyStatsAppliance==0){
 		if(!$squid->IS_33){$session_manager=null;}
@@ -1162,9 +1186,9 @@ function page(){
 	$table_width=905;
 	$newgroup_bt="{name: '$new_group', bclass: 'add', onpress : AddAclGroup},";
 	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},";
-	$optionsbt="{separator: true},{name: '$options', bclass: 'Settings', onpress : AclOptions$t},";
+	$optionsbt="{name: '$options', bclass: 'Settings', onpress : AclOptions$t},";
 	
-	$bandwithbt=",{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t}";
+	$bandwithbt="{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t},";
 	
 	if(!is_numeric($_GET["aclgroup-id"])){$_GET["aclgroup-id"]=0;}
 	if($_GET["aclgroup-id"]>0){
@@ -1201,12 +1225,15 @@ $('#table-$t').flexigrid({
 buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : AddAcl},
 	$newgroup_bt
-	{name: '$groups', bclass: 'Group', onpress : GroupsSection$t}
-	$bandwithbt,$session_manager
+	$bandwithbt
 	{separator: true},
 	
 	$optionsbt
 	$apply_paramsbt
+	{separator: true},
+	{name: '$create_a_snapshot', bclass: 'apply', onpress : SnapShot$t},
+	{name: '$delete_all_acls', bclass: 'Delz', onpress : DeleteAll$t},
+	
 		],	
 	searchitems : [
 		{display: '$rule', name : 'aclname'},
@@ -1228,6 +1255,11 @@ function AddAcl() {
 	Loadjs('$page?Addacl-js=yes&ID=-1&t=$t$GROUPE_RULE_ID_NEW_RULE');
 	
 }
+function SnapShot$t() {
+	Loadjs('snapshots.progress.php');
+	
+}
+
 
 function AddAclGroup(){
 	Loadjs('$page?Addacl-group=yes&ID=-1&t=$t');
@@ -1275,6 +1307,10 @@ function ChangeRuleOrder(ID,xdef){
 
 function SquidTemplatesErrors$t(){
 	Loadjs('squid.templates.php');
+}
+
+function DeleteAll$t(){
+	Loadjs('squid.acls.delete.php?t=$t');
 }
 
 

@@ -31,14 +31,17 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$array["transparent"]="{transparent_mode}";
-	$array["ssl"]="{squid_sslbump}";
+	$array["ssl"]="{decrypt_ssl}";
 	$array["network_rules"]="{network_rules}";
 	
+	$array["mikrotik"]="Mikrotik";
+	$array["wccpl3"]="{WCCP_LAYER3}";
+	
+	//$array["wccp"]="WCCP";
+	;
 	
 	
-	$array["wccp"]="WCCP";
-	
-	$fontsize=16;
+	$fontsize=22;
 	
 	while (list ($num, $ligne) = each ($array) ){
 	
@@ -48,7 +51,11 @@ function tabs(){
 		
 		}
 		
-			
+		if($num=="mikrotik"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.transparent.mikrotik.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 		
 		if($num=="network_rules"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.transparent.networks.php?t=$t\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
@@ -63,6 +70,12 @@ function tabs(){
 			continue;
 		
 		}
+		
+		if($num=="wccpl3"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.wccpl3.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 		
 		if($num=="transparent"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.newbee.php?squid-transparent-http=yes&t=$t\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");

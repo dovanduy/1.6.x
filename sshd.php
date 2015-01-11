@@ -13,6 +13,7 @@ $user=new usersMenus();
 		die();exit();
 	}
 	
+	if(isset($_GET["SSHD_STATUS"])){SSHD_STATUS();exit;}
 	if(isset($_POST["UnixUser"])){add_system_user_save();exit;}
 	if(isset($_GET["events-js"])){events_js();exit;}
 	if(isset($_POST['upload']) ){SSHD_KEYS_SERVER_UPLOAD();exit;}
@@ -274,18 +275,25 @@ function popup(){
 	$tpl=new templates();
 	$array["status"]='{status}';
 	$array["parameters"]='{parameters}';
+	$array["limit_access"]='{limit_access}';
 	$array["keys"]='{automatic_login}';
 	$array["antihack"]='Anti-hack';
 	$array["events"]='{events}';
 	$page=CurrentPageName();
 	if($_GET["tabsize"]==14){$_GET["tabsize"]=16;}
-	if(isset($_GET["tabsize"])){$tabsize="style='font-size:{$_GET["tabsize"]}px'";}
+	if(isset($_GET["tabsize"])){$tabsize="style='font-size:22px'";}
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="antihack"){
 			$html[]= $tpl->_ENGINE_parse_body("<li $tabsize><a href=\"postfix.iptables.php?tab-iptables-rules=yes&sshd=yes\"><span>$ligne</span></a></li>\n");
 			continue;
+		}
+		
+		if($num=="limit_access"){
+			$html[]= $tpl->_ENGINE_parse_body("<li $tabsize><a href=\"sshd.AllowUsers.php\"><span>$ligne</span></a></li>\n");
+			continue;
+			
 		}
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li $tabsize><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
@@ -401,10 +409,9 @@ function events_list(){
 		json_error_show($q->mysql_error);
 	}	
 	
-	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	$span="<span style='font-size:18px;font-weight:normal'>";
 	
-	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 
@@ -433,27 +440,37 @@ echo json_encode($data);
 }
 
 
-function status(){
-	$page=CurrentPageName();
+function SSHD_STATUS(){
 	$sock=new sockets();
+	$tpl=new templates();
 	$ini=new Bs_IniHandler();
+	$page=CurrentPageName();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?openssh-ini-status=yes')));
 	$status=DAEMON_STATUS_ROUND("APP_OPENSSH",$ini);
+	echo $tpl->_ENGINE_parse_body($status.
+			"<div style='text-align:right'>". imgtootltip("refresh-32.png",null,"LoadAjax('SSHD_STATUS','$page?SSHD_STATUS=yes')")."</div>"
+			);
+	
+}
+
+function status(){
+	$page=CurrentPageName();
+
 	
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>
-		<div style='font-size:32px;font-weight:bold;margin:40px'>{APP_OPENSSH}</div>
-		$status
+	<td style='vertical-align:top;width:240px' nowrap><div id='SSHD_STATUS'></div></td>
+	<td style='vertical-align:top;width:99%'>
+		<div style='font-size:32px;font-weight:bold;margin-bottom:50px'>{APP_OPENSSH}</div>
+		<div style='font-size:18px'>{OPENSSH_EXPLAIN}</div>
 		<hr>
-		<div class=explain style='font-size:18px'>{OPENSSH_EXPLAIN}</div>
-		
-		<center style='margin:20px'>". imgtootltip("64-refresh.png","{reload}","Loadjs('$page?reload-js=yes',true)")."</center>
-		
-		</td>
+	</td>
 	</tr>
 	</table>
+	<script>
+		LoadAjax('SSHD_STATUS','$page?SSHD_STATUS=yes');
+	</script>
 	
 	
 	";
@@ -496,12 +513,12 @@ function parameters(){
 	</tr>
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{StrictModes}:</td>
-		<td style='font-size:18px'>". Field_checkbox("StrictModes","yes",$sshd->main_array["StrictModes"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("StrictModes","yes",$sshd->main_array["StrictModes"])."</td>
 		<td width=1%>". help_icon("{StrictModes_text}")."</td>
 	</tr>		
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{PermitRootLogin}:</td>
-		<td style='font-size:18px'>". Field_checkbox("PermitRootLogin","yes",$sshd->main_array["PermitRootLogin"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("PermitRootLogin","yes",$sshd->main_array["PermitRootLogin"])."</td>
 		<td width=1%>". help_icon("{PermitRootLogin_text}")."</td>
 	</tr>
 	<tr>
@@ -514,7 +531,7 @@ function parameters(){
 				
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{UseBanner}:</td>
-		<td style='font-size:18px'>". Field_checkbox("Banner",1,$sshd->main_array["Banner"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("Banner",1,$sshd->main_array["Banner"])."</td>
 		<td width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?banner-js=yes');\" 
 		style='font-size:18px;text-decoration:underline'>{banner}</a></td>
 	</tr>	
@@ -522,22 +539,22 @@ function parameters(){
 	
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{UsePAM}:</td>
-		<td style='font-size:18px'>". Field_checkbox("UsePAM","yes",$sshd->main_array["UsePAM"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("UsePAM","yes",$sshd->main_array["UsePAM"])."</td>
 		<td width=1%>". help_icon("{UsePAM_TEXT}")."</td>
 	</tr>	
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{ChallengeResponseAuthentication}:</td>
-		<td style='font-size:18px'>". Field_checkbox("ChallengeResponseAuthentication","yes",$sshd->main_array["ChallengeResponseAuthentication"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("ChallengeResponseAuthentication","yes",$sshd->main_array["ChallengeResponseAuthentication"])."</td>
 		<td width=1%>". help_icon("{ChallengeResponseAuthentication_text}")."</td>
 	</tr>
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{PasswordAuthentication}:</td>
-		<td style='font-size:18px'>". Field_checkbox("PasswordAuthentication","yes",$sshd->main_array["PasswordAuthentication"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("PasswordAuthentication","yes",$sshd->main_array["PasswordAuthentication"])."</td>
 		<td width=1%>". help_icon("{PasswordAuthentication_text}")."</td>
 	</tr>
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{PubkeyAuthentication}:</td>
-		<td style='font-size:18px'>". Field_checkbox("PubkeyAuthentication","yes",$sshd->main_array["PubkeyAuthentication"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("PubkeyAuthentication","yes",$sshd->main_array["PubkeyAuthentication"])."</td>
 		<td width=1%>". help_icon("{PubkeyAuthentication_text}")."</td>
 	</tr>
 			
@@ -546,12 +563,12 @@ function parameters(){
 	
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{PermitTunnel}:</td>
-		<td style='font-size:18px'>". Field_checkbox("PermitTunnel","yes",$sshd->main_array["PermitTunnel"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("PermitTunnel","yes",$sshd->main_array["PermitTunnel"])."</td>
 		<td width=1%>". help_icon("{PermitTunnel_text}")."</td>
 	</tr>	
 	<tr>
 		<td valign='top' class=legend style='font-size:18px'>{UseDNS}:</td>
-		<td style='font-size:18px'>". Field_checkbox("UseDNS","yes",$sshd->main_array["UseDNS"])."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("UseDNS","yes",$sshd->main_array["UseDNS"])."</td>
 		<td width=1%>". help_icon("{UseDNS_sshd_text}")."</td>
 	</tr>		
 	
@@ -864,10 +881,10 @@ function popup_keys(){
 	
 	
 	$html="
-	<div class=explain id='idtofill' style='font-size:18px'>{SSH_KEYS_WHY}</div>
+	<div class=text-info id='idtofill' style='font-size:18px'>{SSH_KEYS_WHY}</div>
 	
 	<div style='font-size:18px'>{SSH_KEYS_CLIENT}</div>
-	<div class=explain style='font-size:18px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
+	<div class=text-info style='font-size:18px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:18px' nowrap style'=font-size:18px'>{ArticaProxyServerUsername}:</td>
@@ -884,7 +901,7 @@ function popup_keys(){
 	
 	<hr>
 	<div style='font-size:18px'>{SSHD_KEYS_SERVER}</div>
-	<div class=explain style='font-size:18px'>{SSHD_KEYS_SERVER_TEXT}</div>
+	<div class=text-info style='font-size:18px'>{SSHD_KEYS_SERVER_TEXT}</div>
 	
 	<iframe style='width:100%;height:250px;border:0px' src='$page?SSHD_KEYS_SERVER=yes'></iframe>
 	
@@ -987,7 +1004,7 @@ function GetSSHDFingerprint(){
 	$datas=base64_decode($sock->getFrameWork("cmd.php?ssh-keygen-fingerprint=$homepath_encoded&uid=$uid"));
 	
 	if(trim($datas)==null){
-		echo $tpl->_ENGINE_parse_body("<div class=explain>{SSHD_NOFINGER_NEED_GENERATE}</div>");return ;
+		echo $tpl->_ENGINE_parse_body("<div class=text-info>{SSHD_NOFINGER_NEED_GENERATE}</div>");return ;
 	}
 	
 	echo $tpl->_ENGINE_parse_body("

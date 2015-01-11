@@ -223,7 +223,7 @@ function webservice(){
 	if($groupwarelink<>null){
 		
 		$explain="
-		<div class=explain>$groupwares_textintro:<br><strong style='font-size:14px'>
+		<div class=text-info>$groupwares_textintro:<br><strong style='font-size:14px'>
 			<a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$groupwarelink',1024,768)\" style='text-decoration:underline;font-weight:bold;color:#969696'>$groupwarelink</a></strong></div>		
 		";
 		
@@ -387,14 +387,14 @@ function webservice(){
 	$ServerIP=Field_array_Hash($znets,'ServerIP',$ServerIPVAL,null,null,0,'font-size:18px;');	
 	
 	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	
 	$q=new mysql();
-	$sslcertificates[null]="{default}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
-	}	
+	
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();	
 	$sslcertificateF=Field_array_Hash($sslcertificates,"sslcertificate", $sslcertificate,"style:font-size:18px");
+	
 	$t=time();
 	$html="
 	<div id='freewebdiv-$t'></div>
@@ -434,13 +434,13 @@ function webservice(){
 			</tr>			
 			<tr> 
 				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{reverse_proxy}:</td>
-				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
+				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox_design("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
 			</tr>		
 			
 			$sizelimit
 			<tr>
 				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{UseLoopDisk}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("UseLoopDisk",1,$ligne["UseLoopDisk"],"CheckLoops()")."</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox_design("UseLoopDisk",1,$ligne["UseLoopDisk"],"CheckLoops()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr style='height:auto'>
@@ -461,7 +461,7 @@ function webservice(){
 			</tr>		
 			<tr>
 				<td class=legend style='font-size:18px;vertical-align:middle'>{ssl}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useSSL",1,$ligne["useSSL"],"useSSLCheckCOnf()")."</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox_design("useSSL",1,$ligne["useSSL"],"useSSLCheckCOnf()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
@@ -472,7 +472,7 @@ function webservice(){
 			
 			<tr> 
 				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{www_forward}:</td>
-				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
+				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox_design("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
 				<td>&nbsp;</td>
 			</tr>			
 			<tr>
@@ -486,7 +486,7 @@ function webservice(){
 	</div>	
 	</div>
 	
-	<div style='width:100%;text-align:right;font-size:26px'><hr>". button("$ButtonName","SaveFreeWebMain()",26)."$configure</div>
+	<div style='width:100%;text-align:right;font-size:26px'><hr>". button("$ButtonName","SaveFreeWebMain()",30)."$configure</div>
 
 
 
@@ -800,7 +800,7 @@ $html="
 			<table style='width:99%' class=form>
 			<tr>
 				<td class=legend style='font-size:18px;vertical-align:middle'>{useMySQL}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useMysql",1,$ligne["useMysql"],"useMysqlCheck()")."</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox_design("useMysql",1,$ligne["useMysql"],"useMysqlCheck()")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>

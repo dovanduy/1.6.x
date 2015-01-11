@@ -764,7 +764,7 @@ function parent_options_explain(){
 	
 	}
 	
-	$html="<div class=explain style='font-size:14px'>{$options[$_GET["edit-proxy-parent-options-explain"]]}</div>
+	$html="<div class=text-info style='font-size:14px'>{$options[$_GET["edit-proxy-parent-options-explain"]]}</div>
 	$form
 	<div style='text-align:right'><hr>
 	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",16)."</div>";

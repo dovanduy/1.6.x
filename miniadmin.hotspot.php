@@ -7,7 +7,7 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.archive.builder.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
-include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
+
 
 $users=new usersMenus();
 if(!$users->AsHotSpotManager){header("location:miniadm.index.php");die();}
@@ -171,8 +171,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 940,
-	height: $TB_HEIGHT,
+	width: '99%',
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 	
@@ -199,7 +199,7 @@ function Settings$t(){
 }
 
 function NewAccount$t(){
-	YahooWin4('600','$page?uid=&t=$t','$new_account');
+	YahooWin4('750','$page?uid=&t=$t','$new_account');
 }
 
 var x_MemberEnable$t= function (obj) {
@@ -355,30 +355,30 @@ function member_popup(){
 	$html="
 	<div id='$t-animate'></div>
 	<div style='width:98%' class=form>
-	<table >
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{account}</td>
-		<td>". Field_text("uid-$t",$uid,"font-size:14px;width:300px")."</td>
+		<td class=legend style='font-size:22px'>{account}</td>
+		<td>". Field_text("uid-$t",$uid,"font-size:22px;width:300px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{password}</td>
-		<td>". Field_password("nolock:password-$t",null,"font-size:14px;width:300px")."</td>
+		<td class=legend style='font-size:22px'>{password}</td>
+		<td>". Field_password("nolock:password-$t",null,"font-size:22px;width:300px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{password} ({confirm})</td>
-		<td>". Field_password("nolock:password1-$t",null,"font-size:14px;width:300px")."</td>
+		<td class=legend style='font-size:22px'>{password} ({confirm})</td>
+		<td>". Field_password("nolock:password1-$t",null,"font-size:22px;width:300px")."</td>
 	</tr>	
 
 	<tr>
-		<td class=legend style='font-size:16px'>{re_authenticate_each}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($Timez,"maxtime-$t",$ligne["sessiontime"],"style:font-size:16px;width:90px")."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:22px'>{re_authenticate_each}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($Timez,"maxtime-$t",$ligne["sessiontime"],"style:font-size:22px;")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{ttl}:</td>
-		<td style='font-size:16px'>". Field_array_Hash($Timez,"ttl-$t",$ligne["ttl"],"style:font-size:16px;width:90px")."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:22px'>{ttl}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($Timez,"ttl-$t",$ligne["ttl"],"style:font-size:22px;")."</td>
 	</tr>						
 	<tr>
-		<td colspan=2 align='right'><hr>". button("$bttext","SaveAccountHotspot()","16px")."</td>
+		<td colspan=2 align='right'><hr>". button("$bttext","SaveAccountHotspot()","32")."</td>
 	</tr>
 	</table>
 	</div>

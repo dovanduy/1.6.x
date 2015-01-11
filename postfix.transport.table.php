@@ -40,25 +40,39 @@ function main_tabs(){
 	$page=CurrentPageName();
 	$fontsize="font-size:16px;";
 	$array["organizations"]='{domains}';
+	$POSTFIX_MAIN=base64_encode("POSTFIX_MAIN");
+	
+	$array["smtp_generic_maps"]="{smtp_generic_maps}";
+	$array["relayhost"]="{relayhost_title}";
 	$array["relay-sender-table"]='{senders}';
 	$array["smtp-dest-table"]='{recipients}';
+	$array["tls"]='{tls_table}';
+	
 	$array["mailboxes"]='{mailboxes}';
 	$array["diff-dest-table"]='{diffusion_lists}';
-	$array["smtp-artica-sync"]='{smtp_sync_artica}';
+	$array["smtp-artica-sync"]='{artica_sync}';
+	
 	
 	
 
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="relay-sender-table"){
-			$html[]=$tpl->_ENGINE_parse_body("<li>
-						<a href=\"postfix.routing.table.php?relay-sender-table=yes&hostname=$hostname\">
-						<span style='$fontsize'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.sender.table.php?hostname=$hostname\">
+					<span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
-		
-			if($num=="mailboxes"){
+		if($num=="smtp_generic_maps"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.smtp.generic.maps.php?ou=$POSTFIX_MAIN\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="mailboxes"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.lmtp.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="relayhost"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.relayhost.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -66,6 +80,11 @@ function main_tabs(){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.table.php?relay-recipient-table=yes&hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="tls"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.tls.table.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}		
 
 		if($num=="smtp-dest-table"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.recipient.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
@@ -82,7 +101,7 @@ function main_tabs(){
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_postfixrt_table",1050).
+	echo build_artica_tabs($html, "main_config_postfixrt_table",1200).
 	"<script>LeftDesign('earth-256-transp-opac20.png');</script>";
 			
 }	

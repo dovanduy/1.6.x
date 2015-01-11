@@ -28,18 +28,24 @@ class privileges{
 		}
 		
 		//if($GLOBALS["VERBOSE"]){$this->SearchPrivileges();}
-		if(!isset($_SESSION["privileges_array"])){$this->SearchPrivileges();}
+		if(!isset($_SESSION["privileges_array"])){
+			if($this->webpage=="admin.index.php"){writelogs("$this->webpage: --> this->SearchPrivileges $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			$this->SearchPrivileges();
+		}
 		if(!isset($_SESSION["privileges_array"])){$_SESSION["privileges_array"]=array();}
 		
-			if(count($_SESSION["privileges_array"])==0){
-				$this->ldap=new clladp();
-				//if($GLOBALS["DEBUG"]){echo "->SearchPrivileges($uid,$privilegesuid)\n";}
-				$this->SearchPrivileges();
-				if($GLOBALS["VERBOSE"]){$this->DebugPrivs();}
-			
-			}
+		if(count($_SESSION["privileges_array"])==0){
+			$this->ldap=new clladp();
+			if($this->webpage=="admin.index.php"){writelogs("$this->webpage: privileges_array COUNT = 0 this->SearchPrivileges() $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			$this->SearchPrivileges();
+			if($this->webpage=="admin.index.php"){$this->DebugPrivs();}
+		}
+		
 		if(isset($_SESSION[__CLASS__][$uid]["CONTENT"])){$this->content=$_SESSION[__CLASS__][$uid]["CONTENT"];}
 		if(isset($_SESSION["privileges_array"])){
+			if($this->webpage=="admin.index.php"){
+				writelogs("$this->webpage: Get memory from _SESSION[privileges_array] $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			}
 			$this->privs=$_SESSION["privileges_array"];
 		}
 		return;
@@ -47,10 +53,12 @@ class privileges{
 	private function DebugPrivs(){
 		if(!isset($_SESSION[__CLASS__][$this->uid]["PRIVS"])){return;}
 		$array=$_SESSION[__CLASS__][$this->uid]["PRIVS"];
+		
 		while (list ($num, $ligne) = each ($array) ){
 			if($ligne=="yes"){
+				if($this->webpage=="admin.index.php"){writelogs("$this->webpage: $num = [$ligne]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);continue;}
 				echo "[PRIVS]: $num = [$ligne]\n";
-				writelogs("$num = [$ligne]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				
 			}
 		}
 		
@@ -140,6 +148,8 @@ $spec",1);
 					$this->privs["AsVirtualBoxManager"]="yes";
 					$this->privs["AsDansGuardianAdministrator"]="yes";
 					$this->privs["AsWebStatisticsAdministrator"]="yes";
+					$this->privs["AsArticaMetaAdmin"]="yes";
+					
 				}
 				if($groupname=="ProxyAdms"){$this->privs["AsSquidAdministrator"]="yes";}
 				if($groupname=="ProxySecurity"){$this->privs["AsDansGuardianAdministrator"]="yes";}				
@@ -147,21 +157,35 @@ $spec",1);
 				
 				
 			}
+			$_SESSION[__CLASS__][$this->uid]["PRIVS"]=$this->privs;
 			$_SESSION["privileges_array"]=$this->privs;
 			return;
 		}
 		
 		
+		if($this->uid==-100){
+			if($this->webpage=="admin.index.php"){writelogs("$this->webpage: -->privileges_Manager -> uid=`$this->uid`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+			$this->privileges_Manager();
+			$_SESSION["privileges_array"]=$this->privs;
+			$_SESSION[__CLASS__][$this->uid]["PRIVS"]=$this->privs;
+			return;
+		}
+		
+		
 		if($this->uid<>-100){
-			if($GLOBALS["VERBOSE"]){echo "SearchPrivileges -> uid=`$this->uid`\n";}
+			if($this->webpage=="admin.index.php"){writelogs("$this->webpage: -->SearchPrivileges -> uid=`$this->uid`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 			$this->ldap=new clladp();
 			$this->privileges_groups();	
 			$this->ParsePrivilegesOU();
 			$this->GetContent();
 			$this->SinglePrivileges();
 			$_SESSION["privileges_array"]=$this->privs;
+			$_SESSION[__CLASS__][$this->uid]["PRIVS"]=$this->privs;
 			$_SESSION[__CLASS__][$this->uid]["CONTENT"]=$this->content;
+			return;
 		}	
+		
+		if($this->webpage=="admin.index.php"){writelogs("$this->webpage: -->SearchPrivileges -> uid=`$this->uid` no privs !!",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		
 	}
 	
@@ -219,7 +243,16 @@ $spec",1);
 		$f[]="[AsSquidAdministrator]=\"yes\"";
 		$f[]="[AsDansGuardianAdministrator]=\"yes\"";
 		$f[]="[AsSystemWebMaster]=\"yes\"";
+		$f[]="[AsArticaMetaAdmin]=\"yes\"";
+		
+		
 		return @implode("\n", $f)."\n";
+	}
+	
+	private function privileges_Manager(){
+		$this->ParsePrivileges($this->default_all_rights());
+		
+		
 	}
 	
 	

@@ -38,7 +38,7 @@ function popup(){
 	$t=time();	
 	$html="
 	<div id='a$t'></div>
-	<div style='font-size:14px' class=explain>{smtp_events_database_explain}</div>
+	<div style='font-size:14px' class=text-info>{smtp_events_database_explain}</div>
 	
 	
 	<table style='width:99%' class=form>

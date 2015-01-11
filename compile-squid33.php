@@ -78,6 +78,35 @@ cd squid-2.7.STABLE9/
 
 ./configure --prefix=/usr --exec_prefix=/usr --bindir=/usr/sbin --sbindir=/usr/sbin --libexecdir=/usr/lib/squid27 --sysconfdir=/etc/streamcache --localstatedir=/var/spool/squid27 --datadir=/usr/share/squid27 --with-pthreads --enable-async-io --enable-storeio=ufs,aufs,coss,diskd,null --enable-ssl --enable-linux-netfilter --enable-arp-acl --enable-epoll --enable-removal-policies=lru,heap --enable-snmp --enable-delay-pools --enable-htcp --enable-cache-digests --enable-referer-log --enable-useragent-log --enable-auth="basic,digest,ntlm,negotiate" --enable-negotiate-auth-helpers=squid_kerb_auth --enable-carp --enable-follow-x-forwarded-for --with-large-files --with-maxfd=65536 --build x86_64-linux-gnu --program-suffix=cache --program-prefix=stream
  
+--- Mikrotik
+./configure --prefix=/usr --exec_prefix=/usr --bindir=/usr/sbin --sbindir=/usr/sbin --libexecdir=/usr/lib/mikrotik-cache --sysconfdir=/etc/mikrotik-cache --localstatedir=/var/spool/mikrotik-cache --datadir=/usr/share/mikrotik-cache --with-pthreads --enab
+le-async-io --disable-wccp --disable-wccp2 --disable-carp  --enable-referer-log  --enable-useragent-log --enable-linux-tproxy --enable-storeio=ufs,aufs,coss,diskd,null --enable-ssl --enable-linux-netfilter --enable-arp-acl --enable-epoll --enable-removal-policies=lru,heap --enable-snmp --enable-delay-pools --enable-htcp --enable-cache-digests --e
+nable-referer-log --enable-useragent-log --enable-auth=basic --disable-unlinkd --enable-follow-x-forwarded-for --with-large-files --with-maxfd=65536 --build x86_64-linu
+x-gnu --program-suffix=-cache --program-prefix=mikrotik 
+ 
+ 
+ 
+ ***************** RDP Proxy **************************
+ *
+ *git clone https://github.com/wallix/redemption
+apt-get install libboost1.49-dev libboost-dev libboost-test-dev libboost-program-options-dev libssl-dev locales libkrb5-dev libgssglue-dev
+bjam
+bjam install 
+ 
+ *****************  DANTE 
+ --prefix=/usr --with-socks-conf=/etc/dante.conf --with-sockd-conf=/etc/danted.conf --with-pidfile=/var/run/danted.pid
+ 
+ 
+ 
+ DRBL
+ apt-get install ipcalc wakeonlan syslinux
+ voir - https://sourceforge.net/projects/drbl/files/drbl_stable/2.11.15/
+ wget "http://downloads.sourceforge.net/project/drbl/drbl_stable/2.11.15/drbl-2.11.15.tar.bz2?r=&ts=1419787823&use_mirror=garr" -O drbl-2.11.15.tar.bz2 
+ tar -xf drbl-2.11.15.tar.bz2
+ cd drbl-2.11.15/
+ 
+ OU 
+ wget "http://downloads.sourceforge.net/project/drbl/drbl_stable/2.11.15/drbl_2.11.15-drbl2_all.deb?r=&ts=1419788078&use_mirror=garr" -O "drbl_2.11.15-drbl2_all.deb" 
  
  */
 
@@ -105,6 +134,7 @@ if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package_squid();exit;}
 if($argv[1]=="--c-icap-remove"){die();exit;}
 if($argv[1]=="--msmtp"){package_msmtp();exit;}
+if($argv[1]=="--dante"){dante_package();exit;}
 
 if($argv[1]=="--nginx"){package_nginx();exit;}
 if($argv[1]=="--nginx-compile"){nginx_compile();exit;}
@@ -112,6 +142,9 @@ if($argv[1]=="--nginx-compile"){nginx_compile();exit;}
 
 if($argv[1]=="--dnsmasqver"){dnsmasq_lastver();exit;}
 if($argv[1]=="--dnsmasq"){dnsmasq_compile();exit;}
+if($argv[1]=="--rdpproxy"){package_redemption();exit;}
+
+
 
 
 
@@ -122,9 +155,11 @@ $cp=$unix->find_program("cp");
 $dirsrc="squid-3.3.0.0";
 $Architecture=Architecture();
 
+$GLOBALS["FORCE_VERSION"]="squid-3.3.13.tar.gz";
+
 if(!$GLOBALS["NO_COMPILE"]){
 	
-	$v=latests();
+	if(!isset($GLOBALS["FORCE_VERSION"])){$v=latests();}else{$v=$GLOBALS["FORCE_VERSION"];}
 	if(preg_match("#squid-(.+?)-#", $v,$re)){$dirsrc=$re[1];}
 	system_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
 }
@@ -250,6 +285,7 @@ $cmds[]="--enable-ecap";
 $cmds[]="--enable-ssl"; 
 $cmds[]="--enable-ssl-crtd";
 $cmds[]="--enable-xmalloc-statistics";
+$cmds[]="--enable-ident-lookups";
 $cmds[]="--with-filedescriptors=32768";
 //$cmds[]="--disable-ipv6";
 
@@ -286,10 +322,8 @@ if(!is_file("/usr/sbin/squid")){
 	system_admin_events("Installing the new squid-cache $v failed", __FUNCTION__, __FILE__, __LINE__, "software");
 	echo "Failed\n";}
 	
-@mkdir("/usr/share/squid3/errors/templates",0755,true);
+
 if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/rm -rf /usr/share/squid3/errors/templates/*");}
-if(!$GLOBALS["NO_COMPILE"]){echo "Copy templates from $SOURCE_DIRECTORY/errors/templates...\n";}
-if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf $SOURCE_DIRECTORY/errors/templates/* /usr/share/squid3/errors/templates/");}
 shell_exec("/bin/chown -R squid:squid /usr/share/squid3");
 create_package_squid($t);	
 	
@@ -469,6 +503,41 @@ while (list ($num, $file) = each ($f)){
 	
 }
 
+function dante_package(){
+	$Architecture=Architecture();
+	if($Architecture==64){$Architecture="x64";}
+	if($Architecture==32){$Architecture="i386";}
+	$unix=new unix();
+	$tar=$unix->find_program("tar");
+	$cp=$unix->find_program("cp");
+	$f[]="/usr/lib/libsocks.so.0.1.1";
+	$f[]="/usr/lib/libsocks.so";
+	$f[]="/usr/lib/libsocks.la";
+	$f[]="/usr/lib/libsocks.a";
+	$f[]="/usr/lib/libminiupnpc.a";     
+	$f[]="/usr/lib/libminiupnpc.so";     
+	$f[]="/usr/lib/libminiupnpc.so.10";	
+	$f[]="/usr/sbin/sockd";
+	$f[]="/usr/share/man/man8/sockd.8";
+	$f[]="/usr/share/man/man1/socksify.1";
+	$f[]="/usr/share/man/man5/sockd.conf.5";
+	$f[]="/usr/share/man/man5/socks.conf.5";
+	$f[]="/usr/bin/socksify";
+	$f[]="/usr/include/socks.h";
+	
+	@mkdir("/root/dante",0755,true);
+	while (list ($num, $file) = each ($f)){
+		$dir=dirname($file);
+		@mkdir("/root/dante$dir",0755,true);
+		shell_exec("$cp -rfd $file /root/dante$file");
+
+	}
+	chdir("/root/dante");
+	shell_exec("$tar -czf dante-$Architecture.tar.gz *");
+
+
+}
+
 
 function factorize($path){
 	$f=explode("\n",@file_get_contents($path));
@@ -612,9 +681,19 @@ function package_msmtp(){
 
 
 function package_freerdp(){
-/* uri: https://github.com/FreeRDP/FreeRDP/zipball/master
+/* 
+ * 
+ * 
+ * 
+ *
+ * 
+ * 
+apt-get install build-essential git-core cmake libssl-dev libx11-dev libxext-dev libxinerama-dev \
+  libxcursor-dev libxdamage-dev libxv-dev libxkbfile-dev libasound2-dev libcups2-dev libxml2 libxml2-dev \
+  libxrandr-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libxi-dev libavutil-dev libavcodec-dev ibcunit1-dev libdirectfb-dev xmlto doxygen libxtst-dev
+uri: https://github.com/FreeRDP/FreeRDP/zipball/master
 apt-get install libpcsclite-dev libasound2-dev libxtst-dev
-cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_DEBUG_CERTIFICATE=ON -DWITH_DEBUG_CHANNELS=ON WITH_DEBUG_CLIPRDR=ON -DWITH_DEBUG_DVC=ON -DWITH_DEBUG_GDI=ON -DWITH_DEBUG_KBD=ON -DWITH_DEBUG_LICENSE=ON -DWITH_DEBUG_NEGO=ON -DWITH_DEBUG_NLA=ON -DWITH_DEBUG_NTLM=ON -DWITH_DEBUG_ORDERS=ON -DWITH_DEBUG_RAIL=ON -DWITH_DEBUG_RDP=ON -DWITH_DEBUG_REDIR=ON -DWITH_DEBUG_RFX=ON -DWITH_DEBUG_SCARD=ON -DWITH_DEBUG_SVC=ON -DWITH_DEBUG_TRANSPORT=ON -DWITH_DEBUG_TSG=ON -DWITH_DEBUG_WND=ON -DWITH_DEBUG_X11=ON -DWITH_DEBUG_X11_CLIPRDR=ON -DWITH_DEBUG_X11_LOCAL_MOVESIZE=ON -DWITH_DEBUG_XV=ON -DWITH_FFMPEG=OFF -DWITH_JPEG=ON -DWITH_MANPAGES=ON -DWITH_PCSC=ON -DWITH_PROFILER=ON -DWITH_PULSEAUDIO=ON -DWITH_SERVER=ON -DWITH_SSE2=ON -DWITH_SSE2_TARGET=ON -DWITH_THIRD_PARTY=ON -DWITH_ALSA=ON -DWITH_XTEST=ON .
+cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_DEBUG_CERTIFICATE=ON -DWITH_PCSC:BOOL=OFF -DWITH_DEBUG_CHANNELS=ON WITH_DEBUG_CLIPRDR=ON -DWITH_DEBUG_DVC=ON -DWITH_DEBUG_GDI=ON -DWITH_DEBUG_KBD=ON -DWITH_DEBUG_LICENSE=ON -DWITH_DEBUG_NEGO=ON -DWITH_DEBUG_NLA=ON -DWITH_DEBUG_NTLM=ON -DWITH_DEBUG_ORDERS=ON -DWITH_DEBUG_RAIL=ON -DWITH_DEBUG_RDP=ON -DWITH_DEBUG_REDIR=ON -DWITH_DEBUG_RFX=ON -DWITH_DEBUG_SCARD=ON -DWITH_DEBUG_SVC=ON -DWITH_DEBUG_TRANSPORT=ON -DWITH_DEBUG_TSG=ON -DWITH_DEBUG_WND=ON -DWITH_DEBUG_X11=ON -DWITH_DEBUG_X11_CLIPRDR=ON -DWITH_DEBUG_X11_LOCAL_MOVESIZE=ON -DWITH_DEBUG_XV=ON -DWITH_FFMPEG=OFF -DWITH_JPEG=ON -DWITH_MANPAGES=ON -DWITH_PCSC=ON -DWITH_PROFILER=ON -DWITH_PULSEAUDIO=ON -DWITH_SERVER=ON -DWITH_SSE2=ON -DWITH_SSE2_TARGET=ON -DWITH_THIRD_PARTY=ON -DWITH_ALSA=ON -DWITH_XTEST=ON .
 make
 make install
 */
@@ -967,7 +1046,6 @@ make install
 	$f["/usr/local/lib/libxfreerdp-client.so"]=true;
 	$f["/usr/local/lib/libxfreerdp-client.so.1.1.0"]=true;
 	$f["/usr/local/bin/xfreerdp"]=true;
-	$f["/usr/local/bin/xfreerdp"]=true;
 	$f["/usr/local/lib/libfreerdp-server.so.1.1.0"]=true;
 	$f["/usr/local/lib/libfreerdp-server.so.1.1"]=true;
 	$f["/usr/local/lib/libfreerdp-server.so"]=true;
@@ -977,7 +1055,6 @@ make install
 	$f["/usr/local/lib/libxfreerdp-server.so"]=true;
 	$f["/usr/local/lib/libxfreerdp-server.so.1.1.0"]=true;
 	$f["/usr/local/bin/xfreerdp-server"]=true;
-	$f["/usr/local/bin/xfreerdp-server"]=true;	
 	$f["/etc/ld.so.conf.d/freerdp.conf"]=true;	
 	
 }
@@ -1035,9 +1112,9 @@ function package_nginx(){
 	 * apt-get install libxslt1-dev
 	 * http://openresty.org/#Download
 cd /root
-wget http://openresty.org/download/ngx_openresty-1.2.8.6.tar.gz
-tar -xf ngx_openresty-1.2.8.6.tar.gz
-cd ngx_openresty-1.2.7.8
+wget http://openresty.org/download/ngx_openresty-1.7.2.1.tar.gz
+tar -xf ngx_openresty-1.7.2.1.tar.gz
+cd ngx_openresty-1.7.2.1.tar.gz
 git config --global http.proxy http://192.168.1.245:3140
 
 cd ngx_openresty-1.2.8.6/bundle

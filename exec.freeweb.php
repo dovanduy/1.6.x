@@ -9,6 +9,7 @@ $GLOBALS["NO_HTTPD_RELOAD"]=false;
 $GLOBALS["NO_HTTPD_RESTART"]=false;
 $GLOBALS["FORCE_RESTART"]=false;
 $GLOBALS["NGINX_CONFIGURE"]=false;
+
 if(is_array($argv)){
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
@@ -33,6 +34,7 @@ include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/ressources/class.user.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ini.inc');
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
+include_once(dirname(__FILE__) . '/ressources/class.apache.certificate.php');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
@@ -40,6 +42,7 @@ include_once(dirname(__FILE__) . '/ressources/class.freeweb.inc');
 include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 if($GLOBALS["VERBOSE"]){ echo "starting include functions done..\n";}
 $GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";
+if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
 
 $settings=new settings_inc();
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
@@ -134,7 +137,7 @@ function build_single_site($sitename){
 	
 	if($EnableFreeWeb==0){
 		if($EnableNginx==1){
-			build_progress("Reconfigure Nginx for $sitename", 80);
+			build_progress("{reconfigure} Nginx for $sitename", 80);
 			if($GLOBALS["VERBOSE"]){echo "$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename\n";}
 			system("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename");
 			build_progress("{success} $sitename", 100);
@@ -167,7 +170,7 @@ function build_single_site($sitename){
 	sync_squid();
 		
 	if($EnableNginx==1){
-		build_progress("Reconfigure Nginx for $sitename", 96);
+		build_progress("{reconfigure} Nginx for $sitename", 96);
 		shell_exec("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename");
 	}
 		
@@ -189,6 +192,7 @@ function help(){
 	echo @implode(" ", $argv)."\n";
 	echo "Usage : \t(use --verbose for more infos)\n";
 	echo "--build............................: Configure apache\n";
+	echo "--all-status.......................: Build status\n";
 	echo "--apache-user --verbose............: Set Apache account in memory\n";
 	echo "--sitename 'webservername'.........: Build vhost for webservername\n";
 	echo "--remove-host 'webservername'......: Remove vhost for webservername\n";
@@ -222,7 +226,8 @@ function create_cron_task(){
 	$f[]="";
 	
 	@file_put_contents("/etc/cron.d/iptaccount", @implode("\n", $f));
-	shell_exec("/bin/chmod 640 /etc/cron.d/freeweb_resolv >/dev/null 2>&1");	
+	shell_exec("/bin/chmod 640 /etc/cron.d/freeweb_resolv >/dev/null 2>&1");
+	shell_exec("/etc/init.d/cron reload");
 	
 }
 
@@ -539,6 +544,8 @@ function StopApache(){
 		echo "Fatal: unable to locate apachectl\n";
 		return;
 	}
+	
+	apache_admin_mysql(0, "Stopping Apache Web service [action=info]", @implode("\n", $results),__FILE__,__LINE__);
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k stop 2>&1";
 	echo "Stopping......: ".date("H:i:s")." [INIT]: Apache stopping \"$cmd\"\n";
 	exec($cmd,$results);
@@ -719,6 +726,7 @@ function APACHE_INSTALL_DEBIAN(){
 
 
 function startApache($withoutkill=false,$aspid=false){
+	
 	$unix=new unix();
 	if(is_file("/etc/artica-postfix/FROM_ISO")){
 		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
@@ -739,7 +747,8 @@ function startApache($withoutkill=false,$aspid=false){
 	if(!isset($GLOBALS["startApacheCount"])){$GLOBALS["startApacheCount"]=0;}
 	$GLOBALS["startApacheCount"]=$GLOBALS["startApacheCount"]+1;
 	$EnableFreeWeb=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeWeb"));
-	
+	$SquidPerformance=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){$EnableFreeWeb=0;}
 	
 	if(is_file("/etc/httpd/conf.d/ssl.conf")){@unlink("/etc/httpd/conf.d/ssl.conf");}
 	
@@ -780,8 +789,13 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	if($EnableFreeWeb==0){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Disabled ( see EnableFreeWeb token )\n";return;}
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache {$GLOBALS["startApacheCount"]} time(s)\n";
+	$files=$unix->DirFiles("/usr/share/artica-postfix/bin");
+	while (list ($filename,$line) = each ($files)){
+		@chmod("/usr/share/artica-postfix/bin/$filename",0755);
+		@chown("/usr/share/artica-postfix/bin/$filename","root");
+	}
 	
-	
+	@chmod("/usr/share/artica-postfix/ressources/mem.pl",0755);
 	if(!is_file($apache2ctl)){return;}
 	
 	apache_permissions();
@@ -821,6 +835,17 @@ function startApache($withoutkill=false,$aspid=false){
 			continue;
 		}
 		
+		if(preg_match("#Cannot load.*?mod_status\.so.*?undefined symbol#",$ligne)){
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $ligne\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache mod_status failed, disable it\n";
+			$sock=new sockets();
+			$sock->SET_INFO("ApacheDisableModStatus",1);
+			CheckHttpdConf();
+			continue;
+			
+		}
+		
+		
 		
 		if(preg_match("#Error retrieving pid file\s+(.+)#", $ligne,$re)){
 			$re[1]=trim($re[1]);
@@ -855,7 +880,7 @@ function startApache($withoutkill=false,$aspid=false){
 			}
 		}
 			
-			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $ligne\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $ligne [INFO]\n";
 		}
 
 		
@@ -1137,8 +1162,9 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	$f[]="            LogLevel warn";
 	$f[]="            CustomLog /var/log/apache2/ssl_access.log combined";
 	$f[]="            SSLEngine on";
-	$f[]="			  SSLCertificateFile {$GLOBALS["SSLKEY_PATH"]}/_default_.crt";
-	$f[]="			  SSLCertificateKeyFile {$GLOBALS["SSLKEY_PATH"]}/_default_.key";	
+	
+	$apache_certificate=new apache_certificate();
+	$f[]=$apache_certificate->build();
 	$f[]="    </VirtualHost>";
 	$f[]="</IfModule>";
 	$f[]="";	
@@ -1285,6 +1311,700 @@ function php5_conf($DAEMON_PATH){
 	@file_put_contents("/etc/suphp/suphp.conf", @implode("\n", $f));
 }
 
+function mime_types($path){
+	$f[]="# Fixed Mime types by Artica on ". date("Y-m-d H:i:s");
+	$f[]="application/andrew-inset				ez";
+	$f[]="application/annodex					anx";
+	$f[]="application/atom+xml					atom";
+	$f[]="application/atomcat+xml				atomcat";
+	$f[]="application/atomserv+xml				atomsrv";
+	$f[]="application/bbolin					lin";
+	$f[]="application/cap						cap pcap";
+	$f[]="application/cu-seeme					cu";
+	$f[]="application/davmount+xml				davmount";
+	$f[]="application/dsptype					tsp";
+	$f[]="application/ecmascript				es";
+	$f[]="application/futuresplash				spl";
+	$f[]="application/hta						hta";
+	$f[]="application/java-archive				jar";
+	$f[]="application/java-serialized-object	ser";
+	$f[]="application/java-vm					class";
+	$f[]="application/javascript				js";
+	$f[]="application/m3g						m3g";
+	$f[]="application/mac-binhex40				hqx";
+	$f[]="application/mac-compactpro			cpt";
+	$f[]="application/mathematica				nb nbp";
+	$f[]="application/msaccess					mdb";
+	$f[]="application/msword					doc dot";
+	$f[]="application/mxf						mxf";
+	$f[]="application/octet-stream				bin";
+	$f[]="application/oda						oda";
+	$f[]="application/ogg						ogx";
+	$f[]="application/pdf						pdf";
+	$f[]="application/pgp-keys					key";
+	$f[]="application/pgp-signature				pgp";
+	$f[]="application/pics-rules				prf";
+	$f[]="application/postscript				ps ai eps epsi epsf eps2 eps3";
+	$f[]="application/rar						rar";
+	$f[]="application/rdf+xml					rdf";
+	$f[]="application/rss+xml					rss";
+	$f[]="application/rtf						rtf";
+	$f[]="application/smil						smi smil";
+	$f[]="application/xhtml+xml					xhtml xht";
+	$f[]="application/xml						xml xsl xsd";
+	$f[]="application/xspf+xml					xspf";
+	$f[]="application/zip						zip";
+	$f[]="application/vnd.android.package-archive		apk";
+	$f[]="application/vnd.cinderella			cdy";
+	$f[]="application/vnd.google-earth.kml+xml	kml";
+	$f[]="application/vnd.google-earth.kmz		kmz";
+	$f[]="application/vnd.mozilla.xul+xml		xul";
+	$f[]="application/vnd.ms-excel				xls xlb xlt";
+	$f[]="application/vnd.ms-pki.seccat			cat";
+	$f[]="application/vnd.ms-pki.stl			stl";
+	$f[]="application/vnd.ms-powerpoint			ppt pps";
+	$f[]="application/vnd.oasis.opendocument.chart			odc";
+	$f[]="application/vnd.oasis.opendocument.database			odb";
+	$f[]="application/vnd.oasis.opendocument.formula			odf";
+	$f[]="application/vnd.oasis.opendocument.graphics			odg";
+	$f[]="application/vnd.oasis.opendocument.graphics-template		otg";
+	$f[]="application/vnd.oasis.opendocument.image			odi";
+	$f[]="application/vnd.oasis.opendocument.presentation			odp";
+	$f[]="application/vnd.oasis.opendocument.presentation-template	otp";
+	$f[]="application/vnd.oasis.opendocument.spreadsheet			ods";
+	$f[]="application/vnd.oasis.opendocument.spreadsheet-template		ots";
+	$f[]="application/vnd.oasis.opendocument.text				odt";
+	$f[]="application/vnd.oasis.opendocument.text-master			odm";
+	$f[]="application/vnd.oasis.opendocument.text-template		ott";
+	$f[]="application/vnd.oasis.opendocument.text-web			oth";
+	$f[]="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet		xlsx";
+	$f[]="application/vnd.openxmlformats-officedocument.spreadsheetml.template		xltx";
+	$f[]="application/vnd.openxmlformats-officedocument.presentationml.presentation	pptx";
+	$f[]="application/vnd.openxmlformats-officedocument.presentationml.slideshow		ppsx";
+	$f[]="application/vnd.openxmlformats-officedocument.presentationml.template		potx";
+	$f[]="application/vnd.openxmlformats-officedocument.wordprocessingml.document		docx";
+	$f[]="application/vnd.openxmlformats-officedocument.wordprocessingml.template		dotx";
+	$f[]="application/vnd.rim.cod				cod";
+	$f[]="application/vnd.smaf					mmf";
+	$f[]="application/vnd.stardivision.calc		sdc";
+	$f[]="application/vnd.stardivision.chart	sds";
+	$f[]="application/vnd.stardivision.draw		sda";
+	$f[]="application/vnd.stardivision.impress	sdd";
+	$f[]="application/vnd.stardivision.math		sdf";
+	$f[]="application/vnd.stardivision.writer	sdw";
+	$f[]="application/vnd.stardivision.writer-global	sgl";
+	$f[]="application/vnd.street-stream";
+	$f[]="application/vnd.sun.xml.calc			sxc";
+	$f[]="application/vnd.sun.xml.calc.template	stc";
+	$f[]="application/vnd.sun.xml.draw			sxd";
+	$f[]="application/vnd.sun.xml.draw.template	std";
+	$f[]="application/vnd.sun.xml.impress		sxi";
+	$f[]="application/vnd.sun.xml.impress.template	sti";
+	$f[]="application/vnd.sun.xml.math			sxm";
+	$f[]="application/vnd.sun.xml.writer		sxw";
+	$f[]="application/vnd.sun.xml.writer.global	sxg";
+	$f[]="application/vnd.sun.xml.writer.template		stw";
+	$f[]="application/vnd.symbian.install			sis";
+	$f[]="application/vnd.visio				vsd";
+	$f[]="application/vnd.wap.wbxml			wbxml";
+	$f[]="application/vnd.wap.wmlc			wmlc";
+	$f[]="application/vnd.wap.wmlscriptc	wmlsc";
+	$f[]="application/vnd.wordperfect		wpd";
+	$f[]="application/vnd.wordperfect5.1	wp5";
+	$f[]="application/x-123					wk";
+	$f[]="application/x-7z-compressed		7z";
+	$f[]="application/x-abiword				abw";
+	$f[]="application/x-apple-diskimage		dmg";
+	$f[]="application/x-bcpio				bcpio";
+	$f[]="application/x-bittorrent			torrent";
+	$f[]="application/x-cab					cab";
+	$f[]="application/x-cbr					cbr";
+	$f[]="application/x-cbz					cbz";
+	$f[]="application/x-cdf					cdf cda";
+	$f[]="application/x-cdlink				vcd";
+	$f[]="application/x-chess-pgn			pgn";
+	$f[]="application/x-cpio				cpio";
+	$f[]="application/x-csh					csh";
+	$f[]="application/x-debian-package		deb udeb";
+	$f[]="application/x-director			dcr dir dxr";
+	$f[]="application/x-dms					dms";
+	$f[]="application/x-doom				wad";
+	$f[]="application/x-dvi					dvi";
+	$f[]="application/x-httpd-eruby			rhtml";
+	$f[]="application/x-executable			exe";
+	$f[]="application/x-font				pfa pfb gsf pcf pcf.Z";
+	$f[]="application/x-freemind			mm";
+	$f[]="application/x-futuresplash		spl";
+	$f[]="application/x-gnumeric			gnumeric";
+	$f[]="application/x-go-sgf				sgf";
+	$f[]="application/x-graphing-calculator	gcf";
+	$f[]="application/x-gtar				gtar tgz taz";
+	$f[]="application/x-hdf					hdf";
+	$f[]="application/x-httpd-php			phtml pht php";
+	$f[]="application/x-httpd-php-source	phps";
+	$f[]="application/x-httpd-php3			php3";
+	$f[]="application/x-httpd-php3-preprocessed		php3p";
+	$f[]="application/x-httpd-php4			php4";
+	$f[]="application/x-httpd-php5			php5";
+	$f[]="application/x-ica					ica";
+	$f[]="application/x-info				info";
+	$f[]="application/x-internet-signup		ins isp";
+	$f[]="application/x-iphone				iii";
+	$f[]="application/x-iso9660-image		iso";
+	$f[]="application/x-jam					jam";
+	$f[]="application/x-java-jnlp-file		jnlp";
+	$f[]="application/x-jmol				jmz";
+	$f[]="application/x-kchart				chrt";
+	$f[]="application/x-killustrator		kil";
+	$f[]="application/x-koan				skp skd skt skm";
+	$f[]="application/x-kpresenter			kpr kpt";
+	$f[]="application/x-kspread				ksp";
+	$f[]="application/x-kword				kwd kwt";
+	$f[]="application/x-latex				latex";
+	$f[]="application/x-lha					lha";
+	$f[]="application/x-lyx					lyx";
+	$f[]="application/x-lzh					lzh";
+	$f[]="application/x-lzx					lzx";
+	$f[]="application/x-maker				frm maker frame fm fb book fbdoc";
+	$f[]="application/x-mif					mif";
+	$f[]="application/x-ms-wmd				wmd";
+	$f[]="application/x-ms-wmz				wmz";
+	$f[]="application/x-msdos-program		com exe bat dll";
+	$f[]="application/x-msi					msi";
+	$f[]="application/x-netcdf				nc";
+	$f[]="application/x-ns-proxy-autoconfig	pac dat";
+	$f[]="application/x-nwc					nwc";
+	$f[]="application/x-object				o";
+	$f[]="application/x-oz-application		oza";
+	$f[]="application/x-pkcs7-certreqresp	p7r";
+	$f[]="application/x-pkcs7-crl			crl";
+	$f[]="application/x-python-code			pyc pyo";
+	$f[]="application/x-qgis				qgs shp shx";
+	$f[]="application/x-quicktimeplayer		qtl";
+	$f[]="application/x-redhat-package-manager		rpm";
+	$f[]="application/x-ruby				rb";
+	$f[]="application/x-sh					sh";
+	$f[]="application/x-shar				shar";
+	$f[]="application/x-shockwave-flash		swf swfl";
+	$f[]="application/x-silverlight			scr";
+	$f[]="application/x-stuffit				sit sitx";
+	$f[]="application/x-sv4cpio				sv4cpio";
+	$f[]="application/x-sv4crc				sv4crc";
+	$f[]="application/x-tar					tar";
+	$f[]="application/x-tcl					tcl";
+	$f[]="application/x-tex-gf				gf";
+	$f[]="application/x-tex-pk				pk";
+	$f[]="application/x-texinfo				texinfo texi";
+	$f[]="application/x-trash				~ % bak old sik";
+	$f[]="application/x-troff				t tr roff";
+	$f[]="application/x-troff-man			man";
+	$f[]="application/x-troff-me			me";
+	$f[]="application/x-troff-ms			ms";
+	$f[]="application/x-ustar				ustar";
+	$f[]="application/x-wais-source			src";
+	$f[]="application/x-wingz				wz";
+	$f[]="application/x-x509-ca-cert		crt";
+	$f[]="application/x-xcf					xcf";
+	$f[]="application/x-xfig				fig";
+	$f[]="application/x-xpinstall			xpi";
+	$f[]="audio/amr							amr";
+	$f[]="audio/amr-wb						awb";
+	$f[]="audio/amr							amr";
+	$f[]="audio/amr-wb						awb";
+	$f[]="audio/annodex						axa";
+	$f[]="audio/basic						au snd";
+	$f[]="audio/flac						flac";
+	$f[]="audio/midi						mid midi kar";
+	$f[]="audio/mpeg						mpga mpega mp2 mp3 m4a";
+	$f[]="audio/mpegurl						m3u";
+	$f[]="audio/ogg							oga ogg spx";
+	$f[]="audio/prs.sid						sid";
+	$f[]="audio/x-aiff						aif aiff aifc";
+	$f[]="audio/x-gsm						gsm";
+	$f[]="audio/x-mpegurl					m3u";
+	$f[]="audio/x-ms-wma					wma";
+	$f[]="audio/x-ms-wax					wax";
+	$f[]="audio/x-pn-realaudio				ra rm ram";
+	$f[]="audio/x-realaudio					ra";
+	$f[]="audio/x-scpls						pls";
+	$f[]="audio/x-sd2						sd2";
+	$f[]="audio/x-wav						wav";
+	$f[]="chemical/x-alchemy				alc";
+	$f[]="chemical/x-cache					cac cache";
+	$f[]="chemical/x-cache-csf				csf";
+	$f[]="chemical/x-cactvs-binary			cbin cascii ctab";
+	$f[]="chemical/x-cdx					cdx";
+	$f[]="chemical/x-cerius					cer";
+	$f[]="chemical/x-chem3d					c3d";
+	$f[]="chemical/x-chemdraw				chm";
+	$f[]="chemical/x-cif					cif";
+	$f[]="chemical/x-cmdf					cmdf";
+	$f[]="chemical/x-cml					cml";
+	$f[]="chemical/x-compass				cpa";
+	$f[]="chemical/x-crossfire				bsd";
+	$f[]="chemical/x-csml					csml csm";
+	$f[]="chemical/x-ctx					ctx";
+	$f[]="chemical/x-cxf					cxf cef";
+	$f[]="#chemical/x-daylight-smiles		smi";
+	$f[]="chemical/x-embl-dl-nucleotide		emb embl";
+	$f[]="chemical/x-galactic-spc			spc";
+	$f[]="chemical/x-gamess-input			inp gam gamin";
+	$f[]="chemical/x-gaussian-checkpoint	fch fchk";
+	$f[]="chemical/x-gaussian-cube			cub";
+	$f[]="chemical/x-gaussian-input			gau gjc gjf";
+	$f[]="chemical/x-gaussian-log			gal";
+	$f[]="chemical/x-gcg8-sequence			gcg";
+	$f[]="chemical/x-genbank				gen";
+	$f[]="chemical/x-hin					hin";
+	$f[]="chemical/x-isostar				istr ist";
+	$f[]="chemical/x-jcamp-dx				jdx dx";
+	$f[]="chemical/x-kinemage				kin";
+	$f[]="chemical/x-macmolecule			mcm";
+	$f[]="chemical/x-macromodel-input		mmd mmod";
+	$f[]="chemical/x-mdl-molfile			mol";
+	$f[]="chemical/x-mdl-rdfile				rd";
+	$f[]="chemical/x-mdl-rxnfile			rxn";
+	$f[]="chemical/x-mdl-sdfile				sd sdf";
+	$f[]="chemical/x-mdl-tgf				tgf";
+	$f[]="#chemical/x-mif					mif";
+	$f[]="chemical/x-mmcif					mcif";
+	$f[]="chemical/x-mol2					mol2";
+	$f[]="chemical/x-molconn-Z				b";
+	$f[]="chemical/x-mopac-graph			gpt";
+	$f[]="chemical/x-mopac-input			mop mopcrt mpc zmt";
+	$f[]="chemical/x-mopac-out				moo";
+	$f[]="chemical/x-mopac-vib			mvb";
+	$f[]="chemical/x-ncbi-asn1			asn";
+	$f[]="chemical/x-ncbi-asn1-ascii	prt ent";
+	$f[]="chemical/x-ncbi-asn1-binary	val aso";
+	$f[]="chemical/x-ncbi-asn1-spec		asn";
+	$f[]="chemical/x-pdb				pdb ent";
+	$f[]="chemical/x-rosdal				ros";
+	$f[]="chemical/x-swissprot			sw";
+	$f[]="chemical/x-vamas-iso14976		vms";
+	$f[]="chemical/x-vmd				vmd";
+	$f[]="chemical/x-xtel				xtel";
+	$f[]="chemical/x-xyz				xyz";
+	$f[]="image/gif						gif";
+	$f[]="image/ief						ief";
+	$f[]="image/jpeg					jpeg jpg jpe";
+	$f[]="image/pcx						pcx";
+	$f[]="image/png						png";
+	$f[]="image/svg+xml					svg svgz";
+	$f[]="image/tiff					tiff tif";
+	$f[]="image/vnd.djvu				djvu djv";
+	$f[]="image/vnd.wap.wbmp			wbmp";
+	$f[]="image/x-canon-cr2				cr2";
+	$f[]="image/x-canon-crw				crw";
+	$f[]="image/x-cmu-raster			ras";
+	$f[]="image/x-coreldraw				cdr";
+	$f[]="image/x-coreldrawpattern		pat";
+	$f[]="image/x-coreldrawtemplate		cdt";
+	$f[]="image/x-corelphotopaint		cpt";
+	$f[]="image/x-epson-erf				erf";
+	$f[]="image/x-icon					ico";
+	$f[]="image/x-jg					art";
+	$f[]="image/x-jng					jng";
+	$f[]="image/x-ms-bmp				bmp";
+	$f[]="image/x-nikon-nef				nef";
+	$f[]="image/x-olympus-orf			orf";
+	$f[]="image/x-photoshop				psd";
+	$f[]="image/x-portable-anymap		pnm";
+	$f[]="image/x-portable-bitmap		pbm";
+	$f[]="image/x-portable-graymap		pgm";
+	$f[]="image/x-portable-pixmap		ppm";
+	$f[]="image/x-rgb					rgb";
+	$f[]="image/x-xbitmap				xbm";
+	$f[]="image/x-xpixmap				xpm";
+	$f[]="image/x-xwindowdump			xwd";
+	$f[]="message/rfc822				eml";
+	$f[]="model/iges					igs iges";
+	$f[]="model/mesh					msh mesh silo";
+	$f[]="model/vrml					wrl vrml";
+	$f[]="model/x3d+vrml				x3dv";
+	$f[]="model/x3d+xml					x3d";
+	$f[]="model/x3d+binary				x3db";
+	$f[]="text/cache-manifest			manifest";
+	$f[]="text/calendar					ics icz";
+	$f[]="text/css						css";
+	$f[]="text/csv						csv";
+	$f[]="text/h323						323";
+	$f[]="text/html						html htm shtml";
+	$f[]="text/iuls						uls";
+	$f[]="text/mathml					mml";
+	$f[]="text/plain					asc txt text pot brf";
+	$f[]="text/richtext					rtx";
+	$f[]="text/rtf						rtf";	
+	$f[]="text/scriptlet				sct wsc";
+	$f[]="text/texmacs					tm ts";
+	$f[]="text/tab-separated-values		tsv";
+	$f[]="text/vnd.sun.j2me.app-descriptor		jad";
+	$f[]="text/vnd.wap.wml				wml";
+	$f[]="text/vnd.wap.wmlscript		wmls";
+	$f[]="text/x-bibtex					bib";
+	$f[]="text/x-boo					boo";
+	$f[]="text/x-c++hdr					h++ hpp hxx hh";
+	$f[]="text/x-c++src					c++ cpp cxx cc";
+	$f[]="text/x-chdr					h";
+	$f[]="text/x-component				htc";
+	$f[]="text/x-csh					csh";
+	$f[]="text/x-csrc					c";
+	$f[]="text/x-dsrc					d";
+	$f[]="text/x-diff					diff patch";
+	$f[]="text/x-haskell				hs";
+	$f[]="text/x-java					java";
+	$f[]="text/x-literate-haskell		lhs";
+	$f[]="text/x-makefile				make";
+	$f[]="text/x-moc					moc";
+	$f[]="text/x-pascal					p pas";
+	$f[]="text/x-pcs-gcd				gcd";
+	$f[]="text/x-perl					pl pm";
+	$f[]="text/x-python					py";
+	$f[]="text/x-scala					scala";
+	$f[]="text/x-setext					etx";
+	$f[]="text/x-sh						sh";
+	$f[]="text/x-tcl					tcl tk";
+	$f[]="text/x-tex					tex ltx sty cls";
+	$f[]="text/x-vcalendar				vcs";
+	$f[]="text/x-vcard					vcf";
+	$f[]="video/3gpp					3gp";
+	$f[]="video/annodex					axv";
+	$f[]="video/dl						dl";
+	$f[]="video/dv						dif dv";
+	$f[]="video/fli						fli";
+	$f[]="video/gl						gl";
+	$f[]="video/mpeg					mpeg mpg mpe";
+	$f[]="video/mp4						mp4";
+	$f[]="video/quicktime				qt mov";
+	$f[]="video/ogg						ogv";
+	$f[]="video/vnd.mpegurl				mxu";
+	$f[]="video/x-flv					flv";
+	$f[]="video/x-la-asf				lsf lsx";
+	$f[]="video/x-mng					mng";
+	$f[]="video/x-ms-asf				asf asx";
+	$f[]="video/x-ms-wm					wm";
+	$f[]="video/x-ms-wmv				wmv";
+	$f[]="video/x-ms-wmx				wmx";
+	$f[]="video/x-ms-wvx				wvx";
+	$f[]="video/x-msvideo				avi";
+	$f[]="video/x-sgi-movie				movie";
+	$f[]="video/x-matroska				mpv mkv";
+	$f[]="x-conference/x-cooltalk		ice";
+	$f[]="x-epoc/x-sisx-app				sisx";
+	$f[]="x-world/x-vrml				vrm vrml wrl";	
+	@file_put_contents($path, @implode("\n", $f));
+	@chmod($path,0755);
+	
+}
+
+
+function CheckHttpdConf_mime_module(){
+	$unix=new unix();
+	$httpdconf=$unix->LOCATE_APACHE_CONF_PATH();
+	$DAEMON_PATH=$unix->getmodpathfromconf($httpdconf);
+	mime_types("$DAEMON_PATH/mime.types");
+	
+	
+$f[]="<IfModule mod_mime.c>";
+$f[]="\tTypesConfig /etc/mime.types";
+$f[]="\tAddType application/octet-stream 			.acl";
+$f[]="\tAddType application/x-gzip 					.tgz";
+$f[]="\tAddType text/html 							.html .htm";
+$f[]="\tAddType application/x-shockwave-flash 		.swf ";
+$f[]="\tAddType text/plain 							.txt";
+$f[]="\tAddType text/richtext 						.rtx";
+$f[]="\tAddType text/tab-separated-values 			.tsv";
+$f[]="\tAddType text/x-setext 						.etx";
+$f[]="\tAddType text/x-server-parsed-html 			.shtml .sht";
+$f[]="\tAddType application/macbinhex-40 			.hqx";
+$f[]="\tAddType application/netalivelink 			.nel";
+$f[]="\tAddType application/netalive 				.net";
+$f[]="\tAddType application/octet-stream 			.bin .exe";
+$f[]="\tAddType application/oda 					.oda";
+$f[]="\tAddType application/pdf 					.pdf";
+$f[]="\tAddType application/postscript 				.ai .eps .ps";
+$f[]="\tAddType application/rtf 					.rtf";
+$f[]="\tAddType application/zip 					.zip";
+$f[]="\tAddType application/x-mif 					.mif";
+$f[]="\tAddType application/x-csh 					.csh";
+$f[]="\tAddType application/x-dvi 					.dvi";
+$f[]="\tAddType application/x-hdf 					.hdf";
+$f[]="\tAddType application/x-latex 				.latex";
+$f[]="\tAddType application/x-netcdf 				.nc .cdf";
+$f[]="\tAddType application/x-sh 					.sh";
+$f[]="\tAddType application/x-tcl .tcl";
+$f[]="\tAddType application/x-tex .tex";
+$f[]="\tAddType application/x-texinfo .texinfo .texi";
+$f[]="\tAddType application/x-troff .t .tr .roff";
+$f[]="\tAddType application/x-troff-man .man";
+$f[]="\tAddType application/x-troff-me .me";
+$f[]="\tAddType application/x-troff-ms .ms";
+$f[]="\tAddType application/x-wais-source .src";
+$f[]="\tAddType application/x-bcpio .bcpio";
+$f[]="\tAddType application/x-cpio .cpio";
+$f[]="\tAddType application/x-gtar .gtar";
+$f[]="\tAddType application/x-shar .shar";
+$f[]="\tAddType application/x-sv4cpio .sv4cpio";
+$f[]="\tAddType application/x-sv4crc .sv4crc";
+$f[]="\tAddType application/x-tar .tar";
+$f[]="\tAddType application/x-ustar .ustar";
+$f[]="\tAddType application/x-director .dcr";
+$f[]="\tAddType application/x-director .dir";
+$f[]="\tAddType application/x-director .dxr";
+$f[]="\tAddType application/x-onlive .sds";
+$f[]="\tAddType application/x-httpd-cgi .cgi";
+$f[]="\tAddType image/gif .gif .GIF";
+$f[]="\tAddType image/ief .ief";
+$f[]="\tAddType image/jpeg .jpeg .jpg .jpe .JPG";
+$f[]="\tAddType image/tiff .tiff .tif";
+$f[]="\tAddType image/x-cmu-raster .ras";
+$f[]="\tAddType image/x-portable-anymap .pnm";
+$f[]="\tAddType image/x-portable-bitmap .pbm";
+$f[]="\tAddType image/x-portable-graymap .pgm";
+$f[]="\tAddType image/x-portable-pixmap .ppm";
+$f[]="\tAddType image/x-rgb .rgb";
+$f[]="\tAddType image/x-xbitmap .xbm";
+$f[]="\tAddType image/x-xpixmap .xpm";
+$f[]="\tAddType image/x-xwindowdump .xwd";
+$f[]="\tAddType audio/basic .au .snd";
+$f[]="\tAddType audio/x-aiff .aif .aiff .aifc";
+$f[]="\tAddType audio/x-wav .wav";
+$f[]="\tAddType audio/x-pn-realaudio .ram";
+$f[]="\tAddType audio/x-midi .mid";
+$f[]="\tAddType video/mpeg .mpeg .mpg .mpe";
+$f[]="\tAddType video/quicktime .qt .mov";
+$f[]="\tAddType video/x-msvideo .avi";
+$f[]="\tAddType video/x-sgi-movie .movie";
+$f[]="\tAddType x-world/x-vrml .wrl";
+$f[]="\tAddType application/x-compress .Z";
+$f[]="\tAddType application/x-gzip .gz .tgz";
+$f[]="\tAddType application/x-bzip2 .bz2";
+$f[]="";
+$f[]="#";
+$f[]="# DefaultLanguage and AddLanguage allows you to specify the language of ";
+$f[]="# a document. You can then use content negotiation to give a browser a ";
+$f[]="# file in a language the user can understand.";
+$f[]="#";
+$f[]="# Specify a default language. This means that all data";
+$f[]="# going out without a specific language tag (see below) will ";
+$f[]="# be marked with this one. You probably do NOT want to set";
+$f[]="# this unless you are sure it is correct for all cases.";
+$f[]="#";
+$f[]="# * It is generally better to not mark a page as ";
+$f[]="# * being a certain language than marking it with the wrong";
+$f[]="# * language!";
+$f[]="#";
+$f[]="# DefaultLanguage us";
+$f[]="#";
+$f[]="# Note 1: The suffix does not have to be the same as the language";
+$f[]="# keyword --- those with documents in Polish (whose net-standard";
+$f[]="# language code is pl) may wish to use \"AddLanguage pl .po\" to";
+$f[]="# avoid the ambiguity with the common suffix for perl scripts.";
+$f[]="#";
+$f[]="# Note 2: The example entries below illustrate that in some cases ";
+$f[]="# the two character 'Language' abbreviation is not identical to ";
+$f[]="# the two character 'Country' code for its country,";
+$f[]="# E.g. 'Danmark/dk' versus 'Danish/da'.";
+$f[]="#";
+$f[]="# Note 3: In the case of 'ltz' we violate the RFC by using a three char";
+$f[]="# specifier. There is 'work in progress' to fix this and get";
+$f[]="# the reference data for rfc1766 cleaned up.";
+$f[]="#";
+$f[]="# Catalan (ca) - Croatian (hr) - Czech (cs) - Danish (da) - Dutch (nl)";
+$f[]="# English (en) - Esperanto (eo) - Estonian (et) - French (fr) - German (de)";
+$f[]="# Greek-Modern (el) - Hebrew (he) - Italian (it) - Japanese (ja)";
+$f[]="# Korean (ko) - Luxembourgeois* (ltz) - Norwegian Nynorsk (nn)";
+$f[]="# Norwegian (no) - Polish (pl) - Portugese (pt)";
+$f[]="# Brazilian Portuguese (pt-BR) - Russian (ru) - Swedish (sv)";
+$f[]="# Simplified Chinese (zh-CN) - Spanish (es) - Traditional Chinese (zh-TW)";
+$f[]="#";
+$f[]="AddLanguage am .amh";
+$f[]="AddLanguage ar .ara";
+$f[]="AddLanguage be .be";
+$f[]="AddLanguage bg .bg";
+$f[]="AddLanguage bn .bn";
+$f[]="AddLanguage br .br";
+$f[]="AddLanguage bs .bs";
+$f[]="AddLanguage ca .ca";
+$f[]="AddLanguage cs .cz .cs";
+$f[]="AddLanguage cy .cy";
+$f[]="AddLanguage da .dk";
+$f[]="AddLanguage de .de";
+$f[]="AddLanguage dz .dz";
+$f[]="AddLanguage el .el";
+$f[]="AddLanguage en .en";
+$f[]="AddLanguage eo .eo";
+$f[]="# es is ecmascript in /etc/mime.types";
+$f[]="RemoveType  es";
+$f[]="AddLanguage es .es";
+$f[]="AddLanguage et .et";
+$f[]="AddLanguage eu .eu";
+$f[]="AddLanguage fa .fa";
+$f[]="AddLanguage fi .fi";
+$f[]="AddLanguage fr .fr";
+$f[]="AddLanguage ga .ga";
+$f[]="AddLanguage gl .glg";
+$f[]="AddLanguage gu .gu";
+$f[]="AddLanguage he .he";
+$f[]="AddLanguage hi .hi";
+$f[]="AddLanguage hr .hr";
+$f[]="AddLanguage hu .hu";
+$f[]="AddLanguage hy .hy";
+$f[]="AddLanguage id .id";
+$f[]="AddLanguage is .is";
+$f[]="AddLanguage it .it";
+$f[]="AddLanguage ja .ja";
+$f[]="AddLanguage ka .ka";
+$f[]="AddLanguage kk .kk";
+$f[]="AddLanguage km .km";
+$f[]="AddLanguage kn .kn";
+$f[]="AddLanguage ko .ko";
+$f[]="AddLanguage ku .ku";
+$f[]="AddLanguage lo .lo";
+$f[]="AddLanguage lt .lt";
+$f[]="AddLanguage ltz .ltz";
+$f[]="AddLanguage lv .lv";
+$f[]="AddLanguage mg .mg";
+$f[]="AddLanguage mk .mk";
+$f[]="AddLanguage ml .ml";
+$f[]="AddLanguage mr .mr";
+$f[]="AddLanguage ms .msa";
+$f[]="AddLanguage nb .nob";
+$f[]="AddLanguage ne .ne";
+$f[]="AddLanguage nl .nl";
+$f[]="AddLanguage nn .nn";
+$f[]="AddLanguage no .no";
+$f[]="AddLanguage pa .pa";
+$f[]="AddLanguage pl .po";
+$f[]="AddLanguage pt-BR .pt-br";
+$f[]="AddLanguage pt .pt";
+$f[]="AddLanguage ro .ro";
+$f[]="AddLanguage ru .ru";
+$f[]="AddLanguage sa .sa";
+$f[]="AddLanguage se .se";
+$f[]="AddLanguage si .si";
+$f[]="AddLanguage sk .sk";
+$f[]="AddLanguage sl .sl";
+$f[]="AddLanguage sq .sq";
+$f[]="AddLanguage sr .sr";
+$f[]="AddLanguage sv .sv";
+$f[]="AddLanguage ta .ta";
+$f[]="AddLanguage te .te";
+$f[]="AddLanguage th .th";
+$f[]="AddLanguage tl .tl";
+$f[]="RemoveType  tr";
+$f[]="# tr is troff in /etc/mime.types";
+$f[]="AddLanguage tr .tr";
+$f[]="AddLanguage uk .uk";
+$f[]="AddLanguage ur .ur";
+$f[]="AddLanguage vi .vi";
+$f[]="AddLanguage wo .wo";
+$f[]="AddLanguage xh .xh";
+$f[]="AddLanguage zh-CN .zh-cn";
+$f[]="AddLanguage zh-TW .zh-tw";
+$f[]="";
+$f[]="#";
+$f[]="# Commonly used filename extensions to character sets. You probably";
+$f[]="# want to avoid clashes with the language extensions, unless you";
+$f[]="# are good at carefully testing your setup after each change.";
+$f[]="# See http://www.iana.org/assignments/character-sets for the";
+$f[]="# official list of charset names and their respective RFCs.";
+$f[]="#";
+$f[]="AddCharset us-ascii    .ascii .us-ascii";
+$f[]="AddCharset ISO-8859-1  .iso8859-1  .latin1";
+$f[]="AddCharset ISO-8859-2  .iso8859-2  .latin2 .cen";
+$f[]="AddCharset ISO-8859-3  .iso8859-3  .latin3";
+$f[]="AddCharset ISO-8859-4  .iso8859-4  .latin4";
+$f[]="AddCharset ISO-8859-5  .iso8859-5  .cyr .iso-ru";
+$f[]="AddCharset ISO-8859-6  .iso8859-6  .arb .arabic";
+$f[]="AddCharset ISO-8859-7  .iso8859-7  .grk .greek";
+$f[]="AddCharset ISO-8859-8  .iso8859-8  .heb .hebrew";
+$f[]="AddCharset ISO-8859-9  .iso8859-9  .latin5 .trk";
+$f[]="AddCharset ISO-8859-10  .iso8859-10  .latin6";
+$f[]="AddCharset ISO-8859-13  .iso8859-13";
+$f[]="AddCharset ISO-8859-14  .iso8859-14  .latin8";
+$f[]="AddCharset ISO-8859-15  .iso8859-15  .latin9";
+$f[]="AddCharset ISO-8859-16  .iso8859-16  .latin10";
+$f[]="AddCharset ISO-2022-JP .iso2022-jp .jis";
+$f[]="AddCharset ISO-2022-KR .iso2022-kr .kis";
+$f[]="AddCharset ISO-2022-CN .iso2022-cn .cis";
+$f[]="AddCharset Big5        .Big5       .big5 .b5";
+$f[]="AddCharset cn-Big5     .cn-big5";
+$f[]="# For russian, more than one charset is used (depends on client, mostly):";
+$f[]="AddCharset WINDOWS-1251 .cp-1251   .win-1251";
+$f[]="AddCharset CP866       .cp866";
+$f[]="AddCharset KOI8      .koi8";
+$f[]="AddCharset KOI8-E      .koi8-e";
+$f[]="AddCharset KOI8-r      .koi8-r .koi8-ru";
+$f[]="AddCharset KOI8-U      .koi8-u";
+$f[]="AddCharset KOI8-ru     .koi8-uk .ua";
+$f[]="AddCharset ISO-10646-UCS-2 .ucs2";
+$f[]="AddCharset ISO-10646-UCS-4 .ucs4";
+$f[]="AddCharset UTF-7       .utf7";
+$f[]="AddCharset UTF-8       .utf8";
+$f[]="AddCharset UTF-16      .utf16";
+$f[]="AddCharset UTF-16BE    .utf16be";
+$f[]="AddCharset UTF-16LE    .utf16le";
+$f[]="AddCharset UTF-32      .utf32";
+$f[]="AddCharset UTF-32BE    .utf32be";
+$f[]="AddCharset UTF-32LE    .utf32le";
+$f[]="AddCharset euc-cn      .euc-cn";
+$f[]="AddCharset euc-gb      .euc-gb";
+$f[]="AddCharset euc-jp      .euc-jp";
+$f[]="AddCharset euc-kr      .euc-kr";
+$f[]="#Not sure how euc-tw got in - IANA doesn't list it???";
+$f[]="AddCharset EUC-TW      .euc-tw";
+$f[]="AddCharset gb2312      .gb2312 .gb";
+$f[]="AddCharset iso-10646-ucs-2 .ucs-2 .iso-10646-ucs-2";
+$f[]="AddCharset iso-10646-ucs-4 .ucs-4 .iso-10646-ucs-4";
+$f[]="AddCharset shift_jis   .shift_jis .sjis";
+$f[]="";
+$f[]="#";
+$f[]="# AddHandler allows you to map certain file extensions to \"handlers\":";
+$f[]="# actions unrelated to filetype. These can be either built into the server";
+$f[]="# or added with the Action directive (see below)";
+$f[]="#";
+$f[]="# To use CGI scripts outside of ScriptAliased directories:";
+$f[]="# (You will also need to add \"ExecCGI\" to the \"Options\" directive.)";
+$f[]="#";
+$f[]="#AddHandler cgi-script .cgi";
+$f[]="";
+$f[]="#";
+$f[]="# For files that include their own HTTP headers:";
+$f[]="#";
+$f[]="#AddHandler send-as-is asis";
+$f[]="";
+$f[]="#";
+$f[]="# For server-parsed imagemap files:";
+$f[]="#";
+$f[]="#AddHandler imap-file map";
+$f[]="";
+$f[]="#";
+$f[]="# For type maps (negotiated resources):";
+$f[]="# (This is enabled by default to allow the Apache \"It Worked\" page";
+$f[]="#  to be distributed in multiple languages.)";
+$f[]="#";
+$f[]="AddHandler type-map var";
+$f[]="";
+$f[]="#";
+$f[]="# Filters allow you to process content before it is sent to the client.";
+$f[]="#";
+$f[]="# To parse .shtml files for server-side includes (SSI):";
+$f[]="# (You will also need to add \"Includes\" to the \"Options\" directive.)";
+$f[]="#";
+$f[]="AddType text/html .shtml";
+$f[]="AddOutputFilter INCLUDES .shtml";
+$f[]="";
+$f[]="</IfModule>";
+$f[]="";
+
+@file_put_contents("$DAEMON_PATH/mime.conf", @implode("\n", $f));
+	
+}
+	
+	
+	
+
 
 function CheckHttpdConf(){
 	EnableMods();
@@ -1313,7 +2033,9 @@ function CheckHttpdConf(){
 	
 	
 	
-	$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
+	$ApacheDisableModDavFS=intval($sock->GET_INFO("ApacheDisableModDavFS"));
+	$ApacheDisableModStatus=intval($sock->GET_INFO("ApacheDisableModStatus"));
+	
 	
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
@@ -1328,7 +2050,11 @@ function CheckHttpdConf(){
 	$ApacheServerTokens=$sock->GET_INFO("ApacheServerTokens");
 	if($ApacheServerTokens==null){$ApacheServerTokens="Full";}
 	$hostname=$sock->GET_INFO("ApacheServerName");
-	if($hostname==null){$hostname=$unix->hostname_g();}
+	if($hostname==null){
+		$hostname=$sock->getFrameWork("system.php?hostname-g=yes");
+		$sock->SET_INFO($hostname,"ApacheServerName");
+	}
+	
 	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
 	if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
 	
@@ -1340,7 +2066,7 @@ function CheckHttpdConf(){
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
-	if(!is_numeric($ApacheDisableModDavFS)){$ApacheDisableModDavFS=0;}
+	
 	if(!is_numeric($FreeWebsEnableModSecurity)){$FreeWebsEnableModSecurity=0;}
 	if(!is_numeric($FreeWebsEnableModEvasive)){$FreeWebsEnableModEvasive=0;}
 	if(!is_numeric($FreeWebsEnableModQOS)){$FreeWebsEnableModQOS=0;}		
@@ -1381,6 +2107,8 @@ function CheckHttpdConf(){
 	$toremove[]="log_sql_mysql_module.load";
 	$toremove[]="log_sql_ssl.load";
 	$toremove[]="unique_id.load";
+	$toremove[]="mime.conf";
+	$toremove[]="mime.load";
 	
 	$toremove[]="php5.conf";
 	$toremove[]="php5.load";
@@ -1389,6 +2117,7 @@ function CheckHttpdConf(){
 	$toremove[]="fastcgi.load";
 	$toremove[]="php5-fpm.conf";
 	$toremove[]="bw.load";
+	$toremove[]="status_module.load";
 
 	
 
@@ -1418,8 +2147,17 @@ function CheckHttpdConf(){
 	
 	$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 	while (list ($num, $file) = each ($toremove) ){
-		shell_exec("/bin/rm -f $DAEMON_PATH/mods-enabled/$file >/dev/null 2>&1");
-		shell_exec("/bin/rm -f $DAEMON_PATH/mods-available/$file >/dev/null 2>&1");
+		
+		if(is_file("$DAEMON_PATH/mods-enabled/$file")){
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache remove mods-enabled/$file\n";
+			shell_exec("/bin/rm -f $DAEMON_PATH/mods-enabled/$file >/dev/null 2>&1");
+		}
+		
+		if(is_file("$DAEMON_PATH/mods-enabled/$file")){
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache remove mods-available/$file\n";
+			shell_exec("/bin/rm -f $DAEMON_PATH/mods-available/$file >/dev/null 2>&1");
+		}
+		
 		
 	}
 	php5_conf($DAEMON_PATH);
@@ -1470,15 +2208,24 @@ function CheckHttpdConf(){
 	$conf[]="\tFastCgiIpcDir /var/lib/apache2/fastcgi";
 	$conf[]="</IfModule>";
 	
+	
+	
+	
 	if($users->APACHE_MOD_STATUS){
-		$hosnenc=md5($users->hostname);
-		$conf[]="<Location /$hosnenc/$hosnenc-status>";
-		$conf[]="\tSetHandler server-status";
-		$conf[]="\tOrder deny,allow";
-		$conf[]="\tDeny from all";
-		$conf[]="\tAllow from 127.0.0.1";
-		$conf[]="\tSatisfy Any";
-		$conf[]="</Location>";		
+		if($ApacheDisableModStatus==0){
+			$unix->hostname_g();
+			$conf[]="ExtendedStatus On";
+			$hosnenc=md5($unix->hostname_g());
+			$conf[]="# Status from ".$unix->hostname_g();
+			$conf[]="<Location /$hosnenc/$hosnenc-status>";
+			$conf[]="\tSetHandler server-status";
+			//$conf[]="\tExtendedStatus On";
+			$conf[]="\tOrder deny,allow";
+			$conf[]="\tDeny from all";
+			$conf[]="\tAllow from 127.0.0.1";
+			$conf[]="\tSatisfy Any";
+			$conf[]="</Location>";		
+		}
 	}
 	
 	
@@ -1595,6 +2342,8 @@ function CheckHttpdConf(){
 		if(preg_match("#StartServers\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#MaxClients\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#MaxRequestsPerChild\s+#",$ligne)){$f[$num]=null;}
+		if(preg_match("#ExtendedStatus\s+#",$ligne)){$f[$num]=null;}
+		
 		if(preg_match("#LoadModule\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#ErrorLog\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#LogFormat\s+#",$ligne)){$f[$num]=null;}
@@ -1796,13 +2545,14 @@ function CheckHttpdConf(){
 	}
 	
 	
-	
+	CheckHttpdConf_mime_module();
 	CheckHttpdConf_mailman();
 	if(is_file("/etc/apache2/mailman.conf")){$httpd[]="Include /etc/apache2/mailman.conf";}
 	if(is_file("/etc/apache2/sysconfig.d/loadmodule.conf")){$httpd[]="Include /etc/apache2/sysconfig.d/loadmodule.conf";}
 	if(is_file("/etc/apache2/uid.conf")){$httpd[]="Include /etc/apache2/uid.conf";}
 	if(is_file("/etc/apache2/default-server.conf")){patch_suse_default_server();$httpd[]="Include /etc/apache2/default-server.conf";}
 	
+	$httpd[]="Include $DAEMON_PATH/mime.conf";
 	$httpd[]="Include $DAEMON_PATH/conf.d/";
 	$httpd[]="Include $DAEMON_PATH/sites-enabled/";
 	$httpd[]="Include $DAEMON_PATH/webdavcontainers.conf";
@@ -1865,7 +2615,13 @@ function CheckHttpdConf(){
 	$array["disk_cache_module"]="mod_disk_cache.so";
 	$array["mem_cache_module"]="mod_mem_cache.so";
 	$array["expires_module"]="mod_expires.so";
-	$array["status_module"]="mod_status.so";
+	
+	
+	$ApacheDisableModStatus=intval($sock->GET_INFO("ApacheDisableModStatus"));
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache module ApacheDisableModStatus=$ApacheDisableModStatus\n";
+	if($ApacheDisableModStatus==0){
+		$array["status_module"]="mod_status.so";
+	}
 	if(is_file($free->locate_geoip_db())){
 		$array["geoip_module"]="mod_geoip.so";
 	}
@@ -1886,7 +2642,7 @@ function CheckHttpdConf(){
 	$array["vhost_alias_module"]="mod_vhost_alias.so";
 	$array["python_module"]="mod_python.so";
 	$array["auth_digest_module"]="mod_auth_digest.so";
-	
+	$array["mime_module"]="mod_mime.so";
 	
 	
 	$array["ssl_module"]="mod_ssl.so";
@@ -2434,8 +3190,10 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	if($FreeWebDisableSSL==1){$freeweb->SSL_enabled=0;}
 	build_progress("Building $hostname configuration [".__LINE__."]", 11);
 	
+	echo "$prefixOutput [".__LINE__."] SSL_enabled = $freeweb->SSL_enabled\n";
+	
 	if($freeweb->SSL_enabled){
-		$unix->vhosts_BuildCertificate($hostname);
+		
 		$port=$FreeWebListenSSLPort;
 		if($freeweb->ServerPort>0){$FreeWebListenPort=$freeweb->ServerPort;}
 		$conf[]="<VirtualHost $FreeWebListen:$FreeWebListenPort>";
@@ -2505,6 +3263,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	if($freeweb->SSL_enabled){
 		$conf[]="\tSetEnvIf User-Agent \".*MSIE.*\" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0";
 		$conf[]="\tSSLEngine on";
+		echo "$prefixOutput [".__LINE__."] SSLEngine()\n";
 		$certificates=$freeweb->SSLEngine();
 		if($certificates<>null){$conf[]=$certificates;}
 		if($FreeWebsDisableSSLv2==1){
@@ -2721,6 +3480,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	if($ScriptAliases<>null){$conf[]=$ScriptAliases;}
 	$conf[]="\tLogFormat \"%h %l %u %t \\\"%r\\\" %>s %b \\\"%{Referer}i\\\" \\\"%{User-Agent}i\\\" %V\" combinedv";
 	$conf[]="\tCustomLog /var/log/apache2/$hostname/access.log combinedv";
+	$conf[]="\tCustomLog /var/log/apache2/common-access.log combinedv";
 	$conf[]="\tErrorLog /var/log/apache2/$hostname/error.log";
 	$conf[]="\tLogLevel warn";
 	$conf[]="</VirtualHost>";
@@ -3819,47 +4579,44 @@ function mod_status_all(){
 	$q->QUERY_SQL($sql,"artica_events");
 	
 	
-	
-	$sql="SELECT * FROM freeweb ORDER BY servername";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}}
-	
-	$prefix="INSERT INTO $table_name (servername,total_traffic,total_memory,requests_second,traffic_second,traffic_request,`UPTIME` ) VALUES";
-	
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$hostname=$ligne["servername"];
-		if(trim($hostname)==null){continue;}
-		mod_status($hostname);
-	}
-
-	if(count($GLOBALS["MODSTATUSQ"])==0){if($GLOBALS["VERBOSE"]){echo "No rows\n";}return;}
-	$sql=$prefix.@implode(",", $GLOBALS["MODSTATUSQ"]);
+	$ssq=mod_status();
+	if($ssq==null){return;}
+	if($GLOBALS["VERBOSE"]){echo "TABLE = $table_name\n";}
+	$sql="INSERT IGNORE INTO `$table_name` (`servername`,`total_traffic`,`total_memory`,`requests_second`,`traffic_second`,`traffic_request`,`UPTIME`) VALUES $ssq";
 	$q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){echo $q->mysql_error;}
 }
-function mod_status($servername){
-	$servername=trim($servername);
-	if($servername=="_default_"){return;}
-	$freeweb=new freeweb($servername);
-	$dir_www=$freeweb->WORKING_DIRECTORY;
+
+function UnitToBytes($int,$unit){
+	$unit=strtoupper($unit);
+	if($unit=="KB"){$int=$int*1024;}
+	if($unit=="MB"){$int=$int*1024000;}
+	if($unit=="GB"){$int=$int*1024000000;}
+	if($unit=="TB"){$int=$int*10240000000000;}	
+	return $int;
+	
+}
+
+
+function mod_status($servername=null){
 	$unix=new unix();
+	if($servername=="_default_"){return;}
+	$unix->hostname_g();
+	$hostname=$unix->hostname_g();
+	$hosnenc=md5($unix->hostname_g());
+	$conf[]="# Status from ".$unix->hostname_g();
+	$conf[]="<Location >";
+	$curl=$unix->find_program("curl");
+	$TEMP_FILE=$unix->FILE_TEMP();
+	
+	$cmdline="$curl --interface 127.0.0.1 http://localhost/$hosnenc/$hosnenc-status >$TEMP_FILE";
+	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
+	shell_exec($cmdline);
+	
 	$q=new mysql();
 	$pid=array();
 	
 	
-	
-	
-	$dirMD=md5($servername);
-	if($GLOBALS["VERBOSE"]){echo "Testing $dir_www/.htaccess\n";}
-	if(is_file("$dir_www/.htaccess")){
-	if($GLOBALS["VERBOSE"]){echo "mod_status_htaccess($dir_www/.htaccess,$dirMD)\n";}
-		mod_status_htaccess("$dir_www/.htaccess",$dirMD);
-		
-	}
-
-	
-	
-	$curl=new ccurl("http://$servername/$dirMD/$dirMD-status",true);
 	$access=null;
 	$total_traffic=null;
 	$total_traffic_unit=null;
@@ -3868,47 +4625,43 @@ function mod_status($servername){
 	$request_s=0;
 	$UPTIME=null;
 	$total_mem=0;
-	$datas=$curl->GetFile("/tmp/$servername.html");
-	$datas=explode("\n",@file_get_contents("/tmp/$servername.html"));
+	
+	$datas=explode("\n",@file_get_contents($TEMP_FILE));
+	@unlink($TEMP_FILE);
 	while (list ($num, $ligne) = each ($datas) ){
+		
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "Parsing line...`$ligne`\n";}
+
 		
-		if(preg_match("#403 Forbidden#", $ligne)){
-			buildHost(null,$servername);
-			return;
+		
+		if(preg_match("#<dt>Server uptime:\s+(.+?)</dt>#",$ligne,$re)){
+			$UPTIME=trim($re[1]);
+			if($GLOBALS["VERBOSE"]){echo "*************\nUPTIME = $UPTIME\n";}
+			continue;
 		}
+
 		
-		if(preg_match("#Server uptime:\s+(.+)#",$ligne,$re)){$UPTIME=trim($re[1]);continue;}
-		if(preg_match("#Total accesses:\s+([0-9]+)\s+-\s+Total Traffic:\s+([0-9]+)\s+([a-zA-Z]+)#",$ligne,$re)){
+		
+		if(preg_match("#Total accesses:\s+([0-9]+)\s+-\s+Total Traffic:\s+([0-9\.]+)\s+([a-zA-Z]+)#i",$ligne,$re)){
 			$access=$re[1];
 			$total_traffic=$re[2];
-			$total_traffic_unit=strtoupper($re[3]);
-			if($total_traffic_unit=="KB"){$total_traffic=$total_traffic*1024;}
-			if($total_traffic_unit=="MB"){$total_traffic=$total_traffic*1024000;}
-			if($total_traffic_unit=="GB"){$total_traffic=$total_traffic*1024000000;}
-			if($total_traffic_unit=="TB"){$total_traffic=$total_traffic*10240000000000;}
+			$total_traffic=UnitToBytes($total_traffic,strtoupper($re[3]));
+			if($GLOBALS["VERBOSE"]){echo "*************\n$access - $total_traffic\n";}
+			
+			
 			continue;		
 			
 			
 		}
 		
-		if(preg_match("#([0-9\.]+)\s+requests\/sec\s+-\s+([0-9]+)\s+(.+)\/second\s+-\s+([0-9]+)\s+(.+?)\/request#", $ligne,$re)){
+		if(preg_match("#([0-9\.]+)\s+requests\/sec\s+-\s+([0-9\.]+)\s+(.+)\/second\s+-\s+([0-9\.]+)\s+(.+?)\/request#", $ligne,$re)){
 			$request_s=$re[1];
 			if(substr($request_s,0,1)=="."){$request_s="0$request_s";}
-			$traffic_sec=$re[2];
-			$traffic_sec_unit=strtoupper($re[3]);
-			if($traffic_sec_unit=="KB"){$traffic_sec=$traffic_sec*1024;}
-			if($traffic_sec_unit=="MB"){$traffic_sec=$traffic_sec*1024000;}
-			if($traffic_sec_unit=="GB"){$traffic_sec=$traffic_sec*1024000000;}
-			if($traffic_sec_unit=="TB"){$traffic_sec=$traffic_sec*10240000000000;}			
-			
-			
-			$traffic_request=$re[4];
-			$traffic_request_unit=strtoupper($re[5]);
-			if($traffic_request_unit=="KB"){$traffic_request=$traffic_request*1024;}
-			if($traffic_request_unit=="MB"){$traffic_request=$traffic_request*1024000;}
-			if($traffic_request_unit=="GB"){$traffic_request=$traffic_request*1024000000;}
-			if($traffic_request_unit=="TB"){$traffic_request=$traffic_request*10240000000000;}			
+			$traffic_sec=UnitToBytes($re[2],$re[3]);
+			$traffic_request=UnitToBytes($re[4],$re[5]);
+				
 			continue;
 		}
 		
@@ -3924,14 +4677,20 @@ function mod_status($servername){
 	
 	if(count($pid)>0){
 		while (list ($num, $ligne) = each ($pid) ){
-		$mem=$unix->PROCESS_MEMORY($num,true)+$unix->PROCESS_CACHE_MEMORY($num,true);
-		$total_mem=$total_mem+$mem;
+		
+		$total=$unix->PROCESS_MEMORY($num,true);
+
+		if($GLOBALS["VERBOSE"]){echo "Current PID: $num  $total KB\n";}
+		
+		$total_mem=$total_mem+$total;
 		}	
 	}
 	
 	if($GLOBALS["VERBOSE"]){
+			echo "\n\n ***************************************************************************************************************";
 			echo "Access: $access total-traffic:$total_traffic bytes UPTIME=$UPTIME Total memory used: $total_mem Bytes\n";
-			echo "Access: requests/seconds: $request_s traffic/sec:$traffic_sec trafic per request:$traffic_request bytes:\n";			
+			echo "Access: requests/seconds: $request_s traffic/sec:$traffic_sec trafic per request:$traffic_request bytes:\n";
+			echo "\n\n ***************************************************************************************************************";
 
 	}
 
@@ -3942,10 +4701,57 @@ function mod_status($servername){
 	$UPTIME=str_replace("</td>", "", $UPTIME);
 	$UPTIME=str_replace("</dt>", "", $UPTIME);
 	
-	$query="('$servername','$total_traffic','$total_mem','$request_s','$traffic_sec','$traffic_request','$UPTIME')";
-	if($GLOBALS["VERBOSE"]){echo "$query\n";}
-	$GLOBALS["MODSTATUSQ"][]=$query;
-	// voir //http://www.apache.org/server-status
+	if($GLOBALS["VERBOSE"]){echo "MEMORY: ".FormatBytes($total_mem)."\n";}
+	
+	$HASH["total_traffic"]=$total_traffic;
+	$HASH["total_mem"]=$total_mem*1024;
+	$HASH["requests_second"]=$request_s;
+	$HASH["traffic_second"]=$traffic_sec;
+	$HASH["traffic_request"]=$traffic_request;
+	$HASH["UPTIME"]=$UPTIME;
+	
+	$table_name="apache_stats_".date('Ym');
+	$q=new mysql();
+	$sql="SELECT AVG(total_traffic) as total_traffic,
+			AVG(total_memory) as total_memory,
+			AVG(requests_second) as requests_second,
+			AVG(traffic_second) as traffic_second,
+			AVG(traffic_request) as traffic_request FROM `$table_name`";
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	
+	$HASH["AVG"]["total_traffic"]=$ligne["total_traffic"];
+	$HASH["AVG"]["total_memory"]=$ligne["total_memory"];
+	$HASH["AVG"]["requests_second"]=$ligne["requests_second"];
+	$HASH["AVG"]["traffic_second"]=$ligne["traffic_second"];
+	$HASH["AVG"]["traffic_request"]=$ligne["traffic_request"];
+	
+	
+	$sql="SELECT MAX(total_traffic) as total_traffic FROM `$table_name`";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$HASH["MAX"]["total_traffic"]=$ligne["total_traffic"];
+	
+	$sql="SELECT MAX(total_memory) as total_memory FROM `$table_name`";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$HASH["MAX"]["total_memory"]=$ligne["total_memory"];	
+	
+	$sql="SELECT MAX(requests_second) as requests_second FROM `$table_name`";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$HASH["MAX"]["requests_second"]=$ligne["requests_second"];	
+	
+	$sql="SELECT MAX(traffic_second) as traffic_second FROM `$table_name`";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$HASH["MAX"]["traffic_second"]=$ligne["traffic_second"];	
+	
+	$sql="SELECT MAX(traffic_request) as traffic_request FROM `$table_name`";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	$HASH["MAX"]["traffic_request"]=$ligne["traffic_request"];
+		
+	if($GLOBALS["VERBOSE"]){print_r($HASH);}
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/APACHE_HASH", serialize($HASH));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/APACHE_HASH",0755);
+	return "('$hostname','$total_traffic','$total_mem','$request_s','$traffic_sec','$traffic_request','$UPTIME')";
+
 
 }
 function roundcube_plugins($servername){
@@ -4484,8 +5290,8 @@ function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
 		$f[]="\tLogLevel warn";
 		$f[]="\tCustomLog /var/log/apache2/ssl_access.log combined";
 		$f[]="\tSSLEngine on";
-		$f[]="\tSSLCertificateFile /etc/ssl/certs/apache/_default_.crt";
-		$f[]="\tSSLCertificateKeyFile /etc/ssl/certs/apache/_default_.key";
+		$apache_certificate=new apache_certificate();
+		$f[]=$apache_certificate->build();
 		$f[]="\t</VirtualHost>";
 		$f[]="</IfModule>";
 	}

@@ -230,7 +230,7 @@ function CreateNAB(){
 function test_connexion(){
 	$ldap=new clladp();
 	if($ldap->ldapFailed){
-		shell_exec("/etc/init.d/slapd restart");
+		shell_exec("/etc/init.d/slapd restart --framework=". basename(__FILE__));
 	}
 		
 	$ldap=new clladp();

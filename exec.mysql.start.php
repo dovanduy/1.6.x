@@ -6,17 +6,25 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
+include_once(dirname(__FILE__).'/ressources/mysql.status.inc');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 
 
 $GLOBALS["SINGLE_DEBUG"]=false;
+$GLOBALS["BY_SOCKET_FAILED"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["BY_FRAMEWORK"]=null;
+$GLOBALS["BY_WIZARD"]=false;
+$GLOBALS["CMDLINE"]=implode(" ",$argv);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
+if(preg_match("#--socketfailed#",implode(" ",$argv))){$GLOBALS["BY_SOCKET_FAILED"]=true;}
+if(preg_match("#--framework=(.+?)$#",implode(" ",$argv),$re)){$GLOBALS["BY_FRAMEWORK"]=$re[1];}
+if(preg_match("#--bywizard#",implode(" ",$argv),$re)){$GLOBALS["BY_WIZARD"]=true;}
 
 if($argv[1]=="--start"){SERVICE_START();die(0);}
 if($argv[1]=="--ttl"){SERVICE_TTL();die(0);}
@@ -26,6 +34,8 @@ if($argv[1]=="--recovery"){restart_reco();die();}
 if($argv[1]=="--watch"){WATCHDOG_MYSQL();die();}
 if($argv[1]=="--engines"){status_all_mysql_engines();die();}
 if($argv[1]=="--clean"){clean_events();die();}
+if($argv[1]=="--test-sock"){test_sockets();die();}
+
 
 
 
@@ -120,6 +130,43 @@ function SERVICE_TTL(){
 	echo "Running Since {$RunningScince}Mn\n";
 }
 
+function test_sockets(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "$pidfile\n$pidTime\n";}
+	$pid=@file_get_contents($pidfile);
+
+	if(!$GLOBALS["FORCE"]){
+		$LastExec=$unix->file_time_min($pidTime);
+		if($LastExec<15){return;}
+		
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($time<15){return;}
+			unix_system_kill_force($pid);
+		}
+	}
+	
+	@unlink($pidfile);
+	@unlink($pidTime);
+	@file_put_contents($pidfile, getmypid());
+	@file_put_contents($pidTime, time());
+	
+
+	$socket="/var/run/mysqld/mysqld.sock";
+	if(!$unix->is_socket($socket)){
+		$unix->ToSyslog("MySQL: Fatal: /var/run/mysqld/mysqld.sock no such socket");
+		mysql_admin_mysql(0,"Fatal: /var/run/mysqld/mysqld.sock no such socket [action=restart]", null,__FILE__,__LINE__);
+		SERVICE_RESTART();
+		return;
+	}
+	
+	$mysql=new mysql_status();
+	$mysql->MainInstance();
+	
+}
+
 function WATCHDOG_MYSQL(){
 	$unix=new unix();
 	$mysqladmin=$unix->find_program("mysqladmin");
@@ -150,6 +197,7 @@ function WATCHDOG_MYSQL(){
 	$nohup=$unix->find_program("nohup");
 	
 	if(!$unix->is_socket($socket)){
+		mysql_admin_mysql(0,"$socket, no such file, restarting MySQL service", null,__FILE__,__LINE__);
 		system_admin_events("$socket, no such file, restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
 		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
 		return;
@@ -157,6 +205,7 @@ function WATCHDOG_MYSQL(){
 	
 	$MYSQLPid=PID_NUM();
 	if(!$unix->process_exists($MYSQLPid)){
+		mysql_admin_mysql(0,"Error, MySQL service is not running", null,__FILE__,__LINE__);
 		system_admin_events("Error, \"MySQL service is not running\", Starting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
 		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
 		return;
@@ -182,14 +231,16 @@ function WATCHDOG_MYSQL(){
 		if(preg_match("#show processlist#",$line)){ continue;}
 		
 		if(preg_match("#Can't connect to local MySQL server through socket#", $line)){
+			mysql_admin_mysql(0,"Error, Can't connect to local MySQL server through socket", $line,__FILE__,__LINE__);
 			system_admin_events("Error, \"Can't connect to local MySQL server through socket\", restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
-			shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");			
+			shell_exec("$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &");			
 			return;
 		}
 		
 		if(preg_match("#error:\s+'(.*?)'#", $line,$re)){
+			mysql_admin_mysql(0,"Error, {$re[1]} restarting MySQL service", $line,__FILE__,__LINE__);
 			system_admin_events("Error, \"{$re[1]}\", restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
-			shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+			shell_exec("$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &");
 			return;
 		}
 		
@@ -210,6 +261,94 @@ function WATCHDOG_MYSQL(){
 		
 }
 function SERVICE_RESTART(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	$pid=@file_get_contents($pidfile);
+	$kill=$unix->find_program("kill");
+	
+	$LastExec=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["BY_WIZARD"]){
+		if($LastExec<1){
+			$unix->ToSyslog("Restarting MySQL service Aborted Need at least 1mn",true,basename(__FILE__));
+			return;
+		}
+	}
+	
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time<5){
+			$unix->ToSyslog("Restarting MySQL service Aborted an artica task $pid is running",true,basename(__FILE__));
+			return;
+		}
+		$unix->ToSyslog("Killing `Restart task` Running too long {$time}Mn");
+		unix_system_kill_force($pid);
+	}
+	
+	
+	$unix->ToSyslog("Restarting MySQL service `{$GLOBALS["CMDLINE"]}`",true,basename(__FILE__));
+	
+	if($GLOBALS["FORCE"]){
+		mysql_admin_mysql(0, "Restarting MySQL using Force mode !",__FILE__,__LINE__);
+	}
+	
+	
+	if($GLOBALS["BY_FRAMEWORK"]==null){
+		$unix->ToSyslog("Restarting MySQL server without specify --framework!",true,basename(__FILE__));
+		if($unix->is_socket("/var/run/mysqld/mysqld.sock")){
+			echo "Restarting....: ".date("H:i:s")." MySQL socket seems ok\n";
+			$unix->ToSyslog("MySQL, socket seems ok",true,basename(__FILE__));
+		}
+		
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){
+			mysql_admin_mysql(0, "Starting MySQL server by=[{$GLOBALS["BY_FRAMEWORK"]}] Service is not running,  start it",__FILE__,__LINE__);
+			SERVICE_START(false,true);
+			return;
+		}
+		
+		$time=$unix->PROCESS_TTL($pid);
+		echo "Restarting....: ".date("H:i:s")." MySQL running since {$time}Mn\n";
+		$unix->ToSyslog("MySQL, PID $pid running since {$time}Mn, nothing to do, not make sense...",true,basename(__FILE__));
+		
+		echo "Restarting MySQL service can only done by using \"--force --framework\" token\n";
+		echo "Use /etc/init.d/mysql restart --force --framework=byhand\n";
+		return;
+	}
+	
+	
+	
+	if($GLOBALS["BY_SOCKET_FAILED"]){
+		echo "Restarting....: ".date("H:i:s")." MySQL Seems socket is failed\n";
+		$unix->ToSyslog("MySQL, Seems socket is failed...",true,basename(__FILE__));
+	}
+	
+
+		
+	
+	
+	if($GLOBALS["BY_SOCKET_FAILED"]){
+		if($unix->is_socket("/var/run/mysqld/mysqld.sock")){
+			mysql_admin_mysql(0, "Watchdog say that the socket is failed but find it..aborting",__FILE__,__LINE__);
+			return;
+		}else{
+			mysql_admin_mysql(2, "Watchdog say that the socket is failed and did not find it...",__FILE__,__LINE__);
+		}
+	}
+
+		
+	$pid=PID_NUM();
+	if(!$unix->process_exists($pid)){
+		mysql_admin_mysql(0, "Restarting MySQL server by=[{$GLOBALS["BY_FRAMEWORK"]}] Service is not running,  start it",__FILE__,__LINE__);
+		SERVICE_START(false,true);
+		return;
+	}
+	
+	$time=$unix->PROCESS_TTL($pid);
+	mysql_admin_mysql(0, "Restarting MySQL server running since {$time}Mn by=[{$GLOBALS["BY_FRAMEWORK"]}]...",__FILE__,__LINE__);
+	
+	
 	SERVICE_STOP(true);
 	SERVICE_START(false,true);
 	
@@ -231,7 +370,7 @@ function GetStartedValues(){
 		}
 	}
 	
-	echo "Starting......: ".date("H:i:s")." MySQL `$mysqld` ". count($array)." avilable option(s)\n";
+	echo "Starting......: ".date("H:i:s")." MySQL `$mysqld` ". count($array)." available option(s)\n";
 	
 	return $array;
 }
@@ -268,7 +407,7 @@ function SERVICE_STOP($aspid=false){
 	if($GLOBALS["VERBOSE"]){echo "DEBUG:: PID RETURNED $pid\n";}
 	
 
-	
+	$unix->ToSyslog("MySQL: Stopping MySQL server");
 	if(!$unix->process_exists($pid,$mysqlbin)){echo "Stopping MySQL...............: Already stopped\n";return;}
 	
 	
@@ -308,7 +447,7 @@ function SERVICE_STOP($aspid=false){
 		system_admin_events("Success to STOP MySQL server", __FUNCTION__, __FILE__, __LINE__, "services");
 		return;
 	}
-		
+	mysql_admin_mysql(0,"Stopping MySQL service PID $pid", null,__FILE__,__LINE__);
 	echo "Stopping MySQL...............: killing smoothly PID $pid\n";
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
@@ -399,7 +538,9 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	$EnableMysqlLog=$sock->GET_INFO("EnableMysqlLog");
 	if(!is_numeric($EnableMysqlLog)){$EnableMysqlLog=0;}
 	
-	@mkdir("/var/run/mysqld",0755,true);
+
+
+	
 	if($datadir==null){$datadir='/var/lib/mysql';}
 	if($MySqlTmpDir=='/tmp'){$MySqlTmpDir=null;}
 	if($MySQLLOgErrorPath==null){$MySQLLOgErrorPath=$datadir.'/mysqld.err';}
@@ -457,12 +598,18 @@ if($EnableMysqlFeatures==0){
    echo "Starting......: ".date("H:i:s")." Temp Dir.............:$MySqlTmpDir\n";
    echo "Starting......: ".date("H:i:s")." innodb_force_recovery:$innodb_force_recovery\n";
    
-   
+   mysql_admin_mysql(1,"Starting MySQL service...", null,__FILE__,__LINE__);
    echo "Starting......: ".date("H:i:s")." Settings permissions..\n";
+   @mkdir("/var/run/mysqld",0755,true);
    $unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld");
    $unix->chown_func($mysql_user,$mysql_user, "/var/log/mysql");
    $unix->chown_func($mysql_user,$mysql_user, $datadir);
    $unix->chown_func($mysql_user,$mysql_user, "$datadir/*");
+   if($unix->is_socket("/var/run/mysqld/mysqld.sock")){@unlink("/var/run/mysqld/mysqld.sock");}
+   if(is_file('/var/run/mysqld/mysqld.err')){@unlink('/var/run/mysqld/mysqld.err');}
+   if(is_file("/var/run/mysqld/mysqld.pid")){$unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld/mysqld.pid");}
+  
+   
 
    if($MysqlRemoveidbLogs==1){
         shell_exec('/bin/mv /var/lib/mysql/ib_logfile* /tmp/');
@@ -489,7 +636,7 @@ if($EnableMysqlFeatures==0){
    echo "Starting......: ".date("H:i:s")." MySQL Checking : $datadir/mysql/host.frm\n";
    if(!is_file("$datadir/mysql/host.frm")){
 	    if(is_file($mysql_install_db)){
-	        echo "Starting......: ".date("H:i:s")." MySQL installing default databases\n";
+	        echo "Starting......: ".date("H:i:s")." MySQL Installing default databases\n";
 	        shell_exec("$mysql_install_db --datadir=\"$datadir\"");
 	    	}
 	}else{
@@ -497,6 +644,10 @@ if($EnableMysqlFeatures==0){
 	}
 	$cmd2=array();
 	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+	
+	$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
+	
+	if($AsCategoriesAppliance==1){$MEMORY=620288;}
 	
 	if($MEMORY<624288){
 		$GetStartedValues=GetStartedValues();
@@ -525,8 +676,7 @@ if($EnableMysqlFeatures==0){
 
 
 
-   if(is_file('/var/run/mysqld/mysqld.err')){@unlink('/var/run/mysqld/mysqld.err');}
-   if(is_file("/var/run/mysqld/mysqld.pid")){$unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld/mysqld.pid");}
+
    
    if(is_file($MySQLLOgErrorPath)){@unlink($MySQLLOgErrorPath);}
 	$cmds[]=$mysqlbin;
@@ -544,16 +694,16 @@ if($EnableMysqlFeatures==0){
 	if(count($cmd2)>0){$cmds[]=@implode(" ", $cmd2);}
 	$cmds[]=">/dev/null 2>&1 &";
 	if(is_file('/usr/sbin/aa-complain')){
-        echo "Starting......: ".date("H:i:s")." Mysql adding mysql in apparamor complain mode...\n";
+        echo "Starting......: ".date("H:i:s")." Mysql Adding mysql in apparamor complain mode...\n";
         shell_exec("/usr/sbin/aa-complain $mysqlbin >/dev/null 2>&1");
 	}
 	
 	$cmd=@implode(" ", $cmds);
 	while (list ($num, $ligne) = each ($cmds) ){
-		echo "Starting......: ".date("H:i:s")." MySQL option: $ligne\n";
+		echo "Starting......: ".date("H:i:s")." MySQL Option: $ligne\n";
 	}
 	
-	echo "Starting......: ".date("H:i:s")." MySQL starting daemon, please wait\n";
+	echo "Starting......: ".date("H:i:s")." MySQL Starting daemon, please wait\n";
 	writelogs("Starting MySQL $cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	$count=0;
@@ -564,10 +714,10 @@ if($EnableMysqlFeatures==0){
    for($i=0;$i<6;$i++){
    		$pid=PID_NUM();
    		if($unix->process_exists($pid,$mysqlbin)){
-   			echo "Starting......: ".date("H:i:s")." MySQL checks daemon running...\n";
+   			echo "Starting......: ".date("H:i:s")." MySQL Checks daemon running...\n";
    			break;
    		}
-   		echo "Starting......: ".date("H:i:s")." MySQL checks daemon, please wait ($i/6)\n";
+   		echo "Starting......: ".date("H:i:s")." MySQL Checks daemon, please wait ($i/6)\n";
    		sleep(1);
    }
 
@@ -581,10 +731,21 @@ if($EnableMysqlFeatures==0){
    	
    	
    }else{
-   		system_admin_events("Success to start MySQL server pid $pid", __FUNCTION__, __FILE__, __LINE__, "services");
-   		echo "Starting......: ".date("H:i:s")." MySQL success pid $pid\n";
-   		$q=new mysql_squid_builder();
-   		$q->MEMORY_TABLES_RESTORE();
+   	
+   	for($i=0;$i<4;$i++){
+   		echo "Starting......: ".date("H:i:s")." MySQL Checks mysqld.sock waiting $i/3\n";
+   		if($unix->is_socket("/var/run/mysqld/mysqld.sock")){break;}
+   		sleep(1);
+   	}
+   
+   	if(!$unix->is_socket("/var/run/mysqld/mysqld.sock")){
+   		mysql_admin_mysql(0,"Failed to start MySQL Server /var/run/mysqld/mysqld.sock no such socket after 4 seconds", null,__FILE__,__LINE__);
+   		echo "Starting......: ".date("H:i:s")." MySQL Checks mysqld.sock failed...\n";
+   	}
+   	mysql_admin_mysql(1,"Success to start MySQL Server with new pid $pid", null,__FILE__,__LINE__);
+   	echo "Starting......: ".date("H:i:s")." MySQL Success pid $pid\n";
+   	$q=new mysql_squid_builder();
+   	$q->MEMORY_TABLES_RESTORE();
    	
    }
 
@@ -677,8 +838,8 @@ function clean_events(){
 	$q->QUERY_SQL("TRUNCATE TABLE `events`","artica_events");
 	$q->QUERY_SQL("TRUNCATE TABLE `dhcpd_logs`","artica_events");
 	$q->QUERY_SQL("TRUNCATE TABLE `update_events`","artica_events");
-	shell_exec("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
-	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.mysql.start.php --engines --verbose 2>&1 &");
+	shell_exec("$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &");
+	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.mysql.start.php --engines --verbose --framework=".__FILE__." 2>&1 &");
 	
 	
 }

@@ -84,7 +84,7 @@ class artica_general{
 		$this->__loadArticaSettings2();
 		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->__loadArticaSettings2() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if(isset($hash["ArticaGlobalSettings"])){$file=$hash["ArticaGlobalSettings"];}
-		$this->ArticaFilterEnabled=$hash["ArticaFilterEnabled"];
+		if(isset($hash["ArticaFilterEnabled"])){$this->ArticaFilterEnabled=$hash["ArticaFilterEnabled"];}
 		if(isset($hash["OBMEnabled"])){$this->OBMEnabled=$hash["OBMEnabled"];}
 		
 		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->ldap_close() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
@@ -185,7 +185,7 @@ class artica_general{
 		$upd=array();
 		$dn="cn=artica-settings,cn=artica,$ldap->suffix";
 		if(!$ldap->ExistsDN($dn)){
-			error_log("[{$_SESSION["uid"]}]::$dn doesn't exists, create it....in ".__FILE__." line ". __LINE__);
+			if(isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::$dn doesn't exists, create it....in ".__FILE__." line ". __LINE__);}
 			$upd["objectClass"][]="top";
 			$upd["objectClass"][]="ArticaSettings2";
 			$upd["cn"][]="artica-settings";
@@ -197,7 +197,7 @@ class artica_general{
 			
 			if(!$ldap->ldap_add($dn,$upd)){
 				$ldap->ldap_close();
-				error_log("[{$_SESSION["uid"]}]::unable to create $dn ".__FILE__." line ". __LINE__);
+				if(isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::unable to create $dn ".__FILE__." line ". __LINE__);}
 				return ;
 			}
 			

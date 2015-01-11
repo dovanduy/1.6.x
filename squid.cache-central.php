@@ -319,7 +319,7 @@ function page(){
 			style='font-size:13px;text-decoration:underline'>{verify_caches}</a></td>
 		</tr>			
 		</table>
-		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>";
+		<div class=text-info style='margin-top:10px'>{squid32_caches_explain}</div>";
 		
 		if($DisableAnyCache==1){$toolbox=null;}
 		

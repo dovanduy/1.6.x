@@ -606,7 +606,7 @@ function DbAttachConverter_popup(){
 	if($ZarafaStoreOutside<>1){echo "<script>YahooWinHide();</script>";return;}
 	
 	$html="
-	<div class=explain id='zarafa_store_outside_div'>{zarafa_store_outside_text}</div>
+	<div class=text-info id='zarafa_store_outside_div'>{zarafa_store_outside_text}</div>
 	<center style='margin:10px'>". button("{run}","DbAttachConverterPerform()")."</center>
 	
 	<script>

@@ -16,13 +16,43 @@ include_once(dirname(__FILE__).'/ressources/class.tasks.inc');
 include_once(dirname(__FILE__).'/ressources/class.process.inc');
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
+
 if($GLOBALS["VERBOSE"]){
 		$GLOBALS["OUTPUT"]=true;
 		$GLOBALS["WITHOUT_RESTART"]=true;
 		ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 }
-if($argv[1]=="--run-schedules"){run_schedules($argv[2]);die();}
 
+
+$unix=new unix();
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>2){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." starting squid, try to kill them!\n";
+	$mypid=getmypid();
+	while (list ($pid, $ligne) = each ($pids) ){
+		if($pid==$mypid){continue;}
+		$cmdline=@file_get_contents("/proc/$pid/cmdline");
+		$cmdlineMD=md5($cmdline);
+		if(isset($ALREDPID[$cmdlineMD])){
+			echo "Starting......: ".date("H:i:s")." killing $pid `$cmdline`\n";
+			unix_system_kill_force($pid);
+			continue;
+		}
+		$ALREDPID[$cmdlineMD]=true;
+	}
+
+}
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>6){
+	echo "Starting......: ".date("H:i:s")." Too many instances ". count($pids)." dying...\n";
+}
+
+
+
+
+
+
+if($argv[1]=="--run-schedules"){run_schedules($argv[2]);die();}
 if($argv[1]=="--defaults"){Defaults($argv[2]);die();}
 if($argv[1]=="--run"){execute_task($argv[2]);die();}
 if($argv[1]=="--run-squid"){execute_task_squid($argv[2]);die();}
@@ -42,8 +72,7 @@ function build_schedules(){
 	$unix=new unix();
 	$sock=new sockets();
 	$q=new mysql();
-	$task=new system_tasks();
-	$task->CheckDefaultSchedules();
+	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
@@ -64,7 +93,20 @@ function build_schedules(){
 	}
 	
 	@file_put_contents($pidTime, time());
+	
+	
+	
 	if(!$q->TABLE_EXISTS("system_schedules","artica_backup")){$task->CheckDefaultSchedules();}
+	
+	$task=new system_tasks();
+	$task->CheckDefaultSchedules();
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	if(file_exists($squidbin)){
+		$q=new mysql_squid_builder();
+		$q->CheckDefaultSchedules();
+	}
+	
+	
 	
 	if($q->COUNT_ROWS("system_schedules","artica_backup")==0){
 		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) system_schedules is empty !!\n";
@@ -153,7 +195,7 @@ function build_schedules(){
 	
 	}
 	
-	
+	shell_exec("/etc/init.d/cron reload");
 	
 }
 
@@ -213,33 +255,29 @@ function build_system_defaults(){
 	$f=array();	
 	
 	
-	$f[]="MAILTO=\"\"";
-	$f[]="3,6,9,12,15,18,21,25,27,30,33,36,39,41,45,50,55 0 * * * root $nice $prefix/bin/process1 >/dev/null 2>&1";
-	$f[]="";
-	@file_put_contents("/etc/cron.d/artica-process1", @implode("\n", $f));
-	$f=array();	
+
 	
 	$f[]="MAILTO=\"\"";
-	$f[]="7,14,21,28,35,42,49,56 0 * * * root $nice $php $prefix/exec.dnsmasq.php --varrun >/dev/null 2>&1";
+	$f[]="7,14,21,28,35,42,49,56 0 * * * * root $nice $php $prefix/exec.dnsmasq.php --varrun >/dev/null 2>&1";
 	$f[]="";
 	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
 	$f=array();
 	
 	$f[]="MAILTO=\"\"";
-	$f[]="10,34,51 0 * * * root $nice $php $prefix/exec.watchdog.php --monit >/dev/null 2>&1";
+	$f[]="10,34,51 0 * * * * root $nice $php $prefix/exec.watchdog.php --monit >/dev/null 2>&1";
 	$f[]="";
 	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
 	$f=array();	
 	
 	$f[]="MAILTO=\"\"";
-	$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * root $nice $php $prefix/exec.parse-orders.php >/dev/null 2>&1";
+	$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * * root $nice $php $prefix/exec.parse-orders.php >/dev/null 2>&1";
 	$f[]="";
 	@file_put_contents("/etc/cron.d/artica-parseorders", @implode("\n", $f));
 	$f=array();
 	
 	if($users->spamassassin_installed){
 		$f[]="MAILTO=\"\"";
-		$f[]="10 3,6,9,12,15,18,21,23 * * root $nice $php $prefix/exec.sa-learn-cyrus.php --execute >/dev/null 2>&1";
+		$f[]="10 3,6,9,12,15,18,21,23 * * * root $nice $php $prefix/exec.sa-learn-cyrus.php --execute >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-salearn-cyrus", @implode("\n", $f));
 		$f=array();
@@ -248,15 +286,11 @@ function build_system_defaults(){
 
 	if($users->fetchmail_installed){
 		$f[]="MAILTO=\"\"";
-		$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * root $nice $php $prefix/exec.fetchmail.sql.php >/dev/null 2>&1";
+		$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * * root $nice $php $prefix/exec.fetchmail.sql.php >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-ftechmailsql", @implode("\n", $f));
 		$f=array();
 	}
-		
-	
-	
-	
 }
 
 
@@ -357,6 +391,12 @@ function execute_task_squid($ID){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.squid.pid";
+	
+	$sock=new sockets();
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){return ;}
+	
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];		
 	

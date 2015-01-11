@@ -50,7 +50,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain style='font-size:12px'>{squid_redirectors_howto}</div>
+	<div class=text-info style='font-size:12px'>{squid_redirectors_howto}</div>
 	<div id='$t'>
 	<table style='width:99%' class=form>
 	<tbody>

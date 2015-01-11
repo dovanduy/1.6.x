@@ -69,7 +69,7 @@ function params(){
 
 	if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$SambaWinsServer)){$SambaWinsServer="0.0.0.0";}
 	
-	$html="<div class=explain>{samba_wins_explain}</div>
+	$html="<div class=text-info>{samba_wins_explain}</div>
 	
 	
 	<table style='width:99%' class=form>

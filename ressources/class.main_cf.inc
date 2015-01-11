@@ -769,10 +769,10 @@ private function build_default_my_networks(){
 	
 		if(!isset($this->main_array["qmgr_message_recipient_minimum"])){$this->main_array["qmgr_message_recipient_minimum"]=null;}
 		if(!isset($this->main_array["smtpd_timeout"])){$this->main_array["smtpd_timeout"]=null;}
-		if(!isset($this->main_array["enable_original_recipient"])){$this->main_array["enable_original_recipient"]=null;}
+		
 		if(!isset($this->main_array["smtpd_tls_ask_ccert"])){$this->main_array["smtpd_tls_ask_ccert"]=null;}
 		if(!isset($this->main_array["smtpd_tls_req_ccert"])){$this->main_array["smtpd_tls_req_ccert"]=null;}
-		if(!isset($this->main_array["undisclosed_recipients_header"])){$this->main_array["undisclosed_recipients_header"]=null;}
+		
 		if(!isset($this->main_array["smtp_tls_mandatory_protocols"])){$this->main_array["smtp_tls_mandatory_protocols"]=null;}
 		if(!isset($this->main_array["smtp_send_xforward_command"])){$this->main_array["smtp_send_xforward_command"]=null;}
 		if(!isset($this->main_array["smtpd_sasl_path"])){$this->main_array["smtpd_sasl_path"]=null;}
@@ -832,7 +832,7 @@ private function build_default_my_networks(){
 		if($this->main_array["default_process_limit"]==null){$this->main_array["default_process_limit"]='100';}
 		if($this->main_array["myorigin"]==null){$this->main_array["myorigin"]='$mydomain';}
 		if($this->main_array["smtpd_timeout"]==null){$this->main_array["smtpd_timeout"]='300';}
-		if($this->main_array["enable_original_recipient"]==null){$this->main_array["enable_original_recipient"]='yes';}
+		
 		
 		
 		
@@ -848,7 +848,7 @@ private function build_default_my_networks(){
 		
 		if($this->main_array["smtp_sender_dependent_authentication"]==null){$this->main_array["smtp_sender_dependent_authentication"]='no';}		
 		
-		if($this->main_array["undisclosed_recipients_header"]==null){$this->main_array["undisclosed_recipients_header"]="To: undisclosed-recipients:;";}
+		
 		if($this->main_array["initial_destination_concurrency"]==null){$this->main_array["initial_destination_concurrency"]='5';}
 		if($this->main_array["default_destination_concurrency_limit"]==null){$this->main_array["default_destination_concurrency_limit"]='20';}
 		if($this->main_array["local_destination_concurrency_limit"]==null){$this->main_array["local_destination_concurrency_limit"]='2';}
@@ -859,7 +859,7 @@ private function build_default_my_networks(){
 		if($this->main_array["mailbox_size_limit"]<$this->main_array["message_size_limit"]){$this->main_array["mailbox_size_limit"]=$this->main_array["message_size_limit"];}
 		
 		
-		
+		if(!isset($this->main_array["virtual_gid_maps"])){$this->main_array["virtual_gid_maps"]='static:5000';}
 		$this->main_array["virtual_mailbox_limit"]=$this->main_array["message_size_limit"];
 		
 		if($this->main_array["double_bounce_sender"]==null){$this->main_array["double_bounce_sender"]='double-bounce';}

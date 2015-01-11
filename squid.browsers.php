@@ -35,6 +35,14 @@ function popup(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		return;
+	}
+	
 	$q=new mysql_squid_builder();	
 	$q->CheckTables();
 	$type=$tpl->_ENGINE_parse_body("{type}");

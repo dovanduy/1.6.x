@@ -66,7 +66,7 @@ function page(){
 	$t=$_GET["t"];
 	$tt=time();
 	$html="
-	<div class=explain style='font-size:14px'>$dhcpd_shared_network_explain</div>
+	<div class=text-info style='font-size:14px'>$dhcpd_shared_network_explain</div>
 	<table class='table-items-$tt' style='display: none' id='table-items-$tt' style='width:99%'></table>
 	<script>
 	var DeleteAclKey$tt=0;

@@ -75,7 +75,7 @@ function net_id(){
 	
 	$html="
 	<span id='smbanncleid'></span>
-	<div class=explain >{SAMBA_REMOTE_ANNOUNCE_EXPLAIN_FIELD}</div>
+	<div class=text-info >{SAMBA_REMOTE_ANNOUNCE_EXPLAIN_FIELD}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td class=legend>{domain}:</td>
@@ -155,7 +155,7 @@ function popup(){
 	<table style='widht:100%'>
 	<tr>
 		<td valign='top' width=99%>
-			<div class=explain>{SAMBA_REMOTE_ANNOUNCE_EXPLAIN}</div>
+			<div class=text-info>{SAMBA_REMOTE_ANNOUNCE_EXPLAIN}</div>
 		</td>
 		<td valign='top' width=1%>
 			". Paragraphe_switch_img("{enable_feature}", "{enable_remote_announce_explain}","SambaEnableRemoteAnnounce",$SambaEnableRemoteAnnounce)."

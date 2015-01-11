@@ -74,7 +74,7 @@ $form="
 
 		
 	$html="
-			<div class=explain style='font-size:14px;'>{listen_port_text}</div>
+			<div class=text-info style='font-size:14px;'>{listen_port_text}</div>
 				$form
 			<br>
 			

@@ -231,7 +231,7 @@ function settings(){
 	unset($hash["127.0.0.1"]);
 	
 	$html="
-	<div class=explain style='font-size:14px'>{UpdateUtilityEnableHTTP_explain}</div>
+	<div class=text-info style='font-size:14px'>{UpdateUtilityEnableHTTP_explain}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' style='width:1%'><div id='status-$t'></div></td>

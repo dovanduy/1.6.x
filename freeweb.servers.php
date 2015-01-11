@@ -136,7 +136,7 @@ function page(){
 		if($squid->isNGnx()){$SquidActHasReverse=1;}
 		
 		if($SquidActHasReverse==1){
-			$explainSquidActHasReverse=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{explain_freewebs_reverse}</div>");
+			$explainSquidActHasReverse=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{explain_freewebs_reverse}</div>");
 		}
 	}
 	

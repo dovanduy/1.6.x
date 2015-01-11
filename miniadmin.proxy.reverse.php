@@ -210,6 +210,12 @@ $html="
 var xDeleteFreeWeb$t=function (obj) {
 	var results=obj.responseText;
 	if(results.length>10){alert(results);return;}	
+	
+	if(document.getElementById('NGINX_MAIN_TABLE')){
+		$('#NGINX_MAIN_TABLE').flexReload();
+		}
+	
+	
 	if(document.getElementById('FreeWebIDMEM{$md}')){
 		$('#'+FreeWebIDMEM{$md}).remove();
 		return;
@@ -1009,6 +1015,7 @@ function source_popup_main(){
 	
 	$boot->set_field("port", "{port}",$ligne["port"]);
 	$boot->set_field("forceddomain", "{forceddomain}",$ligne["forceddomain"],array("TOOLTIP"=>"{nginx_forceddomain}"));
+	$boot->set_checkbox("proxy_cookie_domain", "{proxy_cookie_domain}", $ligne["proxy_cookie_domain"],array("TOOLTIP"=>"{nginx_proxy_cookie_domain}"));
 	$boot->set_field("proxy_read_timeout", "{read_timeout} ({seconds})", $ligne["proxy_read_timeout"],array("TOOLTIP"=>"{nginx_proxy_read_timeout}"));
 	$boot->set_checkbox("ForceRedirect", "{ForceRedirect}", $ligne["ForceRedirect"],array("TOOLTIP"=>"{nginx_ForceRedirect}"));
 	$boot->set_checkbox("ssl", "{generate_ssl}", $ligne["ssl"]);
@@ -1238,7 +1245,7 @@ function tabs(){
 	
 	
 	if(isset($_GET["subtitle"])){
-		$subtitle=$tpl->_ENGINE_parse_body("<p class=explain>{reverse_proxy_settings_text}</p>");
+		$subtitle=$tpl->_ENGINE_parse_body("<p class=text-info>{reverse_proxy_settings_text}</p>");
 	}
 
 	$array["{websites}"]="$page?websites-section=yes";
@@ -1393,7 +1400,7 @@ function websites_section(){
 	if(!is_numeric($EnableNginxStats)){$EnableNginxStats=0;}
 	$info=null;
 	if($EnableNginxStats==0){
-		$info=$tpl->_ENGINE_parse_body("<div class=explain>{EnableNginxStats_explain}</div>");
+		$info=$tpl->_ENGINE_parse_body("<div class=text-info>{EnableNginxStats_explain}</div>");
 	}
 	
 	if(AdminPrivs()){
@@ -1411,7 +1418,7 @@ function websites_privs_section(){
 	$boot=new boostrap_form();
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$explain=$tpl->_ENGINE_parse_body("<div class=explain>{NGINX_PRIVS_EXPLAIN}</div>");
+	$explain=$tpl->_ENGINE_parse_body("<div class=text-info>{NGINX_PRIVS_EXPLAIN}</div>");
 	$t=time();
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{link_member}", "Loadjs('miniadm.members.browse.php?CallBack=LinkUser$t')"));
 	echo $boot->SearchFormGen(null,"privs-search","&servername={$_GET["servername"]}",$EXPLAIN)."

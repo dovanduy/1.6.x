@@ -8456,7 +8456,7 @@ fpsystem('/etc/init.d/saslauthd restart');
  fpsystem('/bin/ln -s --force /etc/postfix/sasl/smtpd.conf /usr/lib/sasl2/smtpd.conf');
  LOGS.INSTALL_MODULES('APP_POSTFIX','Set sasl......................:done...');
  zFile.Free;
- postfix.POSTFIX_CHECK_SASLDB2();
+
  GLOBAL_INI.FRee;
  result:=true;
 

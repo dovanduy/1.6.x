@@ -37,7 +37,7 @@ private
        function   MYSQL_EXEC_BIN_PATH():string;
        procedure  ZARAFA_INSTALL_MENU();
        procedure  ZARAFA_INSTALL_PERFORM();
-       function   GET_INFO(key:string):string;
+
        function   LOCATE_GENERIC_BIN(StrProgram:string):string;
        procedure  set_INFO(key:string;val:string);
        function   CPU_NUMBER():integer;
@@ -51,6 +51,7 @@ public
       DirListFiles:TstringList;
       constructor Create();
       procedure Free;
+      function   GET_INFO(key:string):string;
       function DirDir(FilePath: string):TstringList;
       function WGET_DOWNLOAD_FILE(uri:string;file_path:string):boolean;
       function COMPILE_GENERIC_APPS(package_name:string;onlydownload:boolean=false):string;
@@ -700,7 +701,7 @@ stmp:=MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
 SysTmpDir:=trim(GET_INFO('SysTmpDir'));
 if length(SysTmpDir)=0 then SysTmpDir:='/home/artica/tmp';
 if not DirectoryExists(SysTmpDir) then forceDirectories(SysTmpDir);
-result:=GetTempFileName(SysTmpDir,ExtractFileName(ParamStr(0))+'-'+stmp+'-'+mypid+'-');
+result:=GetTempFileName(SysTmpDir,ExtractFileName(ParamStr(0))+'-'+stmp+'-');
 
 end;
 function tlibs.DateTimeNowSQL():string;
@@ -985,8 +986,9 @@ var
 
 begin
 
-    xMEM_TOTAL_INSTALLEE:=IntToStr(MEM_TOTAL_INSTALLEE());
 
+writeln('COMPILE_GENERIC_APPS ->"'+package_name+'"');
+xMEM_TOTAL_INSTALLEE:=IntToStr(MEM_TOTAL_INSTALLEE());
 
    if not FileExists('/etc/artica-postfix/dmidecode.cache.url') then begin
       if FileExists('/usr/share/artica-postfix/exec.dmidecode.php') then fpsystem(LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.dmidecode.php --chassis >/dev/null 2>&1');
@@ -1013,7 +1015,7 @@ begin
 
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
-
+    writeln('Change to "'+ ExtractFilePath(ParamStr(0))+'" directory..');
     fpsystem('cd ' + ExtractFilePath(ParamStr(0)));
 
     gcc_path:=LOCATE_GCC();
@@ -1028,7 +1030,7 @@ begin
     
 
 
-    writeln('Checking required compilation tools as gcc and make');
+    writeln('Checking required compilation tools as GCC and MAKE');
     if length(make_path)=0 then begin
         writeln('ERROR:: unable to locate make...');
         goto MyEnd;
@@ -1097,7 +1099,6 @@ begin
     if length(package_version)=0 then begin
          writeln('http source problem [NEXT]\' + package_name +  ' is null...aborting');
          writeln('try to remove ',autoupdate_path);
-
          exit;
     end;
 

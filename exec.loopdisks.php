@@ -33,6 +33,10 @@ function build(){
 		return;
 	}
 	
+	
+	$mysqld=$unix->find_program("mysqld");
+	if(!is_file($mysqld)){return;}
+	
 	@file_put_contents($pidfile,getmypid());
 	
 	

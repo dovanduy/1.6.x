@@ -682,7 +682,7 @@ function GetMemoriesOf($pid){
 	if($count==0){$count=1;}
 	$l[]="master_pid=$pid";	
     $l[]="master_memory=$rss";
-    $l[]="master_cached_memory=$vm";
+    //$l[]="master_cached_memory=$vm";
     $l[]="processes_number=$count";
 	return implode("\n",$l);
 	

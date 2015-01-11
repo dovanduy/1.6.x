@@ -75,7 +75,7 @@ function popup(){
 	$page=CurrentPageName();	
 	$t=time();
 	$html="
-	<div class=explain style='font-size:14px'>{check_recipient_explain}</div>
+	<div class=text-info style='font-size:14px'>{check_recipient_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{sender}:</td>
@@ -311,7 +311,7 @@ function send_msg_popup(){
 	
 	$html="
 	<div id='work-$t'></div>
-	<div class=explain style='font-size:14px'>{check_sendmsg_explain}</div>
+	<div class=text-info style='font-size:14px'>{check_sendmsg_explain}</div>
 	<table style='width:99%' class=form>
 	$hosts_field
 	<tr>
@@ -438,7 +438,7 @@ function check_msg_popup(){
 	$page=CurrentPageName();	
 	$t=time();
 	$html="
-	<div class=explain style='font-size:14px'>{check_message_content_explain}</div>
+	<div class=text-info style='font-size:14px'>{check_message_content_explain}</div>
 	<div style='text-align:right'><a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=269','1024','900');\" style='text-decoration:underline;font-weight:bold'>{online_help}</a></div> 
 	<center>". button("{add_message_content}","CheckMSGADDContent()","16px")."</center>
 	<div id='work-$t' style='margin-top:15px'></div>

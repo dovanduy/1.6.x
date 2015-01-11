@@ -747,7 +747,8 @@ function remove_database(){
 	echo "Starting zarafa..............: remove $MYSQL_DATA_DIR/zarafa*\n";
 	shell_exec("/bin/rm -rf $MYSQL_DATA_DIR/zarafa");
 	echo "Starting zarafa..............: restart MySQL\n";
-	shell_exec("/etc/init.d/mysql restart >/tmp/zarafa_removedb 2>&1");
+	mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+	shell_exec("/etc/init.d/mysql restart --force --framework=".__FILE__." >/tmp/zarafa_removedb 2>&1");
 	echo "Starting zarafa..............: restart Zarafa server\n";
 	shell_exec("/etc/init.d/zarafa-server restart >>/tmp/zarafa_removedb 2>&1");
 	

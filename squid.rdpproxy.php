@@ -184,18 +184,13 @@ function parameters(){
 		<td valign='top' style='padding-left:15px'>
 	<div style='font-size:60px;margin-bottom:15px'>{APP_RDPPROXY}</div>	
 	<hr>	
-	<div class='explain' style='font-size:18px;margin-top:30px'>
-	{APP_RDPPROXY_EXPLAIN}
-	</div>
 	<div id='test-$t'></div>
 	<p>&nbsp;</p>
 	<div style='width:98%' class=form>
 		<table>
-			<tr>
-				<td class='legend' style='font-size:18px !important;vertical-align:top'>{activate_RDP_service}:</td>
-				<td>". Field_checkbox("EnableRDPProxy", 1,$EnableRDPProxy)."</td>
-				<td width=1%>&nbsp;</td>
-			</tr>
+		<tr>
+		<td colspan=3>". Paragraphe_switch_img("{activate_RDP_service}", "{APP_RDPPROXY_EXPLAIN}","EnableRDPProxy","$EnableRDPProxy",null,750)."
+		</tr>
 			<tr>
 				<td class=legend style='font-size:18px !important;vertical-align:top''>{listen_ip}:</td>
 				<td>". Field_array_Hash($ips, "RDPProxyListen",$RDPProxyListen,null,null,0,"font-size:18px")."</td>
@@ -230,11 +225,12 @@ function Save$t(){
 	var XHR = new XHRConnection();
 	EnableRDPProxy=0;
 	RDPDisableGroups=0;
-	if(document.getElementById('EnableRDPProxy').checked){EnableRDPProxy=1;}
+	
 	if(document.getElementById('RDPDisableGroups').checked){RDPDisableGroups=1;}
 	XHR.appendData('EnableRDPProxy',EnableRDPProxy);
 	XHR.appendData('RDPDisableGroups',RDPDisableGroups);
 	XHR.appendData('RDPProxyPort',document.getElementById('RDPProxyPort').value);
+	XHR.appendData('EnableRDPProxy',document.getElementById('EnableRDPProxy').value);
 	XHR.appendData('RDPProxyListen',document.getElementById('RDPProxyListen').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t,true);
 

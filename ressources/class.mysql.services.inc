@@ -204,7 +204,7 @@ class mysql_services{
 		
 		
 		if($memory>512){
-			if($max_allowed_packet==0){$max_allowed_packet=50;}
+			if($max_allowed_packet==0){$max_allowed_packet=64;}
 			$bulk_insert_buffer_sized=8;$key_buffer_size_d=8;$max_allowed_packetd=50;$thread_cache_sized=2;
 			$tmp_table_sized=8;
 			$innodb_buffer_pool_sized=128;
@@ -214,7 +214,7 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=1;}
 		}
 		if($memory>1024){
-				if($max_allowed_packet<64){$max_allowed_packet=64;}
+				if($max_allowed_packet<512){$max_allowed_packet=512;}
 				$bulk_insert_buffer_sized=16;
 				$key_buffer_size_d=32;
 				$innodb_buffer_pool_sized=128;
@@ -225,7 +225,7 @@ class mysql_services{
 		
 		}
 		if($memory>1500){
-			if($max_allowed_packet<64){$max_allowed_packet=128;}
+			if($max_allowed_packet<800){$max_allowed_packet=800;}
 			$bulk_insert_buffer_sized=20;
 			$key_buffer_size_d=64;
 			$thread_cache_sized=2;
@@ -238,7 +238,7 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=4;}
 		}
 		if($memory>2048){
-			if($max_allowed_packet==0){$max_allowed_packet=128;}
+			if($max_allowed_packet<1000){$max_allowed_packet=1000;}
 			$bulk_insert_buffer_sized=32;
 			$key_buffer_size_d=128;
 			$tmp_table_sized=64;
@@ -251,7 +251,7 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=6;}
 		}
 		if($memory>2500){
-			if($max_allowed_packet<128){$max_allowed_packet=128;}
+			if($max_allowed_packet<1500){$max_allowed_packet=1500;}
 			$bulk_insert_buffer_sized=164;
 			$key_buffer_size_d=256;
 			$thread_cache_sized=10;
@@ -265,9 +265,9 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=8;}
 		}
 		if($memory>3000){
-			if($max_allowed_packet<128){$max_allowed_packet=128;}
+			if($max_allowed_packet<1650){$max_allowed_packet=1650;}
 			$bulk_insert_buffer_sized=196;
-			$key_buffer_size_d=256;
+			$key_buffer_size_d=512;
 			$thread_cache_sized=20;
 			$tmp_table_sized=96;
 			$innodb_log_buffer_sized=14;
@@ -278,9 +278,9 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=8;}
 		}
 		if($memory>3500){
-			if($max_allowed_packet<128){$max_allowed_packet=128;}
+			if($max_allowed_packet<1800){$max_allowed_packet=1800;}
 			$bulk_insert_buffer_sized=200;
-			$key_buffer_size_d=256;
+			$key_buffer_size_d=512;
 			$tmp_table_sized=128;
 			$innodb_log_buffer_sized=16;
 			$max_connections=80;
@@ -290,9 +290,9 @@ class mysql_services{
 			if($read_buffer_size==0){$read_buffer_size=16;}
 		}
 		if($memory>4000){
-			if($max_allowed_packet<196){$max_allowed_packet=196;}
+			if($max_allowed_packet<2000){$max_allowed_packet=2000;}
 			$bulk_insert_buffer_sized=204;
-			$key_buffer_size_d=300;
+			$key_buffer_size_d=600;
 			$max_allowed_packetd=100;
 			$thread_cache_sized=64;
 			$tmp_table_sized=128;
@@ -306,8 +306,9 @@ class mysql_services{
 		}
 		
 		if($memory>6000){
+			if($max_allowed_packet<2500){$max_allowed_packet=2500;}
 			$bulk_insert_buffer_sized=404;
-			$key_buffer_size_d=400;
+			$key_buffer_size_d=800;
 			$max_allowed_packetd=180;
 			$thread_cache_sized=128;
 			$tmp_table_sized=256;
@@ -346,7 +347,6 @@ class mysql_services{
 		
 		$KERNEL_ARCH=$unix->KERNEL_ARCH();
 		
-		$KERNEL_ARCH=$unix->KERNEL_ARCH();
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Architecture: $KERNEL_ARCH bits\n";}
 		if($unix->KERNEL_ARCH()==32){
 			if($innodb_buffer_pool_size>3999){$innodb_buffer_pool_size=3999;}
@@ -445,10 +445,11 @@ class mysql_services{
 		
 		$f[]="--log-error=$WORKDIR/error.log";
 		
-		
-		
-		
-		
+		if(class_exists("unix")){
+			$unix=new unix();
+			$unix->chown_func("mysql","mysql", "/var/run/mysqld");
+		}
+
 		if($this->InnoDB){
 			
 			if($this->AsZarafa){

@@ -16,7 +16,7 @@ Voici un exemple :
 SI le masque de r&eacute;seau est omis, /32 sera rajout&eacute; par d&eacute;faut pour adresse IPv4 et /128 pour une adresse IPv6.[br]
 Vous devriez au moins mettre en liste blanche la carte locale  (127.0.0.1/8) et si vous avez des utilisateurs locaux qui utilisent ce serveur.
 Vous devriez mettre au minimum leurs adresses si vous voulez qu'ils puissent &eacute;mettre des messages sans &ecirc;tre refus&eacute;s en liste grise.</addr_text>
-<add_acl>Ajouter une nouvelle r&egrave;gle</add_acl>
+<add_acl>Nouvelle r&egrave;gle</add_acl>
 <add_dnsrbl>Ajouter une nouvelle Classe DNSRBL</add_dnsrbl>
 <autowhite>Liste blanche automatique</autowhite>
 <Autowhitelistedtuples>Entr&eacute;e mises en liste blanche</Autowhitelistedtuples>

@@ -158,13 +158,13 @@ function manual_update(){
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
 	<H2>Artica Patch</H2>
-	<div class=explain>{artica_patch_explain}</div>
+	<div class=text-info>{artica_patch_explain}</div>
 	<center style='margin:10px;width:80%'>
 		<div id='file-uploader-demo1' style='width:100%;text-align:center'></div>
 	</center>
 	
 	<H2>{software}</H2>
-	<div class=explain>{artica_software_explain}</div>
+	<div class=text-info>{artica_software_explain}</div>
 	<center style='margin:10px;width:80%'>
 		<div id='file-uploader-demo2' style='width:100%;text-align:center'></div>
 	</center>	

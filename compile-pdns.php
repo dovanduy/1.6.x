@@ -14,6 +14,17 @@ if(preg_match("#--repos#", @implode(" ", $argv))){$GLOBALS["REPOS"]=true;}
 if(preg_match("#--force#", @implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 
 
+/* wget https://downloads.powerdns.com/releases/pdns-3.4.1.tar.bz2
+./configure --prefix=/usr --sysconfdir=/etc/powerdns --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --libdir=''${prefix}/lib/powerdns'' --libexecdir=''${prefix}/lib'' --with-dynmodules="ldap pipe gmysql geo" --without-sqlite3
+
+
+wget https://downloads.powerdns.com/releases/pdns-recursor-3.6.2.tar.bz2
+
+wget "http://downloads.sourceforge.net/project/poweradmin/poweradmin-2.1.7.tgz?r=http%3A%2F%2Fwww.poweradmin.org%2F&ts=1415924225&use_mirror=skylink" -O poweradmin-2.1.7.tgz
+tar -xf poweradmin-2.1.7.tgz
+
+*/
+if($argv[1]=="--version"){echo PDNS_VERSION();exit;}
 if($argv[1]=="--factorize"){factorize($argv[2]);exit;}
 if($argv[1]=="--serialize"){serialize_tests();exit;}
 if($argv[1]=="--latests"){latests();exit;}
@@ -41,7 +52,10 @@ function PDNS_VERSION(){
 	$unix=new unix();
 	$pdns_recursor=$unix->find_program("pdns_recursor");
 	exec("$pdns_recursor --version 2>&1",$results);
-	if(preg_match("#version:\s+([0-9\.]+)#i", @implode("", $results),$re)){return $re[1];}
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#version:\s+([0-9\.]+)#i", @implode("", $results),$re)){return $re[1];}
+		if(preg_match("#PowerDNS Recursor\s+([0-9\.]+)#i", @implode("", $results),$re)){return $re[1];}
+	}
 }
 
 
@@ -52,14 +66,20 @@ function create_package(){
 	if($Architecture==64){$Architecture="x64";}
 	if($Architecture==32){$Architecture="i386";}
 	$WORKDIR=$GLOBALS["ROOT-DIR"];
-	$version=PDNS_VERSION();
+	
 	@mkdir("$WORKDIR/sbin",0755,true);
 	@mkdir("$WORKDIR/usr/sbin",0755,true);
-
+	@mkdir("$WORKDIR//usr/lib/powerdns/",0755,true);
+	
+	if(is_dir("/lib/powerdns")){
+		shell_exec("/bin/cp -rfd /lib/powerdns/* $WORKDIR/usr/lib/powerdns/");
+	}
 	
 	$fdir[]="/usr/lib/powerdns";
+	$fdir[]="/lib/powerdns";
 	$fdir[]="/etc/powerdns";
 	$fdir[]="/usr/share/poweradmin";
+	$fdir[]="/usr/share/doc/pdns";
 	$fdir[]="/usr/lib/powerdns";
 	while (list ($num, $ligne) = each ($fdir) ){
 		@mkdir("$WORKDIR$ligne",0755,true);
@@ -76,8 +96,15 @@ function create_package(){
 	$f[]="/usr/bin/pdns_control";
 	$f[]="/usr/bin/rec_control";
 	$f[]="/etc/init.d/pdns-recursor";
+	$f[]="/usr/bin/zone2sql";
+	$f[]="/usr/bin/zone2ldap";
+	$f[]="/usr/bin/zone2json";
 	$f[]="/etc/init.d/pdns";
-	
+	$f[]="/usr/share/man/man8/pdns_control.8"; 
+	$f[]="/usr/share/man/man8/pdnssec.8";  
+	$f[]="/usr/share/man/man8/pdns_server.8";
+	$f[]="/usr/share/man/man1/pdns_recursor.1";
+	$f[]="/usr/share/man/man1/rec_control.1";
 	
 
 	while (list ($num, $ligne) = each ($f) ){
@@ -89,15 +116,26 @@ function create_package(){
 		
 	}
 	
-	
+	$version=PDNS_VERSION();
 	echo "Creating package done....\n";
 	echo "Building package Arch:$Architecture Version:$version\n";
 	echo "Going to $WORKDIR\n";
 	@chdir("$WORKDIR");
-	echo "Compressing pdnsc-$Architecture-$version.tar.gz\n";
-	if(is_file("/root/pdnsc-$Architecture-$version.tar.gz")){@unlink("/root/pdnsc-$Architecture-$version.tar.gz");}
-	shell_exec("tar -czf /root/pdnsc-$Architecture-$version.tar.gz *");
-	echo "Compressing /root/pdnsc-$Architecture-$version.tar.gz Done...\n";	
+	$debianv=DebianVersion();
+	
+	if($debianv>6){
+		$debianv="-debian$debianv";
+	}
+	
+	$TARGET_TGZ="/root/pdnsc-$Architecture$debianv-$version.tar.gz";
+	
+	
+	
+	
+	echo "Compressing $TARGET_TGZ\n";
+	if(is_file($TARGET_TGZ)){@unlink($TARGET_TGZ);}
+	shell_exec("tar -czf $TARGET_TGZ *");
+	echo "Compressing $TARGET_TGZ Done...\n";	
 }
 
 
@@ -114,7 +152,14 @@ function Architecture(){
 }
 
 
+function DebianVersion(){
 
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){return 6;}
+	return $re[1];
+
+}
 
 
 

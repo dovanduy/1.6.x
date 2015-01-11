@@ -1,9 +1,14 @@
 #!/usr/bin/php
 <?php
+$GLOBALS["DEBUG_GROUPS"]=3;
 include_once("/usr/share/artica-postfix/ressources/class.external_acl_squid_ldap.inc");
-//error_reporting(0);
+$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
+error_reporting(0);
 if(preg_match("#--verbose#", @implode(" ", $argv))){
-	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);error_reporting(1);
+	ini_set('display_errors', 1);	
+	ini_set('html_errors',0);
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
 	error_reporting(1);
 	$GLOBALS["VERBOSE"]=true;
 	echo "VERBOSED MODE\n";
@@ -17,9 +22,15 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["LDAP_TIME_LIMIT"]=10;
   
-  $GLOBALS["DEBUG"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidExternalLDAPDebug"));
-  if(!is_numeric($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=0;}
-  $GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
+  if(!isset($GLOBALS["DEBUG_GROUPS"])){
+	  $GLOBALS["DEBUG_GROUPS"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidExternalLDAPDebug"));
+	  if(!is_numeric($GLOBALS["DEBUG_GROUPS"])){
+	  	WLOG("[START]: DEBUG_GROUP not a numeric, define it to 0");
+	  	$GLOBALS["DEBUG_GROUPS"]=0;
+	  }
+  }
+ 
+ 
   $GLOBALS["TIMELOG"]=0;
   $GLOBALS["QUERIES_NUMBER"]=0;
   $GLOBALS["TIMELOG_TIME"]=time();
@@ -29,31 +40,43 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
 
   $max_execution_time=ini_get('max_execution_time'); 
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/".basename(__FILE__).".cache"));
-  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG"]}");
+  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG_GROUPS"]}");
   ConnectToLDAP();
   $external_acl_squid_ldap=new external_acl_squid_ldap();
   if($argv[1]=="--groups"){$GLOBALS["VERBOSE"]=true;
  
-  $GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($argv[2]);print_r($GROUPZ);die();
+  $GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($argv[2]);
+  print_r($GROUPZ);
+  echo "********************* RECURSIVE ***********************\n";
+  $external_acl_squid_ldap->ADLdap_getgroups($argv[2]);
+  die();
   }
-  
+ 
   
 while (!feof(STDIN)) {
  $content = trim(fgets(STDIN));
  
  if($content<>null){
- 	if($GLOBALS["DEBUG"] == 1){ WLOG("receive content...$content"); }
+ 	
+ 	if($GLOBALS["DEBUG_GROUPS"]>0){ WLOG("receive content...\"$content\""); }
  	$array=explode(" ",$content);
  	$member=trim($array[0]);
  	$member=str_replace("%20", " ", $member);
  	$group=$array[1];
+ 	$group=str_replace("%20", " ", $group);
  	unset($array[0]);
  	$count=count($array);
  	if($count>1){ $group=@implode(" ", $array);}
  	$group=strtolower($group);
+ 	$GROUPZ=array();
  	
-	if($GLOBALS["DEBUG"] == 1){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
- 	$GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($member);
+	if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
+ 	$GROUPY=$external_acl_squid_ldap->GetGroupsFromMember($member);
+ 	if(count($GROUPY)>0){
+ 		while (list ($a, $b) = each ($GROUPY) ){
+ 			$GROUPZ[strtolower($a)]=true;
+ 		}
+ 	}
  	
  	//WLOG("Checking $group ? {$GROUPZ[$member][$group]}");
  	
@@ -65,16 +88,22 @@ while (!feof(STDIN)) {
  		$GLOBALS["TIMELOG_TIME"]=time();
  	}
  	
+ 	if($GLOBALS["DEBUG_GROUPS"] >0){
+ 		WLOG("[CHECK]: `$group` in array of ".count( $GROUPZ)." items");
+ 		while (list ($a, $b) = each ($GROUPZ) ){WLOG("[CHECK]: is `$a` == `$group`");}
+ 	}
+ 	
  	if(isset($GROUPZ[$group])){
- 		if($GLOBALS["DEBUG"] == 1){  WLOG("[SEND]: <span style='font-weight:bold;color:#00B218'>OK</span> &laquo;$member&raquo; is a member of &laquo;$group&raquo;");}
+ 		if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[SEND]: <span style='font-weight:bold;color:#00B218'>OK</span> &laquo;$member&raquo; is a member of &laquo;$group&raquo;");}
  		fwrite(STDOUT, "OK\n");
  		continue;
  	}
 
- 	if($GLOBALS["DEBUG"] == 1){  WLOG("$member is not a member of $group"); }
+ 	if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("$member IS NOT a member of `$group`"); }
  	fwrite(STDOUT, "ERR\n");
 
 	}
+	
 }
 
 CleanSessions();
@@ -192,13 +221,13 @@ function GetGroupsFromMember($member){
 		for($i=0;$i<$hash[0]["memberof"]["count"];$i++){
 			if(preg_match("#^CN=(.+?),#i", $hash[0]["memberof"][$i],$re)){
 				$re[1]=trim(strtolower($re[1]));
-				if($GLOBALS["DEBUG"] == 1){  WLOG("$member = \"{$re[1]}\""); }
+				if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("$member = \"{$re[1]}\""); }
 				$array[$re[1]]=true;
 			}
 			
 		}
 	}
-	if($GLOBALS["DEBUG"] == 1){  WLOG("Return array of ".count($array)." items"); }
+	if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("Return array of ".count($array)." items"); }
 	return $array;
 	
 }
@@ -221,7 +250,7 @@ function MemberInfoByDN($base_dn){
 	
 	$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
 	if (!$sr) {WLOG("[QUERY]: MemberInfoByDN()::Bad search $base_dn / $filter");return null;}
-	$hash=ldap_get_entries($GLOBALS["CONNECTION"],$sr);
+	$hash=ldap_get_entries($GLOBALS["CONNECsTION"],$sr);
 	if(!is_array($hash)){WLOG("[QUERY]: MemberInfoByDN():: Not an array $base_dn / $filter");return null;}
 	$AsGroup=false;
 
@@ -651,10 +680,10 @@ function WLOG($text=null){
 
 function ufdbguard_checks($id){
 	LoadSettings();
-	if($GLOBALS["VERBOSE"]){echo "OPEN: /etc/squid3/ufdb.groups.$id.db\n";}
+	if($GLOBALS["VERBOSE"]){$GLOBALS["output"]=true;echo "OPEN: /etc/squid3/ufdb.groups.$id.db\n";}
 	$arrayGROUPS=unserialize(@file_get_contents("/etc/squid3/ufdb.groups.$id.db"));
 	$FINAL=array();
-	
+	$Hash=array();
 	
 	
 	
@@ -676,54 +705,18 @@ function ufdbguard_checks($id){
 	if(isset($arrayGROUPS["AD"])){
 		while (list ($index, $DNenc) = each ($arrayGROUPS["AD"]) ){
 			$DN=base64_decode($DNenc);
+			if($GLOBALS["VERBOSE"]){echo "DN, $DN\n";}
+			$ldapExt=new external_acl_squid_ldap();
+			$members=$ldapExt->AdLDAP_MembersFromGroup($DN);
 			
-			if(preg_match("#CN=Users,CN=Builtin,(.+)#",$DN,$re)){
-				$DN2="CN=Users,{$re[1]}";
-				if($GLOBALS["output"]){echo "\n\nExtract users from Branch $DN2\n---------------------------------------\n";}
-				$Hash=HashUsersFromFullDN($DN2);
-				if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
-				
-				if(count($Hash)==1000){
-					if($GLOBALS["output"]){
-						echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
-					}
-				}
-				
-				while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
+			if($GLOBALS["VERBOSE"]){echo "DN, $DN -> ". count($members)."\n";}
+			
+			while (list ($a, $b) = each ($members) ){
+				$Hash[$b]=$b;
 			}
-			
-			if(preg_match("#CN=Utilisa\. du domaine,CN=Users,(.+)#",$DN,$re)){
-				$DN2="CN=Users,{$re[1]}";
-				if($GLOBALS["output"]){echo "\n\nExtract users from Branch $DN2\n---------------------------------------\n";}
-				$Hash=HashUsersFromFullDN($DN2);
-				if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
-				
-				if(count($Hash)==1000){
-					if($GLOBALS["output"]){
-						echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
-					}
-				}
-				
-				while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
-			}
-			
-			
-			
-			
-			
-			if($GLOBALS["output"]){echo "\n\nExtract users from $DN\n---------------------------------------\n";}
-			$Hash=HashUsersFromGroupDN($DN);
-			if($GLOBALS["output"]){echo "return ". count($Hash)." users\n";}
-			if(count($Hash)==1000){
-				if($GLOBALS["output"]){
-					echo "# # # # # # # # # # # # # # # # # # # # # #\n# #Notice # #\n# # # # # # # # # # # # # # # # # # # # # #\n*********************\na LDAP application queries the members of a group,\nthe Windows Server 2008 R2 or Windows Server 2008 domain controller only returns only 1000 members,\nwhile the Windows Server 2003 domain controllers returns many more members.\nsee the kb http://http://support.microsoft.com/kb/2009267\nin order to increase the items returned by the Active Directory\n*********************\n";
-				}
-			}
-			
-			if(count($Hash)==0){WLOG("[QUERY]: ufdbguard_checks($id) $DN store no user...");continue;}
-			while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
+
 		}
-		
+		while (list ($a, $b) = each ($Hash) ){if($GLOBALS["VERBOSE"]){echo "USER= $b\n";}$FINAL[]=$b;}
 		
 	}
 	

@@ -22,6 +22,7 @@ function MAIN_MENU(){
 $unix=new unix();
 $clear=$unix->find_program("clear");
 if(is_file($clear)){system("$clear");}
+$php=$unix->LOCATE_PHP5_BIN();
 
 echo "NETWORK CONFIGURATOR Menu\n";
 echo "---------------------------------------------\n";
@@ -29,6 +30,10 @@ echo "Mofify network parameters........: [1]\n";
 echo "Reload/Restart Network...........: [2]\n";
 echo "Remove any Firewall rules........: [3]\n";
 echo "DNS setup........................: [4]\n";
+echo "Remove NICs Parameters...........: [5]\n";
+echo "Rebuild network setting..........: [6]\n";
+echo "Install Broadcom driver..........: [7]\n";
+echo "Generate a new Unique identifier.: [8]\n";
 echo "Exit menu........................: [q]\n";
 echo "\n";
 
@@ -39,6 +44,10 @@ switch ($answer) {
 	case "2":ACTION_NETWORK_RESTART();break;
 	case "3":ACTION_KILL_IPTABLES();break;
 	case "4":ACTION_DNS();break;
+	case "5":REMOVE_NETWORK();break;
+	case "6":REBUILD_NETWORK();break;
+	case "7":system("$php /usr/share/artica-postfix/exec.bnx2.enable.php");break;
+	case "8":new_uuid();break;
 	case "q":die();break;
 	default:
 		;
@@ -50,6 +59,27 @@ switch ($answer) {
 }
 
 
+}
+
+function new_uuid(){
+	$unix=new unix();
+	$chattr=$unix->find_program("chattr");
+	echo "Old uuid:".@file_get_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID")."\n";
+	shell_exec("$chattr -i /etc/artica-postfix/settings/Daemons/SYSTEMID");
+	$uuid=trim($unix->gen_uuid());
+	echo "New uuid: $uuid\n";
+	
+	if(strlen($uuid)>5){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID", $uuid);
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID_CREATED", time());
+		@chmod("/etc/artica-postfix/settings/Daemons/SYSTEMID", 0777);
+		shell_exec("$chattr +i /etc/artica-postfix/settings/Daemons/SYSTEMID");
+	
+	}
+	echo "\nSuccess\nPress any key to exit.\n";
+	$answer = trim(strtolower(fgets(STDIN)));
+	return;
+	
 }
 
 function ACTION_KILL_IPTABLES(){
@@ -73,6 +103,16 @@ function ACTION_KILL_IPTABLES(){
 	return;		
 	
 	
+}
+
+function REBUILD_NETWORK(){
+	$unix=new unix();
+	$clear=$unix->find_program("clear");
+	if(is_file($clear)){system("$clear");}
+	system("/etc/init.d/artica-ifup reconfigure");
+	echo "\nPress any key to exit.\n";
+	$answer = trim(strtolower(fgets(STDIN)));
+	return;
 }
 
 function ACTION_NETWORK_RESTART(){
@@ -191,6 +231,7 @@ echo "Should be one of :".@implode(", ", $int)."\n";
 echo "Default: [$DEFAULT]\n";
 $NIC = trim(strtolower(fgets(STDIN)));
 if($NIC==null){$NIC=$DEFAULT;}
+if(!preg_match("#([a-z])([0-9+])$#", $NIC)){$NIC=$DEFAULT;}
 $ETH_IP=trim(ASK_ETH_IP($NIC));
 $GATEWAY=trim(ASK_GATEWAY($NIC));
 $NETMASK=trim(ASK_NETMASK($NIC));
@@ -306,7 +347,7 @@ if($DEFAULT==null){
 	
 	
 	if(!$tcp->isValid($ip)){
-		echo "$ip is not a valid IP address\n";
+		echo "\"$ip\" is not a valid IP address\n";
 		echo "Type q to exit or press key to retry\n";
 		$answer = trim(strtolower(fgets(STDIN)));
 		if($answer=="q"){return;}
@@ -315,6 +356,28 @@ if($DEFAULT==null){
 	}
 	
 	return $ip;
+}
+
+function REMOVE_NETWORK(){
+	$unix=new unix();
+	$clear=$unix->find_program("clear");
+	if(is_file($clear)){system("$clear");}
+	echo "This section will flush network parameters\n";
+	echo "Type 'yes' to confirm the operation or 'q' to exit\n\n";
+	$asw=trim(strtolower(fgets(STDIN)));
+	if($asw=="q"){return;}
+	$q=new mysql();
+	$q->QUERY_SQL("TRUNCATE table `nics`","artica_backup");
+	if(!$q->ok){
+		echo "Flush network failed\n$q->mysql_error\n";
+		$asw=trim(strtolower(fgets(STDIN)));
+		return;
+	}
+	echo "Flush network Success\nPress Enter to return\n";
+	$asw=trim(strtolower(fgets(STDIN)));
+	
+	
+	
 }
 
 

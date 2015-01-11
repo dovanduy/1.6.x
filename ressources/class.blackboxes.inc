@@ -545,7 +545,7 @@ class blackboxes{
 		if(function_exists("mysql_real_escape_string")){
 			return mysql_real_escape_string($line);
 		}
-		return mysql_escape_string($line);
+		return mysql_escape_string2($line);
 		
 	}
 	

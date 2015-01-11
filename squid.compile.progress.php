@@ -122,7 +122,7 @@ function popup(){
 	$pourc=0;
 	$color="#5DD13D";
 	$html="
-	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_SQUID}</div>
+	<div class=text-info style='font-size:16px'>{APPLY_SETTINGS_SQUID}</div>
 	<div id='Status' style='height:40px:margin-top:20px;margin-bottom:20px'></div>	
 	<div id='textlogs' style='width:99%;min-height:120px;font-size:16px !important'></div>
 	
@@ -367,9 +367,7 @@ function compile_pdns(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 	
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 

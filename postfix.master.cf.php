@@ -27,7 +27,7 @@ if(isset($_GET["commands-list"])){COMMANDS_LIST();exit;}
 if(isset($_GET["mastercf-list"])){main_page_list();exit;}
 if(isset($_POST["MasterCFUseDefaults"])){MasterCFUseDefaults();exit;}
 while (list ($index, $opt) = each ($_REQUEST) ){
-	writelogs("UNABLE TO UNSERSTAND $index= $opt","main",__FILE__,__LINE__);
+	writelogs("Unable to understand $index= $opt","main",__FILE__,__LINE__);
 }
 
 die();

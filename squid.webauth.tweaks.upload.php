@@ -166,8 +166,15 @@ function uncompress(){
 	$t=time();
 	$page=CurrentPageName();
 	$fileName=$_GET["uncompress"];
+	
 	$sock=new sockets();
-	$sock->SET_INFO("ArticaHostPotBackgroundPath", $fileName);
+	
+	$ArticaHotSpotSMTP=unserialize(base64_decode($sock->GET_INFO("ArticaHotSpotSMTP")));
+	$ArticaHotSpotSMTP["SKIN_COMPANY_LOGO"]=$fileName;
+	$sock->SaveConfigFile(base64_encode(serialize($ArticaHotSpotSMTP)), "ArticaHotSpotSMTP");
+	
+	
+	
 	echo "<div id='$t'></div>
 	<script>
 		RefreshTab('squid_hotspot');

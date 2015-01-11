@@ -18,7 +18,7 @@ function js(){
 	header("content-type: application/x-javascript");
 	$dev=$_GET["dev"];
 	$devenc=urlencode($dev);
-	echo "YahooWinBrowse('600','$page?popup=yes&dev=$devenc','$dev',true)";
+	echo "YahooWinBrowse('700','$page?popup=yes&dev=$devenc','$dev',true)";
 }
 
 
@@ -33,23 +33,26 @@ function popup(){
 	$html="
 	
 	<div style='width:98%' class=form>	
-	<div style='font-size:18px'>{macro_build_bigpart}</td>
-	<div style='font-size:14px' class=explain>{macro_build_bigpart_explain}</div>	
+	<div style='font-size:26px'>{macro_build_bigpart}</td>
+			
+	<div style='font-size:18px' class=text-info>{macro_build_bigpart_explain}</div>
+			
 	<table style='width:100%'>
 	<tr>
-	<td style='font-size:16px'>{filesystem_type}:</td>
-	<td>".Field_array_Hash($fsarray, "fs_type-$t","ext4","style:font-size:16px")."</td>
+	<td style='font-size:22px' class=legend>{filesystem_type}:</td>
+	<td>".Field_array_Hash($fsarray, "fs_type-$t","ext4","style:font-size:22px")."</td>
 	<td width=1%></td>
 	</tr>
 	<tr>
-	<td style='font-size:16px'>{label}:</td>
-	<td>". Field_text("labeldev-$t","NewDisk","font-size:16px;width:100px",null,null,null,false,"SaveCK$t(event)")."</td>
+	<td style='font-size:22px' class=legend>{label}:</td>
+	<td>". Field_text("labeldev-$t","NewDisk","font-size:22px;width:180px",null,null,null,false,"SaveCK$t(event)")."</td>
 	</tr>	
 	<tr>
-	<td colspan=2 align=right><hr>". button("{apply}","Save$t()",18)."</td>
+	<td colspan=2 align=right><hr>". button("{apply}","Save$t()",32)."</td>
 	</tr>
 	</table>
 	</div>
+	
 	<div style='width:95%' id='$t-results'></div>	
 	<script>
 	
@@ -61,10 +64,13 @@ function GetLogs$t(){
 	
 	
 var xSave$t= function (obj) {
-	var results=obj.responseText;
-	if(results.length>0){alert(results);}
 	UnlockPage();
-	setTimeout('GetLogs$t()',3000);
+	var results=obj.responseText;
+	if(results.length>0){
+		Loadjs(results);
+	}
+	
+	
 }
 
 function SaveCK$t(e){
@@ -97,8 +103,10 @@ function perform(){
 	$dev=urlencode($dev);
 	$label=urlencode($label);
 	
-	echo "Disk:$dev\nLabel: $label\nFile type:$fs_type\n";
 	
+	
+	echo "system.internal.disks.BuildBigPartition.progress.php?dev=$dev&label=$label&fs_type=$fs_type";
+	return;
 	$datas=base64_decode($sock->getFrameWork("cmd.php?fdisk-build-big-partitions=yes&dev=$dev&label=$label&fs_type=$fs_type&MyCURLTIMEOUT=240"));
 }
 

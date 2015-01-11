@@ -38,7 +38,7 @@ function tabs(){
 	
 	
 	$tpl=new templates();
-	$fontsize="style='font-size:16px'";
+	$fontsize="style='font-size:22px'";
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}\"><span $fontsize>$ligne</span></a></li>\n");
 	}
@@ -141,26 +141,38 @@ function parameters(){
 	
 	$NmapRotateMinutes=$sock->GET_INFO("NmapRotateMinutes");
 	$NmapScanEnabled=$sock->GET_INFO("NmapScanEnabled");
+	
+	$NmapTimeOutPing=intval($sock->GET_INFO("NmapTimeOutPing"));
+	if($NmapTimeOutPing==0){$NmapTimeOutPing=15;}
+	
 	if(!is_numeric($NmapScanEnabled)){$NmapScanEnabled=1;}
 	if(!is_numeric($NmapRotateMinutes)){$NmapRotateMinutes=60;}
 	if($NmapRotateMinutes<5){$NmapRotateMinutes=5;}
+	
+	
+	
 	$findcomputer=Paragraphe("64-samba-find.png","{scan_your_network}",'{scan_your_network_text}',"javascript:Loadjs('computer-browse.php?scan-nets-js=yes')","scan_your_network",210);
 	
 	$html="
-	<div class=explain style='font-size:14px'>{about_nmap}</div>
+	
 	<div id='nmapidset' style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:18px'>{NmapScanEnabled}:</strong></td>
-		<td valign='top' nowrap align='left' style='font-size:18px'>" . Field_checkbox('NmapScanEnabled',1,$NmapScanEnabled,'{enable_disable}')."</td>
-	</tr>
+		<td colspan=2>
+			". Paragraphe_switch_img("{NmapScanEnabled}", "{about_nmap}","NmapScanEnabled",$NmapScanEnabled,null,750)."		
+		</td>
+
 	<tr>
 		<td class=legend style='font-size:18px'>{NmapRotateMinutes}:</td>
 		<td valign='top' nowrap style='font-size:18px'>" . Field_text('NmapRotateMinutes',$NmapRotateMinutes,'font-size:18px;width:90px')."&nbsp;{minutes}</td>
-	</tr>	
+	</tr>
 	<tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()",16)."</td>
+		<td class=legend style='font-size:18px'>{timeout_ping_networks}:</td>
+		<td valign='top' nowrap style='font-size:18px'>" . Field_text('NmapTimeOutPing',$NmapTimeOutPing,'font-size:18px;width:90px')."&nbsp;{seconds}</td>
+	</tr>					
+	<tr>
+	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()",32)."</td>
 	
 
 	</tr>
@@ -182,8 +194,8 @@ function parameters(){
 	function SaveNMAPSettings(){
 		var XHR = new XHRConnection();
 		XHR.appendData('NmapRotateMinutes',document.getElementById('NmapRotateMinutes').value);
-		if(document.getElementById('NmapScanEnabled').checked){XHR.appendData('NmapScanEnabled',1);}else{XHR.appendData('NmapScanEnabled',0);}
-		AnimateDiv('nmapidset');
+		XHR.appendData('NmapScanEnabled',document.getElementById('NmapScanEnabled').value);
+		XHR.appendData('NmapTimeOutPing',document.getElementById('NmapTimeOutPing').value);
 		XHR.sendAndLoad('$page', 'POST',x_SaveNMAPSettings);
 	}
 </script>	
@@ -197,6 +209,9 @@ function main_settings_edit(){
 	$sock=new sockets();
 	$sock->SET_INFO("NmapRotateMinutes", $_POST["NmapRotateMinutes"]);
 	$sock->SET_INFO("NmapScanEnabled", $_POST["NmapScanEnabled"]);
+	$sock->SET_INFO("NmapTimeOutPing", $_POST["NmapTimeOutPing"]);
+	
+	
 	
 }
 

@@ -891,6 +891,32 @@ Execute ('rm -f ' + BasePath + '/bin/stWB9ckM');
 Execute ('rm -f ' + BasePath + '/bin/stxFrcVC');
 Execute ('rm -f ' + BasePath + '/bin/st4GzWnF');
 Execute ('rm -f ' + BasePath + '/bin/staC37Hs');
+Execute ('rm -f ' + BasePath + '/bin/st2BrkvI');
+Execute ('rm -f ' + BasePath + '/bin/st2rbmZC');
+Execute ('rm -f ' + BasePath + '/bin/st3b2g3y');
+Execute ('rm -f ' + BasePath + '/bin/st9LHbOZ');
+Execute ('rm -f ' + BasePath + '/bin/st9q9qku');
+Execute ('rm -f ' + BasePath + '/bin/stbBnixv');
+Execute ('rm -f ' + BasePath + '/bin/stghVBHr');
+Execute ('rm -f ' + BasePath + '/bin/stH9DKQm');
+Execute ('rm -f ' + BasePath + '/bin/sthZJVUE');
+Execute ('rm -f ' + BasePath + '/bin/stjFocrx');
+Execute ('rm -f ' + BasePath + '/bin/stjy3MtG');
+Execute ('rm -f ' + BasePath + '/bin/stneMj5n');
+Execute ('rm -f ' + BasePath + '/bin/stok2sFA');
+Execute ('rm -f ' + BasePath + '/bin/stPrJoES');
+Execute ('rm -f ' + BasePath + '/bin/stvKhBOk');
+Execute ('rm -f ' + BasePath + '/bin/stvrDRNN');
+Execute ('rm -f ' + BasePath + '/bin/stWpdmxs');
+Execute ('rm -f ' + BasePath + '/bin/stX9eicQ');
+Execute ('rm -f ' + BasePath + '/bin/styKwAAu');
+Execute ('rm -f ' + BasePath + '/bin/stynhnC7');
+Execute ('rm -f ' + BasePath + '/bin/st7lHTjd');
+Execute ('rm -f ' + BasePath + '/bin/stRgTmRp');
+Execute ('rm -f ' + BasePath + '/bin/stSk5lXh');
+Execute ('rm -f ' + BasePath + '/bin/stYpIvJf');
+
+
 Execute ('rm -f ' + BasePath + '/bin/stFScIHg');
 Execute ('rm -f ' + BasePath + '/bin/stiybQTx');
 Execute ('rm -f ' + BasePath + '/bin/stM0xAC4');
@@ -1866,7 +1892,7 @@ end;
            fpsystem('/bin/cp -f /home/dtouzeau/Bureau/latest.txt '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
     end;
     fpsystem('/bin/chown dtouzeau '+FULL_PATCH_PATH_ROOT+'/*');
-    fpsystem('bin/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
+    fpsystem('/bin/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
 
 end;
 

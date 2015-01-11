@@ -699,6 +699,7 @@ class Unixipv4
   function NetMaskToCdir(){
   	$net="$this->address/$this->netbits";
   	$results2=array();
+  	@chmod("/usr/share/artica-postfix/bin/ipcalc",0755);
   	exec("/usr/share/artica-postfix/bin/ipcalc $net 2>&1",$results2);
   	while (list ($index, $line) = each ($results2) ){
   		if(preg_match("#Network:\s+([0-9\.]+)\/([0-9]+)#", $line,$re)){

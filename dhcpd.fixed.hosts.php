@@ -40,10 +40,12 @@ function host_edit_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
+	if(isset($_GET["increment"])){$_GET["increment"]=urlencode($_GET["increment"]);}
 	if($mac==null){	
 		$new_computer=$tpl->_ENGINE_parse_body("{new_computer}");
+		
 	}
-	$html="YahooWin5('750','$page?modify-dhcpd-settings-popup=yes&mac=$mac&t=$tt','$mac$new_computer')";
+	$html="YahooWin5('900','$page?modify-dhcpd-settings-popup=yes&mac=$mac&t=$tt&increment={$_GET["increment"]}','$mac$new_computer')";
 	echo $html;
 }
 
@@ -53,76 +55,98 @@ function host_edit_popup(){
 	$tpl=new templates();	
 	$mac=$_GET["mac"];
 	$tt=$_GET["t"];
-	
+	$new_computer=$tpl->_ENGINE_parse_body("{new_computer}");
+	$fixedHosts=$tpl->_ENGINE_parse_body("{dhcpfixed}");
 	if($mac<>null){
 		$bt="{apply}";
 		$sql="SELECT * FROM dhcpd_fixed WHERE `mac`='{$_GET["mac"]}'";
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		
+		$title="<div style='margin:20px;font-size:30px'>{$ligne["hostname"]}
+		<div style='width:100%;text-align:left;font-size:18px'><i>DHCP:$fixedHosts</i></div>
+		</div>
+		";
+		
 	}else{
+		
+		$title="<div style='margin:20px;font-size:30px'>$new_computer
+		<div style='width:100%;text-align:left;font-size:18px'><i>DHCP:$fixedHosts</i></div>
+		</div>
+		";
+
+		if($_GET["increment"]<>null){
+			$ligne=unserialize($_GET["increment"]);
+			
+		}
+		
 		$bt="{add}";
-		$mac_form="<tr>
-			<td class=legend style='font-size:16px'>{ComputerMacAddress}:</td>
-			<td>". Field_text("MAC-$t",null,"font-size:16px;width:220px")."</td>
-			<td>&nbsp;</td>
-		</tr>
+		$mac_form="
+	
 		<tr>
-			<td class=legend style='font-size:16px'>{domain}:</td>
-			<td>". Field_text("domain-$t",null,"font-size:16px;width:220px")."</td>
+			<td class=legend style='font-size:22px'>{ComputerMacAddress}:</td>
+			<td>". Field_text("MAC-$t",$ligne["mac"],"font-size:22px;width:250px")."</td>
 			<td>&nbsp;</td>
 		</tr>
+
 		";
 	}
+
 	
 
 	$html="
-	<div id='$t'></div>
-	<table style='width:99%' class=form>
+	$title
+	<div id='$t' style='width:98%' class=form>
+	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{hostname}:</td>
-			<td>". Field_text("hostname-$t",$ligne["hostname"],"font-size:16px;width:95%")."</td>
+			<td class=legend style='font-size:22px'>{hostname}:</td>
+			<td>". Field_text("hostname-$t",$ligne["hostname"],"font-size:22px;width:370px")."</td>
 			<td>&nbsp;</td>
 		</tr>
 		
 		<tr>
-			<td class=legend style='font-size:16px'>{ipaddr}:</td>
-			<td>". field_ipv4("ipaddr-$t",$ligne["ipaddr"],"font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{ipaddr}:</td>
+			<td>". field_ipv4("ipaddr-$t",$ligne["ipaddr"],"font-size:22px")."</td>
 			<td>&nbsp;</td>
 		</tr>
 		$mac_form
-	<tr>
-		<td class=legend style='font-size:16px'>{gateway}:</td>
-		<td>".field_ipv4("routers-$t",$ligne["routers"],'font-size:16px;padding:3px')."</td>
-		<td>&nbsp;</td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:16px'>{DNSServer} 1:</td>
-		<td>".field_ipv4("domain-name-servers1-$t",$ligne["domain-name-servers"],'font-size:16px;padding:3px')."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{DNSServer} 2:</td>
-		<td>".field_ipv4("domain-name-servers2-$t",$ligne["domain-name-servers-2"],'font-size:16px;padding:3px')."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-	<td class=legend style='font-size:16px'>{wpad_label}:</td>
-		<td>".Field_text("local-pac-server-$t",$ligne["local-pac-server"],'width:300px;font-size:16px;padding:3px',false)."</td>
-		<td>&nbsp;</td>
-		<td>".help_icon('{wpad_label_text}')."</td>
-	</tr>		
 		<tr>
-		<td colspan=32 align='right'><hr>". button("$bt","SaveCMP$t()","16px")."</td>
+			<td class=legend style='font-size:22px'>{domain}:</td>
+			<td>". Field_text("domain-$t",$ligne["domain"],"font-size:22px;width:370px")."</td>
+			<td>&nbsp;</td>
+		</tr>		
+	<tr>
+		<td class=legend style='font-size:22px'>{gateway}:</td>
+		<td>".field_ipv4("routers-$t",$ligne["routers"],'font-size:22px;padding:3px')."</td>
+		<td>&nbsp;</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:22px'>{DNSServer} 1:</td>
+		<td>".field_ipv4("domain-name-servers1-$t",$ligne["domain-name-servers"],'font-size:22px;padding:3px')."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{DNSServer} 2:</td>
+		<td>".field_ipv4("domain-name-servers2-$t",$ligne["domain-name-servers-2"],'font-size:22px;padding:3px')."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td colspan=32 align='right'><hr>". button("$bt","SaveCMP$t()","30")."</td>
 	</tr>
 	</table>
-	
+	</div>
 	<script>
 	
 	var x_SaveCMP$t=function(obj){
 		  var results=trim(obj.responseText);
-		  document.getElementById('$t').innerHTML='';
+		  
 		  if(results.length>2){alert(results);return;} 
 	      YahooWin5Hide();
+	      
+	      if(document.getElementById('DHCP_REQUESTS_TABLE')){
+	      	$('#DHCP_REQUESTS_TABLE').flexReload();
+	      }
+	      
 	      $('#flexRT$tt').flexReload();
 		}	
 		
@@ -133,7 +157,7 @@ function host_edit_popup(){
 	      XHR.appendData('routers',document.getElementById('routers-$t').value);   
 	      XHR.appendData('domain-name-servers',document.getElementById('domain-name-servers1-$t').value);
 	      XHR.appendData('domain-name-servers2',document.getElementById('domain-name-servers2-$t').value);   
-	      XHR.appendData('local-pac-server',document.getElementById('local-pac-server-$t').value);   
+	      XHR.appendData('domain',document.getElementById('domain-$t').value);
 	      
 	      if(document.getElementById('MAC-$t')){
 	      	XHR.appendData('new-mac',document.getElementById('MAC-$t').value);  
@@ -141,10 +165,10 @@ function host_edit_popup(){
 	      	XHR.appendData('edit-mac','{$_GET["mac"]}');  
 	      }
 	      
-	      if(document.getElementById('domain-$t')){ XHR.appendData('domain',document.getElementById('domain-$t').value);  }	      
+	      	      
 	      
 	      
-	      AnimateDiv('$t'); 
+	    
 	      XHR.sendAndLoad('$page', 'POST',x_SaveCMP$t);       
 		  }
 	</script>
@@ -157,11 +181,33 @@ echo $tpl->_ENGINE_parse_body($html);
 }
 
 function host_edit(){
+	
+	$_POST["edit-mac"]=str_replace("-", ":", $_POST["edit-mac"]);
+	$mac=trim(strtolower($_POST["edit-mac"]));
+	if(!IsPhysicalAddress($mac)){echo "host_edit():: $mac!! pattern failed\n";return;}
+	
 	$q=new mysql();
+	$tpl=new templates();
 	if(!$q->FIELD_EXISTS('dhcpd_fixed',"domain-name-servers-2",'artica_backup')){
 		$sql="ALTER TABLE `dhcpd_fixed` ADD `domain-name-servers-2` VARCHAR( 90 )";
 		$q->QUERY_SQL($sql,"artica_backup");
 	}	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT mac FROM dhcpd_fixed WHERE `mac`='{$_POST["edit-mac"]}'","artica_backup"));
+	if(trim($ligne["mac"])==null){
+		$_POST["new-mac"]=$mac;
+		host_new();
+	}
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM dhcpd_fixed WHERE `ipaddr`='{$_POST["ipaddr"]}'","artica_backup"));
+	if(trim($ligne["mac"])<>null){
+		if($ligne["mac"]<>$_POST["edit-mac"]){
+			echo $tpl->javascript_parse_text("host_edit({$_POST["edit-mac"]}):: {ipaddr}:{$_POST["ipaddr"]} {already_exists}: [{$ligne["mac"]}]");
+			return;
+		}
+	}
+	
+	
 	
 	$sql="UPDATE dhcpd_fixed SET 
 		hostname='{$_POST["hostname"]}',
@@ -169,7 +215,7 @@ function host_edit(){
 		`routers`='{$_POST["routers"]}',
 		`domain-name-servers`='{$_POST["domain-name-servers"]}',
 		`domain-name-servers-2`='{$_POST["domain-name-servers2"]}',
-		`local-pac-server`='{$_POST["local-pac-server"]}'
+		`domain`='{$_POST["domain"]}'
 		WHERE mac='{$_POST["edit-mac"]}'";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
@@ -181,36 +227,70 @@ function host_edit(){
 	if($uid<>null){
 		$cp=new computers($uid);
 		$cp->ComputerIP=$_POST["ipaddr"];
+		$cp->ComputerRealName=$_POST["hostname"];
+		$cp->DnsZoneName=$_POST["domain"];
+		$cp->ComputerMacAddress=$_POST["edit-mac"];
 		$cp->Edit();
 	}
 	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");		
+	if(!isset($GLOBALS["APPLY_DHCP"])){
+		$GLOBALS["APPLY_DHCP"]=true;
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
+	}	
 	
 }
 
 function host_new(){
-	$mac=$_POST["new-mac"];
+	$_POST["new-mac"]=str_replace("-", ":", $_POST["new-mac"]);
+	$mac=trim(strtolower($_POST["new-mac"]));
 	if(!IsPhysicalAddress($mac)){echo "$mac!! failed\n";return;}
 	$tpl=new templates();
-	$sql="SELECT * FROM dhcpd_fixed WHERE `mac`='$mac'";
+
 	$q=new mysql();	
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM dhcpd_fixed WHERE `mac`='$mac'","artica_backup"));
 	if($ligne["hostname"]<>null){
-		echo $tpl->_ENGINE_parse_body("{already_exists}: $mac [{$ligne["ipaddr"]}] ({$ligne["hostname"]})");
+		echo $tpl->javascript_parse_text("host_new():: {already_exists}: $mac [{$ligne["ipaddr"]}] ({$ligne["hostname"]})");
+		return;
+	}
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM dhcpd_fixed WHERE `ipaddr`='{$_POST["ipaddr"]}'","artica_backup"));
+	if($ligne["mac"]<>null){
+		echo $tpl->javascript_parse_text("host_new():: {already_exists}: [{$ligne["ipaddr"]}] ({$ligne["mac"]})");
 		return;
 	}
 	
-	$sql="INSERT IGNORE INTO dhcpd_fixed (hostname,ipaddr,domain,mac,`routers`,`domain-name-servers`,
-	`domain-name-servers-2`,`local-pac-server`) VALUES
-	('{$_POST["hostname"]}','{$_POST["ipaddr"]}','{$_POST["domain"]}','$mac'
-	'{$_POST["routers"]}','{$_POST["domain-name-servers"]}','{$_POST["domain-name-servers2"]}','{$_POST["local-pac-server"]}'	
+	
+	
+	$sql="INSERT IGNORE INTO dhcpd_fixed (
+		`hostname`,
+		`ipaddr`,
+		`domain`,
+		`mac`,
+		`routers`,
+		`domain-name-servers`,
+		`domain-name-servers-2`
+		
+		) VALUES
+			(
+			'{$_POST["hostname"]}',
+			'{$_POST["ipaddr"]}',
+			'{$_POST["domain"]}',
+			'$mac',
+			'{$_POST["routers"]}',
+			'{$_POST["domain-name-servers"]}',
+			'{$_POST["domain-name-servers2"]}'
+			
 	)";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");		
+	if(!$q->ok){echo $q->mysql_error."\n\n$sql\n";return;}
+	
+	if(!isset($GLOBALS["APPLY_DHCP"])){
+		$GLOBALS["APPLY_DHCP"]=true;
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
+	}		
 }
 
 	
@@ -218,16 +298,18 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
-	$hostname=$tpl->_ENGINE_parse_body("{fixedHosts}");
-	$description=$tpl->_ENGINE_parse_body("{description}");
-	$title=$tpl->_ENGINE_parse_body($title);
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$hostname=$tpl->javascript_parse_text("{fixedHosts}");
+	$description=$tpl->javascript_parse_text("{description}");
+	$title=$tpl->javascript_parse_text($title);
 	$users=new usersMenus();
 	$ComputerMacAddress=$tpl->javascript_parse_text("{ComputerMacAddress}");
 	$addr=$tpl->javascript_parse_text("{addr}");
 	$domain=$tpl->javascript_parse_text("{domain}");
-	$link_computer=$tpl->_ENGINE_parse_body("{link_computer}");
-	$new_computer=$tpl->_ENGINE_parse_body("{new_computer}");
+	$link_computer=$tpl->javascript_parse_text("{link_computer}");
+	$new_computer=$tpl->javascript_parse_text("{new_computer}");
+	$gateway=$tpl->javascript_parse_text("{gateway}");
+	$dns=$tpl->javascript_parse_text("{primary_dns}");
 	$buttons="
 	buttons : [
 	{name: '$link_computer', bclass: 'add', onpress : AddHost},
@@ -237,7 +319,7 @@ function popup(){
 	],";		
 		
 	
-if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
+
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -248,17 +330,22 @@ $('#flexRT$t').flexigrid({
 	url: '$page?now-search=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$hostname', name : 'hostname', width : 247, sortable : false, align: 'left'},	
-		{display: '$ComputerMacAddress', name : 'mac', width :130, sortable : true, align: 'left'},
-		{display: '$addr', name : 'ipaddr', width :130, sortable : true, align: 'left'},
-		{display: '$domain', name : 'domain', width : 246, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'none', width : 45, sortable : false, align: 'center'},
+		{display: '$hostname', name : 'hostname', width : 194, sortable : false, align: 'left'},	
+		{display: '$ComputerMacAddress', name : 'mac', width :142, sortable : true, align: 'left'},
+		{display: '$addr', name : 'ipaddr', width :142, sortable : true, align: 'left'},
+		{display: '$gateway', name : 'routers', width :142, sortable : true, align: 'left'},
+		{display: '$dns', name : 'domain-name-servers', width :142, sortable : true, align: 'left'},
+		{display: '$domain', name : 'domain', width : 199, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 45, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
 		{display: '$hostname', name : 'hostname'},
 		{display: '$addr', name : 'ipaddr'},
 		{display: '$ComputerMacAddress', name : 'mac'},
+		{display: '$gateway', name : 'routers'},
+		{display: '$dns', name : 'domain-name-servers'},
 		{display: '$domain', name : 'domain'}
 		],
 	sortname: 'hostname',
@@ -268,7 +355,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 865,
+	width: '99%',
 	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -383,14 +470,18 @@ function hosts_delete(){
 	$sql="DELETE FROM dhcpd_fixed WHERE `mac`='{$_POST["host-delete"]}'";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");	
+	
+	if(!isset($GLOBALS["APPLY_DHCP"])){
+		$GLOBALS["APPLY_DHCP"]=true;
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
+	}	
 	
 }
 
 function hosts_import(){
 	
-	$array=LoadOldfixedAddresses();
+	
 	
 
 	$prefix="INSERT IGNORE INTO dhcpd_fixed (`mac`,`ipaddr`,`hostname`,`domain`) VALUES ";
@@ -421,73 +512,7 @@ function hosts_import(){
 }
 
 
-function LoadOldfixedAddresses(){
-		$ldap=new clladp();
-		$dhcpd=new dhcpd();
-		$IP=new IP();	
-		$filter=array("computerip","ComputerMacAddress","cn","uid","DnsZoneName");
-		$query="(&(objectClass=ArticaComputerInfos)(DnsZoneName=$dhcpd->ddns_domainname))";
-		$hash=$ldap->Ldap_search($ldap->suffix,$query,$filter);
-		$count=$hash["count"];
-		$ARR=array();
-		
-		if(function_exists("debug_backtrace")){
-					try {
-						$trace=@debug_backtrace();
-						if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-					} catch (Exception $e) {writelogs("LoadfixedAddresses:: Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-				}			
-		
-		writelogs("compile {$hash["count"]} computers for $dhcpd->ddns_domainname $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		
-		for($i=0;$i<$hash["count"];$i++){
-			if($GLOBALS["VERBOSE"]){echo "->LoadfixedAddresses() ->". $hash[$i]["uid"][0]." item Line ".__LINE__."\n";}
-			$uid=str_replace('$','',$hash[$i]["uid"][0]);
-			if($uid==null){if($GLOBALS["VERBOSE"]){echo "->LoadfixedAddresses() -> null item, aborting Line ".__LINE__."\n";}continue;}
-			$ip_addr=$hash[$i]["computerip"][0];
-			$ComputerMacAddress=$hash[$i][strtolower("ComputerMacAddress")][0];
-			if($ComputerMacAddress=="Unknown"){continue;}
-			$DnsZoneName=$hash[$i][strtolower("DnsZoneName")][0];
-			if($DnsZoneName<>$dhcpd->ddns_domainname){$DnsZoneName=$dhcpd->ddns_domainname;}
-			
-			
-			if(!$IP->isIPAddress($ip_addr)){continue;}
-			if($ComputerMacAddress==null){continue;}
-			
-			if(preg_match("#ethernet\s+(.+)#i", $ComputerMacAddress,$re)){
-				writelogs("Corrupted pattern $ComputerMacAddress change it to `{$re[1]}`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-				$FROMComputerMacAddress=$ComputerMacAddress;
-				$ComputerMacAddress=$re[1];
-				$cmp2=new computers($uid);$cmp2->UpdateComputerMacAddress($FROMComputerMacAddress,$ComputerMacAddress);
-			}
-			
-			if(!$dhcpd->IsPhysicalAddress($ComputerMacAddress)){
-				writelogs("Corrupted pattern `$ComputerMacAddress` skip it ....",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-				continue;
-			}
-			$ARR[$uid]=array("MAC"=>"hardware ethernet $ComputerMacAddress","IP"=>"fixed-address $ip_addr","domainname"=>$DnsZoneName);
-		}
-		
-	$query="(&(objectClass=dhcpHost)(cn=*))";
-	$dn="cn=DhcpConfig,ou=dhcp,$ldap->suffix";
-	$filter=array();
-	
-	$hash=$ldap->Ldap_search($dn,$query,$filter);
-	$count=$hash["count"];	
-	
-	for($i=0;$i<$count;$i++){
-		$uid=$hash[$i]["cn"][0];	
-		$MacAddress=$hash[$i][strtolower("dhcpHWAddress")][0];
-		if(preg_match("#ethernet\s+(.+)#i", $MacAddress,$re)){writelogs("Corrupted pattern $MacAddress change it to `{$re[1]}`",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);$MacAddress=$re[1];}		
-		if(!$dhcpd->IsPhysicalAddress($MacAddress)){
-			writelogs("Corrupted pattern `$MacAddress` skip it ....",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-			continue;
-		}
-		$ARR[$uid]=array("MAC"=>"hardware ".$hash[$i][strtolower("dhcpHWAddress")][0],"IP"=>$hash[$i][strtolower("dhcpStatements")][0]);
-	}
-	$GLOBALS[__CLASS__][__FUNCTION__]=$ARR;
-	return $ARR;
-}
+
 
 function host_add(){
 	$dhcp=new dhcpd(0,1);
@@ -522,15 +547,19 @@ function host_add(){
 		if($cmp->ComputerRealName<>null){$_POST["hostname"]=$cmp->ComputerRealName;}
 	}
 	if($domain<>null){$domain=$dhcp->ddns_domainname;}
-	if($domain==null){echo "DNS domain is null";}
+	
 	$sql="INSERT INTO dhcpd_fixed (mac,ipaddr,hostname,domain) VALUES 
 	('{$_POST["mac"]}','{$_POST["ipaddr"]}','{$_POST["hostname"]}','$domain')";
 	
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");		
+	
+	if(!isset($GLOBALS["APPLY_DHCP"])){
+		$GLOBALS["APPLY_DHCP"]=true;
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
+	}	
 }
 
 
@@ -597,27 +626,39 @@ function hosts_list(){
 		$md5=md5($ligne["mac"]);
 		$cmp=new computers();
 		$uid=$cmp->ComputerIDFromMAC($ligne["mac"]);
+		$routers=$ligne["routers"];
+		$domain_name_servers=$ligne["domain-name-servers"];
+		$fiche=imgsimple("computer-32-grey.png",null,null);
+		
 		
 		if($uid<>null){
-			
 			$jsfiche=MEMBER_JS($uid,1,1);
-			$herf="<a href=\"javascript:blur();\" OnClick=\"javascript:$jsfiche\"  style='font-size:14px;text-decoration:underline'>";
+			$fiche=imgsimple("computer-32.png",null,$jsfiche);
+			
+			
 		}
 		
-		if(strpos($ligne["hostname"], ".")>0){$ff=explode(".", $ligne["hostname"]);$ligne["hostname"]=$ff[0];}
-		$delete=imgtootltip("delete-24.png","{delete} {$ligne["mac"]}","DHCPFixedDelete('{$ligne["mac"]}','$md5')");
 		
-		$Modify="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?modify-dhcpd-settings-js=yes&mac={$ligne["mac"]}&t=$tt');\" 
-		style='font-size:14px;text-decoration:underline;font-weight:bold'>";
+		
+		if(strpos($ligne["hostname"], ".")>0){$ff=explode(".", $ligne["hostname"]);$ligne["hostname"]=$ff[0];}
+		$delete=imgtootltip("delete-32.png","{delete} {$ligne["mac"]}","DHCPFixedDelete('{$ligne["mac"]}','$md5')");
+		
+		$Modify="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('$MyPage?modify-dhcpd-settings-js=yes&mac={$ligne["mac"]}&t=$tt');\" 
+		style='font-size:16px;text-decoration:underline;font-weight:bold'>";
 		
 		$ligne["hostname"]=strtolower(str_replace("$", "", $ligne["hostname"]));
 		$ligne["mac"]=strtoupper($ligne["mac"]);
 	$data['rows'][] = array(
 		'id' => $md5,
-		'cell' => array("<span style='font-size:14px'>$herf{$ligne["hostname"]}</a></span>"
-		,"<span style='font-size:14px'>$herf{$ligne["mac"]}</a></span>",
-		"<span style='font-size:14px'>$Modify{$ligne["ipaddr"]}</a></span>",
-		"<span style='font-size:14px'>{$ligne["domain"]}</a></span>",
+		'cell' => array(
+				$fiche,
+		"<span style='font-size:16px'>$Modify{$ligne["hostname"]}</a></span>"
+		,"<span style='font-size:16px'>$Modify{$ligne["mac"]}</a></span>",
+		"<span style='font-size:16px'>$Modify{$ligne["ipaddr"]}</a></span>",
+		"<span style='font-size:16px'>$Modify{$ligne["routers"]}</a></span>",
+		"<span style='font-size:16px'>$Modify{$domain_name_servers}</a></span>",
+		"<span style='font-size:16px'>{$ligne["domain"]}</a></span>",
 		$delete )
 		);
 	}

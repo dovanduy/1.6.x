@@ -65,7 +65,7 @@ function content(){
 		$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 		if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 		if($SquidActHasReverse==1){
-			$explainSquidActHasReverse="<div class=explain>{explain_freewebs_reverse}</div>";
+			$explainSquidActHasReverse="<div class=text-info>{explain_freewebs_reverse}</div>";
 		}
 	}
 	

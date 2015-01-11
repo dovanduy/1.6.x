@@ -15,6 +15,7 @@ include_once('ressources/class.system.network.inc');
 include_once('ressources/class.system.nics.inc');
 include_once('ressources/class.squid.inc');
 
+if(isset($_GET["explain-performance"])){setup_features_explain();exit;}
 if(isset($_GET["setup-1"])){setup_1();exit;}
 if(isset($_GET["setup-2"])){setup_2();exit;}
 if(isset($_GET["setup-3"])){setup_3();exit;}
@@ -25,8 +26,11 @@ if(isset($_POST["savedsettings"])){save();exit;}
 if(isset($_GET["settings-dns"])){dns_save();exit;}
 if(isset($_GET["settings-ou"])){ou_save();exit;}
 if(isset($_GET["settings-final"])){final_show();exit;}
+if(isset($_GET["setup-proxy-type"])){setup_proxy_type();exit;}
 if(isset($_GET["setup-active-directory"])){setup_active_directory();exit;}
+if(isset($_GET["setup-features"])){setup_features();exit;}
 if(isset($_POST["EnableKerbAuth"])){setup_active_directory_save();exit;}
+if(isset($_POST["SquidPerformance"])){setup_features_save();exit;}
 
 if(isset($_GET["automation"])){automation_js();exit;}
 if(isset($_GET["automation-js"])){automation_js();exit;}
@@ -139,14 +143,35 @@ $f[]="# Public community";
 $f[]="SNMPDCommunity=public";
 $f[]="# Allowed network";
 $f[]="SNMPDNetwork=default";
+
+$ArticaMetaHost=$sock->GET_INFO("ArticaMetaHost");
+$ArticaMetaPort=intval($sock->GET_INFO("ArticaMetaPort"));
+if($ArticaMetaPort==0){$ArticaMetaPort=9000;}
+
+$f[]="########################################";
+$f[]="######          Artica Meta      ######";
+$f[]="########################################";
+$f[]="";
+$f[]="# Use an Artica Meta Global Management console 0/1";
+$f[]="EnableArticaMetaClient=0";
+$f[]="# Artica Meta server user name";
+$f[]="#ArticaMetaUsername=Manager";
+$f[]="# Artica Meta server password";
+$f[]="#ArticaMetaPassword=secret";
+$f[]="# Artica Meta server address";
+$f[]="#ArticaMetaHost=1.2.3.4";
+$f[]="# Artica Meta server port";
+$f[]="#ArticaMetaPort=9000";
+
+
 $f[]="";
 $f[]="########################################";
 $f[]="######      System parameters     ######   ";
 $f[]="########################################";
-$f[]="# Hostname of the server";
+$f[]="# Hostname of the server 15 characters MAX";
 $f[]="netbiosname=$tt1";
 $f[]="";
-$f[]="# Domain of the server";
+$f[]="# Domain of the server ( use the same of your Active directory server if you plan to use AD)";
 $f[]="domain=$tt2";
 $f[]="";
 $f[]="# Time zone: Europe/Moscow, Europe/Paris, Europe/Rome, US/Central ...";
@@ -156,6 +181,8 @@ $f[]="# OpenLDAP server threads";
 $f[]="SlapdThreads=2";
 $f[]="# Kernel Swapiness define after which percentage of physical memory use the kernel will use the swap file";
 $f[]="swappiness=90";
+$f[]="# Change the system root password ( used for SSH or console mode )";
+$f[]="#RootPassword=artica";
 $f[]="";
 
 
@@ -186,7 +213,7 @@ $f[]="######    Services/Proxy section  ######";
 $f[]="########################################";
 $f[]="";
 
-$f[]="# Standard Proxy Listen port";
+$f[]="# Standard Proxy Listen port ( non transparent)";
 $f[]="proxy_listen_port=3128";
 $f[]="";
 $f[]="# Enable/Disable the transparent mode 0 = no, 1 = yes";
@@ -207,6 +234,16 @@ $f[]="EnableWebFiltering=1";
 $f[]="";
 $f[]="# Activate NTLM Proxy";
 $f[]="EnableCNTLM=0";
+
+$f[]="";
+$f[]="# Artica Features level";
+$f[]="# SquidPerformance=0 Enable all features including Categories services,statistics and relatime monitor";
+$f[]="# SquidPerformance=1 Disable Categories services, enable Artica statistics and Artica realtime monitor";
+$f[]="# SquidPerformance=2 Disable Categories services, Disable Artica statistics and Artica realtime monitor";
+
+$f[]="SquidPerformance=1";
+$f[]="";
+
 $f[]="# NTLM Proxy Listen port";
 $f[]="CnTLMPORT=3155";
 $f[]="# Proxy shared physical memory (MB)";
@@ -261,7 +298,7 @@ $f[]="#finance/banking,finance/insurance,finance/moneylending,finance/realestate
 $f[]="#forums,socialnet,jobsearch,jobtraining,learning,humanitarian,associations,gamble,hacking,warez,";
 $f[]="#hobby/cooking,hobby/fishing,hobby/arts,hobby/other,isp,webmail,liste_bu,mobile-phone,marketingware,";
 $f[]="#webradio,audio-video,webtv,music,movies,blog,news,press,society,books,manga,dictionaries,phishing,";
-$f[]="#redirector,proxy,strict_redirector,strong_redirector,paytosurf,reaffected,tricheur,webphone,weapons,";
+$f[]="#redirector,proxy,paytosurf,reaffected,tricheur,webphone,weapons,";
 $f[]="#games,hobby/pets,animals,horses,filehosting,pictures,photo,pictureslib,imagehosting,religion,sect,";
 $f[]="#genealogy,ringtones,recreation/wellness,recreation/travel,recreation/nightout,governments,";
 $f[]="#recreation/schools,housing/doityourself,housing/builders,housing/accessories,houseads,smallads,";
@@ -372,7 +409,7 @@ $f[]="########################################";
 $f[]="######       Web Interface       ######";
 $f[]="########################################";
 $f[]="# Manager name and password:";
-$f[]="# This is the Account of the gloabl Manager interface ( default: Username Manager, password=secret)";
+$f[]="# This is the Account of the global Manager interface ( default: Username Manager, password=secret)";
 $f[]="#ManagerAccount=Manager";
 $f[]="#ManagerPassword=secret";
 $f[]="# Disable insert special characters in passwords (0/1)";
@@ -413,7 +450,7 @@ $f[]="# Use the Active Directory as Time server ? 0/1";
 $f[]="NtpdateAD=0";
 $f[]="# Use this Internal Interface to communicate with the Active Directory";
 $f[]="#SambaBindInterface=10.10.10.1";
-$f[]="# Active Directory server version ( WIN_2003 or WIN_2008AES )";
+$f[]="# Active Directory server version ( WIN_2003 or WIN_2008AES for both 2008/2012)";
 $f[]="WINDOWS_SERVER_TYPE=WIN_2003";
 $f[]="";
 $f[]="COMPUTER_BRANCH=CN=Computers";
@@ -428,7 +465,7 @@ $text=@implode("\n", $f);
 $button=button($apply, "Save$t()",22);
 
 $html="
-<div style='font-size:22px;margin:15px' class=explain>{automation_script_explain}</div>
+<div style='font-size:22px;margin:15px' class=text-info>{automation_script_explain}</div>
 <center id='$t' style='margin:10px'></center>
 <center>
 <div style='text-align:center;width:100%;background-color:white;margin-bottom:10px;padding:5px;'>$importsquid$button<br></div>
@@ -491,11 +528,20 @@ function js(){
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
-	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
+	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
+	$ProductName=null;
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
+	if($users->WEBSECURIZE){
+		$ProductName="Web Securize";
+	}
+	if($users->LANWANSAT){
+		$ProductName="LanWanSat Proxy";
+	}
 	
 	$title=$tpl->_ENGINE_parse_body("{WELCOME_ON_ARTICA_PROJECT}");
+	if($ProductName<>null){$title=str_ireplace("artica", $ProductName, $title);}
 	
 	echo "
 		$(\"head\").append($(\"<link rel='stylesheet' href='ressources/templates/default/blurps.css' type='text/css' media='screen' />\"));
@@ -595,13 +641,29 @@ function setup_1(){
 	}
 	
 
+	if($users->WEBSECURIZE){
+		$_SESSION["change-artica-name"]="WebSecurize";
+		$WELCOME_WIZARD_2=str_ireplace("artica", $_SESSION["change-artica-name"], $WELCOME_WIZARD_2);
+		
+		
+	}
+	
+	if($users->LANWANSAT){
+		$_SESSION["change-artica-name"]="LanWanSat Proxy";
+		$WELCOME_WIZARD_2=str_ireplace("artica", $_SESSION["change-artica-name"], $WELCOME_WIZARD_2);
+		
+	}
+	
+	$WELCOME_ON_ARTICA_PROJECT=$tpl->_ENGINE_parse_body("{WELCOME_ON_ARTICA_PROJECT}");
+	$WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT=$tpl->_ENGINE_parse_body("{WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT}");
+	$WELCOME_WIZARD_ARC1=$tpl->_ENGINE_parse_body("{WELCOME_WIZARD_ARC1}");
 	
 	$html="
 	<input type='hidden' id='savedsettings' value=''>
 	<div id='setup-content'>
 	<div style='margin:10px;width:95%' class=form>
-	<div style='font-size:37px;font-weight:bolder;padding:15px'>{WELCOME_ON_ARTICA_PROJECT}</div>
-	<div style='font-size:14px;padding:15px'>{WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT}</div>
+	<div style='font-size:37px;font-weight:bolder;padding:15px'>$WELCOME_ON_ARTICA_PROJECT</div>
+	<div style='font-size:14px;padding:15px'>$WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT</div>
 
 	
     $videoStarted
@@ -614,6 +676,8 @@ function setup_1(){
 	</div>
 	<script>
 		$(\".ui-dialog-titlebar-close\").remove();
+		document.getElementById('content').style.width='1000px';
+		document.getElementById('content').style.height='1500px';
 
 		
 		
@@ -745,6 +809,299 @@ function EnableUfdbGuard(){
 }
 
 
+function setup_features(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$savedsettings_encoded=urlencode($_GET["savedsettings"]);	
+	$t=time();
+	
+	$sock->SET_INFO("AsSeenPerformanceFeature",1);
+	$AsReverseProxyAppliance=intval($savedsettings["AsReverseProxyAppliance"]);
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
+	$t=time();
+	
+	
+
+	$AsCategoriesAppliance=intval($savedsettings["AsCategoriesAppliance"]);
+	
+	$AsMetaServer=intval($savedsettings["AsMetaServer"]);
+	$WizardWebFilteringLevel=$sock->GET_INFO("WizardWebFilteringLevel");
+	
+	if($AsCategoriesAppliance==1){
+		echo "<script>LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');</script>";
+		return;
+	}
+	
+	if($AsMetaServer==1){
+		echo "<script>LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');</script>";
+		return;
+	}	
+	
+	if($AsReverseProxyAppliance==1){
+	echo "<script>LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');</script>";
+	return;
+	}	
+	
+	
+	$array[0]="{full_features}";
+	$array[1]="{no_categories}";
+	$array[2]="{no_statistics}";	
+	$array[3]="{minimal_features}";
+	
+	
+	$ARRAYF[null]="{no_web_filtering}";
+	$ARRAYF[0]="{block_unproductive_websites}";
+	$ARRAYF[1]="{block_sexual_websites}";
+	$ARRAYF[2]="{block_susp_websites}";
+	$ARRAYF[3]="{block_multi_websites}";
+	
+	
+	$html="<div style='width:98%' class=form>
+<table style='width:100%'>
+<tr>
+	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+	<div style='font-size:50px;margin-bottom:30px;'>{global_performance}</div>
+	<div class=text-info style='font-size:20px'>{artica_squid_performance_text}</div>
+	<p>&nbsp;</p>	
+	<div class=text-info style='font-size:20px;margin-bottom:30px' id='explain-$t'></div>	
+</tr>
+	<table style='width:100%'>
+	<tr>
+		<td style='font-size:28px'>{performance_level}:</td>
+		<td>". Field_array_Hash($array, "SquidPerformance-$t",$SquidPerformance,"Choose$t()",null,0,"font-size:28px")."</td>
+	</tr>
+	<tr>
+		<td style='font-size:28px'>{webfiltering}:</td>
+		<td>". Field_array_Hash($ARRAYF, "WizardWebFilteringLevel-$t",$WizardWebFilteringLevel,null,null,0,"font-size:28px")."</td>
+	</tr>				
+				
+	<tr>
+		<td colspan=2>
+		<table style='width:100%;margin-top:50px'>
+			<tr>
+			<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
+			<td>&nbsp;</td>
+			<td  align='right'>". button("{next}","Save$t()","30px")."</td>
+			</tr>
+			</table>
+		</td>
+	</tr>
+	</tr>
+	</table>		
+</div>		
+	<script>
+	var xSave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');
+	}
+	
+	
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('SquidPerformance',document.getElementById('SquidPerformance-$t').value);
+		XHR.appendData('WizardWebFilteringLevel',document.getElementById('WizardWebFilteringLevel-$t').value);
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+	
+	
+		function Choose$t(){
+			var choosed=document.getElementById('SquidPerformance-$t').value;
+			LoadAjax('explain-$t','$page?explain-performance='+choosed);
+		}
+
+		
+		document.getElementById('content').style.height='890px';
+		Choose$t();	
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+		
+	
+}
+
+function setup_features_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidPerformance", $_POST["SquidPerformance"]);
+	$sock->SET_INFO("WizardWebFilteringLevel", $_POST["WizardWebFilteringLevel"]);
+	
+	
+}
+
+function setup_features_explain(){
+	
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body("{SquidPerformance_{$_GET["explain-performance"]}}");
+}
+
+
+function setup_proxy_type(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$savedsettings_encoded=urlencode($_GET["savedsettings"]);	
+	$users=new usersMenus();
+	
+	$text_info_style="
+margin: 0 0 20px;
+padding: 5px 0 5px 15px;
+color: black;
+margin:5px;
+padding:3px;
+text-align:left;
+font-weight:normal;
+font-size: 14px;
+margin-bottom: 20px;
+padding: 8px 35px 8px 14px;
+text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+border:1px solid #73AD65;
+border-radius:5px 5px 5px 5px;
+-moz-border-radius:5px;
+-webkit-border-radius:5px;
+background-color: white;
+";
+
+	$html[]="
+	<div style='font-size:50px;margin-bottom:30px'>{select_main_service}</div><center>";
+	
+
+	
+	
+	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{connected_http_proxy}", "ConnectedProxy()",36)."
+			<div style='$text_info_style'>
+				{explain_http_proxy_connected}		
+			</div>
+			
+			</center>";
+	
+	
+	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{transparent_http_proxy}", "TransparentProxy()",36)."
+			<div style='$text_info_style'>
+				{explain_http_proxy_transparent}		
+			</div>
+			
+			</center>";
+	
+	
+	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{categories_appliance}", "CategoriesAppliance()",36)."
+			<div style='$text_info_style'>
+				{explain_categories_appliance}		
+			</div>
+			</center>";
+	
+	
+	if($users->NGINX_INSTALLED){
+		$html[]="
+		<center style='margin:30px;width:80%;padding:20px' class=form >".button("{reverse_proxy_service}", "ReverseProxy()",36)."
+			<div style='$text_info_style'>
+			{explain_reverse_proxy}
+			</div>
+			</center>
+	
+			";
+	}
+
+	$html[]="
+		<center style='margin:30px;width:80%;padding:20px' class=form >".button("{artica_meta_server}", "MetaServer()",36)."
+			<div style='$text_info_style'>
+			{artica_meta_server_explain}
+			</div>
+			</center>
+	
+			";	
+	$html[]="
+			<table style='width:100%;margin-top:50px'>
+			<tr>
+			<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
+			<td>&nbsp;</td>
+			<td  align='right'>&nbsp;</td>
+			</tr>
+			</table>		
+	</center>
+	<script>
+var xchoose= function (obj) {
+	UnlockPage();
+	var results=obj.responseText;
+
+	LoadAjax('setup-content','$page?setup-active-directory=yes&savedsettings='+results);
+}
+		
+function ReverseProxy(){
+	var XHR = new XHRConnection();
+	XHR.appendData('CHOOSE',1);
+	XHR.appendData('AsReverseProxyAppliance','1');
+	XHR.appendData('AsCategoriesAppliance','0');
+	XHR.appendData('AsTransparentProxy','0');
+	XHR.appendData('AsMetaServer','0');
+	XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xchoose);
+}
+		
+function CategoriesAppliance(){
+	var XHR = new XHRConnection();
+	XHR.appendData('CHOOSE',1);
+	XHR.appendData('AsCategoriesAppliance','1');
+	XHR.appendData('AsReverseProxyAppliance','0');
+	XHR.appendData('AsTransparentProxy','0');
+	XHR.appendData('AsMetaServer','0');
+	XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xchoose);
+}
+		
+function ConnectedProxy(){
+	var XHR = new XHRConnection();
+	XHR.appendData('CHOOSE',1);
+	XHR.appendData('AsReverseProxyAppliance','0');
+	XHR.appendData('AsCategoriesAppliance','0');
+	XHR.appendData('AsTransparentProxy','0');
+	XHR.appendData('AsMetaServer','0');
+	XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xchoose);		
+}
+		
+function TransparentProxy(){
+	var XHR = new XHRConnection();
+	XHR.appendData('CHOOSE',1);
+	XHR.appendData('AsCategoriesAppliance','0');
+	XHR.appendData('AsReverseProxyAppliance','0');
+	XHR.appendData('AsTransparentProxy','1');
+	XHR.appendData('AsMetaServer','0');
+	XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xchoose);		
+}
+function MetaServer(){
+	var XHR = new XHRConnection();
+	XHR.appendData('CHOOSE',1);
+	XHR.appendData('AsCategoriesAppliance','0');
+	XHR.appendData('AsReverseProxyAppliance','0');
+	XHR.appendData('AsTransparentProxy','0');
+	XHR.appendData('AsMetaServer','1');
+	XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xchoose);		
+}		
+		
+		
+	document.getElementById('content').style.height='1425px';
+	</script>
+			
+	";
+	
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $html));
+	
+	
+}
+
+
 function setup_active_directory(){
 	$sock=new sockets();
 	$page=CurrentPageName();
@@ -753,14 +1110,47 @@ function setup_active_directory(){
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$savedsettings_encoded=urlencode($_GET["savedsettings"]);
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-	$severtype["WIN_2003"]="Windows 2003";
-	$severtype["WIN_2008AES"]="Windows 2008 with AES";
-	$users=new usersMenus();
+	
 	$setupWebFILTER=0;
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$setupWebFILTER=1;
 	}
+	
+	
+	$AsCategoriesAppliance=intval($savedsettings["AsCategoriesAppliance"]);
+	$transparent_proxy=intval($savedsettings["AsTransparentProxy"]);
+	$AsReverseProxyAppliance=intval($savedsettings["AsReverseProxyAppliance"]);
+	$AsMetaServer=intval($savedsettings["AsMetaServer"]);
+	
+	
+	if($AsCategoriesAppliance==1){
+		AsCategoriesAppliance();
+		return;
+	}
+	
+	
+	if($AsMetaServer==1){
+		echo "<script>LoadAjax('setup-content','$page?setup-features=yes&savedsettings=$savedsettings_encoded');</script>";
+		return;		
+	}
+	
+	if($transparent_proxy==1){
+		echo "<script>LoadAjax('setup-content','$page?setup-features=yes&savedsettings=$savedsettings_encoded');</script>";
+		return;
+	}
+	
+	if($AsReverseProxyAppliance==1){
+		echo "<script>LoadAjax('setup-content','$page?setup-features=yes&savedsettings=$savedsettings_encoded');</script>";
+		return;
+	}	
+	
+	
+	
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	$severtype["WIN_2003"]="Windows 2003";
+	$severtype["WIN_2008AES"]="Windows 2008 with AES";
+	$users=new usersMenus();
+
 	
 	
 	$hostname_domain=$savedsettings["domain"];
@@ -828,14 +1218,14 @@ function setup_active_directory(){
 	</tr>		
 	<tr>
 		<td class=legend style='font-size:25px'>{password}:</td>
-		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:25px;padding:3px;width:170px")."</td>
+		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:25px;padding:3px;width:250px")."</td>
 		<td>&nbsp;</td>
 	</tr>			
 	
 	<tr>
-		<td colspan=3 align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
+		<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
 		<td>&nbsp;</td>
-		<td colspan=3 align='right'>". button("{next}","JoinActiveDirectory()","30px")."</td>
+		<td  align='right'>". button("{next}","JoinActiveDirectory()","30px")."</td>
 	</tr>
 	</table>
 	</div>	
@@ -844,7 +1234,7 @@ function setup_active_directory(){
 			var results=obj.responseText;
 			UnlockPage();
 			var setupWebFILTER=$setupWebFILTER;
-			LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');
+			LoadAjax('setup-content','$page?setup-features=yes&savedsettings=$savedsettings_encoded');
 			
 		}
 			
@@ -895,9 +1285,43 @@ function setup_active_directory(){
 			
 		}
 		EnableKerbAuthCheck();
+		document.getElementById('content').style.height='670px';
 	</script>	";
 	echo $tpl->_ENGINE_parse_body($html);
 	
+}
+
+function AsCategoriesAppliance(){
+	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$savedsettings_encoded=urlencode($_GET["savedsettings"]);
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$html="<div style='width:98%' class=form>
+<table style='width:100%'>
+<tr>
+	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+	<div style='font-size:50px;margin-bottom:30px;'>{act_has_categories}</div>
+</tr>
+<tr>
+	<td colspan=2>
+				<div style='font-size:22px'>{act_has_categories_explain}</div>
+				<center style='margin:30px;width:98%'><img src='img/Categories-server.png'></center>		
+	</td>
+	<tr>
+		<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
+		<td>&nbsp;</td>
+		<td  align='right'>". button("{next}","LoadAjax('setup-content','$page?setup-features=yes&savedsettings=$savedsettings_encoded');","30px")."</td>
+	</tr>			
+</tr>
+</table>
+</div>		
+<script>
+	document.getElementById('content').style.height='880px';
+</script>
+";
+	
+echo $tpl->_ENGINE_parse_body($html);	
 }
 
 function setup_active_directory_save(){
@@ -924,7 +1348,7 @@ function setup_2(){
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
-	
+	$setup_proxy=0;
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
@@ -984,59 +1408,27 @@ function setup_2(){
 	}
 	
 	if($users->SQUID_INSTALLED){
-		
-		$arrayPP["3128"]=3128;
-		$arrayPP["8080"]=8080;
-		$arrayPP["9090"]=9090;
-		
-		$proxy="
-		<tr>
-			<td colspan=2 style='padding-top:15px;padding-left:10px;'>
-			<div style='font-size:22px;margin-bottom:10px;;margin-right:37px'>{proxy_parameters}</div>
-		</tr>
-		
-		<tr>
-			<td class=legend style='font-size:25px;' nowrap>{proxy_listen_port}:</td>
-			<td>". Field_array_Hash($arrayPP,"proxy_listen_port",$savedsettings["proxy_listen_port"],null,null,0,"font-size:25px")."</td>
-		</tr>
-		<tr>
-			<td class=legend style='font-size:25px;' nowrap>{activate_webfiltering}:</td>
-			<td>". Field_checkbox("EnableWebFiltering", 1,$savedsettings["EnableWebFiltering"])."</td>
-		</tr>
-					
-		";	
-						
-
+		$setup_proxy=1;
 		if($users->SQUID_REVERSE_APPLIANCE){
+			$setup_proxy=0;
 			$proxy="<input type='hidden' id='proxy_listen_port' value='80' name='proxy_listen_port'>";
 		}
 	}
 	
-	if($users->POWER_DNS_INSTALLED){
-		$pdns="	<tr>
-		<td class=legend style='font-size:25px' nowrap>{activate_dns_service}:</td>
-		<td>". Field_checkbox("EnablePDNS", 1,0)."</td>
-		</tr>";		
-		
-	}
-	
-	if($users->FREERADIUS_INSTALLED){
-		$freeradius="	<tr>
-		<td class=legend style='font-size:25px'>{activate_radius_service}:</td>
-		<td>". Field_checkbox("EnableFreeRadius", 1,0)."</td>
-		</tr>";		
-	}
+
 	
 	
 	
 	if($users->dhcp_installed){
-		$dhcpd="	<tr>
-		<td class=legend style='font-size:25px'>{activate_dhcp_service}:</td>
-		<td>". Field_checkbox("EnableDHCPServer", 1,0)."</td>
-		</tr>";
+		$dhcpd="	
+		<tr>
+			<td colspan=2>". Paragraphe_switch_img("{activate_dhcp_service}", 
+					"{activate_dhcp_service_wizard}","EnableDHCPServer",$savedsettings["EnableDHCPServer"],null,940)."</td>		
+		</tr>		
+		";
 	}	
 	
-	$SERVICES_TITLE="<div style='margin-bottom:35px'>{services}</div>";
+	$SERVICES_TITLE="<div style='margin-bottom:40px'>{services}</div>";
 	
 	if($users->WORDPRESS_APPLIANCE){$dhcpd=null;$SERVICES_TITLE=null;}
 	
@@ -1073,8 +1465,8 @@ function setup_2(){
 		$arrayTime[$timezone[$i]]=$timezone[$i];
 	}
 	
-	$timezone_def=trim($sock->GET_INFO('timezones'));
-	if($timezone_def==null){$timezone_def=getLocalTimezone();}
+	
+	$timezone_def=getLocalTimezone();
 	
 	$FORM="
 	<div style='width:98%' class=form>
@@ -1161,8 +1553,6 @@ function setup_2(){
 		<td colspan=2 style='font-size:50px;'>$SERVICES_TITLE</td>
 	</tr>	
 	$proxy			
-	$pdns	
-	$freeradius	
 	$dhcpd	
 	<tr>
 		<td colspan=2 style='font-size:25px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","30px")."</div></td>
@@ -1174,6 +1564,12 @@ function setup_2(){
 		var X_ChangeQuickHostname= function (obj) {
 			var results=obj.responseText;
 			UnlockPage();
+			var setup_proxy=$setup_proxy;
+			if(setup_proxy==1){
+				LoadAjax('setup-content','$page?setup-proxy-type=yes&savedsettings='+results)
+				return;
+			}			
+			
 			var SetupAD=$SetupAD;
 			if(SetupAD==1){
 				LoadAjax('setup-content','$page?setup-active-directory=yes&savedsettings='+results)
@@ -1256,18 +1652,19 @@ function setup_2(){
 			}
 
 			if(document.getElementById('EnableDHCPServer')){
-				var EnableDHCPServer=0;
-				if(document.getElementById('EnableDHCPServer').checked){EnableDHCPServer=1;}
-				XHR.appendData('EnableDHCPServer',EnableDHCPServer);
+				XHR.appendData('EnableDHCPServer',document.getElementById('EnableDHCPServer').value);
 			}
 			
 
 
 			if(document.getElementById('EnableWebFiltering')){
-				var EnableWebFiltering=0;
-				if(document.getElementById('EnableWebFiltering').checked){EnableWebFiltering=1;}
-				XHR.appendData('EnableWebFiltering',EnableWebFiltering);
+				XHR.appendData('EnableWebFiltering',document.getElementById('EnableWebFiltering').value);
 			}
+
+			if(document.getElementById('AsCategoriesAppliance')){
+				XHR.appendData('AsCategoriesAppliance',document.getElementById('AsCategoriesAppliance').value);
+			}			
+			
 
 			if(document.getElementById('timezones')){
 				XHR.appendData('timezones',document.getElementById('timezones').value);
@@ -1280,7 +1677,6 @@ function setup_2(){
 			if(KEEPNET==0){ 
 				XHR.appendData('VPS_COMPATIBLE',VPS_COMPATIBLE);
 				XHR.appendData('NIC',document.getElementById('NIC').value);
-				
 				XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
 				XHR.appendData('NETMASK',document.getElementById('NETMASK').value);  
 				XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
@@ -1299,6 +1695,7 @@ function setup_2(){
 			
 		}
 		KeepNetCheck();
+		document.getElementById('content').style.height='1850px';
 	</script>
 	
 	";
@@ -1322,6 +1719,7 @@ function setup_3(){
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$users=new usersMenus();
@@ -1340,16 +1738,31 @@ function setup_3(){
 	$UseServerV=$savedsettings["UseServer"];
 	$smtp_domainname=$savedsettings["smtp_domainname"];
 	$company_www=$savedsettings["company_www"];
+	$GoldKey=$savedsettings["GoldKey"];
 	$KEEPNET=$savedsettings["KEEPNET"];
 	if(!is_numeric($KEEPNET)){$KEEPNET=0;}
 	$t=time();
+	$MBX=false;
+	$Postfix=false;
+	$Samba=false;
+	$squid_installed=false;
+	$nginx_installed=false;
 	$UseServer[null]="{select}";
-	$UseServer["ASMAIL"]="{mail_server}";
-	$UseServer["ASRELAY"]="{relay_server}";
-	$UseServer["ASFILE"]="{file_server}";
-	$UseServer["ASPROXY"]="{proxy_server}";
-	$UseServer["ASREVERSEPROXY"]="{reverse_proxy_server}";
-	$UseServer["AS_FIREWALL"]="{gateway}";
+	if($users->POSTFIX_INSTALLED){$Postfix=true;}
+	if($users->ZARAFA_INSTALLED){$MBX=true;}
+	if($users->cyrus_imapd_installed){$MBX=true;}
+	if($MBX){
+		$UseServer["ASMAIL"]="{mail_server}";
+	}
+	
+	if($users->SAMBA_INSTALLED){$Samba=true;}
+	if($users->SQUID_INSTALLED){$squid_installed=true;}
+	if($users->NGINX_INSTALLED){$nginx_installed=true;}
+	
+	if($Postfix){$UseServer["ASRELAY"]="{relay_server}";}
+	if($Samba){$UseServer["ASFILE"]="{file_server}";}
+	if($squid_installed){$UseServer["ASPROXY"]="{proxy_server}";}
+	if($nginx_installed){$UseServer["ASREVERSEPROXY"]="{reverse_proxy_server}";}
 	$UseServer["AS_WORDPRESS"]="Wordpress appliance";
 	
 	
@@ -1455,7 +1868,13 @@ function setup_3(){
 	if($users->WORDPRESS_APPLIANCE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Wordpress Appliance' >";
 	}	
+	if($users->WEBSECURIZE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='WebSecurize Appliance' >";
+	}	
 	
+	if($users->LANWANSAT){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='LANWANSAT Appliance' >";
+	}
 	
 	//toujours à la fin...
 	if($UseServerFF==null){
@@ -1464,41 +1883,51 @@ function setup_3(){
 		}
 	}
 	
+	$noticeregisterform="<div style='font-size:11px;text-align:right'>{noticeregisterform}</div>";
+	if($users->WEBSECURIZE){$noticeregisterform=null;}
+	if($users->LANWANSAT){$noticeregisterform=null;}
+	
 	$company_name_txtjs=$tpl->javascript_parse_text("{company_name}");
 	$FORM="
 	<div style='width:98%' class=form>
 	<table style='width:100%' id='$t'>
+	
 	<tr>
 		<td colspan=2 style='font-size:50px;font-weight:bolder'>{YourRealCompany}</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:25px'>{gold_license}:</td>
+		<td>". Field_text("GoldKey",$GoldKey,"font-size:25px;width:440px")."</td>
+	</tr>
+		<tr><td colspan=2 align='right'><i>{gold_license_explain}</i></td></tr>	
+	<tr>
 		<td class=legend style='font-size:25px'>{company_name}:</td>
-		<td>". Field_text("company_name",$company_name,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("company_name",$company_name,"font-size:25px;width:440px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:25px'>{company_website}:</td>
-		<td>". Field_text("company_www",$company_www,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("company_www",$company_www,"font-size:25px;width:440px")."</td>
 	</tr>				
 	</tr>
 		<td class=legend style='font-size:25px'>{country}:</td>
-		<td>". Field_text("country",$country,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("country",$country,"font-size:25px;width:440px")."</td>
 	</tr>
 	</tr>
 		<td class=legend style='font-size:25px'>{city}:</td>
-		<td>". Field_text("city",$city,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("city",$city,"font-size:25px;width:440px")."</td>
 	</tr>
 					
 	</tr>
 		<td class=legend style='font-size:25px'>{your_email_address}:</td>
-		<td>". Field_text("mail",$mail,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("mail",$mail,"font-size:25px;width:440px")."</td>
 	</tr>	
 	</tr>
 		<td class=legend style='font-size:25px'>{phone_title}:</td>
-		<td>". Field_text("telephone",$telephone,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("telephone",$telephone,"font-size:25px;width:440px")."</td>
 	</tr>
 	</tr>
 		<td class=legend style='font-size:25px'>{nb_employees}:</td>
-		<td>". Field_text("employees",$employees,"font-size:25px;width:80px")."</td>
+		<td>". Field_text("employees",$employees,"font-size:25px;width:440px")."</td>
 	</tr>
 
 	$UseServerFF
@@ -1511,11 +1940,11 @@ function setup_3(){
 	</tr>	
 	</tr>
 		<td class=legend style='font-size:25px'>{organization}:</td>
-		<td>". Field_text("organization",$organization,"font-size:25px;width:280px")."</td>
+		<td>". Field_text("organization",$organization,"font-size:25px;width:440px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:25px'>{smtp_domain}:</td>
-		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:25px;width:280px",null,null,null,false,"CheckMyForm$t(event)")."</td>
+		<td class=legend style='font-size:25px'>{domain}:</td>
+		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:25px;width:440px",null,null,null,false,"CheckMyForm$t(event)")."</td>
 	</tr>	
 		<tr>
 		<td colspan=2 style='font-size:25px;font-weight:bolder'>&nbsp;</td>
@@ -1525,7 +1954,8 @@ function setup_3(){
 		<td style='font-size:16px;font-weight:bolder'><div style='text-align:right'>". button("{next}","ChangeCompanySettings()","30px")."</div></td>
 	</tr>
 	</table>
-	<div style='font-size:11px;text-align:right'>{noticeregisterform}</div>
+	$noticeregisterform
+	
 	<script>
 		var X_ChangeCompanySettings= function (obj) {
 			UnlockPage();
@@ -1572,6 +2002,7 @@ function setup_3(){
 			XHR.appendData('employees',document.getElementById('employees').value);
 			XHR.appendData('company_www',document.getElementById('company_www').value);
 			XHR.appendData('EnableWebFiltering','{$savedsettings["EnableWebFiltering"]}');
+			XHR.appendData('GoldKey',document.getElementById('GoldKey').value);
 			
 			
 			
@@ -1580,7 +2011,7 @@ function setup_3(){
 			XHR.sendAndLoad('$page', 'POST',X_ChangeCompanySettings);
 			
 		}
-	
+	document.getElementById('content').style.height='930px';
 	</script>
 	
 	";	
@@ -1614,8 +2045,19 @@ function save(){
 	if(isset($_POST["city"])){$_POST["city"]=url_decode_special_tool($_POST["city"]);}
 	if(isset($_POST["organization"])){$_POST["organization"]=url_decode_special_tool($_POST["organization"]);}
 	if(isset($_POST["country"])){$_POST["country"]=url_decode_special_tool($_POST["country"]);}
-	
 
+	if(isset($_POST["ArticaMetaHost"])){$sock->SET_INFO("ArticaMetaHost",$_POST["ArticaMetaHost"]);}
+	if(isset($_POST["EnableArticaMetaClient"])){$sock->SET_INFO("EnableArticaMetaClient",$_POST["EnableArticaMetaClient"]);}
+	if(isset($_POST["ArticaMetaPort"])){$sock->SET_INFO("ArticaMetaPort",$_POST["ArticaMetaPort"]);}
+	if(isset($_POST["ArticaMetaUsername"])){$sock->SET_INFO("ArticaMetaUsername",$_POST["ArticaMetaUsername"]);}
+	if(isset($_POST["ArticaMetaPassword"])){$sock->SET_INFO("ArticaMetaPassword",url_decode_special_tool($_POST["ArticaMetaPassword"]));}
+	if(isset($_POST["ArticaMetaServerPassword"])){$sock->SET_INFO("ArticaMetaServerPassword",url_decode_special_tool($_POST["ArticaMetaServerPassword"]));}
+	if(isset($_POST["ArticaMetaServerUsername"])){$sock->SET_INFO("ArticaMetaServerUsername",$_POST["ArticaMetaServerUsername"]);}
+	
+	
+	if(isset($_POST["statsadministratorpass"])){$_POST["statsadministratorpass"]=url_decode_special_tool($_POST["statsadministratorpass"]);}
+	if(isset($_POST["administrator"])){$_POST["administrator"]=url_decode_special_tool($_POST["administrator"]);}
+	if(isset($_POST["administratorpass"])){$_POST["administratorpass"]=url_decode_special_tool($_POST["administratorpass"]);}
 	
 	
 	while (list ($key, $value) = each ($_POST) ){
@@ -1652,6 +2094,16 @@ function setup_4(){
 	$memory=intval($sock->getFrameWork("services.php?total-memory=yes"));
 	if($memory==0){$memory=intval($sock->getFrameWork("services.php?total-memory=yes"));}
 	if($memory==0){$memory=round($users->MEM_TOTAL_INSTALLEE/1024);}
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	
+	
+	$ArticaMetaUsername=$sock->GET_INFO("ArticaMetaUsername");
+	$ArticaMetaPassword=$sock->GET_INFO("ArticaMetaPassword");
+	$ArticaMetaHost=$sock->GET_INFO("ArticaMetaHost");
+	$ArticaMetaPort=intval($sock->GET_INFO("ArticaMetaPort"));
+	$ArticaMetaServerUsername=$sock->GET_INFO("ArticaMetaServerUsername");
+	$ArticaMetaServerPassword=$sock->GET_INFO("ArticaMetaServerPassword");
+	if($ArticaMetaPort==0){$ArticaMetaPort=9000;}
 	
 	
 	$WIZMEM=false;
@@ -1725,6 +2177,7 @@ function setup_4(){
 				</tr>
 				</table>
 			</div>
+			<p>&nbsp;</p>
 			";
 			
 			if($users->SQUID_INSTALLED){
@@ -1813,35 +2266,49 @@ function setup_4(){
 	if($users->SQUID_INSTALLED){
 		$sock->getFrameWork("cmd.php?sysctl-setvalue=5&key=".base64_encode("vm.swappiness"));
 	}
+	$t=time();
+	if($savedsettings["administrator"]==null){$savedsettings["administrator"]="Manager";}
+	if($savedsettings["administratorpass"]==null){$savedsettings["administratorpass"]="secret";}
 	
-	$html="
-	$warn_memory
-	<div style='width:98%' class=form>
-	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>End-Users WebAccess</div>
-		<div style='font-size:18px' class=explain>{miniadm_wizard_explain}<p>
+	$superAdminForm="
+	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px;margin-top:25px'>{artica_manager}:</div>
+	<div style='font-size:18px' class=text-info>{miniadm_wizard_admin_explain}</div>
+	<p>&nbsp;</p>
+	<table style='width:100%'>	
+				<tr>
+					<td class=legend style='font-size:25px'>{username}:</td>
+					<td style='font-size:14px'>". Field_text("administrator",$savedsettings["administrator"],"font-size:25px;width:340px")."</td>
+				</tr>	
+				<tr>
+					<td class=legend style='font-size:25px'>{password}:</td>
+					<td style='font-size:14px'>". Field_password("administratorpass",$savedsettings["administratorpass"],"font-size:25px;width:340px")."</td>
+				</tr>
+				<tr>
+					<td class=legend style='font-size:25px'>{confirm}:</td>
+					<td style='font-size:14px'>". Field_password("administratorpass2",$savedsettings["administratorpass"],"font-size:25px;width:340px")."</td>
+				</tr>								
+		</table>
+	";
+	
+	
+	$miniadm_form="<div style='width:98%' class=form>
+	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px;margin-top:25px'>End-Users WebAccess</div>
+		<div style='font-size:18px' class=text-info>{miniadm_wizard_explain}<p>
 		{miniadm_wizard_explain2}</p></div>
 		<table style='width:100%'>
 				<tr>
 					<td class=legend style='font-size:25px'>{webserver}:</td>
-					<td style='font-size:25px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:25px;width:477px")."</td>
+					<td style='font-size:25px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:25px;width:450px")."</td>
 				</tr>
 				<tr>
 					<td class=legend style='font-size:25px'>{second_webadmin}:</td>
-					<td style='font-size:25px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:25px;width:477px")."</td>
+					<td style='font-size:25px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:25px;width:450px")."</td>
 				</tr>							
 							
 							
-				<td colspan=2><div style='font-size:50px;margin-bottom:30px'>{administrator}:</div>
 				<tr>
-					<td class=legend style='font-size:25px'>{username}:</td>
-					<td style='font-size:14px'>". Field_text("administrator",$savedsettings["administrator"],"font-size:25px;width:280px")."</td>
-				</tr>	
-				<tr>
-					<td class=legend style='font-size:25px'>{password}:</td>
-					<td style='font-size:14px'>". Field_password("administratorpass",$savedsettings["administratorpass"],"font-size:25px;width:170px")."</td>
-				</tr>	
 					<td colspan=2><div style='font-size:50px;margin-bottom:30px;margin-top:30px'>{statistics_administrator}:</div>
-				<tr>
+				</tr>
 					<td class=legend style='font-size:25px'>{username}:</td>
 					<td style='font-size:14px'>". Field_text("statsadministrator",$savedsettings["statsadministrator"],"font-size:25px;width:280px")."</td>
 				</tr>	
@@ -1849,13 +2316,91 @@ function setup_4(){
 					<td class=legend style='font-size:25px'>{password}:</td>
 					<td style='font-size:14px'>". Field_password("statsadministratorpass",$savedsettings["statsadministratorpass"],"font-size:25px;width:170px")."</td>
 				</tr>	
+						
+		</table>
+	</div>";
+	
+	
+	$meta_client_form="	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>{artica_meta}</div>
+		". Paragraphe_switch_img("{enable_artica_meta}", "{artica_meta_client_howto}",
+				"EnableArticaMetaClient-$t",$EnableArticaMetaClient,null,700)."
+		
+	
+		<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:25px'>{hostname}:</td>
+			<td style='font-size:18px'>". Field_text("ArticaMetaHost-$t",$ArticaMetaHost,"font-size:25px;width:240px")."</td>
+		</tr>			
+		<tr>
+			<td class=legend style='font-size:25px'>{port}:</td>
+			<td style='font-size:18px'>". Field_text("ArticaMetaPort-$t",$ArticaMetaPort,"font-size:25px;width:110px")."</td>
+		</tr>				
+			
+		<tr>
+			<td class=legend style='font-size:25px'>{username}:</td>
+			<td style='font-size:18px'>". Field_text("username-$t",$ArticaMetaUsername,"font-size:25px;width:240px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:25px'>{password}:</td>
+			<td style='font-size:18px'>". Field_password("password-$t",$ArticaMetaPassword,"font-size:25px;width:240px")."</td>
+		</tr>
+		</table>
+	</div>";
+	
+	
+	$size_form="1674px";
+	
+	$meta_server_form="
+			<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>{artica_meta}</div>
+			<div style='font-size:18px;margin-bottom:20px'>{artica_meta_howto}</div>
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:25px'>{username}:</td>
+			<td style='font-size:25px'>". Field_text("ArticaMetaServerUsername-$t",$ArticaMetaServerUsername,"font-size:25px;width:240px")."</td>		
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:25px'>{password}:</td>
+			<td style='font-size:25px'>". Field_password("ArticaMetaServerPassword-$t",$ArticaMetaServerPassword,"font-size:25px;width:240px")."</td>		
+		</tr>				
+	</table>		
+			
+			
+			
+	";
+	
+	
+	
+	$password_mismatch=$tpl->javascript_parse_text("{artica_manager}: {password_mismatch}");
+	$AsCategoriesAppliance=intval($savedsettings["AsCategoriesAppliance"]);
+	$AsReverseProxyAppliance=intval($savedsettings["AsReverseProxyAppliance"]);
+	$AsMetaServer=intval($savedsettings["AsMetaServer"]);
+	if($AsCategoriesAppliance==1){$miniadm_form=null;$size_form="800px";}
+	if($AsReverseProxyAppliance==1){$miniadm_form=null;$size_form="800px";}
+	if($AsMetaServer==1){$miniadm_form=null;$meta_client_form=null;$size_form="800px";}
+	if($AsMetaServer==0){$meta_server_form=null;}
+	
+	
+	
+	
+	$html="
+	$warn_memory
+	<div style='width:98%' class=form>
+		$superAdminForm
+	</div>
+	<div style='width:98%' class=form>
+	$meta_client_form
+	$meta_server_form
+	<p>&nbsp;</p>
+
+	<p>&nbsp;</p>
+	$miniadm_form
+	<table style='width:100%'>
 				<tr><td colspan=2><p>&nbsp;</p></td></tr>
 				<tr>
 					<td style='font-size:14px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","30px")."<div></td>
 					<td style='font-size:14px;font-weight:bolder'><div style='text-align:right'>". button("{build_parameters}","ChangeWebAccess()","30px")."</div></td>
-				</tr>							
-		</table>
-	</div>
+				</tr>	
+	</table>
 	<script>
 		var XChangeWebAccess= function (obj) {
 			var results=obj.responseText;
@@ -1866,19 +2411,42 @@ function setup_4(){
 		
 		function ChangeWebAccess(){
 			var XHR = new XHRConnection();
-			XHR.appendData('adminwebserver',document.getElementById('adminwebserver').value);
-			XHR.appendData('second_webadmin',document.getElementById('second_webadmin').value);
-			XHR.appendData('administrator',document.getElementById('administrator').value);
-			XHR.appendData('statsadministrator',document.getElementById('statsadministrator').value);
-			var statsadministratorpass=encodeURIComponent(document.getElementById('statsadministratorpass').value);
-			var administratorpass=encodeURIComponent(document.getElementById('administratorpass').value);
-			XHR.appendData('administratorpass',administratorpass);
-			XHR.appendData('statsadministratorpass',statsadministratorpass);
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+			if(document.getElementById('EnableArticaMetaClient-$t')){
+				XHR.appendData('EnableArticaMetaClient',document.getElementById('EnableArticaMetaClient-$t').value);
+				XHR.appendData('ArticaMetaHost',document.getElementById('ArticaMetaHost-$t').value);
+				XHR.appendData('ArticaMetaPort',document.getElementById('ArticaMetaPort-$t').value);
+				XHR.appendData('ArticaMetaUsername',document.getElementById('username-$t').value);
+				XHR.appendData('ArticaMetaPassword',encodeURIComponent(document.getElementById('password-$t').value));
+			}
+			
+			if(document.getElementById('ArticaMetaServerUsername-$t')){
+				XHR.appendData('ArticaMetaServerUsername',document.getElementById('ArticaMetaServerUsername-$t').value);
+				XHR.appendData('ArticaMetaServerPassword',encodeURIComponent(document.getElementById('ArticaMetaServerPassword-$t').value));
+			}
+			
+			if(document.getElementById('administrator')){
+				XHR.appendData('administrator',encodeURIComponent(document.getElementById('administrator').value));
+				if(document.getElementById('administratorpass').value!=document.getElementById('administratorpass2').value){
+					alert('$password_mismatch');
+					return;
+				}
+				
+				XHR.appendData('administratorpass',encodeURIComponent(document.getElementById('administratorpass').value));
+			}
+			
+		
+			if(document.getElementById('adminwebserver')){
+				XHR.appendData('adminwebserver',document.getElementById('adminwebserver').value);
+				XHR.appendData('second_webadmin',document.getElementById('second_webadmin').value);
+				XHR.appendData('statsadministrator',document.getElementById('statsadministrator').value);
+				var statsadministratorpass=encodeURIComponent(document.getElementById('statsadministratorpass').value);
+				XHR.appendData('statsadministratorpass',statsadministratorpass);
+			}
 			XHR.sendAndLoad('$page', 'POST',XChangeWebAccess);
 			
 		}
-	
+	document.getElementById('content').style.height='$size_form';
 	</script>
 			
 			
@@ -2043,12 +2611,11 @@ function final_show(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ldap=new clladp();
-	$user=$ldap->ldap_admin;
-	$password=$ldap->ldap_password;
-	$settings_final_show=$tpl->_ENGINE_parse_body("{settings_final_show}");
-	$settings_final_show=str_replace("%a", "<strong>$user</strong>", $settings_final_show);
-	$settings_final_show=str_replace("%p", "<strong>$password</strong>", $settings_final_show);
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$settings_final_show=$tpl->_ENGINE_parse_body("{settings_final_show}");
+	$settings_final_show=str_replace("%a", "<strong style='color:#C91111'>{$savedsettings["administrator"]}</strong>", $settings_final_show);
+	$settings_final_show=str_replace("%p", "<strong  style='color:#C91111'>{$savedsettings["administratorpass"]}</strong>", $settings_final_show);
+	
 	$webinterf=array();
 	$webinterf[]="<hr>";
 	if($savedsettings["adminwebserver"]<>null){
@@ -2060,10 +2627,8 @@ function final_show(){
 		$webinterf[]="<div style='font-size:18px'><strong>WebAdmin Access:</strong> http://{$savedsettings["second_webadmin"]}/miniadm.logon.php</div>";
 	}		
 		
+	$webinterf[]="<div style='font-size:18px'><strong>{artica_manager}:</strong>{$savedsettings["administrator"]}</div>";
 	if($savedsettings["adminwebserver"]<>null){	
-		if($savedsettings["administrator"]<>null){
-			$webinterf[]="<div style='font-size:18px'><strong>WebAccess {username}:</strong>{$savedsettings["administrator"]}</div>";
-		}
 		if($savedsettings["statsadministrator"]<>null){
 			$webinterf[]="<div style='font-size:18px'><strong>WebAccess {username} ({statistics}):</strong>{$savedsettings["statsadministrator"]}</div>";
 		}		
@@ -2091,6 +2656,7 @@ $html="
 		</table>
 <script>						
 	$('#Status$t').progressbar({ value: 2 });	
+	document.getElementById('content').style.height='424px';
 	Loadjs('$page?progressbar-js=yes&t=$t');
 </script>
 

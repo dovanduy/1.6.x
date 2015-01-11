@@ -48,7 +48,7 @@ function popup(){
 	if($OverWriteRestrictedDomains==1){
 		$over="
 		<hr>
-		<div class=explain>{OverWriteRestrictedDomains_allow_text}</div>
+		<div class=text-info>{OverWriteRestrictedDomains_allow_text}</div>
 		<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{domain}:</td>
@@ -66,7 +66,7 @@ function popup(){
 	$domains[null]="{select}";
 	$html="
 	<div id='add_subdomain_explain'></div>
-	<div class=explain >{add_subdomain_explain}</div>
+	<div class=text-info >{add_subdomain_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

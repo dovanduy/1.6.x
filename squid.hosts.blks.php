@@ -124,7 +124,7 @@ if($_GET["blk"]==6){
 		],";
 	}	
 	
-if($explain<>null){$explain="<div class=explain style='font-size:16px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=text-info style='font-size:16px'>$explain</div>";}	
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -282,7 +282,7 @@ function squid_useragent(){
 	$tpl=new templates();
 	$t=time();	
 	$html="
-	<div style='font-size:14px' class=explain>{add_squid_uderagent_explain}</div>
+	<div style='font-size:14px' class=text-info>{add_squid_uderagent_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

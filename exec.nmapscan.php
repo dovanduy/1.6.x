@@ -16,6 +16,7 @@ if($argv[1]=="--scan-results"){nmap_scan_results();exit;}
 if($argv[1]=="--scan-period"){nmap_scan_period();exit;}
 if($argv[1]=="--scan-squid"){nmap_scan_squid();exit;}
 if($argv[1]=="--scan-single"){nmap_scan_single($argv[2],$argv[3]);exit;}
+if($argv[1]=="--scan-ping"){nmap_scan_pingnet();exit;}
 
 $GLOBALS["COMPUTER"]=$argv[1];
 $GLOBALS["COMPUTER"]=str_replace('$',"",$GLOBALS["COMPUTER"]);
@@ -72,7 +73,8 @@ function parsefile($filename,$uid,$perc=0){
 	while (list ($num, $ligne) = each ($tbl) ){
 		if(trim($ligne)==null){continue;}
 		if(preg_match("#([0-9]+).+?open\s+(.+)#",$ligne,$re)){
-			$array[$re[1]]=$re[2];
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] PORT: {$re[1]} -> {$re[2]} ///////////////////\n";}
+			$PORTS[$re[1]]=$re[2];
 			continue;
 		}
 		
@@ -87,18 +89,24 @@ function parsefile($filename,$uid,$perc=0){
 			$ComputerOS=$re[1];
 			continue;
 		}	
-	if(preg_match("#^MAC Address:(.+).+?\((.+?)\)#",$ligne,$re)){
+		if(preg_match("#^MAC Address:(.+).+?\((.+?)\)#",$ligne,$re)){
 			if($GLOBALS["VERBOSE"]){echo __LINE__."] MAC Address: {$re[1]}\n";}
-			$ComputerMacAddress=$re[1];
+			$ComputerMacAddress=trim(strtolower($re[1]));
 			$ComputerMachineType=$re[2];
 			continue;
-		}				
+		}
+
+		if(preg_match("#([0-9]+).+?open\s+(.+)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] PORT: {$re[1]} -> {$re[2]} ///////////////////\n";}
+			$PORTS[$re[1]]=$re[2];
+			continue;
+		}
 		
 		
 		
 		if(preg_match("#^MAC Address:(.+)#",$ligne,$re)){
 			if($GLOBALS["VERBOSE"]){echo __LINE__."] MAC Address: {$re[1]}\n";}
-			$ComputerMacAddress=$re[1];
+			$ComputerMacAddress=trim(strtolower($re[1]));
 			continue;
 		}
 
@@ -135,6 +143,12 @@ function parsefile($filename,$uid,$perc=0){
 		
 	}
 	
+	
+	if($GLOBALS["VERBOSE"]){echo " xxxxxxxxxxxx  ".count($PORTS)." ports xxxxxxxxxxxx\n";}
+	if(count($PORTS)>0){
+		AddPorts($PORTS, $ComputerMacAddress);
+	}
+	
 	if($cpid==null){$cpid=$uid;}
 	echo "Save infos for $cpid (".__LINE__.")\n";
 	echo "ComputerMacAddress: $ComputerMacAddress (".__LINE__.")\n";
@@ -150,7 +164,7 @@ function parsefile($filename,$uid,$perc=0){
 		$computer->ComputerOpenPorts=base64_encode(serialize($array));
 	}
 	echo "Update it has $cpid with MAC $ComputerMacAddress (".__LINE__.")\n";
-	if(!$computer->Edit()){
+	if(!$computer->Edit(basename(__FILE__))){
 		echo "Failed to save infos for $cpid (".__LINE__.")\n";
 	}
 	build_progress("Done...",$perc+5);
@@ -178,7 +192,7 @@ function scannetworks(){
 	if($ComputersAllowNmap==0){return;}
 	if(!$GLOBALS["VERBOSE"]){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-		$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+		$pidtime="/etc/artica-postfix/pids/exec.nmapscan.php.time";
 		
 		if($unix->file_time_min($pidtime)<$NmapRotateMinutes){
 			if($GLOBALS["VERBOSE"]){echo "No time to be executed\n";}
@@ -217,6 +231,109 @@ function scannetworks(){
 	nmap_scan_results();
 	
 }
+
+function nmap_scan_pingnet_progress($text,$pourc){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/nmap.pingnet.progress";
+	echo "{$pourc}%)  $text\n";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	
+	
+}
+
+
+function nmap_scan_pingnet(){
+	nmap_scan_pingnet_progress("{ping_networks}",5);
+	$unix=new unix();
+	$sock=new sockets();
+	$nmap=$unix->find_program("nmap");
+	$nohup=$unix->find_program("nohup");
+	$NmapTimeOutPing=intval($sock->GET_INFO("NmapTimeOutPing"));
+	if($NmapTimeOutPing==0){$NmapTimeOutPing=15;}
+	$MaxTime=10;
+	$net=new networkscanner();
+	while (list ($num, $maks) = each ($net->networklist)){if(trim($maks)==null){continue;}$hash[$maks]=$maks;}
+	while (list ($num, $maks) = each ($hash)){if(!$net->Networks_disabled[$maks]){if($GLOBALS["VERBOSE"]){echo "Network: $maks OK\n";}$cdir[]=$maks;}}
+	if(count($cdir)==0){nmap_scan_pingnet_progress("No network",110);return;}
+	$nets=trim(@implode(" ", $cdir));
+	nmap_scan_pingnet_progress("Scanning Networks $nets",10);
+	echo "Scanning Networks $nets\n";
+	$TMP=$unix->FILE_TEMP();
+	$NmapTimeOutPing++;
+	$prc=10;
+	
+	while (list ($num, $cd) = each ($cdir)){
+		$prc=$prc+5;
+		if($prc>99){$prc=99;}
+		nmap_scan_pingnet_progress("Scanning Network $cd",$prc);
+		system("$nohup $nmap -T4 -sP -oX $TMP $cd >/dev/null 2>&1 &");
+		
+		for($i=1;$i<$NmapTimeOutPing;$i++){
+			$pid=$unix->PIDOF("$nmap");
+			if(!$unix->process_exists($pid)){break;}
+			echo "Waiting scanner PID $pid $i/$NmapTimeOutPing\n";
+			sleep(1);
+			
+		}
+		$pid=$unix->PIDOF("$nmap");
+		if($unix->process_exists($pid)){
+			echo "Timed-Out scanner PID $pid\n";
+			nmap_scan_pingnet_progress("$cd Timed Out!!",$prc);
+			sleep(3);
+			$unix->KILL_PROCESS($pid,9);
+			continue;
+		}
+		
+		
+		$date=date("Y-m-d H:i:s");
+		$xmlstr=@file_get_contents($TMP);
+		@unlink($TMP);
+		$XMLZ = new SimpleXMLElement($xmlstr);
+		
+		foreach ($XMLZ->host as $Hostz) {
+			$ipaddr=$Hostz->address[0]["addr"][0];
+			$mac=$Hostz->address[1]["addr"][0];
+			$vendor=$Hostz->address[1]["vendor"][0];
+			$f[]="('$ipaddr','$mac','$vendor','$date')";
+			
+		}
+	}
+	$prc=$prc+5;
+	if($prc>99){$prc=99;}
+	nmap_scan_pingnet_progress("Build report",$prc);
+	
+	$q=new mysql();
+	$sql="CREATE TABLE IF NOT EXISTS `nmap_scannet` (
+	`MAC` varchar(90) NOT NULL,
+	`ipaddr` varchar(90) NOT NULL,
+	`vendor` varchar(90) NOT NULL DEFAULT '',
+	`zDate` datetime NOT NULL,
+	PRIMARY KEY (`MAC`),
+	KEY `ipaddr` (`ipaddr`),
+	KEY `vendor` (`vendor`)
+	) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){
+		echo $q->mysql_error."\n";
+		nmap_scan_pingnet_progress("MySQL error","110");
+		return;
+	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE nmap_scannet","artica_backup");
+	$sql="INSERT IGNORE INTO nmap_scannet (`ipaddr`,`MAC`,`vendor`,`zDate`) VALUES ".@implode(",", $f);
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){
+		echo $q->mysql_error."\n";
+		nmap_scan_pingnet_progress("MySQL error","110");
+		return;
+	}
+	nmap_scan_pingnet_progress("{done}",100);
+}
+
+
+
 
 function nmap_scan_results(){
 	if(!is_file("/etc/artica-postfix/nmap.map")){return;}
@@ -433,8 +550,8 @@ function nmap_scan_period(){
 	}
 	
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/exec.nmapscan.php.nmap_scan_period.pid";
+	$pidtime="/etc/artica-postfix/pids/exec.nmapscan.php.nmap_scan_period.time";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	
@@ -503,12 +620,12 @@ function nmap_scan_period(){
 			}
 			
 			if(preg_match("#^MAC Address:\s+([0-9A-Z:]+)$#",trim($line),$re)){
-				$MACSSCAN=trim($re[1]);
+				$MACSSCAN=trim(strtolower($re[1]));
 				continue;
 			}
 		
 			if(preg_match("#^MAC Address:(.+).+?\((.+?)\)#",$line,$re)){
-				$MACSSCAN=trim($re[1]);
+				$MACSSCAN=trim(strtolower($re[1]));
 				continue;
 			}			
 			
@@ -518,6 +635,7 @@ function nmap_scan_period(){
 		
 		
 		if(count($PORTS)>0){
+			AddPorts($PORTS, $MACADDR);
 			if(is_array($PORTS)){
 				$uid=$cmp->ComputerIDFromMAC($MACADDR);
 				$cmp=new computers($uid);
@@ -559,6 +677,7 @@ function nmap_scan_single($mac,$ipaddrZ=null){
 	$users=new usersMenus();
 	if(!is_file($users->NMAP_PATH)){ build_progress("{operation_failed} err.".__LINE__,110); return;}
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
+	$mac=trim(strtolower($mac));
 	
 	if($mac==null){
 		if($ipaddrZ==null){
@@ -615,14 +734,21 @@ function nmap_scan_single($mac,$ipaddrZ=null){
 		@file_put_contents($tmpfile, @implode("\n", $resultsScan));
 		echo @implode("\n", $resultsScan);
 		$array=ExecArrayToArray($resultsScan);
+		if($GLOBALS["VERBOSE"]){echo "\nParsing ". count($array). " items in sarray\n";}
+		
 		if(!is_array($array)){continue;}
-		if($array["MAC"]<>$mac){continue;}
+		if($array["MAC"]<>$mac){
+			if($GLOBALS["VERBOSE"]){echo "{$array["MAC"]} <> $mac !!!\n";}
+			continue;}
+			
+		if($GLOBALS["VERBOSE"]){echo " * * * * *  * * * *\n";}	
 		build_progress("$mac:-> $IPADDRESS OK",$i+5);
 		echo "$mac:-> $IPADDRESS OK\n";
 		$data=base64_encode(serialize($array));
 		$sql="UPDATE webfilters_nodes SET nmap=1,nmapreport='$data' WHERE MAC='$mac'";
 		$q->QUERY_SQL($sql);
 		build_progress("Analyze scan...",$i+5);
+		if($GLOBALS["VERBOSE"]){echo "Parsing $tmpfile\n";}
 		parsefile($tmpfile,null,$i);
 		
 		
@@ -719,6 +845,7 @@ function nmap_scan_squid_mac($mac){
 		$array=ExecArrayToArray($resultsScan);
 		if(!is_array($array)){continue;}
 		if($array["MAC"]<>$mac){continue;}
+		
 		echo "$mac:-> $IPADDRESS OK\n";
 		$data=base64_encode(serialize($array));
 		$sql="UPDATE webfilters_nodes SET nmap=1,nmapreport='$data' WHERE MAC='$mac'";
@@ -738,8 +865,8 @@ function ExecArrayToArray($array){
 			if(preg_match("#Nmap scan report for.+?host down#", $line)){if($GLOBALS["VERBOSE"]){echo "DOWN\n";}return null;}
 			
 			
-			if(preg_match("#([0-9]+).+?open\s+(.+)#",$line,$re)){
-				$PORTS[$re[1]]=$re[2];
+			if(preg_match("#([0-9]+)\/(tcp|udp).+?(open|filtered)\s+(.+)#",$line,$re)){
+				$PORTS[$re[1]]=$re[4];
 				continue;
 			}
 
@@ -775,9 +902,45 @@ function ExecArrayToArray($array){
 	$array=array(
 		"OS"=>$osDetails,"MAC"=>$MACSSCAN,"UPTIME"=>$UpTime,"PORTS"=>$PORTS);
 	
+	if(count($PORTS)>0){AddPorts($PORTS,$MACSSCAN);}
+	
+	
 	return $array;
 	
 
+}
+
+function AddPorts($ports,$mac){
+	$q=new mysql();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `open_ports` (
+			
+			`mac` varchar(60) NOT NULL,
+			`port` INT(100),
+			`service` VARCHAR(40),
+			KEY `service` (`service`),
+			KEY `port` (`port`)
+			
+			)  ENGINE = MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql,"ocsweb");
+	if(!$q->ok){echo "*********************\n".$q->mysql_error."\n*************************************\n";}
+	
+	$q->QUERY_SQL("DELETE FROM open_ports WHERE `mac`='$mac'","ocsweb");
+	
+	$f=array();
+	while (list ($port, $service) = each ($ports) ){
+		$f[]="('$port','$service','$mac')";
+		
+	}
+	
+	if(count($f)>0){
+		$sql="INSERT INTO open_ports (`port`,`service`,`mac`) VALUES ".@implode(",", $f);
+		if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+		$q->QUERY_SQL($sql,"ocsweb");
+		
+	}
 }
 	
 	

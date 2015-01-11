@@ -41,14 +41,14 @@ function status(){
 	<tr>
 		<td valign='top' style='vertical-align:top' width=296px><img src='img/webaccess-256.png' style='margin-right:15px'></td>
 		<td valign='top' style='vertical-align:top'><div style='font-size:22px'>Zarafa Web-Access V$version</div>
-		<div class=explain style='font-size:16px;margin-top:15px'>{APP_ZARAFA_WEBACCESS_TEXT}</div>
+		<div class=text-info style='font-size:16px;margin-top:15px'>{APP_ZARAFA_WEBACCESS_TEXT}</div>
 		<div style='text-align:right'>". button("{manual_update}", "Loadjs('miniadmin.zarafa-webaccess.update.php')")."</div>
 		</td>
 	</tr>
 	<tr>
 		<td valign='top' style='vertical-align:top' width=296px><img src='img/webaccess-256.png' style='margin-right:15px'></td>
 		<td valign='top' style='vertical-align:top'><div style='font-size:22px'>Zarafa Web-APP V$WebAPPVersion</div>
-		<div class=explain style='font-size:16px;margin-top:15px'>{APP_ZARAFA_WEBAPP_TEXT}</div>
+		<div class=text-info style='font-size:16px;margin-top:15px'>{APP_ZARAFA_WEBAPP_TEXT}</div>
 		<div style='text-align:right'>". button("{manual_update}", "Loadjs('miniadmin.zarafa-webapp.update.php')")."</div>
 		</td>
 	</tr>				

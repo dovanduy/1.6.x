@@ -23,6 +23,7 @@ include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 
 
 
+if($argv[1]=="--rtt"){RTTZ_WORKSHOURS();exit;}
 if($argv[1]=="--clean-empty"){clean_empty_tables();exit;}
 if($argv[1]=="--macscan"){macscan();exit;}
 
@@ -35,12 +36,11 @@ if($argv[1]=="--restore"){restore_from_backup_statistics();exit;}
 
 
 
-
 tables_hours();
 
 function ToSyslog($text){
 	if(!function_exists("syslog")){return;}
-	$file=basename($file);
+	$file=basename(__FILE__);
 	$LOG_SEV=LOG_INFO;
 	openlog($file, LOG_PID , LOG_SYSLOG);
 	syslog($LOG_SEV, $text);
@@ -216,8 +216,8 @@ function cache_hours(){
 function tables_hours(){
 	
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.pid";
+	$timefile="/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.time";
 	$RepairTimefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".Repair.time";
 	
 	if($GLOBALS["VERBOSE"]){echo "timefile=$timefile\n";}
@@ -296,16 +296,121 @@ function tables_hours(){
 		}
 	}
 	
-$RepairTime=$unix->file_time_min($RepairTimefile);
-if($RepairTime>180){
-	$squid_stats_tools=new squid_stats_tools();
-	$squid_stats_tools->NoCategorize=true;
-	$squid_stats_tools->check_to_hour_tables();
-	@unlink($RepairTimefile);
-	@file_put_contents($RepairTimefile, time());
-}
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("FLUSH TABLES");
+	
+	
+	$RepairTime=$unix->file_time_min($RepairTimefile);
+	if($RepairTime>180){
+		$squid_stats_tools=new squid_stats_tools();
+		$squid_stats_tools->NoCategorize=true;
+		$squid_stats_tools->check_to_hour_tables();
+		@unlink($RepairTimefile);
+		@file_put_contents($RepairTimefile, time());
+	}
 
 }
+
+function RTTZ_WORKSHOURS(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "timefile=$timefile\n";}
+	
+	$pid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($pid<100){$pid=null;}
+		$unix=new unix();
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<60){
+			if($GLOBALS["VERBOSE"]){echo "Only each 60mn - current {$timeexec}mn, use --force to bypass\n";}
+				
+			return;}
+			$mypid=getmypid();
+			@file_put_contents($pidfile,$mypid);
+	}
+	
+	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
+	
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_RTTZ_WORKSHOURS=$q->LIST_TABLES_RTTZ_WORKSHOURS();
+	
+	$prefix=date("YmdH");
+	$currenttable="RTTH_{$prefix}";
+	while (list ($tablename, $none) = each ($LIST_TABLES_RTTZ_WORKSHOURS) ){
+		if($tablename==$currenttable){
+			if($GLOBALS["VERBOSE"]){echo "Skip table: $tablename\n";}
+			continue;
+		}
+	
+	if($GLOBALS["VERBOSE"]){echo " **** $tablename ****\n";}
+	if(_RTTZ_WORKSHOURS_perform($tablename)){
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+	}
+	
+	}
+	
+}
+function _RTTZ_WORKSHOURS_perform($tablename){
+	if($tablename==null){return false;}
+	$q=new mysql_squid_builder();
+	$time=$q->TIME_FROM_RTTH_TABLE($tablename);
+	
+	$date=
+	$f=array();
+	$DATE=date("Y-m-d",$time);
+	$NextTable="RTTD_".date("Ymd");
+	$Hour=date("H",$time);
+	if($GLOBALS["VERBOSE"]){echo "$NextTable -> $DATE\n";}
+	$sql="SELECT SUM(size) as size,uid,ipaddr,sitename,MAC FROM $tablename GROUP BY uid,ipaddr,sitename,MAC";
+	$results=$q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)==0){return true;}
+	$f=array();
+	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`$NextTable` (
+			`zmd5` VARCHAR(90) NOT NULL,
+			`zHour` smallint(2) NOT NULL,
+			`sitename` VARCHAR(255) NOT NULL,
+			`ipaddr` VARCHAR(60) NOT NULL,
+			`uid` VARCHAR(60) NOT NULL,
+			`MAC` VARCHAR(90) NOT NULL,
+			`size` INT UNSIGNED NOT NULL,
+			 PRIMARY KEY `zmd5` (`zmd5`),
+			 KEY `sitename` (`sitename`),
+				  KEY `ipaddr` (`ipaddr`),
+				  KEY `zHour` (`zHour`),
+				  KEY `uid` (`uid`),
+				  KEY `MAC` (`MAC`),
+				  KEY `size` (`size`)
+			) ENGINE=MYISAM";
+		
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){return false;}
+	$prefix="INSERT IGNORE INTO `$NextTable` (`zmd5`,`sitename`,`ipaddr`,`uid`,`MAC`,`size`,`zHour`) VALUES " ;
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$md5=md5(serialize($ligne).$Hour);
+		$f[]="('$md5','{$ligne["sitename"]}','{$ligne["ipaddr"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["size"]}','$Hour')";
+		
+			
+			
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){return false;}
+	}
+	
+	return true;
+	
+}
+
+
+
 function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
 	$tmp1 = round((float) $number, $decimals);
 	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
@@ -329,7 +434,11 @@ function _table_hours_perform($tablename){
 	$accounts=$GLOBALS["Q"]->ACCOUNTS_ISP();
 	
 	if(!$GLOBALS["Q"]->Check_dansguardian_events_table($dansguardian_table)){return false;}
-	$sql="SELECT COUNT(ID) as hits,SUM(QuerySize) as QuerySize,DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as zDate,sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,hostname FROM $tablename GROUP BY sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,zDate,hostname";
+	
+	if(!$GLOBALS["Q"]->FIELD_EXISTS("$tablename", "category")){
+		$GLOBALS["Q"]->QUERY_SQL("ALTER TABLE `$tablename` ADD `category` VARCHAR( 60 ) NOT NULL ,ADD INDEX ( `category` )");
+	}
+	$sql="SELECT COUNT(ID) as hits,SUM(QuerySize) as QuerySize,DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as zDate,sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,hostname,category FROM $tablename GROUP BY sitename,uri,TYPE,REASON,CLIENT,uid,remote_ip,country,cached,MAC,zDate,hostname,category";
 
 
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
@@ -337,12 +446,12 @@ function _table_hours_perform($tablename){
 
 	
 	if(!$GLOBALS["Q"]->ok){
-		writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$tablename`\n".@implode("\n",$GLOBALS["REPAIR_MYSQL_TABLE"]),__FUNCTION__,__FILE__,__LINE__,"stats");
+		stats_admin_events(1,"Fatal: {$GLOBALS["Q"]->mysql_error} on `$tablename`",@implode("\n",$GLOBALS["REPAIR_MYSQL_TABLE"]),__FILE__,__LINE__,"stats");
 		if(strpos(" {$GLOBALS["Q"]->mysql_error}", "is marked as crashed and should be repaired")>0){
 			$q1=new mysql();
-			writelogs_squid("try to repair table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"stats");
 			$q1->REPAIR_TABLE("squidlogs",$tablename);
-			writelogs_squid(@implode("\n",$GLOBALS["REPAIR_MYSQL_TABLE"]),__FUNCTION__,__FILE__,__LINE__,"stats");
+			stats_admin_events(2,"try to repair table `$tablename`",$GLOBALS["REPAIR_MYSQL_TABLE"],__FILE__,__LINE__,"stats");
+			
 		}
 
 		return false;
@@ -351,8 +460,10 @@ function _table_hours_perform($tablename){
 
 
 
-	$prefix="INSERT IGNORE INTO $dansguardian_table (sitename,uri,TYPE,REASON,CLIENT,MAC,zDate,zMD5,uid,remote_ip,country,QuerySize,hits,cached,hostname,account) VALUES ";
-
+	$prefix="INSERT IGNORE INTO $dansguardian_table (sitename,uri,TYPE,REASON,CLIENT,MAC,zDate,zMD5,uid,remote_ip,country,QuerySize,hits,cached,hostname,account,category) VALUES ";
+	
+	
+	$ip=new IP();
 	$SUM=mysql_num_rows($results);
 	$d=0;
 
@@ -363,7 +474,7 @@ function _table_hours_perform($tablename){
 		$zMD5=md5(@implode("",$zmd));
 		$accountclient=null;
 		if(isset($accounts[$ligne["CLIENT"]])){$accountclient=$accounts[$ligne["CLIENT"]];}
-		$d++;
+		
 		
 		$uid=$ligne["uid"];
 		if($uid==null){$uid=$GLOBALS["Q"]->MacToUid($ligne["MAC"]);if(is_numeric($uid)){$uid=null;}}
@@ -373,17 +484,18 @@ function _table_hours_perform($tablename){
 		$hostname=$ligne["hostname"];
 		if($hostname==null){$hostname=$GLOBALS["Q"]->MacToHost($ligne["MAC"]);if(is_numeric($uid)){$uid=null;}}
 		if($hostname==null){$hostname=$GLOBALS["Q"]->IpToHost($ligne["CLIENT"]);if(is_numeric($uid)){$uid=null;}}
+		if($ip->isValid($hostname)){$hostname=null;}
 		$hostname=mysql_escape_string2($hostname);
 		
 		
-		
-		$f[]="('{$ligne["sitename"]}','{$ligne["uri"]}','{$ligne["TYPE"]}','{$ligne["REASON"]}','{$ligne["CLIENT"]}','{$ligne["MAC"]}','{$ligne["zDate"]}','$zMD5','$uid','{$ligne["remote_ip"]}','{$ligne["country"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}','{$ligne["cached"]}','$hostname','$accountclient')";
+		$d++;
+		$f[]="('{$ligne["sitename"]}','{$ligne["uri"]}','{$ligne["TYPE"]}','{$ligne["REASON"]}','{$ligne["CLIENT"]}','{$ligne["MAC"]}','{$ligne["zDate"]}','$zMD5','$uid','{$ligne["remote_ip"]}','{$ligne["country"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}','{$ligne["cached"]}','$hostname','$accountclient','{$ligne["category"]}')";
 		if(count($f)>500){
 			ToSyslog("$dansguardian_table: $d/$SUM");
 			$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 			$f=array();
-			if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+			if(!$GLOBALS["Q"]->ok){stats_admin_events(1,"MySQL Error ","{$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FILE__,__LINE__,"stats");return;}
 		}
 
 	}
@@ -391,11 +503,14 @@ function _table_hours_perform($tablename){
 	if(count($f)>0){
 		$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
-		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
+		if(!$GLOBALS["Q"]->ok){stats_admin_events(1,"MySQL Error ","{$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FILE__,__LINE__,"stats");return;}
 		$squid_stats_tools=new squid_stats_tools();
 		$squid_stats_tools->NoCategorize=true;
 		$squid_stats_tools->check_table_days();
 	}
+	
+	stats_admin_events(2,"Success updating $dansguardian_table with $d events", __FILE__, __LINE__);
+	
 	return true;
 }
 

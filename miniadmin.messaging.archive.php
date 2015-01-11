@@ -156,8 +156,8 @@ function popup(){
 	$MailArchiverEnabled=$sock->GET_INFO("MailArchiverEnabled");
 	if(!is_numeric($MailArchiverUsePerl)){$MailArchiverUsePerl=0;}
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}	
-	if($MailArchiverUsePerl==0){$error="<div class=explainWarn>{MailArchiverUsePerl_disable_text}</div>";}
-	if($MailArchiverEnabled==0){$error="<div class=explainWarn>{MailArchiverEnabled_disable_text}</div>";}
+	if($MailArchiverUsePerl==0){$error="<div class=text-infoWarn>{MailArchiverUsePerl_disable_text}</div>";}
+	if($MailArchiverEnabled==0){$error="<div class=text-infoWarn>{MailArchiverEnabled_disable_text}</div>";}
 	$html="
 	$error
 	<table style='width:100%'>

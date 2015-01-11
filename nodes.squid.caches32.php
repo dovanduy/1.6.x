@@ -40,7 +40,7 @@ function page(){
 		$t=time();
 	$html="
 	<div style='font-size:18px'>{$squid->visible_hostname}::Caches</div>
-	<div class=explain style='font-size:14px'>{squid32_caches_explain}</div>
+	<div class=text-info style='font-size:14px'>{squid32_caches_explain}</div>
 	<div id='squid-caches-status$t'></div>
 	<script>
 		LoadAjax('squid-caches-status$t','$page?squid-caches-status=yes&nodeid={$_GET["nodeid"]}&hostid={$_GET["hostid"]}&t=$t');

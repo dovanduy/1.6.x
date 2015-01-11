@@ -172,10 +172,7 @@ if(!is_file("/usr/sbin/squid")){
 	system_admin_events("Installing the new squid-cache $v failed", __FUNCTION__, __FILE__, __LINE__, "software");
 	echo "Failed\n";}
 	
-@mkdir("/usr/share/squid3/errors/templates",0755,true);
-if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/rm -rf /usr/share/squid3/errors/templates/*");}
-if(!$GLOBALS["NO_COMPILE"]){echo "Copy templates from $SOURCE_DIRECTORY/errors/templates...\n";}
-if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf $SOURCE_DIRECTORY/errors/templates/* /usr/share/squid3/errors/templates/");}
+
 shell_exec("/bin/chown -R squid:squid /usr/share/squid3");
 
 
@@ -205,7 +202,6 @@ mkdir("/root/squid-builder/usr/bin",0755,true);
 mkdir("/root/squid-builder/usr/share/squid-langpack",0755,true);
 
 shell_exec("$cp -rf /usr/share/squid3/* /root/squid-builder/usr/share/squid3/");
-if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf /usr/share/squid3/errors/templates/* /root/squid-builder/usr/share/squid3/errors/templates/");}
 shell_exec("$cp -rf /etc/squid3/* /root/squid-builder/etc/squid3/");
 shell_exec("$cp -rf /lib/squid3/* /root/squid-builder/lib/squid3/");
 shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/squid-langpack/");

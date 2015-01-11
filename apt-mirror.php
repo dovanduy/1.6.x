@@ -55,7 +55,7 @@ function status(){
 	<td width=1% valign='top'><img src='img/$img'></td>
 	<td valign='top'>
 		<div id='apt-mirror-status'></div>
-		<div class=explain>{REPOSITORY_DEB_MIRROR_WHY}</div>
+		<div class=text-info>{REPOSITORY_DEB_MIRROR_WHY}</div>
 		<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshAPTMIRSTA()")."</div>
 	</td>
 	</tr>

@@ -2,6 +2,7 @@
 include_once(dirname(__FILE__) . '/class.main_cf.inc');
 include_once(dirname(__FILE__) . '/class.ldap.inc');
 include_once(dirname(__FILE__) . "/class.sockets.inc");
+include_once(dirname(__FILE__) . "/class.system.network.inc");
 
 class main_filter_extensions{
 	var $array_extension;

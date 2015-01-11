@@ -42,7 +42,7 @@ function popup(){
 	$t=time();
 	$nets=Field_array_Hash($ips,"$t-deny",null,"style:font-size:16px;padding:3px");
 	$html="
-	<div class=explain style='font-size:14px'>{ban_addresses_for_interfaces_text}</div>
+	<div class=text-info style='font-size:14px'>{ban_addresses_for_interfaces_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{ipaddr}:</td>

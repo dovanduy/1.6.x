@@ -218,7 +218,7 @@ function popup(){
 	
 	$html="
 	<div style='font-size:26px;margin-bottom:20px'>{APP_CYRUS_BACKUP}</div>
-	<div class=explain style='font-size:18px'>{backup_cyrus_mailboxes}</div>
+	<div class=text-info style='font-size:18px'>{backup_cyrus_mailboxes}</div>
 	
 			
 	<div style='width:98%' class=form>

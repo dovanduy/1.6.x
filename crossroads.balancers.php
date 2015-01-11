@@ -320,7 +320,7 @@ function status(){
 	$tpl=new templates();
 	$html="
 	<center style='margin:5px'><div style='width:220px' id='xr-toolbox'></div></center>
-	<div class=explain>{balancers_service_section_explain}</div>
+	<div class=text-info>{balancers_service_section_explain}</div>
 	
 	
 	<div id='xr-list'></div>

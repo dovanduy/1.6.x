@@ -422,7 +422,7 @@ function ZarafaCopyToPublic_popup(){
 	$t=time();
 	$html="
 	<div id='$t'>
-	<div class=explain>{ZarafaCopyToPublic}</div>
+	<div class=text-info>{ZarafaCopyToPublic}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{member}:</td>

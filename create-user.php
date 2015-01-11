@@ -18,7 +18,7 @@
 	if(isset($_GET["ch-groupid"])){groups_selected();exit;}
 	if(isset($_GET["ch-domain"])){domain_selected();exit;}
 	if(isset($_POST["password"])){save();exit;}
-	
+	if(isset($_GET["MAILBOX_ZARAFA_LANG_LIST"])){MAILBOX_ZARAFA_LANG_LIST();exit;}
 	js();
 
 
@@ -26,8 +26,12 @@ $users=new usersMenus();
 if(!$users->AllowAddUsers){die("alert('not allowed');");}
 	
 function js(){
+	header("content-type: application/x-javascript");
 $tpl=new templates();
 $page=CurrentPageName();
+$users=new usersMenus();
+$build_locales_explain=$tpl->javascript_parse_text("{build_locales_explain}");
+
 $ouJS="";
 $title=$tpl->_ENGINE_parse_body('{add user explain}');
 if(!is_numeric($_GET["t"])){$t=time();}else{$t=$_GET["t"];}
@@ -36,7 +40,7 @@ $html="
 var x_serid='';
 
 function OpenAddUser(){
-	YahooWin5('755','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
+	YahooWin5('950','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
 }
 
 var x_ChangeFormValues= function (obj) {
@@ -84,8 +88,9 @@ var x_ChangeFormValues2= function (obj) {
 
 var x_SaveAddUser= function (obj) {
 	var tempvalue=obj.responseText;
-	if(tempvalue.length>3){ alert(tempvalue); return false; }
+	if(tempvalue.length>3){ alert(tempvalue);return;}
 	YahooWin5Hide();
+	Loadjs('create-user.progress.php');
 	if(document.getElementById('flexRT$t')){ $('#flexRT$t').flexReload(); }
 	if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
 	if(document.getElementById('TABLE_SEARCH_USERS')){  $('#'+document.getElementById('TABLE_SEARCH_USERS').value).flexReload();  }
@@ -117,8 +122,8 @@ function SaveAddUser(){
 	  if(EnableVirtualDomainsInMailBoxes==1){x_serid=email+'@'+internet_domain;}
 	  var XHR = new XHRConnection();
 	  
-	  if(document.getElementById('ZARAFA_LANG-$t')){
-	   XHR.appendData('ZARAFA_LANG',document.getElementById('ZARAFA_LANG-$t').value);
+	  if(document.getElementById('ZARAFA_LANG-ZARAFA_LANG')){
+	   XHR.appendData('ZARAFA_LANG',document.getElementById('ZARAFA_LANG-ZARAFA_LANG').value);
 	  }
 	  
 	 
@@ -136,7 +141,11 @@ function SaveAddUser(){
      XHR.sendAndLoad('$page', 'POST',x_SaveAddUser);		  
 }
 
-
+function BuildLocalesCreateUser(){
+	var XHR = new XHRConnection();
+	if(!confirm('$build_locales_explain')){return;}
+	Loadjs('locales.gen.progress.php');
+}
 
 
 	
@@ -165,7 +174,7 @@ function groups_selected(){
 	$ldap=new clladp();
 	if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 	$hash_groups=$ldap->hash_groups($_GET["ou"],1);
-	$groups=Field_array_Hash($hash_groups,"groupid-$t",$_GET["ch-groupid"],null,null,0,"font-size:18px;padding:3px");
+	$groups=Field_array_Hash($hash_groups,"groupid-$t",$_GET["ch-groupid"],null,null,0,"font-size:28px;padding:3px");
 	echo $groups;
 	
 }
@@ -175,7 +184,7 @@ function domain_selected(){
 	$ldap=new clladp();
 	if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 	$hash_domains=$ldap->hash_get_domains_ou($_GET["ou"]);
-	$domains=Field_array_Hash($hash_domains,"internet_domain-$t",$_GET["ch-domain"],null,null,0,"font-size:18px;padding:3px");
+	$domains=Field_array_Hash($hash_domains,"internet_domain-$t",$_GET["ch-domain"],null,null,0,"font-size:28px;padding:3px");
 	echo $domains;
 	
 }
@@ -203,10 +212,9 @@ function formulaire(){
 	}
 	
 	if(count($hash)==0){
-		
-		echo $tpl->_ENGINE_parse_body("<center style='font-size:16px;color:#9E0000;margin:35px'>
-		<a href=\"javascript:blur();\" OnClick=\"javascript:TreeAddNewOrganisation();\" style='font-size:16px;color:#9E0000;text-decoration:underline'>
-		{error_no_ou_created}</a></center>");
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{error_no_ou_created}<center style='margin-top:30px'>".
+				button("{create_a_new_organization}", "loadjs('organization.js.php?add-ou=yes');",22)."</center>"));
+
 		return;
 		
 		
@@ -216,8 +224,8 @@ function formulaire(){
 		$org=$hash[0];
 		$hash_groups=$ldap->hash_groups($org,1);
 		$hash_domains=$ldap->hash_get_domains_ou($org);
-		$groups=Field_array_Hash($hash_groups,"groupid-$t",null,null,null,0,"font-size:22px;padding:3px");
-		$domains=Field_array_Hash($hash_domains,"domain-$t",null,null,null,0,"font-size:22px;padding:3px");
+		$groups=Field_array_Hash($hash_groups,"groupid-$t",null,null,null,0,"font-size:28px;padding:3px");
+		$domains=Field_array_Hash($hash_domains,"domain-$t",null,null,null,0,"font-size:28px;padding:3px");
 	}
 	
 	
@@ -232,11 +240,17 @@ function formulaire(){
 			$langbox[$data]=$data;
 		}
 			$ZARAFA_LANG=$sock->GET_INFO("ZARAFA_LANG");
-			$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG-$t",$ZARAFA_LANG,"style:font-size:22px;padding:3px");
-			$lang="<tr>
-				<td class=legend style='font-size:22px'>{language}:</td>
-				<td>$mailbox_language</td>
-			</tr>";
+			$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG-ZARAFA_LANG",$ZARAFA_LANG,"style:font-size:28px;padding:3px");
+			$lang="
+			<tr>
+				<td class=legend style='font-size:28px'>{language}:</td>
+				<td><span id='MAILBOX_ZARAFA_LANG_LIST'>$mailbox_language</span>
+				<div style='float:right;margin-top:5px'>".button("{build_languages}","BuildLocalesCreateUser()")."</div>
+				</td>
+			</tr>
+			";
+			
+			
 	
 	}
 	
@@ -246,43 +260,44 @@ function formulaire(){
 		$ous[$ligne]=$ligne;
 	}
 	
-	$ou=Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:22px;padding:3px");
+	$ou=Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:28px;padding:3px");
 	$form="
 	
 	<input type='hidden' id='EnableVirtualDomainsInMailBoxes-$t' value='$EnableVirtualDomainsInMailBoxes'>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:22px'>{organization}:</td>
+			<td class=legend style='font-size:28px'>{organization}:</td>
 			<td>$ou</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:22px'>{group}:</td>
+			<td class=legend style='font-size:28px'>{group}:</td>
 			<td><span id='select_groups-$t'>$groups</span>
 		</tr>
 		<tr>
 		<tr>
-			<td class=legend style='font-size:22px'>{firstname}:</td>
-			<td>" . Field_text("firstname-$t",null,'width:320px;font-size:22px;padding:3px',
+			<td class=legend style='font-size:28px'>{firstname}:</td>
+			<td>" . Field_text("firstname-$t",null,'width:531px;font-size:28px;padding:3px',
 					null,'ChangeFormValues()')."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:22px'>{lastname}:</td>
-			<td>" . Field_text("lastname-$t",null,'width:320px;font-size:22px;padding:3px',null,"ChangeFormValues()")."</td>
+			<td class=legend style='font-size:28px'>{lastname}:</td>
+			<td>" . Field_text("lastname-$t",null,'width:531px;font-size:28px;padding:3px',null,"ChangeFormValues()")."</td>
 		</tr>		
-			
+			$lang
 		<tr>
-			<td class=legend style='font-size:22px'>{email}:</td>
-			<td>" . Field_text("email-$t",null,'width:120px;font-size:22px;padding:3px',null,"ChangeFormValues()")."@<span id='select_domain-$t'>$domains</span></td>
+			<td class=legend style='font-size:28px'>{email}:</td>
+			<td style='font-size:28px'>" . Field_text("email-$t",null,'width:220px;font-size:28px;padding:3px',
+					null,"ChangeFormValues()")."&nbsp;@&nbsp;<span id='select_domain-$t'>$domains</span></td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:22px'>{uid}:</td>
-			<td>" . Field_text("login-$t",null,'width:320px;font-size:22px;padding:3px')."</td>
+			<td class=legend style='font-size:28px' nowrap>{uid}:</td>
+			<td>" . Field_text("login-$t",null,'width:320px;font-size:28px;padding:3px')."</td>
 		</tr>
-		$lang
+		
 		<tr>
-			<td class=legend style='font-size:22px'>{password}:</td>
-			<td>" .Field_password("password-$t",null,"font-size:22px;padding:3px",null,null,null,false,"SaveAddUserCheck(event)")."</td>
+			<td class=legend style='font-size:28px'>{password}:</td>
+			<td>" .Field_password("password-$t",null,"font-size:28px;padding:3px",null,null,null,false,"SaveAddUserCheck(event)")."</td>
 		</tr>	
 		<tr><td colspan=2>&nbsp;</td></tr>
 		<tr>
@@ -295,13 +310,9 @@ function formulaire(){
 	</div>
 	";
 			
-	$html="
-	<table style='width:100%'>
-	<tr>
-		<td valign='top' width=1% style='vertical-align:top'><div id='ffform-$t'><img src='img/identity-add-96.png'></div></td>
-		<td valign='top' width=99% style='vertical-align:top'><div>$form</div></td>
-	</tr>
-	</table>
+	$html="<div id='ffform-$t'>
+	<div>$form</div>
+
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -311,14 +322,45 @@ function formulaire(){
 
 
 function save(){
+	
+	$q=new mysql();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `CreateUserQueue` (
+	`zMD5` CHAR(32) NOT NULL,
+	`content` TEXT NOT NULL,
+	PRIMARY KEY (`zMD5`)
+	) ENGINE=MYISAM;";
+	
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	
 	$tpl=new templates();   
 	$usersmenus=new usersMenus();
 	if($usersmenus->ZARAFA_INSTALLED){$_POST["ByZarafa"]="yes";}
-	$fulldata=urlencode(base64_encode(serialize($_POST)));
+	$fulldata=base64_encode(serialize($_POST));
+	
+	$md5=md5($fulldata);
+	$fulldata=mysql_escape_string2($fulldata);
+	$q->QUERY_SQL("INSERT IGNORE INTO `CreateUserQueue` (zMD5,`content`) VALUES ('$md5','$fulldata')","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	
+	//$sock=new sockets();
+	//echo base64_decode($sock->getFrameWork("system.php?create-user=$fulldata"));
+	
+	
+	
+}
+
+function MAILBOX_ZARAFA_LANG_LIST(){
 	$sock=new sockets();
-	echo base64_decode($sock->getFrameWork("system.php?create-user=$fulldata"));
-	
-	
+	$languages=unserialize(base64_decode($sock->getFrameWork("zarafa.php?locales=yes")));
+	while (list ($index, $data) = each ($languages) ){
+		if(preg_match("#cannot set#i", $data)){continue;}
+		$langbox[$data]=$data;
+	}
+	$ZARAFA_LANG=$sock->GET_INFO("ZARAFA_LANG");
+	$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG-ZARAFA_LANG",$ZARAFA_LANG,"style:font-size:28px;padding:3px");	
+	echo $mailbox_language;
 	
 }
 

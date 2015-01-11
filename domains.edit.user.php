@@ -58,9 +58,7 @@ if(isset($_GET["AJAX_COMPUTER_NETBIOS_LINK"])){AJAX_COMPUTER_NETBIOS_LINK();exit
 if(isset($_GET["UserEndOfLIfe"])){USER_ENDOFLIFE ();exit ();}
 
 // inbound parameters
-if(isset($_GET["RecipientToAdd"])){USER_BBC_MAP_ADD ();exit ();}
-if(isset($_GET["RecipientToAdd_delete"])){USER_BBC_MAP_DEL ();exit ();}
-if(isset($_GET["USER_BBC_MAP_LIST"])){echo USER_BBC_MAP_LIST ();exit ();}
+
 
 if(isset($_GET["sync_next_user"])){TOOL_SYNC_STEP2 ();exit ();}
 if(isset($_GET["imapsync_events"])){TOOL_SYNC_EVENTS ();exit ();}
@@ -94,7 +92,6 @@ if(isset($_POST["UserFTPEdit"])){UserFTPEdit();exit ();}
 if(isset($_GET["SambaUid"])){USER_SAMBA_EDIT();exit ();}
 if(isset($_GET["RebuildSambaFields"])){USER_SAMBA_REBUILD_NULL();exit ();}
 if(isset($_GET["smb-section"])){echo USER_SAMBA ($_GET["userid"]);exit ();}
-if(isset($_GET["AJAX_COMPUTER_MATERIAL_OS_SAVE"])){AJAX_COMPUTER_MATERIAL_OS_SAVE ();exit ();}
 if(isset($_GET["SaveComputerInfo"])){COMPUTER_SAVE_INFOS ();exit ();}
 if(isset($_GET["NmapScanComputer"])){COMPUTER_NMAP ();exit ();}
 if(isset($_GET["DeleteComputer"])){COMPUTER_DELETE ();exit ();}
@@ -174,15 +171,6 @@ if(isset($_GET["load_user_section_group"])){
 }
 if(isset($_GET["AddMemberGroup"])){
 	AddMemberGroup ();
-	exit ();
-}
-
-if(isset($_GET["POPUP_MEMBER_GROUP_ID"])){
-	echo USER_GROUP_CONTENT ($_GET["userid"]);
-	exit ();
-}
-if(isset($_GET["USER_GROUP_LIST"])){
-	echo USER_GROUP_LIST ($_GET["USER_GROUP_LIST"]);
 	exit ();
 }
 
@@ -289,9 +277,7 @@ function AJAX_USER_STARTER() {
 		case "ressources" :
 			echo AJAX_COMPUTER_RESSOURCES ($_GET["userid"]);
 			break;
-		case "material" :
-			echo AJAX_COMPUTER_MATERIAL_OS ($_GET["userid"]);
-			break;
+
 		case "computer_aliases" :
 			echo AJAX_COMPTER_ALIASES ($_GET["userid"]);
 			break;
@@ -503,6 +489,7 @@ function AJAX_COMPUTER_TAB() {
 	$tpl = new templates ( );
 	$page = CurrentPageName ();
 	$as_connected_user = false;
+	$sock=new sockets();
 	$cmp=new computers($_GET["userid"]);
 	
 	if ($_GET["section"] == null) {
@@ -510,7 +497,7 @@ function AJAX_COMPUTER_TAB() {
 	}
 	
 	$arr["computer"] = "{computer}";
-	$arr["material"] = "{materialos}";
+	
 	
 	if ($users->BIND9_INSTALLED) {$arr["computer_aliases"] = "{alias}";}
 	if ($users->OCSI_INSTALLED) {
@@ -520,11 +507,43 @@ function AJAX_COMPUTER_TAB() {
 		
 	}
 	
-	$arr["openports"] = "{openports}";
-	$arr["applications"]="{services}";
+	
+	
+	if($users->dhcp_installed){
+		$EnableDHCPServer=intval($sock->GET_INFO('EnableDHCPServer'));
+		if($EnableDHCPServer==1){
+			if(IsPhysicalAddress($cmp->ComputerMacAddress)){
+				$arr["DHCP"] = "DHCP";
+			}
+			
+		}
+	}
+	
+	if($users->SQUID_INSTALLED){
+		
+		$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+		if($SQUIDEnable==1){
+			$AS_SQUID=true;
+			$q=new mysql_squid_builder();
+			$date=date("Ym");
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM {$date}_maccess WHERE MAC='$cmp->ComputerMacAddress' LIMIT 0,1"));
+				
+			$arr["SQUIDBLK"] = "{internet_access}";
+			if($ligne["MAC"]<>null){
+				$arr["SQUIDSTATS"] = "{internet_activity}";
+			}
+			
+		}
+		
+	}
+	
+	
+	//$arr["applications"]="{services}";
 	$arr["ressources"] = "{netressources}";
-	$arr["activity"] = "{activity}";
-	$arr["groups"] = "{groups}";
+	if(!$AS_SQUID){$arr["activity"] = "{activity}";}
+	$arr["openports"] = "{openports}";
+	$arr["groups"] = "{groups2}";
 	
 	
 	
@@ -532,11 +551,17 @@ function AJAX_COMPUTER_TAB() {
 	if ($_GET["userid"] == 'newcomputer$') {unset ( $arr );$arr["computer"] = "{computer}";}
 	$fontsize="12px";
 	
-	if(count($arr)<8){
+	if(count($arr)<9){
 		$fontsize="14px";
 	}
 	
+	
+	if(count($arr)<8){
+		$fontsize="18px";
+	}
+	
 	$uidenc=urlencode($_GET["userid"]);
+	$ComputerMacAddressEnc=urlencode($cmp->ComputerMacAddress);
 	
 	while ( list ( $num, $ligne ) = each ( $arr ) ) {
 		
@@ -544,6 +569,24 @@ function AJAX_COMPUTER_TAB() {
 			$toolbox[]="<li><a href=\"computer.infos.php?popup-services=yes&uid=$uidenc&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 			continue;	
 		}
+		
+		if($num=="DHCP"){
+			$link="dhcpd.fixed.hosts.php?modify-dhcpd-settings-popup=yes&mac=$ComputerMacAddressEnc&t={$_GET["t"]}&increment=";
+			$toolbox[]="<li><a href=\"$link\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			continue;
+		}	
+		
+		if($num=="SQUIDSTATS"){
+			$link="squid.users-stats.currentmonth.php?tabs=yes&field=MAC&value=$ComputerMacAddressEnc";
+			$toolbox[]="<li><a href=\"$link\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			continue;
+			}
+
+		if($num=="SQUIDBLK"){
+			$link="squid.computer.access.php?mac=$ComputerMacAddressEnc&t={$_GET["t"]}&increment=";
+			$toolbox[]="<li><a href=\"$link\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			continue;
+		}		
 		
 		if($num=="activity"){
 			$toolbox[]="<li><a href=\"computer.activity.php?uid=$uidenc&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
@@ -553,29 +596,11 @@ function AJAX_COMPUTER_TAB() {
 		$toolbox[]="<li><a href=\"$page?userid=$uidenc&ajaxmode=yes&section=$num&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 	}
 	
-	$html = "<div id='container-computer-tabs' style='width:99%;margin:0px;background-color:white'>
-			<ul>
-				" . implode ( "\n\t", $toolbox ) . "
-			</ul>
-		</div>
-		<script>
-					$(document).ready(function(){
-					$('#container-computer-tabs').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			});
-			
-			
-			
-		</script>";
 	
-	return $tpl->_ENGINE_parse_body ( $html );
+	echo build_artica_tabs($toolbox, "container-computer-tabs");
+
+	
+	
 
 }
 
@@ -674,57 +699,12 @@ function AJAX_COMPUTER_RESSOURCES() {
 }
 
 function AJAX_COMPUTER_OPENPORTS() {
-	$computer = new computers ($_GET["userid"]);
-	$sock=new sockets();
-	$tbl = unserialize(base64_decode($computer->ComputerOpenPorts ));
-	$users = new usersMenus ( );
-	if ($users->nmap_installed) {
-		$button = Paragraphe ( "64-samba-find.png", "$computer->DisplayName", "{scan_it}", "javascript:Loadjs('nmap.progress.php?MAC=$computer->ComputerMacAddress&ipaddr=$computer->ComputerIP')", "scan_your_network", 210 );
-		$ComputersAllowNmap=$sock->GET_INFO("ComputersAllowNmap");
-		if($ComputersAllowNmap==null){$ComputersAllowNmap=1;}
-		if($ComputersAllowNmap==0){
-			$button = Paragraphe ( "64-samba-find-grey.png", "$computer->DisplayName", "{scan_it}", "", "scan_your_network", 210 );
-		}
-	}
 	
+	$t=time();
+	return "<div id='$t'></div>
+		<script>LoadAjax('$t','domains.edit.user.openports.php?userid={$_GET["userid"]}')</script>
 	
-	
-	$html = "
-	<table style='width:100%'>
-	<tr>
-		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
-	<div  id='nmap' style='height:250px;width:100%;overflow:auto'>
-	<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>{port}</th>
-		<th colspan=5>{service}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";
-	
-	while ( list ( $num, $ligne ) = each ( $tbl ) ) {
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$html = $html . "<tr class=$classtr>
-		<td width=1%><strong style='font-size:14px'>$num</strong></td>
-		<td width=99%><strong style='font-size:14px'>$ligne</strong></td>
-		</tr>";
-	
-	}
-	$html = $html . "
-	</tbody>
-	</table>
-	</div>
-	</td>
-	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%>$button</td>
-	</tr>
-	</table>";
-	$html = "<div style='padding:20px;padding-top:0px;'>$html</div>";
-	
-	$tpl = new templates ( );
-	
-	return $tpl->_ENGINE_parse_body ( $html, 'computer-browse.php' );
+	";
 
 }
 
@@ -793,28 +773,23 @@ function AJAX_COMPUTER_DNS_FORM($uid) {
 	} 
 	$ldap = new clladp ( );
 	$domains = $ldap->hash_get_all_domains ();
-	$DnsZoneName = Field_array_Hash ( $domains, "DnsZoneName", $computer->DnsZoneName, "style:font-size:14px", null, 0, null, $disabled );
+	$DnsZoneName = Field_array_Hash ( $domains, "DnsZoneName", $computer->DnsZoneName, "style:font-size:22px", null, 0, null, $disabled );
 	$dnstypeTable = array ("" => "{select}", "MX" => "{mail_exchanger}", "A" => "{dnstypea}" );
-	$DnsType = Field_array_Hash ( $dnstypeTable, "DnsType", $computer->DnsType, "style:font-size:14px", null, 0, null, $disabled );
+	$DnsType = Field_array_Hash ( $dnstypeTable, "DnsType", $computer->DnsType, "style:font-size:22px", null, 0, null, $disabled );
 	
 	$html = "			
-<table style='width:100%'>
-<tbody>
+
 <tr>
-					<td colspan=2><div style='font-size:16px'>{dns_information}</H5></td>
-					
-				</tr>
-<tr>
-					<td class=legend style='font-size:14px'>{DnsZoneName}:</strong></td>
-					<td align=left>$DnsZoneName</strong></td>
+					<td class=legend style='font-size:26px'>{DnsZoneName}:</strong></td>
+					<td align=left colspan=2>$DnsZoneName</strong></td>
 				</tr>	
 				<tr>
-					<td class=legend style='font-size:14px'>{DnsType}:</strong></td>
-					<td align=left>$DnsType</strong></td>
+					<td class=legend style='font-size:26px'>{DnsType}:</strong></td>
+					<td align=left colspan=2>$DnsType</strong></td>
 				</tr>	
 				<tr>
-					<td class=legend style='font-size:14px'>{DnsMXLength}:</strong></td>
-					<td align=left>" . Field_text ( 'DnsMXLength', $computer->DnsMXLength, 'width:50px', null, null, null, false, null, $disabled ) . "</strong></td>
+					<td class=legend style='font-size:26px'>{DnsMXLength}:</strong></td>
+					<td align=left colspan=2>" . Field_text ( 'DnsMXLength', $computer->DnsMXLength, 'font-size:22px;width:110px', null, null, null, false, null, $disabled ) . "</strong></td>
 				</tr>
 			</tbody>
 </table>	";
@@ -842,104 +817,8 @@ function AJAX_COMPUTER_FORM() {
 	echo $tpl->_ENGINE_parse_body ( $html );
 }
 
-function AJAX_COMPUTER_MATERIAL_OS() {
-	$computer = new computers ($_GET["userid"]);
-	if ($_GET["userid"] == "newcomputer$") {$add_computer = true;}
-	$button_title="{apply}";
-	if($add_computer){$button_title="{add}";}
-	
-	
-	$group = new groups ( $computer->gidNumber );
-	$gpslist = $computer->Groups_list ();
-	$users = new usersMenus ( );
-	$sock = new sockets ( );
-	$page = CurrentPageName ();
-	$computerOS = utf8_encode($computer->ComputerOS);
-	$computerOS_text = $computerOS;
-	$computerOS2 = $computerOS;
-	if (strlen ( $computerOS_text ) > 36) {
-		$computerOS_text = texttooltip ( substr ( $computerOS_text, 0, 33 ) . '...', $computerOS_text, null, null, 1 );
-		$computerOS2 = substr ( $computerOS_text, 0, 33 ) . '...';
-	}
-	$array = $computer->OSLIST ( true );
-	$array [$computerOS] = $computerOS2;
-	
-	$computer_infos = "
-<div style='font-size:13px;text-align:right;border-bottom:1px solid #005447;padding:5px;margin-bottom:5px'>
-{ComputerOS}:$computerOS&nbsp;|&nbsp;$computer->ComputerMachineType&nbsp;|&nbsp;$computer->ComputerCPU</div>
-<table style='width:100%'>
-	<tr>
-	<td colspan=2 valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/linux_cluster_install-128.png'></td>
-	<td valign='top' style='vertical-align:top' style='vertical-align:top'>
-			<table>
-			
-				<tr>
-					<td class=legend>{ComputerCPU}:</strong></td>
-					<td align=left>" . Field_text ( 'ComputerCPU', $computer->ComputerCPU, 'width:100%;font-size:13px' ) . "</strong></td>
-				</tr>	
-						
-				<tr>
-					<td class=legend>{ComputerMachineType}:</strong></td>
-					<td align=left>
-					" . Field_text ('ComputerMachineType', $computer->ComputerMachineType, 'width:100%;font-size:13px' ) . "
-					</td>
-				</tr>	
-				<tr>
-					<td class=legend>{ComputerOS}:</strong></td>
-					<td align=left>
-					" . Field_array_Hash ( $array, 'ComputerOS', $computerOS, 'width:100%;font-size:13px' ) . "
-					</td>
-				</tr>
-				<tr>
-					<td class=legend>{ComputerRunning}:</strong></td>
-					<td align=left><strong>$computer->ComputerRunning</strong></td>
-				</tr>			
-				<tr>
-					<td class=legend>{ComputerUpTime}:</strong></td>
-					<td align=left><strong>$computer->ComputerUpTime</strong></td>
-				</tr>			
-				<tr>
-					<td class=legend>{groupName}:</strong></td>
-					<td align=left><strong>$group->groupName</strong></td>
-				</tr>
-				<tr>
-				<td colspan=2 align='right'><hr>
-					" . button ($button_title, 'ComputerSaveComputerInfosHard()' ) . "</td>
-				</tr>
-			</table>
-		</td>
-	</tr>
-</table>
-<script>
-	var x_ComputerSaveComputerInfosHard= function (obj) {
-		var results=obj.responseText;
-		if(results.length>0){alert(results);return;}
-		Refreshtab('container-computer-tabs');
-	}	
-	function ComputerSaveComputerInfosHard(){
-		var XHR = new XHRConnection();
-		XHR.appendData('AJAX_COMPUTER_MATERIAL_OS_SAVE','yes');
-		XHR.appendData('userid','{$_GET["userid"]}');
-		XHR.appendData('ComputerCPU',document.getElementById('ComputerCPU').value);
-		XHR.appendData('ComputerOS',document.getElementById('ComputerOS').value);
-		XHR.appendData('ComputerMachineType',document.getElementById('ComputerMachineType').value);
-		XHR.sendAndLoad('$page', 'GET',x_ComputerSaveComputerInfosHard);  
-	}
-</script>
-";
-	
-	$tpl = new templates ( );
-	return $tpl->_ENGINE_parse_body ( $computer_infos );
 
-}
 
-function AJAX_COMPUTER_MATERIAL_OS_SAVE() {
-	$computer = new computers ($_GET["userid"]);
-	$computer->ComputerCPU = $_GET["ComputerCPU"];
-	$computer->ComputerOS = $_GET["ComputerOS"];
-	$computer->ComputerMachineType = $_GET["ComputerMachineType"];
-	$computer->Edit ();
-}
 
 function AJAX_COMPUTER() {
 	if ($_GET["userid"] == "newcomputer$") {$add_computer = true;}
@@ -1010,7 +889,20 @@ function AJAX_COMPUTER() {
 	$wakeonlan=Paragraphe("restart-64.png","{wakeup_computer}","{wakeup_computer_text}"
 	,"javascript:Loadjs('computer.wakeonlan.php?uid=$uidenc')" );
 	
-	//computer.wakeonlan.php
+	$group = new groups ( $computer->gidNumber );
+	$gpslist = $computer->Groups_list ();
+	$users = new usersMenus ( );
+	$sock = new sockets ( );
+	$page = CurrentPageName ();
+	$computerOS = utf8_encode($computer->ComputerOS);
+	$computerOS_text = $computerOS;
+	$computerOS2 = $computerOS;
+	if (strlen ( $computerOS_text ) > 36) {
+		$computerOS_text = texttooltip ( substr ( $computerOS_text, 0, 33 ) . '...', $computerOS_text, null, null, 1 );
+		$computerOS2 = substr ( $computerOS_text, 0, 33 ) . '...';
+	}
+	$array_computerOS = $computer->OSLIST ( true );
+	$array_computerOS[$computerOS] = $computerOS2;
 	
 	
 	
@@ -1028,12 +920,12 @@ function AJAX_COMPUTER() {
 	
 	
 	$MacField = Field_text ('ComputerMacAddress', 
-	$computer->ComputerMacAddress, 'width:95%;font-size:14px;padding:3px;font-weight:bold',null,null,null,false,
+	$computer->ComputerMacAddress, 'width:95%;font-size:22px;padding:3px;font-weight:bold',null,null,null,false,
 	"ComputerFindByMac()" );
 	
 	if (IsPhysicalAddress($computer->ComputerMacAddress)) {
 		$MacField = "<input type='hidden' name='ComputerMacAddress' id='ComputerMacAddress' value='$computer->ComputerMacAddress'>
-		<code style='font-size:14px'>$computer->ComputerMacAddress</code>";
+		<code style='font-size:22px'>$computer->ComputerMacAddress</code>";
 	}else{
 		$mac_warn=imgtootltip("status_warning.png","{WARNING_MAC_ADDRESS_CORRUPT}");
 		$wakeonlan=Paragraphe("restart-64-grey.png","{wakeup_computer}","{wakeup_computer_text}","" );
@@ -1074,54 +966,88 @@ function AJAX_COMPUTER() {
 		   <div style='width:98%' class=form>
 			<table style='width:100%'>
 				<tr>
-					<td colspan=3><div style='font-size:16px'>{network_information}</div></td>
+					<td colspan=3 ><div style='font-size:26px;margin-bottom:20px'>{network_information}</div></td>
 					
-				</tr>				
+				</tr>
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{groupName}:</strong></td>
+					<td align=left colspan=2><strong style='font-size:22px;'>$group->groupName</strong></td>
+				</tr>									
 				<tr>
 					
-					<td class=legend nowrap style='font-size:14px'>{computer_name}:</strong></td>
+					<td class=legend nowrap style='font-size:22px;vertical-align:top'>{computer_name}:</strong></td>
 					<td width=1%>&nbsp;</td>
-					<td align=left>" . Field_text ( 'uid', $computer->uid, 'width:100%;font-size:14px;padding:3px;font-weight:bold;width:220px' ) . "
-					<div style='margin-top:2px;text-align:right;padding-left:40px' id='modifyNameComp'></div></td>
+					<td align=left>" . Field_text ( 'uid', $computer->uid, 'width:100%;font-size:22px;padding:3px;
+							font-weight:bold;width:400px' ) . "
+					<div style='margin-top:2px;text-align:right;padding-left:250px' id='modifyNameComp'></div></td>
 				</tr>								
 				<tr>
 					
-					<td class=legend nowrap style='font-size:14px'>{computer_ip}:</strong></td>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ipaddr}:</strong></td>
 					<td width=1%>&nbsp;</td>
-					<td align=left>" . field_ipv4('ComputerIP', $computer->ComputerIP, 'font-size:14px;padding:3px;font-weight:bold' ) . "</strong></td>
+					<td align=left>" . field_ipv4('ComputerIP', $computer->ComputerIP, 'font-size:22px;padding:3px;font-weight:bold' ) . "</strong></td>
 				</tr>			
 				<tr>
 					
-					<td class=legend nowrap style='font-size:14px'>{ComputerMacAddress}:</strong></td>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerMacAddress}:</strong></td>
 					<td width=1%><span id='mac-warn'>$mac_warn</span></td>
 					<td align=left>$MacField</strong></td>
 				</tr>
 				<tr>
 					
-					<td class=legend nowrap style='font-size:14px'>{uid_number}:</strong></td>
-					<td>&nbsp;</td>
-					<td align=left><strong style='font-size:14px'>$computer->uidNumber</strong></td>
-				</tr>					
-				<tr>
+					<td class=legend nowrap style='font-size:22px'>{uid_number}:</strong></td>
 					
-					<td class=legend nowrap style='font-size:14px'>{dhcpfixed}:</strong></td>
-					<td>&nbsp;</td>
-					<td align=left>$dhcp_fix</td>
+					<td align=left colspan=2><strong style='font-size:22px'>$computer->uidNumber</strong></td>
 				</tr>	
 				<tr>
+					<td colspan=3><div style='padding-top:10px;font-size:26px;margin-bottom:20px;;margin-top:20px;border-top:1px solid #CCCCCC''>{materialos}</div></td>
 					
-					<td class=legend style='font-size:14px'>{VolatileIPAddress}:</strong></td>
-					<td>&nbsp;</td>
-					<td align=left>$VolatileIPAddress</td>
 				</tr>	
-				</table>
-				<div id='computerdnsinfos'>$dns</div>
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerCPU}:</strong></td>
+					<td align=left colspan=2>" . Field_text ( 'ComputerCPU', $computer->ComputerCPU, 'width:100%;font-size:22px' ) . "</strong></td>
+				</tr>	
+						
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerMachineType}:</strong></td>
+					<td align=left colspan=2>
+					" . Field_text ('ComputerMachineType', $computer->ComputerMachineType, 'width:100%;font-size:22px' ) . "
+					</td>
+				</tr>	
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerOS}:</strong></td>
+					<td align=left colspan=2>
+					" . Field_array_Hash ( $array_computerOS, 'ComputerOS', $computerOS, 'style:width:100%;font-size:22px' ) . "
+					</td>
+				</tr>
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerRunning}:</strong></td>
+					<td align=left colspan=2><strong style='font-size:22px;'>$computer->ComputerRunning</strong></td>
+				</tr>			
+				<tr>
+					<td class=legend nowrap style='font-size:22px;vertical-align:middle'>{ComputerUpTime}:</strong></td>
+					<td align=left colspan=2><strong style='font-size:22px;'>$computer->ComputerUpTime</strong></td>
+				</tr>			
+				<tr>
+					<td colspan=3><div style='padding-top:10px;font-size:26px;margin-bottom:20px;
+					margin-top:20px;border-top:1px solid #CCCCCC''>{dns_information}</div></td>
+					
+				</tr>	
+				$dns
+				
+			</table>
+				
+				
+				
+				
+				
+				
 				<table style='width:100%'>
 											
 				
 				<tr>
 					<td colspan=3 align='right' style='padding:10px'>
-						<hr>" . button ( $button_title, "SaveComputerForm$TF();",16 ) . "
+						<hr>" . button ( $button_title, "SaveComputerForm$TF();",32 ) . "
 					</td>
 				</tr>
 				
@@ -1180,6 +1106,17 @@ function SaveComputerForm$TF(){
 	
 	
 	
+	if(document.getElementById('ComputerCPU')){
+		XHR.appendData('ComputerCPU',document.getElementById('ComputerCPU').value);
+	}
+		
+	if(document.getElementById('ComputerOS')){
+		XHR.appendData('ComputerOS',document.getElementById('ComputerOS').value);
+	}	
+	if(document.getElementById('ComputerMachineType')){
+		XHR.appendData('ComputerMachineType',document.getElementById('ComputerMachineType').value);
+	}	
+	
 	if(document.getElementById('uid')){
 		 XHR.appendData('uid',document.getElementById('uid').value);	
 	}
@@ -1197,7 +1134,7 @@ function SaveComputerForm$TF(){
 	}	  
 	
 	
-	AnimateDiv('computer_refresh_div');
+	
 	XHR.sendAndLoad('$page', 'GET',x_SaveComputerForm);
 
 }
@@ -1684,7 +1621,7 @@ function USER_ALIASES_FORM_ADD() {
     			</table>";
 	
 	$html = "
-<div class=explain style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
+<div class=text-info style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
 $form_add
 
 
@@ -1773,7 +1710,7 @@ function USER_ALIASES($userid) {
 	$html = "
     	
     	$title
-    	<div class=explain>{aliases_text}:&nbsp;&laquo;<b>$user->mail&raquo;</b></div>
+    	<div class=text-info>{aliases_text}:&nbsp;&laquo;<b>$user->mail&raquo;</b></div>
     	<table style='width:100%'>
     	<tr>
     		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%><br><img src='img/96-bg_addresses.png' style='margin-right:30px'></td>
@@ -2054,7 +1991,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	}
 	
 	$html = "
-	<div class=explain>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
+	<div class=text-info>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
 	<div id='USER_SAMBA_PRIVILEGES_PAGE'>
 	<div style='width:98%' class=form>
 	<table>
@@ -3315,13 +3252,19 @@ function USER_MAILBOX_WIZARD_JS() {
 	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html = "
 		function CreateMailBoxWizardStart(){
-			var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			var MailBoxMaxSize=0;
+			if(document.getElementById('MailBoxMaxSize')){
+				var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			}
 			YahooWin('650','$page?create-mailbox-step1=yes&uid={$_GET["uid"]}&MailBoxMaxSize='+MailBoxMaxSize,'$title');
 		
 		}
 		
 		function CreateMailBoxWizardStep2(){
-			var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			var MailBoxMaxSize=0;
+			if(document.getElementById('MailBoxMaxSize')){
+				var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			}
 			Loadjs('domains.edit.user.create.mbx.php?uid={$_GET["uid"]}&MailBoxMaxSize='+MailBoxMaxSize);
 		}
 	
@@ -3334,7 +3277,7 @@ function USER_MAILBOX_WIZARD_STEP1() {
 	
 	$html = "
 	<div style='width:98%' class=form>
-	<div style='font-size:16px' class=explain>{USER_MAILBOX_WIZARD_STEP1}</div>
+	<div style='font-size:16px' class=text-info>{USER_MAILBOX_WIZARD_STEP1}</div>
 	<div style='width:100%'>
 	<table>
 	<tr>
@@ -4443,12 +4386,29 @@ function COMPUTER_SAVE_INFOS() {
 	$computer->uid = $_GET["uid"] . '$';
 	$computer->ComputerMacAddress = $_GET["ComputerMacAddress"];
 	$computer->ComputerIP =$_GET["ComputerIP"];
-	$computer->DnsZoneName =$_GET["DnsZoneName"];
-	$computer->ComputerCPU = $_GET["ComputerCPU"];
-	$computer->DnsType = $_GET["DnsType"];
-	$computer->DnsMXLength = $_GET["DnsMXLength"];
-	$computer->dhcpfixed = $_GET["dhcpfixed"];
-	$computer->VolatileIPAddress = $_GET["VolatileIPAddress"];
+	
+	if(isset($_GET["DnsZoneName"])){
+		$computer->DnsZoneName =$_GET["DnsZoneName"];
+	}
+	if(isset($_GET["ComputerCPU"])){
+		$computer->ComputerCPU = $_GET["ComputerCPU"];
+	}
+	if(isset($_GET["DnsType"])){
+		$computer->DnsType = $_GET["DnsType"];
+	}		
+	
+	if(isset($_GET["DnsMXLength"])){
+		$computer->DnsMXLength = $_GET["DnsMXLength"];
+	}
+	if(isset($_GET["ComputerCPU"])){
+		$computer->ComputerCPU = $_GET["ComputerCPU"];
+	}
+	if(isset($_GET["ComputerOS"])){
+		$computer->ComputerOS = $_GET["ComputerOS"];
+	}
+	if(isset($_GET["ComputerMachineType"])){
+		$computer->ComputerMachineType = $_GET["ComputerMachineType"];
+	}
 	
 	if ($_GET["userid"] == "newcomputer$") {
 		
@@ -4851,7 +4811,7 @@ function USER_TRANSPORT_DELTE() {
 function USER_CHANGE_UID() {
 	$uid = $_GET["userid"];
 	$html = "
-	<div class=explain style='font-size:16px'>{change_uid_explain}</div>
+	<div class=text-info style='font-size:16px'>{change_uid_explain}</div>
 	<div id='chuiseriddiv' style='width:98%' class=form>
 	<div style='width:100%'>
 	<table style='width:100%'>
@@ -4987,7 +4947,7 @@ function TOOLS_REPAIR() {
 	$uid = $_GET["uid"];
 	$html = "
 	
-	<div class=explain>{repair_mailbox_infos}</div>
+	<div class=text-info>{repair_mailbox_infos}</div>
 	<center>
 	<input type='button' value='{repair_mailbox}&nbsp;&raquo;' 
 	style='font-size:16px;padding:5px;margin:15px'

@@ -38,7 +38,7 @@ function content(){
 	$SearchQuery=$boot->SearchFormGen("ipaddr,uid,hostname","search-records");
 	$apply_changes_mactouid_explain=$tpl->javascript_parse_text("{apply_changes_mactouid_explain}");
 	$html="
-	<div class=explain>{ipaddrtouid_explain}</div>
+	<div class=text-info>{ipaddrtouid_explain}</div>
 	<table style='width:100%'>
 	<tr>
 	<td>$button $button3 $button2</td>
@@ -95,7 +95,7 @@ function import_popup(){
 	<table style='width:100%'>
 	
 	<td style='vertical-align:top'>
-	<div class=explain style='font-size:18px'>$MacToUid_import_explain</div>
+	<div class=text-info style='font-size:18px'>$MacToUid_import_explain</div>
 	</td>
 	</tr>
 	</table>

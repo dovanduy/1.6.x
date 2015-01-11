@@ -1044,15 +1044,7 @@ function network(){
 			);	
 			
 			
-		$array["DEF_ICO_PDNS"]=array(
-			"IMG"=>"dns-64.png",
-			 "JS"=>"Loadjs('pdns.php')",
-			 "TITLE"=>"APP_PDNS",
-			 "TEXT"=>"APP_PDNS_TEXT",
-			 "CLASS"=>"NETWORK",
-			 "LANG"=>"system.nic.infos.php"
-			);
-			
+
 		$array["DEF_ICO_ETC_HOSTS"]=array(
 			"IMG"=>"host-file-64.png",
 			 "JS"=>"Loadjs('system-etc-hosts.php')",
@@ -1127,7 +1119,7 @@ function network(){
 	
 $array["DEF_ICO_ADDCOMP"]=array(
 			"IMG"=>"64-add-computer.png",
-			 "JS"=>"YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
+			 "JS"=>"YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
 			 "TITLE"=>"ADD_COMPUTER",
 			 "TEXT"=>"ADD_COMPUTER_TEXT",
 			 "CLASS"=>"NETWORK"
@@ -1197,7 +1189,7 @@ $array=$array+array(
 
 		"DEF_ICO_COMPUTER_ADD"=>array(
 			"IMG"=>"64-add-computer.png",
-			 "JS"=>"YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
+			 "JS"=>"YahooUser(1051,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
 			 "TITLE"=>"ADD_COMPUTER",
 			 "TEXT"=>"ADD_COMPUTER_TEXT",
 			 "CLASS"=>"NETWORK"
@@ -1389,7 +1381,7 @@ function mail(){
 			 "LANG"=>"postfix.index.php");
 		
 		$array["DEF_ICO_POSTFIX_TLS"]=array(
-			 "IMG"=>"64-tls-server.png",
+			 "IMG"=>"certificate-64.png",
 			 "JS"=>"Loadjs('postfix.tls.php')",
 			 "TITLE"=>"tls_title",
 			 "TEXT"=>"DEF_ICO_POSTFIX_TLS_TEXT",
@@ -1459,7 +1451,7 @@ function mail(){
 			 "IMG"=>"64-cluster.png",
 			 "JS"=>"Loadjs('cyrus.clusters.php')",
 			 "TITLE"=>"CYRUS_CLUSTER",
-			 "TEXT"=>"CYRUS_CLUSTER_TEXT",
+			 "TEXT"=>"CYRUS_CLUSTER",
 			 "CLASS"=>"mailbox",
 			 "LANG"=>"cyrus.clusters.php");
 			
@@ -1553,7 +1545,7 @@ function mailsecu(){
 	
 	if($users->POSTFIX_INSTALLED){
 		$array["DEF_ICO_POSTFIX_TLS"]=array(
-			"IMG"=>"64-tls-server.png",
+			"IMG"=>"certificate-64.png",
 			 "JS"=>'Loadjs("postfix.tls.php")',
 			 "TITLE"=>"tls_title",
 			 "TEXT"=>"DEF_ICO_POSTFIX_TLS_TEXT",

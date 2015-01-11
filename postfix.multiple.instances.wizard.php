@@ -107,7 +107,7 @@ function start(){
 	$interfaces=$tpc->Local_interfaces();
 	unset($interfaces["lo"]);
 	$html="
-	<div class=explain style='font-size:14px'>{welcome_new_instance_wizard_intro}</div>
+	<div class=text-info style='font-size:14px'>{welcome_new_instance_wizard_intro}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{Interface}:</td>
@@ -223,7 +223,7 @@ function wizard2_ipv6(){
 		
 	$html="
 	<strong style='font-size:16px'>{Interface}:{$_SESSION["WIZINSTANCE"]["WIZINTERFACE"]}</strong>
-	<div class=explain style='font-size:14px'>{welcome_new_instance_wizard_interface}</div>	
+	<div class=text-info style='font-size:14px'>{welcome_new_instance_wizard_interface}</div>	
 	<table style='width:99%' class=form>
 	$alreadyDONE
 	<tr>
@@ -356,7 +356,7 @@ function wizard2_ipv4(){
 	
 	
 	$html="<strong style='font-size:16px'>{Interface}:{$_SESSION["WIZINSTANCE"]["WIZINTERFACE"]}</strong>
-	<div class=explain style='font-size:14px'>{welcome_new_instance_wizard_interface}</div>
+	<div class=text-info style='font-size:14px'>{welcome_new_instance_wizard_interface}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{ipaddr}:</td>
@@ -411,7 +411,7 @@ function wizard3(){
 	
 	
 $html="<strong style='font-size:16px'>{Interface}:{$_SESSION["WIZINSTANCE"]["WIZINTERFACE"]}&nbsp;|&nbsp;{$_SESSION["WIZINSTANCE"]["WIZIPADDR"]}/{$_SESSION["WIZINSTANCE"]["WIZIPMASK"]}</strong>
-	<div class=explain style='font-size:14px'>{welcome_new_instance_wizard_organdname}</div>
+	<div class=text-info style='font-size:14px'>{welcome_new_instance_wizard_organdname}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{organization}:</td>
@@ -464,7 +464,7 @@ function wizard4(){
 	
 	
 	
-	$html="<div class=explain style='font-size:14px'>{welcome_new_instance_wizard_finish}</div>
+	$html="<div class=text-info style='font-size:14px'>{welcome_new_instance_wizard_finish}</div>
 	<div id='buildinstance-progress'></div>
 	<table style='width:99%' class=form>
 	<tr>

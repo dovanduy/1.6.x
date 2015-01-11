@@ -108,7 +108,6 @@ class vhosts{
 	"SPLASHSQUID"=>"webfilter-64.png",
 	"ERRSQUID"=>"64-banned.png",
 	"UFDBGUARD"=>"64-banned.png",
-	"WPAD"=>"script-64.png",
 	"UPDATEUTILITY"=>"kaspersky-update-64.png",
 	"WEBDAVFREE"=>"organisation-64.gif",
 	"APP_FILEZ_WEB"=>"filez-logo-64.png",
@@ -161,7 +160,6 @@ class vhosts{
 	"CONCRETE5"=>array("TITLE"=>"APP_CONCRETE5","TEXT"=>"APP_CONCRETE5_TXT"),
 	"ARTICA_ADMPRXY"=>array("TITLE"=>"ARTICA_ADMPRXY","TEXT"=>"ARTICA_ADMPRXY_TXT"),
 	"ARKEIA"=>array("TITLE"=>"APP_ARKEIA","TEXT"=>"APP_ARKEIA_TXT"),
-	"SARG"=>array("TITLE"=>"APP_SARG","TEXT"=>"APP_SARG_TXT"),
 	"KLMS"=>array("TITLE"=>"APP_KLMS","TEXT"=>"APP_KLMS_TXT"),
 	"XAPIAN"=>array("TITLE"=>"Xapian Desktop","TEXT"=>"APP_XAPIAN_FREEWEB_TEXT"),
 	"ANDROWEB"=>array("TITLE"=>"WebStats Tablet","TEXT"=>"APP_WEBSTATS_TABLET_TEXT"),
@@ -172,7 +170,7 @@ class vhosts{
 	"SPLASHSQUID"=>array("TITLE"=>"APP_SPLASHSQUID","TEXT"=>"APP_SPLASHSQUID_TEXT"),
 	"ARTICA_PRXYLOGS"=>array("TITLE"=>"APP_ARTICA_PRXYLOGS","TEXT"=>"APP_ARTICA_PRXYLOGS_TEXT"),
 	"ERRSQUID"=>array("TITLE"=>"APP_ERRSQUID","TEXT"=>"APP_ERRSQUID_TEXT"),
-	"WPAD"=>array("TITLE"=>"APP_WPAD","TEXT"=>"APP_WPAD_TEXT"),
+	
 	"UPDATEUTILITY"=>array("TITLE"=>"UpdateUtility","TEXT"=>"UpdateUtilityWWText"),
 	"UFDBGUARD"=>array("TITLE"=>"UFDBGUARD_FREEWEB","TEXT"=>"UFDBGUARD_FREEWEB_TEXT"),
 	"WEBDAVFREE"=>array("TITLE"=>"WEBDAVFREE","TEXT"=>"WEBDAVFREE_TEXT"),
@@ -248,10 +246,10 @@ function listOfAvailableServices($freeweb=false){
 		if($EnableWebProxyStatsAppliance==1){$array["ANDROWEB"]="WebStats Tablet";}
 		if($user->SQUID_INSTALLED){
 			$array["ARTICA_PRXYLOGS"]="{APP_ARTICA_PRXYLOGS}";
-			$array["WPAD"]="{APP_WPAD}";
+			
 			$array["WPADDYN"]="{APP_WPADDYN}";
-			$array["ANDROWEB"]="WebStats Tablet";
-			$array["CHILLI"]="{APP_CHILLIWEB}";
+			//$array["ANDROWEB"]="WebStats Tablet";
+			
 			
 			
 			
@@ -272,7 +270,7 @@ function listOfAvailableServices($freeweb=false){
 		if($user->XAPIAN_PHP_INSTALLED){$array["XAPIAN"]="Xapian Desktop";}
 		if($user->PIWIGO_INSTALLED){$array["PIWIGO"]="{APP_PIWIGO}";}
 		if($user->OWNCLOUD_INSTALLED){$array["OWNCLOUD"]="{APP_OWNCLOUD}";}
-		$array["SPLASHSQUID"]="{APP_SPLASHSQUID}";
+		
 		$array["ERRSQUID"]="{APP_ERRSQUID}";
 		if($user->UPDATE_UTILITYV2_INSTALLED){$array["UPDATEUTILITY"]="UpdateUtility";}
 		if($ApacheDisableModDavFS==0){

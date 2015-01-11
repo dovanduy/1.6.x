@@ -423,13 +423,13 @@ function hd_list(){
 	writelogs("cmd.php?usb-scan-write=yes done",__FUNCTION__,__FILE__,__LINE__);
 	if(!file_exists('ressources/usb.scan.inc')){
 		$html="
-		<center>
-		<table style='width:80%' class=form>
-		<tr>
-			<td width=1% valign='top'><img src='img/error-128.png'></td>
-			<td width=99% style='font-size:18px;font-weight:bold' valign='top'>{WARN_USB_SCAN_MISSING}</td>
-		</tr>
-		</table>
+		<center style='width:98%' class=form>
+			<table style='width:100%'>
+				<tr>
+					<td width=1% valign='top'><img src='img/error-128.png'></td>
+					<td width=99% style='font-size:18px;font-weight:bold' valign='top'>{WARN_USB_SCAN_MISSING}</td>
+				</tr>
+			</table>
 		</center>
 		
 		";
@@ -457,7 +457,7 @@ while (list ($num, $line) = each ($d)){
 
 
 $html="
-<center style='margin-top:25px'><div style='width:80%'>";
+<center style='margin-top:25px'>";
 $count=0;
 	while (list ($num, $line) = each ($_GLOBAL["disks_list"])){
 		if($num=="size (logical/physical)"){continue;}
@@ -467,9 +467,9 @@ $count=0;
 		
 	}
 
-	$html=$html.CompileTr2($DD);
+	$html=$html.CompileTr3($DD,true);
 	
-	$html=$html . "</div></center>";
+	$html=$html . "</center>";
 	return $html;
 	
 }
@@ -519,25 +519,25 @@ function ParseHDline($dev,$array){
 		$tableau="
 		<table style='width:99%'>
 		<tr>
-			<td class=legend>{path}:</td>
-			<td><strong>$dev</strong></td>
+			<td class=legend style='font-size:14px'>{path}:</td>
+			<td><strong style='font-size:14px'>$dev</strong></td>
 		</tr>		
 		<tr>
-			<td class=legend>{model}:</td>
-			<td><strong>$ID_MODEL</strong></td>
+			<td class=legend style='font-size:14px'>{model}:</td>
+			<td><strong style='font-size:14px'>$ID_MODEL</strong></td>
 		</tr>
 		$ID_VENDOR
 		<tr>
-			<td class=legend nowrap>Bus:</td>
-			<td><strong>$ID_BUS</strong></td>
+			<td class=legend nowrap style='font-size:14px'>Bus:</td>
+			<td><strong style='font-size:14px'>$ID_BUS</strong></td>
 		</tr>
 		<tr>
-			<td class=legend nowrap>{partitions_number}:</td>
-			<td><strong>$part_number</strong></td>
+			<td class=legend nowrap style='font-size:14px'>{partitions_number}:</td>
+			<td><strong style='font-size:14px'>$part_number</strong></td>
 		</tr>
 		<tr>
-			<td class=legend nowrap valign='top'>{label}:</td>
-			<td><strong>". @implode("",$ID_FS_LABEL)."</strong></td>
+			<td class=legend nowrap valign='top' style='font-size:14px'>{label}:</td>
+			<td><strong style='font-size:14px'>". @implode("",$ID_FS_LABEL)."</strong></td>
 		</tr>				
 							
 		</table>
@@ -546,11 +546,18 @@ function ParseHDline($dev,$array){
 		
 		$novchange=false;
 		$image_icon="64-hd.png";
+		
 		if($ID_MODEL=="VIRTUAL-DISK"){$image_icon="64-hd-iscsi.png";$novchange=true;}
 		if($ID_USB_DRIVER=="usb-storage"){$image_icon="usb-64.png";$novchange=true;}
 		
+		if(!$novchange){
+			if(intval($part_number)==0){
+				$image_icon="64-hd-grey.png";
+			}
+		}
+		
 		$link="javascript:PartInfos('$dev')";
-		return ParagrapheSimple($image_icon,$title,$tableau,$link,null,290,null,1);
+		return ParagrapheSimple($image_icon,$title,$tableau,$link,null,300,300,1);
 	
 	
 	}
@@ -565,8 +572,12 @@ function hd_index_list(){
 function hd_index(){
 	$tpl=new templates();
 	$p=CurrentPageName();
-	$iscsi=imgtootltip("net-disk-add-32.png","{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')");
-	$rescan=imgtootltip("disk-infos-scan-32.png","{rescan-disk-system}","Loadjs('system.rescanhds.php');");
+	$iscsi=button("{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')");
+	
+	
+	
+	$rescan=button("{rescan-disk-system}","Loadjs('system.rescanhds.php');");
+	$refresh=button("{refresh}","LoadAjax('hd-display','$p?hd-display=yes')");
 	$page=CurrentPageName();
 	
 	$users=new usersMenus();
@@ -575,13 +586,13 @@ function hd_index(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='middle' width=99% style='font-size:14px'>{internal_hard_drives_text}</td>
+		<td valign='middle' width=99% style='font-size:18px'>{internal_hard_drives_text}</td>
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>$iscsi</td>
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>$rescan</td>
-		<td style='border-left:2px solid #CCCCCC;padding:5px'>". imgtootltip("32-usb-refresh.png","{refresh}","LoadAjax('hd-display','$p?hd-display=yes')")."</td>
+		<td style='border-left:2px solid #CCCCCC;padding:5px'>$refresh</td>
 	</tr>
 	</table>
-	<div style='width:95%;' id='hd-display' class=form></div>
+	<div style='width:98%;' id='hd-display' class=form></div>
 	
 	<script>
 		LoadAjax('hd-display','$p?hd-index-list=yes');
@@ -595,10 +606,30 @@ function hd_index(){
 	
 function hd_partinfos(){
 	$dev=$_GET["partinfos"];
+	
+	$sock=new sockets();
+	$HardDrive=base64_decode($sock->getFrameWork("system.php?disk-parent-of=".urlencode($dev)));
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$array["status"]='{status}';
-	$array["tasks"]='{tasks}';
+	
+	
+	if($HardDrive==null){
+		$array["status"]='{status}';
+	}else{
+		$array["status2"]='{status}';
+		
+	}
+	
+	if($HardDrive==null){
+		$array["tasks"]='{tasks}';
+	}else{
+		$array["tasks2"]='{tasks}';
+	
+	}
+	
+	
+	$array["watchdog"]="{directories_monitor}";
 	
 	$users=new usersMenus();
 	$sock=new sockets();
@@ -606,7 +637,14 @@ function hd_partinfos(){
 	if($a[$dev]<>null){$array["lvm"]='{virtual_disks}';}
 	
 	if($users->HDPARM_INSTALLED){
-		$array["hdparm"]='{hdparm}';
+		
+		if($HardDrive==null){
+			$array["hdparm"]='{hdparm}';
+		}else{
+			$array["hdparm2"]='{hdparm}';
+		
+		}
+		
 	}
 	
 	if($users->SMARTMONTOOLS_INSTALLED){
@@ -617,16 +655,32 @@ function hd_partinfos(){
 		if($_GET["main"]==$num){$class="id=tab_current";}else{$class=null;}
 		
 		if($num=="smart"){
-			$html[]= "<li><a href=\"system.internal.disk.smart.php?dev=$dev\"><span style='font-size:16px'>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"system.internal.disk.smart.php?dev=$dev\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
-		$html[]= "<li><a href=\"$page?switchtab=$num&dev=$dev\"><span style='font-size:16px'>$ligne</span></a></li>\n";
-	
 		
+		
+		if($num=="watchdog"){
+			$html[]= "<li><a href=\"system.folders.monitor.php?dev=$dev&bypopup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
+		if($num=="status2"){
+			$html[]= "<li><a href=\"$page?switchtab=status&dev=$HardDrive\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		if($num=="tasks2"){
+			$html[]= "<li><a href=\"$page?switchtab=tasks&dev=$HardDrive\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+			continue;
+		}	
+		if($num=="hdparm2"){
+			$html[]= "<li><a href=\"$page?switchtab=hdparm&dev=$HardDrive\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+			continue;
+		}
 		
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('main_config_postfix','$page?main=$num&hostname=$hostname')\" $class>$ligne</a></li>\n";
-			
+		$html[]= "<li><a href=\"$page?switchtab=$num&dev=$dev\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 		}
 	
 	echo build_artica_tabs($html, "partinfosdiv");

@@ -118,7 +118,7 @@ function iptables_table(){
 	
 $t=time();
 $html="
-<div class=explain style='font-size:16px'>$LIGHTTPD_IP_ACCESS_TEXT</div>
+<div class=text-info style='font-size:16px'>$LIGHTTPD_IP_ACCESS_TEXT</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 	function LoadTable$t(){

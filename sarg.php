@@ -14,11 +14,12 @@
 	
 	
 	$user=new usersMenus();
-	if($user->AsSquidAdministrator==false){
+	if($user->AsWebStatisticsAdministrator==false){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}	
+	if(isset($_GET["status-sarg"])){sarg_status();exit;}
 	if(isset($_POST["EnableSargGenerator"])){EnableSargGenerator_unique_save();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["status"])){status();exit;}
@@ -68,6 +69,12 @@ function EnableSargGenerator_unique_save(){
 	
 	$sock=new sockets();
 	$sock->SET_INFO("EnableSargGenerator", $_POST["EnableSargGenerator"]);
+	if(isset($_POST["EnableSargWeb"])){$sock->SET_INFO("EnableSargWeb", $_POST["EnableSargWeb"]);}
+	if(isset($_POST["SargWebPort"])){
+			$sock->SET_INFO("SargWebPort", $_POST["SargWebPort"]);
+			$sock->getFrameWork("sarg.php?restart-web=yes");
+	
+	}
 	
 }
 function weekly_run_js(){
@@ -76,7 +83,7 @@ function weekly_run_js(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?sarg-weekly=yes");
-	$title=$tpl->javascript_parse_text("{weekly_reports} {succes}");
+	$title=$tpl->javascript_parse_text("{weekly_reports} {success_sendcommand}");
 	echo "alert('$title');";
 	
 }
@@ -87,7 +94,7 @@ function index_run_js(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?sarg-index=yes");
-	$title=$tpl->javascript_parse_text("{build_index_page_sarg} {succes}");
+	$title=$tpl->javascript_parse_text("{build_index_page_sarg} {success_sendcommand}");
 	echo "alert('$title');";	
 }
 
@@ -97,7 +104,7 @@ function monthly_run_js(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?sarg-monthly=yes");
-	$title=$tpl->javascript_parse_text("{monthly_reports} {succes}");
+	$title=$tpl->javascript_parse_text("{monthly_reports} {success_sendcommand}");
 	echo "alert('$title');";
 
 }
@@ -110,6 +117,9 @@ function popup(){
 	$array["status"]="{status}";
 	$array["params"]="{parameters}";
 	$array["sarg-reports"]="{sarg_reports}";
+	$array["sarg-aliases"]="{sarg_aliases}";
+	$array["sarg-schedules"]="{schedules}";
+	
 	$array["sarg-freeweb"]="{websites}";
 	//$array["members"]="{members}";
 	//$array["tools"]="{tools}";
@@ -120,6 +130,17 @@ function popup(){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.events.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="sarg-schedules"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php?TaskType=56\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		if($num=="sarg-aliases"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.aliases.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 		
@@ -139,12 +160,13 @@ function status(){
 	$tpl=new templates();
 	$q=new mysql();
 	$APP_SARG=$tpl->_ENGINE_parse_body("{APP_SARG}");
-	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
-	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
+	$EnableSargGenerator=intval($sock->GET_INFO("EnableSargGenerator"));
+	$EnableSargWeb=intval($sock->GET_INFO("EnableSargWeb"));
+	$SargWebPort=intval($sock->GET_INFO("SargWebPort"));
+	if($SargWebPort==0){$SargWebPort=rand(55600,59000);$sock->SET_INFO("SargWebPort", $SargWebPort);}
+	$t=time();
 	
-	$ini=new Bs_IniHandler();
-	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?sarg-ini-status=yes')));
-	$tr[]=DAEMON_STATUS_ROUND("APP_SARG",$ini,null,1);
+	
 	
 	$disabled=$tpl->_ENGINE_parse_body("{disabled}");
 	if($EnableSargGenerator==0){
@@ -186,9 +208,69 @@ function status(){
 	
 	$tableau=CompileTr3($tr,true);
 	
-	$html="<div class=explain style='font-size:14px'>{APP_SARG_TXT}</div>$tableau";
+	$html="
+	<table style='width:100%'>
+	<tr>
+		<td style='width:340px;vertical-align:top'><div id='status-sarg'></div></td>
+		<td style='width:98%'>
+	<div style='width:98%' class=form>
+	". Paragraphe_switch_img("{enable_sarg_service}", 
+		"{APP_SARG_TXT}<br>{enable_sarg_service_text}",
+		"EnableSargGenerator-$t",$EnableSargGenerator,null,780)
+	. Paragraphe_switch_img("{enable_sarg_webservice}", 
+			"{enable_sarg_webservice_text}","EnableSargWeb-$t"
+			,$EnableSargWeb,null,780).
+	"			
+	<table style='width:100%'>
+	<tr>
+	 <td class=legend style='font-size:22px'>{listen_port}</td>
+	 <td>". Field_text("SargWebPort-$t",$SargWebPort,"font-size:22px;width:120px")."</td>
+	</tR>	
+	<tr>
+	 	<td colspan=2 align='right' style='font-size:18px'>
+	 			<a href=\"http://{$_SERVER["SERVER_NAME"]}:$SargWebPort\" style='text-decoration:underline' _target=_new>http://{$_SERVER["SERVER_NAME"]}:$SargWebPort</a></td>
+	 </tr>
+	 </table>
+	<p><hr></p>
+	<div style='text-align:right'>". button("{apply}","Save$t()",26)."</div>
+	</div>
+	</td>
+	</tr>
+	</table>
+	$tableau
+	<script>
+	var xSave$t= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)};
+			Loadjs('squid.restart.php?ApplyConfToo=yes&ask=yes');
+		}
+				
+		function Save$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('EnableSargGenerator',document.getElementById('EnableSargGenerator-$t').value);
+			XHR.appendData('EnableSargWeb',document.getElementById('EnableSargWeb-$t').value);
+			XHR.appendData('SargWebPort',document.getElementById('SargWebPort-$t').value);
+			XHR.sendAndLoad('$page', 'POST',xSave$t);	
+		}
+
+	LoadAjax('status-sarg','$page?status-sarg=yes')	
+	</script>
+		
+	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function sarg_status(){
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$tpl=new templates();
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?sarg-ini-status=yes')));
+	$tr[]=DAEMON_STATUS_ROUND("APP_SARG",$ini,null,1);
+	$tr[]=DAEMON_STATUS_ROUND("APP_SARG_HTTP",$ini,null,1);
+	$tr[]="<div style='text-align:right;width:100%'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('status-sarg','$page?status-sarg=yes');")."</div>";
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $tr));
 }
 
 function freeweb(){
@@ -298,7 +380,7 @@ function members(){
 		}
 	}
 	$html="
-	<div class=explain>{SARG_MEMBERS_EXPLAIN}</div>
+	<div class=text-info>{SARG_MEMBERS_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=50%>
@@ -557,100 +639,103 @@ $LASTLOGS[150]="5 {months}";
 $LASTLOGS[360]="1 {year}";
 
 if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=90;}
+if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=10;}
+if($SargConfig["topuser_num"]==0){$SargConfig["topuser_num"]=10;}
+
 if($SargConfig["lastlog"]<1){$SargConfig["lastlog"]=90;}
 
 $html="
-<div id='sarg-config-form'>
-<table style='width:99%' class=form>
+<div id='sarg-config-form' style='width:98%' class=form>
+<table style='width:100%'>
 <tr>
-	<td class=legend style='font-size:14px'>{enable}:</td>
+	<td class=legend style='font-size:18px'>{enable}:</td>
 	<td>". Field_checkbox("EnableSargGenerator",1,$EnableSargGenerator,"CheckSargFormSave()")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{DisableArticaProxyStatistics}:</td>
+	<td class=legend style='font-size:18px'>{DisableArticaProxyStatistics}:</td>
 	<td>". Field_checkbox("DisableArticaProxyStatistics",1,$DisableArticaProxyStatistics)."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{directory}:</td>
-	<td>". Field_text("SargOutputDir",$SargOutputDir,"font-size:14px;padding:3px;width:320px")."</td>
+	<td class=legend style='font-size:18px'>{directory}:</td>
+	<td>". Field_text("SargOutputDir",$SargOutputDir,"font-size:18px;padding:3px;width:320px")."</td>
 	<td>". button_browse("SargOutputDir")."</td>
 </tr>			
 <tr>
-	<td class=legend style='font-size:14px'>{language}:</td>
-	<td>". Field_array_Hash($langs,"language",$SargConfig["language"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{language}:</td>
+	<td>". Field_array_Hash($langs,"language",$SargConfig["language"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_title}:</td>
-	<td>". Field_text("title",$SargConfig["title"],"font-size:14px;padding:3px;width:220px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_title}:</td>
+	<td>". Field_text("title",$SargConfig["title"],"font-size:18px;padding:3px;width:320px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{enable_graphs}:</td>
+	<td class=legend style='font-size:18px'>{enable_graphs}:</td>
 	<td>". Field_checkbox("graphs",1,$SargConfig["graphs"])."</td>
 	<td>&nbsp;</td>
 </tr>
 
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_user_ip}:</td>
+	<td class=legend style='font-size:18px'>{sarg_user_ip}:</td>
 	<td>". Field_checkbox("user_ip",1,$SargConfig["user_ip"])."</td>
 	<td>&nbsp;</td>
 </tr>
 
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_resolve_ip}:</td>
+	<td class=legend style='font-size:18px'>{sarg_resolve_ip}:</td>
 	<td>". Field_checkbox("resolve_ip",1,$SargConfig["resolve_ip"])."</td>
 	<td>&nbsp;</td>
 </tr>
 
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_records_without_userid}:</td>
-	<td>". Field_array_Hash($overwrite_report,"records_without_userid",$SargConfig["records_without_userid"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_records_without_userid}:</td>
+	<td>". Field_array_Hash($overwrite_report,"records_without_userid",$SargConfig["records_without_userid"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_long_url}:</td>
+	<td class=legend style='font-size:18px'>{sarg_long_url}:</td>
 	<td>". Field_checkbox("long_url",1,$SargConfig["long_url"])."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_topsites_num}:</td>
-	<td>". Field_text("topsites_num",$SargConfig["topsites_num"],"font-size:14px;padding:3px;width:90px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_topsites_num}:</td>
+	<td>". Field_text("topsites_num",$SargConfig["topsites_num"],"font-size:18px;padding:3px;width:90px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_topuser_num}:</td>
-	<td>". Field_text("topuser_num",$SargConfig["topuser_num"],"font-size:14px;padding:3px;width:90px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_topuser_num}:</td>
+	<td>". Field_text("topuser_num",$SargConfig["topuser_num"],"font-size:18px;padding:3px;width:90px")."</td>
 	<td>". help_icon("{sarg_topuser_exp}")."</td>
 </tr>
 
 
 <tr>
-	<td class=legend style='font-size:14px'>{topsites_sort_order}:</td>
-	<td>". Field_array_Hash($sort_order,"topsites_sort_order",$SargConfig["topsites_sort_order"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{topsites_sort_order}:</td>
+	<td>". Field_array_Hash($sort_order,"topsites_sort_order",$SargConfig["topsites_sort_order"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{index_sort_order}:</td>
-	<td>". Field_array_Hash($sort_order,"index_sort_order",$SargConfig["index_sort_order"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{index_sort_order}:</td>
+	<td>". Field_array_Hash($sort_order,"index_sort_order",$SargConfig["index_sort_order"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_date_format}:</td>
-	<td>". Field_array_Hash($sarg_date_format,"date_format",$SargConfig["date_format"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_date_format}:</td>
+	<td>". Field_array_Hash($sarg_date_format,"date_format",$SargConfig["date_format"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{sarg_lastlog}:</td>
-	<td>". Field_array_Hash($LASTLOGS,"lastlog",$SargConfig["lastlog"],"style:font-size:14px;padding;3px")."</td>
+	<td class=legend style='font-size:18px'>{sarg_lastlog}:</td>
+	<td>". Field_array_Hash($LASTLOGS,"lastlog",$SargConfig["lastlog"],"style:font-size:18px;padding;3px")."</td>
 	<td>&nbsp;</td>
 </tr>
 
 <tr>
-	<td colspan=3 align='right'>". button("{apply}","SargSaveConf()",16)."</td>
+	<td colspan=3 align='right'>". button("{apply}","SargSaveConf()",26)."</td>
 </tr>
 </table>
 </div>

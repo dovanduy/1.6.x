@@ -37,7 +37,7 @@ $tpl=new templates();
 	<tr>
 		<td width=1%><img src='img/databases-search-net-128.png' id='databases-search-net-128'></td>
 		<td valign='top'>
-			<div class=explain>{adSearchPopupHowto}</div>
+			<div class=text-info>{adSearchPopupHowto}</div>
 			<table style='width:100%'>
 				<tr>
 					<td class=legend>{server_host}:</td>

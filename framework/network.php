@@ -6,6 +6,10 @@ include_once(dirname(__FILE__)."/class.postfix.inc");
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
 writelogs_framework(@implode(" - ",$a),__FUNCTION__,__FILE__,__LINE__);
 
+if(isset($_GET["iptables-save"])){iptables_save();exit;}
+if(isset($_GET["iptables-events"])){iptables_events();exit;}
+
+if(isset($_GET["nmap-ping"])){nmap_ping();exit;}
 if(isset($_GET["firewall-apply"])){firewall_apply();exit;}
 if(isset($_GET["firewall-reconfigure"])){FIREWALL_RECONFIGURE();exit;}
 if(isset($_GET["firewall-content"])){firewall_content();exit;}
@@ -44,7 +48,7 @@ if(isset($_GET["ucarp-down"])){ucarp_down();exit;}
 
 
 while (list ($num, $ligne) = each ($_GET) ){$a[]="$num=$ligne";}
-writelogs_framework("unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
+writelogs_framework("***** Unable to unserstand ".@implode("&",$a),__FUNCTION__,__FILE__,__LINE__);
 
 function flush_arp_cache(){
 	$eth=$_GET["flush-arp-cache"];
@@ -65,6 +69,26 @@ function NetworkManager_redhat(){
 	echo "<articadatascgi>". @implode("\n",$results)."</articadatascgi>";
 	
 	
+}
+
+function nmap_ping(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/nmap.pingnet.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/nmap.pingnet.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nmapscan.php --scan-ping >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
 }
 
 function iptaccount_check(){
@@ -313,8 +337,20 @@ function firewall_content(){
 
 }
 function firewall_apply(){
-	shell_exec("/bin/artica-firewall.sh >/usr/share/artica-postfix/ressources/logs/web/exec.firewall.php.html");
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/exec.firewall.php.html",0755);
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup /usr/share/artica-postfix/exec.firewall.php --apply --period={$_GET["period"]} >/dev/null 2>&1 &");
+	
+	
+}
+
+function iptables_save(){
+	$unix=new unix();
+	$iptables=$unix->find_program("iptables-save");
+	shell_exec("$iptables >/usr/share/artica-postfix/ressources/logs/web/iptables.save.html");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/iptables.save.html",0777);
+	
 }
 
 
@@ -326,8 +362,7 @@ function  reconfigure_restart_network(){
 	$nohup=$unix->find_program("nohup");
 	ToSyslog("kernel: [  Artica-Net] reconfigure Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
 	$cmd=trim("/etc/init.d/artica-ifup reconfigure");
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	$unix->THREAD_COMMAND_SET($cmd);
+	shell_exec("$nohup /etc/init.d/artica-ifup reconfigure >/dev/null 2>&1 &");
 }
 function down_interface(){
 	$down_interface=$_GET["down-interface"];
@@ -480,5 +515,40 @@ function FIREWALL_RECONFIGURE(){
 
 	
 
+}
+
+function iptables_events(){
+	$unix=new unix();
+	$search=$_GET["search"];
+	$rp=$_GET["rp"];
+	$eth=$_GET["eth"];
+	$logfile="/usr/share/artica-postfix/ressources/logs/web/iptables.log";
+	
+	if($eth<>null){
+		if($search<>null){
+			$search="($search.*?={$eth}|={$eth}.*?$search)";
+		}else{
+			$search="?={$eth}";
+		}
+	}
+	
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	if($search==null){
+			$cmdline="$tail -n $rp /var/log/iptables.log >$logfile 2>&1";
+			writelogs_framework($cmdline,__FUNCTION__,__FILE__,__LINE__);
+			shell_exec($cmdline);
+			@chmod($logfile,0777);
+			return;
+	}
+	
+	if($search<>null){
+		$cmdline="$grep -E \"$search\" /var/log/iptables.log|$tail -n $rp  >$logfile 2>&1";
+		writelogs_framework($cmdline,__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmdline);
+		@chmod($logfile,0777);
+		return;
+		
+	}
 }
 

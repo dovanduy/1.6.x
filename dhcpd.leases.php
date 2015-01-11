@@ -72,7 +72,7 @@ function page(){
 	],";		
 		
 	
-if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=text-info style='font-size:13px'>$explain</div>";}	
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -83,11 +83,11 @@ $('#flexRT$t').flexigrid({
 	url: '$page?list-nets=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$hostname', name : 'hostname', width : 353, sortable : false, align: 'left'},	
-		{display: '$addr', name : 'ipaddr', width :95, sortable : true, align: 'left'},
-		{display: '$ComputerMacAddress', name : 'mac', width :102, sortable : true, align: 'left'},
-		{display: 'Starts', name : 'starts', width : 117, sortable : true, align: 'left'},
-		{display: 'END', name : 'ends', width : 117, sortable : true, align: 'left'},
+		{display: '$hostname', name : 'hostname', width : 368, sortable : false, align: 'left'},	
+		{display: '$addr', name : 'ipaddr', width :116, sortable : true, align: 'left'},
+		{display: '$ComputerMacAddress', name : 'mac', width :140, sortable : true, align: 'left'},
+		{display: 'Starts', name : 'starts', width : 173, sortable : true, align: 'left'},
+		{display: 'END', name : 'ends', width : 285, sortable : true, align: 'left'},
 		
 		],
 	$buttons
@@ -97,14 +97,14 @@ $('#flexRT$t').flexigrid({
 		{display: '$ComputerMacAddress', name : 'mac'},
 		
 		],
-	sortname: 'ends',
+	sortname: 'starts',
 	sortorder: 'desc',
 	usepager: true,
 	title: '',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 865,
+	width: '99%',
 	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -193,15 +193,26 @@ $_POST["query"]=trim($_POST["query"]);
 		$id=md5(serialize($ligne));
 		$ligne["hostname"]=trim($ligne["hostname"]);
 		if($ligne["mac"]==null){continue;}
+		$color="black";
 		$tooltip="<div style=font-size:11px>start {$ligne["starts"]} cltt:{$ligne["cltt"]} tstp:{$ligne["tstp"]}</div>";
 		$js="zBlut();";
 		$href=null;
 		$uid=null;
 		$uid=$cmp->ComputerIDFromMAC($ligne["mac"]);
+		
+		$t1=strtotime($ligne["starts"]);
+		$end=strtotime($ligne["ends"]);
+		
+		$t1_took=$tpl->javascript_parse_text(distanceOfTimeInWords($t1,time()));
+		$t2_took=$tpl->javascript_parse_text(distanceOfTimeInWords(time(),$end));
+		if($end<time()){$t2_took="-";}
+		
+		
 		if($uid<>null){
 			
 			$js=MEMBER_JS($uid,1,1);
-			$href="<a href=\"javascript:blur()\" OnClick=\"javascript:$js\" style='font-size:12px;text-decoration:underline'>";
+			$href="<a href=\"javascript:blur()\" OnClick=\"javascript:$js\" 
+			style='font-size:16px;text-decoration:underline;color:$color'>";
 			$uid=" ($uid)";
 		}
 		
@@ -210,15 +221,14 @@ $_POST["query"]=trim($_POST["query"]);
 		if($ligne["mac"]==null){$ligne["mac"]="&nbsp;";}
 		
 
-		
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
-			"<span style='font-size:12px;'>$href<strong>{$ligne["hostname"]}</strong></a>$uid</span>",
-			"<span style='font-size:12px;'>$href{$ligne["ipaddr"]}</a></span>",
-			"<span style='font-size:12px;'>$href{$ligne["mac"]}</span>",
-			"<span style='font-size:12px;'>$href{$ligne["starts"]}</span>",
-			"<span style='font-size:12px;'>$href{$ligne["ends"]}</span>",
+			"<span style='font-size:16px;color:$color;'>$href<strong>{$ligne["hostname"]}</strong></a>$uid</span>",
+			"<span style='font-size:16px;color:$color;'>$href{$ligne["ipaddr"]}</a></span>",
+			"<span style='font-size:16px;color:$color;'>$href{$ligne["mac"]}</a></span>",
+			"<span style='font-size:16px;color:$color;'>$href{$ligne["starts"]}</a></span><br><i>$t1_took</i></span>",
+			"<span style='font-size:16px;color:$color;'>$href{$ligne["ends"]}</a></span><br></a><i>$t2_took</i></span>",
 			
 			)
 		);

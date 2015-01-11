@@ -187,7 +187,7 @@ function procedure3(){
 	
 	$html= "
 	<div id='procedure4-$t'>
-	<div class=explain style='font-size:16px'>{init_script_net_explain}</div>
+	<div class=text-info style='font-size:16px'>{init_script_net_explain}</div>
 	<center><hr style='border:1px solid'>". button($button,"ApplyNetWorkFinal$t()",22)."</center>
 	
 		<textarea style='margin-top:5px;font-family:Courier New;

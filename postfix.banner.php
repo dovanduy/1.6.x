@@ -44,7 +44,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<div class=explain style='font-size:14px'>{SMTP_BANNER_TEXT}</div>
+	<div class=text-info style='font-size:14px'>{SMTP_BANNER_TEXT}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

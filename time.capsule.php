@@ -51,7 +51,7 @@ $tpl=new templates();
 $t=time();
 $html="
 <span id='timedCapsule'></span>
-<div class=explain>{TimeMachine_howto}</div>
+<div class=text-info>{TimeMachine_howto}</div>
 <code style='font-size:12px'>defaults write com.apple.systempreferences TMShowUnsupportedNetworkVolumes 1</code>
 <hr>	
 <table style='width:100%'>

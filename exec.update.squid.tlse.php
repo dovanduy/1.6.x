@@ -3,9 +3,11 @@ $GLOBALS["BYCRON"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["FORCE"]=false;
+$GLOBALS["OUTPUT"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--output#",implode(" ",$argv),$re)){$GLOBALS["OUTPUT"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -16,6 +18,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 include_once(dirname(__FILE__).'/ressources/class.compile.ufdbguard.inc');
+include_once(dirname(__FILE__).'/ressources/class.artica-meta.inc');
 
 $unix=new unix();
 if(is_file("/etc/artica-postfix/FROM_ISO")){
@@ -35,8 +38,55 @@ if($argv[1]=="--refresh-index"){GET_MD5S_REMOTE();die();}
 
 Execute();
 
+function build_progress($text,$pourc){
+	ufdbevents("{$pourc}% $text");
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/toulouse-unversity.progress";
+	WriteMyLogs("{$pourc}% $text",__FUNCTION__,__FILE__,__LINE__);
+	
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
+	@chmod($GLOBALS["CACHEFILE"],0755);
+	if($GLOBALS["OUTPUT"]){
+		echo "[{$pourc}%] $text\n";
+		sleep(2);}
+
+
+}
+function ufdbevents($text=null){
+
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			$function=$trace[0]["function"];
+			$line=$trace[0]["line"];
+		}
+
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "$text [$line]\n";}
+
+	$unix->events($text,"/var/log/artica-ufdb.log",false,$function,$line,$file);
+}
+
 function Execute(){
-	if(!ifMustBeExecuted()){ if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die(); }
+	
+	build_progress("Executing",5);
+	
+	if(!ifMustBeExecuted()){ 
+		if($GLOBALS["VERBOSE"]){
+			echo "No make sense to execute this script...\n";
+		}
+		
+		while (list ($filename,$line) = each ($GLOBALS["ifMustBeExecuted"]) ){
+			ufdbevents("ifMustBeExecuted:: $line");
+		}
+		build_progress("No make sense to execute this script",110);
+		die(); 
+	}
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
@@ -54,25 +104,40 @@ function Execute(){
 	@file_put_contents($pidfile, getmypid());
 	
 	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
-	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}
 	
-	if($CategoriesDatabasesByCron==1){
-		if($GLOBALS["VERBOSE"]){echo "Execute():: Only bycron, aborting...\n";}
-		if(!$GLOBALS["BYCRON"]){ return; }
+	if(!$GLOBALS["FORCE"]){
+		if($CategoriesDatabasesByCron==1){
+			if($GLOBALS["VERBOSE"]){echo "Execute():: Only bycron, aborting...\n";}
+			if(!$GLOBALS["BYCRON"]){ 
+				build_progress("Not executed by CRON.. Aborting",110);
+				return; 
+			}
+		}
 	}
 	
 	if(!$GLOBALS["FORCE"]){
 		if(!$GLOBALS["BYCRON"]){
 			$timeFile=$unix->file_time_min($timeFile);
 			if($timeFile<$StandardTime){
+				build_progress("{$timeFile}mn < {$StandardTime}Mn, aborting...use --force ",110);
 				if($GLOBALS["VERBOSE"]){echo "Execute():: {$timeFile}mn < {$StandardTime}Mn, aborting...use --force to bypass\n";}
-				return;}
+				return;
+			}
 		}
 	}
 	
 	
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
+	
+
+	$sock=new sockets();
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){
+		build_progress("Using Artica Meta server",10);
+		return artica_meta_client();
+	}
 	
 	
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
@@ -90,7 +155,7 @@ function Execute(){
 		if($unix->process_exists($pid,$myFile)){
 			$timePid=$unix->PROCCESS_TIME_MIN($pid);
 			if($timePid<60){
-
+				build_progress("Already running PID $pid",110);
 				die();
 			}else{
 				unix_system_kill_force($pid);
@@ -107,6 +172,7 @@ function Execute(){
 	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}	
 	
 	if($SquidDatabasesUtlseEnable==0){
+		build_progress("{database_disabled}",110);
 		update_progress(100,"{database_disabled}");
 		echo "Toulouse university is disabled\n";
 		artica_update_event(2, "Toulouse university is disabled, aborting", null,__FILE__,__LINE__);
@@ -116,6 +182,7 @@ function Execute(){
 		if($time<120){
 			$q=new mysql_squid_builder();
 			if($q->COUNT_ROWS("univtlse1fr")==0){BuildDatabaseStatus();}
+			ufdbevents("$cachetime: {$time}Mn need 120Mn");
 			echo "$cachetime: {$time}Mn need 120Mn\n";
 			die();
 		}
@@ -133,8 +200,8 @@ function Execute(){
 	
 	
 	if(!$q->ok){
+		ufdbevents("Fatal: $q->mysql_error");
 		ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
-		WriteMyLogs("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
 
 	}
 	
@@ -145,31 +212,57 @@ function Execute(){
 		
 	}
 	
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD"));
+	$STATUS["LAST_CHECK"]=time();
+	@file_put_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD", serialize($STATUS));
+	
+	if(!isset($GLOBALS["UFDB_COUNT_OF_DOWNLOADED"])){$GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]=0;}
+	build_progress("Check MD5",10);
 	$ARRAYSUM_REMOTE=GET_MD5S_REMOTE();
 	$TOT=count($ARRAYSUM_REMOTE);
-	update_progress(100,"{database_disabled}");
+	
 	$c=0;
+	$start=15;
+	
 	while (list ($filename,$md5) = each ($ARRAYSUM_REMOTE) ){
 		$c++;
 		$prc=round(($c/$TOT)*100);
+		
 		update_progress($c,$filename);
 		if(!isset($ARRAYSUM_LOCALE[$filename])){$ARRAYSUM_LOCALE[$filename]=null;}
-		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
+		if($ARRAYSUM_LOCALE[$filename]<>$md5){
+			$size=FormatBytes($GLOBALS["UFDB_SIZE"]/1024);
+			if($prc<15){ build_progress("Downloading $filename ($size)",15); $prclog=15;}
+			if($prc>15){
+				if($prc<80){ build_progress("Downloading $filename ($size)",$prc);$prclog=$prc; }
+				if($prc>79){ build_progress("Downloading $filename ($size)",79);$prclog=79; }
+			}
+			update_remote_file($BASE_URI,$filename,$md5,$prclog);
+		}
 	}
 	
 	if(count($GLOBALS["squid_admin_mysql"])){
 		$UFDB_SIZE=FormatBytes($GLOBALS["UFDB_SIZE"]/1024);
+		build_progress(count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE",80);
 		artica_update_event(2, count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE - Webfiltering Toulouse Databases updated",
-		 @implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
+		@implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
 		unset($GLOBALS["squid_admin_mysql"]);
 	}
 	
+	build_progress("{done}",85);
 	update_progress(100,"{done}");
+	
+	build_progress("CoherenceOffiels()",85);
 	CoherenceOffiels();
+	build_progress("CoherenceRepertoiresUfdb()",90);
 	CoherenceRepertoiresUfdb();
+	build_progress("BuildDatabaseStatus()",95);
 	BuildDatabaseStatus();
+	build_progress("remove_bad_files()",98);
 	remove_bad_files();
 	
+	build_progress("{finish}",100);
+	if($GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]>0){artica_meta_server(true);}else{artica_meta_server();}
 	
 	
 	
@@ -187,10 +280,110 @@ function Execute(){
 	}
 
 	
-	shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
+	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
 	
 	
 	
+}
+
+function artica_meta_client($force=false){
+	$unix=new unix();
+	$WORKDIR="/var/lib/ftpunivtlse1fr";
+	@mkdir($WORKDIR,0755,true);
+	@chmod($WORKDIR, 0755);
+	$tmpdir=$unix->TEMP_DIR();
+	
+	$myVersion=intval(trim(@file_get_contents("/etc/artica-postfix/ftpunivtlse1fr.txt")));
+	$tmpdir=$unix->TEMP_DIR();
+	$meta=new artica_meta();
+	
+	
+	
+	$curl=$meta->buildCurl("/meta-updates/webfiltering/ftpunivtlse1fr.txt");
+	if(!$curl->GetFile("$tmpdir/ftpunivtlse1fr.txt")){
+		
+		artica_update_event(0, "Failed Downloading webfiltering/ftpunivtlse1fr.txt", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		$meta->events($curl->errors, __FUNCTION__,__FILE__,__LINE__);
+		meta_admin_mysql(0, "Failed Downloading webfiltering/ftpunivtlse1fr.txt", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		return false;
+	}
+
+	
+	$Remote_version=intval(trim(@file_get_contents("$tmpdir/ftpunivtlse1fr.txt")));
+	@unlink("$tmpdir/ftpunivtlse1fr.txt");
+	echo "Current............: $myVersion\n";
+	echo "Available..........: $Remote_version\n";
+	$datev=date("Y-m-d H:i:s",$myVersion);
+	
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD"));
+	$STATUS["LAST_CHECK"]=time();
+	@file_put_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD", serialize($STATUS));
+	
+	if($myVersion>$Remote_version){
+			echo "My version $myVersion is newest than $Remote_version, aborting\n";
+			build_progress("{version-up-to-date} $datev",100);
+			
+			return;}
+	if($myVersion==$Remote_version){
+		build_progress("{version-up-to-date} $datev",100);
+		echo "My version $myVersion is the same than $Remote_version, aborting\n";
+		return;
+	}
+	
+	$curl=$meta->buildCurl("/meta-updates/webfiltering/ftpunivtlse1fr.tgz");
+	$curl->Timeout=120;
+	if(!$curl->GetFile("$tmpdir/ftpunivtlse1fr.tgz")){
+		artica_update_event(0, "Failed Downloading webfiltering/ftpunivtlse1fr.tgz", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		$meta->events($curl->errors, __FUNCTION__,__FILE__,__LINE__);
+		meta_admin_mysql(0, "Failed Downloading webfiltering/ftpunivtlse1fr.tgz", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		@unlink("$tmpdir/ftpunivtlse1fr.tgz");
+		return false;
+	}
+	
+	if(!$unix->TARGZ_TEST_CONTAINER("$tmpdir/ftpunivtlse1fr.tgz")){
+		artica_update_event(0, "Failed $tmpdir/ftpunivtlse1fr.tgz corrupted package", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		meta_admin_mysql(0, "Failed $tmpdir/ftpunivtlse1fr.tgz corrupted package", @implode("\n",$curl->errors),__FILE__,__LINE__);
+		@unlink("$tmpdir/ftpunivtlse1fr.tgz");
+		return false;
+	}
+	
+	$tar=$unix->find_program("tar");
+	shell_exec("$tar -xf $tmpdir/ftpunivtlse1fr.tgz -C $WORKDIR/");
+	@unlink("$tmpdir/ftpunivtlse1fr.tgz");
+	artica_update_event(0, "Success update categories statistics v.$Remote_version", @implode("\n",$curl->errors),__FILE__,__LINE__);
+	meta_admin_mysql(0, "Success update categories statistics v.$Remote_version", @implode("\n",$curl->errors),__FILE__,__LINE__);	
+	@file_put_contents("/etc/artica-postfix/ftpunivtlse1fr.txt", $Remote_version);
+	build_progress("Using Artica Meta server {done}",100);
+	CoherenceOffiels();
+	CoherenceRepertoiresUfdb();
+	BuildDatabaseStatus();
+	remove_bad_files();
+	
+}
+
+
+function artica_meta_server($force=false){
+	$WORKDIR="/var/lib/ftpunivtlse1fr";
+	$sock=new sockets();
+	$unix=new unix();
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	if($EnableArticaMetaServer==0){return;}
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
+	@mkdir("$ArticaMetaStorage/releases",0755,true);
+	@mkdir("$ArticaMetaStorage/webfiltering",0755,true);
+	$srcdir=$WORKDIR;
+	$destfile="$ArticaMetaStorage/webfiltering/ftpunivtlse1fr.tgz";
+	if(is_file($destfile)){if(!$force){return;}}
+	$tar=$unix->find_program("tar");
+	@unlink($destfile);
+	chdir($srcdir);
+	shell_exec("$tar czf $destfile *");
+	@unlink("$ArticaMetaStorage/webfiltering/ftpunivtlse1fr.txt");
+	@file_put_contents("$ArticaMetaStorage/webfiltering/ftpunivtlse1fr.txt", time());
+	artica_update_event(2, "Toulouse University categories: Success update Artica Meta webfiltering repository", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
+	meta_admin_mysql(2, "Success update Toulouse University categories webfiltering repository", null,__FILE__,__LINE__);
 }
 
 function update_progress($num,$text){
@@ -276,9 +469,11 @@ function GET_MD5S_REMOTE(){
 	$indexuri="$BASE_URI/MD5SUM.LST";
 	$cache_temp=$unix->FILE_TEMP();	
 	$curl=new ccurl($indexuri);
+	build_progress("Downloading $indexuri",11);
 	WriteMyLogs("Downloading $indexuri",__FUNCTION__,__FILE__,__LINE__);
 	$curl->Timeout=320;
 	if(!$curl->GetFile($cache_temp)){
+		build_progress("{failed} $curl->error",110);
 		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
 		WriteMyLogs("Fatal error downloading $indexuri $curl->error\n$errorDetails",__FUNCTION__,__FILE__,__LINE__);
 		artica_update_event(0, "Web filtering databases, unable to download index file", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
@@ -287,6 +482,7 @@ function GET_MD5S_REMOTE(){
 	
 	$indexuri="$BASE_URI/global_usage";
 	$curl=new ccurl($indexuri);
+	build_progress("Downloading $indexuri",12);
 	if(!$curl->GetFile("/etc/artica-postfix/univtoulouse-global_usage")){
 		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
 		WriteMyLogs("Fatal error downloading $indexuri $curl->error\n$errorDetails",__FUNCTION__,__FILE__,__LINE__);
@@ -309,9 +505,10 @@ function GET_MD5S_REMOTE(){
 }
 
 
-function update_remote_file($BASE_URI,$filename,$md5){
+function update_remote_file($BASE_URI,$filename,$md5,$prc){
 	if(!isset($GLOBALS["UFDB_SIZE"])){$GLOBALS["UFDB_SIZE"]=0;}
 	WriteMyLogs("update_remote_file($BASE_URI,$filename,$md5)",__FUNCTION__,__FILE__,__LINE__);
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD"));
 	$indexuri="$BASE_URI/$filename";
 	$unix=new unix();
 	$q=new mysql_squid_builder();
@@ -323,9 +520,17 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	$ufdb=new compile_ufdbguard();
 	$curl=new ccurl($indexuri);
 	$curl->Timeout=360;
+	
+	
+	
 	echo "Downloading $indexuri\n";
 	$cache_temp="/tmp/$filename";
-	if(!$curl->GetFile($cache_temp)){echo "Fatal error downloading $indexuri $curl->error\n";
+	
+	
+	
+	if(!$curl->GetFile($cache_temp)){
+		build_progress("Fatal error downloading $indexuri $curl->error",$prc);
+		echo "Fatal error downloading $indexuri $curl->error\n";
 		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
 		artica_update_event(0, "Web filtering databases, unable to download $indexuri", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		return;
@@ -341,7 +546,7 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	if(isset($Conversion[$categoryname])){$categoryDISK=$Conversion[$categoryname];}
 	$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
 	$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$categoryname;
-	$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["UFDB_SIZE"]/1024);
+	$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["CURL_LAST_SIZE_DOWNLOAD"]/1024);
 	@file_put_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD", serialize($STATUS));
 	
 	$categoryDISK=str_replace("/", "_", $categoryDISK);
@@ -364,13 +569,15 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	shell_exec("$tar -xf $cache_temp -C /var/lib/ftpunivtlse1fr/");
 	if(!is_file("/var/lib/ftpunivtlse1fr/$categoryname/domains")){
-		ufdbguard_admin_events("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		build_progress("Fatal!!: $categoryname/domains no such file",$prc);
+		ufdbevents("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	$CountDeSitesFile=CountDeSitesFile("/var/lib/ftpunivtlse1fr/$categoryname/domains");
 	if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname/domains -> $CountDeSitesFile websites\n";}
 	if($CountDeSitesFile==0){
-		ufdbguard_admin_events("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		build_progress("Fatal!!: $categoryname/domains corrupted, no website",$prc);
+		ufdbevents("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 		return;		
 	}
@@ -382,11 +589,13 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	
 	$q->QUERY_SQL("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'");
-	if(!$q->ok){ufdbguard_admin_events("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	$q->QUERY_SQL("INSERT INTO ftpunivtlse1fr (`filename`,`zmd5`,`websitesnum`) VALUES ('$filename','$md5','$CountDeSitesFile')");
-	if(!$q->ok){ufdbguard_admin_events("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	
 	
+	$GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]=$GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]+1;
+	build_progress("$categoryname $CountDeSitesFile websites",$prc);
 	$GLOBALS["squid_admin_mysql"][]="Success updating category `$categoryname` with $CountDeSitesFile websites";
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
 	
@@ -397,6 +606,8 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	
 	if(is_file($ufdbGenTable)){
 		$t=time();
+		ufdbevents("Compiling /var/lib/ftpunivtlse1fr/$categoryname");
+		build_progress("$categoryname Compiling....",$prc);
 		$ufdb->UfdbGenTable("/var/lib/ftpunivtlse1fr/$categoryname",$categoryname);
 	}
 	
@@ -594,15 +805,28 @@ function CountDeSitesFile($filename){
 
 
 function ifMustBeExecuted(){
+	$sock=new sockets();
+	
+	
+	$DisableCategoriesDatabasesUpdates=intval($sock->GET_INFO("DisableCategoriesDatabasesUpdates"));
+	$GLOBALS["ifMustBeExecuted"][]="DisableCategoriesDatabasesUpdates = $DisableCategoriesDatabasesUpdates";
+	if($GLOBALS["OUTPUT"]){echo "DisableCategoriesDatabasesUpdates: $DisableCategoriesDatabasesUpdates\n";}
+	if($DisableCategoriesDatabasesUpdates==1){return false;}
 	$q=new mysql_squid_builder();
 	return $q->ifSquidUpdatesMustBeExecuted();
 	
 }
-function WriteMyLogs($text,$function,$file,$line){
-	if(!isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
+
+function __GetMemory(){
 	$mem=round(((memory_get_usage()/1024)/1000),2);
-	writelogs($text,$function,__FILE__,$line);
-	$logFile="/var/log/artica-postfix/".basename(__FILE__).".log";
+	return $mem;
+}
+
+function WriteMyLogs($text,$function,$file,$line){
+	$GLOBALS["MAILLOG"][]=$line.") $text";
+	$mem=__GetMemory();
+	writelogs("Task:{$GLOBALS["SCHEDULE_ID"]}::$text",$function,__FILE__,$line);
+	$logFile="/var/log/webfiltering-update.log";
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    	if (is_file($logFile)) { 
    		$size=filesize($logFile);
@@ -612,6 +836,6 @@ function WriteMyLogs($text,$function,$file,$line){
 	$logFile=str_replace("//","/",$logFile);
 	$f = @fopen($logFile, 'a');
 	if($GLOBALS["VERBOSE"]){echo "$date [{$GLOBALS["MYPID"]}][{$mem}MB]: [$function::$line] $text\n";}
-	@fwrite($f, "$date [{$GLOBALS["MYPID"]}][{$mem}MB][Task:{$GLOBALS["SCHEDULE_ID"]}]: [$function::$line] $text\n");
+	@fwrite($f, "$date [{$GLOBALS["MYPID"]}][{$mem}MB]: [$function::$line] $text\n");
 	@fclose($f);
 }

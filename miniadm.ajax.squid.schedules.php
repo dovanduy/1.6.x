@@ -25,7 +25,7 @@ function page(){
 	$explain=$q->tasks_explain_array[$_GET["TaskID"]];
 	$tpl=new templates();
 	$explain=$tpl->_ENGINE_parse_body($explain);
-	$form=$boot->SearchFormGen("TimeDescription","SearchTask","&TaskID={$_GET["TaskID"]}","<div class=explain>$explain</div>");
+	$form=$boot->SearchFormGen("TimeDescription","SearchTask","&TaskID={$_GET["TaskID"]}","<div class=text-info>$explain</div>");
 	echo $form;
 	
 	

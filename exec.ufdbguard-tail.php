@@ -2,7 +2,10 @@
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ufdbguard-tools.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
-if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+if(!isset($GLOBALS["ARTICALOGDIR"])){
+	$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); 
+	if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } 
+}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["CLASS_UNIX"]=new unix();
 $GLOBALS["CLASS_SOCKET"]=new sockets();
@@ -24,7 +27,7 @@ $GLOBALS["PHP5_BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 $GLOBALS["SBIN_ARP"]=$GLOBALS["CLASS_UNIX"]->find_program("arp");
 $GLOBALS["SBIN_ARPING"]=$GLOBALS["CLASS_UNIX"]->find_program("arping");
 $GLOBALS["SBIN_RM"]=$GLOBALS["CLASS_UNIX"]->find_program("rm");
-
+$GLOBALS["SQUID_PERFORMANCE"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
 
 
 if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"])){$GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"]=0;}
@@ -132,27 +135,32 @@ if(strpos($buffer,'execdomainlist for')>0){return ;}
 if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 
 
-if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/ufdbGuard\.conf#",$buffer,$re)){
-	events("Wrong configuration file... \"$buffer\"");
-	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --ufdb --force >/dev/null 2>&1 &");
-	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.ufdb.php --restart --force --ufdbtail >/dev/null 2>&1 &");
+if(preg_match("#FATAL ERROR: cannot open configuration file\s+\/etc\/squid3\/ufdbGuard\.conf#",$buffer,$re)){
+	squid_admin_mysql(0, "Webfiltering error, Open Configuration File failed [action=restart service]", $buffer,__FILE__,__LINE__);
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.ufdb.php --restart --force --ufdbtail --fatal-error >/dev/null 2>&1 &");
 	return;
 }
 
 
-	if(preg_match("#There are no sources and there is no default ACL#i", $buffer)){
-		events("Seems not to be defined -> build compilation.");
-		xsyslog("Reconfigure ufdb service...");
-		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
-		return;
-	}
+if(preg_match("#FATAL ERROR: cannot read from.*?No such file or directory#", $buffer,$re)){
+	squid_admin_mysql(0, "Webfiltering error: a database is missing [action=reconfigure]", $buffer,__FILE__,__LINE__);
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
+	return;
+}
+
+if(preg_match("#There are no sources and there is no default ACL#i", $buffer)){
+	events("Seems not to be defined -> build compilation.");
+	xsyslog("{reconfigure} ufdb service...");
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
+	return;
+}
 	
 	if(preg_match("#ERROR: cannot write to PID file\s+(.+)#i", $buffer,$re)){
 		xsyslog("Apply permissions on {$re[1]}");
 		$pidfile=$re[1];
 		$pidpath=dirname($pidfile);
 		@mkdir($pidpath,0755,true);
-		@chown("squid",$pidpath);
+		@chown($pidpath,"squid");
 		@chmod($pidpath,0755);
 		return;
 	}
@@ -171,6 +179,15 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	}	
 	
 	
+	if(preg_match("#can't execute command of execdomainlist.*?popen failed: Cannot allocate memory#",$buffer,$re)){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/UfdbExecDomainList", 0);
+		squid_admin_mysql(0, "Not Enough memory to use execdomainlist feature [action=reconfigure]", "$buffer\nexecdomainlist feature will be disabled..",__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
+		return;
+	
+	}	
+	
+	
 	
 	if(preg_match('#FATAL ERROR: table "(.+?)"\s+could not be parsed.*?error code = [0-9]+#',$buffer,$re)){
 		$direname=dirname($re[1]);
@@ -178,7 +195,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 		events("Webfiltering engine error on $direname");
 		if(!is_dir($direname)){return;}
 		shell_exec("{$GLOBALS["SBIN_RM"]} -rf $direname >/dev/null 2>&1");
-		xsyslog("Reconfigure ufdb service after removing $direname...");
+		xsyslog("{reconfigure} ufdb service after removing $direname...");
 		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
 		return;
 	}
@@ -253,7 +270,6 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer,__FILE__,__LINE__);
 		events("cannot read '{$re[1]}' -> \"$buffer\"");
 		squid_admin_mysql(2,"Web filtering issue on {$re[1]}","Launch recover_a_database()",__FILE__,__LINE__);
-		ufdbguard_admin_events("cannot read '{$re[1]}' -> \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		recover_a_database($re[1]);
 		return;
 		
@@ -263,7 +279,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	if(preg_match('#\*FATAL\*\s+cannot read from\s+"(.+?)"#',$buffer,$re)){
 		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer,__FILE__,__LINE__);
 		events("Problem on {$re[1]}");
-		ufdbguard_admin_events("Problem on {$re[1]}\nYou need to compile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		
 		events_ufdb_exec("$buffer");
 		squid_admin_mysql(2,"Web filtering issue on {$re[1]}","Launch recover_a_database()",__FILE__,__LINE__);
 		recover_a_database($re[1]);
@@ -274,7 +290,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	if(preg_match("#\*FATAL\*\s+cannot read from\s+\"(.+?)\.ufdb\".+?No such file or directory#",$buffer,$re)){
 		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer."\n Problem on {$re[1]}\n\nYou need to compile your databases",__FILE__,__LINE__);
 		events("UFDB database missing : Problem on {$re[1]}");
-		ufdbguard_admin_events("UFDB database missing : Problem on {$re[1]}\nUfdbguard claim: $buffer\nYou need to compile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		
 		if(!is_file($re[1])){
 			@mkdir(dirname($re[1]),666,true);
 			shell_exec("/bin/touch {$re[1]}");
@@ -287,7 +303,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	
 	if(preg_match("#thread worker-[0-1]+.+?caught signal\s+[0-1]+#",$buffer,$re)){
 		squid_admin_mysql(0, "Webfiltering Daemon as crashed - Start a new one", $buffer,__FILE__,__LINE__);
-		ufdbguard_admin_events("Fatal : Crash detected\nUfdbguard claim: $buffer\n",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: crashed","Ufdbguard claim: $buffer\n","proxy");
 		shell_exec("/etc/init.d/ufdb start &");
 	}
@@ -296,7 +312,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	
 	if(preg_match("#\*FATAL\*\s+expression list\s+(.+?): Permission denied#",$buffer,$re)){
 		squid_admin_mysql(0, "Database {$re[1]} permission denied", $buffer."\nProblem on '{$re[1]}' -> chown squid:squid",__FILE__,__LINE__);
-		ufdbguard_admin_events("UFDB expression permission issue : Problem on '{$re[1]}' -> chown squid:squid",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		
 		events("UFDB expression permission issue : Problem on '{$re[1]}' -> chown squid:squid");
 		shell_exec("{$GLOBALS["chown"]} -R squid:squid ".dirname($re[1]));
 		return;
@@ -304,7 +320,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	
 	if(preg_match("#\*FATAL.+?expression list\s+(.+?):\s+No such file or directory#", $buffer,$re)){
 		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer."\nProblem on '{$re[1]}' -> Try to repair",__FILE__,__LINE__);
-		ufdbguard_admin_events("Expression list: Problem on {$re[1]} -> \"$buffer\", try to repair",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		
 		events("Expression list: Problem on {$re[1]} -> \"$buffer\"");
 		events("Creating directory ".dirname($re[1]));
 		@mkdir(dirname($re[1]),0755,true);
@@ -319,15 +335,15 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	}
 	
 	if(preg_match("#database table \/var\/lib\/squidguard\/(.+?)\/domains\s+is empty#",$buffer,$re)){
-		ufdbguard_admin_events("Database {$re[1]} as no datas, you should recompile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: {$re[1]} database is empty, please compile your databases","Ufdbguard claim: $buffer\nYou need to compile your databases","proxy");
+		//ufdbguard_admin_events("Database {$re[1]} as no datas, you should recompile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		//$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: {$re[1]} database is empty, please compile your databases","Ufdbguard claim: $buffer\nYou need to compile your databases","proxy");
+		return;
 	}
 	
 
 
 	if(preg_match("#the new configuration and database are loaded for ufdbguardd ([0-9\.]+)#",$buffer,$re)){
 		squid_admin_mysql(2, "Web Filtering engine service v{$re[1]} has reloaded new configuration and databases","");
-		ufdbguard_admin_events("UfdbGuard v{$re[1]} has reloaded new configuration and databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("UfdbGuard v{$re[1]} has reloaded new configuration and databases",null,"ufdbguard-service");
 		return;
 	}
@@ -343,6 +359,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	}
 	
 	if(preg_match("#BLOCK (.*?)\s+(.+?)\s+(.+?)\s+(.+?)\s+(|http|https|ftp|ftps)://(.+?)myip=(.+)$#",$buffer,$re)){
+		if($GLOBALS["SQUID_PERFORMANCE"]>2){return;}
 		$user=trim($re[1]);
 		$local_ip=$re[2];
 		$rulename=$re[3];
@@ -389,7 +406,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	}
 	
 	if(preg_match("#BLOCK\s+(.*?)\s+(.+?)\s+(.*?)\s+(.+?)\s+(.+?)\s+[A-Z]+#", $buffer,$re)){
-		
+		if($GLOBALS["SQUID_PERFORMANCE"]>2){return;}
 		$date=time();
 		$table=date('Ymd')."_blocked";
 		$user=trim($re[1]);

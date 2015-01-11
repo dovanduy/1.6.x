@@ -583,7 +583,7 @@ private function seems_utf8($Str) {
 	function user_add_to_group($uid){
 		
 		if(isset($this->members_array[$uid])){return true;}
-		if($this->members_array[$uid]==true){return true;}
+		
 		$ldap=new clladp();
 		
 		$update_array["memberUid"]=$uid;

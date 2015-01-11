@@ -106,9 +106,11 @@ function cachednshosts_records($g){
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$ligne["hostname"]=trim(strtolower($ligne["hostname"]));
 			if(!$IpClass->isValid($ligne["hostname"])){continue;}
-			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] dhcpd_fixed:: MYSQL -> {$ligne["hostname"]}\n";}
+			
 			$arecord=$ligne["ipaddr"];
 			$hostname=$ligne["hostname"];
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.#", $hostname)){continue;}
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] dhcpd_fixed::$hostname/$arecord\n";}
 			if(strpos($hostname, ".")>0){$build_hosts_array[$qSquid->GetFamilySites($hostname)]=true;}
 			
 			push_ptr($hostname,$arecord);
@@ -127,15 +129,16 @@ function cachednshosts_records($g){
 		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> ".mysql_num_rows($results)." entries\n";}
 	
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-	
-			if(!$IpClass->isValid($ligne["name"])){continue;}
-			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> {$ligne["name"]}\n";}
+			
 			$arecord=$ligne["IPADDRESS"];
 			$hostname=$ligne["name"];
+			if($IpClass->isValid($hostname)){continue;}
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.#", $hostname)){continue;}
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: $hostname/$arecord OCS MYSQL\n";}
 			if(strpos($hostname, ".")>0){$build_hosts_array[$qSquid->GetFamilySites($hostname)]=true;}
 			
 				
-			if($GLOBALS["VERBOSE"]){echo "PTR $reversed.in-addr.arpa (OCS)\n";}
+			
 			$C++;
 			push_ptr($hostname,$arecord);
 			
@@ -156,22 +159,31 @@ function cachednshosts_records($g){
 				$arecord=$hash[$i][strtolower("ComputerIP")][0];
 				$hostname=trim(strtolower($hash[$i]["uid"][0]));
 				$hostname=str_replace("$", "", $hostname);
+				$hostname=trim($hostname);
+				if($hostname==null){continue;}
 				if($arecord=="127.0.0.1"){continue;}
+				if($arecord=="0.0.0.0"){continue;}
 				if($arecord==null){continue;}
 				if(isset($GLOBALS["ARRAY_ADRESSES_DONE"][$hostname])){continue;}
 				if(strpos($hostname, " ")>0){continue;}
 				if($IpClass->isValid($hostname)){continue;}
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.#", $hostname)){continue;}
+				
 				if(!$IpClass->isValid($arecord)){continue;}
 				if(strpos($hostname, ".")>0){$build_hosts_array[$qSquid->GetFamilySites($hostname)]=true;}
 				$reversed=reversed_name($arecord);
 				$C++;
 				push_ptr($hostname,$arecord);
-				if($GLOBALS["VERBOSE"]){echo "LDAP:: $hostname -> $ipaddr\n";}
+				if($GLOBALS["VERBOSE"]){echo "LDAP:: $hostname -> $arecord\n";}
 				
 				}
 		}
 	
+		
 		while (list ($arecord, $hostnames) = each ($GLOBALS["PTR_RECORDS"]) ){
+			if($arecord=="0.0.0.0"){continue;}
+			$hostname=trim($hostname);
+			if($hostname==null){continue;}
 			$hostname_text=@implode("/", $hostnames);
 			$hostname=$hostnames[0];
 			$reversed=reversed_name($arecord);
@@ -200,11 +212,21 @@ function push_ptr($hostname,$ipaddr){
 	if(strpos($hostname, ".")>0){
 		$TR=explode(".",$hostname);
 		$singlename=$TR[0];
-		$GLOBALS["PTR_RECORDS"][$ipaddr][]=$singlename;
-		$GLOBALS["PTR_RECORDS"][$ipaddr][]=$hostname;
+		if(!isset($GLOBALS["DONE"][$singlename])){
+			$GLOBALS["DONE"][$singlename]=true;
+			$GLOBALS["PTR_RECORDS"][$ipaddr][]=$singlename;
+		}
+		if(!isset($GLOBALS["DONE"][$hostname])){
+			$GLOBALS["DONE"][$hostname]=true;
+			$GLOBALS["PTR_RECORDS"][$ipaddr][]=$hostname;
+		}
 		return;
 	}
-	$GLOBALS["PTR_RECORDS"][$ipaddr][]=$hostname;
+	
+	if(!isset($GLOBALS["DONE"][$hostname])){
+		$GLOBALS["DONE"][$hostname]=true;
+		$GLOBALS["PTR_RECORDS"][$ipaddr][]=$hostname;
+	}
 	
 	
 	
@@ -297,7 +319,7 @@ function check_squid_inside(){
 
 	$php=$unix->LOCATE_PHP5_BIN();
 	@file_put_contents("/etc/squid3/squid.conf", @implode("\n", $f));
-	squid_admin_mysql(1,"Reconfigure Proxy service to relink DNS service","Detected `$replaced_line` in squid.conf",__FILE__,__LINE__);
+	squid_admin_mysql(1,"{reconfigure} Proxy service to relink DNS service","Detected `$replaced_line` in squid.conf",__FILE__,__LINE__);
 	shell_exec("$php /usr/share/artica-postfix/exec.squid.php --kreconfigure");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Relink DNS done\n";}
 	
@@ -438,25 +460,18 @@ function start($aspid=false){
 	}
 	$sock=new sockets();
 	$EnableLocalDNSMASQ=$sock->GET_INFO('EnableLocalDNSMASQ');
-	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	$EnableDNSMASQ=intval($sock->GET_INFO("EnableDNSMASQ"));
 	$EnableLocalDNSMASQ=$sock->GET_INFO("EnableLocalDNSMASQ");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableDNSMASQ=$EnableDNSMASQ\n";}
 	
 	
-	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
 	if($EnableLocalDNSMASQ==1){$EnableDNSMASQ=1;}
-	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
-	if($EnableLocalDNSMASQ==1){$DHCPDEnableCacheDNS=0;}
-	
 	$EnableDNSMASQ=$sock->dnsmasq_enabled();
 
 	if($EnableDNSMASQ==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableLocalDNSMASQ ($EnableLocalDNSMASQ)\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableDNSMASQ ($EnableDNSMASQ)\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DHCPDEnableCacheDNS ($DHCPDEnableCacheDNS)\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableDNSMASQ/DHCPDEnableCacheDNS)\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableDNSMASQ)\n";}
 		return;
 	}
 
@@ -472,7 +487,7 @@ function start($aspid=false){
 	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} ".count($G)." token(s)\n";
 	while (list ($num, $val) = each ($G) ){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} token: $val\n";}
 	if(!is_file("/etc/dnsmasq.conf.empty")){@file_put_contents("/etc/dnsmasq.conf.empty", "\n");}
-	if(!is_file("/etc/dnsmasq.hosts.cache")){@file_put_contents("/etc/dnsmasq.hosts.cache", "\n");}
+	
 	
 	fuser_port();
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service {".__LINE__."}\n";}
@@ -527,27 +542,41 @@ function ldap_domains(){
 	
 	}	
 	@file_put_contents("/etc/dnsmasq.hash.domains", serialize($build_hosts_array));
-	
+	if(isset($GLOBALS["BLACKLIST_DOMAINS"])){return $GLOBALS["BLACKLIST_DOMAINS"];}
 	$q=new mysql_squid_builder();
 	$sql="SELECT * FROM dnsmasq_blacklist";
 	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $q->mysql_error\n";}
+		$GLOBALS["BLACKLIST_DOMAINS"]=unserialize(@file_get_contents("/etc/dnsmasq.hash.domains-blacklist"));
+	}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$domain=$ligne["hostname"];
 		$domain=trim(strtolower($domain));
-		$t[$ligne["hostname"]]=true;
-		
+		$t[$domain]=true;
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} blacklisted domain: $domain\n";}
+		$GLOBALS["BLACKLIST_DOMAINS"][$domain]=true;
 	}
+	
+	
 	@file_put_contents("/etc/dnsmasq.hash.domains-blacklist", serialize($t));
 }
 
 function isDomainValid($domain){
 	$ipClass=new IP();
-	if(!isset($GLOBALS["BLACKS_DOMAINS"])){$GLOBALS["BLACKS_DOMAINS"]=unserialize(@file_get_contents("/etc/dnsmasq.hash.domains-blacklist"));}
+	if(!isset($GLOBALS["BLACKLIST_DOMAINS"])){
+		ldap_domains();
+	}
 	
 	$domain=trim(strtolower($domain));
 	if($domain=="artica.fr"){return null;}
 	$domain=str_replace("$", "", $domain);
-	if(isset($GLOBALS["BLACKS_DOMAINS"][$domain])){return null;}
+	
+	if(isset($GLOBALS["BLACKLIST_DOMAINS"][$domain])){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} skip $domain\n";}
+		return null;
+	}
+	
 	if($ipClass->isIPAddress($domain)){return null;}
 	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+$#", $domain)){return null;}
 	return $domain;
@@ -691,7 +720,7 @@ function build($aspid=false){
 
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DHCPDEnableCacheDNS = $DHCPDEnableCacheDNS\n";}
+	
 	
 	
 	$EnableRemoteStatisticsAppliance=intval($sock->GET_INFO("EnableRemoteStatisticsAppliance"));
@@ -712,6 +741,9 @@ function build($aspid=false){
 		}
 	}
 	
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
+	
 	@file_put_contents("/etc/dnsmasq.conf.empty","");
 
 	$DNsServers=GetDNSSservers();
@@ -729,8 +761,6 @@ function build($aspid=false){
 	$G[]="--domain-needed";
 	$G[]="--expand-hosts";
 	$G[]="--bogus-priv";
-	$G[]="--resolv-file=/etc/dnsmasq.resolv.cache";
-	if(is_file("/etc/dnsmasq.hosts.cache")){$G[]="--addn-hosts=/etc/dnsmasq.hosts.cache"; }
 	if($DNsServers<>null){ $G[]=$DNsServers; }
 	if($getdomains<>null){ $G[]=$getdomains; }
 	$G[]="--cache-size=$LocalDNSMASQItems";

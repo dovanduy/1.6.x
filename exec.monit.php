@@ -118,7 +118,8 @@ function start($aspid=false){
 	}
 	$EnableMonit=$sock->GET_INFO("EnableMonit");
 	if(!is_numeric($EnableMonit)){$EnableMonit=1;}
-	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){$EnableMonit=0;}
 	
 
 	if($EnableMonit==0){
@@ -459,17 +460,8 @@ function build(){
 //********************************************************************************************************************	
 	$f=array();
 	@unlink("/etc/monit/conf.d/APP_OPENSSH.monitrc");
+	@unlink("/etc/monit/conf.d/APP_MYSQLD.monitrc");
 	
-//********************************************************************************************************************	
-	$f=array();
-	$f[]="check process APP_MYSQL_ARTICA with pidfile /var/run/mysqld/mysqld.pid";
-	$f[]="\tstart program = \"/etc/init.d/mysql start --monit\"";
-	$f[]="\tstop program = \"/etc/init.d/mysql stop --monit\"";
-	$f[]="\tif failed unixsocket /var/run/mysqld/mysqld.sock then restart";
-	$f[]="\tif 5 restarts within 5 cycles then timeout";
-	$f[]="";
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring MySQL...\n";}
-	@file_put_contents("/etc/monit/conf.d/APP_MYSQLD.monitrc", @implode("\n", $f));	
 //********************************************************************************************************************	
 	$f=array();
 	$f[]="check process APP_ARTICA_STATUS with pidfile /etc/artica-postfix/exec.status.php.pid";
@@ -684,6 +676,7 @@ function build(){
 		
 		$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 		$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 		$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
 		$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
@@ -695,6 +688,7 @@ function build(){
 		if($EnableWebProxyStatsAppliance==1){$EnableSquidGuardHTTPService=1;}
 		if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort="9020";}
 		if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
+		if($SquidPerformance>2){$EnableSquidGuardHTTPService=0;}
 		
 		if($SQUIDEnable==1){	
 			if($UseRemoteUfdbguardService==0){

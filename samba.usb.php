@@ -85,7 +85,7 @@ $buttons="
 		],";	
 
 $html="
-<div class=explain style='font-size:14px'>$usb_share_explain</div>
+<div class=text-info style='font-size:14px'>$usb_share_explain</div>
 <table class='flexRT$tTable' style='display: none' id='flexRT$tTable' style='width:100%'></table>
 
 	

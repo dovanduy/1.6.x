@@ -33,7 +33,7 @@ function popup(){
 	$tpl=new templates();
 	$INSTALL_VMWARE_TOOLS=$tpl->_ENGINE_parse_body("{INSTALL_VMWARE_TOOLS}");
 	$html="
-	<div class=explain style='font-size:16px'>{INSTALL_VMWARE_TOOLS_TEXT}</div>
+	<div class=text-info style='font-size:16px'>{INSTALL_VMWARE_TOOLS_TEXT}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

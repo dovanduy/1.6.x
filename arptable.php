@@ -85,7 +85,7 @@ function arp_options(){
 	$EnableArpDaemon_form=Paragraphe_switch_img("{EnableArpDaemon}", "{EnableArpDaemon_explain}","EnableArpDaemon",$EnableArpDaemon,null,550);	
 	
 	$html="	
-	<div class=explain id='ARPD_EXPLAIN' style='font-size:16px'>{ARPD_EXPLAIN}</div>
+	<div class=text-info id='ARPD_EXPLAIN' style='font-size:16px'>{ARPD_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

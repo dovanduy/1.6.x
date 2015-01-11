@@ -35,7 +35,10 @@ class mysql_storelogs{
 	private $mySar=0;
 	private $mySarBin=null;
 	private $category=null;
-	
+	private $EnableMySQLSyslogWizard;
+	private $BackupSquidLogsUseNas=0;
+	private $LogRotateMysql=0;
+	private $EnableArticaMetaClient=0;
 	
 	function mysql_storelogs(){
 		$this->OutputDebugVerbose("Loading...");
@@ -58,6 +61,21 @@ class mysql_storelogs{
 			
 		}
 		
+		$this->EnableMySQLSyslogWizard=intval($sock->GET_INFO("EnableMySQLSyslogWizard"));
+		$this->EnableSyslogDB=intval($sock->GET_INFO("EnableSyslogDB"));
+		$this->BackupSquidLogsUseNas=intval($sock->GET_INFO("BackupSquidLogsUseNas"));
+		$this->LogRotateMysql=intval($sock->GET_INFO("LogRotateMysql"));
+		$this->EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+		
+		if($this->BackupSquidLogsUseNas==1){$this->MySQLSyslogType=3; $this->LogRotateMysql=0;}
+		if($this->EnableArticaMetaClient==1){
+			$this->LogRotateMysql=0;
+			$this->MySQLSyslogType=4;
+			$this->EnableSyslogDB=0;
+		}
+		
+		
+		
 		if($this->EnableSyslogDB==0){return;}
 		$this->OutputDebugVerbose("DATABASE_EXISTS($this->database) ?");
 		if(!$this->DATABASE_EXISTS($this->database)){
@@ -72,12 +90,12 @@ class mysql_storelogs{
 	private function PrepareMySQLClass(){
 		$sock=new sockets();
 		unset($GLOBALS["MYSQL_PARAMETERS"]);
-		unset($_SESSION["MYSQL_PARAMETERS"]);
+		if(isset($_SESSION["MYSQL_PARAMETERS"])){unset($_SESSION["MYSQL_PARAMETERS"]);}
 		$this->MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 		$this->EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 		if(!is_numeric($this->EnableSyslogDB)){$this->EnableSyslogDB=0;}
 		if(!is_numeric($this->MySQLSyslogType)){$this->MySQLSyslogType=1;}
-		if($this->MySQLSyslogType==0){$this->MySQLSyslogType=1;}
+		if($this->MySQLSyslogType==0){$this->MySQLSyslogType=4;}
 		$this->LogRotatePath=$sock->GET_INFO("LogRotatePath");
 		if($this->LogRotatePath==null){$this->LogRotatePath="/home/logrotate";}
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
@@ -86,25 +104,31 @@ class mysql_storelogs{
 		}
 		
 		$this->OutputDebugVerbose("MySQLSyslogType=$this->MySQLSyslogType");
+		if($this->MySQLSyslogType==1){
+			if($this->EnableSyslogDB==0){
+				$this->MySQLSyslogType=4;
+			}
+		}
 	
 		if($this->MySQLSyslogType==1){
-			$this->EnableSyslogDB=1;
-			$ListenPort=$TuningParameters["ListenPort"];
-			$def["SocketPath"]="/var/run/syslogdb.sock";
-			if(!is_file("/var/run/syslogdb.sock")){return;}
-			$this->SocketName=$def["SocketPath"];
-			$def["mysql_admin"]="root";
-			$def["mysql_password"]=null;
-			$def["TryTCP"]=false;
-			$def["mysql_port"]=$ListenPort;
-			$this->SocketName=$def["SocketPath"];
-			$this->mysql_admin=$def["mysql_admin"];
-			$this->mysql_password=$def["mysql_password"];
-			$this->mysql_port=$def["mysql_port"];
-			$this->mysql_server="127.0.0.1";
-			$this->ClassSQL=new mysql($def);
-			$this->MYSQL_CMDLINES="--protocol=socket --socket={$def["SocketPath"]} -u root";
-			$this->dbidsn="['DBI:mysql:database=$this->database;mysql_socket=$this->SocketName', '$this->mysql_admin', '$this->mysql_password']";
+			if($this->EnableSyslogDB==1){
+				if(isset($TuningParameters["ListenPort"])){ $ListenPort=$TuningParameters["ListenPort"]; }
+				$def["SocketPath"]="/var/run/syslogdb.sock";
+				if(!is_file("/var/run/syslogdb.sock")){return;}
+				$this->SocketName=$def["SocketPath"];
+				$def["mysql_admin"]="root";
+				$def["mysql_password"]=null;
+				$def["TryTCP"]=false;
+				$def["mysql_port"]=$ListenPort;
+				$this->SocketName=$def["SocketPath"];
+				$this->mysql_admin=$def["mysql_admin"];
+				$this->mysql_password=$def["mysql_password"];
+				$this->mysql_port=$def["mysql_port"];
+				$this->mysql_server="127.0.0.1";
+				$this->ClassSQL=new mysql($def);
+				$this->MYSQL_CMDLINES="--protocol=socket --socket={$def["SocketPath"]} -u root";
+				$this->dbidsn="['DBI:mysql:database=$this->database;mysql_socket=$this->SocketName', '$this->mysql_admin', '$this->mysql_password']";
+			}
 		}
 		
 		
@@ -333,7 +357,7 @@ class mysql_storelogs{
 			}
 			$GLOBALS[__CLASS__.__FUNCTION__]=false;
 			$this->ok=false;
-			$this->writelogs("Fatal connection failed [".$this->ClassSQL->mysql_error."]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs("Fatal connection failed",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}else{
 			$results=$this->ClassSQL->BD_CONNECT();
@@ -403,7 +427,7 @@ class mysql_storelogs{
 	public function QUERY_SQL($sql,$database=null){
 		if($this->MySQLSyslogType>=3){ return false; }
 		if(!$this->BD_CONNECT()){return false;}
-		if($this->EnableSyslogDB==0){return true;}
+		if($this->EnableSyslogDB==0){return false;}
 		$this->ok=true;
 		if(!isset($this->NOCHDB[$database])){$this->NOCHDB[$database]=false;}
 		if(!$this->NOCHDB[$database]){if($database<>$this->database){$database=$this->database;}}
@@ -615,25 +639,7 @@ class mysql_storelogs{
 		return $fileDest;
 	}
 
-	private function COMPRESS_FILE($filename){
-		$unix=new unix();
-		if(!isset($GLOBALS["BZ2BIN"])){$GLOBALS["BZ2BIN"]=$unix->find_program("bzip2");;}
-		$EXEC_NICE=$unix->EXEC_NICE();
-		$cmdline="$EXEC_NICE {$GLOBALS["BZ2BIN"]} -z $filename";
-		shell_exec($cmdline);
-		if(!is_file("$filename.bz2")){return false;}
-		$cmdline="{$GLOBALS["BZ2BIN"]} -t -v $filename.bz2 2>&1";
-		exec($cmdline,$results);
-		while (list ($num, $line) = each ($results) ){
-			if(preg_match("#No space left on device#", $line)){
-				$this->events("No space left on device ".basename($filename));
-				@unlink("$filename.bz2");
-				return false;
-			}
-			if(strpos($line,": ok")>0){return true;}
-		}
-		@unlink("$filename.bz2");
-	}	
+	
 	
 	
 	public function ROTATE_ACCESS_TOMYSQL($filename,$sourceDate=null){
@@ -646,40 +652,68 @@ class mysql_storelogs{
 		$COMPRESSEDS["gz"]=true;
 		$COMPRESSEDS["bz2"]=true;
 		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($this->filename));}
-		if(!$this->InjectFile_accesslog($this->filename, $sourceDate)){return false;}
+		$size=@filesize($filename);
+		$this->events("InjectFile_accesslog($filename) - $size Bytes");
+		if(!$this->InjectFile_accesslog($filename, $sourceDate)){
+			$this->events("InjectFile_accesslog($this->filename) RETURN FALSE, do not delete the file...");
+			return false;
+		}
 		@unlink($this->filename);
 		return true;
-		
-			
-		
-		
 	}
 	
-	private function TestCompressed($filename=null){
+	private function TestCompressed($filename=null,$destile=null){
 		$COMPRESSEDS["gz"]=true;
 		$COMPRESSEDS["bz2"]=true;
 		$COMPRESSEDS["bz"]=true;
-		if($this->filename==null){
-			if($filename<>null){
-				if(is_file($filename)){$this->filename=$filename;}
+		
+		if($filename<>null){
+			if(!is_file($filename)){
+				$this->events("$filename No such file");
+				return false;
+			}
+			$this->filename=$filename;
+		}else{
+			if($this->filename<>null){
+				$filename=$this->filename;
 			}
 		}
-		$extension = pathinfo($this->filename, PATHINFO_EXTENSION);
+		
+		if(!is_file($filename)){
+			$this->events("$filename No such file");
+			return false;
+		}
+		
+		$size=@filesize($filename);
+		
+		$extension = pathinfo($filename, PATHINFO_EXTENSION);
 		
 		if(isset($COMPRESSEDS[$extension])){
-			return true;
+			$this->events("$filename ( $size bytes ) Already compressed return $filename");
+			return $filename;
 		}
 		
+		$size=@filesize($filename);
 		if(!isset($COMPRESSEDS[$extension])){
-			if(!$this->COMPRESS_FILE($this->filename)){return false;}
-			$this->filename=$this->filename.".bz2";
+			$unix=new unix();
+			if($destile==null){$destile=$filename.".gz";}
+			$this->events("Compress $filename ( $size Bytes ) to $destile");
+			if(!$unix->compress($filename, $destile)){
+				$this->events("Compress $filename ( $size Bytes ) FAILED");
+				return false;
+			}
+			$this->events("Removing $filename");
+			$size=@filesize($filename);
+			$this->events("New compressed file $destile ( $size bytes )");
+			@unlink($filename);
+			return $destile;
 		}
 	
-		return true;
+		return $filename;
 		
 	}
 	
-	private function SargTests(){
+	private function SargTests($filename){
 		$sql="CREATE TABLE IF NOT EXISTS `sarg_performed` (`md5file` VARCHAR(128) PRIMARY KEY ,
 				`filename` VARCHAR(128) ,`zDate` datetime )  ENGINE = MYISAM;";
 		$q=new mysql_squid_builder();
@@ -687,8 +721,9 @@ class mysql_storelogs{
 		
 		
 		if(!$q->QUERY_SQL($sql)){
+			$this->events($q->mysql_error);
 			if($GLOBALS["VERBOSE"]){echo "$sql\n$q->mysql_error\n";}
-			rotate_events("Error: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$this->events("Error: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			return false;
 		}
 		$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
@@ -737,24 +772,34 @@ class mysql_storelogs{
 	}
 	
 	public function SargTask($filename){
-		if(is_dir($filename)){return;}
-		if(isset($GLOBALS["SARG_TASK"][$filename])){return $GLOBALS["SARG_TASK"][$filename];}
-		if(!isset($GLOBALS["CLASS_UNIX"])){return;}
-		
-		$size=@filesize($filename);
-		if($size==0){return true;}
 		$basename=basename($filename);
 		if($basename=="."){return;}
 		if($basename==".."){return;}
+		if(is_dir($filename)){return;}
+		
+		if(isset($GLOBALS["SARG_TASK"][$filename])){return $GLOBALS["SARG_TASK"][$filename];}
+		if(!isset($GLOBALS["CLASS_UNIX"])){return;}
+		
+		if(!is_file("$filename")){
+			$this->events("$filename no such file");
+			return false;
+		}
+		
+		$size=@filesize($filename);
+		$this->events("$filename ( $size bytes )");
+		
+		if($size==0){return true;}
+		
+		
 		
 		if(preg_match("#ziproxy#", $basename)){
-			rotate_events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$this->events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$GLOBALS["SARG_TASK"][$filename]=true;
 			return true;
 		}
 		
 		if(!preg_match("#^access\.log#", $basename)){
-			rotate_events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$this->events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$GLOBALS["SARG_TASK"][$filename]=true;
 			return true;
 		}
@@ -767,8 +812,10 @@ class mysql_storelogs{
 		}
 
 		if(!isset($GLOBALS["SARGTESTS"])){
-			$GLOBALS["SARGTESTS"]=$this->SargTests();
+			$this->events("SargTests on $filename");
+			$GLOBALS["SARGTESTS"]=$this->SargTests($filename);
 		}
+		
 		if(!$GLOBALS["SARGTESTS"]){
 			$GLOBALS["SARG_TASK"][$filename]=false;
 			return false;
@@ -778,6 +825,7 @@ class mysql_storelogs{
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT filename FROM `sarg_performed` WHERE `md5file`='$md5'"));
 		if($ligne["filename"]<>null){
+			$this->events("$basename, already runned Sarg on $md5");
 			rotate_events("$basename, already runned Sarg on $md5",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$GLOBALS["SARG_TASK"][$filename]=true;
 			return true;
@@ -787,32 +835,42 @@ class mysql_storelogs{
 		$extension = pathinfo($filename, PATHINFO_EXTENSION);
 		
 		if($extension=="bz2"){
+			$this->events("Uncompress $filename ($size bytes) -> $filename.log");
 			$bzip2=$GLOBALS["CLASS_UNIX"]->find_program("bzip2");
 			rotate_events("Uncompress $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			shell_exec("$bzip2 -dkc $filename > $filename.log");
 			$filename="$filename.log";
 		}
+		
+		if($extension=="gz"){
+			$this->events("Uncompress $filename ($size bytes) -> $filename.log");
+			rotate_events("Uncompress $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$unix=new unix();
+			if(!$unix->uncompress($filename, "$filename.log")){
+				$this->events("Uncompress $filename -> Failed `{$GLOBALS["UNCOMPRESSLOGS"]}`");
+				$GLOBALS["UNCOMPRESSLOGS"]=null;
+			}
+			$filename="$filename.log";
+		}
 
 		
 		if(!is_file($filename)){
-			if($GLOBALS["VERBOSE"]){echo "$filename.log no such file\n";}
+			$this->events("$filename.log no such file");
 			$GLOBALS["SARG_TASK"][$filename]=false;
 			return false;
 		}
 		if($this->mySar==1){
-			rotate_events("Running MySAR on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$this->events("Running MySAR on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			if($GLOBALS["VERBOSE"]){echo "->MySAR\n";}
 			$this->MySarExec($filename);
 		}
+		
 		if($this->EnableSargGenerator==1){
 			$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
-			if($GLOBALS["VERBOSE"]){echo "-> exec.sarg.php --tofile \"$filename\"\n";}
+			$this->events("exec.sarg.php --tofile \"$filename\"");
 			rotate_events("Launching sarg on executed on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --tofile \"$filename\"");
 		}
-		
-		
-		@unlink("$filename");
 		$zDate=date("Y-m-d H:i:s");
 		$sql="INSERT IGNORE INTO `sarg_performed` (`md5file`,`filename`,`zDate`) VALUES ('$md5','$basename','$zDate')";
 		$q->QUERY_SQL($sql);
@@ -823,110 +881,240 @@ class mysql_storelogs{
 		
 	}
 	
+	public function agregate_access_logs($filepath){
+		if($filepath=="."){return false;}
+		if($filepath==".."){return false;}
+		if(is_dir($filepath)){return false;}
+		$sock=new sockets();
+		$this->events("Aggregate $filepath",__FUNCTION__,__LINE__);
+		
+		if(!is_file($filepath)){
+			$this->events("$filepath no such file !",__FUNCTION__,__LINE__);
+			$GLOBALS["agregate_access_logs"][$filepath]=false;
+			return false;
+		}
+		if(isset($GLOBALS["agregate_access_logs"][$filepath])){
+			return false;
+		}
+		$basename=basename($filepath);
+		if(preg_match("#^access\.merged\.#",$basename)){return;}
+		$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+		if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+		if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
+		$LogRotatePathWork="$LogRotatePath/merged";
+		$BigMerged="$LogRotatePathWork/access.merged.log";
+		$SquidRotateMergeFiles=$sock->GET_INFO("SquidRotateMergeFiles");
+		if(!is_numeric($SquidRotateMergeFiles)){$SquidRotateMergeFiles=1;}
+		$LogsRotateDeleteSize=intval($sock->GET_INFO("LogsRotateDeleteSize"));
+		if($LogsRotateDeleteSize==0){$LogsRotateDeleteSize=5000;}
+		
+		if($SquidRotateMergeFiles==0){
+			$this->events("SquidRotateMergeFiles is disabled...",__FUNCTION__,__LINE__);
+			if(is_file("$BigMerged")){
+				@copy($BigMerged, "$LogRotatePath/work/access.merged.".time().".log");
+				@unlink($BigMerged);
+			}
+			return;
+		}
+		
+		$MERGED_FILES=unserialize(@file_get_contents("/etc/artica-postfix/accesslogs_merged.db"));
+		
+
+		
+		@mkdir($LogRotatePathWork,0755,true);
+		$md5file=md5_file($filepath);
+		if(isset($MERGED_FILES[$md5file])){return;}
+		$MERGED_FILES[$md5file]=true;
+		$sep=">>";
+		if(!is_file($BigMerged)){$sep=">";}
+		if(is_file($BigMerged)){
+			$size=@filesize($BigMerged);
+			$size=$size/1024; // KB
+			$size=$size/1024; //MB
+			if($size>$SquidRotateMergeMaxFile){
+				$this->events("$BigMerged will be rotated ( $size MB)",__FUNCTION__,__LINE__);
+				@copy($BigMerged, "$LogRotatePath/work/access.merged.".time().".log");
+				@unlink($BigMerged);
+				$sep=">";
+			}
+		}
+		
+		$COMPRESSEDS["gz"]=true;
+		$COMPRESSEDS["bz2"]=true;
+		$COMPRESSEDS["bz"]=true;
+		$size=@filesize($filepath);
+		$extension = pathinfo($filepath, PATHINFO_EXTENSION);
+		if(isset($COMPRESSEDS[$extension])){
+			$this->events("$filepath already compressed, just save it",__FUNCTION__,__LINE__);
+			$destfile="$LogRotatePathWork/".time().".$extension";
+			@copy($filepath, $destfile);
+			@file_put_contents("/etc/artica-postfix/accesslogs_merged.db", serialize($MERGED_FILES));
+			return;
+		}
+		
+		
+		
+		$unix=new unix();
+		$cat=$unix->find_program("cat");
+		
+		shell_exec("$cat $filepath $sep $BigMerged");
+		$size=@filesize($BigMerged);
+		$size=$size/1024; // KB
+		$size=$size/1024; //MB
+		$this->events("$filepath has been merged to $BigMerged ( $size MB)",__FUNCTION__,__LINE__);
+		@file_put_contents("/etc/artica-postfix/accesslogs_merged.db", serialize($MERGED_FILES));
+		return;
+		
+	}
+	
+	public function FILE_SOURCE_TO_WORK($filepath){
+		if($filepath=="."){return false;}
+		if($filepath==".."){return false;}
+		if(is_dir($filepath)){return false;}
+		if(!is_file($filepath)){
+			$this->events("$filepath no such file !");
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=false;
+			return false;
+		}
+		if(isset($GLOBALS["FILE_SOURCE_TO_WORK"][$filepath])){
+			$this->events("$filepath aloready done, return  {$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]}");
+			return $GLOBALS["FILE_SOURCE_TO_WORK"][$filepath];}
+		
+		$this->events("->TestCompressed($filepath) ");
+		$filepath=$this->TestCompressed($filepath);
+		if(!$filepath){
+			$this->events("TestCompressed Return false");
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=false;
+			return false;
+		}
+		$sock=new sockets();
+		$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+		if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+		if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
+		$LogRotatePathWork="$LogRotatePath/work";
+		@mkdir($LogRotatePathWork,0755,true);
+		
+		
+		if(!is_dir($LogRotatePathWork)){
+			$this->events("$LogRotatePathWork no such directory or permission denied !");
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=false;
+			return false;
+		}
+		$DirectorySource=dirname($filepath);
+		
+		$this->events("Source directory = $DirectorySource destination directory is `$LogRotatePathWork`");
+		
+		if($DirectorySource==$LogRotatePathWork){
+			$this->events("Source directory is the same of destination `$LogRotatePathWork`");
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=$filepath;
+			return $filepath;
+		}
+		
+		if(is_link($DirectorySource)){
+			$DirectorySource=@readlink($DirectorySource);
+			$this->events("Source directory symbolic link = $DirectorySource");
+			$this->events("Source directory = $DirectorySource destination directory is `$LogRotatePathWork`");
+		}
+		
+		
+		if($DirectorySource==$LogRotatePathWork){
+			$this->events("Source directory is the same of destination `$LogRotatePathWork`");
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=$filepath;
+			return $filepath;
+		}		
+
+		
+		$size=@filesize($filepath);
+		$Basename=basename($filepath);
+		
+		$this->events("$filepath filename is `$Basename` size is ( $size bytes )");
+		$DestFile="$LogRotatePathWork/$Basename";
+		$this->events("Destination = `$DestFile`");
+		
+		
+		if(is_file($DestFile)){
+			$md5Dest=md5_file($DestFile);
+			$md5Srource=md5_file($filepath);
+			if($md5Dest==$md5Srource){
+				$this->events("Destination Already exists, and is the same");
+				@unlink($filepath);
+				return $DestFile;
+			}
+			$this->events("Destination Already exists, create a new file");
+			$ext = pathinfo($Basename, PATHINFO_EXTENSION);
+			$basenameFF=str_replace(".$ext", "", $Basename);
+			$basenameFF=$basenameFF.".".time().".$ext";
+			$DestFile="$LogRotatePathWork/$basenameFF";
+			$this->events("Desintation = `$DestFile`");
+		}
+		
+		
+		if(!@copy($filepath, $DestFile)){
+			$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=false;
+			$this->events("Copy $filepath -> $DestFile FAILED !!!");
+			return false;
+		}
+		$sizeDest=@filesize($DestFile);
+		$this->events("Copy $filepath -> $DestFile ( $sizeDest bytes ) SUCCESS");
+		$GLOBALS["FILE_SOURCE_TO_WORK"][$filepath]=$DestFile;
+		$this->events("Removing source $filepath");
+		@unlink($filepath);
+		return $DestFile;
+		
+		
+	}
+	
 	
 	
 	public function ROTATE_TOMYSQL($filename,$sourceDate=null){
 		$sock=new sockets();
 		$unix=new unix();
 		$taskid=0;
-		$this->filename=$filename;
-		$COMPRESSEDS["gz"]=true;
-		$COMPRESSEDS["bz2"]=true;
-		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($this->filename));}
-		if(!$this->SargTask($filename)){return false;}
-		if(!$this->TestCompressed($filename)){return false;}
 		$BackupSquidLogsUseNas=intval($sock->GET_INFO("BackupSquidLogsUseNas"));
+		$this->filename=$filename;
+		
+		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($this->filename));}
+		
+		
+		$filename=$this->FILE_SOURCE_TO_WORK($filename);
+		if(!$filename){return false;}
+		$this->filename=$filename;
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "EnableSyslogDB: $this->EnableSyslogDB - BackupSquidLogsUseNas: $BackupSquidLogsUseNas\n";}
 		
 		if($this->MySQLSyslogType==4){
-			if(!$this->InjectFileToDir($this->filename)){
+			if(!$this->InjectFileToDir($filename)){
 				return false;
 			}
 			return true;
 		}
 		
 		if($BackupSquidLogsUseNas==1){
-			if(!$this->InjectFile($this->filename, $sourceDate)){return false;}
+			if(!$this->InjectFileToNas($filename, $sourceDate)){return false;}
 			return true;
 		}
 		
 		
 		if($this->EnableSyslogDB==1){
 			if($this->MySQLSyslogType>=3){return;}
-			if(!$this->InjectFile($this->filename, $sourceDate)){return false;}
-			@unlink($this->filename);
+			if(!$this->InjectFile($filename, $sourceDate)){return false;}
+			@unlink($filename);
 			return true;
 		}
 		
 		
-		
-	
-		$basename=basename($this->filename);
-		$LogRotatePath=$sock->GET_INFO("LogRotatePath");
-		$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
-		if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
-		if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
-		if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
-		$LogRotatePathWork="$LogRotatePath/work";
-		
-		if($GLOBALS["VERBOSE"]){echo "LogRotatePathWork:$LogRotatePathWork\n";}
-		
-		if($LogRotateMysql==0){$LogRotatePathWork=$LogRotatePath;}
-		if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
-		@chmod($LogRotatePathWork, 0777);
-		$basenameFF=null;
-		$DestinationFile="$LogRotatePathWork/$basename";
-	
-	
-		if(is_file($DestinationFile)){
-			$ext = pathinfo($DestinationFile, PATHINFO_EXTENSION);
-			$basenameFF=basename($DestinationFile);
-			$basenameFF=str_replace(".$ext", "", $basenameFF);
-			$basenameFF=$basenameFF.".".time().".$ext";
-			$DestinationFile=str_replace(basename($DestinationFile), $basenameFF, $DestinationFile);
-		}
-	
-		@mkdir(dirname($DestinationFile),0755,true);
-		if(!@copy($this->filename, $DestinationFile)){
-			@unlink($DestinationFile);
-			rotate_events("Failed to copy $this->filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			return false;
-		}
-	
-		if(preg_match("#-TASK-([0-9]+)#",$basename,$re)){$taskid=$re[1];}
-	
-		$ext = pathinfo($this->filename, PATHINFO_EXTENSION);
-		$basenameFF=$basename;
-		$basenameFF=str_replace(".$ext", "", $basenameFF);
-		$basenameFF=$basenameFF.".".time().".$ext";
-		$filesize=$unix->file_size($this->filename);
+		$filesize=$unix->file_size($filename);
+		$basenameFF=basename($basenameFF);
 		$ToMySQL=false;
 	
-		if($LogRotateMysql==1){
-			$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`)
-			VALUES ('$basenameFF','$taskid','$filesize',LOAD_FILE('$DestinationFile'),'$sourceDate')";
-			$ToMySQL=true;
+		if($this->LogRotateMysql==0){
+			if(!$this->InjectFileToDir($filename)){
+				return false;
+			}
 		}
-	
-		if($LogRotateMysql==0){
-			$basenameFF=basename($DestinationFile);
-			$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`,`SavedInDisk`,`FileStorePath`)
-			VALUES ('$basenameFF','$taskid','$filesize','','$sourceDate',1,'$DestinationFile')";
-			$ToMySQL=true;
-		}
-	
-		if(!$ToMySQL){return false;}
-		
-		$this->CheckTables();
-		$this->QUERY_SQL($sql);
-		if(!$this->ok){
-			system_admin_events("MySQL Failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			@unlink($DestinationFile);
-			return false;
-		}
-		if($LogRotateMysql==1){@unlink($DestinationFile);}
-		@unlink($this->filename);
-		return true;
+
+		return false;
 	}
 
 	
@@ -935,6 +1123,7 @@ class mysql_storelogs{
 		$hostname=$unix->hostname_g();
 		$basename=basename($filepath);
 		$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));
+		
 		$LogRotatePathWork="$this->LogRotatePath/work";	
 		@mkdir("$this->LogRotatePath/work",0755);
 		if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
@@ -979,13 +1168,19 @@ class mysql_storelogs{
 	}
 	
 	private function InjectFileToNas($filepath){
-		if(is_dir($filepath)){return;}
+		if(is_dir($filepath)){
+			$this->events("$filepath is a directory, skip it",__FUNCTION__,__LINE__);
+			return;}
 		
 		$BaseName=basename($filepath);
 		if($BaseName=="."){return;}
 		if($BaseName==".."){return;}
 		$size=@filesize($filepath);
+		
+		
+		
 		if($size==0){
+			$this->events("$filepath 0 bytes, skip and return true",__FUNCTION__,__LINE__);
 			rotate_events("$filepath 0 bytes, skip and return true",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			return true;
 		}
@@ -993,6 +1188,7 @@ class mysql_storelogs{
 		$sock=new sockets();
 		$users=new usersMenus();
 		$unix=new unix();
+		$myHostname=$unix->hostname_g();
 		$mount=new mount("/var/log/artica-postfix/logrotate.debug");
 		$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
 		$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
@@ -1042,11 +1238,12 @@ class mysql_storelogs{
 		if(preg_match("#(syslog|daemon|user|)\.log#", $BaseName)){
 			$DirSuffix="/system";
 		}		
-		
-		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/$users->hostname$DirSuffix";
+		$this->events("Hostname=$myHostname Suffix = $DirSuffix $BackupSquidLogsNASIpaddr/$BackupSquidLogsNASFolder",__FUNCTION__,__LINE__);
+		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/{$myHostname}$DirSuffix";
 		@mkdir("$BackupMaxDaysDir",0755,true);
 		
 		if(!is_dir($BackupMaxDaysDir)){
+			$this->events("Fatal $BackupMaxDaysDir permission denied",__FUNCTION__,__LINE__);
 			if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 			rotate_events("Fatal $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
@@ -1059,6 +1256,7 @@ class mysql_storelogs{
 		$t=time();
 		@file_put_contents("$BackupMaxDaysDir/$t", time());
 		if(!is_file("$BackupMaxDaysDir/$t")){
+			$this->events("Fatal $BackupMaxDaysDir permission denied ($BackupMaxDaysDir/$t) test failed",__FUNCTION__,__LINE__);
 			rotate_events("Fatal $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 			squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
@@ -1067,19 +1265,36 @@ class mysql_storelogs{
 			return false;
 		}
 		
-		$this->events("Removing source logs $BackupMaxDaysDir/$t",__FUNCTION__,__FILE__,__LINE__);
+		
 		@unlink("$BackupMaxDaysDir/$t");
+		
+		$fileSizeSource=@filesize($filepath);
 		
 		$targetFile="$BackupMaxDaysDir/".basename($filepath);
 		if(!copy($filepath, $targetFile)){
-			rotate_events("Failed to copy $filepath -> $targetFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$this->events("Fatal Failed to copy $filepath -> $targetFile");
+			rotate_events("Failed to copy $filepath {$fileSizeSource}Bytes -> $targetFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			@unlink($targetFile);
 			$mount->umount($mountPoint);
 			echo "Failed to copy $filepath -> $targetFile\n";
 			return;
 		}
 		
-		rotate_events("Success to backup $targetFile to $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/artica-backup-syslog/$users->hostname",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		$filesizeDest=@filesize($targetFile);
+		
+		
+		if($fileSizeSource<>$filesizeDest){
+			$this->events("Success to backup $targetFile to $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/artica-backup-syslog/$users->hostname",__FUNCTION__,__LINE__);
+			$this->events("Size differ, source = {$fileSizeSource}Bytes destination = {$filesizeDest}Bytes");
+			@unlink($targetFile);
+			$mount->umount($mountPoint);
+			return false;
+		}
+		$filesizeDest=$filesizeDest/1024;
+		
+		$this->events("Success to backup $targetFile ({$filesizeDest}KB)to $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/artica-backup-syslog/$users->hostname",__FUNCTION__,__LINE__);
+		rotate_events("Success to backup $targetFile ({$filesizeDest}KB)to $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/artica-backup-syslog/$users->hostname",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		$this->events("Removing $filepath",__FUNCTION__,__LINE__);
 		@unlink($filepath);
 		$mount->umount($mountPoint);
 		return true;
@@ -1090,61 +1305,58 @@ class mysql_storelogs{
 	
 	
 	public function InjectFile($filepath,$sourceDate=null){
+		$unix=new unix();
+		$sock=new sockets();
+		
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$file=basename($trace[1]["file"]);
+				$function=$trace[1]["function"];
+				$line=$trace[1]["line"];
+			}else{
+				if(isset($trace[1])){
+					$file=basename($trace[0]["file"]);
+					$function=$trace[0]["function"];
+					$line=$trace[0]["line"];
+				}
+			}
+				
+			$called="called by $file $function() in line $line";
+				
+		}
+		
 		if(is_dir($filepath)){return;}
 		$BaseName=basename($filepath);
 		if($BaseName=="."){return;}
 		if($BaseName==".."){return;}
 		if(is_link($filepath)){$filepath=@readlink($filepath);}
 		
+		if(preg_match("#^access#", $BaseName)){
+			if(!$this->SargTask($filepath)){
+				return false;
+			}
+			
+		}
+		
+		$filepath=$this->FILE_SOURCE_TO_WORK($filepath);
+		if(!$filepath){return false;}
+		
 		$FILE_SOURCE_TO_DELETE=$filepath;
+		$SourceFile=$filepath;
+		$DestinationFile=$filepath;
+		$basenameFF=basename($filepath);
 		$taskid=0;
-		$unix=new unix();
-		$sock=new sockets();
+		
 		$hostname=$unix->hostname_g();
 		$basename=basename($filepath);
 		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
-		$DirectorySource=dirname($filepath);
-		$LogRotatePathWork="$this->LogRotatePath/work";
 		$BackupSquidLogsUseNas=intval($sock->GET_INFO("BackupSquidLogsUseNas"));
-		
-		$SourceFile=$filepath;
-		$filepath="$LogRotatePathWork/".basename($SourceFile);
-		$MD5_SRC=md5_file($SourceFile);
-		
-		
-		if($SourceFile<>$filepath){
-			if(is_file($filepath)){
-				$MD5_DEST=md5_file($filepath);
-				if($MD5_DEST<>$MD5_SRC){@unlink($filepath);}
-			}
-			
-			if(!@copy($SourceFile, $filepath)){
-				$this->events("Failed to copy $SourceFile => $filepath");
-				@unlink($filepath);
-				return;
-			}
-			
-			
-			if(!is_file($filepath)){
-				$this->events("Failed to backup $SourceFile to $filepath ( no such target file)",__FUNCTION__,__FILE__,__LINE__);
-				return;
-			}
-			$SourceFileMD5=md5_file($SourceFile);
-			$DESTFILEMD5=md5_file($filepath);
-			if($SourceFileMD5<>$DESTFILEMD5){
-				$this->events("Failed to backup $SourceFile to $filepath (md5 mismatch)",__FUNCTION__,__FILE__,__LINE__);
-				@unlink($filepath);
-				return;
-			}
-			$this->events("Success to backup $SourceFile to $filepath",__FUNCTION__,__FILE__,__LINE__);
-			@unlink($SourceFile);
-		}
-		
 		
 	
 		if($this->MySQLSyslogType>=3){
 			if(!$this->InjectFileToNas($filepath)){
-				$this->events("Failed to copy $filepath => N.A.S");
+				$this->events("MySQLSyslogType:3, Failed to copy $filepath => N.A.S",__FUNCTION__,__LINE__);
 				return false;
 			}
 			$this->events("Success to copy $filepath => N.A.S");
@@ -1153,42 +1365,24 @@ class mysql_storelogs{
 		
 		if($BackupSquidLogsUseNas==1){
 			if(!$this->InjectFileToNas($filepath)){
-				$this->events("Failed to copy $filepath => N.A.S");
+				$this->events("BackupSquidLogsUseNas=1, Failed to copy $filepath => N.A.S",__FUNCTION__,__LINE__);
 				return false;
 			}	
-			$this->events("Success to copy $filepath => N.A.S");
+			$this->events("Success to copy $filepath => N.A.S",__FUNCTION__,__LINE__);
 			return true;
 		}
 		
 		
 		if(preg_match("#^access\.log#", $basename)){
 			if(!$this->InjectFile_accesslog($filepath, $sourceDate)){return false;}
+			$this->events("Return true for $filepath",__FUNCTION__,__LINE__);
 			return true;
 		}
 	
 		
-		
-		$ext = pathinfo($filepath, PATHINFO_EXTENSION);
-		$this->events("Info: Want to backup $filepath ($sourceDate) - extension = `$ext` ". @filesize($filepath)." bytes",__FUNCTION__,__LINE__);
-		$this->events("Info: Directory source: $DirectorySource == $LogRotatePathWork",__FUNCTION__,__LINE__);
-		
-		if($ext==null){
-			$this->events("Info: Compressing $filepath",__FUNCTION__,__LINE__);
-			if(!$this->COMPRESS_FILE($filepath)){
-				$this->events("Info: Compressing $filepath failed",__FUNCTION__,__LINE__);
-				return;
-			}
-			$filepath=$filepath.".bz2";
-		}
-
-		
-		$DestinationFile=$filepath;
 		$this->events("Info: Next destination \"$DestinationFile\"",__FUNCTION__,__LINE__);
 	
 		$ext = pathinfo($DestinationFile, PATHINFO_EXTENSION);
-		$basenameFF=$basename;
-		$basenameFF=str_replace(".$ext", "", $basenameFF);
-		$basenameFF=$basenameFF.".".time().".$ext";
 		$filesize=$unix->file_size($DestinationFile);		
 		
 		$fcontent=null;
@@ -1197,16 +1391,10 @@ class mysql_storelogs{
 		if($GLOBALS["VERBOSE"]){echo "Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)\n";}
 		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)");
 		
-		if($this->MySQLSyslogType==1){
-			$sql = "INSERT INTO `files_store` (`filecontent`) VALUES( LOAD_FILE('$DestinationFile') )";
-			
-		}
-		if($this->MySQLSyslogType==2){
-			$fcontent=mysql_escape_string2(file_get_contents($DestinationFile));
-			$sql = "INSERT INTO `files_store` (`filecontent`) VALUES( '$fcontent' )";
-		}
+		$fcontent=mysql_escape_string2(file_get_contents($DestinationFile));
+		$sql = "INSERT INTO `files_store` (`filecontent`) VALUES( '$fcontent' )";
+		$this->events("Info:INSERTING INTO files_store $this->mysql_server:$this->mysql_port ($this->SocketName)");
 		
-		$this->events("Info: $sql");
 		$this->QUERY_SQL($sql);
 		$fcontent=null;
 		
@@ -1246,79 +1434,103 @@ class mysql_storelogs{
 		$basename=basename($filepath);
 		if($basename=="."){return;}
 		if($basename==".."){return;}
-		$FILE_SOURCE_TO_DELETE=$filepath;
+		
+		
 		$taskid=0;
 		$unix=new unix();
+
+		
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$file=basename($trace[1]["file"]);
+				$function=$trace[1]["function"];
+				$line=$trace[1]["line"];
+			}else{
+				if(isset($trace[1])){
+					$file=basename($trace[0]["file"]);
+					$function=$trace[0]["function"];
+					$line=$trace[0]["line"];
+				}
+			}
+			$called="called by $file $function() in line $line";
+		}
+		
+		$this->events("Info: $called");
+		if(!is_file($filepath)){
+			$this->events("$filepath no such file");
+			return false;
+		}
+		
+		$this->agregate_access_logs($filepath);
+			
+	
+		
+		
+		$size=@filesize($filepath);
+		if(!$this->SargTask($filepath)){
+			$this->events("Info: `$filepath` ( $size bytes ) S.A.R.G process return false:$called",__FUNCTION__,__LINE__);
+			return false;
+		}
+		
+		
+		
+		$this->events("FILE_SOURCE_TO_WORK($filepath) ( $size bytes )");
+		$filepath=$this->FILE_SOURCE_TO_WORK($filepath);
+		if(!$filepath){return false;}
+		$FILE_SOURCE_TO_DELETE=$filepath;
 		$hostname=$unix->hostname_g();
 		$basename=basename($filepath);
-		$basenameFF=null;
+		$basenameFF=$basename;
 		
-		if(!$this->SargTask($filepath)){return false;}
 		
 		if($sourceDate==null){$sourceDate=date('Y-m-d H:i:s',filemtime($filepath));}
 		$this->events("Info: want to backup $filepath ($sourceDate)",__FUNCTION__,__LINE__);
 		
 		if($this->MySQLSyslogType==3){
 			if(!$this->InjectFileToNas($filepath)){
-				$this->events("Failed to copy $filepath => N.A.S");
+				$this->events("MySQLSyslogType:3 Failed to copy $filepath => N.A.S",__FUNCTION__,__LINE__);
 				return false;
 			}
-			$this->events("Success to copy $filepath => N.A.S");
+			$this->events("Success to copy $filepath => N.A.S",__FUNCTION__,__LINE__);
 			return true;
 		}
 		
 		if($this->MySQLSyslogType==4){
 			if(!$this->InjectFileToDir($filepath)){
-				$this->events("Failed to copy $filepath => LOCAL");
+				$this->events("MySQLSyslogType:4, Failed to copy $filepath => LOCAL ( InjectFileToDir return false )",__FUNCTION__,__FILE__,__LINE__);
 				return false;
 			}
-			$this->events("Success to copy $filepath => LOCAL");
+			$this->events("Success to copy $filepath => LOCAL",__FUNCTION__,__LINE__);
 			return true;
 		}
 	
 		if(!$this->TABLE_EXISTS("access_store")){$this->checkTables();}
 	
-		$DestinationFile=$this->TransformName($filepath);
-		@mkdir(dirname($DestinationFile),0755,true);
-		
-		if(dirname($filepath)<>dirname($DestinationFile)){
-		
-			if(!@copy($filepath, $DestinationFile)){
-				@unlink($DestinationFile);
-				$this->events("Failed to copy $filepath => $DestinationFile");
-				return false;
-			}
-		
-		}else{
-			$DestinationFile=$filepath;
-		}
 	
-		$ext = pathinfo($filepath, PATHINFO_EXTENSION);
-		$basenameFF=$basename;
-		$basenameFF=str_replace(".$ext", "", $basenameFF);
-		$basenameFF=$basenameFF.".".time().".$ext";
-		$filesize=$unix->file_size($filepath);
-		$fcontent=null;
-		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)",__FUNCTION__,__FILE__,__LINE__,$this->category,$GLOBALS["SCHEDULE_ID"]);
+		$filesize=@filesize($filepath);
+		$this->events("InjectFile_accesslog:: Injecting $basename Task:$taskid  ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)",__FUNCTION__,__FILE__,__LINE__,$this->category,$GLOBALS["SCHEDULE_ID"]);
 		
 	
 		if($this->MySQLSyslogType==1){
+			$unix=new unix();
+			if(!$unix->is_socket("/var/run/syslogdb.sock")){
+				$this->events("InjectFile_accesslog: /var/run/syslogdb.sock no such socket...");
+				return false;
+			}
 			
-			$sql = "INSERT INTO `access_store` (`filecontent`) VALUES( LOAD_FILE('$DestinationFile') )";
-				
 		}
-		if($this->MySQLSyslogType==2){
-			$fcontent=mysql_escape_string2(file_get_contents($DestinationFile));
-			$sql = "INSERT INTO `access_store` (`filecontent`) VALUES( '$fcontent' )";
-		}
-	
+		
+		
+		$fcontent=mysql_escape_string2(file_get_contents($filepath));
+		$sql = "INSERT INTO `access_store` (`filecontent`) VALUES( '$fcontent' )";
 		$this->QUERY_SQL($sql);
 		$fcontent=null;
 	
 		if(!$this->ok){
-			@unlink("$DestinationFile");
+			@unlink("$filepath");
 			$this->events("$q->mysql_error, $sql");
-			@unlink($DestinationFile);
+			@unlink($filepath);
 			return false;
 		}
 	
@@ -1329,7 +1541,7 @@ class mysql_storelogs{
 			return false;
 		}
 		$this->events("$basenameFF: New ID = $ID");
-		@unlink($DestinationFile);
+		@unlink($filepath);
 		$zmd5=md5("$hostname$basenameFF$taskid$filesize$sourceDate");
 		$sql="INSERT INTO accesslogs (zmd5,filename,hostname,storeid,taskid,filesize,filetime)
 		VALUES ('$zmd5','$basenameFF','$hostname','$ID','$taskid','$filesize','$sourceDate')";
@@ -1360,6 +1572,12 @@ class mysql_storelogs{
 				if($function==null){$function=$trace[1]["function"];}
 				if($line==0){$line=$trace[1]["line"];}
 			}
+			
+			if(isset($trace[0])){
+				$file=basename($trace[0]["file"]);
+				if($function==null){$function=$trace[0]["function"];}
+				if($line==0){$line=$trace[0]["line"];}
+			}
 		}
 		
 		if(!isset($GLOBALS["CLASS_UNIX"])){
@@ -1370,15 +1588,11 @@ class mysql_storelogs{
 
 		if(isset($GLOBALS["CLASS_UNIX"])){
 			if(class_exists("unix")){
-				$GLOBALS["CLASS_UNIX"]->events($text,"/var/log/artica-postfix/logrotate.debug",false,
-						__CLASS__."/$function",$line,$file);
+				$GLOBALS["CLASS_UNIX"]->events($text,"/var/log/artica-postfix/logrotate.debug",false,__CLASS__."/$function",$line,$file);
 			}
 		}
 		
-		
-		rotate_events($text,$function,$file,$line);
-	
-		}
+	}
 		
 	function writelogs($text=null,$function=null,$line=0){
 			$class=__CLASS__;

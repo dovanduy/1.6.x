@@ -55,7 +55,7 @@ function js(){
 function help(){
 	
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=explain>{postfix_regex_man5}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=text-info>{postfix_regex_man5}</div>");
 	
 }
 
@@ -79,30 +79,30 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="rule-reject"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.reject.php?hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.reject.php?hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 	
 		if($num=="SimpleWords"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.regex.php?SimpleWords=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.regex.php?SimpleWords=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="bodies"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=0&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=0&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="mimes"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=2&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=2&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 	
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_multi_config_headersbody$t",980);
+	echo build_artica_tabs($html, "main_multi_config_headersbody$t",1200);
 	
 }
 
@@ -137,8 +137,8 @@ function headers(){
 	$explain=$tpl->_ENGINE_parse_body("{headers_checks_text}");
 	$notify=$tpl->_ENGINE_parse_body("{notify}");
 	$notify_all=$tpl->_ENGINE_parse_body("{notify_all}");
-	
-	
+	$about2=$tpl->_ENGINE_parse_body("{about2}");
+	$apply=$tpl->javascript_parse_text("{apply}");
 	
 	if($_GET["headers-query"]==1){
 		$buttons="
@@ -146,9 +146,11 @@ function headers(){
 		{name: '$newrule', bclass: 'add', onpress : AddRegexRule},
 		{name: '$import_headers_regex', bclass: 'add', onpress : import_headers_regex},
 		{name: '$notify_all', bclass: 'eMail', onpress : NotifyAll},
+		{name: '$apply', bclass: 'apply', onpress : Apply$t},
 		{name: '$delete_allB', bclass: 'Delz', onpress : PostfixRegexDelAll},
+		
 		],";
-		$explain=$tpl->_ENGINE_parse_body("{headers_checks_text}");
+		$explain=$tpl->javascript_parse_text("{headers_checks_text}");
 
 	}
 	if($_GET["headers-query"]==0){
@@ -157,9 +159,11 @@ function headers(){
 		{name: '$newrule', bclass: 'add', onpress : AddRegexRule},
 		{name: '$import_headers_regex', bclass: 'add', onpress : import_bodies_regex},
 		{name: '$notify_all', bclass: 'eMail', onpress : NotifyAll},
+		{name: '$apply', bclass: 'apply', onpress : Apply$t},
 		{name: '$delete_allB', bclass: 'Delz', onpress : PostfixRegexDelAll},
+		
 		],";
-		$explain=$tpl->_ENGINE_parse_body("{body_checks_text}");
+		$explain=$tpl->javascript_parse_text("{body_checks_text}");
 
 	}		
 	if($_GET["headers-query"]==2){
@@ -168,16 +172,17 @@ function headers(){
 		{name: '$newrule', bclass: 'add', onpress : AddRegexRule},
 		{name: '$import_headers_regex', bclass: 'add', onpress : import_mime_regex},
 		{name: '$notify_all', bclass: 'eMail', onpress : NotifyAll},
+		{name: '$apply', bclass: 'apply', onpress : Apply$t},
 		{name: '$delete_allB', bclass: 'Delz', onpress : PostfixRegexDelAll},
+		
 		],";
-		$explain=$tpl->_ENGINE_parse_body("{mime_header_checks_text}");
+		$explain=$tpl->javascript_parse_text("{mime_header_checks_text}");
 		
 
 	}		
 	
-if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
+
 $html="
-$explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -190,10 +195,10 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: '$pattern', name : 'pattern', width :353, sortable : true, align: 'left'},
 		{display: '$flags', name : 'flags', width :219, sortable : true, align: 'left'},
-		{display: '$action', name : 'action', width : 62, sortable : true, align: 'center'},
-		{display: '$notify', name : 'xNOTIFY', width : 40, sortable : true, align: 'center'},
-		{display: '$enable', name : 'enabled', width : 40, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 46, sortable : false, align: 'left'},
+		{display: '$action', name : 'action', width : 143, sortable : true, align: 'center'},
+		{display: '$notify', name : 'xNOTIFY', width : 90, sortable : true, align: 'center'},
+		{display: '$enable', name : 'enabled', width : 90, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 90, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -204,7 +209,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<strong style=font-size:18px>$explain</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -216,30 +221,36 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
-	function AddRegexRule(){
-		PostfixRegexAdd(-1,'$hostname');
+function About$t(){
+	alert('$explain');
+}
+
+function AddRegexRule(){
+	PostfixRegexAdd(-1,'$hostname');
+}
+
+function Apply$t(){
+	Loadjs('postfix.headers-body-checks.progress.php?hostname=$hostname');
+}
 	
-	}
+var x_PostfixRegexDelAll= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+	$('#flexRT$t').flexReload();
+}
 	
-	var x_PostfixRegexDelAll= function (obj) {
-		var res=obj.responseText;
-		if (res.length>3){alert(res);}
+function PostFixRegexRefreshTableau(){
 		$('#flexRT$t').flexReload();
-	}
+}
 	
-	function PostFixRegexRefreshTableau(){
-		$('#flexRT$t').flexReload();
-	}
-	
-	function NotifyAll(){
-			var XHR = new XHRConnection();
-			XHR.appendData('NOTIFY_ALL',{$_GET["headers-query"]});
-			XHR.appendData('hostname','$hostname');
-			XHR.appendData('ou','{$_GET["ou"]}');
-			AnimateDiv('postfix-headers-list');
-			XHR.sendAndLoad('$page', 'POST',x_PostfixRegexDelAll);		
-	
-	}
+function NotifyAll(){
+	var XHR = new XHRConnection();
+	XHR.appendData('NOTIFY_ALL',{$_GET["headers-query"]});
+	XHR.appendData('hostname','$hostname');
+	XHR.appendData('ou','{$_GET["ou"]}');
+	AnimateDiv('postfix-headers-list');
+	XHR.sendAndLoad('$page', 'POST',x_PostfixRegexDelAll);		
+}
 
 
 	function PostfixRegexDelAll(){
@@ -284,7 +295,7 @@ $('#flexRT$t').flexigrid({
 	}
 	
 	function PostfixRegexAdd(ID){
-		YahooWin6('600','$page?ID='+ID+'&hostname=$hostname&ou={$_GET["ou"]}&header-query={$_GET["headers-query"]}','$rule_text::'+ID+'::$hostname');
+		YahooWin6('850','$page?ID='+ID+'&hostname=$hostname&ou={$_GET["ou"]}&header-query={$_GET["headers-query"]}','$rule_text::'+ID+'::$hostname');
 	}	
 	
 	function import_headers_regex(){
@@ -383,7 +394,7 @@ $tpl=new templates();
 	if(!$q->ok){json_error_show($q->mysql_error);}	
 	
 	if(mysql_num_rows($results)==0){json_error_show("No data");}
-	
+	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5($ligne["ID"]);
 		$select="PostfixRegexAdd('{$ligne["ID"]}')";
@@ -400,9 +411,10 @@ $tpl=new templates();
 		$ligne["pattern"]=str_replace("'", "`", $ligne["pattern"]);
 		if(strlen($ligne["pattern"])>50){$ligne["pattern"]=substr($ligne["pattern"],0,45)."...";}
 		if(strlen($ligne["flags"])>30){$ligne["flags"]=substr($ligne["flags"],0,25)."...";}
-		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$select\" style='font-size:13px;text-decoration:underline;font-family:monospace;font-weight:bold;color:$color'>";	
+		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$select\" 
+		style='font-size:18px;text-decoration:underline;font-family:monospace;font-weight:bold;color:$color'>";	
 		
-		
+		$c++;
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array("$href{$ligne["pattern"]}</a>"
@@ -413,14 +425,9 @@ $tpl=new templates();
 		,$delete )
 		);
 	}
-	
+	if($c==0){json_error_show("No data");}
 	
 echo json_encode($data);		
-	
-	
-	
-	
-	
 }
 
 	
@@ -461,17 +468,17 @@ function regex_rule(){
 	<table style='width:99%' class=form>
 	</tbody>
 	<tr>
-		<td class=legend style='font-size:14px'>{format}:</td>
-		<td>". Field_array_Hash($format, "pcre",$ligne["pcre"],null,null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:22px'>{format}:</td>
+		<td>". Field_array_Hash($format, "pcre",$ligne["pcre"],null,null,0,"font-size:22px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{action}:</td>
-		<td>". Field_array_Hash($action, "postfixregexaction",$ligne["action"],"RegexExplainAction()",null,0,"font-size:14px;font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;")."</td>
+		<td class=legend style='font-size:22px'>{action}:</td>
+		<td>". Field_array_Hash($action, "postfixregexaction",$ligne["action"],"RegexExplainAction()",null,0,"font-size:22px;font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;")."</td>
 	</tr>		
 	<tr>
 		<td colspan=2>
 		
-		<textarea id='pattern' style='font-size:16px;margin-top:10px;margin-bottom:10px;
+		<textarea id='pattern' style='font-size:22px !important;margin-top:10px;margin-bottom:10px;
 		font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;
 		width:100%;height:120px;overflow:auto'>{$ligne["pattern"]}</textarea></td>
 	</tr>
@@ -480,7 +487,7 @@ function regex_rule(){
 		<td colspan=2><div id='postfixregexaction-fill'></div></td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button($buttonname,"SaveRegexPostfixPattern()",16)."</td>
+		<td colspan=2 align='right'><hr>". button($buttonname,"SaveRegexPostfixPattern()",36)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -551,16 +558,16 @@ function regex_rule_action(){
 	if($action=="DUNNO"){$fieldname="{event}:";}
 	if($action=="FILTER"){$fieldname="{service}:";}
 	if($action=="HOLD"){$fieldname="{event}:";}
-	if($action=="IGNORE"){echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:13px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div><input type='hidden' id='flags' value=''>");return;}
+	if($action=="IGNORE"){echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div><input type='hidden' id='flags' value=''>");return;}
 	if($action=="PREPEND"){$fieldname="{PREPEND}:";}
 	if($fieldname==null){$fieldname="{{$action}}:";}
 	
-	$html="<div class=explain style='font-size:13px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div>
+	$html="<div class=text-info style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div>
 	<table style='width:100%'>
 	<tr>
 		<tr>
-		<td class=legend style='font-size:14px'>$fieldname:</td>
-		<td>". Field_text("flags", $ligne["flags"],"font-size:14px;font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;")."</td>
+		<td class=legend style='font-size:22px'>$fieldname:</td>
+		<td>". Field_text("flags", $ligne["flags"],"font-size:22px !important;font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;")."</td>
 	</tr>
 	
 	
@@ -604,8 +611,7 @@ function regex_rule_save(){
 	
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$q->mysql_error";return;}	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_POST["hostname"]}");		
+		
 		
 	
 }
@@ -628,8 +634,7 @@ function mimes_import(){
 	$sql=$prefix.@implode(",", $t);
 	$q->QUERY_SQL($prefix.@implode(",", $t),"artica_backup");
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code>$sql</code>";}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_GET["hostname"]}");		
+	
 	
 	
 }
@@ -661,8 +666,7 @@ $f[]=array("REJECT","<\s*(script\s+language\s*=\"VBScript\.Encode\")","Email wit
 	$sql=$prefix.@implode(",", $t);
 	$q->QUERY_SQL($prefix.@implode(",", $t),"artica_backup");
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code>$sql</code>";}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_GET["hostname"]}");	
+	
 	
 	
 }
@@ -690,10 +694,7 @@ function parse_examples(){
 	$sql=$prefix.@implode(",", $t);
 	$q->QUERY_SQL($prefix.@implode(",", $t),"artica_backup");
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code>$sql</code>";}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_GET["hostname"]}");	
-	
-	
+		
 }
 
 
@@ -726,8 +727,8 @@ function regex_rule_delall(){
 	$q=new mysql();
 	$q->QUERY_SQL("DELETE FROM postfix_regex_checks WHERE hostname='{$_POST["hostname"]}' AND headers={$_POST["DELETE_ALL"]}","artica_backup");
 	if(!$q->ok){echo "$q->mysql_error";return;}	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_POST["hostname"]}");
+	
+	
 	
 }
 function regex_rule_enable(){
@@ -735,7 +736,7 @@ function regex_rule_enable(){
 	$q->QUERY_SQL("UPDATE postfix_regex_checks SET enabled={$_POST["VALUE"]} WHERE hostname='{$_POST["hostname"]}' AND ID={$_POST["ENABLE_ID"]}","artica_backup");
 	if(!$q->ok){echo "$q->mysql_error";return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_POST["hostname"]}");	
+	
 }
 
 function regex_rule_notify(){
@@ -743,7 +744,7 @@ function regex_rule_notify(){
 	$q->QUERY_SQL("UPDATE postfix_regex_checks SET xNOTIFY={$_POST["VALUE"]} WHERE hostname='{$_POST["hostname"]}' AND ID={$_POST["NOTIFY_ID"]}","artica_backup");
 	if(!$q->ok){echo "$q->mysql_error";return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_POST["hostname"]}");	
+	
 }
 
 function regex_rule_del(){
@@ -751,5 +752,5 @@ function regex_rule_del(){
 	$q->QUERY_SQL("DELETE FROM postfix_regex_checks WHERE ID={$_POST["DELETE_ID"]}","artica_backup");
 	if(!$q->ok){echo "$q->mysql_error";return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-mime-header-checks=yes&hostname={$_POST["hostname"]}");	
+	
 }

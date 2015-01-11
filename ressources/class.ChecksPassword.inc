@@ -4,7 +4,7 @@
 function AskPasswordAuth($title){
 	
 	$tpl=new templates();
-	$events=$tpl->_ENGINE_parse_body($title);
+	$title=$tpl->_ENGINE_parse_body($title);
 	
 	if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		header('WWW-Authenticate: Basic realm="'.$title.'"');

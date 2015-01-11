@@ -1856,7 +1856,7 @@ This option is usefull if you want to switch from PowerDNS to DNSMasq or the opp
 <APP_SQUIDKERAUTH>Squid kerberos Authentication</APP_SQUIDKERAUTH>
 <APP_SAMBAKERAUTH>Samba kerberos Authentication</APP_SAMBAKERAUTH>
 <APP_SQUIDKERAUTH_TEXT>Squid kerberos Autentication allow to integrate squid authentication with a Microsoft Active Directory server 2003/2008</APP_SQUIDKERAUTH_TEXT>
-<APP_SQUIDKERAUTH_TEXT_REF>Your Windows user must be a member of the "SQUID_USERS" group in Active Directory.[br]
+<APP_SQUIDKERAUTH_TEXT_REF>
 Both Windows machines should be able to ping the Linux server by name (and vice versa), and you may need to run "ipconfig /flushdns" at times.[br]
 A reboot may help too, if you want to be really sure there's no cruft hanging around.[br]
 For Windows 2008 server you need to install [b]Hotfix 951191[/b].
@@ -2608,7 +2608,7 @@ Check the list below and click on each row in order to display Network interface
 <move_category_explain>Select the category in order to move this website from old category to a new category</move_category_explain>
 <webiste_notfound_additask>This website is not found in database, do you want to categorize it ?</webiste_notfound_additask>
 <rejected>rejected</rejected>
-<APP_MYSQL1>Mysql service</APP_MYSQL1>
+<APP_MYSQL1>MySQL service</APP_MYSQL1>
 <acls_no_such_dir_text>This directory does not exists on your system.[br]Perhaps you have remove it.[br]I suggest to remove this entry..</acls_no_such_dir_text>
 <samba_admin_users_explain>This is a list of users who will be granted administrative privileges on the share.[br]
 This means that they will do all file operations as the super-user (root).[br]
@@ -2982,7 +2982,7 @@ Carry out this task ?
 <phrase_topwebsize_bysize>TOP websites by size</phrase_topwebsize_bysize>
 <phrase_your_users_categories>Usually,your users browse websites in these categories: UXCATZ.[br]The main category group was CATZGRP.</phrase_your_users_categories>
 <categories_inside_group_XGRPTLE>Visited categories inside XGRPTLE group</categories_inside_group_XGRPTLE>
-<categories>categories</categories>
+<categories>Categories</categories>
 <user_most_active>Most active users</user_most_active>
 <phrase_most_day_activeday>was the most active day</phrase_most_day_activeday>
 <phrase_thisisthegraph1>This is the graph about all hits by day</phrase_thisisthegraph1>

@@ -4,7 +4,8 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(isset($_GET["restart-winbind-tenir"])){restart_winbind_tenir();exit;}
-
+if(isset($_GET["sshd-progress"])){sshd_progress();exit;}
+if(isset($_GET["restart-webconsole-scheduled"])){restart_webconsole_scheduled();exit;}
 if(isset($_GET["apply-routes"])){restart_routes();exit;}
 if(isset($_GET["restart-network"])){restart_network();exit;}
 if(isset($_GET["netstart-log"])){netstart_log();exit;}
@@ -31,6 +32,7 @@ if(isset($_GET["squidlogs-oldlogs-logs-nas"])){squidoldlogs_logs_nas();exit;}
 if(isset($_GET["reload-sshd"])){reload_sshd();exit;}
 if(isset($_GET["locales-gen"])){locales_gen();exit;}
 if(isset($_GET["locales-gen-running"])){locales_gen_running();exit;}
+if(isset($_GET["locales-gen-progress"])){locales_gen_progress();exit;}
 
 
 
@@ -47,6 +49,7 @@ if(isset($_GET["restart-winbindd"])){restart_winbindd();exit;}
 if(isset($_GET["changeRootPasswd"])){changeRootPasswd();exit;}
 if(isset($_GET["process1"])){process1();exit;}
 if(isset($_GET["mysql-status"])){mysql_status();exit;}
+if(isset($_GET["openldap-status"])){openldap_status();exit;}
 if(isset($_GET["vmtools-status"])){vmtools_status();exit;}
 if(isset($_GET["vmwaretoolspath"])){vmwaretoolspath();exit;}
 if(isset($_GET["fetchmail-monit"])){fetchmail_monit();exit;}
@@ -231,10 +234,24 @@ function arkeia_status(){
 	exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --arkeia --nowachdog",$results);
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";		
 }
+function openldap_status(){
+	$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --openldap --nowachdog";
+	exec($cmd,$results);
+	writelogs_framework("$cmd items:" .@count($results),__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
+	
+}
+
+
 function system_defrag(){
 	$unix=new unix();
 	$shutdown=$unix->find_program("shutdown");
-	shell_exec("$shutdown -rF now");
+	
+	exec("$shutdown -rF now 2>&1",$results);
+	writelogs_framework("$shutdown -rF now",__FUNCTION__,__FILE__,__LINE__);
+	while (list ($num, $val) = each ($results) ){
+		writelogs_framework("$val",__FUNCTION__,__FILE__,__LINE__);
+	}
 	
 }
 
@@ -459,7 +476,8 @@ function restart_mysql_emergency(){
 	$nohup=$unix->find_program("nohup");
 	@unlink($filetime);
 	@file_put_contents($filetime, time());	
-	$cmd="$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &";
+	mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+	$cmd="$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 		
@@ -665,7 +683,8 @@ function restart_mysql(){
 	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.mysql.build.php --build >/dev/null 2>&1");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
-	$cmd=trim("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+	mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+	$cmd=trim("$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
 	
@@ -867,47 +886,22 @@ function restart_lighttpd(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
 
-function changeRootPasswd(){
-	
-	if(!is_file("/etc/artica-postfix/shadow.bak")){
-		@copy("/etc/shadow", "/etc/artica-postfix/shadow.bak");
-	}
-	
-	$t=array();
-	$f=explode("\n",@file_get_contents("/etc/shadow"));
-	while (list($num,$val)=each($f)){
-		if(trim($val)==null){continue;}
-		if(preg_match("#^root:(.*?):.*?:#", $val,$re)){
-			writelogs_framework("remove `{$re[1]}` in  the line `$val`",__FUNCTION__,__FILE__,__LINE__);
-			$val=str_replace($re[1], "", $val);
-			
-		}
-		
-		$t[]=$val;
-		
-	}
-	
-	@file_put_contents("/etc/shadow", @implode("\n", $t));
-	
-	
+function restart_webconsole_scheduled(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$php /usr/share/artica-postfix/exec.pam.php --build >/dev/null 2>&1");
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --artica-web");
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup /etc/init.d/artica-webconsole restart-paused >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	
-	$echo=$unix->find_program("echo");
-	$passwd=base64_decode($_GET["pass"]);
-	$chpasswd=$unix->find_program("chpasswd");
-	$passwd=$unix->shellEscapeChars($passwd);
-	$passwd=str_replace("$", "\$", $passwd);
-	$cmd="$echo \"root:$passwd\" | $chpasswd 2>&1";
-	exec("$cmd",$results);
-	writelogs_framework("$cmd " .count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
 	
-	while (list ($num, $line) = each ($results)){writelogs_framework("$line",__FUNCTION__,__FILE__,__LINE__);}
-	reset($results);
-	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+
+function changeRootPasswd(){
+	$unix=new unix();
+	$passwd=base64_decode($_GET["pass"]);
+	echo "<articadatascgi>".$unix->ChangeRootPassword($passwd)."</articadatascgi>";
+
 	
 	
 }
@@ -986,7 +980,8 @@ function mysqld_perso_save(){
 	@file_put_contents("/etc/artica-postfix/my.cnf.mysqld", trim($datas));
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup /etc/init.d/mysql restart >/dev/null 2>&1 &");
+	mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
+	$cmd=trim("$nohup /etc/init.d/mysql restart --framework=".__FILE__." >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);			
 	
@@ -1226,6 +1221,8 @@ function dhcpd_conf(){
 function KERNEL_CONFIG(){
 	$unix=new unix();
 	$array=$unix->KERNEL_CONFIG();
+	writelogs_framework(count($array)." Items",__FUNCTION__,__FILE__,__LINE__);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/KERNEL_CONFIG", serialize($array));
 	echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
 }
 function events_cicap(){
@@ -1233,10 +1230,10 @@ function events_cicap(){
 	$syslog=$unix->LOCATE_SYSLOG_PATH();
 	$grep=$unix->find_program("grep");
 	$tail=$unix->find_program("tail");
-	$cmd="$grep \"c-icap:\" $syslog 2>&1|$tail -n 500 2>&1";
-	exec("$cmd",$results);
+	$cmd="$grep -i \"c-icap:\" $syslog 2>&1|$tail -n 500 >/usr/share/artica-postfix/ressources/logs/web/cicap.events 2>&1";
+	shell_exec("$cmd");
 	writelogs_framework("$cmd = ". count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
-	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	
 }
 function artica_cron_tasks(){
 	$systemcmd="/usr/share/artica-postfix/bin/fcrontab -u root -l -c /etc/artica-cron/artica-cron.conf 2>&1";
@@ -1549,6 +1546,7 @@ function test_sendmail(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$key=$_GET["test-send-email"];	
+	@unlink("/usr/share/artica-postfix/ressources/logs/$Key.log");
 	$cmd="$php5 /usr/share/artica-postfix/exec.smtp-sendtests.php --send $key";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
@@ -1900,6 +1898,7 @@ function GetMyHostId(){
 }
 function realMemory(){
 	$hash_mem=array();
+	@chmod("/usr/share/artica-postfix/ressources/mem.pl",0755);
 	$datas=shell_exec("/usr/share/artica-postfix/ressources/mem.pl");
 	if(preg_match('#T=([0-9]+) U=([0-9]+)#',$datas,$re)){
 		$ram_total=$re[1];
@@ -2111,6 +2110,37 @@ function automation_script(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
+function sshd_progress(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/sshd.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/sshd.log";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], "\n");
+	@file_put_contents($GLOBALS["LOGSFILES"], "\n");
+	@chmod($GLOBALS["PROGRESS_FILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.sshd.php --progress >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function locales_gen_progress(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/locales.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/locales.log";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], "\n");
+	@file_put_contents($GLOBALS["LOGSFILES"], "\n");
+	@chmod($GLOBALS["PROGRESS_FILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);	
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.locale.gen.php --progress >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+
 function locales_gen(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");

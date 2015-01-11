@@ -117,7 +117,7 @@ function popup(){
 	if(isset($_GET["OnlyRoutes"])){$OnlyRoutes="&OnlyRoutes=yes";}
 	$title=$tpl->_ENGINE_parse_body("{PLEASE_WAIT_COMPILING_FIREWALL_SCRIPT}");
 	$html="
-	<center style='font-size:16px;margin:10px'><div id='title-$t'>$title</div></center>
+	<center style='font-size:22px;margin:10px'><div id='title-$t'>$title</div></center>
 	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;' id='functi-restart-$t'>
 	</div>
 	
@@ -177,18 +177,24 @@ function procedure3(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{firewall_script_builded}");
 	$button=$tpl->_ENGINE_parse_body("{apply_firewall_rules}");
-	
+	$button2=$tpl->_ENGINE_parse_body("{only_for_a_period}");
+	$button2JS=$tpl->javascript_parse_text("{only_for_a_period}");
+	$validity_period=$tpl->javascript_parse_text("{fw_period_explain}");
 	if(isset($_GET["OnlyRoutes"])){
 		$button=$tpl->_ENGINE_parse_body("{build_routes}");
 		$OnlyRoutes="&OnlyRoutes=yes";
+		$button2=null;
 	}
 	$sock=new sockets();
 	$datas=base64_decode($sock->getFrameWork("network.php?firewall-content=yes"));
 	
 	$html= "
 	<div id='procedure4-$t'>
-	<div class=explain style='font-size:16px'>{init_script_firewall_explain}</div>
+	<input type=hidden id='validity-period$t' value='0'>
+	<div class=text-info style='font-size:16px'>{init_script_firewall_explain}</div>
+	<center>". button($button2,"ApplyNetWorkPeriod$t()",18)."</center>
 	<center><hr style='border:1px solid'>". button($button,"ApplyNetWorkFinal$t()",22)."</center>
+	
 	
 		<textarea style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
@@ -200,9 +206,20 @@ function procedure3(){
 		if(document.getElementById('title-$t')){
 			document.getElementById('title-$t').innerHTML='$title';
 		}
+		
+	function ApplyNetWorkPeriod$t(){
+		
+		var period=prompt('$validity_period','10s');
+		if(period){ 
+			document.getElementById('validity-period$t').value=period;
+			var title=document.getElementById('title-$t').innerHTML;
+				document.getElementById('title-$t').innerHTML='<span style=color:red>'+title+'( $button2JS '+ period +' )</span>';
+			}
+	}
 	
 	function ApplyNetWorkFinal$t(){
-		LoadAjax('procedure4-$t','$page?ApplyNetWorkFinal=yes&t=$t$OnlyRoutes');
+		var period=document.getElementById('validity-period$t').value;
+		LoadAjax('procedure4-$t','$page?ApplyNetWorkFinal=yes&t=$t$OnlyRoutes&period='+period);
 	}
 		
 		
@@ -305,7 +322,7 @@ function ApplyNetWorkFinal(){
 	$sock=new sockets();
 	
 	
-	$sock->getFrameWork("network.php?firewall-apply=yes");
+	$sock->getFrameWork("network.php?firewall-apply=yes&period={$_GET["period"]}");
 	
 }
 function ApplyNetWorkFinal_tests(){

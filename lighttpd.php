@@ -19,7 +19,7 @@ function page(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=explain style='font-size:14px'>{ligghtpd_perf_howto}</div>
+	<div class=text-info style='font-size:14px'>{ligghtpd_perf_howto}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td style='width:50%' valign='top'>

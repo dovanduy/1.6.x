@@ -251,7 +251,7 @@ function popup() {
 	<tr>
 		<td valign='top' width=1%><div id='openemm-status'></div></td>
 		<td valign='top' width=100%>
-			<div class=explain>{OPENEMM_ABOUT}</div>
+			<div class=text-info>{OPENEMM_ABOUT}</div>
 			<table class=form>
 			<tr>
 				<td style='font-size:14px' class=legend><strong>{web_console}:</strong>

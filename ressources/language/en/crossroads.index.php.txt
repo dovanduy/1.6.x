@@ -24,7 +24,7 @@ In this case, This server will serve SMTP connections and balance them to slaves
 <replicate_suffix>Replacted LDAP Branch</replicate_suffix>
 <replicate_suffix_text>This LDAP branch will be replicated by slaves servers</replicate_suffix_text>
 <slaves_servers>Slaves servers</slaves_servers>
-<synchronize>Synchronize slaves</synchronize>
+<synchronize>Synchronize</synchronize>
 <synchronize_text>Click on this image to send order to slaves to enable the replication mode</synchronize_text>
 <warning_all_ldap_deleted>Master's LDAP Database [b]will erase remote LDAP databases[/b].[br]
 Be sure that yours slaves servers does not store any production datas[br]Usually, slaves has been fresh installed</warning_all_ldap_deleted>

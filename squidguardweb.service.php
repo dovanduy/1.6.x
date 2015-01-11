@@ -22,7 +22,7 @@ function service_cmds_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$cmd=$_GET["service-cmds"];
-	$mailman=$tpl->_ENGINE_parse_body("{APP_SQUIDGUARD_HTTP}");
+	$mailman=$tpl->javascript_parse_text("{APP_SQUIDGUARD_HTTP}");
 	$html="YahooWin4('650','$page?service-cmds-peform=$cmd&MyCURLTIMEOUT=120','$mailman::$cmd');";
 	echo $html;
 }
@@ -78,24 +78,6 @@ function page(){
 	$ini=new Bs_IniHandler();
 	$ini->loadString(base64_decode($sock->getFrameWork('squidguardweb.php?status=yes')));
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null);	
-	
-	$html="<table style='width:99%' class=form>
-	<tr>
-	<td>$APP_SQUIDGUARD_HTTP
-	<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
-	<table style='width:30%'>
-		<tbody>
-			<tr>
-				<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-				<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-				<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-			</tr>
-		</tbody>
-	</table>
-	</center>
-	</td>
-	</tr>
-	</table>
-	<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_squidguardweb_error_pages');")."</div>";
-	echo $tpl->_ENGINE_parse_body($html);	
+	echo $tpl->_ENGINE_parse_body($APP_SQUIDGUARD_HTTP);
+		
 }

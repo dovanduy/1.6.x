@@ -361,7 +361,7 @@ function status_client(){
 	
 	echo $tpl->_ENGINE_parse_body("
 			<H3>{mysql_engine}: {client} $username@$mysqlserver:$ListenPort</h3>
-			<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>");
+			<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>");
 	
 	$t=time();
 	$q=new mysql_storelogs();
@@ -528,8 +528,8 @@ function engine_params(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	
+	
 	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
@@ -541,8 +541,7 @@ function engine_params(){
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
 	
 	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
-	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	
 	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
@@ -566,7 +565,7 @@ function engine_params(){
 	$boot->set_field("LogsRotateDeleteSize", "{delete_if_file_exceed} (MB)", $LogsRotateDeleteSize);
 	$boot->set_field("LogsRotateDefaultSizeRotation", "{default_size_for_rotation} (MB)", $LogsRotateDefaultSizeRotation);
 	$boot->set_field("SystemLogsPath", "{system_logs_path}", $SystemLogsPath,array("BROWSE"=>true));
-	$boot->set_checkbox("LogRotateCompress", "{compress_files}", $LogRotateCompress);
+	
 	$boot->set_spacertitle("{storage}");
 	if($MySQLSyslogType==1){
 		$boot->set_field("storage_files_path", "{storage_files_path}", $LogRotatePath,array("BROWSE"=>true,"TOOLTIP"=>"{LogRotatePath_explain}"));

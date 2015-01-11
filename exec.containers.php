@@ -164,7 +164,7 @@ function build(){
 	if(system_is_overloaded()){$unix->THREAD_COMMAND_SET("$php ".__FILE__." --build");return;}
 	
 	patch_grub_default();
-	
+	$sock=new sockets();
 	$q=new mysql();
 	$sql="SELECT * FROM users_containers WHERE created=0 AND onerror=0";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -173,7 +173,7 @@ function build(){
 	
 	
 	echo "Starting......: ".date("H:i:s")." $count containers to build\n";
-	
+	if($count>0){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$directory=trim($ligne["directory"]);
 		$ID=$ligne["container_id"];
@@ -222,7 +222,7 @@ function build(){
 			}
 		}
 		
-		
+	
 		echo "Starting......: ".date("H:i:s")." $ContainerFullPath loop={$GetLoops[$ContainerFullPath]}\n";
 		$sql="UPDATE users_containers SET loop_dev='{$GetLoops[$ContainerFullPath]}' WHERE `container_id`='$ID'";
 		$q->QUERY_SQL($sql,'artica_backup');
@@ -243,6 +243,7 @@ function build(){
 		$q->QUERY_SQL("UPDATE users_containers SET uuid='$uuid' WHERE `container_id`='$ID'",'artica_backup');
 		if($uuid==null){continue;}
 		$q->QUERY_SQL("UPDATE users_containers SET created='1' WHERE `container_id`='$ID'",'artica_backup');
+	}
 	}
 	
 	@mkdir("/media/artica_containers/membersdisks",0755,true);
@@ -279,9 +280,14 @@ function build(){
 	
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.freewebs.php --build");
+	
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
 	shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --iscsi");
-	$unix->THREAD_COMMAND_SET("/etc/init.d/iscsitarget restart");
+	if(is_file("/etc/init.d/iscsitarget")){
+		$unix->THREAD_COMMAND_SET("/etc/init.d/iscsitarget restart");
+	}
 	Checks(true);
 	
 }

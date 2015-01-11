@@ -3,7 +3,8 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
-
+if(isset($_GET["compile-category"])){compile_category();exit;}
+if(isset($_GET["getversion"])){getversion();exit;}
 if(isset($_GET["db-size"])){db_size();exit;}
 if(isset($_GET["recompile"])){recompile();exit;}
 if(isset($_GET["recompile-all"])){recompile_all();exit;}
@@ -26,6 +27,15 @@ writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f
 die();
 
 
+function getversion(){
+	$unix=new unix();
+	$ufdbguardd=$unix->find_program("ufdbguardd");
+	exec("$ufdbguardd -v 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("#ufdbguardd:\s+([0-9\.]+)#", $line,$re)){echo "<articadatascgi>{$re[1]}</articadatascgi>";return;}
+	}	
+}
+
 function db_size(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -38,6 +48,27 @@ function recompile(){
 	@file_put_contents("/etc/artica-postfix/ufdbguard.recompile-queue/".md5($db)."db",$db);
 	
 }
+function compile_category(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/ufdbguard.compile.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/ufdbguard.compile.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category {$_GET["category"]} --ouptut >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	
+	
+
+}
+
 
 function recompile_all(){
 	$unix=new unix();

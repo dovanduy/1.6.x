@@ -325,7 +325,7 @@ function rebuildcaches(){
 	ouputz("Stopping squid, please wait...",__LINE__);
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	squid_admin_notifs("Asking to Stop Squid for rebuilding caches\n".@implode("\n", $GLOBALS["LOGS"])."\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");	
-	shell_exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --stop --script=".basename(__FILE__));
+	shell_exec("/etc/init.d/squid stop --force --script=".basename(__FILE__));
 	
 
 	

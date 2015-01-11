@@ -46,7 +46,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<div class=explain style='font-size:14px'>{EnableYoutubeForSchoolsExplain}
+	<div class=text-info style='font-size:14px'>{EnableYoutubeForSchoolsExplain}
 	<hr>
 		<div style='width:100%;text-align:right'>
 		<a href=\"javascript:blur();\" OnClick=\"javascript:s_PopUp('http://proxy-appliance.org/index.php/artica-for-proxy-appliance/proxy-rule-and-web-filtering/using-the-web-filter-engine/using-youtube-for-schools-inside-your-proxy-appliance/',1024,900);\"

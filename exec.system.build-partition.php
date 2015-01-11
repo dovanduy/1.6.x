@@ -10,6 +10,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 
 if($argv[1]=="--unlink"){disk_unlink($argv[2]);die();}
 if($argv[1]=="--full"){disk_build_unique_partition($argv[2],$argv[3],$argv[4]);die();}
+if($argv[1]=="--1part"){FindFirstPartition($argv[2]);die();}
 
 
 
@@ -101,7 +102,27 @@ function disk_remove_fstab($dev=null){
 }
 
 
+
+
+function build_progress($text,$pourc){
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/system.partition.progress";
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "******************** {$pourc}% $text ********************\n";}
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
+
 function disk_build_unique_partition($dev,$label,$fs_type=null){
+	$filelogs="/usr/share/artica-postfix/ressources/logs/web/system.partition.txt";
+	$GLOBALS["FILELOG"]=$filelogs;
+
 	
 	
 	$unix=new unix();
@@ -109,26 +130,45 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
 		events("Already PID $pid exists, aborting...");
+		build_progress("Already PID $pid exists, aborting",110);
 		return;
 	}
+	
+	build_progress("{checking}",5);
+	events("***********************************");
+	events("Dev.........: $dev");
+	events("Label.......: $label");
+	events("FileSystem..: $fs_type");
 	
 	
 	$mount=$unix->find_program("mount");
-	$filelogs="/usr/share/artica-postfix/ressources/logs/web/".md5($dev);
-	$GLOBALS["FILELOG"]=$filelogs;
+	
 	$disk_label=str_replace(" ", "_", $label);
 	$targetMountPoint=$unix->isDirInFsTab("/media/$disk_label");
+	events("Target Mount.: $targetMountPoint");
+	build_progress("Target Mount point = $targetMountPoint",10);
+	
+	events("***********************************");
+	
 	if($targetMountPoint<>null){
 		events("/media/$disk_label already set in fstab!! remove entry in fstab first...");
 		events("Mounting the new media");
+		build_progress("Mounting the new media = /media/$disk_label",15);
 		$cmd="$mount /media/$disk_label 2>&1";	
 		$results=array();
 		exec($cmd,$results);
-		while (list ($num, $val) = each ($results) ){events($val);}			
+		while (list ($num, $val) = each ($results) ){events($val);}		
+		build_progress("{success}",100);
 		return;
 	}
 	$tmpfile=$unix->FILE_TEMP();
+	build_progress("Creating disk configuration",20);
+	events("Writing to $tmpfile");
 	@file_put_contents($tmpfile, ",,L\n");
+	if(!is_file($tmpfile)){
+		build_progress("Creating disk configuration $tmpfile {failed}",110);
+		return;
+	}
 	
 	events("Cleaning $dev..., please wait...");
 	$dd=$unix->find_program("dd");
@@ -161,29 +201,38 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 	}
 		
 
-	
+	build_progress("Cleaning $dev..., {please_wait}",30);
 	events("Cleaning $dev..., please wait...");
 	$cmd="$sfdisk -f $dev <$tmpfile 2>&1";
 	
 	events($cmd);
 	$results=array();
 	exec($cmd,$results);
-	while (list ($num, $val) = each ($results) ){events($val);}	
+	while (list ($num, $val) = each ($results) ){
+		events($val);
+	}
+
 	
+	$FindFirstPartition=FindFirstPartition($dev);
+	events("First partition = `$FindFirstPartition`");
+	build_progress("First partition $FindFirstPartition",50);
 	
-	$cmd="$dd if=/dev/zero of=$dev bs=512 count=1 2>&1";
+	if($FindFirstPartition==null){
+		build_progress("Find first partition failed",110);
+		events("First partition = FAILED");
+		return;
+	}	
+	
+	build_progress("Building $FindFirstPartition..., {please_wait}",40);
+	$cmd="$dd if=/dev/zero of=$FindFirstPartition bs=512 count=1 2>&1";
 	events($cmd);
 	$results=array();
 	exec($cmd,$results);
 	while (list ($num, $val) = each ($results) ){events($val);}	
 
-	$FindFirstPartition=FindFirstPartition($dev);
-	events("First partition = `$FindFirstPartition`");
-	if($FindFirstPartition==null){
-		events("First partition = FAILED");
-		return;
-	}
+
 	
+	build_progress("Formating $FindFirstPartition",60);
 	$cmd="$mkfs $FindFirstPartition 2>&1";
 	events("Formatting  $FindFirstPartition, please wait....");
 	events($cmd);
@@ -192,6 +241,7 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 	while (list ($num, $val) = each ($results) ){events($val);}
 
 	if($e2label_EX){
+		build_progress("Set label to $disk_label",70);
 		events("Set label to $disk_label");
 		$cmd="$e2label $FindFirstPartition $disk_label 2>&1";
 		events($cmd);
@@ -200,14 +250,24 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 		while (list ($num, $val) = each ($results) ){events($val);}
 	}
 
+	build_progress("Change fstab $FindFirstPartition to /media/$disk_label",80);
 	events("Change fstab to include new media $FindFirstPartition to /media/$disk_label");
 	disk_change_fstab($FindFirstPartition,$extV,"/media/$disk_label");
+	
+	build_progress("Mounting the new media",90);
 	events("Mounting the new media");
 	$cmd="$mount $FindFirstPartition 2>&1";
 	events($cmd);
 	$results=array();
 	exec($cmd,$results);
 	while (list ($num, $val) = each ($results) ){events($val);}
+	
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	build_progress("Rebuild caches",95);
+	shell_exec("$php /usr/share/artica-postfix/exec.usb.scan.write.php");
+	
+	build_progress("{success}",100);
 	events("done...");	
 	
 }
@@ -215,11 +275,17 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 function FindFirstPartition($dev){
 	$unix=new unix();
 	$fdisk=$unix->find_program("fdisk");
-	exec("$fdisk -l $dev 2>&1",$results);
+	$cmd="$fdisk -l $dev 2>&1";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	exec($cmd,$results);
 	while (list ($num, $val) = each ($results) ){
-		if(preg_match("#^(.+?)\s+1.*?Linux#", $val,$re)){
-			return $re[1];
+		if(!preg_match("#^(.+?)\s+1.*?Linux#", $val,$re)){
+			if($GLOBALS["VERBOSE"]){echo "'$val' NO MATCH #^(.+?)\s+1.*?Linux#\n";}
+			continue;
 		}
+		if($GLOBALS["VERBOSE"]){echo "'$val' MATCH #^(.+?)\s+1.*?Linux# -> {$re[1]}\n";}
+		return $re[1];
+		
 		
 	}
 	
@@ -236,7 +302,7 @@ function disk_change_fstab($dev,$ext,$target){
 	$UUID=$array[$dev]["UUID"];
 	
 	$optionsZ["ext3"]="defaults,relatime,errors=remount-ro";	
-	$optionsZ["ext4"]="defaults,rw,noatime,data=writeback,barrier=0,commit=100,nobh,errors=remount-ro";	
+	$optionsZ["ext4"]="defaults,rw,noatime,async,data=writeback,barrier=0,commit=100,nobh,errors=remount-ro";	
 	$optionsZ["reiserfs"]="defaults,notail,noatime,user_xattr,acl,barrier=none";
 	$optionsZ["btrfs"]="defaults,noatime";
 	$optionsZ["xfs"]="defaults,noatime,nodiratime,nosuid,nodev,allocsize=64m,quota";

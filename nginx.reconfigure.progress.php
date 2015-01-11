@@ -99,9 +99,8 @@ if($prc==100){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		LayersTabsAllAfter();
 		RTMMailHide();
-		CacheOff();
+		RefreshTab('main_artica_nginx');
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	

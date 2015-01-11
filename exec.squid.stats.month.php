@@ -24,6 +24,8 @@ include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 $GLOBALS["Q"]=new mysql_squid_builder();
 if($argv[1]=="--cleanall"){CleanAll();exit;}
 if($argv[1]=="--year"){table_year();exit;}
+if($argv[1]=="--current"){Calculate_current_month();exit;}
+
 
 
 
@@ -211,6 +213,42 @@ function events_repair($text){
 	@fclose($h);
 }
 
+function Calculate_current_month(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/exec.squid.stats.month.php.Calculate_current_month.time";
+	if($GLOBALS["VERBOSE"]){echo "time: $timefile\n";}
+	$pid=@file_get_contents($pidfile);
+	
+	if($unix->process_exists($pid,basename(__FILE__))){
+		return;
+		
+	}
+	
+	$timeFile=$unix->file_time_min($timefile);
+	if($timeFile<1440){return;}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	
+	$q=new mysql_squid_builder();
+	$sql="UPDATE tables_day SET year1=0 WHERE YEAR(zDate)=YEAR(NOW()) AND MONTH(zDate)=MONTH(NOW())";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+	
+	$sql="DELETE FROM allsizes WHERE YEAR(zDate)=YEAR(NOW()) AND MONTH(zDate)=MONTH(NOW())";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+		
+	table_year();
+}
+
+function table_month_stamp(){
+	
+	
+	
+}
+
+
 function table_year(){
 	$q=new mysql_squid_builder();
 	if(!$q->FIELD_EXISTS("tables_day", "year1")){$q->QUERY_SQL("ALTER TABLE `tables_day` ADD `year1` TINYINT( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `year1` )");}
@@ -239,7 +277,7 @@ function table_year(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){return;}
 	
-	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y-%m-%d') AS `zDate`,DATE_FORMAT(zDate,'%Y%m%d') AS `prefix` FROM tables_day WHERE year1=0 AND `zDate`< DATE_SUB(NOW(),INTERVAL 2 DAY) ORDER BY zDate";
+	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y-%m-%d') AS `zDate`,DATE_FORMAT(zDate,'%Y%m%d') AS `prefix` FROM tables_day WHERE year1=0 AND `zDate`< DATE_SUB(NOW(),INTERVAL 1 DAY) ORDER BY zDate";
 	
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	if(mysql_num_rows($results)==0){ if($GLOBALS["VERBOSE"]){echo "Return no row...\n";} return;}

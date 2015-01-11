@@ -34,6 +34,7 @@ function schedules(){
 			$count++;
 			unset($f);
 		}	
+		shell_exec("/etc/init.d/cron reload");
 	}
 
 

@@ -38,6 +38,7 @@ function tabs_all(){
 	if($SquidAsMasterLogExtern==0){$AsMaster=false;}
 	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
 	if($SquidAsMasterLogChilds==1){$AsMaster=false;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	$array["events-squidaccess"]='{realtime_requests}';
 	
@@ -45,12 +46,13 @@ function tabs_all(){
 		$array["events-masteraccess"]='{realtime_requests} {master}';
 	
 	}
-	
-	$array["today-squidaccess"]='{today}';
+	if($SquidPerformance<2){
+		$array["today-squidaccess"]='{today}';
+	}
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
 	$array["events-ziproxy"]='{compressor_requests}';
-
+	
 	
 
 	
@@ -96,7 +98,7 @@ function tabs_all(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_squid_logs_tabs")."<script>LeftDesign('logs-white-256-opac20.png');</script>";
+	echo build_artica_tabs($html, "main_squid_logs_tabs",1280)."<script>LeftDesign('logs-white-256-opac20.png');</script>";
 	
 	
 }

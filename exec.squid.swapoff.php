@@ -13,6 +13,21 @@ include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
 start();
 
 
+function ps_mem_report(){
+	$unix=new unix();
+	$python=$unix->find_program("python");
+	$results[]="************* Memory summarize ************************";
+	$results[]="";
+	exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
+	return @implode("\n", $results);
+	$ps=$unix->find_program("ps");
+	$results[]="";
+	$results[]="";
+	$results[]="************* Processes ************************";
+	exec("$ps auxww 2>&1",$results);
+	return @implode("\n", $results);
+}
+
 function start(){
 	
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
@@ -75,6 +90,6 @@ function start(){
 	shell_exec("$swapoff -a && $swapon -a");
 	$usedTXT=FormatBytes($used);
 	$distance=$unix->distanceOfTimeInWords($t,time(),true);
-	squid_admin_mysql(1,"System swap exceed rule: {$perc}%","Used $usedTXT\nSystem cache was flushed took $distance\nThis means you did have enough memory for this computer.");
+	squid_admin_mysql(0,"System swap exceed rule: {$perc}%","Used $usedTXT\nSystem cache was flushed took $distance\nThis means you did have enough memory for this computer.");
 	squid_admin_notifs("Swap exceed rule: {$perc}% $usedTXT\nSystem cache was flushed.", __FUNCTION__, __FILE__, __LINE__, "proxy");
 }

@@ -1107,14 +1107,7 @@ if($datas["RFC-Ignorant"]==1){
 
 
 
-if($datas["rhsbl.ahbl.org"]==1){
-	$conf[]="";
-	$conf[]="# another domain-based blacklist";
-	$conf[]="header DNS_FROM_AHBL_RHSBL	eval:check_rbl_from_host('ahbl', 'rhsbl.ahbl.org.')";
-	$conf[]="describe DNS_FROM_AHBL_RHSBL	From: sender listed in dnsbl.ahbl.org";
-	$conf[]="tflags DNS_FROM_AHBL_RHSBL	net";
-	$conf[]="";
-}
+
 
 if($datas["sa-hil.habeas.com"]==1){
 	$conf[]="# sa-hil.habeas.com for SpamAssassin queries";

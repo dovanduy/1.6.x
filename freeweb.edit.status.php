@@ -45,6 +45,33 @@ function tabs_start(){
 }
 
 
+function js_tabs(){
+	$page=CurrentPageName();
+	if($_GET["servername"]<>null){
+		$q=new mysql();
+		$table_name=$q->APACHE_TABLE_NAME($_GET["servername"]);
+		if($q->TABLE_EXISTS($table_name, "apachelogs")){$array["statistics"]='{statistics}';}
+		$table_name="apache_stats_".date('Ym');
+		$sql="SELECT COUNT(servername) as tcount FROM $table_name WHERE servername='{$_GET["servername"]}'";
+		if($q->mysql_error){if(!preg_match("#doesn.+?t exist#", $q->mysql_error)){echo "<H2>$q->mysql_error</H2>";}}else{$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}
+		if($ligne["tcount"]>0){
+			$array["today"]="{last_24h}";
+		}
+	}
+	$font=18;
+	while (list ($num, $ligne) = each ($array) ){
+	
+
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span span style='font-size:{$font}px'>$ligne</span></a></li>\n");
+	}
+	
+	
+	echo build_artica_tabs($html, "main_config_freewebstatus");
+	
+}
+
+
 
 function tabs(){
 	$tpl=new templates();	
@@ -53,18 +80,7 @@ function tabs(){
 	
 	$array["tasks"]="{tasks}";
 	
-	if($_GET["servername"]<>null){
-		$q=new mysql();
-		$table_name=$q->APACHE_TABLE_NAME($_GET["servername"]);
-		if($q->TABLE_EXISTS($table_name, "apachelogs")){$array["statistics"]='{statistics}';}
-		$table_name="apache_stats_".date('Ym');
-		$sql="SELECT COUNT(servername) as tcount FROM $table_name WHERE servername='{$_GET["servername"]}'";
-		if($q->mysql_error){if(!preg_match("#doesn.+?t exist#", $q->mysql_error)){echo "<H2>$q->mysql_error</H2>";}}else{$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}
-		if($ligne["tcount"]>0){	
-			$array["status"]=$_GET["servername"];
-			$array["today"]="{last_24h}";
-		}
-	}
+
 
 	
 	$array["errors"]="{errors}";
@@ -161,18 +177,20 @@ function tasks(){
 
 
 function status(){
-	$servername=$_GET["servername"];
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql();
 	$table_name="apache_stats_".date('Ym');
-	$sql="SELECT * FROM $table_name WHERE servername='{$_GET["servername"]}' ORDER by zDate DESC LIMIT 0,1";
+	$sql="SELECT * FROM $table_name ORDER by zDate DESC LIMIT 0,1";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	if(!$q->ok){echo $q->error;return;}
+	
+	$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?js=yes')\" style='text-decoration:underline'>";
 	
 	$html="
-	<div style='font-size:16px'><div style='float:right'>". imgtootltip("refresh-24.png","{refresh}","RfreshTabsFreewbs()")."</div>{status}:$servername</div>
-	<p>&nbsp;</p>
-	<table style='width:99%' class=form>
+	
+<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
 		<td class=legend>{date}:</td>
 		<td style='font-size:14px;font-weight:bold'>{$ligne["zDate"]}</td>
@@ -183,34 +201,25 @@ function status(){
 	</tr>	
 	<tr>
 		<td class=legend>{memory}:</td>
-		<td style='font-size:14px;font-weight:bold'>". FormatBytes($ligne["total_memory"]/1024)."</td>
+		<td style='font-size:14px;font-weight:bold'>". FormatBytes($ligne["total_memory"]/1024)."</a></td>
 	</tr>
 	<tr>
 		<td class=legend>{total_traffic}:</td>
-		<td style='font-size:14px;font-weight:bold'>". FormatBytes($ligne["total_traffic"]/1024)."</td>
+		<td style='font-size:14px;font-weight:bold'>$js". FormatBytes($ligne["total_traffic"]/1024)."</a></td>
 	</tr>	
 	<tr>
 		<td class=legend>{requests_second}:</td>
-		<td style='font-size:14px;font-weight:bold'>{$ligne["requests_second"]}/{second}</td>
+		<td style='font-size:14px;font-weight:bold'>$js{$ligne["requests_second"]}/{second}</a></td>
 	</tr>	
 	<tr>
 		<td class=legend>{traffic_second}:</td>
-		<td style='font-size:14px;font-weight:bold'>". FormatBytes($ligne["traffic_second"]/1024)."/{second}</td>
+		<td style='font-size:14px;font-weight:bold'>$js". FormatBytes($ligne["traffic_second"]/1024)."/{second}</a></td>
 	</tr>
 	<tr>
 		<td class=legend>{traffic_request}:</td>
-		<td style='font-size:14px;font-weight:bold'>". FormatBytes($ligne["traffic_request"]/1024)."/{request}</td>
+		<td style='font-size:14px;font-weight:bold'>$js". FormatBytes($ligne["traffic_request"]/1024)."/{request}</a></td>
 	</tr>
 	</table>	
-	
-	<div id='traffic-today'></div>
-	
-	
-	<script>
-		LoadAjax('traffic-today','$page?traffic-today=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}&time=mn');
-	
-	</script>
-	
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -286,14 +295,14 @@ function traffic_today(){
 function stats_today(){
 	$page=CurrentPageName();
 	$html="
-	<div id='traffic-today2'></div>
+	
 	<div id='memory-today2'></div>
 	<div id='traffic_second'></div>
 	<div id='requests_second'></div>
 	
 	
 	<script>
-		LoadAjax('traffic-today2','$page?traffic-today=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}');
+		LoadAjax('traffic-today2','freeweb.edit.status.php?traffic-today=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}');
 		LoadAjax('memory-today2','$page?traffic-today=yes&field=total_memory&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}');
 		LoadAjax('traffic_second','$page?traffic-today=yes&field=traffic_second&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}');
 		LoadAjax('requests_second','$page?traffic-today=yes&field=requests_second&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}');

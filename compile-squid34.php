@@ -15,17 +15,34 @@ include_once(dirname(__FILE__) . '/ressources/class.compile_squid.inc');
  * Haarp ./configure --prefix=/usr CXX=g++-4.4
  * 
  * 
+WIFIDOG
 
+git clone https://github.com/wifidog/wifidog-gateway.git
+cd /root/wifidog-gateway
+./autogen.sh
+make
+make install
+
+// *************** SARG 
+ * 
+ * git clone git://git.code.sf.net/p/sarg/code sarg-code
+ * autoreconf -fi
+ * ./configure --prefix=/usr --with-gd --with-iconv
 
 unset($argv[0]);
 $unix=new unix();
 $php5=$unix->LOCATE_PHP5_BIN();
 shell_exec("$php5 ".dirname(__FILE__)."/compile-squid34.php ".@implode(" ",$argv));
 die();
- */
+// *************** C-ICAP 
 /* CICAP
+ * 
+ * wget "http://downloads.sourceforge.net/project/c-icap/c-icap/0.3.x/c_icap-0.3.4.tar.gz?r=http%3A%2F%2Fc-icap.sourceforge.net%2Fdownload.html&ts=1409512420&use_mirror=heanet" -O c_icap-0.3.4.tar.gz 
+ * 
  * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --enable-large-files --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
  * MODULES
+ * wget "http://downloads.sourceforge.net/project/c-icap/c-icap-modules/0.3.x/c_icap_modules-0.3.2.tar.gz?r=http%3A%2F%2Fc-icap.sourceforge.net%2Fdownload.html&ts=1409512549&use_mirror=heanet" -O c_icap_modules-0.3.2.tar.gz 
+ * 
  * ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav
  * 
  Contrack tools
@@ -80,6 +97,16 @@ cd squid-2.7.STABLE9/
 ./configure --prefix=/usr --exec_prefix=/usr --bindir=/usr/sbin --sbindir=/usr/sbin --libexecdir=/usr/lib/squid27 --sysconfdir=/etc/streamcache --localstatedir=/var/spool/squid27 --datadir=/usr/share/squid27 --with-pthreads --enable-async-io --enable-storeio=ufs,aufs,coss,diskd,null --enable-ssl --enable-linux-netfilter --enable-arp-acl --enable-epoll --enable-removal-policies=lru,heap --enable-snmp --enable-delay-pools --enable-htcp --enable-cache-digests --enable-referer-log --enable-useragent-log --enable-auth="basic,digest,ntlm,negotiate" --enable-negotiate-auth-helpers=squid_kerb_auth --enable-carp --enable-follow-x-forwarded-for --with-large-files --with-maxfd=65536 --build x86_64-linux-gnu --program-suffix=cache --program-prefix=stream
  
  
+ * ---------------------------- C- ICAP
+ * 
+ *  ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --enable-large-files --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
+  fpsystem(cmd);
+ 
+ MODULES : 
+ 
+ ./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav  
+ 
+ 
  */
 
 
@@ -99,8 +126,6 @@ if($argv[1]=="--cross-packages"){crossroads_package();exit;}
 if($argv[1]=="--factorize"){factorize($argv[2]);exit;}
 if($argv[1]=="--serialize"){serialize_tests();exit;}
 if($argv[1]=="--latests"){latests();exit;}
-if($argv[1]=="--error-txt"){error_txt();exit;}
-if($argv[1]=="--c-icap"){package_c_icap();exit;}
 if($argv[1]=="--ufdb"){package_ufdbguard();exit;}
 if($argv[1]=="--ecapclam"){ecap_clamav();exit;}
 if($argv[1]=="--package"){create_package_squid();exit;}
@@ -113,6 +138,8 @@ if($argv[1]=="--nginx-compile"){nginx_compile();exit;}
 
 if($argv[1]=="--dnsmasqver"){dnsmasq_lastver();exit;}
 if($argv[1]=="--dnsmasq"){dnsmasq_compile();exit;}
+if($argv[1]=="--langs"){ParseLangs();exit;}
+if($argv[1]=="--ufdbcat"){compile_ufdbcat();exit;}
 
 
 
@@ -130,7 +157,7 @@ if(!$GLOBALS["NO_COMPILE"]){
 	system_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
 }
 
-$v="squid-3.4.6.tar.gz";
+//$v="squid-3.4.6.tar.gz";
 
 if(!$GLOBALS["FORCE"]){
 	if(is_file("/root/$v")){if($GLOBALS["REPOS"]){echo "No updates...\n";die();}}
@@ -231,6 +258,7 @@ $cmds[]="--enable-storeio=aufs,diskd,ufs,rock";
 $cmds[]="--enable-x-accelerator-vary";
 $cmds[]="--with-dl";
 $cmds[]="--enable-linux-netfilter"; 
+$cmds[]="--with-netfilter-conntrack";
 $cmds[]="--enable-wccpv2"; 
 $cmds[]="--enable-eui"; 
 $cmds[]="--enable-auth";
@@ -254,11 +282,11 @@ $cmds[]="--enable-url-maps";
 $cmds[]="--enable-ecap";
 $cmds[]="--enable-ssl"; 
 $cmds[]="--enable-ssl-crtd";
-$cmds[]="--disable-arch-native";
 $cmds[]="--enable-xmalloc-statistics";
 $cmds[]="--with-filedescriptors=32768";
+$cmds[]="--enable-ident-lookups";
 //$cmds[]="--disable-ipv6";
-
+$cmds[]="--disable-arch-native";
 
 //CPPFLAGS="-I../libltdl"
 
@@ -296,11 +324,12 @@ if(!is_file("/usr/sbin/squid")){
 	system_admin_events("Installing the new squid-cache $v failed", __FUNCTION__, __FILE__, __LINE__, "software");
 	echo "Failed\n";}
 	
-@mkdir("/usr/share/squid3/errors/templates",0755,true);
+
 if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/rm -rf /usr/share/squid3/errors/templates/*");}
-if(!$GLOBALS["NO_COMPILE"]){echo "Copy templates from $SOURCE_DIRECTORY/errors/templates...\n";}
-if(!$GLOBALS["NO_COMPILE"]){shell_exec("/bin/cp -rf $SOURCE_DIRECTORY/errors/templates/* /usr/share/squid3/errors/templates/");}
 shell_exec("/bin/chown -R squid:squid /usr/share/squid3");
+echo "Compiling ufdbcat....\n";
+compile_ufdbcat();
+echo "Creating package....\n";
 create_package_squid($t);	
 	
 function DebianVersion(){
@@ -331,7 +360,7 @@ if(!is_file("/root/$dnsmasq_lastver")){
 }
 $f[]="make install-i18n";
 $f[]="PREFIX=/usr"; 
-$f[]="CFLAGS=\"-g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2 -Wall -W\"";
+$f[]="CFLAGS=\"-g -O2 -fstack-protector -DNO_IPV6 --param=ssp-buffer-size=4 -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2 -Wall -W\"";
 $f[]="LDFLAGS=\"-Wl,-z,relro\""; 
 $f[]="COPTS=\" -DHAVE_DBUS -DHAVE_CONNTRACK\" CC=gcc";
 
@@ -1032,6 +1061,7 @@ function nginx_compile(){
 	$f[]="--with-http_secure_link_module";
 	$f[]="--with-http_degradation_module";
 	$f[]="--with-http_stub_status_module";
+	
 	echo @implode(" ", $f);
 	
 }
@@ -1063,7 +1093,15 @@ wget http://mdounin.ru/hg/ngx_http_auth_request_module/archive/a29d74804ff1.tar.
 tar -xf a29d74804ff1.tar.gz
 mv ngx_http_auth_request_module-a29d74804ff1 ngx_http_auth_request_module-1.0
 
-
+git clone https://github.com/yaoweibin/nginx_syslog_patch.git
+mv nginx_syslog_patch ngx_nginx_syslog_patch-1.0
+cd ngx_nginx_syslog_patch-1.0
+patch -p1 < syslog-1.7.0.patch
+répondre par : 
+/root/ngx_openresty-1.7.2.1/bundle/nginx-1.7.2/src/core/ngx_log.c
+/root/ngx_openresty-1.7.2.1/bundle/nginx-1.7.2/src/core/ngx_log.h
+/root/ngx_openresty-1.7.2.1/bundle/nginx-1.7.2/src/http/modules/ngx_http_log_module.c
+[nginx_syslog_patch=>'ngx_nginx_syslog_patch'],
 
 git clone https://github.com/pagespeed/ngx_pagespeed.git
 mv nginx-auth-ldap ngx_http_auth_ldap_module-1.0
@@ -1167,3 +1205,164 @@ function package_nginx_version(){
 	}	
 }
 
+
+
+function ParseLangs_content($filename){
+	$title=null;
+	$body=null;
+$data=@file_get_contents($filename);
+$strlen=strlen($data);
+
+if($strlen==0){
+	$filename="/root/squid-lang/templates/".basename($filename);
+	$data=@file_get_contents("/root/squid-lang/templates/".basename($filename));
+	$strlen=strlen($data);
+}
+
+if(preg_match("#<title>(.+?)</title>#is", $data,$re)){$title=$re[1];}
+
+if(!preg_match("#<body.*?>(.+?)</body>#is", $data,$re)){
+	echo "!!!! BODY IN  $filename\n";
+	}
+$body=$re[1];
+if($title==null){$title=basename($filename);}
+
+if($body==null){echo "!!!! $filename - $strlen bytes\n";}
+return array("TITLE"=>$title,"BODY"=>$body);
+
+}
+
+function ParseLangs(){
+	
+$unix=new unix();
+$dirs=$unix->dirdir("/root/squid-lang");
+while (list ($dirpath, $value) = each ($dirs) ){
+	$lang=basename($dirpath);
+	$files=$unix->DirFiles($dirpath);
+	while (list ($filename, $value) = each ($files) ){
+		if(strpos($filename, ".")>0){continue;}
+		$array[$lang][$filename]=ParseLangs_content("$dirpath/$filename");
+	}
+	
+	@file_put_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db", serialize($array));
+}
+
+
+
+
+}
+
+
+function compile_ufdbcat(){
+	$unix=new unix();
+	$uri="http://www.articatech.net/download/ufdbGuard-1.31.tar.gz";
+	$curl=new ccurl("http://www.articatech.net/download/ufdbGuard-1.31.tar.gz");
+	echo "Downloading $uri\n";
+	$tempdir=$unix->TEMP_DIR()."/ufdb";
+	$tempfile="$tempdir/ufdbGuard-1.31.tar.gz";
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	if(is_dir($tempdir)){shell_exec("$rm -rf $tempdir");}
+	@mkdir($tempdir,0755,true);
+	
+	if(is_file($tempfile)){@unlink($tempfile);}
+	if(!$curl->GetFile($tempfile)){
+		echo "Fatal, unable to download $uri\n";
+		meta_admin_mysql(0, "Fatal, unable to download $uri",@implode("\n",$curl->errors),__FILE__,__LINE__);
+		return;
+	}
+	
+	if(is_dir("$tempdir/ufdbcompile")){
+		shell_exec("$rm -rf $tempdir/ufdbcompile");
+	}
+	
+	echo "Uncompressing $tempdir/ufdbGuard-1.31.tar.gz to $tempdir/\n";
+	shell_exec("$tar -xf $tempdir/ufdbGuard-1.31.tar.gz -C $tempdir/");
+	$dirs=$unix->dirdir($tempdir);
+	while (list ($directory, $value) = each ($dirs) ){
+		echo "Found directory $directory\n";
+		if(is_file("$directory/src/mtserver/ufdbguardd.c")){
+			$WORKDIR="$directory";
+			break;
+		}
+	}
+	
+	if(!is_dir($WORKDIR)){
+		echo "Fatal, unable to download $uri\n";
+		meta_admin_mysql(0, "Fatal, unable to locate working directory",__FILE__,__LINE__);
+		if(is_dir($tempdir)){shell_exec("$rm -rf $tempdir");}
+		return;
+	}
+	echo "Patching mtserver/ufdbguardd.c\n";
+	$C=explode("\n",@file_get_contents("$directory/src/mtserver/ufdbguardd.c"));
+	while (list ($index, $line) = each ($C) ){
+		
+		if(strpos($line, "/tmp/ufdbguardd-")>0){
+			echo "Patching mtserver/ufdbguardd.c line $index\n";
+			$C[$index]=str_replace("/tmp/ufdbguardd-", "/var/run/ufdbcat-", $line);
+		}
+		
+	}
+	@file_put_contents("$directory/src/mtserver/ufdbguardd.c", @implode("\n", $C));
+	
+	chdir($WORKDIR);
+	if(is_dir("/opt/ufdbcat")){shell_exec("$rm -rf /opt/ufdbcat");}
+	
+	echo "Configure\n";
+	
+	$f[]="./configure";
+	$f[]="--prefix=/opt/ufdbcat"; 
+	$f[]="--includedir=\"\\\${prefix}/include\"";
+	$f[]="--mandir=\"\\\${prefix}/share/man\""; 
+	$f[]="--infodir=\"\\\${prefix}/share/info\"";
+	$f[]="--sysconfdir=/etc/ufdbcat";
+	$f[]="--localstatedir=/opt/ufdbcat"; 
+	$f[]="--with-ufdb-logdir=/var/log/ufdbcat"; 
+	$f[]="--with-ufdb-dbhome=/home/ufdbcat"; 
+	$f[]="--with-ufdb-user=root"; 
+	$f[]="--with-ufdb-config=/etc/ufdbcat";
+	$f[]="--with-ufdb-logdir=/var/log/ufdbcat";
+	$f[]="--with-ufdb-config=/etc/ufdbcat";
+	$f[]="--with-ufdb-piddir=/var/run/ufdbcat";
+	$cmd=@implode(" ", $f);
+	system($cmd);
+	echo "Make\n";
+	system("make");
+	echo "Install\n";
+	system("make install");
+	if(!is_file("/opt/ufdbcat/bin/ufdbguardd")){
+		echo "Fatal, unable to compile ufdbcat\n";
+		meta_admin_mysql(0, "Fatal, unable to compile ufdbcat",__FILE__,__LINE__);
+		if(is_dir($tempdir)){shell_exec("$rm -rf $tempdir");}
+		return;
+	}
+	
+	@copy("/opt/ufdbcat/bin/ufdbguardd", "/opt/ufdbcat/bin/ufdbcatdd");
+	@unlink("/opt/ufdbcat/bin/ufdbguardd");
+	@chmod("/opt/ufdbcat/bin/ufdbcatdd",0755);
+	$ufdbcatVersion=ufdbcatVersion();
+	$Architecture=Architecture();
+	$DebianVersion=DebianVersion();
+	$base="/root/ufdbcat-compile";
+	if(is_dir($base)){
+		shell_exec("$rm -rf $base");
+	}
+	@mkdir("$base/opt/ufdbcat",0755,true);
+	shell_exec("$cp -rfp /opt/ufdbcat/* $base/opt/ufdbcat/");
+	$filename="ufdbcat-debian{$DebianVersion}-$Architecture-$ufdbcatVersion.tar.gz";
+	chdir($base);
+	@unlink("/root/$filename");
+	shell_exec("/bin/tar -czf /root/$filename *");
+	echo "/root/$filename done\n\n";
+	
+}
+
+function ufdbcatVersion(){
+	exec("/opt/ufdbcat/bin/ufdbcatdd -v 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("#ufdbguardd:\s+([0-9\.]+)#", $line,$re)){return $re[1];}
+	}
+
+
+}

@@ -306,7 +306,7 @@ function service_status(){
 	
 	
 	
-	<div style='font-size:13px' class=explain>{dropbox_service_text}</div>
+	<div style='font-size:13px' class=text-info>{dropbox_service_text}</div>
 	");
 }
 

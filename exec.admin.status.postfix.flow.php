@@ -534,12 +534,20 @@ function BuildStatusRight(){
 	}
 	
 	
+
+	
+	
 if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
 	$sock=new sockets();
 	$tpl=new templates();
 	$status=new status();
 	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
+	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
+	
+	if($AsCategoriesAppliance==1){
+		return $status->CATEGORIES_APPLIANCE();
+	}
 	
 	
 	$SAMBA_INSTALLED=0;

@@ -294,7 +294,7 @@ function TEXT_TO_CSV(){
 		}
 
 </script>
-". $tpl->_ENGINE_parse_body("<div class=explain>{about_organization}</div>");
+". $tpl->_ENGINE_parse_body("<div class=text-info>{about_organization}</div>");
 
 
 $tpl=new templates();

@@ -8,7 +8,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once("ressources/class.autofs.inc");
 	
 	$user=new usersMenus();
-	if(!$user->AsSystemAdministrator){echo "alert('no privileges');";die();}
+	if(!$user->AsSystemAdministrator){echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();}
 	if(isset($_GET["getlist"])){disk_scan();exit;}
 	if(isset($_GET["uuid"])){subdisk();exit;}
 	if(isset($_GET["disks"])){disks();exit;}
@@ -25,12 +25,17 @@ function tabs(){
 	$users=new usersMenus();
 	$q=new mysql();
 		$array["hds"]='{disks}';
-		$array["disks"]='{disks} BtrFS';
+		$array["icsi_share"]='{ISCSI_share}';
+		
+		
+		$array["folders-monitor"]='{directories_monitor}';
+		$array["seeker"]='{performance}';
+		//$array["disks"]='{disks} BtrFS';
 		
 		
 	
 	
-		$fontsize=14;
+		$fontsize=22;
 	
 	
 		while (list ($num, $ligne) = each ($array) ){
@@ -38,6 +43,27 @@ function tabs(){
 				$tab[]="<li><a href=\"system.internal.disks.php?display2=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 				continue;
 			}
+			
+			if($num=="icsi_share"){
+				$tab[]="<li><a href=\"system.disks.iscsi.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				continue;
+			}
+			
+			if($num=="icsi_client"){
+				$tab[]="<li><a href=\"system.iscsi.client.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
+			if($num=="folders-monitor"){
+				$tab[]="<li><a href=\"system.folders.monitor.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				continue;
+			}
+			
+			if($num=="seeker"){
+				$tab[]="<li><a href=\"system.disks.performance.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
 			$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 				
 		}

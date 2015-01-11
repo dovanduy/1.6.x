@@ -48,7 +48,7 @@ function manu(){
 	
 	$html="
 <H2>{compressed_file}</H2>
-	<div class=explain style='font-size:16px'>{import_squid_zip_explain}</div>
+	<div class=text-info style='font-size:16px'>{import_squid_zip_explain}</div>
 		<center style='margin:10px;width:99%'>
 			<center id='file-uploader-demo$t' style='width:100%;text-align:center'></center>
 		</center>

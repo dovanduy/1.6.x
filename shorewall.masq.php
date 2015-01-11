@@ -104,7 +104,7 @@ function masq_popup(){
 	$t=time();
 	$html="
 	<div style='font-size:20px;margin-bottom:20px'>$title</div>
-	<div style='font-size:16px' class=explain>{shorewall_masq_explain}</div>
+	<div style='font-size:16px' class=text-info>{shorewall_masq_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>

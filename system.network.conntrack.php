@@ -67,6 +67,7 @@ function add_item_to(){
 function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$array["ccurl"]="{artica_HTTP_traffic}";
 	$array["ntopng"]="{traffic_analysis}";
 	$array["popup"]="{connections_tracking}";
 	
@@ -83,7 +84,12 @@ function tabs(){
 			if($num=="ntopng"){
 				$html[]= "<li><a href=\"system.ntopng.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 				continue;
-			}			
+			}	
+
+			if($num=="ccurl"){
+				$html[]= "<li><a href=\"system.articahttp.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+				continue;
+			}
 			
 				
 			if($num=="arpspoof"){

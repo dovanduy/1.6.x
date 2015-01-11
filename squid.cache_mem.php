@@ -108,7 +108,7 @@ function caches_mount(){
 	
 	$tot=FormatBytes($tot*1000);
 	$html="
-	<div class=explain style='font-size:16px'>{squid_virtual_caches_explain}$front_error</div>
+	<div class=text-info style='font-size:16px'>{squid_virtual_caches_explain}$front_error</div>
 	<div id='$t'></div>		
 	<table style='width:99%' class=form>".@implode("\n", $tr)."
 			

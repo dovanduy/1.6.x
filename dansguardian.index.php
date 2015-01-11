@@ -645,10 +645,7 @@ function popup_dansguardian_main(){
 		}
 		
 
-		if($users->APP_UFDBGUARD_INSTALLED){
-			$ufdbguard_settings=Paragraphe("filter-sieve-64.png","{APP_UFDBGUARD}","{APP_UFDBGUARD_PARAMETERS}",
-			"javascript:Loadjs('ufdbguard.php')");
-		}	
+		
 
 		
 	
@@ -1976,7 +1973,7 @@ function ip_group_page(){
 	
 	$html="
 	
-	<div class=explain><div style='float:right;margin:5px'>$add</div>{filter_ip_group_explain}</div>
+	<div class=text-info><div style='float:right;margin:5px'>$add</div>{filter_ip_group_explain}</div>
 	" . ip_group_rule_list() ."
 		";
 	$tpl=new templates();

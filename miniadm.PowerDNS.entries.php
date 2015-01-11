@@ -62,12 +62,10 @@ function content(){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 	
 	if($EnablePDNS==0){
-		$error="<div class=explainWarn>{EnablePDNS_disable_text}</div>";
+		$error="<div class=text-infoWarn>{EnablePDNS_disable_text}</div>";
 	}
 	 $html="
 	 $error
@@ -270,7 +268,7 @@ function item_config(){
 	if(!is_numeric($t)){$t=time();}
 	$bname="{add}";
 	$page=CurrentPageName();
-	$explian="<div class=explain style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
+	$explian="<div class=text-info style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
 	$q=new mysql();
 	if($id>0){
 		$bname="{apply}";

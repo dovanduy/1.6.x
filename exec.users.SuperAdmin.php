@@ -21,6 +21,7 @@ function menu(){
 	echo "password.\n";
 	echo "Press Q to exit or Enter to change credentials\n";
 	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
 	
 	$answer=trim(strtolower(fgets(STDIN)));
 	
@@ -35,11 +36,23 @@ function menu(){
 	if($ldap_admin==null){$ldap_admin=$ldap->ldap_admin;}
 	$ldap_password=askpassword($ldap_admin);
 	
-	$ldap_password=$unix->shellEscapeChars($ldap_password);
-	$cmd[]="/usr/share/artica-postfix/bin/artica-install --change-ldap-settings";
-	$cmd[]="\"$ldap->ldap_host\" \"$ldap->ldap_port\" \"$ldap->suffix\"";
-	$cmd[]="\"{$_GET["username"]}\" $ldap_password no";
-	system(@implode(" ", $cmd));
+	echo "Saving new credentials $ldap_admin:*****\n";
+	@mkdir("/etc/artica-postfix/ldap_settings",0755,true);
+	@file_put_contents("/etc/artica-postfix/ldap_settings/admin",$ldap_admin);
+	@file_put_contents("/etc/artica-postfix/ldap_settings/password", $ldap_password);
+	
+	system("$php /usr/share/artica-postfix/exec.change.password.php");
+	
+	echo "Rebuilding OpenLDAP service...\n";
+	@unlink("/etc/artica-postfix/no-ldap-change");
+	@chmod("/usr/share/artica-postfix/bin/artica-install", 0755);
+	system("/usr/share/artica-postfix/bin/artica-install --slapdconf");
+	echo "Restarting OpenLDAP service...\n";
+	system("/etc/init.d/slapd restart --force");
+	echo "Synchronize Artica settings\n";
+	system("/usr/share/artica-postfix/bin/process1 --force");
+	echo "Restarting Artica Web console\n";
+	system("/etc/init.d/artica-webconsole restart");
 	echo "Press Q to exit or Enter\n";
 	$answer=trim(strtolower(fgets(STDIN)));
 	die();

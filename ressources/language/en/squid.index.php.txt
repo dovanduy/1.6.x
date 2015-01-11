@@ -102,10 +102,13 @@ In your Squid.conf configuration file you would write something like this,
 will allow a maximum of 5 http connection to access</acl_maxconn_text>
 <acl_maxconn_title>Matches when the client's IP address has more than the specified number of HTTP connections established</acl_maxconn_title>
 <acl_max_user_ip>Max User IP</acl_max_user_ip>
-<acl_max_user_ip_text>If -s is specified then the limit is strict, denying browsing from any further IP addresses until the ttl has expired.[br]
+<acl_max_user_ip_text>
+Give the max IP number here (only one item).[br]
+Set [b]-s 1[/b] for only one connection in strict mode.[br]
+If -s is specified then the limit is strict, denying browsing from any further IP addresses until the ttl has expired.[br]
 Without -s Squid will just annoy the user by "randomly" denying requests.[br]
 (the counter is then reset each time the limit is reached and a request is denied).[br]
-The authenticate_ip_ttl parameter controls the timeout on the ip entries.[br]
+The [b]authenticate ip ttl[/b] parameter controls the timeout on the ip entries.[br]
 [br][b]Note:[br]
 1. Any authentication program must be running for this. [br]
 NCSA will a simple configuration.
@@ -113,10 +116,9 @@ NCSA will a simple configuration.
 [br]
 [b]Example:[/b]
 [br][blk]
-authenticate_ip_ttl 2 hours[br]
-acl maxuser max_user_ip -s 2[br]
-http_access deny maxuser[br][/blk][br]
-
+authenticate ip ttl 2 hours[br]
+-s 2[br]
+[/blk][br]
 The same user can log to a maximum of 2 times from two different machines and when he tries to login for the third time from a third system, he will not be allowed to browse</acl_max_user_ip_text>
 <acl_max_user_ip_title>This will be matched when the same user attempts to log in for more than the specified number of times from different ip addresses</acl_max_user_ip_title>
 <acl_method>Request Method</acl_method>

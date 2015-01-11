@@ -260,7 +260,7 @@ function cron_index(){
 	}
 	$t=time();
 	$html="
-	<div class=explain style='font-size:14px'>{frontend_disables_options_explain}</div>
+	<div class=text-info style='font-size:14px'>{frontend_disables_options_explain}</div>
 	<div id='articaschedulesdiv'></div>
 	<div id='$t'></div>
 	<div style='width:98%' class=form>	
@@ -515,7 +515,7 @@ function cron_popup(){
 	<tr>
 	<td valign='top' width=1%><img src='img/cron-128.png'></td>
 	<td valign='top'>
-	<div class=explain style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
+	<div class=text-info style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
 	<div id='articaschedulesdiv' style='width:98%' class=form>
 			<table style='width:100%'>
 				<tr>
@@ -661,7 +661,7 @@ function main_tabs(){
 	$array["artica_process"]='{artica_process}';
 	$array["optimize"]='{optimization}';
 	$array["cgroups"]='{APP_CGROUPS}';
-	$style="style='font-size:14px'";
+	$style="style='font-size:16px'";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="optimize"){$html[]= "<li><a href=\"artica.optimize.php\"><span $style>$ligne</span></a></li>\n";continue;}
@@ -976,7 +976,7 @@ $html="
 			<td nowrap>". Field_text("SysTmpDir",$SysTmpDir,"width:190px;font-size:13px;padding:3px")."</td>
 			<td></td>
 		</tr>	
-			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesMasterForm()",14)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesMasterForm()",26)."</td>
 		</tr>
 		</tbody>
 		</table>

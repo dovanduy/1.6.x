@@ -19,5 +19,5 @@ function loadhelp(){
 	$tpl=new templates();
 	$text=$tpl->_ENGINE_parse_body(base64_decode($_GET["loadhelp"]));
 	
-	echo "<div class=explain style='font-size:14px;width:90%'>$text</div>";
+	echo "<div class=text-info style='font-size:14px;width:90%'>$text</div>";
 }

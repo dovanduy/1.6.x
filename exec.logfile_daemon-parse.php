@@ -1,5 +1,6 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["BYCRON"]=false;
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
 include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
@@ -11,50 +12,352 @@ include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 include_once(dirname(__FILE__)."/ressources/class.logfile_daemon.inc");
 include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
 include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
+include_once(dirname(__FILE__)."/ressources/class.realtime-buildsql.inc");
+include_once(dirname(__FILE__)."/ressources/class.ocs.inc");
 
 //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
+
+
+$unix=new unix();
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+events("Running instances:".count($pids));
+
+
+if(count($pids)>3){
+	events("Too many instances ". count($pids));
+	$mypid=getmypid();
+	while (list ($pid, $ligne) = each ($pids) ){
+		if($pid==$mypid){continue;}
+		events("Killing $pid");
+		unix_system_kill_force($pid);
+	}
+
+}
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>3){
+	events("Too many instances ". count($pids)." dying");
+	die();
+}
+
+
+if(!is_file("/etc/cron.d/logfile-daemon")){
+	$ionice=$unix->EXEC_NICE();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$f[]="MAILTO=\"\"";
+	$f[]="* * * * *  root $ionice  $php ".__FILE__." --bycron >/dev/null 2>&1";
+	$f[]="";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/logfile-daemon", @implode("\n", $f));
+	@chmod("/etc/cron.d/logfile-daemon",0644);	
+	shell_exec("/etc/init.d/cron reload");
+	
+}
+
+
 
 if(count($argv)>0){
 	if(isset($argv[1])){
+		events("Execute {$argv[1]}...");
 		if($argv[1]=="--tables-primaires"){parse_tables_primaires();die();}
 		if($argv[1]=="--wakeup"){Wakeup();die();}
 		if($argv[1]=="--caches"){parse_tables_cache_primaires();die();}
+		if($argv[1]=="--squid-queue"){parse_sql_commands();die();}
+		if($argv[1]=="--users"){UserAuthDB_in_mysql_queue();die();}
 		
 		
 	}
 }
 
+	$TimeFile="/etc/artica-postfix/pids/exec.logfile_daemon-parse.php.time";
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, time());
+	
+	if($GLOBALS["BYCRON"]){
+		events("Executed by CRON...");
+	}
+	
+	$logFile="/var/log/squid/logfile_daemon.debug";
+
+	$unix=new unix();
+	@mkdir("/var/log/squid/mysql-rtterrors",0755,true);
+	@mkdir("/var/log/squid/mysql-squid-queue",0755,true);
+	$unix->chown_func("squid","squid","/var/log/squid/mysql-rtterrors");
+	$unix->chown_func("squid","squid","/var/log/squid/mysql-squid-queue");
+	
+	
+	@chmod($logFile, 0755);
+	@chown($logFile,"squid");
+	
+	
+	parse_sql_commands(true);
+	parse_realtime_events(true);
+	parse_tables_primaires(true);
+	ParseUsersAgents();
+	UserAuthDB_in_mysql_queue();
+	
+	
+function ParseComputersOCS(){
+	
+	$Dir="/var/log/squid/mysql-computers";
+	if (!$handle = opendir($Dir)){
+		events("Unable to open $Dir");
+		return;
+	}
+	
+	$f=array();
+	
+	events("ParseComputersOCS()::Scanning $Dir");
+	$ocs=new ocs();
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$filepath="$Dir/$filename";
+		events("ParseComputersOCS():: Scanning $filepath");
+		$array=unserialize(@file_get_contents($filepath));
+		
+		if(!is_array($array)){
+			events("ParseUsersAgents:: $filepath Not an array");
+			continue;
+		}
+		
+		$mac=$array["MAC"];
+		$ipaddr=$array["IP"];
+		
+		$ocs->ADD_HARDWARE($ipaddr, $mac);
+		
+	}
+	
+}	
+	
+	
+function ParseUsersAgents(){
+	
+	
+	$Dir="/var/log/squid/mysql-UserAgents";
+	
+	if (!$handle = opendir("/var/log/squid/mysql-UserAgents")){
+		events("Unable to open /var/log/squid/mysql-UserAgents");
+		return;
+	}
+	$f=array();
+	
+	events("Scanning /var/log/squid/mysql-UserAgents");
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$filepath="$Dir/$filename";
+		events("ParseUsersAgents():: Scanning $filepath");
+		
+		
+		$array=unserialize(@file_get_contents($filepath));
+		
+		
+		if(!is_array($array)){
+			events("ParseUsersAgents:: $filepath Not an array");
+			continue;
+		}
+		
+		
+		
+		while (list ($useragent, $sql) = each ($array) ){
+			$useragent=mysql_escape_string2($useragent);
+			$f[]="('$useragent')";
+		}
+		events("ParseUsersAgents()::".count($f)." items");
+		@unlink($filepath);
+		
+	}
+	
+	if(count($f)>0){
+		events("ParseUsersAgents ".count($f)." items...");
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL("INSERT IGNORE INTO `UserAgents` (`pattern`) VALUES ".@implode(",", $f));
+		if(!$q->ok){events("ParseUsersAgents $q->mysql_error");}
+	}else{
+		events("ParseUsersAgents Nothing...");
+	}
+	
+	
+}
 
 
-$logFile="/var/log/squid/logfile_daemon.debug";
-@chmod($logFile, 0755);
-@chown($logFile,"squid");
-parse_realtime_events();
+function parse_sql_commands($nopid=false){
+	$unix=new unix();
+	@mkdir("/var/log/squid/mysql-squid-queue",0755,true);
+	$unix->chown_func("squid","squid","/var/log/squid/mysql-squid-queue");
+	
+	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+	
+	
+	if(!$nopid){
+		events("parse_sql_commands():: Checking PID");
+		$pid=@file_get_contents($TimePID);
+		if($unix->process_exists($pid)){
+			$timePid=$unix->PROCCESS_TIME_MIN($pid);
+			if($timePid>5){
+				$kill=$unix->find_program("kill");
+				unix_system_kill_force($pid);
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
+				die();
+			}
+		
+		}
+		
+		
+		if(!$GLOBALS["FORCE"]){
+			if(!$GLOBALS["VERBOSE"]){
+				$Time=$unix->file_time_min($TimeExec);
+				if($Time==0){return;}
+			}
+		}
+	}
+	
+	
+	@unlink($TimeExec);
+	@file_put_contents($TimeExec, time());
+	
+	if (!$handle = opendir("/var/log/squid/mysql-squid-queue")){
+		events("Unable to open /var/log/squid/mysql-squid-queue");
+		return;
+	}
+	
+	events("Scanning: /var/log/squid/mysql-squid-queue");
+	$d=0;
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$filepath="/var/log/squid/mysql-squid-queue/$filename";
+		$d++;
+		
+		
+		
+		
+		$data=@file_get_contents($filepath);
+		$SQL_CMDS=unserialize($data);
+		if(count($SQL_CMDS)==0){
+			events("parse_sql_commands()::Removing $filepath, no sql commands");
+			@unlink($filepath);
+			continue;
+		}
+		$MAX=count($SQL_CMDS);
+		events("parse_sql_commands()::Open $filepath with $MAX rows");
+		
+		$NEWSQL=array();
+		$q=new mysql_squid_builder();
+		
+		$c=0;
+		while (list ($index, $sql) = each ($SQL_CMDS) ){
+			$c++;
+			
+			$sql=trim($sql);
+			if($sql==null){continue;}
+			$q->QUERY_SQL($sql);
+			if($q->ok){continue;}
+			
+			events("$filename: $c/$MAX FAILED \"$q->mysql_error\"");
+			if(preg_match("#Table 'squidlogs\.(.+?)' doesn\'t exist#",$q->mysql_error,$re)){
+					parse_sql_commands_create_table($re[1]);
+					$q->QUERY_SQL($sql);
+					if($q->ok){continue;}
+				}
+			
+			if($GLOBALS["VERBOSE"]){echo "\n\n$filename: $c/$MAX no match...\n";}
+			
+			$NEWSQL[]=$sql;
+		}
+		
+		if(count($NEWSQL)==0){
+			events("parse_sql_commands()::Removing $filepath, success to parse");
+			@unlink($filepath);
+			continue;
+		}
+		
+		events("parse_sql_commands()::Saving $filepath with ".count($NEWSQL)." sql commands");
+		@file_put_contents($filepath, serialize($NEWSQL));
+	
+	}
+	
+	events("parse_sql_commands()::$d parsed files");
+	$q=new mysql_squid_builder();
+	if($q->TABLE_EXISTS("ufdbunlock")){
+		$q->QUERY_SQL("DELETE FROM ufdbunlock WHERE `finaltime` < ". time());
+	}
+	
+}
+
+function parse_sql_commands_create_table($tablename){
+	events("Checking table $tablename");
+	
+	if(preg_match("#searchwords_(.+)#", $tablename,$re)){
+		events("Creating table searchwords_{$re[1]}");
+		REALTIME_searchwords($re[1]);
+		return;
+	}
+	
+	if(preg_match("#quotatemp_(.+)#", $tablename,$re)){
+		events("Creating table quotatemp_{$re[1]}");
+		REALTIME_quotatemp($re[1]);
+	}
+
+	if(preg_match("#RTTH_(.+)#", $tablename,$re)){
+		events("Creating table RTTH_{$re[1]}");
+		REALTIME_RTTH($re[1]);
+		
+	}
+	
+	if(preg_match("#squidhour_(.+)#", $tablename,$re)){
+		events("Creating table squidhour_{$re[1]}");
+		REALTIME_squidhour($re[1]);
+	
+	}
+	if(preg_match("#sizehour_(.+)#", $tablename,$re)){
+		events("Creating table sizehour_{$re[1]}");
+		REALTIME_sizehour($re[1]);
+	
+	}	
+	if(preg_match("#cachehour_(.+)#", $tablename,$re)){
+		events("Creating table cachehour_{$re[1]}");
+		REALTIME_cachehour($re[1]);
+	
+	}
+	
+	if(preg_match("#youtubehours_(.+)#", $tablename,$re)){
+		events("Creating table youtubehours_{$re[1]}");
+		REALTIME_youtubehours($re[1]);
+	}
+
+}
 
 
-function parse_tables_primaires(){
+function parse_tables_primaires($nopid=false){
 	$unix=new unix();
 	
 	
 	$unix->chown_func("squid","squid","/var/log/squid/mysql-rttime");
 	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$pid=@file_get_contents($TimePID);
-	
-	
-	if($unix->process_exists($pid)){
-		$timePid=$unix->PROCCESS_TIME_MIN($pid);
-		if($timePid>5){
-			$kill=$unix->find_program("kill");
-			unix_system_kill_force($pid);
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
-			die();
+	if(!$nopid){
+		$pid=@file_get_contents($TimePID);
+		if($unix->process_exists($pid)){
+			$timePid=$unix->PROCCESS_TIME_MIN($pid);
+			if($timePid>5){
+				$kill=$unix->find_program("kill");
+				unix_system_kill_force($pid);
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
+				die();
+			}
+		
 		}
-	
+		@file_put_contents($TimePID, getmypid());
 	}
-	@file_put_contents($TimePID, getmypid());
 	
 	if (!$handle = opendir("/var/log/squid/mysql-rttime")){return;}
 	$q=new mysql_squid_builder();
@@ -83,7 +386,7 @@ function parse_tables_primaires(){
 			@unlink($filepath); 
 			continue; 
 		}
-		$sql="INSERT IGNORE INTO `squidhour_{$xtime}`  (`sitename`,`uri`,`TYPE`,`REASON`,`CLIENT`,`hostname`,`zDate`,`zMD5`,`uid`,`QuerySize`,`cached`,`MAC`) 
+		$sql="INSERT IGNORE INTO `squidhour_{$xtime}`  (`sitename`,`uri`,`TYPE`,`REASON`,`CLIENT`,`hostname`,`zDate`,`zMD5`,`uid`,`QuerySize`,`cached`,`MAC`,`category`) 
 		VALUES ".@implode(",", $content);
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
@@ -174,6 +477,7 @@ function parse_tables_cache_primaires(){
 
 	if($GLOBALS["VERBOSE"]){echo "$countDeFiles Files parsed done\n";}
 }
+
 
 function parse_realtime_hash(){
 	@mkdir("/var/log/squid/mysql-rtcaches",0755,true);
@@ -325,6 +629,10 @@ function parse_realtime_hash(){
 				$GLOBALS["UserAgents"][]="('$UserAgent')";
 			}
 			
+			$catz=new mysql_catz();
+			$category=x_mysql_escape_string2($catz->GetMemoryCache($sitename,true));
+			
+			events("RTTHASH:: $sitename Category = `$category`");
 
 			$TablePrimaireHour="squidhour_".$SUFFIX_DATE;
 			$TableSizeHours="sizehour_".$SUFFIX_DATE;
@@ -332,6 +640,9 @@ function parse_realtime_hash(){
 			$tableYoutube="youtubehours_".$SUFFIX_DATE;
 			$tableSearchWords="searchwords_".$SUFFIX_DATE;
 			$sitename=x_mysql_escape_string2($sitename);
+			
+			
+			
 			
 			$uri=substr($uri, 0,254);
 			$uri=x_mysql_escape_string2($uri);
@@ -341,7 +652,7 @@ function parse_realtime_hash(){
 			$REASON=$TYPE;
 			
 			if($mac<>null){$GLOBALS["macscan"][]="('$mac','$ipaddr')";}
-			$GLOBALS["TablePrimaireHour"][$TablePrimaireHour][]="('$sitename','$uriT','$TYPE','$REASON','$ipaddr','$hostname','$date','$zMD5','$uid','$SIZE','$cached','$mac')";
+			$GLOBALS["TablePrimaireHour"][$TablePrimaireHour][]="('$sitename','$uriT','$TYPE','$REASON','$ipaddr','$hostname','$date','$zMD5','$uid','$SIZE','$cached','$mac','$category')";
 			//$sql="INSERT IGNORE INTO `$TableSizeHours` (`zDate`,`size`,`cached`) VALUES('$date','$SIZE','$cached')";
 			$GLOBALS["TABLES_PRIMAIRES_SIZEHOUR"][$TableSizeHours][]="('$date','$SIZE','$cached')";
 			if($SIZE>0){
@@ -356,6 +667,7 @@ function parse_realtime_hash(){
 					(`zDate`,`ipaddr`,`hostname`,`uid`,`MAC` ,`account`,`youtubeid`)
 					VALUES ('$date','$ipaddr','','$uid','$mac','0','$VIDEOID')";
 					$rand=rand(100,65000);
+					
 					@file_put_contents("/var/log/squid/mysql-queue/YoutubeRTT.".time().".$rand.sql", $sql);
 				}
 			}		
@@ -449,6 +761,41 @@ function gethostbyaddr2($ipaddr){
 	return $GLOBALS["IPCACHE"][$ipaddr]["VALUE"];
 
 }
+
+function UserAuthDB_in_mysql_queue(){
+	$unix=new unix();
+	
+	$Dir="/var/log/squid/mysql-queue";
+	
+	
+	events("Scanning $Dir for UserAutDB");
+	$ScanFiles=$unix->DirFiles($Dir,"UserAutDB\.[0-9\.]+\.sql");
+	$q=new mysql_squid_builder();
+	while (list ($filename, $rows) = each ($ScanFiles) ){
+		$filepath="$Dir/$filename";
+		$array=unserialize(@file_get_contents($filepath));
+		if(count($array)==0){
+			events("$filepath Not an array");
+			@unlink($filepath);
+			continue;
+		}
+		$sql="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ".@implode(",", $array);
+		if($q->QUERY_SQL($sql)){
+			@unlink($filepath);
+			continue;
+		}
+		
+		
+	}
+	
+	
+	
+	
+}
+
+
+
+
 function PurgeMemory(){
 	$Dir="/var/log/squid/mysql-queue";
 
@@ -497,6 +844,12 @@ function PurgeMemory(){
 function Wakeup(){
 	
 	$unix=new unix();
+	$TimeFile="/etc/artica-postfix/pids/exec.logfile_daemon-parse.php.Wakeup.time";
+	$TimExec=$unix->file_time_min($TimeFile);
+	if($TimExec==0){return;}
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, time());
+	
 	$pgrep=$unix->find_program("pgrep");
 	exec("$pgrep -l -f \"exec.logfile_daemon.php\" 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){
@@ -537,32 +890,37 @@ function Wakeup(){
 }
 
 
-function parse_realtime_events(){
+function parse_realtime_events($nopid=false){
+	events("parse_realtime_events():: nopid => $nopid");
 	$unix=new unix();
 	
 	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$pid=@file_get_contents($TimePID);
-	if($unix->process_exists($pid)){
-		$timePid=$unix->PROCCESS_TIME_MIN($pid);
-		events("parse_realtime_events():: Already process exists $pid since {$timePid}Mn");
-		if($timePid>10){
-			$kill=$unix->find_program("kill");
-			events("parse_realtime_events():: Killing $pid running since {$timePid}Mn");
-			unix_system_kill_force($pid);
-		}else{
-			if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
-			die();
+	
+	if(!$nopid){
+		$pid=@file_get_contents($TimePID);
+		if($unix->process_exists($pid)){
+			$timePid=$unix->PROCCESS_TIME_MIN($pid);
+			events("parse_realtime_events():: Already process exists $pid since {$timePid}Mn");
+			if($timePid>10){
+				$kill=$unix->find_program("kill");
+				events("parse_realtime_events():: Killing $pid running since {$timePid}Mn");
+				unix_system_kill_force($pid);
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
+				die();
+			}
+			
 		}
-		
+		@file_put_contents($TimePID, getmypid());
 	}
 	
 	events("parse_realtime_events():: Time File: $TimeExec");
-	@file_put_contents($TimePID, getmypid());
+	
 	@unlink($TimeExec);
 	@file_put_contents($TimeExec, time());
 	
-	
+	events("Wakup...");
 	Wakeup();
 	
 	events("parse_realtime_events():: -> parse_realtime_hash()");
@@ -626,7 +984,8 @@ while (false !== ($filename = readdir($handle))) {
 		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){ 
-			if(preg_match("#Table\s+'.+?\.youtubehours_(.+?)'\s+doesn't exist#", $q->mysql_error)){
+			ToSyslog("$q->mysql_error in line [".__LINE__."]");
+			if(preg_match("#Table\s+'.+?\.youtubehours_(.+?)'\s+doesn't exist#", $q->mysql_error,$re)){
 				ToSyslog("Building youtubehours_{$re[1]} table");
 				$q->check_youtube_hour($re[1]);
 				$q->QUERY_SQL($sql);
@@ -696,7 +1055,7 @@ while (false !== ($filename = readdir($handle))) {
 		continue;
 	}	
 }
-
+events("$countDeFiles Scanned files...");
 $php=$unix->LOCATE_PHP5_BIN();
 $nohup=$unix->find_program("nohup");
 $cmd="$nohup $php ".__FILE__." --tables-primaires >/dev/null 2>&1 &";
@@ -713,6 +1072,8 @@ function x_GetFamilySites($sitename){
 }
 function x_MacToUid($mac=null){
 	if($mac==null){return;}
+	
+	
 	if(!isset($GLOBALS["USERSDB"])){$GLOBALS["USERSDB"]=unserialize(@file_get_contents("/etc/squid3/usersMacs.db"));}
 	if(!isset($GLOBALS["USERSDB"]["MACS"][$mac]["UID"])){return;}
 	if($GLOBALS["USERSDB"]["MACS"][$mac]["UID"]==null){return;}

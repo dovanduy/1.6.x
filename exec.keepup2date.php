@@ -25,6 +25,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 $GLOBALS["RUN_DIR"]="/var/run/kav4proxy";
 
 if($argv[1]=="--update"){StartUpdate();die();}
+if($argv[1]=="--update-kav4proxy-status"){Kav4ProxyDatabasePathSatus();die();}
 if($argv[1]=="--buildconf"){buildConf();die();}
 if($argv[1]=="--update-utility-httpd"){UpdateUtilityHttpd();die();}
 if($argv[1]=="--UpdateUtility"){UpdateUtility();die();}
@@ -89,25 +90,41 @@ function buildConf(){
 		if($GLOBALS["VERBOSE"]){echo "$UpdateUtilityStorePath/databases/Updates/index/u0607g.xml no such file\n";}
 	}
 	
+	$Kav4ProxyDatabasePath=$sock->GET_INFO("Kav4ProxyDatabasePath");
+	if($Kav4ProxyDatabasePath==null){$Kav4ProxyDatabasePath="/home/artica/squid/kav4proxy/bases";}
+	$BackUpPath=dirname($Kav4ProxyDatabasePath)."/bases.backup";
+	
 	$DateTime=date("Y-m-d_H-i-s");
 	$logfile="/var/log/artica-postfix/kaspersky/kav4proxy/$DateTime"; 
+	$BackUpPath="/home/artica/squid/kav4proxy/bases.backup";
 	
 	@mkdir("/opt/tmp",0755,true);
-	@mkdir("/var/db/kav/databases",0755,true);
+	@mkdir($Kav4ProxyDatabasePath,0755,true);
+	@mkdir($BackUpPath,0755,true);
 	@mkdir("/var/log/artica-postfix/kaspersky/kav4proxy",0755,true);
 	shell_exec("$chmod 777 /opt/tmp");
-	shell_exec("$chmod 777 /var/db/kav/databases");
+	shell_exec("$chmod 777 $Kav4ProxyDatabasePath");
+	shell_exec("$chmod 777 $BackUpPath");
 	
-	shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy/bases");
-	shell_exec("$ln -s /var/db/kav/databases /var/opt/kaspersky/kav4proxy/bases");
+	$ToDelete[]="/var/opt/kaspersky/kav4proxy/bases";
+	$ToDelete[]="/var/db/kav/databases";
+	$ToDelete[]="/var/opt/kaspersky/kav4proxy/bases.backup";
+	$ToDelete[]="/var/db/kav/databases.backup";
+	$ToDelete[]="/var/opt/kaspersky/kav4proxy/bases";
+	
+	while (list ($none, $path) = each ($ToDelete)){
+		if(is_link($path)){@unlink($path);continue;}
+		if(is_dir($path)){shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy/bases");}
+	}
+	
 	
 	
 	$f[]="[path]";
-	$f[]="BasesPath=/var/db/kav/databases";
+	$f[]="BasesPath=$Kav4ProxyDatabasePath";
 	$f[]="LicensePath=/var/opt/kaspersky/kav4proxy/licenses";
 	$f[]="TempPath=/opt/tmp/";
 	$f[]="[updater.path]";
-	$f[]="BackUpPath=/var/opt/kaspersky/kav4proxy/bases.backup";
+	$f[]="BackUpPath=$BackUpPath";
 	$f[]="#AVBasesTestPath=/opt/kaspersky/kav4proxy/lib/bin/avbasestest";
 	$f[]="[updater.options]";
 	$f[]="KeepSilent=no";
@@ -151,12 +168,17 @@ function StartUpdate(){
 		return;
 	}
 	
+	$Kav4ProxyDatabasePath=$sock->GET_INFO("Kav4ProxyDatabasePath");
+	if($Kav4ProxyDatabasePath==null){$Kav4ProxyDatabasePath="/home/artica/squid/kav4proxy/bases";}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.kav4proxy.php --build");
+	
 	
 	@mkdir("/opt/tmp",0755,true);
-	@mkdir("/var/db/kav/databases",0755,true);
+	@mkdir("$Kav4ProxyDatabasePath",0755,true);
 	@mkdir("/var/log/artica-postfix/kaspersky/kav4proxy",0755,true);
 	shell_exec("$chmod 777 /opt/tmp");
-	shell_exec("$chmod 777 /var/db/kav/databases");
+	shell_exec("$chmod 777 $Kav4ProxyDatabasePath");
 	buildConf();
 	$logfile="/var/log/artica-postfix/kaspersky/kav4proxy/".date("Y-m-d_H-i-s");
 	$tmpFileName="/etc/artica-postfix/kav4proxy-keepup2date.conf";
@@ -178,9 +200,26 @@ function StartUpdate(){
 	if($GLOBALS["VERBOSE"]){$verb=" --verbose";}
 	shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -i >/etc/artica-postfix/kav4proxy-licensemanager-i");
 	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.kaspersky-update-logs.php --force$verb");
+	Kav4ProxyDatabasePathSatus();
+	
+	
 	
 	
 }
+
+function Kav4ProxyDatabasePathSatus(){
+	$sock=new sockets();
+	$unix=new unix();
+	$Kav4ProxyDatabasePath=$sock->GET_INFO("Kav4ProxyDatabasePath");
+	if($Kav4ProxyDatabasePath==null){$Kav4ProxyDatabasePath="/home/artica/squid/kav4proxy/bases";}
+	$DatabaseSize=$unix->DIRSIZE_BYTES($Kav4ProxyDatabasePath);
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/Kav4ProxyDatabaseSize.db");
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/Kav4ProxyDatabaseSize.db", $DatabaseSize);
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/Kav4ProxyDatabaseSize.db",0755);
+}
+
+
+
 
 function UpdateUtilityHttpd(){
 	

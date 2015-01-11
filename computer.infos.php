@@ -1047,7 +1047,7 @@ function popup_services(){
 	
 	if($users->AllowAddUsers){
 		$uidenc=urlencode($uid);
-		$js="javascript:YahooUser(986,'domains.edit.user.php?userid=$uidenc&ajaxmode=yes','$uid');";
+		$js="javascript:YahooUser(1051,'domains.edit.user.php?userid=$uidenc&ajaxmode=yes','$uid');";
 		$network=Paragraphe("64-computers-parameters.png","{COMPUTER_NETWORK}","{COMPUTER_NETWORK_TEXT}",$js);
 	}
 	

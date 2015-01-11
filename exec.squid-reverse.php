@@ -90,7 +90,7 @@ function build(){
 	@file_put_contents("/etc/squid3/reverse.conf", @implode("\n", $conf)."\n");
 	if(!$GLOBALS["NORELOAD"]){
 		squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
-		shell_exec($unix->LOCATE_SQUID_BIN()." -k reconfigure");
+		shell_exec("/etc/init.d/squid reload --force --script=exec.squid-reverse.php/".__LINE__);
 		
 	}
 	

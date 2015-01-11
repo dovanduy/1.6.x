@@ -29,7 +29,7 @@ function js(){
 	$action=$_GET["action"];
 	$title=$tpl->javascript_parse_text("{{$appname}}::{{$action}}");
 	$_GET["cmd"]=urlencode($_GET["cmd"]);
-	$html="YahooWinBrowse('700','$page?popup=yes&appname=$appname&action=$action&cmd={$_GET["cmd"]}&id={$_GET["id"]}&appcode={$_GET["appcode"]}','$title')";
+	$html="YahooWinBrowse('1036','$page?popup=yes&appname=$appname&action=$action&cmd={$_GET["cmd"]}&id={$_GET["id"]}&appcode={$_GET["appcode"]}','$title')";
 	echo $html;
 	
 }	
@@ -49,7 +49,7 @@ function popup(){
 	$html="
 		<center id='title-$t' style='font-size:18px'>$title</center><br>
 		<center>
-			<div id='Status$t'></div>
+			<div id='Status$t' style='height:50px;margin-top:20px;margin-bottom:20px'></div>
 		</center>
 		<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
@@ -107,6 +107,8 @@ function popup(){
 			if(document.getElementById('OPENDKIM_TABS')){RefreshTab('OPENDKIM_TABS');}
 			if(document.getElementById('main_config_fetchmail')){RefreshTab('main_config_fetchmail');}
 			if(document.getElementById('main_config_mgreylist')){RefreshTab('main_config_mgreylist');}
+			if(document.getElementById('main_failover_tabs')){RefreshTab('main_failover_tabs');}
+			if(document.getElementById('tabs_networktrack')){RefreshTab('tabs_networktrack');}
 			
 			
 			
@@ -309,6 +311,11 @@ function ifStopped(){
 				return;
 			}
 			
+			if(preg_match("#linking to network success#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
 			
 		
 		}
@@ -319,7 +326,12 @@ function ifStopped(){
 			if(preg_match("#Already stopped#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
-			}			
+			}
+
+			if(preg_match("#Shutting down success#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}		
 			
 			if(preg_match("#success stopped#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";

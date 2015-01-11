@@ -34,6 +34,8 @@
 		if(strlen($val)>500){$val=strlen($val)." bytes lenght";}
 		writelogs("From: {$_SERVER["REMOTE_ADDR"]} $num = $val",__FILE__,__FUNCTION__,__LINE__);
 	}
+	if(isset($_POST["SQUID_BEREKLEY"])){stats_berekley_upload();exit;}
+	
 	if(isset($_GET["ucarp"])){ucarp_step1();exit;}
 	if(isset($_GET["ucarp2"])){ucarp_step2();exit;}
 	if(isset($_GET["ucarp3"])){ucarp_step3();exit;}
@@ -453,6 +455,44 @@ function SETTINGS_INC(){
 	
 }
 
+
+function stats_berekley_upload(){
+	$hostname=$_POST["HOSTNAME"];
+	$FILENAME=$_POST["FILENAME"];
+	$SIZE=$_POST["SIZE"];
+	$UUID=trim($_POST["UUID"]);
+	$content_dir=dirname(__FILE__)."/ressources/conf/upload/BEREKLEY";
+	$moved_file=$content_dir . "/$UUID-$FILENAME";
+	@mkdir($content_dir,0755,true);
+	if($UUID==null){$UUID=time();}
+	$UploadedDir=$content_dir;
+	@mkdir($UploadedDir,0755,true);
+	if(!is_dir($UploadedDir)){return false;}
+	
+	while (list ($key, $arrayF) = each ($_FILES) ){
+		$type_file = $arrayF['type'];
+		$name_file = $arrayF['name'];
+		$tmp_file  = $arrayF['tmp_name'];
+				
+		$target_file="$UploadedDir/$UUID-$name_file";
+		if(file_exists( $target_file)){@unlink( $target_file);}
+		if( !move_uploaded_file($tmp_file, $target_file) ){
+			$sock=new sockets();
+			$sock->getFrameWork("services.php?folders-security=yes&force=true");
+			if( !move_uploaded_file($tmp_file, $target_file) ){
+				echo "$UUID: Error Unable to Move File : $target_file\n";
+				writelogs("$UUID: Error Unable to Move File : $target_file",__FUNCTION__,__FILE__,__LINE__);
+				return;
+			}
+			}
+				
+		}
+		
+		$sock->getFrameWork("artica.php?stats-appliance-berekley=yes");
+	
+	
+}
+
 function stats_appliance_upload(){
 	$hostname=$_POST["HOSTNAME"];
 	$sock=new sockets();	
@@ -460,9 +500,24 @@ function stats_appliance_upload(){
 	$content_dir=dirname(__FILE__)."/ressources/conf/upload";
 	$FILENAME=$_POST["FILENAME"];
 	$SIZE=$_POST["SIZE"];
+	$UUID=null;
+	if(isset($_POST["UUID"])){
+		$UUID=trim($_POST["UUID"]);
+	}
 	
 	while (list ($num, $array) = each ($_REQUEST) ){
-		writelogs("stats_appliance_upload:: RECEIVE `$num`",__FUNCTION__,__FILE__,__LINE__);
+		if(is_array($array)){
+			while (list ($a, $b) = each ($array) ){
+				if(strlen($b)<150){
+					writelogs("stats_appliance_upload:: RECEIVE `$num` = $b",__FUNCTION__,__FILE__,__LINE__);
+				}
+			}
+			
+			continue;
+		}
+		
+		writelogs("stats_appliance_upload:: RECEIVE `$num` = $array",__FUNCTION__,__FILE__,__LINE__);
+		
 	
 	}
 	
@@ -470,7 +525,7 @@ function stats_appliance_upload(){
 	$array["DETAILS"][]="Manager: {$credentials["MANAGER"]}";
 	if($ldap->ldap_admin<>$credentials["MANAGER"]){
 		$array["APP_CREDS"]=false;
-		stats_admin_events_mysql(0,"$hostname: Account mismatch..",null,__FUNCTION__,__FILE__,__LINE__);
+		stats_admin_events_mysql(0,"$hostname: Account mismatch..[$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 		$array["DETAILS"][]="Account mismatch..";
 		
 		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
@@ -479,7 +534,7 @@ function stats_appliance_upload(){
 	if($ldap->ldap_password<>$credentials["PASSWORD"]){
 		$array["APP_CREDS"]=false;
 		$array["DETAILS"][]="Password mismatch..";
-		stats_admin_events_mysql(0,"$hostname: Password mismatch..",null,__FUNCTION__,__FILE__,__LINE__);
+		stats_admin_events_mysql(0,"$hostname: Password mismatch..[$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
 		return;
 	}
@@ -490,19 +545,28 @@ function stats_appliance_upload(){
 	
 	writelogs("SQUID_STATS_CONTAINER = ".strlen($_REQUEST["SQUID_STATS_CONTAINER"])." bytes ",__FUNCTION__,__FILE__,__LINE__);
 	
-	$moved_file=$content_dir . "/$hostname-$FILENAME";
+	
+	
+	$time=time();
+	$moved_file=$content_dir . "/$hostname-$time-$FILENAME";
+		if($UUID<>null){$moved_file=$content_dir . "/$hostname-$UUID-$time-$FILENAME";
+	}
 	@file_put_contents($moved_file, base64_decode($_REQUEST["SQUID_STATS_CONTAINER"]));
+	
 	if(!is_file($moved_file)){
-		stats_admin_events_mysql(0,"$hostname $moved_file no such file",null,__FUNCTION__,__FILE__,__LINE__);
+		stats_admin_events_mysql(0,"$hostname $moved_file no such file [$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 		writelogs("$hostname $moved_file no such file",__FUNCTION__,__FILE__,__LINE__);
 		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
 		return;
 	}
 	$filesize=@filesize($moved_file);
-	writelogs("$hostname $moved_file {$filesize}bytes",__FUNCTION__,__FILE__,__LINE__);
+	$filesizeKB=$filesize/1024;
+	$filesizeMB=$filesizeKB/1024;
+	writelogs("$hostname $moved_file {$filesize} bytes - $filesizeMB MB - ",__FUNCTION__,__FILE__,__LINE__);
+	
 	if($filesize<>$SIZE){
 		$diff=intval($filesize-$SIZE);
-		stats_admin_events_mysql(0,"$hostname $moved_file size differ {$diff}Bytes!!!",null,__FUNCTION__,__FILE__,__LINE__);
+		stats_admin_events_mysql(0,"$hostname $moved_file size differ {$diff}Bytes!!! [$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 		writelogs("$hostname $moved_file size differ {$diff}Bytes!!!",__FUNCTION__,__FILE__,__LINE__);
 		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
 		return;
@@ -510,12 +574,12 @@ function stats_appliance_upload(){
 	
 	$moved_filebas=basename($moved_file);
 	$filesize=FormatBytes($filesize/1024);
-	stats_admin_events_mysql(2,"$hostname: Success uploaded $moved_filebas ( $filesize )",null,__FUNCTION__,__FILE__,__LINE__);
+	stats_admin_events_mysql(2,"$hostname: Success uploaded $moved_filebas ( $filesize ) [$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 	writelogs("$hostname $moved_file OK!!!",__FUNCTION__,__FILE__,__LINE__);
 	
 	$data=trim($sock->getFrameWork("squidstats.php?move-stats-file=".urlencode($moved_file)));
 	if($data<>"SUCCESS"){
-		stats_admin_events_mysql(2,"$hostname: failed to move uploaded - $data -$moved_filebas ( $filesize )",null,__FUNCTION__,__FILE__,__LINE__);
+		stats_admin_events_mysql(0,"$hostname: failed to move uploaded - $data -$moved_filebas ( $filesize ) [$UUID]",null,__FUNCTION__,__FILE__,__LINE__);
 		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
 		return;
 	}
@@ -1196,7 +1260,9 @@ function ucarp_step2(){
 		return;		
 	}
 	
-	
+	if(isset($SEND_SETTING["first_ipaddr"])){
+		$SEND_SETTING["BALANCE_IP"]=$SEND_SETTING["first_ipaddr"];
+	}
 	
 	$nic->ucarp_enabled=1;
 	$nic->ucarp_vip=$SEND_SETTING["BALANCE_IP"];
@@ -1205,7 +1271,9 @@ function ucarp_step2(){
 	$nic->NoReboot=true;
 	if(!$nic->SaveNic()){
 		$array["ERROR"]=true;
-		$array["ERROR_SHOW"]="Save in Database failed";
+		$array["ERROR_SHOW"]="Save Network in Local Database failed [".__LINE__."]<br>$nic->mysql_error<br>MySQL server will be restarted, please try again";
+		$sock=new sockets();
+		$sock->getFrameWork("cmd.php?restart-mysql=yes");
 		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
 		return;		
 	}
@@ -1300,7 +1368,7 @@ function stats_admin_events_mysql($severity, $subject, $text,$function,$file,$li
 	$zdate=date("Y-m-d H:i:s");
 	$text=mysql_escape_string2($text);
 	$q=new mysql();
-	$subject=mysql_escape_string2($text);
+	$subject=mysql_escape_string2($subject);
 	$file=basename($file);
 	$q->QUERY_SQL("INSERT IGNORE INTO `stats_admin_events`
 			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES

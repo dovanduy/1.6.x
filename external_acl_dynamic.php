@@ -1,7 +1,10 @@
 #!/usr/bin/php -q
 <?php
-  //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+$GLOBALS["HERLPER_LOADED_BY_SQUID"]=true;
+$GLOBALS["LOG_FILE_NAME"]="/var/log/squid/external-acl-dynamic.log";
+//ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
   error_reporting(0);
+ 
   $GLOBALS["PID"]=getmypid();
   $GLOBALS["STARTIME"]=time();
   $GLOBALS["uriToHost"]=array();
@@ -10,13 +13,21 @@
   $GLOBALS["VERBOSE"]=false;
   $GLOBALS["XVFERTSZ"]=XVFERTSZ();
   $GLOBALS["CATZ-EXTRN"]=0;
-  $GLOBALS["LOG_FILE_NAME"]="/var/log/squid/external-acl-dynamic.log";
+  $GLOBALS["DEBUG_LEVEL"]=4;
+  $GLOBALS["UNBLOCK"]=false;
 
   if(preg_match("#--itchart#", @implode("", $argv))){
   	WLOG("Starting ACLs dynamic with itchart feature...");
   	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   	$GLOBALS["ITCHART"]=true;
   }
+  if(preg_match("#--ufdbunlock#", @implode("", $argv))){
+  	WLOG("Starting ACLs dynamic with Dynamic Unblock feature...");
+  	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+  	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+  	$GLOBALS["UNBLOCK"]=true;
+  }  
+  
   
   if($argv[1]=="--test-itchart"){
   	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
@@ -31,7 +42,7 @@
   	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   	$GLOBALS["QZ"]=new mysql_catz();
   	$GLOBALS["CATZ-EXTRN"]=$re[1];
-  	$GLOBALS["DEBUG_LEVEL"]=3;
+  
   	$categories_match=categories_match($GLOBALS["CATZ-EXTRN"],$argv[3]);
   	echo "RESULTS: $categories_match\n";
   	if($categories_match<>null){
@@ -55,58 +66,75 @@
   
   if(!is_numeric($GLOBALS["DEBUG_LEVEL"])){$GLOBALS["DEBUG_LEVEL"]=1;}
   $GLOBALS["RULE_ID"]=0;
-  
+  WLOG("Starting ACLs dynamic with debug level:{$GLOBALS["DEBUG_LEVEL"]} - License: {$GLOBALS["XVFERTSZ"]}");
   openLogs();
+  
+ 
   
   if($GLOBALS["DEBUG_LEVEL"]>0){
   	if($GLOBALS["DEBUG_LEVEL"]>1){error_reporting(1);}
   	WLOG("Starting ACLs dynamic with debug level:{$GLOBALS["DEBUG_LEVEL"]}");
+  	
+  	
   }
 
 //----------------- LOOP ------------------------------------  
   
 	while (!feof(STDIN)) {
 	 $url = trim(fgets(STDIN));
+	 if($url==null){
+	 	if($GLOBALS["DEBUG_LEVEL"]>3){WLOG("LOOP::URL is NULL");}
+	 	continue;
+	 }
 	 
-	 	
+	 if($GLOBALS["UNBLOCK"]){	
+	 		WLOG("UNBLOCK::$url");
+	 		
+	 		if(UFDGUARD_UNLOCKED($url)){
+	 			WLOG("UNBLOCK::OK");
+	 			fwrite(STDOUT, "OK\n"); 
+	 			continue; 
+	 		}
+	 		
+	 		WLOG("UNBLOCK::ERR");
+	 		fwrite(STDOUT, "ERR\n");
+	 		continue;
+	 	}
 	 
 	 
-		 if($url<>null){
-			 	$array=parseURL($url);
-			 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("LOOP()::str ".$url ." [".__LINE__."]");}
-			 	$ID=0;
+		if($url<>null){
+			$array=parseURL($url);
+			if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("LOOP()::str ".$url ." [".__LINE__."]");}
+			$ID=0;
+			if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("LOOP()::str:".strlen($url)." Array(".count($array).") Rule ID:{$GLOBALS["RULE_ID"]}; LOGIN:{$array["LOGIN"]}; IPADDR:{$array["IPADDR"]}; MAC:{$array["MAC"]}; HOST:{$array["HOST"]}; RHOST:{$array["RHOST"]}; URI:{$array["URI"]}");}
 			 	
+			if($GLOBALS["ITCHART"]){
+				$ChartID=CheckITChart($array["LOGIN"],$array["IPADDR"],$array["MAC"]);
+				if($ChartID>0){
+					$error=base64_encode(serialize(array("ChartID"=>$ChartID,"LOGIN"=>$array["LOGIN"],"IPADDR"=>$array["IPADDR"],"MAC"=>$array["MAC"])));
+					fwrite(STDOUT, "ERR message=$error\n");
+					continue;
+				}
+				fwrite(STDOUT, "OK\n");
+			 	continue;
+			}
 			 	
-			 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("LOOP()::str:".strlen($url)." Array(".count($array).") Rule ID:{$GLOBALS["RULE_ID"]}; LOGIN:{$array["LOGIN"]}; IPADDR:{$array["IPADDR"]}; MAC:{$array["MAC"]}; HOST:{$array["HOST"]}; RHOST:{$array["RHOST"]}; URI:{$array["URI"]}");}
-			 	
-			 	if($GLOBALS["ITCHART"]){
-			 		$ChartID=CheckITChart($array["LOGIN"],$array["IPADDR"],$array["MAC"]);
-			 		if($ChartID>0){
-			 			$error=base64_encode(serialize(array("ChartID"=>$ChartID,"LOGIN"=>$array["LOGIN"],"IPADDR"=>$array["IPADDR"],"MAC"=>$array["MAC"])));
-						fwrite(STDOUT, "ERR message=$error\n");
-						continue;
-			 		}
-			 		fwrite(STDOUT, "OK\n");
+			if($GLOBALS["CATZ-EXTRN"]>0){
+				if(!$GLOBALS["XVFERTSZ"]){
+			 		$error=urlencode("License Error, please remove Artica categories objects in ACL");
+			 		WLOG("LOOP():: License Error ! [".__LINE__."]");
+			 		fwrite(STDOUT, "BH message=$error\n");
 			 		continue;
 			 	}
-			 	
-			 	if($GLOBALS["CATZ-EXTRN"]>0){
 			 		
-			 		if(!$GLOBALS["XVFERTSZ"]){
-			 			$error=urlencode("License Error, please remove Artica categories objects in ACL");
-			 			WLOG("LOOP():: License Error ! [".__LINE__."]");
-			 			fwrite(STDOUT, "BH message=$error\n");
-			 			continue;
-			 		}
-			 		
-			 		$categories_match=categories_match($GLOBALS["CATZ-EXTRN"],$array["RHOST"]);
-			 		if($categories_match<>null){
-			 			fwrite(STDOUT, "OK message=$categories_match\n");
-			 			continue;
-			 		}
-			 		fwrite(STDOUT, "ERR\n");
+			 	$categories_match=categories_match($GLOBALS["CATZ-EXTRN"],$array["RHOST"]);
+			 	if($categories_match<>null){
+			 		fwrite(STDOUT, "OK message=$categories_match\n");
 			 		continue;
 			 	}
+			 	fwrite(STDOUT, "ERR\n");
+			 	continue;
+			 }
 			 	
 			 	
 			 	if(isset($array["LOGIN"])){
@@ -929,6 +957,109 @@ function CheckITChart($login,$ipaddr,$mac){
 	WLOG("CheckITChart():: ??!!");
 	
 }	
+
+function UFDGUARD_UNLOCKED($url){
+	
+	if(trim($url)==null){
+		
+		return false;}
+	$q=new mysql_squid_builder();
+	if($q->COUNT_ROWS("ufdbunlock")==0){
+		
+		return false;}
+	$values=explode(" ",$url);
+	$LOGIN=$values[0];
+	$IPADDR=$values[1];
+	$MAC=$values[2];
+	$XFORWARD=$values[3];
+	$WWW=$values[4];
+	$LOGIN=str_replace("%25", "-", $LOGIN);
+	$IPADDR=str_replace("%25", "-", $IPADDR);
+	$MAC=str_replace("%25", "-", $MAC);
+	$XFORWARD=str_replace("%25", "-", $XFORWARD);
+	if($XFORWARD=="-"){$XFORWARD=null;}
+	if($MAC=="00:00:00:00:00:00"){$MAC=null;}
+	if($MAC=="-"){$MAC=null;}
+	if($LOGIN=="-"){$LOGIN=null;}
+	$IPCalls=new IP();
+	if($IPCalls->isIPAddress($XFORWARD)){$IPADDR=$XFORWARD;}
+	
+	if(preg_match("#(.+?):[0-9]+#", $WWW,$re)){$WWW=$re[1];}
+	if(preg_match("#^www\.(.+)#", $WWW,$re)){$WWW=$re[1];}
+	
+	
+	$WWW=$q->GetFamilySites($WWW);
+	if(!isset($GLOBALS["ufdbunlock_c"])){$GLOBALS["ufdbunlock_c"]=0;}
+	$GLOBALS["ufdbunlock_c"]++;
+	
+	
+	if($GLOBALS["ufdbunlock_c"]>90){
+		$q->QUERY_SQL("DELETE FROM ufdbunlock WHERE `finaltime` <". time());
+		if(!$q->ok){WLOG("$q->mysql_error");}
+		$GLOBALS["ufdbunlock_c"]=0;
+	}
+	
+	if($LOGIN<>null){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT md5,finaltime FROM ufdbunlock WHERE `www`='$WWW' AND uid='$LOGIN'"));
+		if(!$q->ok){WLOG("$q->mysql_error");}
+		
+		
+		
+		if($ligne["md5"]<>null){
+			if($ligne["finaltime"]<time()){
+				return false;
+			}
+			if($MAC<>null){
+				$q->QUERY_SQL("UPDATE ufdbunlock SET MAC='$MAC' WHERE uid='$LOGIN'");
+			}
+			
+			return true;
+		}
+	}
+		
+
+	if($MAC<>null){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT md5,finaltime FROM ufdbunlock WHERE `www`='$WWW' AND MAC='$MAC'"));
+			if(!$q->ok){WLOG("$q->mysql_error");}
+			
+			
+			
+			if($ligne["md5"]<>null){
+				if($ligne["finaltime"]<time()){return false;}
+				if($IPADDR<>null){
+					$q->QUERY_SQL("UPDATE ufdbunlock SET ipaddr='$IPADDR' WHERE MAC='$MAC'");
+				}
+				
+				return true;
+			}	
+	}
+			
+	
+	if($IPADDR<>null){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT md5,finaltime FROM ufdbunlock WHERE `www`='$WWW' AND ipaddr='$IPADDR'"));
+		if(!$q->ok){WLOG("$q->mysql_error");}
+		$time=time();
+		
+		
+		if($ligne["md5"]<>null){
+			if($ligne["finaltime"]<time()){
+				WLOG("{$ligne["finaltime"]} < $time -> FALSE");
+				return false;}
+		
+		if($MAC<>null){
+			$q->QUERY_SQL("UPDATE ufdbunlock SET MAC='$MAC' WHERE ipaddr='$IPADDR'");
+		}
+		
+		return true;
+		}
+	}	
+	
+	
+	
+	
+	
+	
+}
 	
 	
 function find_program($strProgram) {
@@ -941,9 +1072,13 @@ function find_program($strProgram) {
 
 function XVFERTSZ(){
 	$F=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw==");
-	if(!is_file($F)){return false;}
+	
+	if(!is_file($F)){
+		WLOG("License check no such license");
+		return false;}
 	$D=trim(@file_get_contents($F));
 	if(trim($D)=="TRUE"){return true;}
+	WLOG("License check no such license content");
 	return false;
 	
 }

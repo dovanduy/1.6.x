@@ -1,10 +1,13 @@
 <?php
 $GLOBALS["SCHEDULE_ID"]=0;
+$GLOBALS["AD_PROGRESS"]=0;
 $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["ARGVS"]=implode(" ",$argv);
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--includes#",implode(" ",$argv))){$GLOBALS["DEBUG_INCLUDES"]=true;}
+if(preg_match("#--progress-activedirectory=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["AD_PROGRESS"]=$re[1];}
+
 if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.templates.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.remote-stats-appliance.inc');
@@ -39,6 +42,9 @@ $GLOBALS["NORELOAD"]=false;
 $GLOBALS["SMOOTH"]=false;
 $GLOBALS["RESTART"]=false;
 $GLOBALS["BY_SCHEDULE"]=false;
+$GLOBALS["NO_VERIF_CACHES"]=false;
+$GLOBALS["PROGRESS"]=false;
+$GLOBALS["EMERGENCY"]=false;
 
 
 
@@ -60,7 +66,9 @@ if(preg_match("#--nocaches#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;}
 if(preg_match("#--noapply#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;$GLOBALS["NOAPPLY"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--restart#",implode(" ",$argv))){$GLOBALS["RESTART"]=true;}
 if(preg_match("#--byschedule#",implode(" ",$argv))){$GLOBALS["BY_SCHEDULE"]=true;}
-
+if(preg_match("#--noverifcaches#",implode(" ",$argv))){$GLOBALS["NO_VERIF_CACHES"]=true;}
+if(preg_match("#--progress#",implode(" ",$argv))){$GLOBALS["PROGRESS"]=true;}
+if(preg_match("#--emergency#",implode(" ",$argv))){$GLOBALS["EMERGENCY"]=true;}
 
 
 
@@ -75,13 +83,16 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 	$GLOBALS["CLASS_USERS"]=new usersMenus();
 	if($GLOBALS["VERBOSE"]){echo "squid binary=$squidbin\n";}
 
+if($argv[1]=="--mime"){if($GLOBALS["VERBOSE"]){echo "->mime_conf()\n";}mime_conf();return;}
 if($argv[1]=="--tests-caches"){test_caches();return;}
 if($argv[1]=="--purge-dns"){purge_dns();return;}	
 if($argv[1]=="--import-acls"){import_acls($argv[2]);return;}
 if($argv[1]=="--import-webfilter"){import_webfilter($argv[2]);return;}	
 if($argv[1]=="--quick-ban"){quick_bann();die();}
 if($argv[1]=="--kreconfigure"){Reload_only_squid();die();}
-
+if($argv[1]=="--artica-templates"){DefaultTemplatesInArtica();die();}
+if($argv[1]=="--squid-reconfigure"){exec_reconfigure_squid();die();}
+if($argv[1]=="--dump-tpl"){dump_templates();die();}
 
 
 
@@ -96,13 +107,13 @@ if($argv[1]=="--certificate"){certificate_generate();die();}
 if($argv[1]=="--caches"){BuildCaches();die();}
 if($argv[1]=="--caches-reconstruct"){ReconstructCaches();die();}
 if($argv[1]=="--compilation-params"){compilation_params();die();}
-if($argv[1]=="--mysql-tpl"){DefaultTemplatesInMysql();die();}
+if($argv[1]=="--mysql-tpl"){DefaultTemplatesInArtica();die();}
 if($argv[1]=="--tpl-save"){TemplatesInMysql();die();}
 if($argv[1]=="--templates"){TemplatesInMysql();die();}
 if($argv[1]=="--tpl-unique"){TemplatesUniqueInMysql($argv[2]);die();}
 if($argv[1]=="--cache-infos"){caches_infos(true);die();}
 if($argv[1]=="--writeinitd"){writeinitd();die();}
-if($argv[1]=="--watchdog"){watchdog($direction);die();}
+if($argv[1]=="--watchdog"){watchdog();die();}
 if($argv[1]=="--watchdog-config"){watchdog_config();die();}
 if($argv[1]=="--build-schedules"){build_schedules();die();}
 if($argv[1]=="--build-schedules-test"){build_schedules_tests();die();}
@@ -135,6 +146,7 @@ if($argv[1]=="--pactester"){squid_pactester();die();}
 if($argv[1]=="--cache-rules"){cache_rules();die();}
 if($argv[1]=="--band"){bandwith_rules();die();}
 if($argv[1]=="--cert"){BuildSquidCertificate();die();}
+if($argv[1]=="--defaults-schedules"){Defaultschedules();die();}
 
 
 
@@ -176,7 +188,7 @@ if($argv[1]=="--reconfigure"){
 	squid_reconfigure_build_tool();	
 	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 	$q=new mysql_squid_builder();
-	$q->CheckDefaultSchedules();	
+	Defaultschedules(true);	
 	@file_put_contents($EXEC_PID_FILE, posix_getpid());
 	ApplyConfig();
 	BuildCaches(true);
@@ -216,7 +228,24 @@ function WriteToSyslog_execsquid($text){
 }
 
 function build_progress($text,$pourc){
+	
+	
+	
+	$echotext=$text;
+	$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+	echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
 	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.build.progress";
+	
+	if($GLOBALS["AD_PROGRESS"]>0){
+		
+		$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status"));
+		$array["PRC"]=$GLOBALS["AD_PROGRESS"];
+		$array["TITLE"]=$text;
+		@file_put_contents($cachefile, serialize($array));
+		@chmod($cachefile, 0755);
+		return;
+	}
+	
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;
 	@file_put_contents($cachefile, serialize($array));
@@ -225,6 +254,7 @@ function build_progress($text,$pourc){
 }
 
 if($argv[1]=="--build"){
+		if($GLOBALS["VERBOSE"]){echo "Runnin build...\n";}
 		$unix=new unix();
 		$forceCMD=null;
 		if($GLOBALS["FORCE"]){$forceCMD=" --force";}
@@ -248,7 +278,7 @@ if($argv[1]=="--build"){
 		}
 		@unlink($EXEC_TIME_FILE);
 		@file_put_contents($EXEC_TIME_FILE, time());
-		
+		if($GLOBALS["EMERGENCY"]){squid_admin_mysql(0, "Reconfiguring Proxy service after Emergency enabled", null,__FILE__,__LINE__);}
 	
 		$TimeStart=time();
 		$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".build.pid";
@@ -304,7 +334,7 @@ if($argv[1]=="--build"){
 		echo "Starting......: ".date("H:i:s")." Checking squid certificate\n";
 		build_progress("{reconfigure}",25);
 		checkdatabase();
-		build_progress("{reconfigure}",30);
+		build_progress("{reconfigure} certificates",30);
 		certificate_generate();
 		build_progress("{reconfigure}",35);
 		remote_appliance_restore_tables();
@@ -313,33 +343,16 @@ if($argv[1]=="--build"){
 		$squid=new squidbee();
 		$squidbin=$unix->find_program("squid3");
 		echo "Starting......: ".date("H:i:s")." checking squid binaries..\n";
-		echo "Starting......: ".date("H:i:s")." Setting permissions\n";
-		$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons");
-		$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
-		echo "Starting......: ".date("H:i:s")." Setting permissions done..\n";
 		if(!is_file($squidbin)){$squidbin=$unix->find_program("squid");}
 		echo "Starting......: ".date("H:i:s")." Binary: $squidbin\n";
 		echo "Starting......: ".date("H:i:s")." Config: $SQUID_CONFIG_PATH\n";
 		echo "Starting......: ".date("H:i:s")." User..: $squid_user\n";
 		echo "Starting......: ".date("H:i:s")." Checking blocked sites\n";
-		build_progress("{reconfigure}",45);
+		build_progress("{reconfigure} {building} NET ADS",45);
 		shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.squid.netads.php >/dev/null 2>&1 &");
-		build_progress("{reconfigure}",50);
-		$squid->BuildBlockedSites();
-		echo "Starting......: ".date("H:i:s")." Checking FTP ACLs\n";
-		build_progress("{reconfigure}",55);
-		acl_clients_ftp();
-		echo "Starting......: ".date("H:i:s")." Checking Whitelisted browsers\n";
-		build_progress("{reconfigure}",60);
-		acl_whitelisted_browsers();
-		build_progress("{reconfigure}",65);
-		acl_allowed_browsers();
-		echo "Starting......: ".date("H:i:s")." Checking wrapzap\n";
-		build_progress("{reconfigure}",70);
-		wrapzap();
 		echo "Starting......: ".date("H:i:s")." Building master configuration\n";
 		$squid->ASROOT=true;	
-		build_progress("{reconfigure}",75);
+		build_progress("{reconfigure} Building main configuration",75);
 		if(!ApplyConfig()){
 			build_progress("Apply configuration failed",110);
 			echo "Starting......: ".date("H:i:s")." Apply configuration failed....\n";
@@ -347,53 +360,72 @@ if($argv[1]=="--build"){
 		}
 		
 		echo "Starting......: ".date("H:i:s")." Checking Watchdog\n";
-		build_progress("{reconfigure}",80);
+		build_progress("{reconfigure} checking Watchdog settings",80);
 		watchdog_config();
-		build_progress("{reconfigure}",85);
+		build_progress("{reconfigure} build errors",85);
 		errors_details_txt();
-		build_progress("{reconfigure}",86);
+		build_progress("{reconfigure} Checking caches",86);
 		BuildCaches(true);
-		build_progress("{reconfigure}",87);
+		build_progress("{reconfigure} Check files and security",87);
 		CheckFilesAndSecurity();
-		build_progress("{reconfigure}",88);
+		build_progress("{reconfigure} Building schedules",88);
 		build_schedules(true);
-		build_progress("{reconfigure}",89);
+		build_progress("{reconfigure} Building SSL passwords",89);
 		build_sslpasswords();
-		build_progress("{reconfigure}",90);
+		build_progress("{reconfigure} Building blacklists",90);
 		build_blacklists();
-		build_progress("{reconfigure}",91);
+		build_progress("{reconfigure} Building No caches list",91);
+		build_denycaches();
+		build_progress("{reconfigure}",95);
+		$GLOBALS["OUTPUT"]=true;
 		if($GLOBALS["NOAPPLY"]){
 			build_progress("{reconfiguring_proxy_service} {success}",100);
 			return;
 		}
-		
+
+		build_progress("EnableUfdbGuardArtica = $EnableUfdbGuardArtica",91);
 		if(!$GLOBALS["RESTART"]){
 			build_progress("{reloading_service}",91);
-			Reload_Squid();
+			if(!$GLOBALS["NORELOAD"]){
+				Reload_Squid();
+			}
 		}
 		
 		if($GLOBALS["RESTART"]){
-			build_progress("{stopping_service}",91);
-			system("$PHP /usr/share/artica-postfix/exec.squid.watchdog.php --stop $forceCMD --byForceReconfigure");
-			build_progress("{starting_service}",93);
-			system("$PHP /usr/share/artica-postfix/exec.squid.watchdog.php --start $forceCMD --byForceReconfigure");
-			build_progress("{starting_service}",95);
+			if(!$GLOBALS["NORELOAD"]){
+				build_progress("{stopping_service}",91);
+				system("$PHP /usr/share/artica-postfix/exec.squid.watchdog.php --stop $forceCMD --byForceReconfigure");
+				build_progress("{starting_service}",93);
+				system("$PHP /usr/share/artica-postfix/exec.squid.watchdog.php --start $forceCMD --byForceReconfigure");
+				build_progress("{starting_service}",95);
+			}
 		}
 		
 		$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
 		if($EnableStreamCache==1){
+			build_progress("{restarting} VideoCache services",96);
 			echo "Starting......: ".date("H:i:s")." Restarting VideoCache services.\n";
 			shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.squidstream.php --restart >/dev/null 2>&1 &");
 		}
 		
+		build_progress("{building} Cached Web frontend pages",97);
+		shell_exec("$NOHUP $PHP ".basename(__FILE__)."/exec.cache.pages.php --force >/dev/null 2>&1 &");
+		
 		$BuildAllTemplatesDone=$sock->GET_INFO("BuildAllTemplatesDone");
 		if(!is_numeric($BuildAllTemplatesDone)){$BuildAllTemplatesDone=0;}
 		if($BuildAllTemplatesDone==0){
+			build_progress("{building} Templates schedules",97);
 			echo "Starting......: ".date("H:i:s")." scheduling Building templates\n";
 			sys_THREAD_COMMAND_SET("$PHP ". __FILE__." --tpl-save");
 			$sock->SET_INFO("BuildAllTemplatesDone", 1);
 		}
+		
+		build_progress("{building} Templates",98);
+		sys_THREAD_COMMAND_SET("$PHP ". __FILE__." --mysql-tpl");
+		
+		
 		build_progress("{reconfiguring_proxy_service} {success}",100);
+		
 		echo "Starting......: ".date("H:i:s")." Done (Took: ".$unix->distanceOfTimeInWords($TimeStart,time()).")\n";
 		die();
 	}
@@ -408,6 +440,238 @@ function change_value($key,$val){
 	$squid->SaveToLdap();
 	echo "Starting......: ".date("H:i:s")." Squid change $key to $val (squid will be restarted)\n";
 	
+}
+
+
+function mime_conf(){
+	
+	$sock=new sockets();
+	
+	$SquidHTTPTemplateLogoEnable=intval($sock->GET_INFO("SquidHTTPTemplateLogoEnable"));
+	
+	@mkdir("/usr/share/squid3/icons/silk",0755);
+	@chown("/usr/share/squid3/icons/silk", "squid");
+	@chgrp("/usr/share/squid3/icons/silk", "squid");
+	@unlink("/usr/share/squid3/icons/silk/bigshield-256.png");
+	@unlink("/usr/share/squid3/icons/silk/logo-artica-64.png");
+	
+	@copy("/usr/share/artica-postfix/img/bigshield-256.png","/usr/share/squid3/icons/silk/bigshield-256.png");
+	@copy("/usr/share/artica-postfix/img/logo-artica-64.png","/usr/share/squid3/icons/silk/logo-artica-64.png");
+	@chown("/usr/share/squid3/icons/silk/bigshield-256.png", "squid");
+	@chgrp("/usr/share/squid3/icons/silk/bigshield-256.png", "squid");
+	@chown("/usr/share/squid3/icons/silk/logo-artica-64.png", "squid");
+	@chgrp("/usr/share/squid3/icons/silk/logo-artica-64.png", "squid");
+	$SquidHTTPTemplateLogoLine=null;
+	
+	
+	if($SquidHTTPTemplateLogoEnable==1){
+		$SquidHTTPTemplateLogoPath=$sock->GET_INFO("SquidHTTPTemplateLogoPath");
+		if(is_file($SquidHTTPTemplateLogoPath)){
+			$SquidHTTPTemplateLogo=basename($SquidHTTPTemplateLogoPath);
+			$SquidHTTPTemplateLogoDest="/usr/share/squid3/icons/silk/$SquidHTTPTemplateLogo";
+			@unlink($SquidHTTPTemplateLogoDest);
+			@copy("$SquidHTTPTemplateLogoPath",$SquidHTTPTemplateLogoDest);
+			@chown($SquidHTTPTemplateLogoDest, "squid");
+			@chgrp($SquidHTTPTemplateLogoDest, "squid");
+			$SquidHTTPTemplateLogoLine="^internal-companylogo\$	-			silk/$SquidHTTPTemplateLogo		-	-";
+			
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "$SquidHTTPTemplateLogoPath no such file\n";}
+		}
+		
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "$SquidHTTPTemplateLogoEnable is not 1\n";}
+	}
+	
+	
+
+	if($GLOBALS["VERBOSE"]){echo "$SquidHTTPTemplateLogoLine\n";}
+	
+	$f[]="\.gif\$			image/gif		silk/image.png			-	image	+download";
+	$f[]="\.mime\$			www/mime		silk/page_white_text.png	-	ascii	+download";
+	$f[]="^internal-dirup\$	-			silk/arrow_up.png		-	-";
+	$f[]="^internal-artica-deny\$		-			silk/bigshield-256.png			-	-";
+	$f[]="^internal-artica-logo\$		-			silk/logo-artica-64.png			-	-";
+	$f[]="$SquidHTTPTemplateLogoLine";
+	
+	$f[]="^internal-dir\$		-			silk/folder.png			-	-";
+	$f[]="^internal-link\$		-			silk/link.png			-	-";
+	$f[]="^internal-logo\$		-			SN.png				-	-";
+	$f[]="^internal-menu\$		-			silk/folder_table.png		-	-";
+	$f[]="^internal-text\$		-			silk/page_white_text.png	-	-";
+	$f[]="^internal-index\$	-			silk/folder_table.png		-	-";
+	$f[]="^internal-image\$	-			silk/image.png			-	-";
+	$f[]="^internal-sound\$	-			silk/music.png			-	-";
+	$f[]="^internal-movie\$	-			silk/film.png			-	-";
+	$f[]="^internal-telnet\$	-			silk/computer_link.png		-	-";
+	$f[]="^internal-binary\$	-			silk/application.png		-	-";
+	$f[]="^internal-unknown\$	-			silk/bullet_red.png		-	-";
+	$f[]="^internal-view\$		-			silk/page_white.png		-	-";
+	$f[]="^internal-download\$	-			silk/package_go.png		-	-";
+	$f[]="\.bin\$		application/macbinary		silk/application.png		-	image	+download";
+	$f[]="\.oda\$		application/oda			silk/application.png		-	image	+download";
+	$f[]="\.exe\$		application/octet-stream	silk/application.png		-	image	+download";
+	$f[]="\.pdf\$		application/pdf			silk/page_white_acrobat.png	-	image	+download";
+	$f[]="\.ai\$		application/postscript		silk/page_green.png		-	image	+download +view";
+	$f[]="\.eps\$		application/postscript		silk/page_green.png		-	image	+download +view";
+	$f[]="\.ps\$		application/postscript		silk/page_green.png		-	image	+download +view";
+	$f[]="\.rtf\$		text/rtf			silk/page_white_picture.png	-	ascii	+download +view";
+	$f[]="\.Z\$		-				silk/compress.png		compress image	+download";
+	$f[]="\.gz\$		-				silk/compress.png		gzip	image	+download";
+	$f[]="\.bz2\$		application/octet-stream	silk/compress.png		-	image	+download";
+	$f[]="\.bz\$		application/octet-stream	silk/compress.png		-	image	+download";
+	$f[]="\.tgz\$		application/x-tar		silk/compress.png		gzip	image	+download";
+	$f[]="\.csh\$		application/x-csh		silk/script.png			-	ascii	+download +view";
+	$f[]="\.dvi\$		application/x-dvi		silk/page_white_text.png	-	image	+download";
+	$f[]="\.hdf\$		application/x-hdf		silk/database.png		-	image	+download";
+	$f[]="\.latex\$	application/x-latex		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.lsm\$		text/plain			silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.nc\$		application/x-netcdf		silk/cd.png			-	image	+download";
+	$f[]="\.cdf\$		application/x-netcdf		silk/cd.png			-	ascii	+download";
+	$f[]="\.sh\$		application/x-sh		silk/script.png			-	ascii	+download +view";
+	$f[]="\.tcl\$		application/x-tcl		silk/script.png			-	ascii	+download +view";
+	$f[]="\.tex\$		application/x-tex		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.texi\$		application/x-texinfo		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.texinfo\$	application/x-texinfo		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.t\$		application/x-troff		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.roff\$		application/x-troff		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.tr\$		application/x-troff		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.man\$		application/x-troff-man		silk/page_white_magnify.png	-	ascii	+download +view";
+	$f[]="\.me\$		application/x-troff-me		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.ms\$		application/x-troff-ms		silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.src\$		application/x-wais-source	silk/script.png			-	ascii	+download";
+	$f[]="\.zip\$		application/zip			silk/compress.png		-	image	+download";
+	$f[]="\.bcpio\$	application/x-bcpio		silk/box.png			-	image	+download";
+	$f[]="\.cpio\$		application/x-cpio		silk/box.png			-	image	+download";
+	$f[]="\.gtar\$		application/x-gtar		silk/page_white_stack.png	-	image	+download";
+	$f[]="\.rpm\$		application/x-rpm		silk/package.png		-	image	+download";
+	$f[]="\.shar\$		application/x-shar		silk/script.png			-	image	+download +view";
+	$f[]="\.sv4cpio\$	application/x-sv4cpio		silk/box.png			-	image	+download";
+	$f[]="\.sv4crc\$	application/x-sv4crc		silk/box.png			-	image	+download";
+	$f[]="\.tar\$		application/x-tar		silk/page_white_stack.png	-	image	+download";
+	$f[]="\.ustar\$	application/x-ustar		silk/page_white_stack.png	-	image	+download";
+	$f[]="\.au\$		audio/basic			silk/music.png			-	image	+download";
+	$f[]="\.snd\$		audio/basic			silk/music.png			-	image	+download";
+	$f[]="\.mp2\$		audio/mpeg			silk/music.png			-	image	+download";
+	$f[]="\.mp3\$		audio/mpeg			silk/music.png			-	image	+download";
+	$f[]="\.mpga\$		audio/mpeg			silk/music.png			-	image	+download";
+	$f[]="\.aif\$		audio/x-aiff			silk/music.png			-	image	+download";
+	$f[]="\.aiff\$		audio/x-aiff			silk/music.png			-	image	+download";
+	$f[]="\.aifc\$		audio/x-aiff			silk/music.png			-	image	+download";
+	$f[]="\.wav\$		audio/x-wav			silk/music.png			-	image	+download";
+	$f[]="\.bmp\$		image/bmp			silk/image.png			-	image	+download";
+	$f[]="\.ief\$		image/ief			silk/image.png			-	image	+download";
+	$f[]="\.jpeg\$		image/jpeg			silk/photo.png			-	image	+download";
+	$f[]="\.jpg\$		image/jpeg			silk/photo.png			-	image	+download";
+	$f[]="\.jpe\$		image/jpeg			silk/photo.png			-	image	+download";
+	$f[]="\.tiff\$		image/tiff			silk/photo.png			-	image	+download";
+	$f[]="\.tif\$		image/tiff			silk/image.png			-	image	+download";
+	$f[]="\.ras\$		image/x-cmu-raster		silk/image.png			-	image	+download";
+	$f[]="\.pnm\$		image/x-portable-anymap		silk/image.png			-	image	+download";
+	$f[]="\.pbm\$		image/x-portable-bitmap		silk/image.png			-	image	+download";
+	$f[]="\.pgm\$		image/x-portable-graymap	silk/image.png			-	image	+download";
+	$f[]="\.ppm\$		image/x-portable-pixmap		silk/image.png			-	image	+download";
+	$f[]="\.rgb\$		image/x-rgb			silk/image.png			-	image	+download";
+	$f[]="\.xbm\$		image/x-xbitmap			silk/image.png			-	image	+download";
+	$f[]="\.xpm\$		image/x-xpixmap			silk/image.png			-	image	+download";
+	$f[]="\.xwd\$		image/x-xwindowdump		silk/image.png			-	image	+download";
+	$f[]="\.html\$		text/html			silk/page_world.png		-	ascii	+download +view";
+	$f[]="\.htm\$		text/html			silk/page_world.png		-	ascii	+download +view";
+	$f[]="\.css\$		text/css			silk/css.png			-	ascii	+download +view";
+	$f[]="\.js\$		application/x-javascript	silk/script.png			-	ascii	+download +view";
+	$f[]="\.c\$		text/plain			silk/page_white_c.png		-	ascii	+download";
+	$f[]="\.h\$		text/plain			silk/page_white_c.png		-	ascii	+download";
+	$f[]="\.cc\$		text/plain			silk/page_white_cplusplus.png	-	ascii	+download";
+	$f[]="\.cpp\$		text/plain			silk/page_white_cplusplus.png	-	ascii	+download";
+	$f[]="\.hh\$		text/plain			silk/page_white_c.png		-	ascii	+download";
+	$f[]="\.m\$		text/plain			silk/script.png			-	ascii	+download";
+	$f[]="\.f90\$		text/plain			silk/page_code.png		-	ascii	+download";
+	$f[]="\.txt\$		text/plain			silk/page_white_text.png	-	ascii	+download";
+	$f[]="\.asc\$		text/plain			silk/page_white_text.png	-	ascii	+download";
+	$f[]="\.rtx\$		text/richtext			silk/page_white_picture.png	-	ascii	+download +view";
+	$f[]="\.tsv\$		text/tab-separated-values	silk/script.png			-	ascii	+download +view";
+	$f[]="\.etx\$		text/x-setext			silk/page_white_text.png	-	ascii	+download +view";
+	$f[]="\.mpeg\$		video/mpeg			silk/film.png			-	image	+download";
+	$f[]="\.mpg\$		video/mpeg			silk/film.png			-	image	+download";
+	$f[]="\.mpe\$		video/mpeg			silk/film.png			-	image	+download";
+	$f[]="\.qt\$		video/quicktime			silk/film.png			-	image	+download";
+	$f[]="\.mov\$		video/quicktime			silk/film.png			-	image	+download";
+	$f[]="\.avi\$		video/x-msvideo			silk/film.png			-	image	+download";
+	$f[]="\.movie\$	video/x-sgi-movie		silk/film.png			-	image	+download";
+	$f[]="\.cpt\$		application/mac-compactpro	silk/compress.png		-	image	+download";
+	$f[]="\.hqx\$		application/mac-binhex40	silk/page_white_zip.png		-	image	+download";
+	$f[]="\.mwrt\$		application/macwriteii		silk/page_white_text.png	-	image	+download";
+	$f[]="\.msw\$		application/msword		silk/script.png			-	image	+download";
+	$f[]="\.doc\$		application/msword		silk/page_white_word.png	-	image	+download +view";
+	$f[]="\.xls\$		application/vnd.ms-excel	silk/page_excel.png		-	image	+download";
+	$f[]="\.ppt\$		application/vnd.ms-powerpoint	silk/page_white_powerpoint.png	-	image	+download";
+	$f[]="\.wk[s1234]\$	application/vnd.lotus-1-2-3	silk/script.png			-	image	+download";
+	$f[]="\.mif\$		application/vnd.mif		silk/page_white_text.png	-	image	+download";
+	$f[]="\.sit\$		application/x-stuffit		silk/compress.png		-	image	+download";
+	$f[]="\.pict\$		application/pict		silk/picture.png		-	image	+download";
+	$f[]="\.pic\$		application/pict		silk/picture.png		-	image	+download";
+	$f[]="\.arj\$		application/x-arj-compressed	silk/compress.png		-	image	+download";
+	$f[]="\.lzh\$		application/x-lha-compressed	silk/compress.png		-	image	+download";
+	$f[]="\.lha\$		application/x-lha-compressed	silk/compress.png		-	image	+download";
+	$f[]="\.zlib\$		application/x-deflate		silk/compress.png		deflate	image	+download";
+	$f[]="README		text/plain			silk/information.png		-	ascii	+download";
+	$f[]="^core\$		application/octet-stream	silk/bomb.png			-	image	+download";
+	$f[]="\.core\$		application/octet-stream	silk/bomb.png			-	image	+download";
+	$f[]="\.png\$		image/png			silk/image.png			-	image	+download";
+	$f[]="\.cab\$		application/octet-stream	silk/compress.png		-	image	+download +view";
+	$f[]="\.xpi\$		application/x-xpinstall		silk/plugin_add.png		-	image	+download";
+	$f[]="\.class\$	application/octet-stream	silk/script_gear.png		-	image	+download";
+	$f[]="\.java\$		text/plain			silk/cup.png			-	ascii	+download";
+	$f[]="\.dcr\$		application/x-director		silk/script_palette.png		-	image	+download";
+	$f[]="\.dir\$		application/x-director		silk/film.png			-	image	+download";
+	$f[]="\.dxr\$		application/x-director		silk/film_key.png		-	image	+download";
+	$f[]="\.djv\$		image/vnd.djvu			silk/image.png			-	image	+download";
+	$f[]="\.djvu\$		image/vnd.djvu			silk/image.png			-	image	+download";
+	$f[]="\.dll\$		application/octet-stream	silk/plugin.png			-	image	+download";
+	$f[]="\.dms\$		application/octet-stream	silk/drive_disk.png		-	image	+download";
+	$f[]="\.ez\$		application/andrew-inset	silk/bullet_red.png		-	image	+download";
+	$f[]="\.ice\$		x-conference/x-cooltalk		silk/compress.png		-	image	+download";
+	$f[]="\.iges\$		model/iges			silk/image.png			-	image	+download";
+	$f[]="\.igs\$		model/iges			silk/image.png			-	image	+download";
+	$f[]="\.kar\$		audio/midi			silk/music.png			-	image	+download";
+	$f[]="\.mid\$		audio/midi			silk/music.png			-	image	+download";
+	$f[]="\.midi\$		audio/midi			silk/music.png			-	image	+download";
+	$f[]="\.mesh\$		model/mesh			silk/image.png			-	image	+download";
+	$f[]="\.silo\$		model/mesh			silk/image.png			-	image	+download";
+	$f[]="\.mxu\$		video/vnd.mpegurl		silk/film.png			-	image	+download";
+	$f[]="\.pdb\$		chemical/x-pdb			silk/chart_line.png		-	image	+download";
+	$f[]="\.pgn\$		application/x-chess-pgn		silk/bricks.png			-	image	+download";
+	$f[]="\.ra\$		audio/x-realaudio		silk/music.png			-	image	+download";
+	$f[]="\.ram\$		audio/x-pn-realaudio		silk/music.png			-	image	+download";
+	$f[]="\.rm\$		audio/x-pn-realaudio		silk/music.png			-	image	+download";
+	$f[]="\.sgml\$		text/sgml			silk/page_code.png		-	ascii	+download";
+	$f[]="\.sgm\$		text/sgml			silk/page_code.png		-	ascii	+download";
+	$f[]="\.skd\$		application/x-koan		silk/music.png			-	image	+download";
+	$f[]="\.skm\$		application/x-koan		silk/music.png			-	image	+download";
+	$f[]="\.skp\$		application/x-koan		silk/music.png			-	image	+download";
+	$f[]="\.skt\$		application/x-koan		silk/music.png			-	image	+download";
+	$f[]="\.smi\$		application/smil		silk/layers.png			-	image	+download";
+	$f[]="\.smil\$		application/smil		silk/layers.png			-	image	+download";
+	$f[]="\.so\$		application/octet-stream	silk/plugin.png			-	image	+download";
+	$f[]="\.spl\$		application/x-futuresplash	silk/page_white_flash.png	-	image	+download";
+	$f[]="\.swf\$		application/x-shockwave-flash	silk/page_white_flash.png	-	image	+download";
+	$f[]="\.vcd\$		application/x-cdlink		silk/cd.png			-	image	+download";
+	$f[]="\.vrml\$		model/vrml			silk/image.png			-	image	+download";
+	$f[]="\.wbmp\$		image/vnd.wap.wbmp		silk/image.png			-	image	+download";
+	$f[]="\.wbxml\$	application/vnd.wap.wbxml	silk/database_table.png		-	image	+download";
+	$f[]="\.wmlc\$		application/vnd.wap.wmlc	silk/database_table.png		-	image	+download";
+	$f[]="\.wmlsc\$	application/vnd.wap.wmlscriptc	silk/script.png			-	image	+download";
+	$f[]="\.wmls\$		application/vnd.wap.wmlscript	silk/script.png			-	image	+download";
+	$f[]="\.xht\$		application/xhtml		silk/page_world.png		-	ascii	+download";
+	$f[]="\.xhtml\$	application/xhtml		silk/page_world.png		-	ascii	+download";
+	$f[]="\.xml\$		text/xml			silk/page_world.png		-	ascii	+download";
+	$f[]="\.xsl\$		text/xml			silk/layout.png			-	ascii	+download";
+	$f[]="\.xyz\$		chemical/x-xyz			silk/chart_line.png		-	image	+download";
+	$f[]=".		text/plain			silk/bullet_red.png		-	image	+download +view";
+	$f[]="";
+	@file_put_contents("/etc/squid3/mime.conf", @implode("\n", $f));
+	@chown("/etc/squid3/mime.conf","squid");
+	@chgrp("/etc/squid3/mime.conf","squid");
 }
 
 
@@ -518,36 +782,59 @@ function CheckFilesAndSecurity(){
 	$rm=$unix->find_program("rm");
 	if(!is_dir("/var/logs")){@mkdir("/var/logs",0755,true);}
 	
-	if(!is_dir("/home/squid/cache/cache-default/00")){
-			@mkdir("/home/squid/cache/cache-default",0755,true);
-			shell_exec("$chown $squid_user /home/squid/cache/cache-default >/dev/null 2>&1");
-			shell_exec("$chown $squid_user /home/squid/cache/ >/dev/null 2>&1");
-			shell_exec("$chown $squid_user /home/squid >/dev/null 2>&1");
-			exec("{$GLOBALS["SQUIDBIN"]} -z 2>&1",$results);
-	}
+	$squidlogdir="/var/log/squid";
+	if(is_link($squidlogdir)){$squidlogdir=@readlink($squidlogdir);}
+	$baselogdir=dirname($squidlogdir);
+	@chmod($baselogdir,0755);
+
 	@mkdir("/var/lib/squid/session",0755,true);
+	@mkdir("/usr/local/share/artica",0755,true);
 	@mkdir("/var/squid/cache",0755,true);
 	@mkdir("/var/lib/ssl_db",0755,true);
+	@mkdir("/var/log/squid/nudity",0755,true);
 	if(!is_dir("/var/run/squid")){@mkdir("/var/run/squid",0755,true);}
 	@mkdir("/var/log/squid/squid",0755,true);
 	if(!is_file("/var/logs/cache.log")){@file_put_contents("/var/logs/cache.log", "\n");}
-	if(!is_dir("/usr/share/squid3/errors/lb-lu")){shell_exec("$ln -sf /usr/share/squid3/errors/en-us /usr/share/squid3/errors/lb-lu");}
+	if(!is_dir("/usr/share/squid-langpack/templates/lb-lu")){shell_exec("$ln -sf /usr/share/squid-langpack/templates/en-us /usr/share/squid-langpack/templates/lb-lu");}
+	
+	if(!is_file("/etc/squid3/squid-block.acl")){@touch("/etc/squid3/squid-block.acl","");}
+	if(!is_file("/etc/squid3/clients_ftp.acl")){@touch("/etc/squid3/clients_ftp.acl","");}
+	if(!is_file("/etc/squid3/allowed-user-agents.acl")){@touch("/etc/squid3/allowed-user-agents.acl","");}
+	$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons");
+	$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
+	
+	//helpers
+	@chmod("/usr/share/artica-postfix/ufdbgclient.php",0755);
+	@chown("/usr/share/artica-postfix/ufdbgclient.php","squid");
+	@chgrp("/usr/share/artica-postfix/ufdbgclient.php","squid");
 	
 	
 	
-	$unix->chown_func($squid_user, $squid_user,"/var/squid/cache");
-	$unix->chown_func($squid_user, $squid_user,"/var/lib/squid/session");
-	$unix->chown_func($squid_user, $squid_user,"/etc/squid3/*");
-	$unix->chown_func($squid_user, $squid_user,"/var/run/squid");
-	$unix->chown_func($squid_user, $squid_user,"/var/log/squid/*");
-	$unix->chown_func($squid_user, $squid_user,"/var/logs");
-	$unix->chown_func($squid_user, $squid_user,"/var/lib/ssl_db");
-	$unix->chown_func($squid_user, $squid_user,"/var/logs/cache.log");
-	$unix->chown_func($squid_user, $squid_user,"/home/squid/cache");
-	$unix->chown_func($squid_user, $squid_user,"/home/squid");
-	$unix->chmod_func(0755, "/var/run/squid");
-	$unix->chmod_func(0755, "/home/squid");
-	$unix->chmod_func(0755, "/home/squid/cache");
+	$items[]="/etc/squid3/SquidNudityScanParams";
+	$items[]="/var/squid/cache";
+	$items[]="/var/lib/squid/session";
+	$items[]="/etc/squid3/*";
+	$items[]="$squidlogdir";
+	$items[]="$squidlogdir/*";
+	$items[]="$squidlogdir/nudity";
+	$items[]="/var/logs";
+	$items[]="/var/lib/ssl_db";
+	$items[]="/var/logs/cache.log";
+	$items[]="/home/squid/cache";
+	$items[]="/home/squid";
+	$items[]="/var/run/squid/*";
+	$items[]="/usr/local/share/artica";
+	
+	
+	
+	while (list ($none, $path) = each ($items)){
+		echo "Starting......: ".date("H:i:s")." [SYS]: permissions on \"$path\"\n";
+		$unix->chown_func($squid_user, $squid_user,$path);
+		$unix->chmod_func(0755, $path);
+	}
+	
+	
+	
 	
 	
 	$squid_locate_pinger=$unix->squid_locate_pinger();
@@ -563,11 +850,7 @@ function CheckFilesAndSecurity(){
 		}
 	
 	}
-	
-	shell_exec("$chown -R squid:squid /var/lib/squid/session");
-	
-	
-
+	$unix->THREAD_COMMAND_SET("$chown -R squid:squid /var/lib/squid/session");
 	
 	$GetCachesInsquidConf=$unix->SQUID_CACHE_FROM_SQUIDCONF();
 	while (list ($CacheDirectory, $type) = each ($GetCachesInsquidConf)){
@@ -575,20 +858,17 @@ function CheckFilesAndSecurity(){
 		if(trim($CacheDirectory)==null){continue;}
 		if(!is_dir($CacheDirectory)){continue;}
 		$unix->chown_func("squid","squid",$CacheDirectory);
-		$unix->chown_func("squid","squid","$CacheDirectory/*");
-		$unix->chmod_func(0777, "$CacheDirectory/*");
-		$unix->chmod_alldirs(0755, $CacheDirectory);
+		$unix->THREAD_COMMAND_SET("$chown -R squid:squid $CacheDirectory");
+		$unix->THREAD_COMMAND_SET("$chmod -R 0755 $CacheDirectory");
 		@chmod($CacheDirectory, 0755);
 	}
 	
 		
 	if(is_dir("/usr/share/squid-langpack")){$unix->chown_func($squid_user,$squid_user,"/usr/share/squid-langpack");}
-	if(!is_file("/var/log/squid/squidGuard.log")){@file_put_contents("/var/log/squid/squidGuard.log","#");}
+	if(!is_file("$squidlogdir/squidGuard.log")){@file_put_contents("/var/log/squid/squidGuard.log","#");}
 	
 	
-	if(!is_file("/etc/squid3/squid-block.acl")){@file_put_contents("/etc/squid3/squid-block.acl","");}
-	if(!is_file("/etc/squid3/clients_ftp.acl")){@file_put_contents("/etc/squid3/clients_ftp.acl","");}
-	if(!is_file("/etc/squid3/allowed-user-agents.acl")){@file_put_contents("/etc/squid3/allowed-user-agents.acl","");}	
+	
 	
 	$unix->Winbindd_privileged_SQUID();
 	
@@ -597,7 +877,7 @@ function CheckFilesAndSecurity(){
 	
 	while (list ($file, $lined) = each ($tpls)){
 		if(!is_file("/usr/share/squid-langpack/en/$file")){@file_put_contents("/usr/share/squid-langpack/en/$file", $lined);}
-		if(!is_file("/usr/share/squid3/errors/templates/$file")){@file_put_contents("/usr/share/squid3/errors/templates/$file",$lined);}
+		if(!is_file("/usr/share/squid-langpack/templates/$file")){@file_put_contents("/usr/share/squid-langpack/templates/$file",$lined);}
 	}
 	
 	$ssl_crtd=locate_ssl_crtd();
@@ -728,7 +1008,7 @@ function dyn_caches($aspid=false){
 	@unlink("/etc/squid3/refresh_patterns.conf");
 	@touch("/etc/squid3/refresh_patterns.conf");
 	@chown("/etc/squid3/refresh_patterns.conf","squid");
-	@chmod(0755,"/etc/squid3/refresh_patterns.conf");
+	@chmod("/etc/squid3/refresh_patterns.conf",0755);
 	
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
@@ -805,6 +1085,33 @@ function dyn_caches($aspid=false){
 	
 }
 
+function Defaultschedules($aspid=false){
+	$PidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$PidTime="/etc/artica-postfix/pids/exec.squid.php.Defaultschedules.time";
+	if($GLOBALS["VERBOSE"]){echo "$PidTime\n";}
+	$unix=new unix();
+	if(!$aspid){
+		$pid=$unix->get_pid_from_file($PidFile);
+		if($pid<>getmypid()){
+			if($unix->process_exists($pid,basename(__FILE__))){
+				echo "Starting......: ".date("H:i:s")." Blacklists: Another artica script running pid $pid, aborting ...\n";
+				WriteToSyslogMail("build_blacklists():: Another artica script running pid $pid, aborting ...", basename(__FILE__));
+				return;
+			}
+		}
+	}
+	
+	if(!$GLOBALS["VERBOSE"]){
+		$time=$unix->file_time_min($PidTime);
+		if($time<120){return;}
+	}
+	@unlink($PidTime);
+	@file_put_contents($PidTime, time());
+	
+	$q=new mysql_squid_builder();
+	$q->CheckDefaultSchedules();
+}
+
 function build_blacklists($aspid=false){
 	$unix=new unix();
 	$FINALARRAY=array();
@@ -824,44 +1131,22 @@ function build_blacklists($aspid=false){
 	
 	
 	$q=new mysql_squid_builder();
-	$acl=new squid_acls();
+	$array=array();
 	$sql="SELECT * FROM deny_websites";
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){ echo "Starting......: ".date("H:i:s")." [ACLS]: $q->mysql_error\n"; return; }	
 	@unlink("/etc/squid3/www-blacklists.db");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["items"]==null){continue;}
-		$website=strtolower(trim($ligne["items"]));
-		$website=$acl->dstdomain_parse($website);
-		if($website==null){continue;}
-		$familysite=$q->GetFamilySites($website);
-		echo "Starting......: ".date("H:i:s")." [ACLS]: $website -> $familysite\n";
-		$FINALARRAY[$familysite][$website]=true;
+		$array[]=$ligne["items"];
 	
 	}
 	
-	
-	
-	while (list ($familysite, $websites) = each ($FINALARRAY) ){
-		if(isset($websites[$familysite])){
-			if(substr($familysite, 0,1)<>"."){$familysite=".$familysite";}
-			$f[]=$familysite;
-			continue;
-		}
-		while (list ($sitename, $none) = each ($websites) ){
-			if(substr($sitename, 0,1)<>"."){$sitename=".$sitename";}
-			$f[]=$sitename;
-		}
-	
-	
-	}
+	$acl=new squid_acls();
+	$url_rewrite_program=$acl->clean_dstdomains($array);
 
-	while (list ($index, $website) = each ($f) ){
-		$website=trim(strtolower($website));
-		if($website==null){continue;}
-		$website=$acl->dstdomain_parse($website);
-		$url_rewrite_program[]=$website;
-	}	
+
+	
 	
 	echo "Starting......: ".date("H:i:s")." [ACLS]: ".count($url_rewrite_program)." blacklisted webistes\n";
 	@file_put_contents("/etc/squid3/www-blacklists.db", @implode("\n", $url_rewrite_program)."\n");
@@ -883,7 +1168,79 @@ function build_blacklists($aspid=false){
 			return;
 		}
 		
-		Reload_only_squid();
+		exec_reconfigure_squid();
+	}
+	
+}
+
+function build_denycaches($canreconfigure=false){
+	$unix=new unix();
+	$q=new mysql_squid_builder();
+	$array=array();
+	$sql="SELECT * FROM denycache_websites";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){ echo "Starting......: ".date("H:i:s")." [ACLS]: $q->mysql_error\n"; return; }
+	@unlink("/etc/squid3/www-denycache.db");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["items"]==null){continue;}
+		$array[]=$ligne["items"];
+	
+	}
+	
+	$acl=new squid_acls();
+	$url_rewrite_program=$acl->clean_dstdomains($array);
+	
+	echo "Starting......: ".date("H:i:s")." [ACLS]: ".count($url_rewrite_program)." Deny Cached webistes\n";
+	@file_put_contents("/etc/squid3/www-denycache.db", @implode("\n", $url_rewrite_program)."\n");
+	@chown("/etc/squid3/www-denycache.db", "squid");
+	@chgrp("/etc/squid3/www-denycache.db","squid");
+	
+	
+	if($canreconfigure){
+		$DenyBlacksites=false;
+		$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
+			while (list ($num, $line) = each ($f)){
+				if(preg_match("#DenyCachedSites dstdomain#", $line,$re)){
+					$DenyBlacksites=true;
+				}
+					
+			}
+			
+			if(!$DenyBlacksites){
+				$php=$unix->LOCATE_PHP5_BIN();
+				shell_exec("$php ".__FILE__." --build --force");
+				return;
+			}
+		
+			exec_reconfigure_squid();
+	}
+	
+	
+}
+
+
+function exec_reconfigure_squid(){
+	$unix=new unix();
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	$php=$unix->LOCATE_PHP5_BIN();
+	if(!is_file($squidbin)){return;}
+	$pid=SQUID_PID();
+	
+	if(!CheckConfig("/etc/squid3/squid.conf")){return false;}
+	
+	if(!$unix->process_exists($pid)){
+		shell_exec("/etc/init.d/squid start");
+		return;
+	}
+	
+	echo "Starting......: ".date("H:i:s")." [ACLS]: Reconfigure Squid-cache\n";
+	
+	$datas=shell_exec("/etc/init.d/squid reload --force --script=exec.squid.php/".__LINE__);
+	squid_admin_mysql(1, "Ask to reload the Proxy", $datas,__FILE__,__LINE__);
+	$sock=new sockets();
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	if($EnableTransparent27==1){
+		system("/etc/init.d/squid-nat reload --force --script=".basename(__FILE__));
 	}
 	
 }
@@ -895,49 +1252,19 @@ function urlrewriteaccessdeny(){
 	$acl=new squid_acls();
 	$sql="SELECT * FROM urlrewriteaccessdeny";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){
-		echo "Starting......: ".date("H:i:s")." [ACLS]: $q->mysql_error\n";
-		return;
-	}
-	$f=array();
-	$FAMILIES=array();
-	$url_rewrite_program=array();
-	$FINALARRAY=array();
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." [ACLS]: $q->mysql_error\n";return; }
+
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$ligne["items"]=trim($ligne["items"]);
 		if($ligne["items"]==null){continue;}
-		$website=strtolower(trim($ligne["items"]));
-		$website=$acl->dstdomain_parse($website);
-		if($website==null){continue;}
-		$familysite=$q2->GetFamilySites($website);
-		echo "Starting......: ".date("H:i:s")." [ACLS]: $website -> $familysite\n";
-		$FINALARRAY[$familysite][$website]=true;
-	
+		$array[]=$ligne["items"];
 	}
 	
-	if(count($FINALARRAY)>0){
+	$acl=new squid_acls();
+	$url_rewrite_program=$acl->clean_dstdomains($array);
 	
-		while (list ($familysite, $websites) = each ($FINALARRAY) ){
-			if(isset($websites[$familysite])){
-				if(substr($familysite, 0,1)<>"."){$familysite=".$familysite";}
-				$f[]=$familysite;
-				continue;
-			}
-			while (list ($sitename, $none) = each ($websites) ){
-				if(substr($sitename, 0,1)<>"."){$sitename=".$sitename";}
-				$f[]=$sitename;
-			}
-			
-			
-		}
-		
-		while (list ($index, $website) = each ($f) ){
-			$website=trim(strtolower($website));
-			if($website==null){continue;}
-			$website=$acl->dstdomain_parse($website);
-			$url_rewrite_program[]=".$website";
-		}
 	
-	}
 	
 	echo "Starting......: ".date("H:i:s")." [ACLS]: ".count($url_rewrite_program)." Whitelisted webistes from webfiltering\n";
 	@file_put_contents("/etc/squid3/url_rewrite_program.deny.db", @implode("\n", $url_rewrite_program)."\n");
@@ -948,12 +1275,13 @@ function urlrewriteaccessdeny(){
 
 
 function build_progress_wb($text,$pourc){
+	
 	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.wb.progress";
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
-
+	if($GLOBALS["PROGRESS"]){sleep(1);}
 }
 
 
@@ -961,11 +1289,30 @@ function build_progress_wb($text,$pourc){
 
 
 function build_whitelist(){
+	$sock=new sockets();
+	$unix=new unix();
+	$UfdbUseArticaClient=$sock->GET_INFO("UfdbUseArticaClient");
+	if(!is_numeric($UfdbUseArticaClient)){$UfdbUseArticaClient=1;}
+	if($UfdbUseArticaClient==1){
+		build_progress_wb("Use Artica Whitelist",20);
+		$php=$unix->LOCATE_PHP5_BIN();
+		system("$php /usr/share/artica-postfix/exec.ufdbgclient.whitelists.php");
+		return;
+	}
 	build_progress_wb("{compiling}",30);
 	urlrewriteaccessdeny();
 	build_blacklists();
+	build_denycaches(true);
 	build_progress_wb("{reloading}",50);
 	system("/etc/init.d/squid reload --script=".basename(__FILE__));
+	$sock=new sockets();
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	if($EnableTransparent27==1){
+		build_progress_wb("{reloading} NAT",60);
+		system("/etc/init.d/squid-nat reload --script=".basename(__FILE__));
+	}
+	
+	
 	build_progress_wb("{success}",100);
 }
 
@@ -1016,6 +1363,11 @@ function Reload_only_squid(){
 		unix_system_kill_force($pid);
 		
 	}
+	$sock=new sockets();
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	if($EnableTransparent27==1){
+		system("/etc/init.d/squid-nat reload --script=".basename(__FILE__));
+	}
 	
 	
 }
@@ -1029,8 +1381,14 @@ function Reload_Squid(){
 	if($GLOBALS["NORELOAD"]){return;}
 	$force=null;
 	if($GLOBALS["FORCE"]){$force=" --force";}
+	mime_conf();
+	$sock=new sockets();
+	system("/etc/init.d/squid reload$force --script=".basename(__FILE__));
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	if($EnableTransparent27==1){
+		system("/etc/init.d/squid-nat reload$force --script=".basename(__FILE__));
+	}
 	
-	system("/etc/init.d/squid reload$force --script=".basename(__FILE__));	
 }
 
 function KillSquid(){
@@ -1223,9 +1581,11 @@ function BuildCaches($NOTSTART=false){
 		
 	}		
 	
+	$nice=$unix->EXEC_NICE();
+	$rm=$unix->find_program("rm");
 	if(!$GLOBALS["NOCACHES"]){
 		$TimeFileChownTime=$unix->file_time_min($TimeFileChown);
-		
+		$SH[]="#!/bin/sh";
 		while (list ($CacheDirectory, $type) = each ($GetCachesInsquidConf)){
 			if(trim($CacheDirectory)==null){continue;}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Squid Check *** $CacheDirectory ***\n";}
@@ -1244,12 +1604,22 @@ function BuildCaches($NOTSTART=false){
 			}
 			echo "Starting......: ".date("H:i:s")." Squid Check cache \"$CacheDirectory\" owned by $squid_user (".__LINE__.")\n";
 			
-			shell_exec("$nohup $chown -R $squid_user:$squid_user $CacheDirectory");
+			build_progress("{reconfigure} Checking $CacheDirectory",86);
+			$SH[]="$nice $chown -R $squid_user:$squid_user $CacheDirectory";
 			@chmod($CacheDirectory, 0755);
 			
 			
 					
 		}
+		
+		$TMPFILE=$unix->FILE_TEMP();
+		$SH[]="$rm -f $TMPFILE.sh";
+		@file_put_contents("$TMPFILE.sh", @implode("\n", $SH));
+		@chmod("$TMPFILE.sh",0755);
+		build_progress("{reconfigure} Checking $TMPFILE.sh ok",86);
+		shell_exec("$nohup $TMPFILE.sh >/dev/null 2>&1 &");
+		$SH=array();
+		
 	}
 	if($unix->file_time_min($TimeFileChown)>120){
 		@unlink($TimeFileChown);
@@ -1389,13 +1759,13 @@ function ApplyConfig($smooth=false){
 	}
 	
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid apply kernel settings\n"; 
-	build_progress("{reconfigure}",76);
+	build_progress("{reconfigure} Kernel values",46);
 	kernel_values();
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid apply Checks security limits\n"; 
-	build_progress("{reconfigure}",77);
+	build_progress("{reconfigure} Security limits",47);
 	security_limit();
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Checking Remote appliances...\n";
-	build_progress("{reconfigure}",78);
+	build_progress("{reconfigure} checks remote appliances",48);
 	remote_appliance_restore_tables();
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Checking Remote appliances done...\n";
 	$nohup=$unix->find_program("nohup");
@@ -1406,7 +1776,7 @@ function ApplyConfig($smooth=false){
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid loading libraires...\n";
 	$sock=new sockets();
 	$squid=new squidbee();
-	@mkdir("/var/run/squid",0755,true);
+	
 	
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid binary: `$squidbin`\n";
@@ -1419,28 +1789,39 @@ function ApplyConfig($smooth=false){
 	if(!is_numeric($DenySquidWriteConf)){$DenySquidWriteConf=0;}
 
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Checking `DenySquidWriteConf` = $DenySquidWriteConf\n";
-	@mkdir("/var/log/squid/nudity",0755,true);
+	
 	@copy("/etc/artica-postfix/settings/Daemons/SquidNudityScanParams","/etc/squid3/SquidNudityScanParams");
-	$unix->chown_func("squid","squid", "/etc/squid3/SquidNudityScanParams");
-	$unix->chown_func("squid","squid", "/var/log/squid/nudity");
-	$unix->chown_func("squid","squid", "/var/run/squid");
-	$unix->chmod_func(0755, "/var/run/squid/*");
+
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Checking `NudeBooster`\n";
+	build_progress("{reconfigure} Nude booster",49);
 	NudeBooster();
 	if(!is_dir("/usr/share/squid-langpack")){
 		echo "Starting......: ".date("H:i:s")." [SYS]: Squid Checking Templates from MySQL\n";
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --tpl-save");
 	}
-	writelogs("->BuildBlockedSites",__FUNCTION__,__FILE__,__LINE__);
+	
 	$EnableRemoteStatisticsAppliance=0;
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Build blocked Websites list...\n";
-	build_progress("{reconfigure}",79);
-	$squid->BuildBlockedSites();
-	acl_clients_ftp();
+	
+	
+	build_progress("{reconfigure} Whitelisted browsers",50);
 	acl_whitelisted_browsers();
+	build_progress("{reconfigure} allowed browsers",51);
 	acl_allowed_browsers();
+	echo "Starting......: ".date("H:i:s")." Checking wrapzap\n";
+	build_progress("{reconfigure} wrapzap",52);
+	wrapzap();
+	build_progress("{reconfigure} Mime.conf",53);
+	mime_conf();
+	build_progress("{reconfigure} Blocked websites",54);
+	$squid->BuildBlockedSites();
+	build_progress("{reconfigure} FTP clients ACLs",55);
+	acl_clients_ftp();
+
+	build_progress("{reconfigure} Dynamic rules caches",56);
 	echo "Starting......: ".date("H:i:s")." [SYS]: Dynamic rules caches...\n";
 	dyn_caches();
+	build_progress("{reconfigure} Webfiltering whitelisted",57);
 	echo "Starting......: ".date("H:i:s")." [SYS]: Squid Build url_rewrite_access deny...\n";
 	urlrewriteaccessdeny();
 	echo "Starting......: ".date("H:i:s")." [SYS]:Squid building main configuration done\n";
@@ -1450,6 +1831,8 @@ function ApplyConfig($smooth=false){
 	
 	if($DenySquidWriteConf==0){
 			@mkdir("/tmp",0755,true);
+			$squid->CURRENT_PROGRESS=79;
+			$squid->MAX_PROGRESS=79;
 			$conf=$squid->BuildSquidConf();
 			$conf=str_replace("\n\n", "\n", $conf);
 			build_progress("{writing_configuration}",79);
@@ -1563,6 +1946,7 @@ function ApplyConfig($smooth=false){
 
 function CheckConfig($path){
 	$unix=new unix();
+	$RESULTS=true;
 	$squidbin=$unix->find_program("squid");
 	$SQUID_CONFIG_PATH=$unix->SQUID_CONFIG_PATH();
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
@@ -1585,7 +1969,7 @@ function CheckConfig($path){
 				unset($f[$myLine]);
 				continue;
 			}
-			
+			$RESULTS=false;
 		}
 		
 		if(preg_match("#FATAL: Bungled .*? line ([0-9]+):\s+refresh_pattern#",$ligne,$re)){
@@ -1607,8 +1991,10 @@ function CheckConfig($path){
 	if($Save){
 		echo "Starting......: ".date("H:i:s")." [SYS]: Saving new file $path With ". count($f)." lines\n";
 		@file_put_contents($path, @implode("\n", $f));
-		CheckConfig($path);
+		return CheckConfig($path);
 	}
+	
+	return $RESULTS;
 	
 }
 
@@ -1826,7 +2212,7 @@ function certificate_conf(){
 		$conf[]="commonName_max=64";
 		$conf[]="emailAddress=Email Address";
 		$conf[]="emailAddress_value=$emailAddress";
-		$conf[]="emailAddress_max=40";
+		$conf[]="emailAddress_max=".strlen($emailAddress);
 		$conf[]="unique_subject=no";
 		$conf[]="";
 		$conf[]="[extensions]";
@@ -2123,6 +2509,21 @@ function TemplatesInMysql_remote(){
 	$unix=new unix();
 	$base="/usr/share/squid-langpack";
 	@mkdir($base,0755,true);
+	
+	
+	$sock=new sockets();
+	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
+	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
+	if($SquidTemplateSimple==1){
+		$unix=new unix();
+		$php=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		$by="--FUNC-".__FUNCTION__."-L-".__LINE__;
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.templates.php $by >/dev/null 2>&1 &");
+		return;
+	}
+	
+	
 	$RemoteStatisticsApplianceSettings=unserialize(base64_decode($sock->GET_INFO("RemoteStatisticsApplianceSettings")));
 	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
@@ -2133,7 +2534,7 @@ function TemplatesInMysql_remote(){
 	$uri="$refix://{$GLOBALS["REMOTE_SSERVER"]}:{$GLOBALS["REMOTE_SPORT"]}/ressources/databases/squid-lang-pack.tgz";
 	$curl=new ccurl($uri,true);
 	if(!$curl->GetFile("/tmp/squid-lang-pack.tgz")){
-			ufdbguard_admin_events("Failed to download $uri aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");
+			squid_admin_mysql(1,"Failed to download $uri `$curl->error`",__FILE__,__LINE__);
 			EventsWatchdog("$uri `$curl->error`");
 			return;
 	}	
@@ -2144,7 +2545,7 @@ function TemplatesInMysql_remote(){
 	
 	EventsWatchdog("Writing /etc/artica-postfix/SQUID_TEMPLATE_DONE");
 	@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONE", time());
-	
+	squid_admin_mysql(1, "Reloading proxy service in order to refresh templates", null,__FILE__,__LINE__);
 	Reload_Squid();
 }
 
@@ -2164,8 +2565,10 @@ function TemplatesUniqueInMysql($zmd5){
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==1){if($GLOBALS["VERBOSE"]){echo "Use the Web statistics appliance to get template files...\n";}TemplatesInMysql_remote();return;}	
 	
-	$base="/usr/share/squid-langpack";
-	@mkdir("/usr/share/squid3/errors/templates",0755,true);
+	$base="/usr/share/squid-langpack/templates";
+	@mkdir("/usr/share/squid-langpack/templates",0755,true);
+	@mkdir("/usr/share/squid3/icons",0755,true);
+	
 	@mkdir($base,0755,true);
 	if(!is_dir("$base/templates")){@mkdir("$base/templates",0755,true);}
 	$sql="SELECT * FROM squidtpls WHERE `zmd5`='{$zmd5}'";
@@ -2192,6 +2595,7 @@ function TemplatesUniqueInMysql($zmd5){
 	
 	if($header==null){$header=@file_get_contents(dirname(__FILE__)."/ressources/databases/squid.default.header.db");}
 	if(!preg_match("#ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
+	
 	$filename="$base/{$ligne["lang"]}/{$ligne["template_name"]}";
 	$newheader=str_replace("{TITLE}", $ligne["template_title"], $header);
 	$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
@@ -2203,27 +2607,529 @@ function TemplatesUniqueInMysql($zmd5){
 	@mkdir(dirname($filename),0755,true);
 	@file_put_contents($filename, $templateDatas);
 	
-	if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}\n";}
-	@file_put_contents("/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
-	$unix->chown_func("squid","squid","/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}");
-	$unix->chown_func("squid:squid",null, "/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}");
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "Writing $base/{$ligne["lang"]}/{$ligne["template_name"]}\n";}
+	@file_put_contents("$base/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
+	$unix->chown_func("squid","squid","$base/{$ligne["lang"]}/{$ligne["template_name"]}");
+	$unix->chown_func("squid:squid",null, "$base/{$ligne["lang"]}/{$ligne["template_name"]}");
 	$unix->chown_func("squid:squid",null, dirname($filename)."/*");
 	if($ligne["lang"]=="en"){
-		if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/templates/{$ligne["template_name"]}\n";}
-		@file_put_contents("/usr/share/squid3/errors/templates/{$ligne["template_name"]}", $templateDatas);
-		$unix->chown_func("squid:squid", null,"/usr/share/squid3/errors/templates/{$ligne["template_name"]}");
-		
-		if($GLOBALS["VERBOSE"]){echo "Writing $base/templates/{$ligne["template_name"]}\n";}
-		@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);
-		$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
+		if($GLOBALS["VERBOSE"]){echo "Writing $base/{$ligne["template_name"]}\n";}
+		@file_put_contents("$base/{$ligne["template_name"]}", $templateDatas);
+		$unix->chown_func("squid:squid", null,"$base/{$ligne["template_name"]}");
 	}
 		
+}
+
+function dump_templates(){
+	$defaultdb=dirname(__FILE__)."/ressources/databases/squid.default.templates.db";
+	$array=unserialize(@file_get_contents($defaultdb));
+	print_r($array);
+}
+
+
+function DefaultTemplatesInArtica(){
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+	}
+	$sock=new sockets();
+	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
+	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
+	if($SquidTemplateSimple==1){
+		$unix=new unix();
+		$php=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		$by="--FUNC-".__FUNCTION__."-L-".__LINE__;
+		squid_admin_mysql(2, "Ask to build simple templates [$called]", $GLOBALS["ARGVS"],__FILE__,__LINE__);
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.templates.php $by >/dev/null 2>&1 &");
+		return;
+	}
+	
+	
+	$ASMYSQL=false;
+	$headerTemp=@file_get_contents(dirname(__FILE__)."/ressources/databases/squid.default.header.db");
+	$defaultdb=dirname(__FILE__)."/ressources/databases/squid.default.templates.db";
+	$array=unserialize(@file_get_contents($defaultdb));
+	
+	$basename="/usr/share/squid-langpack/templates";
+	@mkdir("/usr/share/squid3/icons/silk",0755);
+	@chown("/usr/share/squid3/icons/silk", "squid");
+	@chgrp("/usr/share/squid3/icons/silk", "squid");
+	@unlink("/usr/share/squid3/icons/silk/bigshield-256.png");
+	@unlink("/usr/share/squid3/icons/silk/logo-artica-64.png");
+	@mkdir("/usr/share/squid-langpack/templates",0755,true);
+	
+	@copy("/usr/share/artica-postfix/img/bigshield-256.png","/usr/share/squid3/icons/silk/bigshield-256.png");
+	@copy("/usr/share/artica-postfix/img/logo-artica-64.png","/usr/share/squid3/icons/silk/logo-artica-64.png");
+	@chown("/usr/share/squid3/icons/silk/bigshield-256.png", "squid");
+	@chgrp("/usr/share/squid3/icons/silk/bigshield-256.png", "squid");
+	@chown("/usr/share/squid3/icons/silk/logo-artica-64.png", "squid");
+	@chgrp("/usr/share/squid3/icons/silk/logo-artica-64.png", "squid");
+	
+	$artica_version=@file_get_contents("/usr/share/artica-postfix/VERSION");
+	if(!is_file("/etc/artica-postfix/SQUID_TEMPLATE_DONEv3")){
+		$ASMYSQL=true;
+		@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONEv3", time());
+		$q=new mysql_squid_builder();
+	}
+	
+	$prefix="INSERT IGNORE INTO squidtpls (`zmd5`,`lang`,`template_name`,`template_body`,`template_title`,`emptytpl`) VALUES ";
+	
+	while (list ($language, $arrayTPL) = each ($array)){
+		$directory="$basename/$language";
+		@mkdir($directory,0755,true);
+		@chown($directory, "squid");
+		@chgrp($directory, "squid");
+		$q=new mysql_squid_builder();
+		while (list ($templateName, $templateData) = each ($arrayTPL)){
+			$title=$templateData["TITLE"];
+			$md5=md5($language.$templateName);
+			if($title==null){echo "$templateName -> null title\n";}
+			$body=$templateData["BODY"];
+			$filepath="$directory/$templateName";
+			$content=TemplatesDesign($title,$body);
+			if($templateName=="ERR_DIR_LISTING"){
+				$content=TemplatesFTP($title,$body);
+			}
+			
+			$body=mysql_escape_string2($content);
+			$title=mysql_escape_string2($title);
+			
+				
+			$ss="('$md5','$language','$templateName','$body','$title',0)";
+			if($ASMYSQL){
+				$q->QUERY_SQL("DELETE FROM squidtpls WHERE `zmd5`='$md5'");
+				$q->QUERY_SQL($prefix.$ss);
+			}
+			@file_put_contents($filepath, $content);
+			@chown($filepath, "squid");
+			@chgrp($filepath, "squid");
+			
+			
+		}
+	}	
+	mime_conf();
+}
+
+
+function TemplatesFTP($title,$content){
+	$title=utf8_decode($title);
+	$content=utf8_decode($content);
+	if(!isset($GLOBALS["CORP_LICENSE"])){
+		$users=new usersMenus();
+		$GLOBALS["CORP_LICENSE"]=$users->CORP_LICENSE;
+	}
+	
+	
+	$sock=new sockets();
+	$sock->BuildTemplatesConfig();
+	$UfdbGuardHTTPEnablePostmaster=1;
+	
+	
+	
+	if(!$GLOBALS["CORP_LICENSE"]){
+		$FOOTER="
+		<table style='width:75%;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};margin-top:15px'>
+		<tr><td colspan=2>&nbsp;</td></tr>
+		<tr>
+		<td width=64px><img src='/squid-internal-static/icons/silk/logo-artica-64.png'></td>
+		<td style='font-size:14px;padding-left:10px' width=99%>
+		You using Artica Proxy Appliance v{$GLOBALS["ARTICA_VERSION"]} in Community mode.<br>
+		<i>Visit our  <a href=\"http://artica-proxy.com\">website</a> for technical informations or to purchase an Entreprise Edition License</i>
+		</td>
+		</tr>
+		</table>
+		</div>";
+	}
+	$f[]="<!DOCTYPE HTML>";
+	$f[]="<html>";
+		$f[]="<head>";
+		$f[]="<title>$title</title>";
+		$f[]="<script type=\"text/javascript\">";
+	$f[]="    function checkIfTopMostWindow()";
+	$f[]="    {";
+		$f[]="        if (window.top != window.self) ";
+	$f[]="        {  ";
+	$f[]="            document.body.style.opacity    = \"0.0\";";
+	$f[]="            document.body.style.background = \"#FFFFFF\";";
+	$f[]="        }";
+		$f[]="        else";
+	$f[]="        {";
+		$f[]="            document.body.style.opacity    = \"1.0\";";
+	$f[]="            document.body.style.background = \"{$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]}\";";
+		$f[]="        } ";
+	$f[]="    }";
+		$f[]="</script>";
+		$f[]="<style type=\"text/css\">";
+	$f[]="    body {";
+	$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        background-color: #FFFFFF; ";
+	$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        14pt; ";
+	$f[]="        ";
+		$f[]="        opacity:            0.0;";
+	$f[]="        transition:         opacity 2s;";
+	$f[]="        -webkit-transition: opacity 2s;";
+	$f[]="        -moz-transition:    opacity 2s;";
+	$f[]="        -o-transition:      opacity 2s;";
+	$f[]="        -ms-transition:     opacity 2s;    ";
+	$f[]="    }";
+	
+	
+	$f[]="    center {";
+	$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        12pt; ";
+	$f[]="}";
+	
+	$f[]="    h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]="    h2 {";
+	$f[]="        font-size: 22pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }   ";
+	$f[]="    h3 {";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }   ";
+	$f[]="    #wrapper {";
+	$f[]="        width: 700px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]="    #info {";
+	$f[]="        width: 600px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	
+	$f[]="    #titles h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	
+	$f[]="hr {
+				border-top: 1px dotted #f00;
+  color: #fff;
+  background-color: #fff;
+  height: 1px;
+  width:50%;
+}
+";
+	
+	$f[]="    #content p {";
+	$f[]="       font-size:  11pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]="    #footer p {";
+	$f[]="       font-size:  12pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	
+	$f[]="    #data pre{";
+	$f[]="       font-size:  12pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        font-weight: bold;";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]="    #data pre:before{content: \"\\275D\";margin-right:5px;font-size:22pt}";
+	$f[]="    #data pre:after{content: \"\\275E\";margin-left:5px;font-size:22pt}";
+	$f[]=".bad{ font-size: 110px; float:left; margin-right:30px; }";
+	$f[]=".bad:before{ content: \"\\260C\";}";
+	
+	$f[]="#dirlisting{";
+	$f[]="       font-size:  12pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-top: 0 ;";		
+	$f[]="    }    ";
+	$f[]="#dirlisting th{";
+	$f[]="       font-size:  16pt;  ";
+	$f[]="    }    ";
+	$f[]="    td.info_title {    ";
+	$f[]="        text-align: right;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="        min-width: 100px;";
+	$f[]="    }";
+	$f[]="    td.info_content {";
+	$f[]="        text-align: left;";
+	$f[]="        padding-left: 10pt ;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="    }";
+	$f[]="    .break-word {";
+	$f[]="        width: 500px;";
+	$f[]="        word-wrap: break-word;";
+	$f[]="    }    ";
+	$f[]="    a {";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="    }";
+	$f[]="    a:visited{";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="    }";
+	$f[]="</style>";
+	$f[]="</head>";
+	$f[]="<body onLoad='checkIfTopMostWindow()'>";
+	$f[]="<div id=\"wrapper\">";
+	$f[]="    <h1 class=bad></h1>";
+	$f[]="    <div id=\"info\">";
+	$f[]="$content";
+	
+	
+		if($GLOBALS["UfdbGuardHTTP"]["NoVersion"]==0){
+		$f[]="<center>Artica Proxy, version {$GLOBALS["ARTICA_VERSION"]}</center>";
+				}
+				$f[]="    </div>    $FOOTER";
+				$f[]="</div>";
+	$f[]="</body>";
+	$f[]="<!-- ";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="-->";
+	$f[]="</html>";
+	return @implode("\n", $f);	
+	
+}
+
+
+function TemplatesDesign($title,$content){
+	$title=utf8_decode($title);
+	$content=utf8_decode($content);
+	if(!isset($GLOBALS["CORP_LICENSE"])){
+		$users=new usersMenus();
+		$GLOBALS["CORP_LICENSE"]=$users->CORP_LICENSE;
+	}
+	
+	$sock=new sockets();
+	$sock->BuildTemplatesConfig();
+	$UfdbGuardHTTPEnablePostmaster=1;
+	$SquidHTTPTemplateSmiley=$sock->GET_INFO("SquidHTTPTemplateSmiley");
+	if($SquidHTTPTemplateSmiley==null){$SquidHTTPTemplateSmiley=2639;}
+	
+	
+	if(!$GLOBALS["CORP_LICENSE"]){
+		$FOOTER="
+		<table style='width:75%;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};margin-top:15px'>
+		<tr><td colspan=2>&nbsp;</td></tr>
+		<tr>
+		<td width=64px><img src='/squid-internal-static/icons/silk/logo-artica-64.png'></td>
+		<td style='font-size:14px;padding-left:10px' width=99%>
+		You using Artica Proxy Appliance v{$GLOBALS["ARTICA_VERSION"]} in Community mode.<br>
+		<i>Visit our  <a href=\"http://artica-proxy.com\">website</a> for technical informations or to purchase an Entreprise Edition License</i>
+		</td>
+		</tr>
+		</table>
+		</div>";
+	}
+	$f[]="<!DOCTYPE HTML>";
+	$f[]="<html>";
+	$f[]="<head>";
+	$f[]="<title>$title</title>";
+	$f[]="<script type=\"text/javascript\">";
+	$f[]="    function checkIfTopMostWindow()";
+	$f[]="    {";
+	$f[]="        if (window.top != window.self) ";
+	$f[]="        {  ";
+	$f[]="            document.body.style.opacity    = \"0.0\";";
+	$f[]="            document.body.style.background = \"#FFFFFF\";";
+	$f[]="        }";
+	$f[]="        else";
+	$f[]="        {";
+	$f[]="            document.body.style.opacity    = \"1.0\";";
+	$f[]="            document.body.style.background = \"{$GLOBALS["UfdbGuardHTTP"]["BackgroundColor"]}\";";
+		$f[]="        } ";
+	$f[]="    }";
+	$f[]="</script>";
+	$f[]="<style type=\"text/css\">";
+	$f[]="    body {";
+	$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        background-color: #FFFFFF; ";
+	$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        14pt; ";
+	$f[]="        ";
+	$f[]="        opacity:            0.0;";
+	$f[]="        transition:         opacity 2s;";
+	$f[]="        -webkit-transition: opacity 2s;";
+	$f[]="        -moz-transition:    opacity 2s;";
+	$f[]="        -o-transition:      opacity 2s;";
+	$f[]="        -ms-transition:     opacity 2s;    ";
+	$f[]="    }";
+	
+	
+	$f[]="    center {";
+	$f[]="        color:            {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+	$f[]="        font-family:      {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        12pt; ";
+	$f[]="}";
+	
+	$f[]="    h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]="    h2 {";
+	$f[]="        font-size: 22pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }   ";
+	$f[]="    h3 {";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]}; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }   ";
+	$f[]="    #wrapper {";
+	$f[]="        width: 700px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]="    #info {";
+	$f[]="        width: 600px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	
+	$f[]="    #titles h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	
+	$f[]="hr {
+   border-top: 1px dotted #f00;
+  color: #fff;
+  background-color: #fff;
+  height: 1px;
+  width:50%;
+}
+";
+	
+	$f[]="    #content p {";
+	$f[]="       font-size:  11pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	
+	$f[]="    #footer p {";
+	$f[]="       font-size:  12pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";	
+
+	
+	$f[]="    #data pre{";
+	$f[]="       font-size:  12pt;  ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$f[]="        font-weight: bold;";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]="    #data pre:before{content: \"\\275D\";margin-right:5px;font-size:22pt}";
+	$f[]="    #data pre:after{content: \"\\275E\";margin-left:5px;font-size:22pt}";
+	$f[]=".bad{ font-size: 110px; float:left; margin-right:30px; }";
+	$f[]=".bad:before{ content: \"\\$SquidHTTPTemplateSmiley\";}";
+	
+	$f[]="    td.info_title {    ";
+	$f[]="        text-align: right;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="        min-width: 100px;";
+	$f[]="    }";
+	$f[]="    td.info_content {";
+	$f[]="        text-align: left;";
+	$f[]="        padding-left: 10pt ;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="    }";
+	$f[]="    .break-word {";
+	$f[]="        width: 500px;";
+	$f[]="        word-wrap: break-word;";
+	$f[]="    }    ";
+	$f[]="    a {";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+		$f[]="    }";
+	$f[]="    a:visited{";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: {$GLOBALS["UfdbGuardHTTP"]["FontColor"]}; ";
+		$f[]="    }";
+	$f[]="</style>";
+	$f[]="</head>";
+	$f[]="<body onLoad='checkIfTopMostWindow()'>";
+	$f[]="<div id=\"wrapper\">";
+	$f[]="    <h1 class=bad></h1>";
+	$f[]="    <div id=\"info\">";
+	$f[]="$content";
+	
+	
+	if($GLOBALS["UfdbGuardHTTP"]["NoVersion"]==0){
+		$f[]="<center>Artica Proxy, version {$GLOBALS["ARTICA_VERSION"]}</center>";
+	}
+	$f[]="    </div>    $FOOTER";
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="<!-- ";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="-->";
+	$f[]="</html>";
+	return @implode("\n", $f);
+	
 }
 
 
 function TemplatesInMysql($aspid=false){
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if(!$aspid){
 		$pid=$unix->get_pid_from_file($pidpath);
 		if($unix->process_exists($pid)){return;}
@@ -2231,7 +3137,33 @@ function TemplatesInMysql($aspid=false){
 	}
 	
 	@file_put_contents($pidpath, getmypid());
+	EventsWatchdog("writing /etc/artica-postfix/SQUID_TEMPLATE_DONE");
+	@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONE", time());
+	@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONEv2", time());
 	
+	
+	$sock=new sockets();
+	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
+	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
+	if($SquidTemplateSimple==1){
+		$unix=new unix();
+		$php=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		$by="--FUNC-".__FUNCTION__."-L-".__LINE__;
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.templates.php $by >/dev/null 2>&1 &");
+		return;
+	}
+	
+	
+	
+	$TimeExec=$unix->file_time_min($pidtime);
+	if(!$GLOBALS["FORCE"]){
+		if($TimeExec<240){return;}
+	}
+	
+	
+	
+	$users=new usersMenus();
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
@@ -2241,6 +3173,12 @@ function TemplatesInMysql($aspid=false){
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($EnableRemoteStatisticsAppliance==1){
+		if(!$users->CORP_LICENSE){
+			if(!is_file("/etc/artica-postfix/SQUID_TEMPLATE_DONE")){
+				DefaultTemplatesInArtica();
+				return;
+			}
+		}
 		EventsWatchdog("Using the Web statistics appliance to get template files");
 		if($GLOBALS["VERBOSE"]){echo "Use the Web statistics appliance to get template files...\n";}
 		TemplatesInMysql_remote();
@@ -2254,9 +3192,13 @@ function TemplatesInMysql($aspid=false){
 	if(!is_dir("$base/templates")){@mkdir("$base/templates",0755,true);}
 	$headerTemp=@file_get_contents(dirname(__FILE__)."/ressources/databases/squid.default.header.db");
 	
+	
+	
+	
 	$q=new mysql_squid_builder();
 	if(!$q->BD_CONNECT(true)){
-		EventsWatchdog("Error, unable to connect to MySQL");
+		squid_admin_mysql(2,"Error, unable to connect to MySQL",__FILE__,__LINE__);
+		if(!$users->CORP_LICENSE){DefaultTemplatesInArtica();}
 		return;
 	}
 	
@@ -2279,14 +3221,23 @@ function TemplatesInMysql($aspid=false){
 			)  ENGINE = MYISAM;";
 	$q->QUERY_SQL($sql);
 	
-	EventsWatchdog("writing /etc/artica-postfix/SQUID_TEMPLATE_DONE");
-	@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONE", time());
+
 	
 	
 	if($q->COUNT_ROWS("squidtpls")==0){
-		
-		echo "IMPORTING FROM MYSQL !!\n";
-		DefaultTemplatesInMysql();}
+		if(!is_file("/etc/artica-postfix/SQUID_TEMPLATE_DONE")){
+			squid_admin_mysql(2,"Ask to build default templates squidtpls=0", null,__FILE__,__LINE__);
+			DefaultTemplatesInArtica();
+		}
+	}
+	
+	if(!$users->CORP_LICENSE){
+		if(!is_file("/etc/artica-postfix/SQUID_TEMPLATE_DONE")){
+			squid_admin_mysql(2,"Ask to build default templates - no license -", null,__FILE__,__LINE__);
+			DefaultTemplatesInArtica();
+			return;
+		}
+	}
 	
 	$sql="SELECT * FROM squidtpls";
 	$results = $q->QUERY_SQL($sql);	
@@ -2312,12 +3263,15 @@ function TemplatesInMysql($aspid=false){
 				$ligne["template_name"]="ERR_".$ligne["template_name"];
 		}
 		
-		
+		$filename2=null;
 		$ligne["template_body"]=utf8_encode($ligne["template_body"]);
 		$ligne["template_title"]=utf8_encode($ligne["template_title"]);
 		
 		
 		$filename="$base/{$ligne["lang"]}/{$ligne["template_name"]}";
+		if($ligne["lang"]=="en"){
+			$filename2="/usr/share/squid-langpack/templates/{$ligne["template_name"]}";
+		}
 		$newheader=str_replace("{TITLE}", $ligne["template_title"], $header);
 		$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
 		
@@ -2337,32 +3291,51 @@ function TemplatesInMysql($aspid=false){
 		
 		@mkdir(dirname($filename),0755,true);
 		@file_put_contents($filename, $templateDatas);
-		@file_put_contents("/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
-		$unix->chown_func("squid","squid","/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}");
+		if($filename2<>null){
+			@file_put_contents($filename2, $templateDatas);
+			$unix->chown_func("squid","squid","$filename2");
+		}
+		@file_put_contents("$base/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
+		$unix->chown_func("squid","squid","$base/{$ligne["lang"]}/{$ligne["template_name"]}");
 		$unix->chown_func("squid","squid","$filename");
+		
 		$c++;
 		
-		if(!is_dir("/usr/share/squid3/errors/{$ligne["lang"]}")){
-			@mkdir("/usr/share/squid3/errors/{$ligne["lang"]}");
-			$unix->chown_func("squid","squid","/usr/share/squid3/errors/{$ligne["lang"]}");
-		}
+
 		if($ligne["lang"]=="en"){
-			if($GLOBALS["VERBOSE"]){echo "Writing /usr/share/squid3/errors/templates/{$ligne["template_name"]}\n";}
-			@file_put_contents("/usr/share/squid3/errors/templates/{$ligne["template_name"]}", $templateDatas);
-			$unix->chown_func("squid:squid", null,"/usr/share/squid3/errors/templates/{$ligne["template_name"]}");
-			
-			if($GLOBALS["VERBOSE"]){echo "Writing $base/templates/{$ligne["template_name"]}\n";}
-			@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);
+			if($GLOBALS["VERBOSE"]){echo "Writing $base/{$ligne["template_name"]}\n";}
+			@file_put_contents("$base/{$ligne["template_name"]}", $templateDatas);
 			$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
 		}else{
 			if(!IfTemplateExistsinEn($template_name)){
-				@file_put_contents("/usr/share/squid3/errors/templates/{$ligne["template_name"]}", $templateDatas);
-				@file_put_contents("$base/templates/{$ligne["template_name"]}", $templateDatas);
-				$unix->chown_func("squid:squid", null,"$base/templates/{$ligne["template_name"]}");
-				$unix->chown_func("squid:squid", null,"/usr/share/squid3/errors/templates/{$ligne["template_name"]}");
-			}
+				@mkdir("$base/en",0755,true);
+				@file_put_contents("$base/en/{$ligne["template_name"]}", $templateDatas);
+				$unix->chown_func("squid:squid", null,"$base/en/{$ligne["template_name"]}");
+				}
 		}
 	}
+	
+	
+	
+	$sql="SELECT * FROM squidtpls WHERE emptytpl=1";
+	$results = $q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if(is_numeric($ligne["lang"])){$ligne["lang"]="en";}
+		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){
+			$ligne["template_name"]="ERR_".$ligne["template_name"];
+		}
+		
+		$filename="$base/{$ligne["lang"]}/{$ligne["template_name"]}";
+		$templateDatas="<html><head></head><body></body></html>";
+		@mkdir(dirname($filename),0755,true);
+		@file_put_contents($filename, $templateDatas);
+		@file_put_contents("$base/{$ligne["lang"]}/{$ligne["template_name"]}", $templateDatas);
+		$unix->chown_func("squid","squid","$base/{$ligne["lang"]}/{$ligne["template_name"]}");
+		$unix->chown_func("squid","squid","$filename");
+	}
+	
+	
+	
 	
 	$unix=new unix();
 	$tar=$unix->find_program("tar");
@@ -2409,33 +3382,7 @@ function IfTemplateExistsinEn($template_name){
 }
 
 
-function DefaultTemplatesInMysql(){
-	$q=new mysql_squid_builder();
-	$defaultdb=dirname(__FILE__)."/ressources/databases/squid.default.templates.db";
-	if(!is_file($defaultdb)){echo "$defaultdb no such file\n";return;}
-	$array=unserialize(@file_get_contents($defaultdb));
-	if(!is_array($array)){echo "$defaultdb no such array\n";return;}
-	$prefix="INSERT IGNORE INTO squidtpls (`zmd5`,`lang`,`template_name`,`template_body`,`template_title`,`emptytpl`) VALUES ";
-	
-	while (list ($language, $arrayTPL) = each ($array)){
-		while (list ($templateName, $templateData) = each ($arrayTPL)){
-			$title=$templateData["TITLE"];
-			echo "DefaultTemplatesInMysql[".__LINE__." Importing \"$title\"\n";
-			$body=base64_decode($templateData["BODY"]);
-			$md5=md5($language.$templateName);
-			$body=utf8_decode($body);
-			$title=utf8_decode($title);
-			$body=mysql_escape_string2($body);
-			$title=mysql_escape_string2($title);
 
-			
-			$ss="('$md5','$language','$templateName','$body','$title',0)";
-			$q->QUERY_SQL($prefix.$ss);
-			$f=array();
-			if(!$q->ok){echo "$templateName ($language) FAILED ($q->mysql_error)\n";}
-		}
-	}
-}
 
 function StatsApplianceExportTables(){
 	$f=new squid_stats_appliance();
@@ -2711,36 +3658,28 @@ function caches_infos($aspid=false){
 
 function restart_squid(){
 	$unix=new unix();
+	$byschedule=null;
+	$taskid=null;
 	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$TimeMin=$unix->file_time_min($timeFile);
 	if($TimeMin<60){
-		WriteToSyslogMail("restart_squid():: Fatal: Unable to restart squid-cache {$TimeMin}Mn need at least 60mn", basename(__FILE__));
+		squid_admin_mysql(1, "Ask to restart proxy service aborted {$TimeMin}Mn need at least 60mn", null,__FILE__,__LINE__);
 		return;
-		
 	}
 	
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
 	
-	WriteMyLogs("Task = {$GLOBALS["SCHEDULE_ID"]}",__FUNCTION__,__FILE__,__LINE__);
-	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){
-			include_once(dirname(__FILE__)."/ressources/class.blackboxes.inc");
-			$q=new mysql_blackbox();
-			$sql="SELECT nodeid,hostname FROM nodes";
-			$results=$q->QUERY_SQL($sql);
-			ufdbguard_admin_events("Task `restart squid` is executed` for ".mysql_num_rows($results) ." nodes", __FUNCTION__, __FILE__, __LINE__, "tasks");
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				$blk=new blackboxes($ligne["nodeid"]);
-				ufdbguard_admin_events("Restart squid on {$ligne["hostname"]}", __FUNCTION__, __FILE__, __LINE__, "tasks");
-				$blk->restart_squid();
-			}	
-
-		return;
-		
+	if($GLOBALS["BY_SCHEDULE"]){
+		$byschedule="Scheduled task";
+		if($GLOBALS["SCHEDULE_ID"]>0){
+			$taskid=" - Task ID {$GLOBALS["SCHEDULE_ID"]}";
+		}
 	}
-
+	
+	squid_admin_mysql(1, "Ask to restart proxy service ($byschedule$taskid)", null,__FILE__,__LINE__);
 	shell_exec("/etc/init.d/squid restart --force --script=".basename(__FILE__));
-	ufdbguard_admin_events("Task `restart squid` was executed`\n".@implode("\n", $results) , __FUNCTION__, __FILE__, __LINE__, "tasks");
+	
 	
 }
 
@@ -2824,21 +3763,48 @@ function build_schedules_tests(){
 }
 
 function rotate_logs(){
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
+	$pidfile="/etc/artica-postfix/pids/exec.squid.php.rotate_logs.pid";
 	$unix=new unix();
 	$sock=new sockets();
-	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
+	
+	
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+		return;
+	}
+	
+	
+	
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 	$ScheduleCMD=null;
+	
+	$size=@filesize("/var/log/squid/access.log");
+	
+	$size=$size/1024;
+	$size=round($size/1024);
+	if($size>$LogsRotateDefaultSizeRotation+50){
+		squid_admin_mysql(1, "Rotate proxy events {$size}MB exceed rule {$LogsRotateDefaultSizeRotation}M and is more than 50MB", "",__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["SQUIDBIN"]} -k rotate >/dev/null 2>&1");
+		shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
+		shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
+		$php=$unix->LOCATE_PHP5_BIN();
+		$nohup=$unix->find_program("nohup");
+		shell_exec("/usr/share/artica-postfix/exec.squid.rotate.php --force >/dev/null 2>&1 &");
+		return;
+		
+	}
+	
+	
+	
+	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
 	if($SquidRotateOnlySchedule==1){
 		if(!$GLOBALS["BY_SCHEDULE"]){return;}
 	}
 	
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){ 
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";} 
-		ufdbguard_admin_events("Already executed pid $pid",__FILE__,__FUNCTION__,__LINE__,"logs"); 
-		return; 
-	}
+
 	
 	
 	if($GLOBALS["FORCE"]){$forced_text=" - forced";}
@@ -2849,6 +3815,10 @@ function rotate_logs(){
 	@file_put_contents($pidfile, getmypid());	
 	
 	$SquidLogRotateFreq=intval($sock->GET_INFO("SquidLogRotateFreq"));
+	$SquidRotateMergeMaxFile=intval($sock->GET_INFO("LogsRotateDeleteSize"));
+	if($SquidRotateMergeMaxFile==0){$SquidRotateMergeMaxFile=5000;}
+	
+	
 	if($SquidLogRotateFreq<10){$SquidLogRotateFreq=1440;}
 	
 	$LastRotate=$unix->file_time_min("/etc/artica-postfix/pids/squid-rotate-cache.time");
@@ -2872,6 +3842,8 @@ function rotate_logs(){
 	$sock=new sockets();
 	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 	$EnableProxyCompressor=intval($sock->GET_INFO("EnableProxyCompressor"));
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 
 	if($EnableProxyCompressor==1){
 		$ScheduleCMD="--schedule-id={$GLOBALS["SCHEDULE_ID"]}";
@@ -2892,72 +3864,48 @@ function rotate_logs(){
 	
 	$size=$size/1024;
 	$size=round($size/1024);
+	if(!$GLOBALS["BY_SCHEDULE"]){
+		if($size<$LogsRotateDefaultSizeRotation){
+			squid_admin_mysql(1, "[LOG ROTATION]: Task skipped: ({$size}MB) is less than {$LogsRotateDefaultSizeRotation}MB last task was executed since {$LastRotate}Mn$defined_text", "",__FILE__,__LINE__);
+			return;
+		}
+	}
 	
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Ask proxy to rotate logs....\n";}
-	squid_admin_mysql(1, "[LOG ROTATION]: Ask proxy to rotate logs ({$size}MB) - last task was executed since {$LastRotate}Mn$defined_text", "",__FILE__,__LINE__);
 	
+	squid_admin_mysql(1, "[LOG ROTATION]: Ask proxy to rotate logs ({$size}MB) - last task was executed since {$LastRotate}Mn$defined_text", "",__FILE__,__LINE__);
 	shell_exec("{$GLOBALS["SQUIDBIN"]} -k rotate >/dev/null 2>&1");
 	shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
 	shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("/usr/share/artica-postfix/exec.squid.rotate.php --force >/dev/null 2>&1 &");
+
+
 
 	
-	$t=time();
-	$c=0;
-	$globalSize=0;
+}
 
-	$RUN_MYSAR=false;
-	foreach (glob("/var/log/squid/*") as $filename) {
-		$SourceFileName=$filename;;
-		if(is_dir($filename)){continue;}
-		$ext = $unix->file_extension($filename);
-		$basename=basename($filename);
-		if(!is_numeric($ext)){if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] skipping $basename\n";}continue;}
-		
-		
-		$tt=explode(".", $basename);
-		$fileprefix="{$tt[0]}-";
-		if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Found: $basename Prefix:$fileprefix ext:$ext\n";}
-		$filetime=filemtime($filename);
-		
-		if(preg_match("#ziproxy#", $filename)){
-			continue;
+function _rotate_events($text,$function,$line){
+	
+	if(function_exists("debug_backtrace")){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			if($function==null){$function=$trace[1]["function"];}
+			if($line==0){$line=$trace[1]["line"];}
 		}
-		$size=@filesize($filename);
-		$size=$size/1024;
-		$size=round($size/1024);
-	
-		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
-			@mkdir("/home/squid/access_logs");
-			if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Archiving $basename for statistics tasks...\n";}
-			$RUN_MYSAR=TRUE;
 			
-			if(@copy($filename, "/home/squid/access_logs/$basename.$filetime")){
-				squid_admin_mysql(2, "[LOG ROTATION]: Moving $basename ({$size}M) to /home/squid/access_logs done",null,__FILE__,__LINE__);
-				@unlink($filename);
-			}
-			continue;
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			if($function==null){$function=$trace[0]["function"];}
+			if($line==0){$line=$trace[0]["line"];}
 		}
-		
-		if(preg_match("#sarg\.log\.[0-9]+$#", $filename)){
-			@mkdir("/home/squid/sarg_logs");
-			
-			if(@copy($filename, "/home/squid/sarg_logs/$basename.$filetime")){
-				squid_admin_mysql(2, "[LOG ROTATION]: Moving $basename ({$size}M) to /home/squid/sarg_logs done",null,__FILE__,__LINE__);
-				@unlink($filename);}
-			continue;
-		}		
-		
-		
-		
-		}	
-	
-	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	$sock=new sockets();
-	
-	if($RUN_MYSAR){
-		shell_exec("$nohup $php /usr/share/artica-postfix/exec.mysar.php >/dev/null 2>&1 &");
 	}
 	
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+	$GLOBALS["CLASS_UNIX"]->events($text,"/var/log/artica-postfix/logrotate.debug",false,
+			__CLASS__."/$function",$line,__FILE__);
 	
 }
 
@@ -3000,7 +3948,7 @@ function build_schedules($notfcron=false){
 	
 	$q=new mysql_squid_builder();
 	$q->CheckDefaultSchedules();
-	if($q->COUNT_ROWS("webfilters_schedules")==0){die();}
+	if($q->COUNT_ROWS("webfilters_schedules")==0){return;}
 	
 	
 	$sql="SELECT *  FROM webfilters_schedules WHERE enabled=1";
@@ -3120,6 +4068,7 @@ function build_schedules($notfcron=false){
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." artica-postfix reloading fcron...\n";}
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup /etc/init.d/artica-postfix restart fcron >/dev/null 2>&1 &");
+	shell_exec("/etc/init.d/cron reload");
 	
 }
 

@@ -64,7 +64,7 @@ function page(){
 		//Switchdiv
 	
 $html="
-	<div class=explain style='font-size:14px'>{smtp_ufdbguard_notifications_text}</div>
+	<div class=text-info style='font-size:14px'>{smtp_ufdbguard_notifications_text}</div>
 	<div id='notif1-$t'></div>
 
 	<table style='width:99%' class=form id='main-form-$t'>

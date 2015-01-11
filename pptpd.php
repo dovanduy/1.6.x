@@ -643,7 +643,7 @@ function status(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'><div class=explain>{PPTPD_EXPLAIN}</div></td>
+		<td valign='top'><div class=text-info>{PPTPD_EXPLAIN}</div></td>
 		<td valign='top'><div id='pptdp-status' style='width:280px'></div>$refresh</td>
 	</tr>
 	</table>
@@ -821,7 +821,7 @@ function server_config(){
 	
 	
 	
-	<div class=explain>{PPTP_EXPLAIN_TEXT}</div>
+	<div class=text-info>{PPTP_EXPLAIN_TEXT}</div>
 	<script>
 	var x_SavePPTPDServerForm= function (obj) {
 			var tempvalue=obj.responseText;

@@ -139,7 +139,7 @@ function tabs(){
 	$t=time();
 	$boot=new boostrap_form();
 	
-	if($users->PROXYTINY_APPLIANCE){$explain=$tpl->_ENGINE_parse_body("<div class=explain>{why_arg_tiny}</div>");}
+	if($users->PROXYTINY_APPLIANCE){$explain=$tpl->_ENGINE_parse_body("<div class=text-info>{why_arg_tiny}</div>");}
 	$array["{general_settings}"]="$page?parameters=yes";
 	$array["{backup}"]="$page?parameters-backup=yes";
 	$array["{webservers}"]="$page?freeweb-section=yes";

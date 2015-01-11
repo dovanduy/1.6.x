@@ -183,6 +183,9 @@ function items(){
 	$PACKAGES["ntopng"]="APP_NTOPNG";
 	$PACKAGES["pythondev"]="APP_PYTHON_DEV";
 	$PACKAGES["vsftpd"]="APP_VSFTPD";
+	$PACKAGES["rdproxy"]="APP_RDPPROXY";
+	$PACKAGES["ufdbcat"]="APP_UFDBCAT";
+	$PACKAGES["syncthing"]="APP_SYNCTHING";
 
 	$ARRAY=unserialize(base64_decode($sock->getFrameWork("system.php?mylinux=yes")));
 	$LINUX_CODE_NAME=$ARRAY["LINUX_CODE_NAME"];

@@ -30,6 +30,7 @@ if(!is_numeric($NoDryReboot)){$NoDryReboot=0;}
 $AutoRebootSchedule=$sock->GET_INFO("AutoRebootSchedule");
 $AutoRebootScheduleText=trim($sock->GET_INFO("AutoRebootScheduleText"));
 if(!is_numeric($AutoRebootSchedule)){$AutoRebootSchedule=0;}
+$DisableForceFCK=intval($sock->GET_INFO("DisableForceFCK"));
 $t=$_GET["t"];
 
 $html="		
@@ -38,13 +39,18 @@ $html="
 	<table style='width:99%' class=form>
 		<tbody>
 			<tr>
-				<td colspan=3><div style='font-size:16px'>{reboot}</td>
+				<td colspan=3><div style='font-size:28px;margin-bottom:20px'>{reboot}</td>
 			</tr>
 			<tr>
 				<td nowrap width=1% align='right' class=legend>{NoDryReboot}:</td>
 				<td>" . Field_checkbox("NoDryReboot",1,$NoDryReboot)."</td>
 				<td>" . help_icon("{NoDryReboot_explain}")."</td>
 			</tr>
+			<tr>
+				<td nowrap width=1% align='right' class=legend>{DisableForceFCK}:</td>
+				<td>" . Field_checkbox("DisableForceFCK",1,$DisableForceFCK)."</td>
+				<td>" . help_icon("{DisableForceFCK_explain}")."</td>
+			</tr>						
 			<tr>
 				<td nowrap width=1% align='right' class=legend>{NoOutOfMemoryReboot}:</td>
 				<td>" . Field_checkbox("NoOutOfMemoryReboot",1,$NoOutOfMemoryReboot)."</td>
@@ -56,7 +62,7 @@ $html="
 				<td align=left><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('cron.php?field=AutoRebootScheduleText')\" style='font-size:13px;text-decoration:underline;color:black' id='scheduleAID2'>{schedule}</a></td>
 			</tr>
 		</tr>		
-			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesReboot$t()",14)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesReboot$t()",26)."</td>
 		</tr>			
 		</tbody>							
 		</table>
@@ -69,6 +75,8 @@ $html="
 
 	  function SavePerformancesReboot$t(){
 	  	var XHR = new XHRConnection();
+	  	
+	  	if(document.getElementById('DisableForceFCK').checked){XHR.appendData('DisableForceFCK',1);}else{XHR.appendData('DisableForceFCK',0);}
 	  	if(document.getElementById('NoDryReboot').checked){XHR.appendData('NoDryReboot',1);}else{XHR.appendData('NoDryReboot',0);}
 	  	if(document.getElementById('NoOutOfMemoryReboot').checked){XHR.appendData('NoOutOfMemoryReboot',1);}else{XHR.appendData('NoOutOfMemoryReboot',0);}
 	  	if(document.getElementById('AutoRebootSchedule').checked){XHR.appendData('AutoRebootSchedule',1);}else{XHR.appendData('AutoRebootSchedule',0);}
@@ -100,10 +108,15 @@ echo $tpl->_ENGINE_parse_body($html);
 function save(){
 	$sock=new sockets();
 	if(isset($_POST["NoDryReboot"])){$sock->SET_INFO('NoDryReboot',$_POST["NoDryReboot"]);}	
+	if(isset($_POST["DisableForceFCK"])){$sock->SET_INFO('DisableForceFCK',$_POST["DisableForceFCK"]);}
+	
 	if(isset($_POST["NoOutOfMemoryReboot"])){$sock->SET_INFO('NoOutOfMemoryReboot',$_POST["NoOutOfMemoryReboot"]);}
 	if(isset($_POST["AutoRebootScheduleText"])){$sock->SET_INFO('AutoRebootScheduleText',$_POST["AutoRebootScheduleText"]);}
 	if(isset($_POST["AutoRebootSchedule"])){$sock->SET_INFO('AutoRebootSchedule',$_POST["AutoRebootSchedule"]);}
 	if(isset($_POST["AutoRebootSchedule"])){$sock->getFrameWork("services.php?AutoRebootSchedule=yes");}	
+	
+	
+	
 	$sock->getFrameWork("services.php?syslogger=yes");
 
 	

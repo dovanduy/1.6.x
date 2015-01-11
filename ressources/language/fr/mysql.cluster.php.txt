@@ -1,5 +1,5 @@
 <DELETE_MYSQL_REPLICA_INFOS>Ce r&eacute;plica &agrave; &eacute;t&eacute; supprim&eacute; avec succ&egrave;s, allez dans le gestionnaire de cluster sur la page de Artica sur le serveur principale et d&eacute;sactivez ce noeud.</DELETE_MYSQL_REPLICA_INFOS>
-<ENABLE_MYSQL_CLUSTER_MANAGER>Activer le Service Manageur de Cluster Mysql</ENABLE_MYSQL_CLUSTER_MANAGER>
+<ENABLE_MYSQL_CLUSTER_MANAGER>Activer le Service Manageur de Cluster MySQL</ENABLE_MYSQL_CLUSTER_MANAGER>
 <ENABLE_MYSQL_CLUSTER_MANAGER_TEXT>Le service Manageur lit les configurations et distribue les informations aux diff&eacute;rends noeuds connect&eacute;s. Il maintient aussi les &eacute;v&egrave;nements et l'activit&eacute; des noeuds</ENABLE_MYSQL_CLUSTER_MANAGER_TEXT>
 <ENABLE_MYSQL_CLUSTER_REPLICAT>Activer ce serveur en tant que noeud r&eacute;plica.</ENABLE_MYSQL_CLUSTER_REPLICAT>
 <ENABLE_MYSQL_CLUSTER_REPLICAT_TEXT>Si vous passez en vert, ce serveur sera ins&eacute;rer dans l'ensemble cluster. Il notifiera le Manageur d'une nouvelle ressource disponible.</ENABLE_MYSQL_CLUSTER_REPLICAT_TEXT>

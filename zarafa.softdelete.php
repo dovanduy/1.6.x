@@ -43,7 +43,7 @@ function popup(){
 	$time=time();
 	$html="
 	<center id='$time'></center>
-	<div class=explain style='font-size:11px'>{soft_delete_explain}<br>{softdelete_lifetime_explain}</div>
+	<div class=text-info style='font-size:11px'>{soft_delete_explain}<br>{softdelete_lifetime_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{softdelete_lifetime}:</td>

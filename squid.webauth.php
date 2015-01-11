@@ -5,17 +5,10 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.system.network.inc');
-	
-$GLOBALS["POLICY_DEFAULT"]="Company retains the right, at its sole discretion, to refuse new service to any individual, group, or business.
-Company also reserves the right to monitor Internet access to its services by authorized users and clients, as part of the normal course of its business practice. 
-Should Company discover users engaged in any violation of the Acceptable Use Policy, which create denial of access or impediment of service, and which adversely affect Company’s ability to provide services, Company reserves the right to temporarily suspend user access to the its Servers and/or database.  
-Company shall make written/electronic notification to user’s point of contact of any temporary suspension, and the cause thereof, as soon as reasonably possible. 
-This temporary suspension will remain in effect until all violations have ceased.  
-Company also retains the right to discontinue service with 30 days’ prior written notice for repeated violation of the acceptable use policy.
-";	
+
 	
 $usersmenus=new usersMenus();
-if(!$usersmenus->AsSquidAdministrator){
+if(!$usersmenus->AsHotSpotManager){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
@@ -46,7 +39,7 @@ function js(){
 	$tpl=new templates();
 	$YahooWin=2;
 	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
-	$title=$tpl->_ENGINE_parse_body("{HotSpot}");
+	$title=$tpl->_ENGINE_parse_body("{HotSpot} V3");
 	$html="
 	var YahooWinx=$YahooWin;
 	if(YahooWinx==2){
@@ -72,12 +65,12 @@ function status(){
 		</div>
 		</td>
 		<td valign='top' style='padding-left:15px'>		
-			<div style='font-size:40px;margin-bottom:20px'>{captive_portal}</div>
+			<div style='font-size:40px;margin-bottom:20px'>{captive_portal} ( revision 3.1 )</div>
 			<div style='width:98%' class=form>
-			<div id='$t' class=explain style='font-size:14px'>{captive_portal_explain}</div>
+			<div id='$t' class=text-info style='font-size:14px'>{captive_portal_explain}</div>
 			".Paragraphe_switch_img("{activate_hostpot}","{activate_hostpot_explain}",
 					"EnableArticaHotSpot",$EnableArticaHotSpot,null,"650")."
-				<div style='text-align:right;margin:15px'>". button("{apply}", "Save$t()",28)."</div>
+				<div style='text-align:right;margin:15px;font-size:22px'>". button("{reconfigure}", "Loadjs('squid.hostspot.reconfigure.php')",28)."&nbsp;|&nbsp;". button("{apply}", "Save$t()",28)."</div>
 			</div>
 			</td>
 	</tr>
@@ -86,7 +79,7 @@ function status(){
 	var xsave$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
-		Loadjs('squid.compile.progress.php');
+		Loadjs('squid.hostspot.reconfigure.php');
 		
 	}
 
@@ -144,7 +137,7 @@ function options(){
 	}
 	
 	if($lockAd==1){
-		$explainNotAd="<div class=explain>{ad_database_is_disabled_because}".@implode("<br>-", $exp)."</div>";
+		$explainNotAd="<div class=text-info>{ad_database_is_disabled_because}".@implode("<br>-", $exp)."</div>";
 	}
 	
 	$html="
@@ -358,26 +351,30 @@ function EnableArticaHotSpotCAS(){
 	}
 	
 	$sock->SET_INFO("EnableArticaHotSpotCAS", $_POST["EnableArticaHotSpotCAS"]);
-	$sock->getFrameWork("hostpot.php?restart-firewall=yes");
+	$sock->getFrameWork("hotspot.php?restart-firewall=yes");
 }
 
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$users=new usersMenus();
+	
+	if(!$users->WIFIDOG_INSTALLED){
+		echo FATAL_ERROR_SHOW_128("{ERROR_SERVICE_NOT_INSTALLED} <hr><center>".button("{manual_update}", "Loadjs('update.upload.php')",32)."</center>");
+		return;
+	}
+	
 	$array["status"]='{status}';
+	$array["sessions"]='{sessions}';
 	$array["popup"]='{service_parameters}';
-	$array["hotspot"]='{networks}';
-	$array["hotspot_whitelist"]='{whitelist}';
-	
-	
 	
 	$array["members"]='{members} MySQL';
-	$array["cas"]='{CAS_AUTH_LABEL}';
+	$array["members-ad"]='{members} Active Directory';
+	$array["hotspot"]='{networks}';
 	$array["tweaks"]='{skin}';
 	
 	
-	$array["sessions"]='{sessions}';
+	
 	
 	$array["events"]='{events}';
 	
@@ -385,17 +382,22 @@ function tabs(){
 	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
 	
 	
-	$fontsize=14;
+	$fontsize=16.5;
 	if(count($array)>9){$fontsize=12.5;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="members"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadmin.hotspot.php?members=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.members.php?members=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="sessions"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadmin.hotspot.php?sessions=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.members.php?sessions=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="members-ad"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.activedirectory.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -484,14 +486,18 @@ function popup(){
 	$users=new usersMenus();
 	$squid=new squidbee();
 	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
-	$SquidHotSpotPort=$sock->GET_INFO("SquidHotSpotPort");
-	$ArticaHotSpotPort=$sock->GET_INFO("ArticaHotSpotPort");
+	$SquidHotSpotPort=intval($sock->GET_INFO("SquidHotSpotPort"));
+	$ArticaHotSpotPort=intval($sock->GET_INFO("ArticaHotSpotPort"));
 	$ArticaSSLHotSpotPort=$sock->GET_INFO("ArticaSSLHotSpotPort");
 	$ArticaSplashHotSpotPort=$sock->GET_INFO("ArticaSplashHotSpotPort");
 	$ArticaSplashHotSpotPortSSL=$sock->GET_INFO("ArticaSplashHotSpotPortSSL");
 	$ArticaSplashHotSpotCacheAuth=$sock->GET_INFO("ArticaSplashHotSpotCacheAuth");
 	$ArticaSplashHotSpotCertificate=$sock->GET_INFO("ArticaSplashHotSpotCertificate");
 	$ArticaSplashHotSpotEndTime=$sock->GET_INFO("ArticaSplashHotSpotEndTime");
+	$SquidHotSpotSSLPort=intval($sock->GET_INFO("SquidHotSpotSSLPort"));
+	$WifiDogDebugLevel=intval($sock->GET_INFO("WifiDogDebugLevel"));
+	$ArticaHotSpotInterface2=$sock->GET_INFO("ArticaHotSpotInterface2");
+	
 	
 	if(!is_numeric($ArticaSplashHotSpotCacheAuth)){$ArticaSplashHotSpotCacheAuth=60;}
 	if(!is_numeric($ArticaSplashHotSpotEndTime)){$ArticaSplashHotSpotEndTime=0;}
@@ -500,6 +506,10 @@ function popup(){
 	
 	if(!$users->CONNTRACK_INSTALLED){
 		echo FATAL_WARNING_SHOW_128("{conntrackd_not_installed}");
+	}
+	
+	for($i=0;$i<11;$i++){
+		$WifiDogDebugLevelZ[$i]=$i;
 	}
 	
 	$Timez[60]="1 {hour}";
@@ -525,7 +535,11 @@ function popup(){
 	$Timez[20160]="2 {weeks}";
 	$Timez[40320]="1 {month}";
 	
+	$ArticaHotSpotEnableMIT=$sock->GET_INFO("ArticaHotSpotEnableMIT");
+	$ArticaHotSpotEnableProxy=$sock->GET_INFO("ArticaHotSpotEnableProxy");
 	
+	if(!is_numeric($ArticaHotSpotEnableMIT)){$ArticaHotSpotEnableMIT=1;}
+	if(!is_numeric($ArticaHotSpotEnableProxy)){$ArticaHotSpotEnableProxy=1;}
 	
 	if(!is_numeric($ArticaHotSpotPort)){$ArticaHotSpotPort=0;}
 	if(!is_numeric($ArticaSplashHotSpotPort)){$ArticaSplashHotSpotPort=16080;}
@@ -533,7 +547,7 @@ function popup(){
 	
 	
 	$ArticaSplashHotSpotTitle=$sock->GET_INFO("ArticaSplashHotSpotTitle");
-	if($ArticaSplashHotSpotTitle==null){$ArticaSplashHotSpotTitle="Artica HotSpot system";}
+	if($ArticaSplashHotSpotTitle==null){$ArticaSplashHotSpotTitle="HotSpot system";}
 	
 	if($ArticaHotSpotPort==0){
 		$ArticaHotSpotPort=rand(38000, 64000);
@@ -545,22 +559,41 @@ function popup(){
 		$sock->SET_INFO("ArticaSSLHotSpotPort", $ArticaSSLHotSpotPort);
 	}
 	
-	$tcp=new networking();
-	$interfaces=$tcp->Local_interfaces();
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{select}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
+	if($SquidHotSpotPort==0){
+		$SquidHotSpotPort=rand(40000, 64000);
+		$sock->SET_INFO("SquidHotSpotPort", $SquidHotSpotPort);
 	}
+	
+	if($SquidHotSpotSSLPort==0){
+		$SquidHotSpotSSLPort=rand(40500, 64000);
+		$sock->SET_INFO("SquidHotSpotSSLPort", $SquidHotSpotSSLPort);
+	}
+	
+	
+	$tcp=new networking();
+	$interfacesZ=$tcp->Local_interfaces();
+	while (list ($interface, $line) = each ($interfacesZ) ){
+		$p=new system_nic($interface);
+		if($p->IsBridged($interface)){continue;}
+		$interfaces[$interface]=$p->NICNAME;
+		
+	}
+	
+	
+	
+	
+	
+	$interfaces[null]="{none}";
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	
 	
 	$t=time();
 	$html="
 	
 	
-	<div id='$t' class=explain style='font-size:14px'>{HotSpot_text}</div>
+	<div id='$t' class=text-info style='font-size:18px'>{HotSpot_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
@@ -569,70 +602,124 @@ function popup(){
 		</td>
 	</tr>
 	<tr>
-		<td  style='font-size:22px' colspan>{webserver}:</td>
-	</tr>				
-	<tr>
-		<td class=legend style='font-size:18px'>{interface}:</td>
-		<td>". Field_array_Hash($interfaces,"ArticaHotSpotInterface", $ArticaHotSpotInterface,"style:font-size:18px")."</td>
-	</tr>				
-	<tr>
-		<td class=legend style='font-size:18px'>{listen_port} (Proxy):</td>
-		<td>". Field_text("ArticaHotSpotPort",$ArticaHotSpotPort,"font-size:18px;width:90px")."</td>
+		<td  style='font-size:42px' colspan>{service2}:</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:18px'>{listen_port} (SSL):</td>
-		<td>". Field_text("ArticaSSLHotSpotPort",$ArticaSSLHotSpotPort,"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px'>{listen_port} (HotSpot):</td>
+		<td>". Field_text("ArticaHotSpotPort",$ArticaHotSpotPort,"font-size:22px;width:110px")."</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:22px'>{interface} (IN):</td>
+		<td>". Field_array_Hash($interfaces,"ArticaHotSpotInterface", $ArticaHotSpotInterface,"style:font-size:22px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{listen_port} (splash):</td>
-		<td>". Field_text("ArticaSplashHotSpotPort",$ArticaSplashHotSpotPort,"font-size:18px;width:90px")."</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px'>{listen_port} (splash/SSL):</td>
-		<td>". Field_text("ArticaSplashHotSpotPortSSL",$ArticaSplashHotSpotPortSSL,"font-size:18px;width:90px")."</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
-		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotCacheAuth",$ArticaSplashHotSpotCacheAuth,null,null,0,"font-size:18px")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:18px;text-transform:capitalize'>{endtime} ({default}):</td>
-		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotEndTime",$ArticaSplashHotSpotEndTime,null,null,0,"font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{interface} (OUT):</td>
+		<td>". Field_array_Hash($interfaces,"ArticaHotSpotInterface2", $ArticaHotSpotInterface2,"style:font-size:22px")."</td>
 	</tr>
 				
 	<tr>
-		<td  style='font-size:22px' colspan>{web_page}:</td>
-	</tr>
+		<td class=legend style='font-size:22px'>{log_level}:</td>
+		<td>". Field_array_Hash($WifiDogDebugLevelZ,"WifiDogDebugLevel", $WifiDogDebugLevel,"style:font-size:22px")."</td>
+	</tr>				
 	<tr>
-		<td class=legend style='font-size:18px'>{title2}:</td>
-		<td>". Field_text("ArticaSplashHotSpotTitle",$ArticaSplashHotSpotTitle,"font-size:18px;width:190px")."</td>
+		<td  style='font-size:42px' colspan>{webserver}:</td>
 	</tr>	
 	<tr>
-		<td class=legend nowrap style='font-size:18px;'>{certificate}:</td>
-		<td >". Field_array_Hash($sslcertificates, "ArticaSplashHotSpotCertificate",$ArticaSplashHotSpotCertificate,null,null,0,"font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{listen_port} (splash):</td>
+		<td>". Field_text("ArticaSplashHotSpotPort",$ArticaSplashHotSpotPort,"font-size:22px;width:110px")."</td>
+	</tr>							
+	<tr>
+		<td class=legend style='font-size:22px'>{listen_port} (splash/SSL):</td>
+		<td>". Field_text("ArticaSplashHotSpotPortSSL",$ArticaSplashHotSpotPortSSL,"font-size:22px;width:110px")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot()","18px")."</td>
+		<td  style='font-size:42px' colspan>Proxy:</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{transparent_ssl}:</td>
+		<td>". Field_checkbox("ArticaHotSpotEnableMIT",1,$ArticaHotSpotEnableMIT)."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{transparent_http}:</td>
+		<td>". Field_checkbox("ArticaHotSpotEnableProxy",1,$ArticaHotSpotEnableProxy)."</td>
+	</tr>									
+	<tr>
+		<td class=legend style='font-size:22px'>{listen_port} (Proxy HTTP):</td>
+		<td>". Field_text("SquidHotSpotPort",$SquidHotSpotPort,"font-size:22px;width:110px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:22px'>{listen_port} (Proxy SSL):</td>
+		<td>". Field_text("SquidHotSpotSSLPort",$SquidHotSpotSSLPort,"font-size:22px;width:110px")."</td>
+	</tr>					
+	
+	<tr>
+		<td  style='font-size:42px' colspan>{defaults}:</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:22px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotCacheAuth",
+					$ArticaSplashHotSpotCacheAuth,null,null,0,"font-size:22px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px;text-transform:capitalize'>{endtime} ({default}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotEndTime",
+				$ArticaSplashHotSpotEndTime,null,null,0,"font-size:22px")."</td>
+	</tr>
+				
+	<tr>
+		<td  style='font-size:42px' colspan>{web_page}:</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{title2}:</td>
+		<td>". Field_text("ArticaSplashHotSpotTitle",$ArticaSplashHotSpotTitle,"font-size:22px;width:390px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend nowrap style='font-size:22px;'>{certificate}:</td>
+		<td >". Field_array_Hash($sslcertificates, "ArticaSplashHotSpotCertificate",
+				$ArticaSplashHotSpotCertificate,null,null,0,"font-size:22px")."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot()","42px")."</td>
 	</tr>
 	</table>
 	</div>
 	<script>
 	var x_SaveHotSpot= function (obj) {
 		var results=obj.responseText;
-		if(results.length>3){alert(results);}
-		
+		if(results.length>3){alert(results);return;}
+		Loadjs('squid.webauth.restart.php');
+
 	}
 
 
 function SaveHotSpot(){
 		var XHR = new XHRConnection();
+		
 		XHR.appendData('ArticaHotSpotPort',document.getElementById('ArticaHotSpotPort').value);
-		XHR.appendData('ArticaSSLHotSpotPort',document.getElementById('ArticaSSLHotSpotPort').value);
+		XHR.appendData('SquidHotSpotPort',document.getElementById('SquidHotSpotPort').value);
+		
 		XHR.appendData('ArticaSplashHotSpotPort',document.getElementById('ArticaSplashHotSpotPort').value);
 		XHR.appendData('ArticaSplashHotSpotPortSSL',document.getElementById('ArticaSplashHotSpotPortSSL').value);
 		XHR.appendData('ArticaHotSpotInterface',document.getElementById('ArticaHotSpotInterface').value);
+		XHR.appendData('ArticaHotSpotInterface2',document.getElementById('ArticaHotSpotInterface2').value);
+		
+		XHR.appendData('ArticaSplashHotSpotCacheAuth',document.getElementById('ArticaSplashHotSpotCacheAuth').value);
 		XHR.appendData('ArticaSplashHotSpotCertificate',document.getElementById('ArticaSplashHotSpotCertificate').value);
 		XHR.appendData('ArticaSplashHotSpotEndTime',document.getElementById('ArticaSplashHotSpotEndTime').value);
+		XHR.appendData('WifiDogDebugLevel',document.getElementById('WifiDogDebugLevel').value);
+		
+		
+		if(document.getElementById('ArticaHotSpotEnableMIT').checked){
+			XHR.appendData('ArticaHotSpotEnableMIT',1);
+		}else{
+			XHR.appendData('ArticaHotSpotEnableMIT',0);
+		}
+		if(document.getElementById('ArticaHotSpotEnableProxy').checked){
+			XHR.appendData('ArticaHotSpotEnableProxy',1);
+		}else{
+			XHR.appendData('ArticaHotSpotEnableProxy',0);
+		}		
+		
 		
 		var ArticaSplashHotSpotTitle=encodeURIComponent(document.getElementById('ArticaSplashHotSpotTitle').value);
 		XHR.appendData('ArticaSplashHotSpotTitle',document.getElementById('ArticaSplashHotSpotTitle').value);
@@ -649,12 +736,13 @@ function SaveHotSpot(){
 function SaveEnable(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableArticaHotSpot", $_POST["EnableArticaHotSpot"]);
-	$sock->getFrameWork("hotspot.php?restart-firewall=yes");
+	$sock->getFrameWork("hotspot.php?restart-wifidog=yes");
 	$sock->getFrameWork("hotspot.php?restart-web=yes");
 	if($_POST["EnableArticaHotSpot"]==0){
-		$sock->getFrameWork("hotspot.php?stop-firewall=yes");
+		$sock->getFrameWork("hotspot.php?stop-wifidog=yes");
 		$sock->getFrameWork("hotspot.php?stop-web=yes");
 	}
+	sleep(3);
 	
 }
 
@@ -684,6 +772,8 @@ function EnableArticaHotSpot(){
 	}	
 	
 	
+	$sock->SET_INFO("SquidHotSpotPort", $_POST["SquidHotSpotPort"]);
+	
 	$sock->SET_INFO("ArticaHotSpotPort", $_POST["ArticaHotSpotPort"]);
 	$sock->SET_INFO("ArticaSSLHotSpotPort", $_POST["ArticaSSLHotSpotPort"]);
 	$sock->SET_INFO("ArticaHotSpotInterface", $_POST["ArticaHotSpotInterface"]);
@@ -692,60 +782,18 @@ function EnableArticaHotSpot(){
 	$sock->SET_INFO("ArticaSplashHotSpotTitle", $_POST["ArticaSplashHotSpotTitle"]);
 	$sock->SET_INFO("ArticaSplashHotSpotCertificate", $_POST["ArticaSplashHotSpotCertificate"]);
 	$sock->SET_INFO("ArticaSplashHotSpotEndTime", $_POST["ArticaSplashHotSpotEndTime"]);
+	$sock->SET_INFO("WifiDogDebugLevel", $_POST["WifiDogDebugLevel"]);
+	$sock->SET_INFO("ArticaHotSpotEnableMIT", $_POST["ArticaHotSpotEnableMIT"]);
+	$sock->SET_INFO("ArticaHotSpotEnableProxy", $_POST["ArticaHotSpotEnableProxy"]);
+	$sock->SET_INFO("ArticaHotSpotInterface2", $_POST["ArticaHotSpotInterface2"]);
+	$sock->SET_INFO("ArticaSplashHotSpotCacheAuth", $_POST["ArticaSplashHotSpotCacheAuth"]);
 	
-	
-	
-	
-	$sock->getFrameWork("hostpot.php?restart-firewall=yes");
-	$sock->getFrameWork("hostpot.php?restart-web=yes");
 	
 	
 	
 }
 
-function terme_of_use(){
-$sock=new sockets();
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
-	$page=CurrentPageName();
-	$tpl=new templates();
-$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));	
-$USETERMSTEXT=$HotSpotConfig["USETERMSTEXT"];
-if($USETERMSTEXT==null){$USETERMSTEXT=$GLOBALS["POLICY_DEFAULT"];}
-$USETERMSTEXT=stripslashes($USETERMSTEXT);
-$t=time();
-$html="
-<div id='$t-animate'></div>
-<textarea 
-	style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;
-	border:5px solid #8E8E8E;overflow:auto;font-size:18px' 
-	id='$t'>$USETERMSTEXT</textarea>
-	<center style='margin:20px'>
-	". button("{apply}", "SaveTermsOfUse$t()","18px")."
-	</center>
-<script>
-	var x_SaveHotSpot$t= function (obj) {
-		var results=obj.responseText;
-		if(results.length>3){alert(results);}
-		document.getElementById('$t-animate').innerHTML='';
-		YahooWin3Hide();
-	}
 
-
-function SaveTermsOfUse$t(){
-		var lock=$EnableRemoteStatisticsAppliance;
-		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
-		var XHR = new XHRConnection();
-		XHR.appendData('USETERMSTEXT',document.getElementById('USETERMSTEXT').value);
-		AnimateDiv('$t-animate');
-		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot$t);
-	}
-</script>	
-
-	";
-	echo $tpl->_ENGINE_parse_body($html);
-}
 
 function SaveOptions(){
 	$sock=new sockets();
@@ -823,10 +871,31 @@ function services_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$ini=new Bs_IniHandler();
+	$q=new mysql_squid_builder();
 	$data=base64_decode($sock->getFrameWork("hotspot.php?services-status=yes"));
+	
+	$ARRAY=unserialize(file_get_contents("/usr/share/artica/postfix/ressources/logs/web/wifidog.status"));
+	$genrate=$q->time_to_date($ARRAY["TIME"],true) ;
+	$uptime=$ARRAY["UPTIME"];
+	
 	$ini->loadString($data);
+	$f[]="<table style='width:80%'>
+	<tr>
+		<td class=legend style='font-size:14px'>{uptime}:</td>
+		<td><strong style='font-size:14px'>$uptime</strong>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:14px'>{sessions}:</td>
+		<td><strong style='font-size:14px'>{$ARRAY["CLIENTS"]}</strong>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{generated_on}:</td>
+		<td><strong style='font-size:14px'>$genrate</strong>
+	</tr>		
+	</table><hr>		
+	";
 	$f[]=DAEMON_STATUS_ROUND("HOTSPOT_WWW", $ini);
-	$f[]=DAEMON_STATUS_ROUND("HOTSPOT_FW", $ini);
+	$f[]=DAEMON_STATUS_ROUND("HOTSPOT_SERVICE", $ini);
 	$f[]="<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('hostspot-status','$page?hostspot-status=yes');")."</div>";
 	echo $tpl->_ENGINE_parse_body(@implode("<p>&nbsp;</p>", $f));
 	

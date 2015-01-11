@@ -31,14 +31,14 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$fontsize=16;
+	$fontsize=22;
 	
-
+	$array["snapshots"]="{snapshots}";
 	$array["backup"]="{backup}";
 	$array["schedule"]="{schedule}";
 	$array["restore"]="{restore}";
-	$array["InstantLDAPBackup"]="Instant LDAP Restore";
-	$array["help"]="{help}";
+	//$array["InstantLDAPBackup"]="Instant LDAP Restore";
+	//$array["help"]="{help}";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -48,6 +48,12 @@ function tabs(){
 					<span style='font-size:{$fontsize}'>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="snapshots"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"snapshots.php\">
+					<span style='font-size:{$fontsize}'>$ligne</span></a></li>\n");
+					continue;
+		}
 
 		if($num=="exclude-www"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.wwwex.php\">
@@ -56,22 +62,22 @@ function tabs(){
 		}
 
 		if($num=="rules"){
-				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.mainrules.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.mainrules.php\" ><span style='font-size:$fontsize;font-weight:normal'>$ligne</span></a></li>\n");
 				continue;
 
 				}
 				
 		if($num=="InstantLDAPBackup"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.instantLdapRestore.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.instantLdapRestore.php\"><span style='font-size:$fontsize;font-weight:normal'>$ligne</span></a></li>\n");
 			continue;
 		}				
 
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\"><span style='font-size:$fontsize;font-weight:normal'>$ligne</span></a></li>\n");
 	}
 
 
 
-	$html=build_artica_tabs($html,'artica_backup_tabs',975)."<script>LeftDesign('backup-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'artica_backup_tabs',1200)."<script>LeftDesign('backup-256-opac20.png');</script>";
 
 	echo $html;
 
@@ -93,11 +99,18 @@ function backup(){
 	$t=time();
 	$tt=time();
 	$BackupArticaBackUseNas=intval($sock->GET_INFO("BackupArticaBackUseNas"));
+	$BackupArticaBackLocalFolder=intval($sock->GET_INFO("BackupArticaBackLocalFolder"));
+	$BackupArticaBackAllDB=intval($sock->GET_INFO("BackupArticaBackAllDB"));
+	
 	$BackupArticaBackNASIpaddr=$sock->GET_INFO("BackupArticaBackNASIpaddr");
 	$BackupArticaBackNASFolder=$sock->GET_INFO("BackupArticaBackNASFolder");
 	$BackupArticaBackNASUser=$sock->GET_INFO("BackupArticaBackNASUser");
 	$BackupArticaBackCategory=$sock->GET_INFO("BackupArticaBackCategory");
 	$BackupArticaBackNASPassword=$sock->GET_INFO("BackupArticaBackNASPassword");
+	$BackupArticaBackLocalDir=$sock->GET_INFO("BackupArticaBackLocalDir");
+	
+	if($BackupArticaBackLocalDir==null){$BackupArticaBackLocalDir="/home/artica/backup";}
+	
 	if(!is_numeric($BackupArticaBackCategory)){$BackupArticaBackCategory=1;}
 	$users=new usersMenus();
 	if($users->SQUID_INSTALLED){
@@ -110,9 +123,13 @@ function backup(){
 	
 	
 	
-	$html="<div class=explain style='font-size:16px'>{BACKUPARTICA_TYPE_NAS_EXPLAIN}</div>
+	$html="<div class=text-info style='font-size:16px'>{BACKUPARTICA_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18'>{backup_all_databases}:</td>
+		<td>". Field_checkbox("BackupArticaBackAllDB-$tt", 1,$BackupArticaBackAllDB,"Check$tt()")."</td>
+	</tr>			
 	<tr>
 		<td class=legend style='font-size:18'>{use_remote_nas}:</td>
 		<td>". Field_checkbox("BackupArticaBackUseNas-$tt", 1,$BackupArticaBackUseNas,"Check$tt()")."</td>
@@ -135,6 +152,14 @@ function backup(){
 			<td align='left'>" . Field_password("BackupArticaBackNASPassword-$tt",$BackupArticaBackNASPassword,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
 		</tr>
 		<tr>
+			<td class=legend style='font-size:18'>{use_local_directory}:</td>
+			<td>". Field_checkbox("BackupArticaBackLocalFolder-$tt", 1,$BackupArticaBackLocalFolder,"Check2$tt()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18'>{local_directory}:</td>
+			<td>". Field_text("BackupArticaBackLocalDir-$tt", $BackupArticaBackLocalDir,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+		</tr>										
+		<tr>
 			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",26)."</td>
 		</tr>
 		</table>
@@ -149,10 +174,16 @@ var xSave$t= function (obj) {
 function Save$t(){
 	var XHR = new XHRConnection();
 	if(document.getElementById('BackupArticaBackUseNas-$tt').checked){ XHR.appendData('BackupArticaBackUseNas',1); }else{ XHR.appendData('BackupArticaBackUseNas',0);}
+	if(document.getElementById('BackupArticaBackLocalFolder-$tt').checked){ XHR.appendData('BackupArticaBackLocalFolder',1); }else{ XHR.appendData('BackupArticaBackLocalFolder',0);}
+	if(document.getElementById('BackupArticaBackAllDB-$tt').checked){ XHR.appendData('BackupArticaBackAllDB',1); }else{ XHR.appendData('BackupArticaBackAllDB',0);}
+	
+	
+	
 	XHR.appendData('BackupArticaBackNASIpaddr',document.getElementById('BackupArticaBackNASIpaddr-$tt').value);
 	XHR.appendData('BackupArticaBackNASFolder',encodeURIComponent(document.getElementById('BackupArticaBackNASFolder-$tt').value));
 	XHR.appendData('BackupArticaBackNASUser',encodeURIComponent(document.getElementById('BackupArticaBackNASUser-$tt').value));
 	XHR.appendData('BackupArticaBackNASPassword',encodeURIComponent(document.getElementById('BackupArticaBackNASPassword-$tt').value));
+	XHR.appendData('BackupArticaBackLocalDir',encodeURIComponent(document.getElementById('BackupArticaBackLocalDir-$tt').value));
 	
 	if(document.getElementById('BackupArticaBackCategory-$tt')){
 		if(document.getElementById('BackupArticaBackCategory-$tt').checked){ XHR.appendData('BackupArticaBackCategory',1); }else{ XHR.appendData('BackupArticaBackCategory',0);}
@@ -162,17 +193,46 @@ function Save$t(){
 	
 }
 
+function Check2$tt(){
+	document.getElementById('BackupArticaBackLocalDir-$tt').disabled=true;
+	if(document.getElementById('BackupArticaBackLocalFolder-$tt').checked){
+		document.getElementById('BackupArticaBackUseNas-$tt').disabled=true;
+		document.getElementById('BackupArticaBackLocalDir-$tt').disabled=false;
+		Check$tt();
+		if(document.getElementById('BackupArticaBackUseNas-$tt').checked){
+			document.getElementById('BackupArticaBackUseNas-$tt').checked=false;
+		}
+	}else{
+		document.getElementById('BackupArticaBackUseNas-$tt').disabled=false;
+	}
+	
+	CheckBoxDesignHidden();
+
+}
+
 function Check$tt(){
 	document.getElementById('BackupArticaBackNASIpaddr-$tt').disabled=true;
 	document.getElementById('BackupArticaBackNASFolder-$tt').disabled=true;
 	document.getElementById('BackupArticaBackNASUser-$tt').disabled=true;
 	document.getElementById('BackupArticaBackNASPassword-$tt').disabled=true;
 	
+	document.getElementById('BackupArticaBackLocalFolder-$tt').disabled=false;
+	
+	
+	
 	if(document.getElementById('BackupArticaBackCategory-$tt')){
 		document.getElementById('BackupArticaBackCategory-$tt').disabled=true;
 	}
 	
+	
+	
+	
 	if(document.getElementById('BackupArticaBackUseNas-$tt').checked){
+		if(document.getElementById('BackupArticaBackLocalFolder-$tt').checked){
+			document.getElementById('BackupArticaBackLocalFolder-$tt').checked=false;
+			document.getElementById('BackupArticaBackLocalFolder-$tt').disabled=true;
+		}
+		document.getElementById('BackupArticaBackLocalDir-$tt').disabled=true;
 		document.getElementById('BackupArticaBackNASIpaddr-$tt').disabled=false;
 		document.getElementById('BackupArticaBackNASFolder-$tt').disabled=false;
 		document.getElementById('BackupArticaBackNASUser-$tt').disabled=false;
@@ -181,8 +241,12 @@ function Check$tt(){
 			document.getElementById('BackupArticaBackCategory-$tt').disabled=false;
 		}
 	}
+	
+	CheckBoxDesignHidden();
 }
 
+
+Check2$tt();
 Check$tt();
 
 
@@ -195,9 +259,17 @@ function backup_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("BackupArticaBackUseNas",$_POST["BackupArticaBackUseNas"]);
 	$sock->SET_INFO("BackupArticaBackNASIpaddr",$_POST["BackupArticaBackNASIpaddr"]);
+	$sock->SET_INFO("BackupArticaBackAllDB",$_POST["BackupArticaBackAllDB"]);
+	
+	
+	
 	$sock->SET_INFO("BackupArticaBackNASFolder",url_decode_special_tool($_POST["BackupArticaBackNASFolder"]));
 	$sock->SET_INFO("BackupArticaBackNASUser",url_decode_special_tool($_POST["BackupArticaBackNASUser"]));
 	$sock->SET_INFO("BackupArticaBackNASPassword",url_decode_special_tool($_POST["BackupArticaBackNASPassword"]));
+	
+	$sock->SET_INFO("BackupArticaBackLocalFolder",url_decode_special_tool($_POST["BackupArticaBackLocalFolder"]));
+	$sock->SET_INFO("BackupArticaBackLocalDir",url_decode_special_tool($_POST["BackupArticaBackLocalDir"]));
+	
 	if(isset($_POST["BackupArticaBackCategory"])){
 		$sock->SET_INFO("BackupArticaBackCategory",$_POST["BackupArticaBackCategory"]);
 	}
@@ -227,7 +299,7 @@ function restore(){
 	<center id='title$t' style='font-size:28px'></center>
 	<div id='progress$t' style='width:95%;margin-top:15px'></div>
 		
-	<div class=explain style='font-size:16px'>{RESTOREARTICA_TYPE_NAS_EXPLAIN}</div>
+	<div class=text-info style='font-size:16px'>{RESTOREARTICA_TYPE_NAS_EXPLAIN}</div>
 			
 			
 	<div style='width:98%' class=form>

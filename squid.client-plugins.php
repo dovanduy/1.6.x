@@ -76,71 +76,71 @@ function popup(){
 	
 	$html="
 	<div id='$t-div'></div>
-	<div class=explain style='font-size:14px;'>{SquidClientParams_text}</div>
+	<div class=text-info style='font-size:18px;'>{SquidClientParams_text}</div>
 	<div style='font-size:16px;font-weight:bold;text-align:center;color:#E71010' id='$t-multi'></div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	
-	<tr><td colspan=2 style='font-size:18px'>{authentication_modules}$CPUS_TEXT</td></tr>
+	<tr><td colspan=2 style='font-size:32px'>{authentication_modules}$CPUS_TEXT</td></tr>
 	
 	
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>NTLM {max_processes}:</td>
-		<td width=99%>". Field_text("auth_param_ntlm_children-$t",$SquidClientParams["auth_param_ntlm_children"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>NTLM {max_processes}:</td>
+		<td width=99%>". Field_text("auth_param_ntlm_children-$t",$SquidClientParams["auth_param_ntlm_children"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>NTLM {preload_processes}:</td>
-		<td width=99%>". Field_text("auth_param_ntlm_startup-$t",$SquidClientParams["auth_param_ntlm_startup"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>NTLM {preload_processes}:</td>
+		<td width=99%>". Field_text("auth_param_ntlm_startup-$t",$SquidClientParams["auth_param_ntlm_startup"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>NTLM {prepare_processes}:</td>
-		<td width=99%>". Field_text("auth_param_ntlm_idle-$t",$SquidClientParams["auth_param_ntlm_idle"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>NTLM {prepare_processes}:</td>
+		<td width=99%>". Field_text("auth_param_ntlm_idle-$t",$SquidClientParams["auth_param_ntlm_idle"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>Basic/LDAP {max_processes}:</td>
-		<td width=99%>". Field_text("auth_param_basic_children-$t",$SquidClientParams["auth_param_basic_children"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>Basic/LDAP {max_processes}:</td>
+		<td width=99%>". Field_text("auth_param_basic_children-$t",$SquidClientParams["auth_param_basic_children"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>Basic/LDAP {preload_processes}:</td>
-		<td width=99%>". Field_text("auth_param_basic_startup-$t",$SquidClientParams["auth_param_basic_startup"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>Basic/LDAP {preload_processes}:</td>
+		<td width=99%>". Field_text("auth_param_basic_startup-$t",$SquidClientParams["auth_param_basic_startup"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>Basic/LDAP {prepare_processes}:</td>
-		<td width=99%>". Field_text("auth_param_basic_idle-$t",$SquidClientParams["auth_param_basic_idle"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>Basic/LDAP {prepare_processes}:</td>
+		<td width=99%>". Field_text("auth_param_basic_idle-$t",$SquidClientParams["auth_param_basic_idle"],"font-size:22px;width:90px")."</td>
 	</tr>	
 				
 				
-	<tr><td colspan=2 style='font-size:18px;margin-top:15px'>{filtering_modules}$CPUS_TEXT</td></tr>
+	<tr><td colspan=2 style='font-size:32px;margin-top:15px'>{filtering_modules}$CPUS_TEXT</td></tr>
 	
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{web_filtering} {max_processes}:</td>
-		<td width=99%>". Field_text("url_rewrite_children-$t",$SquidClientParams["url_rewrite_children"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{web_filtering} {max_processes}:</td>
+		<td width=99%>". Field_text("url_rewrite_children-$t",$SquidClientParams["url_rewrite_children"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{web_filtering} {preload_processes}:</td>
-		<td width=99%>". Field_text("url_rewrite_startup-$t",$SquidClientParams["url_rewrite_startup"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{web_filtering} {preload_processes}:</td>
+		<td width=99%>". Field_text("url_rewrite_startup-$t",$SquidClientParams["url_rewrite_startup"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{web_filtering} {prepare_processes}:</td>
-		<td width=99%>". Field_text("url_rewrite_idle-$t",$SquidClientParams["url_rewrite_idle"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{web_filtering} {prepare_processes}:</td>
+		<td width=99%>". Field_text("url_rewrite_idle-$t",$SquidClientParams["url_rewrite_idle"],"font-size:22px;width:90px")."</td>
 	</tr>
 				
 
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{acls_modules} {max_processes}:</td>
-		<td width=99%>". Field_text("external_acl_children-$t",$SquidClientParams["external_acl_children"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{acls_modules} {max_processes}:</td>
+		<td width=99%>". Field_text("external_acl_children-$t",$SquidClientParams["external_acl_children"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{acls_modules} {preload_processes}:</td>
-		<td width=99%>". Field_text("external_acl_startup-$t",$SquidClientParams["external_acl_startup"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{acls_modules} {preload_processes}:</td>
+		<td width=99%>". Field_text("external_acl_startup-$t",$SquidClientParams["external_acl_startup"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px' widht=1% nowrap>{acls_modules} {prepare_processes}:</td>
-		<td width=99%>". Field_text("external_acl_idle-$t",$SquidClientParams["external_acl_idle"],"font-size:18px;width:90px")."</td>
+		<td class=legend style='font-size:22px' widht=1% nowrap>{acls_modules} {prepare_processes}:</td>
+		<td width=99%>". Field_text("external_acl_idle-$t",$SquidClientParams["external_acl_idle"],"font-size:22px;width:90px")."</td>
 	</tr>				
 				
 	<tr>
-		<td colspan=2 style='font-size:18px' align='right'>".button("{apply}","Save$t()",18)."</td></tr>
+		<td colspan=2 style='font-size:18px' align='right'>".button("{apply}","Save$t()",32)."</td></tr>
 	<tr>	
 	</table>
 <script>

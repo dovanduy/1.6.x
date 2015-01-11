@@ -44,7 +44,7 @@ $html="
 
 function popup(){
 	$t3=time();
-	$html="<div class=explain style='font-size:14px'>{APP_DEVICE_CONTROL_TEXT}</div>";	
+	$html="<div class=text-info style='font-size:14px'>{APP_DEVICE_CONTROL_TEXT}</div>";	
 	$t=$_GET["t"];
 	$tTable=time();
 	$page=CurrentPageName();

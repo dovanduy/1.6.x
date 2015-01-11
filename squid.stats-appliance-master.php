@@ -122,7 +122,7 @@ function appliance_settings(){
 	$html="<div class=form style='margin-top:10px'>
 	<div style='font-size:16px;margin-bottom:10px'>{syslog_server}</div>
 	<div id='$t'></div>
-	<div class=explain style='font-size:13px'>{STATISTICS_APPLIANCE_SYSLOG_EXPLAIN}</div>
+	<div class=text-info style='font-size:13px'>{STATISTICS_APPLIANCE_SYSLOG_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

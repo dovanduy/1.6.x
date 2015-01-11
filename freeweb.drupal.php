@@ -299,7 +299,7 @@ function status(){
 	$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='REFRESH_INFOS'";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	if($ligne["ID"]>0){
-		$infos="<div class=explain>{drupal_refresh_ordered}</div>";
+		$infos="<div class=text-info>{drupal_refresh_ordered}</div>";
 	}
 	
 	
@@ -477,7 +477,7 @@ $q=new mysql();
 $sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='REFRESH_MODULES'";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	if($ligne["ID"]>0){
-		$infos="<div class=explain>{drupal_refresh_ordered}</div>";
+		$infos="<div class=text-info>{drupal_refresh_ordered}</div>";
 	}	
 	
 	$sql="SELECT DrupalModules from freeweb WHERE servername='{$_GET["servername"]}'";

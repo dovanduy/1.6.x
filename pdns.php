@@ -63,6 +63,7 @@ if(isset($_GET["SaveDNSEntry"])){AddDNSEntry();exit;}
 if(isset($_GET["DelDNSEntry"])){DelDNSEntry();exit;}
 if(isset($_GET["EnablePDNS"])){EnablePDNS();exit;}
 if(isset($_GET["PowerDNSLogsQueries"])){SaveLogsSettings();exit;}
+if(isset($_GET["webconsole"])){webconsole();exit;}
 
 if(isset($_GET["infos"])){pdns_infos();exit;}
 if(isset($_GET["pdns-infos-query"])){pdns_infos_query();exit;}
@@ -83,6 +84,17 @@ function service_cmds_js(){
 	$html="YahooWin4('650','$page?service-cmds-peform=$cmd','$title');";
 	echo $html;
 }
+
+
+function webconsole(){
+	$t=time();
+	
+	echo "<div id='$t'></div>
+	<script>LoadAjax('$t','freeweb.servers.php?force-groupware=POWERADMIN');</script>
+	";
+	
+}
+
 function service_cmds_perform(){
 	$sock=new sockets();
 	$page=CurrentPageName();
@@ -155,9 +167,7 @@ function EnablePDNS(){
 	$users=new usersMenus();
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}	
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
+
 	
 	
 	if($_GET["EnablePDNS"]==1){
@@ -304,9 +314,7 @@ $page=CurrentPageName();
 	
 	
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
-	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
-	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+
 	
 	
 	$PowerDNSMySQLEngine=1;
@@ -352,7 +360,7 @@ $page=CurrentPageName();
 	
 	
 	$PowerDNSMySQLTypeF=Field_array_Hash($PowerDNSMySQLTypeA,"PowerDNSMySQLType",$PowerDNSMySQLType,"PowerDNSMySQLTypeCK()",
-			null,0,"font-size:16px");
+			null,0,"font-size:18px");
 	
 	
 	
@@ -372,7 +380,8 @@ $page=CurrentPageName();
 	
 	$ips=$net->ALL_IPS_GET_ARRAY();
 	unset($ips["127.0.0.1"]);
-	$PowerDNSRecursorQuerLocalAddr=Field_array_Hash($ips, "PowerDNSRecursorQuerLocalAddr",$PowerDNSRecursorQuerLocalAddr,null,null,0,"font-size:16px");
+	$PowerDNSRecursorQuerLocalAddr=Field_array_Hash($ips, "PowerDNSRecursorQuerLocalAddr",
+			$PowerDNSRecursorQuerLocalAddr,null,null,0,"font-size:18px");
 	
 	
 	$PowerDNSPerfs=unserialize(base64_encode($sock->GET_INFO("PowerDNSPerfs")));
@@ -383,11 +392,11 @@ $page=CurrentPageName();
 	
 	
 	
-	$PowerDNSLogLevel=Field_array_Hash($loglevels, "PowerDNSLogLevel",$PowerDNSLogLevel,null,null,0,"font-size:16px");
+	$PowerDNSLogLevel=Field_array_Hash($loglevels, "PowerDNSLogLevel",$PowerDNSLogLevel,null,null,0,"font-size:18px");
 	
 	$old="				<tr>	
-					<td valign='top' class=legend style='font-size:16px' nowrap>{pdns-skip-cname}:</td>
-					<td width=1%>". Field_checkbox("PowerSkipCname",1,$PowerSkipCname)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{pdns-skip-cname}:</td>
+					<td width=1%>". Field_checkbox_design("PowerSkipCname",1,$PowerSkipCname)."</td>
 				</tr>";
 	
 	$html="
@@ -397,106 +406,106 @@ $page=CurrentPageName();
 <div style='width:98%' class=form>	
 <table style='width:100%'>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{cache-ttl}:</td>
-					<td width=1% style='font-size:16px'>". Field_text("cache-ttl",$PowerDNSPerfs["cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("cache-ttl",$PowerDNSPerfs["cache-ttl"],"font-size:18px;width:90px")."&nbsp;{seconds}</td>
 				</tr>				
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{negquery-cache-ttl}:</td>
-					<td width=1% style='font-size:16px'>". Field_text("negquery-cache-ttl",$PowerDNSPerfs["negquery-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{negquery-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("negquery-cache-ttl",$PowerDNSPerfs["negquery-cache-ttl"],"font-size:18px;width:90px")."&nbsp;{seconds}</td>
 				</tr>	
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{query-cache-ttl}:</td>
-					<td width=1% style='font-size:16px'>". Field_text("query-cache-ttl",$PowerDNSPerfs["query-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{query-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("query-cache-ttl",$PowerDNSPerfs["query-cache-ttl"],"font-size:18px;width:90px")."&nbsp;{seconds}</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{recursive-cache-ttl}:</td>
-					<td width=1% style='font-size:16px'>". Field_text("recursive-cache-ttl",$PowerDNSPerfs["recursive-cache-ttl"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{recursive-cache-ttl}:</td>
+					<td width=1% style='font-size:16px'>". Field_text("recursive-cache-ttl",$PowerDNSPerfs["recursive-cache-ttl"],"font-size:18px;width:90px")."&nbsp;{seconds}</td>
 				</tr>																	
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{DisablePowerDnsManagement}:</td>
-					<td width=1%>". Field_checkbox("DisablePowerDnsManagement",1,$DisablePowerDnsManagement,"EnablePowerDNSMySQLEngineCheck()")."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{DisablePowerDnsManagement}:</td>
+					<td width=1%>". Field_checkbox_design("DisablePowerDnsManagement",1,$DisablePowerDnsManagement,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{EnablePDNS}:</td>
-					<td width=1%>". Field_checkbox("EnablePDNS",1,$EnablePDNS,"EnablePDNSCheck()")."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{EnablePDNS}:</td>
+					<td width=1%>". Field_checkbox_design("EnablePDNS",1,$EnablePDNS,"EnablePDNSCheck()")."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{ActHasMaster}:</td>
-					<td width=1%>". Field_checkbox("PowerActHasMaster",1,$PowerActHasMaster)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{ActHasMaster}:</td>
+					<td width=1%>". Field_checkbox_design("PowerActHasMaster",1,$PowerActHasMaster)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{ActHasSlave}:</td>
-					<td width=1%>". Field_checkbox("PowerActAsSlave",1,$PowerActAsSlave)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{ActHasSlave}:</td>
+					<td width=1%>". Field_checkbox_design("PowerActAsSlave",1,$PowerActAsSlave)."</td>
 				</tr>				
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{DisableLDAPDatabase}:</td>
-					<td width=1%>". Field_checkbox("PowerDNSDisableLDAP",1,$PowerDNSDisableLDAP,"EnablePowerDNSMySQLEngineCheck()")."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{DisableLDAPDatabase}:</td>
+					<td width=1%>". Field_checkbox_design("PowerDNSDisableLDAP",1,$PowerDNSDisableLDAP,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>				
 						
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{useMySQL}:</td>
-					<td width=1%>". Field_checkbox("PowerDNSMySQLEngine",1,$PowerDNSMySQLEngine,"EnablePowerDNSMySQLEngineCheck()")."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{useMySQL}:</td>
+					<td width=1%>". Field_checkbox_design("PowerDNSMySQLEngine",1,$PowerDNSMySQLEngine,"EnablePowerDNSMySQLEngineCheck()")."</td>
 				</tr>
 				<tr>	
-					<td valign='top' class=legend style='font-size:16px' nowrap>DNSSEC:</td>
-					<td width=1%>". Field_checkbox("PowerDNSDNSSEC",1,$PowerDNSDNSSEC)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>DNSSEC:</td>
+					<td width=1%>". Field_checkbox_design("PowerDNSDNSSEC",1,$PowerDNSDNSSEC)."</td>
 				</tr>
 				<tr>	
-					<td valign='top' class=legend style='font-size:16px' nowrap>{outgoing_network_addr}:</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{outgoing_network_addr}:</td>
 					<td width=1%>$PowerDNSRecursorQuerLocalAddr</td>
 				</tr>				
 
 				
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{useGreenSQL}:</td>
-					<td width=1%>". Field_checkbox("PowerUseGreenSQL",1,$PowerUseGreenSQL)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{useGreenSQL}:</td>
+					<td width=1%>". Field_checkbox_design("PowerUseGreenSQL",1,$PowerUseGreenSQL)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{DisableDisplayVersion}:</td>
-					<td width=1%>". Field_checkbox("PowerDisableDisplayVersion",1,$PowerDisableDisplayVersion)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{DisableDisplayVersion}:</td>
+					<td width=1%>". Field_checkbox_design("PowerDisableDisplayVersion",1,$PowerDisableDisplayVersion)."</td>
 				</tr>
 				<tr>
-					<td valign='top' class=legend style='font-size:16px' nowrap>{chroot}:</td>
-					<td width=1%>". Field_checkbox("PowerChroot",1,$PowerChroot)."</td>
+					<td valign='top' class=legend style='font-size:18px' nowrap>{chroot}:</td>
+					<td width=1%>". Field_checkbox_design("PowerChroot",1,$PowerChroot)."</td>
 				</tr>								
 				<tr>
-					<td class=legend style='font-size:16px' nowrap>{log level}:</td>
+					<td class=legend style='font-size:18px' nowrap>{log level}:</td>
 					<td style='font-size:16px;padding:3px;' nowrap>$PowerDNSLogLevel</td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:16px' nowrap>{RestartServiceifReachMb}:</td>
+					<td class=legend style='font-size:18px' nowrap>{RestartServiceifReachMb}:</td>
 					<td style='font-size:16px;padding:3px;' nowrap>".Field_text("PDNSRestartIfUpToMB",$PDNSRestartIfUpToMB,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 				</tr>
 				<tr>
 				<td colspan=2><hr></td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px' nowrap>{mysql_database}:</td>
+					<td class=legend style='font-size:18px' nowrap>{mysql_database}:</td>
 					<td style='font-size:16px;padding:3px;' nowrap>$PowerDNSMySQLTypeF</td>
 				</tr>							
 				<tr>
-					<td class=legend style='font-size:16px'>{remote_mysql_server}:</td>
-					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemoteServer",$PowerDNSMySQLRemoteServer,"font-size:16px;width:190px")."</td>
+					<td class=legend style='font-size:18px'>{remote_mysql_server}:</td>
+					<td style='font-size:18px'>". Field_text("PowerDNSMySQLRemoteServer",$PowerDNSMySQLRemoteServer,"font-size:16px;width:190px")."</td>
 					<td width=1%></td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{mysql_server_port}:</td>
+					<td class=legend style='font-size:18px'>{mysql_server_port}:</td>
 					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemotePort",$PowerDNSMySQLRemotePort,"font-size:16px;width:90px")."</td>
 					<td width=1%></td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:16px'>{mysql_admin}:</td>
-					<td style='font-size:16px'>". Field_text("PowerDNSMySQLRemoteAdmin",$PowerDNSMySQLRemoteAdmin,"font-size:16px;width:190px")."</td>
+					<td class=legend style='font-size:18px'>{mysql_admin}:</td>
+					<td style='font-size:18px'>". Field_text("PowerDNSMySQLRemoteAdmin",$PowerDNSMySQLRemoteAdmin,"font-size:16px;width:190px")."</td>
 					<td width=1%></td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:16px'>{password}:</td>
-					<td style='font-size:16px'>". Field_password("PowerDNSMySQLRemotePassw",$PowerDNSMySQLRemotePassw,"font-size:16px;width:190px")."</td>
+					<td class=legend style='font-size:18px'>{password}:</td>
+					<td style='font-size:18px'>". Field_password("PowerDNSMySQLRemotePassw",$PowerDNSMySQLRemotePassw,"font-size:16px;width:190px")."</td>
 					<td width=1%></td>
 				</tr>							
 							
 							
-				<tr><td colspan=2 align='right'><hr>". button("{apply}","SavePDNSWatchdog()","18px")."</td></tr>							
+				<tr><td colspan=2 align='right'><hr>". button("{apply}","SavePDNSWatchdog()",26)."</td></tr>							
 			</table>
 			</div>
 	</div>
@@ -600,7 +609,7 @@ $page=CurrentPageName();
 			
 			
 			
-			AnimateDiv('PowerDNSMAsterConfigDiv');
+			
 			XHR.sendAndLoad('$page', 'GET',x_EnablePowerDNSMySQLEngineCheck);	
 		}
 		
@@ -921,13 +930,13 @@ function tabs(){
 	
 	}
 	
-	if($users->AsDnsAdministrator){$array["popup-replic"]='{replication}';}
+	//if($users->AsDnsAdministrator){$array["popup-replic"]='{replication}';}
 	if($users->AsDnsAdministrator){$array["infos"]='{infos}';}
 	if($users->AsDnsAdministrator){$array["logs"]='{events}';}
+	if($users->POWERADMIN_INSTALLED){$array["webconsole"]="{webconsole}";}
 	
 	
-	
-		$fontsize="style='font-size:16px'";
+		$fontsize="style='font-size:20px'";
 	
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -945,20 +954,16 @@ function tabs(){
 		if($num=="listen_ip"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.listen-ip.php\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
-		}		
+		}	
+
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span $fontsize>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_pdns style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_pdns\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html,"main_config_pdns")."<script>LeftDesign('dns-256-white-opac20.png');</script>";
+	
+	
 		
 	
 }
@@ -1089,9 +1094,10 @@ function status_section(){
 			<tr>
 				<td colspan=2>
 					$errordb
-					". Paragraphe_switch_img("{EnablePDNS}", "{pdns_explain}","EnablePDNS$t",$EnablePDNS,null,450)."
+					". Paragraphe_switch_img("{EnablePDNS}", "{pdns_explain}","EnablePDNS$t",$EnablePDNS,null,630)."
 					<hr>
-					<div style='width:100%;text-align:right;margin-bottom:15px'>". button("{apply}","SaveEnablePowerDNS()","18px")."</div>
+					<div style='width:100%;text-align:right;margin-bottom:15px'>
+							". button("{apply}","SaveEnablePowerDNS()",30)."</div>
 				</td>
 			</tr>
 			</table>
@@ -1331,7 +1337,7 @@ function popup_adddns(){
 
 $html="		
 
-<div class=explain>{ADD_DNS_ENTRY_TEXT}</div>
+<div class=text-info>{ADD_DNS_ENTRY_TEXT}</div>
 <div id='SaveDNSEntry'>
 <table style='width:99%' class=form>
 <tr>	
@@ -1505,21 +1511,12 @@ function PDNSStatus(){
 	$status1=DAEMON_STATUS_ROUND("APP_PDNS",$ini,null);
 	$status2=DAEMON_STATUS_ROUND("APP_PDNS_INSTANCE",$ini,null);
 	$status3=DAEMON_STATUS_ROUND("PDNS_RECURSOR",$ini,null);
-	
-	$cmds="<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
-		<table style='width:70%'>
-		<tbody>
-		<tr>
-			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-		</tr>
-		</tbody>
-		</table>
-		</center>";
+
 	
 	
-	$status="<table style='width:99%' class=form>
+	$status="
+	<div style='width:95%' class=form>
+	<table style='width:100%'>
 	<tr>
 	<td>$status1</td>
 	</tr>
@@ -1530,7 +1527,7 @@ function PDNSStatus(){
 	<td>$status3</td>
 	</tr>
 	</table>
-	$cmds	
+	
 	";
 	
 	
@@ -1959,7 +1956,7 @@ function LogsParameters(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{log_queries}:</td>
-		<td>". Field_checkbox("PowerDNSLogsQueries",1,$PowerDNSLogsQueries)."</td>
+		<td>". Field_checkbox_design("PowerDNSLogsQueries",1,$PowerDNSLogsQueries)."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px'>{log_level}:</td>

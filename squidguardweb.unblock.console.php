@@ -13,7 +13,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-
+if(isset($_GET["table"])){table();exit;}
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["rules-table-list"])){table_list();exit;}
 if(isset($_POST["DeleteWhiteListed"])){DeleteWhiteListed();exit;}
@@ -26,8 +26,40 @@ function js(){
 	echo "YahooWin2('750','$page?popup=yes','$title');";
 }
 
-
 function popup(){
+	
+	$fontsize=18;
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$q=new mysql_squid_builder();
+	$webfilters_usersasks=$q->COUNT_ROWS("webfilters_usersasks");
+	$array["table"]="$webfilters_usersasks {unblocks}";
+	$array["queue"]="{queue}";
+	
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="queue"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.unblock.queue.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+	}
+	
+	echo build_artica_tabs($html, "main_squid_unlock_tabs")."<script>LeftDesign('logs-white-256-opac20.png');</script>";
+	
+	
+
+	
+	
+}
+
+
+function table(){
 	$q=new mysql_squid_builder();
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -41,7 +73,7 @@ function popup(){
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$member=$tpl->javascript_parse_text("{members}");
 	$parameters=$tpl->javascript_parse_text("{settings}");
-	
+	$title=$tpl->_ENGINE_parse_body("{unblocks}");
 	
 	$buttons="
 	buttons : [
@@ -49,7 +81,7 @@ function popup(){
 	
 	],";
 
-
+	$buttons=null;
 	
 $html="
 
@@ -61,11 +93,11 @@ $('#flexRT$t').flexigrid({
 	url: '$page?rules-table-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$date', name : 'zDate', width : 133, sortable : true, align: 'left'},	
-		{display: '$ipaddr', name : 'ipaddr', width : 94, sortable : true, align: 'left'},	
-		{display: '$member', name : 'uid', width :100, sortable : true, align: 'left'},
+		{display: '$date', name : 'zDate', width : 286, sortable : true, align: 'left'},	
+		{display: '$ipaddr', name : 'ipaddr', width : 160, sortable : true, align: 'left'},	
+		{display: '$member', name : 'uid', width :179, sortable : true, align: 'left'},
 		{display: '$sitename', name : 'sitename', width : 299, sortable : true, align: 'left'},
-		{display: '$delete', name : 'delete', width : 32, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 70, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -76,11 +108,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<strong style=font-size:22px>$title</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 734,
+	width: '99%',
 	height: 400,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -138,13 +170,10 @@ function table_list(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -174,20 +203,24 @@ function table_list(){
 	
 	
 		
-	
+	if(mysql_num_rows($results)==0){json_error_show("no row");}
 	
 	
 	
 while ($ligne = mysql_fetch_assoc($results)) {
 	if($ligne["uid"]==null){$ligne["uid"]="-";}
+	
+	$catz="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.unblock.php?www={$ligne["sitename"]}');\"
+	style='font-size:18px;color:$color;text-decoration:underline'>";
+	
 	$delete=imgsimple("delete-24.png",null,"BannedDeleteUslks('{$ligne['zmd5']}')");
 	$data['rows'][] = array(
 		'id' => $ligne['zmd5'],
 		'cell' => array(
-			"<span style='font-size:14px;color:$color;'>{$ligne["zDate"]}</span>",
-			"<span style='font-size:14px;color:$color;'>{$ligne["ipaddr"]}</span>",
-			"<span style='font-size:14px;color:$color;'>{$ligne["uid"]}</span>",
-			"<span style='font-size:14px;color:$color;'>{$ligne["sitename"]}</span>",
+			"<span style='font-size:18px;color:$color;'>{$ligne["zDate"]}</span>",
+			"<span style='font-size:18px;color:$color;'>{$ligne["ipaddr"]}</span>",
+			"<span style='font-size:18px;color:$color;'>{$ligne["uid"]}</span>",
+			"<span style='font-size:18px;color:$color;'>$catz{$ligne["sitename"]}</a></span>",
 			$delete )
 		);
 	}

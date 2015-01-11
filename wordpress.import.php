@@ -32,7 +32,7 @@ function manual_update(){
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
 	<H2>{import_wordpress_backup}</H2>
-	<div class=explain style='font-size:16px'>{import_wordpress_backup_text}</div>
+	<div class=text-info style='font-size:16px'>{import_wordpress_backup_text}</div>
 	<center style='margin:10px;width:99%'>
 		<center id='file-uploader-demo-$t' style='width:100%;text-align:center'></center>
 	</center>

@@ -901,7 +901,7 @@ function index(){
 	
 	// 
 $intro="
-<div class=explain style='font-size:14px'>{setup_index_explain}</div>	
+<div class=text-info style='font-size:14px'>{setup_index_explain}</div>	
 <center>
 <table style='width:565px' class=form>
 	<tbody>
@@ -2117,7 +2117,7 @@ function samba_stables_available(){
 	$current=base64_decode($sock->getFrameWork("samba.php?current-version=yes"));
 	$html[]="
 	<div style='font-size:18px;margin-bottom:20px;text-align:right'>Samba v.$current</div>
-	<div style='font-size:16px' class=explain>{samba_old_stable_explain}</div>
+	<div style='font-size:16px' class=text-info>{samba_old_stable_explain}</div>
 	<div style='width:95%;text-align:center' class=form >
 	<table style='width:100%'>
 	";

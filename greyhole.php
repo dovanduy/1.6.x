@@ -250,7 +250,7 @@ function status(){
 		<div id='greyhole-status'></div>
 		</td>
 		<td valign='top' width=99%'>
-			<div class=explain>{APP_GREYHOLE_TEXT}</div>
+			<div class=text-info>{APP_GREYHOLE_TEXT}</div>
 		
 	</tr>
 	</table>

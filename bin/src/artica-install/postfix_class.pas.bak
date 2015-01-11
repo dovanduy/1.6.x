@@ -47,7 +47,6 @@ public
     function    POSFTIX_POSTCONF_PATH():string;
     function    POSFTIX_MASTER_CF_PATH:string;
     function    POSTFIX_VERSION():string;
-    procedure   POSTFIX_CHECK_SASLDB2();
     function    SASLPASSWD_PATH():string;
     function    POSTFIX_QUEUE_DIRECTORY():string;
     procedure   POSTFIX_INITIALIZE_FOLDERS();
@@ -990,7 +989,7 @@ end;
             logs.NOTIFICATION('[ARTICA]: Warning: Unable to start postfix daemon !!','Please come back quickly, the postfix daemon did not want to start !','system');
             exit;
          end;
-         MYSQMAIL_START();
+
         
   end;
 
@@ -1213,68 +1212,7 @@ end;
 end;
 //##############################################################################
 
-procedure tpostfix.POSTFIX_CHECK_SASLDB2();
-var
-   list2:Tstringlist;
-   EnableMechCramMD5:integer;
-   EnableMechDigestMD5:integer;
-   EnableMechLogin:integer;
-   EnableMechPlain:integer;
-   mech_list:string;
-begin
-EnableMechDigestMD5:=0;
-EnableMechLogin:=1;
-EnableMechPlain:=1;
-EnableMechCramMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechLogin'),EnableMechLogin) then EnableMechLogin:=1;
-if not TryStrToInt(SYS.GET_INFO('EnableMechPlain'),EnableMechPlain) then EnableMechPlain:=1;
-if not TryStrToInt(SYS.GET_INFO('EnableMechDigestMD5'),EnableMechDigestMD5) then EnableMechDigestMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechCramMD5'),EnableMechCramMD5) then EnableMechCramMD5:=0;
-if(EnableMechLogin=1) then mech_list:=mech_list+' LOGIN';
-if(EnableMechPlain=1) then mech_list:=mech_list+' PLAIN';
-if(EnableMechCramMD5=1) then mech_list:=mech_list+' CRAM-MD5';
-if(EnableMechDigestMD5=1) then mech_list:=mech_list+' DIGEST-MD5';
-mech_list:=trim(mech_list);
-if length(mech_list)=0 then mech_list:='PLAIN LOGIN';
-  logs.DebugLogs('Starting......: postfix authentication mechanisms: ' +mech_list);
-  logs.DebugLogs('Starting......: postfix creating /etc/postfix/sasl/smtpd.conf');
-  list2:=Tstringlist.Create;
-  list2.Add('pwcheck_method: saslauthd');
-  list2.Add('mech_list: '+mech_list);
-  list2.Add('log_level: 5');
-  forcedirectories('/etc/postfix/sasl');
-  logs.WriteToFile(list2.Text, '/etc/postfix/sasl/smtpd.conf');
-  if not FileExists('/usr/lib/sasl2/smtpd.conf') then logs.OutputCmd('/bin/ln -s /etc/postfix/sasl/smtpd.conf  /usr/lib/sasl2/smtpd.conf');
-  list2.free;
 
-   if not FileExists(SASLPASSWD_PATH()) then begin
-   logs.Debuglogs('Starting......: saslpasswd2 doesn''t exists');
-   exit;
-   end;
-
-   if not DirectoryExists('/var/spool/postfix/etc') then begin
-      logs.Debuglogs('Starting......: Creating /var/spool/postfix/etc (POSTFIX_CHECK_SASLDB2)');
-      ForceDirectories('/var/spool/postfix/etc');
-   end;
-   logs.Debuglogs('Starting......: saslpasswd: '+ SASLPASSWD_PATH());
-
-   if not FileExists('/var/spool/postfix/etc/sasldb2') then begin
-      logs.Debuglogs('Starting......: /var/spool/postfix/etc/sasldb2 doesn''t exists start procedure');
-      if not FileExists('/etc/sasldb2') then begin
-         logs.OutputCmd('/bin/echo cyrus|'  + SASLPASSWD_PATH() + ' -c cyrus');
-       end;
-
-      if FileExists('/etc/sasldb2') then begin
-         logs.OutputCmd('/bin/mv /etc/sasldb2 /var/spool/postfix/etc/sasldb2');
-         logs.OutputCmd('/bin/ln -s /var/spool/postfix/etc/sasldb2 /etc/sasldb2');
-      end;
-   end;
-
-    logs.OutputCmd('/bin/chown root:root /var/spool/postfix/etc/sasldb2');
-    logs.OutputCmd('/bin/chmod 755 /var/spool/postfix/etc/sasldb2');
-
-end;
-//##############################################################################
 function tpostfix.MON():string;
 var
 l:TstringList;

@@ -1,5 +1,5 @@
 <?php
-define("alse",null);
+if(!defined("alse")){define("alse",null);}
 class settings_inc {
 
 	public $squid_kerb_auth_path=null;
@@ -158,6 +158,7 @@ class settings_inc {
 	public $queuegraph_installed=false;
 	public $yorel_installed=false;
 	public $LOCATE_AUTHLOG_PATH="";
+	public $WIFIDOG_INSTALLED=false;
 	
 	public $roundcube_installed=false;
 	public $awstats_installed=false;
@@ -499,6 +500,10 @@ class settings_inc {
 	public $APP_CHILLI_INSTALLED=false;
 	public $ISCSID_INSTALLED=false;
 	public $RDPPROXY_INSTALLED=false;
+	public $SYNCTHING_INSTALLED=false;
+	public $SENSORS_INSTALLED=false;
+	public $SS5_INSTALLED=false;
+	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -612,6 +617,7 @@ class settings_inc {
 			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
 			if(isset($_GLOBAL["APP_CHILLI_INSTALLED"])){$this->APP_CHILLI_INSTALLED=$_GLOBAL["APP_CHILLI_INSTALLED"];}
 			if(isset($_GLOBAL["RDPPROXY_INSTALLED"])){$this->RDPPROXY_INSTALLED=$_GLOBAL["RDPPROXY_INSTALLED"];}
+			if(isset($_GLOBAL["WIFIDOG_INSTALLED"])){$this->WIFIDOG_INSTALLED=$_GLOBAL["WIFIDOG_INSTALLED"];}
 			
 			
 			if(isset($_GLOBAL["MPM_ITK_MODULE"])){$this->MPM_ITK_MODULE=$_GLOBAL["MPM_ITK_MODULE"];}
@@ -704,6 +710,9 @@ class settings_inc {
 			if(isset($_GLOBAL["FREERADIUS_INSTALLED"])){$this->FREERADIUS_INSTALLED=$_GLOBAL["FREERADIUS_INSTALLED"];;}
 			if(isset($_GLOBAL["SQUID_REVERSE_APPLIANCE"])){$this->SQUID_REVERSE_APPLIANCE=$_GLOBAL["SQUID_REVERSE_APPLIANCE"];;}
 			if(isset($_GLOBAL["ISCSID_INSTALLED"])){$this->ISCSID_INSTALLED=$_GLOBAL["ISCSID_INSTALLED"];;}
+			if(isset($_GLOBAL["SYNCTHING_INSTALLED"])){$this->SYNCTHING_INSTALLED=$_GLOBAL["SYNCTHING_INSTALLED"];;}
+			if(isset($_GLOBAL["SENSORS_INSTALLED"])){$this->SENSORS_INSTALLED=$_GLOBAL["SENSORS_INSTALLED"];;}
+			if(isset($_GLOBAL["SS5_INSTALLED"])){$this->SS5_INSTALLED=$_GLOBAL["SS5_INSTALLED"];}
 			
 			
 			
@@ -999,9 +1008,10 @@ class settings_inc {
 				$this->KAV4PROXY_INSTALLED=true;
 				
 			}
-
-			$data=trim(@file_get_contents(base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw==")));
-			if($data=="TRUE"){$this->CORP_LICENSE=true;}
+			if(is_file(base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw=="))){
+				$data=trim(@file_get_contents(base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw==")));
+				if($data=="TRUE"){$this->CORP_LICENSE=true;}
+			}
 			
 		}
 		
@@ -1031,9 +1041,6 @@ class settings_inc {
 		
 		if(!$this->dnsmasq_installed){return 0;}
 		$EnableDNSMASQ=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableDNSMASQ");
-		$DHCPDEnableCacheDNS=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DHCPDEnableCacheDNS");
-		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
-		if($DHCPDEnableCacheDNS==1){return 1;}
 		if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 		return $EnableDNSMASQ;
 	}	

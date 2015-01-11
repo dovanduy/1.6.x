@@ -56,7 +56,7 @@ function reload($nopid=false){
 
 	$sock=new sockets();
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
-	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
@@ -65,6 +65,12 @@ function reload($nopid=false){
 	
 	build();
 	$masterbin=$unix->find_program("redis-server");
+	if(!is_file($masterbin)){
+		$unix->DEBIAN_INSTALL_PACKAGE("redis-server");
+		$masterbin=$unix->find_program("redis-server");
+	}
+	
+	
 	if(!is_file($masterbin)){
 		if($GLOBALS["OUTPUT"]){echo "Reload........: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
 		return;
@@ -173,12 +179,24 @@ function start($nopid=false){
 	}
 	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
-	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>2){$Enablentopng=0;}
+	
+	
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
 	}
 	$masterbin=$unix->find_program("redis-server");
+	
+	$masterbin=$unix->find_program("redis-server");
+	if(!is_file($masterbin)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} installing redis-server\n";}
+		$unix->DEBIAN_INSTALL_PACKAGE("redis-server");
+		$masterbin=$unix->find_program("redis-server");
+	}
+	
 	if(!is_file($masterbin)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Not installed...\n";}
 		return;		

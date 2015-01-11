@@ -5,7 +5,7 @@ class useragents{
 	var $database="squidlogs";
 	
 	function useragents(){
-		
+		$this->checkTable();
 		
 		
 	}
@@ -158,26 +158,26 @@ class useragents{
 		$q->QUERY_SQL($sql,$this->database);
 		if(!$q->ok){echo $q->mysql_error;}
 		
-		if(!$q->FIELD_EXISTS("category", "UsersAgentsDB")){
+		if(!$q->FIELD_EXISTS("UsersAgentsDB","category")){
 				$q->QUERY_SQL("ALTER TABLE `UsersAgentsDB` ADD `category` 
 				VARCHAR( 128 ) NOT NULL ,ADD INDEX ( `category` )");
 		}
 		
-		if(!$q->FIELD_EXISTS("bypassWebF", "UsersAgentsDB")){
+		if(!$q->FIELD_EXISTS( "UsersAgentsDB","bypassWebF")){
 			$q->QUERY_SQL("ALTER TABLE `UsersAgentsDB` ADD `bypassWebF`
 				smallint( 1 ) NOT NULL DEFAULT 0,ADD INDEX ( `bypassWebF` )");
 		}
-		if(!$q->FIELD_EXISTS("bypassWebC", "UsersAgentsDB")){
+		if(!$q->FIELD_EXISTS( "UsersAgentsDB","bypassWebC")){
 			$q->QUERY_SQL("ALTER TABLE `UsersAgentsDB` ADD `bypassWebC`
 				smallint( 1 ) NOT NULL DEFAULT 0,ADD INDEX ( `bypassWebC` )");
 		}
 		
-		if(!$q->FIELD_EXISTS("enabled", "UsersAgentsDB")){
+		if(!$q->FIELD_EXISTS( "UsersAgentsDB","enabled")){
 			$q->QUERY_SQL("ALTER TABLE `UsersAgentsDB` ADD `enabled`
 				smallint( 1 ) NOT NULL DEFAULT 0,ADD INDEX ( `enabled` )");
 		}		
 		
-		if(!$q->FIELD_EXISTS("ID", "UsersAgentsDB")){
+		if(!$q->FIELD_EXISTS( "UsersAgentsDB","ID")){
 			$q->QUERY_SQL("ALTER TABLE `UsersAgentsDB` ADD `ID`
 				INT( 10 ) NOT NULL AUTO_INCREMENT ,ADD INDEX ( `ID` )");
 		}		

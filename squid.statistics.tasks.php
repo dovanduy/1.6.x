@@ -98,7 +98,7 @@ function re_categorize_popup(){
 	
 	$js="Loadjs('cron.php?field=RecategorizeCronTask')";
 	
-	$html="<div class=explain style='font-size:14px' id='www_recategorize_explain'>{www_recategorize_explain}</div>
+	$html="<div class=text-info style='font-size:14px' id='www_recategorize_explain'>{www_recategorize_explain}</div>
 	<input type='hidden' id='RecategorizeCronTask' value='$RecategorizeCronTask'>
 	<table style='width:99%' class=form>
 	<tbody>
@@ -192,7 +192,7 @@ function events_popup(){
 	$function[null]="{select}";
 	$cat[null]="{select}";
 	
-	$html="<div class=explain>{statistics_tasks_events_explain}</div>
+	$html="<div class=text-info>{statistics_tasks_events_explain}</div>
 	<center>
 		<table style='width:70%' class=form>
 			<tbody>

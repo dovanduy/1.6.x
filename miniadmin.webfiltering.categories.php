@@ -445,13 +445,8 @@ function category_items_delete(){
 function category_delete(){
 	$category=$_POST["category-delete"];
 	$q=new mysql_squid_builder();
-	if($q->TABLE_EXISTS("category_{$category}")){
-		$q->QUERY_SQL("DROP TABLE category_{$category}");
-		if(!$q->ok){echo $q->mysql_error;return;}
-	}
-	$category=mysql_escape_string2($category);
-	$q->QUERY_SQL("DELETE FROM personal_categories WHERE `category`='$category'");
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->DELETE_CATEGORY($category)){return;}
+	
 	
 }
 function category_urls_delete(){

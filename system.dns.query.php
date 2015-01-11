@@ -100,6 +100,10 @@ function query(){
 		$DNS[]=$ligne["dnsserver"];
 		
 	}
+	
+	$query=$_GET["query"];
+	if($query==null){$query="www.artica.fr";}
+	
 	if($resolv->MainArray["DNS1"]<>null){$DNS[]=$resolv->MainArray["DNS1"];}
 	if($resolv->MainArray["DNS2"]<>null){$DNS[]=$resolv->MainArray["DNS2"];}
 	if($resolv->MainArray["DNS3"]<>null){$DNS[]=$resolv->MainArray["DNS3"];}
@@ -113,7 +117,7 @@ function query(){
 		$rs = new Net_DNS2_Resolver(array('nameservers' => array($dnsA)));
 		
 		try {
-			$result = $rs->query("www.artica.fr", "A");
+			$result = $rs->query($query, "A");
 		} catch(Net_DNS2_Exception $e) {
 			echo "<div style='font-size:16px;color:red'>Failed to query: " . $e->getMessage() . "</div>";
 			continue;

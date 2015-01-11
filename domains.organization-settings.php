@@ -288,7 +288,7 @@ if($users->EnableManageUsersTroughActiveDirectory){
 	if($users->EnableManageUsersTroughActiveDirectory){$button=null;}
 	
 	$html="
-	<div class=explain style='font-size:13px'>{ORG_SETTINGS_TEXT}</div>
+	<div class=text-info style='font-size:13px'>{ORG_SETTINGS_TEXT}</div>
 	$fav
 	
 	

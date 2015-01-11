@@ -228,8 +228,8 @@ class mysql_haproxy_builder{
 	
 	public function CheckTables($table=null){
 		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
-		$this->TablePrimaireHour();
-		$this->CreateWeekTable();
+		
+		
 	
 	}
 	

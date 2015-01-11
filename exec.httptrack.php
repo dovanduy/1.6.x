@@ -78,3 +78,4 @@ function execute_mysql($OnlyID=0){
 	$took=$unix->distanceOfTimeInWords($t1,time(),true);
 	system_admin_events("$count web sites scrapped took $took",__FUNCTION__,__FILE__,__LINE__,"webcopy");
 }
+

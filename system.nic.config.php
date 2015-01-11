@@ -110,7 +110,7 @@ function popup2(){
 if(isset($_GET["newinterface"])){$fontsize="font-size:14px";$linkadd="&newinterface=yes";}		
 $page=CurrentPageName();	
 $html="
-	<div class=explain style='font-size:16px;width:945px;margin-left:-2px'>{network_about}</div>
+	<div class=text-info style='font-size:16px;width:945px;margin-left:-2px'>{network_about}</div>
 	<div id='hostname_cf'></div>
 	<div id='nic_status'></div>
 	<div id='nic_tabs'></div>
@@ -135,7 +135,6 @@ function tabs(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$array["listnics"]='{main_interfaces}';
-	$array["DNSServers"]='{dns_nameservers}';
 	$array["hosts"]='{hosts}';
 	$array["virtuals"]='{virtual_interfaces}';
 	
@@ -152,8 +151,9 @@ function tabs(){
 	
 	
 	$tabwith="980";
-	if(isset($_GET["newinterface"])){$fontsize="font-size:14px";$linkadd2="?newinterface=yes";$linkadd="&newinterface=yes";$tabwith="100%";}	
-	
+	if(isset($_GET["newinterface"])){$fontsize="font-size:14px";
+	$linkadd2="?newinterface=yes";$linkadd="&newinterface=yes";$tabwith="100%";}	
+	$fontsize="font-size:20px";
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="hard"){
@@ -200,10 +200,12 @@ function tabs(){
 function tabs_hostname(){
 	$sock=new sockets();
 	$page=CurrentPageName();
-	$hostname=$sock->getFrameWork("cmd.php?full-hostname=yes");	
+	$hostname=$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	$tpl=new templates();
 if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
 	echo $tpl->_ENGINE_parse_body("
+		<center>
 		<table style='width:400px;margin:3px;padding:3px;'
 		OnMouseOver=\";this.style.cursor='pointer';this.style.background='#F5F5F5';\"
 		OnMouseOut=\";this.style.cursor='default';this.style.background='#FFFFFF';\"
@@ -228,7 +230,7 @@ if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinter
 				</div>
 			</td>
 		</tr>
-		</table>
+		</table></center>
 		");	
 	
 	
@@ -437,7 +439,7 @@ function zlistnics_tabs(){
 	
 	$tabwidth="730px";
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
-	
+	$fontsize="font-size:22px";
 	while (list ($num, $ligne) = each ($array) ){
 			
 		if($num=="arpspoof"){
@@ -641,15 +643,15 @@ if($t<2){
 
 	$html=@implode("\n", $tables);
 	$ovh_specific_config=$tpl->_ENGINE_parse_body("{ovh_specific_config}");	
-
+	$ovh_specific_config_explain=$tpl->_ENGINE_parse_body("{ovh_specific_config_explain}");
 	
 	echo "
 	<div id='defroute-$t'></div>
 	<center style='margin-bottom:10px'>
 			<table style='width:100%'>
 			<tr>
-				<td width=50% style='text-align:center'>". button($tpl->_ENGINE_parse_body("{network_status}"),"Loadjs('network.status.php')",16)."</td>
-				<td width=50% style='text-align:center'>". button("$apply_network_configuration","Loadjs('network.restart.php')",16)."</td>
+				<td width=50% style='text-align:center'>". button($tpl->_ENGINE_parse_body("{network_status}"),"Loadjs('network.status.php')",22)."</td>
+				<td width=50% style='text-align:center'>". button("$apply_network_configuration","Loadjs('network.restart.php')",22)."</td>
 				
 			</tr>
 		</table>
@@ -666,9 +668,9 @@ if($t<2){
 	
 	<table style='width:99%' class=form>
 	<tr>
-	<td width=99%>&nbsp;</td>
-	<td widh=1% nowrap class=legend style='font-size:14px'>$ovh_specific_config:<br><i>{ovh_specific_config_explain}</i></td>
-	<td>". Field_checkbox("OVHNetConfig", 1,$OVHNetConfig,"OVHNetConfigSave()")."</td>
+	<td width=1%>". help_icon($ovh_specific_config_explain)."</td>
+	<td widh=1% nowrap class=legend style='font-size:14px'>$ovh_specific_config:</td>
+	<td>". Field_checkbox_design("OVHNetConfig", 1,$OVHNetConfig,"OVHNetConfigSave()")."</td>
 	</tr>
 	</table>
 	
@@ -868,6 +870,8 @@ function listnicinfos($nicname,$js=null){
 	$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nicname");
 	$EnableipV6=$sock->GET_INFO("EnableipV6");
 	if(!is_numeric($EnableipV6)){$EnableipV6=0;}	
+	$MUST_CHANGE=false;
+	$MUST_CHANGE_TEXT=null;
 	
 	$IPBANS=unserialize(base64_decode($sock->GET_INFO("ArticaIpListBanned")));	
 	$tbl=explode(";",$nicinfos);
@@ -940,11 +944,32 @@ function listnicinfos($nicname,$js=null){
 		$SourceBasedRouting="<div style='font-size:11px;text-align:right;font-weight:bolder'>{default_based_routing}</div>";
 	}
 	
+	if($nicz->IPADDR<>$tbl[0]){
+		$MUST_CHANGE=true;
+	}
+	if($nicz->NETMASK<>$tbl[2]){
+		$MUST_CHANGE=true;
+	}	
+	if($nicz->GATEWAY<>$gateway){
+		$MUST_CHANGE=true;
+	}	
+	
+	if($MUST_CHANGE){
+		$MUST_CHANGE_TEXT2=$tpl->_ENGINE_parse_body("{need_to_apply_network_settings_interface}");
+		$MUST_CHANGE_TEXT="<tr>
+		<td class=legend nowrap style='color:$textColor;font-size:16px'><img src='img/warning-panneau-32.png'></td>
+		<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('network.restart.php')\"
+		style='font-weight:bold;font-size:14px;color:#C40000;text-decoration:underline'>$MUST_CHANGE_TEXT2</a></td>
+		</tr>";
+	}
+		
+	
 	$html="
 	<input type='hidden' id='infos_$nicname' value='$defaults_infos_array'>
-	<div style='width:98%' class=form>
+	<div style='width:98%'>
 	<div style='font-size:22px;font-weight:bold;margin-left:10px;margin-bottom:10px'>$nicz->NICNAME/$nicz->netzone [$nicname]</div>
 	<table style='width:100%'>
+	$MUST_CHANGE_TEXT
 	<tr>
 		<td class=legend nowrap style='color:$textColor;font-size:16px' valign='top'>{tcp_address}:</td>
 		<td style='color:$textColor;font-size:16px'>$href{$tbl[0]}</a></td>
@@ -1027,7 +1052,7 @@ function netconfig_popup(){
 	
 	$text_ip
 	
-	<div class=explain>
+	<div class=text-info>
 	{network_style}:<strong>$type</strong>
 	</div>
 	<div class=form>
@@ -1228,7 +1253,7 @@ function Virtuals(){
 	$virtual_interfaces=$tpl->_ENGINE_parse_body('{virtual_interfaces}');
 	$nics=new system_nic();
 	if($nics->unconfigured){
-		$error="<div class=explain style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
+		$error="<div class=text-info style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
 	}
 	
 	
@@ -2052,7 +2077,7 @@ while (list ($num, $val) = each ($datas) ){
 	}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
 	$html="
-	<div class=explain style='font-size:16px'>{VIRTUAL_BRIDGES_EXPLAIN}</div>
+	<div class=text-info style='font-size:16px'>{VIRTUAL_BRIDGES_EXPLAIN}</div>
 	<center id='id-$t'></center>
 	<table style='width:99%' class=form>
 	<tr>
@@ -2259,66 +2284,56 @@ $t=time();
 	if(!$resolv->isValidDomain($resolv->MainArray["DOMAINS1"])){$resolv->MainArray["DOMAINS1"]="localhost.local";}
 	$page=CurrentPageName();
 	$html="
-	<center id='$t'>
-	<table style=width:100%'>
+	<center id='$t' style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
-		<table style='width:99%' class=form>
+		<table style='width:99%'>
 		<tr>
-		<td class=legend style='font-size:16px'>{primary_dns}:</td>
-		<td>". field_ipv4("DNS1", $resolv->MainArray["DNS1"],"font-size:16px")."</td>
+		<td class=legend style='font-size:26px' nowrap>{primary_dns}:</td>
+		<td>". field_ipv4("DNS1", $resolv->MainArray["DNS1"],"font-size:26px")."</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{secondary_dns}:</td>
-		<td>". field_ipv4("DNS2", $resolv->MainArray["DNS2"],"font-size:16px")."</td>
+		<td class=legend style='font-size:26px' nowrap>{secondary_dns}:</td>
+		<td>". field_ipv4("DNS2", $resolv->MainArray["DNS2"],"font-size:26px")."</td>
 		</tr>
 		<tr>
-		<td class=legend style='font-size:16px'>{nameserver} 3:</td>
-		<td>". field_ipv4("DNS3", $resolv->MainArray["DNS3"],"font-size:16px")."</td>
+		<td class=legend style='font-size:26px' nowrap>{nameserver} 3:</td>
+		<td>". field_ipv4("DNS3", $resolv->MainArray["DNS3"],"font-size:26px")."</td>
 		</tr>	
 		</tr>
+		<tr><td colspan=2 style='font-size:26px'><p>&nbsp;</p></td></tr>
+		<tr>
+			<td class=legend style='font-size:26px' nowrap>{InternalDomain} 1:</td>
+			<td>". Field_text("DOMAINS1", $resolv->MainArray["DOMAINS1"],"font-size:26px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:26px' nowrap>{InternalDomain} 2:</td>
+			<td>". Field_text("DOMAINS2", $resolv->MainArray["DOMAINS2"],"font-size:26px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:26px' nowrap>{InternalDomain} 3:</td>
+			<td>". Field_text("DOMAINS3", $resolv->MainArray["DOMAINS3"],"font-size:26px")."</td>
+		</tr>
+		<tr><td colspan=2 style='font-size:26px'><p>&nbsp;</p></td></tr>	
+		<tr>
+			<td class=legend style='font-size:26px'>{xtimeout}:</td>
+			<td style='font-size:26px'>". Field_text("TIMEOUT", $resolv->MainArray["TIMEOUT"],"font-size:26px;width:60px")."&nbsp;{seconds}</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:26px'>{max-attempts}:</td>
+			<td style='font-size:26px'>". Field_text("ATTEMPTS", $resolv->MainArray["ATTEMPTS"],"font-size:26px;width:60px")."&nbsp;{times}</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:26px'>{UseRotation}:</td>
+			<td>". Field_checkbox_design("USEROTATION",1,$resolv->MainArray["USEROTATION"])."</td>
+		</tr>	
 		</table>
-	</td>
-		<td valign='top'>
-			<table style='width:99%' class=form>
-			<tr>
-			<td class=legend style='font-size:16px'>{InternalDomain} 1:</td>
-			<td>". Field_text("DOMAINS1", $resolv->MainArray["DOMAINS1"],"font-size:16px")."</td>
-			</tr>
-			<tr>
-			<td class=legend style='font-size:16px'>{InternalDomain} 2:</td>
-			<td>". Field_text("DOMAINS2", $resolv->MainArray["DOMAINS2"],"font-size:16px")."</td>
-			</tr>
-			<tr>
-			<td class=legend style='font-size:16px'>{InternalDomain} 3:</td>
-			<td>". Field_text("DOMAINS3", $resolv->MainArray["DOMAINS3"],"font-size:16px")."</td>
-			</tr>	
-			</tr>
-			</table>	
-	</td>
-	</tr>
-	<tr>
-		<td valign='top'>
-			<table style='width:99%' class=form>
-			<tr>
-			<td class=legend style='font-size:16px'>{xtimeout}:</td>
-			<td style='font-size:16px'>". Field_text("TIMEOUT", $resolv->MainArray["TIMEOUT"],"font-size:16px;width:60px")."&nbsp;{seconds}</td>
-			</tr>
-			<tr>
-			<td class=legend style='font-size:16px'>{max-attempts}:</td>
-			<td style='font-size:16px'>". Field_text("ATTEMPTS", $resolv->MainArray["ATTEMPTS"],"font-size:16px;width:60px")."&nbsp;{times}</td>
-			</tr>
-			<tr>
-			<td class=legend style='font-size:16px'>{UseRotation}:</td>
-			<td>". Field_checkbox("USEROTATION",1,$resolv->MainArray["USEROTATION"])."</td>
-			</tr>	
-			</tr>
-			</table>
 		</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'><hr>
-			". button("{apply}", "SaveResolvConf()",22)."</td>
+			". button("{apply}", "SaveResolvConf()",40)."</td>
 	</tr>				
 	</table>
 	
@@ -2330,12 +2345,8 @@ $t=time();
 		var x_SaveResolvConf= function (obj) {
 			var results=obj.responseText;
 			if(results.length>0){alert(results);}
-			RefreshTab('main_config_nics');
-				
 		}		
 		function SaveResolvConf(){
-			var DisableNetworksManagement=$DisableNetworksManagement;
-			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('DNS1',document.getElementById('DNS1').value);
 			XHR.appendData('DNS2',document.getElementById('DNS2').value);
@@ -2347,7 +2358,6 @@ $t=time();
 			XHR.appendData('TIMEOUT',document.getElementById('TIMEOUT').value);
 			XHR.appendData('ATTEMPTS',document.getElementById('ATTEMPTS').value);
 			if(document.getElementById('USEROTATION').checked){XHR.appendData('USEROTATION',1);}else{XHR.appendData('USEROTATION',0);}
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveResolvConf);
 				
 		}	
@@ -2386,7 +2396,7 @@ function NetworkManager_check(){
 	$nic=new system_nic();
 	if($nic->unconfigured){
 		$tpl=new templates();
-		$error="<div class=explain style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
+		$error="<div class=text-info style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
 		echo $tpl->_ENGINE_parse_body($error);
 	}
 	

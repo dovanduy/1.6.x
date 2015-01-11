@@ -2111,7 +2111,7 @@ function GROUP_PRIVILEGES($gid){
 			$HashPrivieleges=$ldap->_ParsePrivieleges($privs,array());
 			$organization_hidden="<input type='hidden' name='userid' value='{$_GET["userid"]}'>";
 			$title_form="{member}: &laquo;{$_GET["userid"]}";
-			$warn="<div class=explain>{privileges_users_warning}</div>";
+			$warn="<div class=text-info>{privileges_users_warning}</div>";
 		} 
 
 		if(strpos($gid, ",")>0){
@@ -2898,7 +2898,7 @@ function GROUP_SAMBA_IDENTITY(){
 	$tpl=new templates();
 	$group=new groups($_GET["gpid"]);	
 	if($group->sambaSID==null){
-		echo $tpl->_ENGINE_parse_body("<div class=explain>{not_group_samba}</div>");
+		echo $tpl->_ENGINE_parse_body("<div class=text-info>{not_group_samba}</div>");
 		return;
 	}
 	
@@ -2990,7 +2990,7 @@ $html="<div style='font-size:16px'>{MK_SAMBA_GROUP}&raquo;&nbsp;<strong>$group->
 <input type='hidden' name='gpid' id='gpid' value='{$_GET["gpid"]}'>
 <input type='hidden' name='ou' id='ou' value='{$_GET["ou"]}'>
 <input type='hidden' name='SaveGroupSamba' id='SaveGroupSamba' value='yes'>
-<div class=explain style='font-size:16px'>$text</div>
+<div class=text-info style='font-size:16px'>$text</div>
 <div style='width:98%' class=form>
 <table>
 <tr>

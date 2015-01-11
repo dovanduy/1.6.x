@@ -21,7 +21,7 @@ function tftpd_product(){
 	$bin_path=$unix->find_program("in.tftpd");
 	
 	if($GLOBALS["VERBOSE"]){echo "bin path: $bin_path\n";}
-	exec("$bin_path -V 2<&1",$results);
+	exec("$bin_path -V 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){
 		if(preg_match("#^atftp-.+?#",$line)){return "ATFTP";}
 		

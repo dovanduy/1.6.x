@@ -193,6 +193,11 @@ function popup(){
 		</tr>";	
 	}
 	
+	if($LicenseInfos["GoldKey"]<>null){
+		$LicenseInfos["license_number"]=$LicenseInfos["GoldKey"];
+	}
+	
+	
 	if(trim($LicenseInfos["license_number"])<>null){
 		
 		$explain="{explain_license_order}";
@@ -211,7 +216,7 @@ function popup(){
 	}
 
 	if($explain<>null){
-		$explain="<div style='font-size:16px' class=explain>$titleprice<br>$explain$quotation</div>";
+		$explain="<div style='font-size:16px' class=text-info>$titleprice<br>$explain$quotation</div>";
 	}	
 	
 	
@@ -222,6 +227,9 @@ function popup(){
 	
 	<div id='$t' ></div>
 	<div  style='width:98%' class=form>
+<table style='width:100%'>
+<tr>
+<td valign='top'>
 	<table style='width:100%'>
 <tr>
 	<td class=legend style='font-size:18px'>{step}:</td>
@@ -260,7 +268,14 @@ function popup(){
 <tr>
 	<td colspan=2 align='right'>$bt</td>
 </tr>	
-</table></div>
+</table>
+</td>
+<td valign='top' style='width:220px'>
+".Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}","javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');")."</td>
+</tr>
+</table>
+
+</div>
 	
 	<script>
 	var x_RegisterSave$t= function (obj) {

@@ -58,7 +58,7 @@ function page(){
 	
 	$html="
 	<input type='hidden' id='mysqlfile_text' value='{mysql_ssl_explain}'>
-	<div class=explain id='mysqlfile'>{mysql_ssl_explain}</div>
+	<div class=text-info id='mysqlfile'>{mysql_ssl_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=1%>$tar$gen$ssl_conf</td>

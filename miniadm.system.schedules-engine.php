@@ -33,7 +33,7 @@ function tasks_section(){
 	$OPTIONS["BUTTONS"][]=button($new_schedule,"Loadjs('$page?schedule-js=yes&ID=0$suffix')",16);
 	if($_GET["task-section"]>0){
 		$tasks=new system_tasks();
-		$explain="<div class=explain>".$tpl->_ENGINE_parse_body($tasks->tasks_explain_array[$_GET["task-section"]])."</div>";
+		$explain="<div class=text-info>".$tpl->_ENGINE_parse_body($tasks->tasks_explain_array[$_GET["task-section"]])."</div>";
 	}
 	echo $explain.$boot->SearchFormGen("TimeDescription,TimeText,TaskType","search-tasks",$suffix,$OPTIONS);
 }

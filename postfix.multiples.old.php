@@ -566,7 +566,7 @@ function instances_duplicate_form(){
 	$default_ip_addr=@implode(".",$instance_ip_tbl).".$last_number";
 	
 	$html="
-	<div class=explain>{create_new_instance_based_on_this_instance_explain}</div>
+	<div class=text-info>{create_new_instance_based_on_this_instance_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

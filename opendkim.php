@@ -111,7 +111,7 @@ function config(){
 			<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('dkim_service','$page?dkim-service=yes');")."</div>
 			</td>
 			<td valing='top'>
-			<div class=explain style='font-size:14px'>{dkim_about}{dkim_about2}</div>
+			<div class=text-info style='font-size:14px'>{dkim_about}{dkim_about2}</div>
 			</td>
 			</tr>
 			</table>
@@ -124,27 +124,27 @@ function config(){
 			<table style='width:100%;margin-top:15px'>
 				<tr>
 					<td class=legend style='font-size:18px'>{disconnect_from_artica}</td>
-					<td>". Field_checkbox("DisconnectDKFilter",1,$DisconnectDKFilter)."</td>
+					<td>". Field_checkbox_design("DisconnectDKFilter",1,$DisconnectDKFilter)."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>							
 				<tr>
 					<td class=legend style='font-size:18px'>{OpenDKIMTrustInternalNetworks}</td>
-					<td>". Field_checkbox("OpenDKIMTrustInternalNetworks",1,$conf["OpenDKIMTrustInternalNetworks"])."</td>
+					<td>". Field_checkbox_design("OpenDKIMTrustInternalNetworks",1,$conf["OpenDKIMTrustInternalNetworks"])."</td>
 					<td width=1%>". help_icon("{OpenDKIMTrustInternalNetworks_text}")."</td>
 				</tr>					
 				<tr>
 					<td class=legend style='font-size:18px'>{DomainKeysCompat}</td>
-					<td>". Field_checkbox("DomainKeysCompat",1,$conf["DomainKeysCompat"])."</td>
+					<td>". Field_checkbox_design("DomainKeysCompat",1,$conf["DomainKeysCompat"])."</td>
 					<td width=1%>". help_icon("{DomainKeysCompat_text}")."</td>
 				</tr>				
 				<tr>
 					<td class=legend style='font-size:18px'>{ADSPDiscard}</td>
-					<td>". Field_checkbox("ADSPDiscard",1,$conf["ADSPDiscard"])."</td>
+					<td>". Field_checkbox_design("ADSPDiscard",1,$conf["ADSPDiscard"])."</td>
 					<td width=1%>". help_icon("{ADSPDiscard_text}")."</td>
 				</tr>
 				<tr>
 					<td class=legend style='font-size:18px'>{ADSPNoSuchDomain}</td>
-					<td>". Field_checkbox("ADSPNoSuchDomain",1,$conf["ADSPDiscard"])."</td>
+					<td>". Field_checkbox_design("ADSPNoSuchDomain",1,$conf["ADSPDiscard"])."</td>
 					<td width=1%>". help_icon("{ADSPNoSuchDomain_text}")."</td>
 				</tr>												
 				<tr>
@@ -296,7 +296,7 @@ function dns_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<div style='font-size:18px' class=explain>{dkim_showkeys_text}</div>
+	<div style='font-size:18px' class=text-info>{dkim_showkeys_text}</div>
 	<center style='margin:10px'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('dns_key_display','$page?dns-key-view=yes');")."</center>
 	<div id='dns_key_display'></div>
 	
@@ -343,7 +343,7 @@ function dns_tests_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<div style='font-size:16px' class=explain>{dkim_testkeys_text}</div>
+	<div style='font-size:16px' class=text-info>{dkim_testkeys_text}</div>
 	<p style='margin:10px'>
 	<a href=\"http://www.protodave.com/tools/dkim-key-checker/\" target=_new
 	style='font-size:16px;text-decoration:underline'>DKIM Key Checker &laquo;  protodave</a>
@@ -393,7 +393,7 @@ $sock=new sockets();
 	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add}","DKIM_SPAMMASS_ADD_WL()",22)."</div></td>
 	</tr>
 	</table>
-	<div style='font-size:16px;margin-bottom:30px' class=explain>{DKIM_SPAMASS_WBL_HOWTO}</div>
+	<div style='font-size:16px;margin-bottom:30px' class=text-info>{DKIM_SPAMASS_WBL_HOWTO}</div>
 	
 	<div id='whitelistsDKIMspamass' style='min-height:450px;'></div>
 	

@@ -14,6 +14,14 @@ header("Pragma: no-cache");
 	include_once(dirname(__FILE__) . '/ressources/class.system.network.inc');
 	include_once(dirname(__FILE__) . '/ressources/class.squid.inc');
 	
+	
+	$users=new usersMenus();
+	if(!$users->AsProxyMonitor){
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
+		die();
+	}
+	
+	
 	if(isset($_GET["graph-size"])){graph_size();exit;}
 	if(isset($_GET["details"])){details();exit;}
 	if(isset($_GET["page"])){page();exit;}
@@ -30,12 +38,17 @@ function tabs(){
 	
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$array["monitor"]='{monitor}';
+	$array["memory"]='{memory}';
 	$array["caches-status"]='{caches_status}';
 	$array["cpustats"]='SMP {status}';
-	$array["loggers-status"]='Loggers {status}';
+	if($users->AsProxyMonitor){
+		$array["loggers-status"]='Loggers {status}';
+	}
 	
 	$array["requests-status"]='{users_requests}';
+	$array["smtp-settings"]='{smtp_notifications}';
 	
 	
 	
@@ -46,8 +59,8 @@ function tabs(){
 			continue;
 		}
 		
-		if($num=="monitor"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadm.prxy.monitor.php?proxy-service=yes&size=1100&loadjs=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
+		if($num=="memory"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.memory.status.php\" style='font-size:16px'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
@@ -55,6 +68,11 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.loggers.status.php\" style='font-size:16px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="smtp-settings"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.proxy.watchdog.php?smtp=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
 	}

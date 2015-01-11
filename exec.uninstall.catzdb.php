@@ -53,7 +53,7 @@ if(is_file("/etc/init.d/categories-db")){
 $ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
 if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
 if(is_dir($ArticaDBPath)){
-	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.blacklists.php --cicap-dbs >/dev/null 2>&1 &");
+
 	shell_exec("$rm -rf $ArticaDBPath");
 	
 }

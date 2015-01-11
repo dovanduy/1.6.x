@@ -107,7 +107,15 @@ function postfix_bubble(){
 	shell_exec($nohup." $php5 ".dirname(__FILE__)."/exec.postfix.multi.bubble.php >/dev/null 2>&1 &");
 	
 }
-
+function build_progress($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/HEADER_CHECK";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}
 
 
 
@@ -246,27 +254,31 @@ function reconfigure_instance($hostname){
 	if($hostname=="master"){return;}
 	$users=new usersMenus();
 	$unix=new unix();
-	writelogs("reconfigure instance $hostname",__FUNCTION__,__FILE__,__LINE__);
+	build_progress("{reconfigure} instance $hostname",15);
 	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" checking instance\n";
 	$instance_path="/etc/postfix-$hostname";	
 	$maincf=new maincf_multi($hostname);
 	if($maincf->GET("DisabledInstance")==1){return;}
 	$postmap=$unix->find_program("postmap");
-	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" IP: $maincf->ip_addr\n";
+	build_progress("{reconfigure} Postfix \"$hostname\" IP: $maincf->ip_addr",20);
 	
-	$maincf->buildconf();	
+	build_progress("{reconfigure} Postfix \"$hostname\" Build configuration",30);
+	$maincf->buildconf();
+	
+	build_progress("{reconfigure} Postfix \"$hostname\" Build master",40);
 	$maincf->buildmaster();
 	aiguilleuse($hostname);
 	
 	if(!is_file("/etc/postfix-$hostname/relay_domains_restricted.db")){
 		@file_put_contents("/etc/postfix-$hostname/relay_domains_restricted", "\n");
+		build_progress("{reconfigure} Postfix \"$hostname\" relay_domains_restricted",50);
 		shell_exec("$postmap hash:/etc/postfix-$hostname/relay_domains_restricted");
 	}
 	
-	
+	build_progress("{reloading} Postfix \"$hostname\"",70);
 	writelogs("Building configuration done",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p stop >/dev/null 2>&1");
-	
+	build_progress("{done} Postfix \"$hostname\"",100);
 	//shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p start");	
 	_start_instance($hostname);
 	

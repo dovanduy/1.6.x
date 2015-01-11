@@ -1136,7 +1136,7 @@ function item_config(){
 	if(!is_numeric($t)){$t=time();}
 	$bname="{add}";
 	$page=CurrentPageName();
-	$explian="<div class=explain style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
+	$explian="<div class=text-info style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
 	$q=new mysql();
 	if($id>0){
 		$bname="{apply}";

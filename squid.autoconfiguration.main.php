@@ -755,7 +755,7 @@ function explainArule($ID,$color="black"){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$gpid=$ligne["gpid"];
 		$not=null;
-		$GroupName=$ligne["GroupName"];
+		$GroupName=utf8_encode($ligne["GroupName"]);
 		$negation=$ligne["negation"];
 		if($negation==1){$not="{not} ";}
 		$link="Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=$gpid&table-org=table-items-{$_GET["t"]}',true);";
@@ -944,7 +944,7 @@ function rules_destination_popup(){
 		</td>
 	</tr>
 	<tr>
-		<td colspan=2><div class=explain style='font-size:16px'>{wpad_destination_rules_proxy_explain}</span>
+		<td colspan=2><div class=text-info style='font-size:16px'>{wpad_destination_rules_proxy_explain}</span>
 	</tr>
 	<tr>
 		<td colspan=2>
@@ -1002,7 +1002,7 @@ ChangeXtype$ttt();
 function rules_destination_edit(){
 	
 	while (list ($num, $ligne) = each ($_POST) ){
-		$_POST[$num]=mysql_escape_string(url_decode_special_tool($ligne));
+		$_POST[$num]=mysql_escape_string2(url_decode_special_tool($ligne));
 		
 	}
 	
@@ -1040,7 +1040,7 @@ function rules_destination_form2(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
 	$type=$_GET["type"];
-	echo "<div class=explain style='font-size:16px'>
+	echo "<div class=text-info style='font-size:16px'>
 			<span style='font-weight:bold'>".$tpl->_ENGINE_parse_body($q->PROXY_PAC_TYPES[$type])."</span><br>
 			".$tpl->_ENGINE_parse_body($q->PROXY_PAC_TYPES_EXPLAIN[$type])."</div>";
 	
@@ -1628,8 +1628,20 @@ setTimeout('LoadTable$tt()',600);
 	
 }
 function popup(){
-	
 	$tpl=new templates();
+	
+	$q=new mysql_squid_builder();
+	if($q->COUNT_ROWS("wpad_rules")==0){
+		
+		$html="<div style='width:95%' class=form>
+				<center style='margin:20px'>". button("{autoconfiguration_wizard}","Loadjs('squid.autocofiguration.wizard.php')",40)."
+				</center>
+				";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+	
+	
 	$page=CurrentPageName();
 	$array["rules"]='{rules}';
 	$array["events"]='{events}';

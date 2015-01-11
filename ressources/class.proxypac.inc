@@ -31,6 +31,13 @@ class proxypacrules{
 		if(is_array($datas["localHostOrDomainIs"])){
 			while (list ($num, $servername) = each ($datas["localHostOrDomainIs"])){
 			if(preg_match("#dnsDomainIs:(.+?)$#",trim($servername),$re)){
+					
+					if(strpos($re[1], "*")>0){
+						$isInNet[]="\tif( shExpMatch(host ,\"{$re[1]}\") { return 'DIRECT';}";
+						continue;
+					}
+				
+				
 					$isInNet[]="\tif(dnsDomainIs(host,\"{$re[1]}\")){return \"DIRECT\";}";
 					continue;
 				}
@@ -43,6 +50,7 @@ class proxypacrules{
 		
 		if(is_array($datas["isInNet"])){
 			while (list ($num, $array) = each ($datas["isInNet"])){
+				if($array[1]==null){$array[1]="255.255.255.0";}
 				$isInNet[]="\tif(isInNet(host,\"{$array[0]}\",\"{$array[1]}\")){return \"DIRECT\";}";
 			}
 		}
@@ -90,7 +98,14 @@ class proxypacrules{
 	
 	while (list ($index, $condition) = each ($array)){
 
-		if($condition["dnsDomainIs"]<>null){$final[]="dnsDomainIs(host, \"{$condition["dnsDomainIs"]}\")";}
+		if($condition["dnsDomainIs"]<>null){
+			if(strpos($condition["dnsDomainIs"], "*")>0){
+				$final[]="\tif( shExpMatch(host ,\"{$condition["dnsDomainIs"]}\") { return 'DIRECT';}";
+				continue;
+			}
+			
+			$final[]="dnsDomainIs(host, \"{$condition["dnsDomainIs"]}\")";
+		}
 		if($condition["isPlainhost"]<>null){$final[]="isPlainhost name(host)";}		
 	}
 	

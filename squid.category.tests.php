@@ -38,8 +38,19 @@
 function popup() {
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	$sock=new sockets();
+	$RemoteUfdbCat=intval($sock->GET_INFO("RemoteUfdbCat"));
+	if($RemoteUfdbCat==0){
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		if($SquidPerformance>0){
+			echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_ufdbcat_disabled}"));
+			return;
+		}
+	}
+	
 	$t=time();
-	$html="<div style='font-size:16px' class=explain>{squid_test_categories_perform}</div>
+	$html="<div style='font-size:16px' class=text-info>{squid_test_categories_perform}</div>
 	<div style='width:95%;padding:15px' class=form>
 	<center>
 		". Field_text("test-$t",null,"font-size:22px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."

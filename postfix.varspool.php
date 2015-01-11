@@ -44,7 +44,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<div class=explain style='font-size:14px'>{move_the_spooldir_explain}</div>
+	<div class=text-info style='font-size:14px'>{move_the_spooldir_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

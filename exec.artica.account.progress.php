@@ -100,13 +100,13 @@ function start(){
 	@chmod("/usr/share/artica-postfix/bin/artica-install", 0755);
 	@chmod("/usr/share/artica-postfix/bin/process1", 0755);
 	
-	build_progress("Reconfigure OpenLDAP",35);
+	build_progress("{reconfigure} OpenLDAP",35);
 
 	system("/usr/share/artica-postfix/bin/artica-install --slapdconf");
 	build_progress("Refresh global settings",40);
 	system('/usr/share/artica-postfix/bin/process1 --checkout --force --verbose '. time());
 	build_progress("Restarting LDAP server",45);
-	shell_exec("/etc/init.d/slapd restart");
+	shell_exec("/etc/init.d/slapd restart --framework=". basename(__FILE__));
 	build_progress("Update others services",50);
 	
 	system("$php /usr/share/artica-postfix/exec.change.password.php");

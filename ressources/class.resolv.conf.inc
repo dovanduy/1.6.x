@@ -67,6 +67,11 @@ class resolv_conf{
 		if(isset($this->arrayNameServers[2])){
 			$this->MainArray["DNS3"]=$this->arrayNameServers[2];
 		}
+		
+		if(!isset($this->MainArray["DNS3"])){$this->MainArray["DNS3"]=null;}
+		if(!isset($this->MainArray["DNS2"])){$this->MainArray["DNS2"]=null;}
+		if(!isset($this->MainArray["DNS1"])){$this->MainArray["DNS1"]=null;}
+		
 		$ip=new IP();
 		if(!$ip->isValid($this->MainArray["DNS1"])){unset($this->MainArray["DNS1"]);}
 		if(!$ip->isValid($this->MainArray["DNS2"])){unset($this->MainArray["DNS2"]);}
@@ -135,8 +140,28 @@ class resolv_conf{
 	}
 	
 	private function DNSLIST_AS_ROOT(){
-		exec("/usr/share/artica-postfix/bin/artica-install --local-dns 2>&1",$results);
-		return implode("",$results);
+		
+		return $this->DNS_LIST();
+	}
+	
+	
+	
+	private function DNS_LIST(){
+		$data=@file_get_contents("/etc/resolv.conf");
+		if(strlen($data)<10){$sock=new sockets();return $sock->getFrameWork('cmd.php?dnslist=yes');}
+		$f=explode("\n",@file_get_contents("/etc/resolv.conf"));
+		
+		while (list ($index, $line) = each ($f) ){
+			$line=trim($line);
+			if($line==null){continue;}
+			if(preg_match("#nameserver\s+(.+)#", $line,$re)){
+				$DNS[]=$re[1];
+			}
+		
+		}
+		
+		return @implode(";", $DNS);
+		
 	}
 	
 	
@@ -144,10 +169,8 @@ class resolv_conf{
 		if(!class_exists("IP")){include_once(dirname(__FILE__)."/class.tcpip.inc");}
 		include_once(dirname(__FILE__) . '/class.sockets.inc');
 		if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
-		if($GLOBALS["AS_ROOT"]){$dns=$this->DNSLIST_AS_ROOT();}else{
-			$dns=$sock->getFrameWork('cmd.php?dnslist=yes');
-			if($GLOBALS["VERBOSE"]){echo "cmd.php?dnslist=yes -> $dns in ".__CLASS__.'/'.__FUNCTION__. " Line:".__LINE__."\n";}
-		}
+		$dns=$this->DNS_LIST();
+
 		$dnslist=explode(";",$dns);
 		$ip=new IP();
 		if(is_array($dnslist)){

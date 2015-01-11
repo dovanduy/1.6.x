@@ -91,7 +91,42 @@ class cyrus{
 		$this->UserOfCyrus=$array["admin"];
 		
 	}
-	
+	public function ListUsersBoxes($search,$domain=null){
+		$ldap=new clladp();
+		if($search==null){$search="*";}
+		if($domain<>null){
+			writelogs("Mailbox in multidomain $domain",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			
+				
+			$ldap->CyrusAdminOtherCreate("cyrus@$domain",$this->PasswordOfCyrus);
+			$this->PasswordOfCyrus=$ldap->CyrusPassword("cyrus@$domain");
+			$this->cyr_params= array(
+					'hostspec'=>'localhost',
+					'protocol'=>'imap',
+					'username'=>"cyrus@$domain",
+					'password'=>$this->PasswordOfCyrus
+			);
+		}
+			
+			
+		$cyradm=new CyrusAdmin($this->cyr_params);
+		if(!$cyradm->_connect()){
+			$this->cyrus_infos="{unable_to_connect_imap}";
+			return array("{unable_to_connect_imap}");
+		}
+		if($GLOBALS["VERBOSE"]){echo "<H1 style='color:blue'>".__FUNCTION__.":listmbox($search)</H1>";}
+		$mbx=$cyradm->listmbox("$search");
+		
+		if(is_array($mbx)){
+			while (list ($num, $box) = each ($mbx) ){
+				$folder=str_replace("user/","",$box);
+				if(preg_match("#(.*?)\/#", $folder,$re)){continue;}
+				$array[$folder]=$folder;
+			}
+		}
+		$cyradm->_disconnect();
+		return $array;
+	}
 	
 	public function ListMailboxes($cn){
 		$uid=$cn;
@@ -117,8 +152,11 @@ class cyrus{
 			$this->cyrus_infos="{unable_to_connect_imap}";
 			return false;	
 		}
-    
-        $mbx=$cyradm->listmbox("user/$uid/*");
+    	if($uid==null){
+    		$mbx=$cyradm->listmbox("*");
+    	}else{
+        	$mbx=$cyradm->listmbox("user/$uid/*");
+    	}
         if(is_array($mbx)){
         	while (list ($num, $box) = each ($mbx) ){
         		$folder=str_replace("user/$uid/","",$box);
@@ -148,14 +186,16 @@ class cyrus{
     			);	
 			}
 			
-		if($GLOBALS["VERBOSE"]){echo " **************** CONNECTING ****************\n";}
+		if($GLOBALS["VERBOSE"]){echo " <span style=='color:blue'>**************** CONNECTING ****************</span><br>\n";}
 		$cyradm=new CyrusAdmin($this->cyr_params);
 		if(!$cyradm->_connect()){
-			$this->cyrus_infos=$this->cyrus_infos."\n{unable_to_connect_imap}\n.$cyradm->error";
+			
+			$this->cyrus_infos=$this->cyrus_infos."\n{unable_to_connect_imap}<br>\n.$cyradm->error";
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'> CONNECTING Failed $this->cyrus_infos </span><br>\n";}
 			return false;	
 		}
     
-		if($GLOBALS["VERBOSE"]){echo " **************** listmbox user/$uid ****************\n";}
+		if($GLOBALS["VERBOSE"]){echo "<span style=='color:blue'>**************** listmbox user/$uid ****************</span><br>\n";}
         $mbx=$cyradm->listmbox("user/$uid/*");
         if(is_array($mbx)){
         	writelogs("Mailbox:".@implode(",",$mbx),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -249,8 +289,26 @@ class cyrus{
 		$array["TEXT"]=$text;
 		@file_put_contents($cachefile, serialize($array));
 		@chmod($cachefile,0755);
+		if(function_exists("build_progress")){build_progress($text,$pourc);}
 	
 	}	
+	
+	public function DeleteMailbox($cn){
+		include_once(dirname(__FILE__)."/class.user.inc");
+		$uid=$cn;
+		$this->CreateCyrParams($cn);
+		$cyradm=new CyrusAdmin($this->cyr_params);
+		if(!$cyradm->_connect()){
+			$this->writelogs("$uid: {unable_to_connect_imap}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->cyrus_infos="{unable_to_connect_imap}";
+			return false;
+		}
+		if(preg_match("#(.+?)@#",$uid,$re)){$REAL_UID=$re[1];}else{$REAL_UID=$uid;}
+		$user=new user($uid);
+		if(!$cyradm->deletemailbox("user/$REAL_UID")){return false;}
+		return true;
+		
+	}
 	
 	
 	public function CreateMailbox($cn,$notContinue=0){
@@ -598,7 +656,14 @@ function LoadSettings(){
 			$this->globalconf=$sock->GET_INFO("ArticaImapIniConf");
 
 		
-		if($this->impadconf==null){$this->impadconf=$sock->getfile('cyrus_imapconf');}
+		if($this->impadconf==null){
+			if($GLOBALS["AS_ROOT"]){@file_get_contents("/etc/imapd.conf");}
+			if(!$GLOBALS["AS_ROOT"]){
+				$sock->getFrameWork('cyrus.php?imapd-conf=yes');
+				$this->impadconf=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/imapd.conf");
+				@unlink("/usr/share/artica-postfix/ressources/logs/web/imapd.conf");
+			}
+		}
 		if($this->globalconf==null){$this->globalconf=$this->BuildArticaConf();}
 		
 			$ini=new Bs_IniHandler();

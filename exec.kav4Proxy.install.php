@@ -71,7 +71,7 @@ function uninstall(){
 function install(){
 	
 	$filename="kav4proxy_5.5-88.tar.gz";
-	$uri="http://93.88.245.88/download/kaspersky/$filename";
+	$uri="http://articatech.net/download/kaspersky/$filename";
 	$time=time();
 	$unix=new unix();
 	

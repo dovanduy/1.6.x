@@ -122,23 +122,7 @@ function delete_category(){
 	if(strlen($category)==0){return;}
 	$q=new mysql_squid_builder();
 	
-	$tableURI="categoryuris_$category";
-	
-	$q->QUERY_SQL("DELETE FROM webfilter_blks WHERE category='$category'");
-	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
-	$q->QUERY_SQL("DELETE FROM usersisp_catztables WHERE category='$category'");
-	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
-	$q->QUERY_SQL("DELETE FROM usersisp_blkwcatz WHERE category='$category'");
-	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
-	$q->QUERY_SQL("DELETE FROM usersisp_blkcatz WHERE category='$category'");
-	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
-	$q->QUERY_SQL("DROP TABLE category_$category");
-	$q->QUERY_SQL("DELETE FORM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($category)."'");
-	
-	if(!$q->ok){echo $q->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
-	if($q->TABLE_EXISTS("$tableURI")){$q->QUERY_SQL("DROP TABLE $tableURI");}
-	
-	$q->QUERY_SQL("TRUNCATE TABLE `webfilters_categories_caches`");
+	if(!$q->DELETE_CATEGORY($category)){return;}
 	
 	
 	$sock=new sockets();
@@ -346,30 +330,36 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="events-status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blacklist.php?status=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blacklist.php?status=yes\" 
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="stats"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.statistics.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.statistics.php\" 
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;			
 			
 		}
 		
 		if($num=="schedule"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php\" 
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		if($num=="events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php?ufdbguard-artica=\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php?ufdbguard-artica=\" 
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="backup"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.stats.backup.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.stats.backup.php\" 
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&maximize=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&maximize=yes\" 
+				style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 
 	echo build_artica_tabs($html, "main_databasesCAT_quicklinks_tabs");
@@ -989,7 +979,7 @@ if($_GET["cat"]==null){$actions=null;}
 	.utf8_encode($ligne["category_description"])."</textarea>";
 	
 	if(isset($blacklists[$_GET["cat"]])){
-		$description="<input type='hidden' id='category_text' value=''><div class=explain style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
+		$description="<input type='hidden' id='category_text' value=''><div class=text-info style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
 	}
 	
 	$html="
@@ -1380,12 +1370,12 @@ $html="
 </tr>
 </tbody>
 </table>
-<div class=explain style='font-size:16px'>{webfilter_status_text}</div>
+<div class=text-info style='font-size:16px'>{webfilter_status_text}</div>
 <script>
 	function RefreshArticaDBStatus(){
 		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');
 		LoadAjax('clamav-status-databases-$t','$page?global-clamav-status-databases=yes');
-		LoadAjax('statistics-status-databases-$t','$page?global-statistics-status-databases=yes');
+		
 		
 	}
 	
@@ -1908,9 +1898,6 @@ function global_status_artica_db(){
 	$purc=pourcentage($pourcent);
 	$t=$_GET["t"];
 	$dateDB=$sock->getFrameWork("squid.php?articadb-version=yes");
-	
-	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
-	$dateDB=$CATZ_ARRAY["TIME"];
 	$dateDB_text=$tpl->time_to_date($dateDB);
 	
 	
@@ -1941,19 +1928,15 @@ function global_status_artica_db(){
 	$running="<br><i style='font-size:12px'>{update_task_stopped}</i>";
 	if($scheduledAR["RUNNING"]){$running="<br><i style='font-size:12px;color:#BA0000'>{update_currently_running_since} {$scheduledAR["TIME"]}Mn</i>";}
 	
-	$q=new mysql();
-	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount
-	FROM information_schema.tables
-	WHERE table_schema = 'squidlogs'
-	AND table_name LIKE 'category_%'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS,"information_schema"));
+	$q=new mysql_squid_builder();
+	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'category_%'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS));
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}	
 	$itemsPerso=$ligne["tcount"];
 	$itemsPerso=numberFormat($itemsPerso,0,""," ");
 	
 	$catz=new mysql_catz();
-	$itemsArtica=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
-
+	$itemsArtica=numberFormat(intval(@file_get_contents("/usr/share/artica-postfix/ressources/UFDB_ARTICA_COUNT")));
 	$q=new mysql_squid_builder();
 	$backuped_items=$q->COUNT_ROWS("webfilters_backupeddbs");
 	$sql="SELECT SUM(size) as tszie FROM webfilters_backupeddbs";

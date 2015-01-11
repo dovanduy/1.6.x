@@ -183,7 +183,7 @@ function members(){
 		}
 	}
 	$html="
-	<div class=explain>{CLUEBRINGER_MEMBERS_EXPLAIN}</div>
+	<div class=text-info>{CLUEBRINGER_MEMBERS_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=50%>

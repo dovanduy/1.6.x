@@ -27,7 +27,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
-	$html="<div class=explain>{websites_to_export_explain}</div>
+	$html="<div class=text-info>{websites_to_export_explain}</div>
 	<div style='margin:top:10px;width:100%;height:450px;overflow:auto'>
 	<center>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>

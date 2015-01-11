@@ -49,7 +49,7 @@ function page(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top' width=99%'>
-			<div class=explain>{howto_cgroups}</div>
+			<div class=text-info>{howto_cgroups}</div>
 		</td>
 		<td valign='top' width=1%>
 			<div id='cgroupsMustCompile'></div>

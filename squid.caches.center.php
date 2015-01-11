@@ -327,7 +327,7 @@ function CacheTypeExplain(){
 	if($ID>0){$js=null;}
 	
 	echo $tpl->_ENGINE_parse_body("
-	<div class=explain style='font-size:16px'>
+	<div class=text-info style='font-size:16px'>
 			<strong style='font-size:18px'>$type:</strong><hr>$explain</div>")."<script>$js</script>";
 	
 }
@@ -337,7 +337,7 @@ function items_popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();
-
+	$max_size_explain=null;
 	$ID=intval($_GET["ID"]);
 	
 	
@@ -353,6 +353,33 @@ function items_popup(){
 	$cpu=1;
 	$cachename=time();
 	
+	$squid=new squidbee();
+	if(preg_match("#([0-9]+)#",$squid->global_conf_array["minimum_object_size"],$re)){
+		$minimum_object_size=$re[1];
+		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["minimum_object_size"],$re)){$minimum_object_size_unit=$re[1];}
+		if($minimum_object_size_unit==null){$minimum_object_size_unit="KB";}
+		if(!is_numeric($minimum_object_size)){$minimum_object_size=0;}
+		if($minimum_object_size_unit=="MB"){$minimum_object_size=$minimum_object_size*1024;}
+	}
+	
+	
+	
+	if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size"],$re)){
+		$maximum_object_size=$re[1];
+		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size"],$re)){$maximum_object_size_unit=$re[1];}
+		if($maximum_object_size_unit==null){$maximum_object_size_unit="KB";}
+		if($maximum_object_size_unit=="KB"){
+			if($maximum_object_size<4096){$maximum_object_size=4096;}
+		}
+		if($maximum_object_size_unit=="MB"){
+			if($maximum_object_size<4){$maximum_object_size=4;}
+			$maximum_object_size=$maximum_object_size*1024;
+		}
+	}
+	
+	$min_size=$minimum_object_size;
+	$max_size=$maximum_object_size;
+	
 	if($ID>0){
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM squid_caches_center WHERE ID='$ID'","artica_backup"));
@@ -367,8 +394,12 @@ function items_popup(){
 		$enabled=$ligne["enabled"];
 		$cachename=$ligne["cachename"];
 		$cpu=$ligne["cpu"];
+		$min_size=intval($ligne["min_size"]);
+		$max_size=intval($ligne["max_size"]);
 		$bt="{apply}";
 	}
+	
+	if($max_size==0){$max_size_explain="<u style='font-size:11px'>{default}: $maximum_object_size KB</u>";}
 	
 	//default
 	if($cache_directory==null){$cache_directory="/home/squid/caches/cache-".time();}
@@ -454,6 +485,21 @@ function items_popup(){
 		<td>&nbsp;</td>
 		<td>" . help_icon('{cache_dir_level2_text}',false,'squid.index.php')."</td>
 	</tr>
+	<tr><td colspan=4><hr></td></tr>
+				
+	<tr>
+		<td class=legend nowrap style='font-size:16px'>{min_size}:</td>
+		<td width=1% nowrap>" . Field_text("min_size-$t",$min_size,'width:120px;font-size:16px;padding:3px')."</td>
+		<td style='font-size:16px' width=1% nowrap>&nbsp;KB</td>
+		<td>" . help_icon('{cache_dir_min_size_text}',false,'squid.index.php')."</td>
+	</tr>				
+	<tr>
+		<td class=legend nowrap style='font-size:16px'>{max_size}:</td>
+		<td width=1% nowrap>" . Field_text("max_size-$t",$max_size,'width:120px;font-size:16px;padding:3px')."</td>
+		<td style='font-size:16px' width=1% nowrap>&nbsp;KB&nbsp;$max_size_explain</td>
+		<td>" . help_icon('{cache_dir_max_size_text}',false,'squid.index.php')."</td>
+	</tr>				
+				
 	<tr>
 		<td align='right' colspan=4><hr>". button($bt,"AddNewCacheSave$t()",22)."</td>
 	</tr>
@@ -492,6 +538,9 @@ function AddNewCacheSave$t(){
 	XHR.appendData('cache_dir_level2',document.getElementById('cache_dir_level2-$t').value);
 	XHR.appendData('CPU',document.getElementById('CPU-$t').value);
 	XHR.appendData('cachename',document.getElementById('cachename-$t').value);
+	XHR.appendData('min_size',document.getElementById('min_size-$t').value);
+	XHR.appendData('max_size',document.getElementById('max_size-$t').value);
+	
 	XHR.appendData('ID','$ID');
 	XHR.appendData('enabled',enabled);
 	AnimateDiv('waitcache-$t');
@@ -555,9 +604,24 @@ function items_save(){
 	$CPU=$_POST["CPU"];
 	$cachename=$_POST["cachename"];
 	$enabled=$_POST["enabled"];
+	$min_size=$_POST["min_size"];
+	$max_size=$_POST["max_size"];
 	$ID=$_POST["ID"];
 	if($cache_type=="rock"){$CPU=0;}
 	$q=new mysql();
+	
+	if(!$q->FIELD_EXISTS("squid_caches_center","min_size","artica_backup")){
+		$sql="ALTER TABLE `squid_caches_center` ADD `min_size` BIGINT UNSIGNED NOT NULL DEFAULT 0";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	}
+	if(!$q->FIELD_EXISTS("squid_caches_center","max_size","artica_backup")){
+		$sql="ALTER TABLE `squid_caches_center` ADD `max_size` BIGINT UNSIGNED NOT NULL DEFAULT 0";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){
+			echo $q->mysql_error."\n$sql";
+			writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	}
 	
 	if($cache_type=="tmpfs"){
 		$users=new usersMenus();
@@ -571,13 +635,15 @@ function items_save(){
 	
 	if($ID==0){
 		$q->QUERY_SQL("INSERT IGNORE INTO squid_caches_center 
-		(cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,zOrder)
-		VALUES('$cachename',$CPU,'$cache_directory','$cache_type','$size','$cache_dir_level1','$cache_dir_level2',$enabled,0,0,1)","artica_backup");
+		(cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,zOrder,min_size,max_size)
+		VALUES('$cachename',$CPU,'$cache_directory','$cache_type','$size','$cache_dir_level1','$cache_dir_level2',$enabled,0,0,1,$min_size,$max_size)","artica_backup");
 	}else{
 		$q->QUERY_SQL("UPDATE squid_caches_center SET 
 			cachename='$cachename',
 			cpu=$CPU,
 			cache_size='$size',
+			min_size='$min_size',
+			max_size='$max_size',
 			enabled=$enabled
 			WHERE ID=$ID","artica_backup");
 		
@@ -610,7 +676,7 @@ $cpu=$tpl->javascript_parse_text("{cpu}");
 $apply=$tpl->javascript_parse_text("{apply}");
 $action=$tpl->javascript_parse_text("{action}");
 $restricted_ports=$tpl->javascript_parse_text("{restricted_ports}");
-$title=$tpl->javascript_parse_text("{caches}");
+$title=$tpl->javascript_parse_text("{caches_center}");
 $size=$tpl->javascript_parse_text("{size}");
 $order=$tpl->javascript_parse_text("{order}");
 $all=$tpl->javascript_parse_text("{all}");
@@ -645,18 +711,21 @@ for($i=1;$i<$cpunumber+1;$i++){
 }
 
 
-$bts[]="{name: '$apply', bclass: 'Reconf', onpress : Apply$tt}";
-$bts[]="{name: '$reconstruct_caches', bclass: 'recycle', onpress : ReconstructCaches$tt}";
 $bts[]="{name: '$refresh', bclass: 'Reload', onpress : Refresh$tt}";
+$bts[]="{name: '$reconstruct_caches', bclass: 'recycle', onpress : ReconstructCaches$tt}";
+$bts[]="{name: '<center style=font-size:16px;font-weight:bold>$apply</center>', bclass: 'Reconf', onpress : Apply$tt}";
 
 
-
+$sock=new sockets();
+$sock->getFrameWork("squid.php?squid_caches_infos=yes");
 
 
 
 if(!$users->CORP_LICENSE){
 	$bts[]="{name: '$license', bclass: 'Warn', onpress : License$tt}";
 }
+
+
 	
 $buttons="buttons : [ ".@implode(",", $bts)." ],";
 	
@@ -669,6 +738,7 @@ $html="$smp_mode_is_disabled
 		url: '$page?items=yes&t=$tt&tt=$tt',
 		dataType: 'json',
 		colModel : [
+		{display: '&nbsp;', name : 'none', width :32, sortable : false, align: 'center'},
 		{display: '$order', name : 'cpu', width :32, sortable : true, align: 'center'},
 		{display: '$cpu', name : 'cpu', width :32, sortable : true, align: 'center'},
 		{display: '$cache', name : 'cachename', width :122, sortable : true, align: 'left'},
@@ -692,7 +762,7 @@ $html="$smp_mode_is_disabled
 		sortname: 'zOrder',
 		sortorder: 'asc',
 		usepager: true,
-		title: '$title',
+		title: '<span style=font-size:22px>$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
@@ -787,7 +857,12 @@ function items(){
 	$users=new usersMenus();
 	$q=new mysql();
 	$sock=new sockets();
-
+	$DisableAnyCache=intval($sock->GET_INFO("DisableAnyCache"));
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;$SquidBoosterEnable=0;}
+	$DisableSquidSMP=intval($sock->GET_INFO("DisableSquidSMP"));
+	$squid_caches_infos=unserialize(base64_decode($sock->getFrameWork("squid.php?squid_get_caches_infos=yes")));
 
 	$t=$_GET["t"];
 	$search='%';
@@ -846,7 +921,8 @@ function items(){
 
 	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql",1);}
 	if(mysql_num_rows($results)==0){json_error_show("no data $sql",1);}
-
+	$caches_disabled="<br>".$tpl->_ENGINE_parse_body("{caches_are_disabled}");
+	$muliproc_disabled="<br>".$tpl->javascript_parse_text("{muliproc_disabled}");
 	$fontsize="16";
 
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -858,18 +934,44 @@ function items(){
 		$cachename=$ligne["cachename"];
 		$cache_dir=$ligne["cache_dir"];
 		$cache_type=$ligne["cache_type"];
-		$cache_size=$ligne["cache_size"];
+		$cache_size=abs($ligne["cache_size"]);
 		$percentcache=$ligne["percenttext"];
 		$cpu=$ligne["cpu"];
+		$icon_status="ok32.png";
 		$explainSMP=null;
-		
+		$infos=null;
+		if($cache_type=="tmpfs"){
+			$ligne["cache_dir"]="/home/squid/cache/MemBooster$ID";
+			$cache_dir="-";}
 		if(!$users->CORP_LICENSE){$link=null;$delete=null;}
-		if($cache_type=="tmpfs"){$cache_dir="-";}
+		
 		$cache_size=FormatBytes($cache_size*1024);
 		
-		if($ligne["enabled"]==0){$color="#9A9A9A";}
-		if($ligne["remove"]==1){$color="#C7C7C7";$delete="&nbsp;";}
+		
+		if($ligne["remove"]==1){$color="#C7C7C7";$delete="&nbsp;";$icon_status="ok32-grey.png";}
+		if($DisableAnyCache==1){$color="#9A9A9A";$infos=$caches_disabled;$icon_status="ok32-grey.png";}
 		$usedcache=FormatBytes($ligne["usedcache"]/1024);
+		
+		if($DisableSquidSMP==1){
+			if($cpu>1){
+				$explainSMP=$muliproc_disabled;
+				$ligne["enabled"]=0;
+			}
+		}
+		
+		if($ligne["enabled"]==1){
+			if(!isset($squid_caches_infos[$ligne["cache_dir"]])){
+				$icon_status="warning32.png";
+			}else{
+				if($squid_caches_infos[$ligne["cache_dir"]]["USED"]>0){
+					$icon_status="ok32.png";
+				}
+			}
+		}else{
+			$color="#9A9A9A";$infos=$caches_disabled;$icon_status="ok32-grey.png";
+		}
+		
+		
 	
 		
 		$link="<a href=\"javascript:blur();\"
@@ -887,6 +989,7 @@ function items(){
 		
 		
 		if($cache_type=="Cachenull"){
+			$icon_status="ok32.png";
 			$usedcache="-";
 			$cache_size="-";
 			$percentcache="0";
@@ -896,14 +999,17 @@ function items(){
 		}
 		
 		
+		
+		
 		if($ligne["remove"]==1){$link=null;}
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
+						"<img src='img/$icon_status'>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>{$ligne["zOrder"]}</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cpu</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cachename</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cache_dir</a></span><i><strong style='color:$color'>$explainSMP</i></strong>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cache_dir</a></span>$infos<i>$explainSMP</i></strong>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cache_type</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$usedcache/$cache_size</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link{$percentcache}%</a></span>",$enable,

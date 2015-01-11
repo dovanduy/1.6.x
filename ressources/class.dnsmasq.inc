@@ -13,7 +13,7 @@ class dnsmasq{
 	var $array_mxhost;
 	var $EnableDNSMASQLDAPDB=0;
 	var $EnableDNSMASQOCSDB=1;
-	var $DHCPDEnableCacheDNS=0;
+	
 	var $ARTICA_ARRAY=array();
 
 	function dnsmasq($noload=false){
@@ -22,11 +22,10 @@ class dnsmasq{
 		$sock=new sockets();
 		$this->EnableDNSMASQLDAPDB=intval($sock->GET_INFO("EnableDNSMASQLDAPDB"));
 		$this->EnableDNSMASQOCSDB=$sock->GET_INFO("EnableDNSMASQOCSDB");
-		$this->DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+		
 		
 		
 		if(!is_numeric($this->EnableDNSMASQOCSDB)){$this->EnableDNSMASQOCSDB=1;}
-		if(!is_numeric($this->DHCPDEnableCacheDNS)){$this->DHCPDEnableCacheDNS=0;}
 		
 		$this->configuration_file_datas=$sock->GET_INFO("DnsMasqConfigurationFile");
 		if(trim($this->configuration_file_datas)==null){

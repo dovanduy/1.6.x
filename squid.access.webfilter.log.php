@@ -122,6 +122,14 @@ function popup(){
 	$tableprc="100%";
 	$margin="-10";
 	$margin_left="-15";
+	$zDate_size=139;
+	$ipaddr_size=233;
+	$rulename_size=212;
+	$block_size=90;
+	$proto_size=75;
+	$hostname_size=242;
+	$uri_size=600;
+	if(!isset($_GET["minsize"])){$_GET["minsize"]=0;}
 	
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
@@ -134,6 +142,16 @@ function popup(){
 		$button1="{name: '<strong id=refresh-$t>$stopRefresh</stong>', bclass: 'Reload', onpress : StartStopRefresh$t},";
 		$table_height=590;
 		$Start="StartRefresh$t()";
+	}
+	
+	if($_GET["minsize"]==1){
+		$zDate_size=90;
+		$ipaddr_size=138;
+		$rulename_size=128;
+		$block_size=60;
+		$proto_size=32;
+		$hostname_size=139;
+		$uri_size=480;
 	}
 	
 	$q=new mysql_squid_builder();
@@ -165,17 +183,17 @@ function popup(){
 	var mem$t='';
 	function StartLogsSquidTable$t(){
 		$('#flexRT$t').flexigrid({
-			url: '$page?events-list=yes',
+			url: '$page?events-list=yes&minsize={$_GET["minsize"]}',
 			dataType: 'json',
 			colModel : [
 			
-			{display: '$zdate', name : 'zDate', width :139, sortable : true, align: 'left'},
-			{display: '$ipaddr', name : 'events', width : 233, sortable : false, align: 'left'},
-			{display: '$rulename', name : 'events', width : 212, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'code', width : 90, sortable : false, align: 'left'},
-			{display: '$proto', name : 'proto', width : 75, sortable : false, align: 'left'},
-			{display: '$hostname', name : 'hostname', width : 242, sortable : false, align: 'left'},
-			{display: '$uri', name : 'events', width : 600, sortable : false, align: 'left'},
+			{display: '$zdate', name : 'zDate', width :$zDate_size, sortable : true, align: 'left'},
+			{display: '$ipaddr', name : 'events', width : $ipaddr_size, sortable : false, align: 'left'},
+			{display: '$rulename', name : 'events', width : $rulename_size, sortable : false, align: 'left'},
+			{display: '&nbsp;', name : 'code', width : $block_size, sortable : false, align: 'left'},
+			{display: '$proto', name : 'proto', width : $proto_size, sortable : false, align: 'left'},
+			{display: '$hostname', name : 'hostname', width : $hostname_size, sortable : false, align: 'left'},
+			{display: '$uri', name : 'events', width : $uri_size, sortable : false, align: 'left'},
 
 			],
 				
@@ -231,7 +249,7 @@ function events_list(){
 	
 	
 	$c=0;
-	
+	krsort($dataZ);
 	if(count($dataZ)==0){json_error_show("no data");}
 	$logfileD=new logfile_daemon();
 	
@@ -259,24 +277,31 @@ function events_list(){
 		if(!isset($parse["host"])){continue;}
 		if($CLIENT==null){$CLIENT="-";}
 
-		
+		if($ALLOW=="BLOCK-LD"){$color="#D0080A";}
 		if($ALLOW=="BLOCK"){$color="#D0080A";}
 		if($ALLOW=="REDIR"){$color="#BAB700";}
 		
 		
 		if($CLIENT==$CLIENT_IP){$CLIENT_IP=null;}else{$CLIENT_IP="/$CLIENT_IP";}
 		
+		$fontsize=14;
+		
+		if($_GET["minsize"]==1){
+			$fontsize=12;
+		
+		}
+		
 		if($date==$today){$date=null;}
 		$data['rows'][] = array(
 				'id' => md5($line),
 				'cell' => array(
-						"<span style='font-size:14px;color:$color'>$date $TIME</span>",
-						"<span style='font-size:14px;color:$color'>$CLIENT$CLIENT_IP</span>",
-						"<span style='font-size:14px;color:$color'>$RULE/$CATEGORY</span>",
-						"<span style='font-size:14px;color:$color'>$ALLOW</span>",
-						"<span style='font-size:14px;color:$color'>{$PROTO}</span>",
-						"<span style='font-size:14px;color:$color'>$hostname</span>",
-						"<span style='font-size:14px;color:$color'>$URI</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$date $TIME</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$CLIENT$CLIENT_IP</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$RULE/$CATEGORY</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$ALLOW</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$PROTO}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$hostname</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$URI</span>",
 						
 						
 				)
@@ -284,7 +309,7 @@ function events_list(){
 		
 	}
 	
-	
+	if($c==0){json_error_show("No data");}
 	$data['total'] = $c;
 	echo json_encode($data);
 	

@@ -97,7 +97,7 @@ function status(){
 	<td valign='top' width=99%><br>$paragraphe<div style='text-align:right'><hr>". button("{apply}","SaveEnableSnort();",18)."</td>
 	</tr>
 	</table>
-	<div class=explain style='font-size:13px'>{APP_SNORT_ABOUT}</div>
+	<div class=text-info style='font-size:13px'>{APP_SNORT_ABOUT}</div>
 	<script>
 	var x_SaveEnableSnort=function (obj) {
 			var results=obj.responseText;

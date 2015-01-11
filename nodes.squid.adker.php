@@ -367,7 +367,7 @@ function settings(){
 	<td valign='top' width=1%><span id='kerbchkconf'></span>
 		<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshAll()")."</div></td>
 	<td valign='top' width=99%'>
-		<div class=explain>$intro</div>
+		<div class=text-info>$intro</div>
 	</td>
 	</table>
 	

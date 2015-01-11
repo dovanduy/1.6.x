@@ -38,7 +38,9 @@ function main_tabs(){
 
 	
 	while (list ($num, $ligne) = each ($array) ){
-		
+		if($num=="logs"){
+			
+		}
 		$html[]="<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
 			
 		}	
@@ -78,7 +80,7 @@ function popup(){
 	$html="
 	$enable
 	<hr>
-	<div class=explain>{ActiveDirectorySettings_text}</div>
+	<div class=text-info>{ActiveDirectorySettings_text}</div>
 	<div id='CyrusToAdDiv'>
 	<table style='width:100%'>
 	<tr>

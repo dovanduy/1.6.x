@@ -122,7 +122,7 @@ function popup(){
 		<td>". Field_text("listen_port",$freeport,"font-size:13px;padding:3px;width:50px")."</td>
 	</tr>	
 	<tr>
-		<td colspan=2><div class=explain>$explian</div></td>
+		<td colspan=2><div class=text-info>$explian</div></td>
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}","dkimproxySave()")."</td>

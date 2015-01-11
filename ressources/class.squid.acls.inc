@@ -35,7 +35,9 @@ class squid_acls{
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
 		$this->instancetime=time();
 		if(!isset($GLOBALS["COMPILE_SQUID_TOKENS"])){$this->compilation_params();}
-		if(count($GLOBALS["COMPILE_SQUID_TOKENS"])<3){$this->compilation_params();}
+		if(isset($GLOBALS["COMPILE_SQUID_TOKENS"])){
+			if(count($GLOBALS["COMPILE_SQUID_TOKENS"])<3){$this->compilation_params();}
+		}
 		
 	}
 
@@ -127,6 +129,28 @@ class squid_acls{
 	
 	}	
 	
+	private function LoadingArtcatz(){
+		if(isset($GLOBALS["LoadingArtcatz"])){return $GLOBALS["LoadingArtcatz"];}
+		$q=new mysql_squid_builder();
+		$sql="SELECT webfilters_sqgroups.*,webfilters_sqacls.aclname
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'categories'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$results=$q->QUERY_SQL($sql);
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$GLOBALS["LoadingArtcatz"][$ligne["ID"]]=true;
+			
+		}
+		return $GLOBALS["LoadingArtcatz"];
+		
+		
+	}
+	
+	
 	
 	private function Build_Acls_Groups(){
 		if(isset($GLOBALS["BUILD_ACLS_EXECUTED"])){
@@ -141,11 +165,14 @@ class squid_acls{
 		if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
 		$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
 		if(trim($SplashScreenURI)==null){$EnableSplashScreen=0;}
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		$RemoteUfdbCat=intval($sock->GET_INFO("RemoteUfdbCat"));
 		$URLAR=parse_url($SplashScreenURI);
 		if(isset($URLAR["host"])){$SplashScreenURI="http://$SplashScreenURI";}
 		if(!preg_match("#^http.*#", $SplashScreenURI)){$SplashScreenURI="http://$SplashScreenURI";}
 		
 		$isDynamicAcls=$this->isDynamicAcls();
+		$this->LoadingArtcatz();
 		
 		$ARRAY_AUTH["radius_auth"]=true;
 		$ARRAY_AUTH["ad_auth"]=true;
@@ -190,6 +217,46 @@ class squid_acls{
 			}
 			
 			
+			
+			if($ligne["GroupType"]=="proxy_auth_statad"){
+				$AclsItemsCount=$this->buildItems($ligne["ID"]);
+				if($AclsItemsCount>0){
+					if($this->EnableKerbAuth==0){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
+					$this->availableGroups[$ligne["ID"]]=true;
+					$this->acls_array[]="acl $acls_name proxy_auth -i \"/etc/squid3/acls/container_{$ligne["ID"]}.txt\"";
+					$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+					if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				}
+				continue;
+			}			
+			
+			if($ligne["GroupType"]=="maxconn"){
+				$AclsItem=$this->buildItems($ligne["ID"],true);
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
+				if($AclsItem<>null){
+					$this->availableGroups[$ligne["ID"]]=true;
+					$this->acls_array[]="acl $acls_name maxconn $AclsItem";
+					$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+					if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				}
+				continue;
+			}
+
+			if($ligne["GroupType"]=="max_user_ip"){
+				$GLOBALS["authenticate_ip_ttl"]=true;
+				$AclsItem=$this->buildItems($ligne["ID"],true);
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
+				if($AclsItem<>null){
+					$this->availableGroups[$ligne["ID"]]=true;
+					$this->acls_array[]="acl $acls_name max_user_ip $AclsItem";
+					$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+					if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				}
+				continue;
+			}			
+			
+			
 			if($ligne["GroupType"]=="dynamic_acls"){
 				if(!$isDynamicAcls){
 					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls No dynamic acl available\n";
@@ -219,9 +286,24 @@ class squid_acls{
 			}	
 
 			if($ligne["GroupType"]=="categories"){
+				if($SquidPerformance>0){
+					if($RemoteUfdbCat==0){
+						$this->acls_array[]="# Group:[$this->instancetime] Categories service is disabled, aborting [".__LINE__."]";
+						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - Categories service is disabled, aborting\n";
+						continue;	
+					}				
+				}
+				
 				if(!$GLOBALS["ArtcExtrnCategoryScanner"]){
+					$this->acls_array[]="# Group:[$this->instancetime] ArtcExtrnCategoryScanner is disabled !!! Why ???, aborting [".__LINE__."]";
 					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnCategoryScanner is disabled !!! Why ???\n";
 					continue;
+				}
+				
+				if(!isset($GLOBALS["LoadingArtcatz"][$ligne["ID"]])){
+						$this->acls_array[]="# Group:[$this->instancetime] `{$ligne["GroupName"]}` NOT AVAILABLE, aborting [".__LINE__."]";
+						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` NOT AVAILABLE\n";
+						continue;
 				}
 				
 				$this->availableGroups[$ligne["ID"]]=true;
@@ -229,7 +311,44 @@ class squid_acls{
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;
-				}			
+				}	
+
+			
+			if($ligne["GroupType"]=="quota_time"){
+				if(!$GLOBALS["ArtcExtrnQuotaTimeScanner"]){
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnQuotaTimeScanner is disabled !!! Why ???\n";
+					continue;
+				}
+				
+				if(!isset($GLOBALS["LoadingExtrnQuotaTime"][$ligne["ID"]])){
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` NOT AVAILABLE\n";
+					continue;
+				}
+				
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name external ArtTime{$ligne["ID"]}";
+				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				continue;
+		 }
+		 
+		 if($ligne["GroupType"]=="quota_size"){
+		 	if(!$GLOBALS["ArtcExtrnQuotaSizeScanner"]){
+		 		echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnQuotaSizeScanner is disabled !!! Why ???\n";
+		 		continue;
+		 	}
+		 
+		 	if(!isset($GLOBALS["LoadingExtrnQuotaSize"][$ligne["ID"]])){
+		 		echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` NOT AVAILABLE\n";
+		 		continue;
+		 	}
+		 
+		 	$this->availableGroups[$ligne["ID"]]=true;
+		 	$this->acls_array[]="acl $acls_name external ArtSize{$ligne["ID"]}";
+		 	$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+		 	if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+		 	continue;
+		 }		 
 			
 			
 			
@@ -243,6 +362,7 @@ class squid_acls{
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ArtcExtrnNudeScanner";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+				
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 				continue;								
 			}
@@ -254,6 +374,22 @@ class squid_acls{
 				$this->acls_array[]="acl $acls_name dst \"/etc/squid3/acls/teamviewer-nets.acl\"";
 				
 			}
+			
+			if($ligne["GroupType"]=="google"){
+				$t=new products_ip_ranges();
+				$t->google_networks($ligne["ID"]);
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name dst \"/etc/squid3/acls/google-nets.ac\"";
+			
+			}
+
+			if($ligne["GroupType"]=="google_ssl"){
+				$t=new products_ip_ranges();
+				$t->google_networks($ligne["ID"]);
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name dst \"/etc/squid3/acls/google-ssl.acl\"";
+					
+			}			
 			
 			
 			if($ligne["GroupType"]=="hotspot_auth"){
@@ -293,6 +429,7 @@ class squid_acls{
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth"){
+				$ligne["GroupType"]="proxy_auth -i";
 				if($this->AUTH==0){
 					echo "Starting......: ".date("H:i:s")." [ACLS]: `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
 					continue;
@@ -359,11 +496,13 @@ class squid_acls{
 		
 		
 		
-		
+		if($GLOBALS["VERBOSE"]){echo "Group {$aclid} Checks acltpl...\n";}
 		$sql="SELECT acltpl FROM webfilters_sqgroups WHERE ID='$aclid'";
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		if($ligne["acltpl"]==null){return;}
+		if($ligne["acltpl"]==null){
+			if($GLOBALS["VERBOSE"]){echo "Group {$aclid} Checks acltpl == NULL...\n";}
+			return;}
 		
 
 		
@@ -387,16 +526,17 @@ class squid_acls{
 		$sql="SELECT template_name,lang,template_link,template_uri,emptytpl FROM squidtpls WHERE `zmd5`='$acltpl'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$tplname=$ligne["template_name"];
-		
+		if($GLOBALS["VERBOSE"]){echo "Group {$aclid} Checks acltpl == $tplname...\n";}
 		
 		
 		if(is_numeric($ligne["lang"])){$ligne["lang"]="en";}
 		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
-		$template_path="/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}";
-		
+		$template_path="/usr/share/squid-langpack/templates/{$ligne["lang"]}/{$ligne["template_name"]}";
+		if($GLOBALS["VERBOSE"]){echo "Group {$aclid} Checks acltpl == $template_path...\n";}
 		
 		if($ligne["emptytpl"]==1){
 			if(!is_file($template_path)){return null;}
+			if($GLOBALS["VERBOSE"]){echo "Group {$aclid} Checks acltpl == 200:{$ligne["template_name"]}..\n";}
 			return "200:{$ligne["template_name"]}";
 		}
 		
@@ -534,19 +674,56 @@ class squid_acls{
 	public function dstdomain_parse($website){
 		include_once(dirname(__FILE__).'/class.tcpip.inc');
 		$website=trim(strtolower($website));
+		if($website==null){return null;}
 		$ip=new IP();
 		if($ip->isIPAddress($website)){return null;}
-		if(preg_match("#(.+?):(.+)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#(.*?)\.http$#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^http:\/\/(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^https:\/\/(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^ftp:\/\/(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^ftps:\/\/(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^www\.(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^(.+?)\/#", $website,$re)){$website=$re[1];}
+		if($GLOBALS["VERBOSE"]){echo "dstdomain_parse:: $website\n";}
+		
+
+		if(preg_match("#(.*?)\.http$#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website -> {$re[1]}\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^http:\/\/(.*)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website -> {$re[1]}\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^https:\/\/(.*)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^ftp:\/\/(.*)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^ftps:\/\/(.*)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^www\.(.*)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^(.+?)\/$#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website -> {$re[1]}\n";}
+			$website=$re[1];
+		}
 		if(preg_match("#^(.+?):([0-9]+)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^http.*?:(.+)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^\.(.+)#", $website,$re)){$website=$re[1];}	
+		if(preg_match("#^http.*?:(.+)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website -> {$re[1]}\n";}
+			$website=$re[1];
+		}
+		if(preg_match("#^\.(.+)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website -> {$re[1]}\n";}
+			$website=$re[1];
+		}	
+		
+		if(preg_match("#(.+?):(.+)#", $website,$re)){
+			if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
+			$website=$re[1];
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "dstdomain_parse::".__LINE__." $website\n";}
 		$website=str_replace('.*.', '.', $website);
 		$website=str_replace('*', '.', $website);
 		$website=str_replace('$', '', $website);
@@ -571,15 +748,115 @@ class squid_acls{
 		$website=str_replace('>', '', $website);
 		$website=str_replace('[', '', $website);
 		$website=str_replace(']', '', $website);
+		if($GLOBALS["VERBOSE"]){echo "dstdomain_parse:: $website\n";}
 		return $website;
+		
+	}
+	
+	public function clean_dstdomains($array=array()){
+		$q=new mysql_squid_builder();
+		$f=array();
+		$MAINARRAY=array();
+		$TRI2=array();
+		while (list ($index, $domain) = each ($array) ){
+			$domain=trim($domain);
+			$chapeau=false;
+			if($domain==null){continue;}
+			if(substr($domain, 0,1)=="^"){
+				$domain=substr($domain,1,strlen($domain));
+				$chapeau=true;
+			}
+			
+			$domain=$this->dstdomain_parse($domain);
+			if($domain==null){continue;}
+			$MASTERDOMAIN=$q->GetFamilySites($domain);
+			if($MASTERDOMAIN==$domain){
+				if($chapeau){$domain="^$domain";}
+				$MAINARRAY[$domain]=true;
+				continue;
+			}
+			
+			if($chapeau){$domain="^$domain";}
+			$TRI2[$domain]=true;
+			
+		}
+		
+		while (list ($domain, $ligne) = each ($MAINARRAY) ){
+			if($domain==null){continue;}
+			if(substr($domain, 0,1)=="^"){
+				$domain=substr($domain,1,strlen($domain));
+				$f[]=$domain;
+				continue;
+			}
+			
+			
+			if(substr($domain, 0,1)<>"."){$domain=".{$domain}";}
+			if($GLOBALS["VERBOSE"]){echo "* * [clean_dstdomains] \"{$domain}\"\n";}
+			$f[]=$domain;
+		}
+		
+		while (list ($domain, $ligne) = each ($TRI2) ){
+			if($domain==null){continue;}
+			$MASTERDOMAIN=$q->GetFamilySites($domain);
+			if(isset($MAINARRAY[$MASTERDOMAIN])){
+				if($GLOBALS["VERBOSE"]){echo "* * [clean_dstdomains]: \"$domain\" is already a part of $MASTERDOMAIN\n";}
+				continue;
+			}
+			
+			
+			if(substr($domain, 0,1)=="^"){
+				$domain=substr($domain,1,strlen($domain));
+				$f[]=$domain;
+				continue;
+			}
+			
+				
+			if(substr($domain, 0,1)<>"."){
+				$domain=".{$domain}";
+			}
+			if($GLOBALS["VERBOSE"]){echo "* * [clean_dstdomains] \"{$domain}\"\n";}
+			$f[]=$domain;
+		}
+		
+		return $f;
+		
+		
+	}
+	
+	
+	private function GetItems_dstdomain($gpid){
+		$q=new mysql_squid_builder();
+		
+		$sql="SELECT * FROM webfilters_sqitems WHERE enabled=1 AND gpid=$gpid";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ligne["pattern"]=trim(strtolower($ligne["pattern"]));
+			$array[]=$ligne["pattern"];
+			
+		}
+			
+		return $this->clean_dstdomains($array);
+		
+		
 		
 	}
 		
 	
 	public function GetItems($gpid,$required=null){
 		$q=new mysql_squid_builder();
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType,enabled FROM webfilters_sqgroups WHERE ID='$gpid'"));
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupName,GroupType,enabled FROM webfilters_sqgroups WHERE ID='$gpid'"));
 		$GroupeType=$ligne["GroupType"];
+		
+		
+		if($GroupeType=="proxy_auth_statad"){
+			include_once(dirname(__FILE__)."/class.external.ad.inc");
+			$GroupName=$ligne["GroupName"];
+			echo "Starting......: ".date("H:i:s")." [ACLS]: ACL $GroupeType, parsing $GroupName Active Directory\n";
+			$ad=new external_ad_search();
+			return $ad->MembersFromGroupName($GroupName);
+			
+		}
+		
 		$this->RequestedGroupeType=$GroupeType;
 		if($ligne["enabled"]==0){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:$gpid is disabled skip..\n";}return array();}
 		if($required<>null){if($GroupeType<>$required){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:$gpid {$ligne["GroupType"]} is different than required \"$required\" skip..\n";}return array();}}
@@ -588,6 +865,10 @@ class squid_acls{
 		$c=0;
 		$f=array();
 		$Ipclass=new IP();
+		
+		if($GroupeType=="dstdomain"){
+			return $this->GetItems_dstdomain($gpid);
+		}
 		
 		$already=array();
 		$MASTERDOMAINAL=array();
@@ -622,26 +903,7 @@ class squid_acls{
 			}
 			
 			
-			if($GroupeType=="dstdomain"){
-				$WEBSITE=$ligne["pattern"];
-				
-				$ligne["pattern"]=trim(strtolower($ligne["pattern"]));
-				$MASTERDOMAIN=$q->GetFamilySites($ligne["pattern"]);
-				if($ligne["pattern"]==null){continue;}
-				if(substr($WEBSITE, 0,1)=="."){$WEBSITE=substr($WEBSITE,0,strlen($WEBSITE));}
-				$ligne["pattern"]=$this->dstdomain_parse($ligne["pattern"]);
-				if(substr($ligne["pattern"], 0,1)<>"."){$ligne["pattern"]=".{$ligne["pattern"]}";}
 
-				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){
-					if($GLOBALS["VERBOSE"]){echo "! ! [$GroupeType] SKIP $MASTERDOMAIN -> $WEBSITE\n";}
-					continue;
-				}
-				
-				
-				if($WEBSITE==$MASTERDOMAIN){$MASTERDOMAINAL[$MASTERDOMAIN]=true;}
-				
-				
-			}
 			
 			if($GroupeType=="url_regex_extensions"){
 				$ligne["pattern"]=str_replace(".", "", $ligne["pattern"]);
@@ -847,7 +1109,7 @@ class squid_acls{
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TemplateError,`Allow` FROM webfilters_sqtimes_rules WHERE ID='$ID'"));
 		$filename="/usr/share/squid-langpack/en/ERROR_TIMERULE_$ID";
-		$filename2="/usr/share/squid3/errors/templates/ERROR_TIMERULE_$ID";
+		$filename2="/usr/share/squid-langpack/templates/ERROR_TIMERULE_$ID";
 		@unlink($filename);
 		if($ligne["Allow"]==1){return;}
 	
@@ -859,7 +1121,7 @@ class squid_acls{
 		
 		@mkdir("/usr/share/squid-langpack/en",0755,true);
 		if(!is_dir("/usr/share/squid-langpack/en/templates")){@mkdir("/usr/share/squid-langpack/en/templates",0755,true);}
-		if(!is_dir("/usr/share/squid3/errors/templates")){@mkdir("/usr/share/squid3/errors/templates",0755,true);}
+		if(!is_dir("/usr/share/squid-langpack/templates")){@mkdir("/usr/share/squid-langpack/templates",0755,true);}
 		
 		$content="<table class=\"w100 h100\">
 		<tr>

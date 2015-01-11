@@ -54,7 +54,7 @@ function step1(){
 	$KasperskyAskQuoteResults=$sock->GET_INFO("KasperskyAskQuoteResults");
 	$t=$_GET["t"];
 	$explain="
-	<div style='font-size:14px' class=explain>{KAV4PROXY_STEP1_EXPLAIN}</div>";
+	<div style='font-size:14px' class=text-info>{KAV4PROXY_STEP1_EXPLAIN}</div>";
 	
 	$bt=button("{submit}","RegisterSave$t()",18);
 	

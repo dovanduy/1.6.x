@@ -327,7 +327,7 @@ function section_myhost_config(){
 	$artica_settings=Paragraphe('folder-interface-64.png',"{advanced_options}","{advanced_artica_options_text}","javascript:Loadjs('artica.settings.php?js=yes&ByPopup=yes');","{advanced_artica_options_text}");
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
-	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
+	
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-webinterface=yes');");
 		$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
@@ -336,7 +336,7 @@ function section_myhost_config(){
 	$tr[]=$frontend_settings;
 	$tr[]=$web_interface_settings;
 	$tr[]=$proxy;
-	$tr[]=$ldap;
+
 	$tr[]=$SMTP_NOTIFICATIONS_PAGE;
 	$tr[]=$artica_settings;
 	

@@ -33,8 +33,104 @@ $GLOBALS["Q"]=new mysql_squid_builder();
 if($argv[1]=="--all"){process_all_tables();exit;}
 if($argv[1]=="--xtime"){start($argv[2]);exit;}
 if($argv[1]=="--youtube-dayz"){youtube_dayz(true);exit;}
+if($argv[1]=="--youtube-hours"){youtube_hours(true);exit;}
+if($argv[1]=="--youtube-daystat"){youtube_day_stats(true);exit;}
+
+
+
 
 start();
+
+
+function youtube_hours(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.youtube.days.php.youtube_hours.pid";
+	$pidTime="/etc/artica-postfix/pids/YoutubeByHour.time";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if(!$GLOBALS["FORCE"]){
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		die();
+	}	
+	
+	
+		$timeFile=$unix->file_time_min($pidTime);
+		if($timeFile<60){die();}
+		
+	}
+	
+	@unlink($pidfile);
+	@file_put_contents($pidfile, getmypid());
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_YOUTUBE_HOURS=$q->LIST_TABLES_YOUTUBE_HOURS();
+	youtube_events("LIST_TABLES_YOUTUBE_HOURS = ".count($LIST_TABLES_YOUTUBE_HOURS),__LINE__);
+	$timekey=date('YmdH');
+	$currenttable="youtubehours_$timekey";
+	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_HOURS) ){
+		if($tablesource==$currenttable){if($GLOBALS["VERBOSE"]){echo "Skipping $tablesource\n";} }
+		
+		$tablesourcetime=$q->TIME_FROM_YOUTUBE_HOUR_TABLE($tablesource);
+		if($GLOBALS["VERBOSE"]){echo "Processing $tablesource ". date("Y-m-d H",$tablesourcetime)."h\n";}
+		
+		if($q->COUNT_ROWS($tablesource)==0){
+			youtube_events("$tablesource = 0 entry -> DELETE",__LINE__);
+			$q->QUERY_SQL("DROP TABLE `$tablesource`");
+			continue;
+		}
+		
+		if(!_youtube_days($tablesource)){continue;}
+		$q->QUERY_SQL("DROP TABLE $tablesource");
+		
+	}
+	
+
+	if(count($GLOBALS["YOUTUBE_IDS"])>0){
+		_youtube_ids();
+	}
+	
+	$mysqladmin=$unix->find_program("mysqladmin");
+	shell_exec("$mysqladmin -u root -S /var/run/mysqld/squid-db.sock flush-tables >/dev/null 2>&1 &");
+	
+	
+}
+
+function youtube_day_stats(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.youtube.days.php.youtube_hours.pid";
+	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.youtube.days.php.youtube_hours.time";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($unix->process_exists($pid)){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
+			die();
+		}
+	
+	
+		$timeFile=$unix->file_time_min($pidTime);
+		if($timeFile<60){die();}
+	
+	}
+	
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_YOUTUBE_DAYS=$q->LIST_TABLES_YOUTUBE_DAYS();
+	
+	youtube_events("LIST_TABLES_YOUTUBE_DAYS = ".count($LIST_TABLES_YOUTUBE_DAYS),__LINE__);
+	$timekey=date('Ymd');
+	$currenttable="youtubeday_$timekey";
+	
+	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_DAYS) ){
+		if($tablesource==$currenttable){if($GLOBALS["VERBOSE"]){echo "Skipping $tablesource\n";} }
+		$num=$q->COUNT_ROWS($tablesource);
+		echo "$tablesource = $num items\n";
+		
+	}
+		
+	
+}
+
+
 function start($xtime=0){
 	$dayFilter=0;
 	if($xtime>0){

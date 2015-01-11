@@ -385,7 +385,8 @@ function last_days(){
 	
 	$current_table=date("Ymd")."_hour";
 	$t=time();
-	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `suffix` FROM tables_day WHERE DAY(zDate)<DAY(NOW()) AND zDate>DATE_SUB(NOW(),INTERVAL 7 DAY)";
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `suffix` FROM tables_day 
+			WHERE DAY(zDate)<DAY(NOW()) AND YEAR(zDate) = YEAR(NOW()) AND MONTH(zDate) = MONTH(NOW()) AND zDate>DATE_SUB(NOW(),INTERVAL 7 DAY)";
 	
 	$results=$q->QUERY_SQL($sql);
 	$num=mysql_num_rows($results);

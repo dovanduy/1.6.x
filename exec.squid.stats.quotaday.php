@@ -32,7 +32,7 @@ function start($xtime=0){
 	$unix=new unix();
 	if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$timefile="/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.start.time";
 	if($GLOBALS["VERBOSE"]){echo "Timefile = $timefile\n";}
 	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
@@ -40,7 +40,9 @@ function start($xtime=0){
 		$unix=new unix();
 		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
-		if($timeexec<60){return;}
+		if($timeexec<60){
+			if($GLOBALS["VERBOSE"]){echo "Last execution $timeexec - require 60\n";}
+			return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
@@ -52,6 +54,9 @@ function start($xtime=0){
 	if($GLOBALS["VERBOSE"]){echo "Current table: $table\n";}
 	$q=new mysql_squid_builder();
 	$LIST_TABLES_QUOTA_HOURS=$q->LIST_TABLES_QUOTA_HOURS();
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "tables: ".count($LIST_TABLES_QUOTA_HOURS)."\n";}
 	
 	while (list ($tableWork,$none) = each ($LIST_TABLES_QUOTA_HOURS) ){
 		if($tableWork==$table){if($GLOBALS["VERBOSE"]){echo "Skip Current table: $table\n";}continue;}
@@ -75,6 +80,8 @@ function quotatemp($aspid=false){
 		echo "timefile: $timefile\n";
 	}
 	
+	if(!$GLOBALS["FORCE"]){
+	
 	if(!$aspid){
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
@@ -82,6 +89,7 @@ function quotatemp($aspid=false){
 		if($timeexec<59){return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
+	}
 	}
 	
 	@unlink($timefile);
@@ -96,11 +104,37 @@ function quotatemp($aspid=false){
 		if($tableWork==$currenttable){if($GLOBALS["VERBOSE"]){echo "Skip Current table: $currenttable\n";}continue;}
 		$xtime=$q->TIME_FROM_QUOTATEMP_TABLE($tableWork);
 		$Day=date("Y-m-d",$xtime);
-		if($GLOBALS["VERBOSE"]){echo "Analyze table: $tableWork ($Day)\n";}
+		if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_TEMP:: Analyze table: $tableWork ($Day)\n";}
 		if(!compile_table_hour($tableWork,$xtime)){continue;}
-		if($GLOBALS["VERBOSE"]){echo "Remove table: $tableWork ($Day)\n";}
+		if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_TEMP:: Remove table: $tableWork ($Day)\n";}
 		$q->QUERY_SQL("DROP TABLE $tableWork");
 	}
+	
+	
+	$table="quotahours_".date('YmdH');
+	if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:: Current table: $table\n";}
+	$LIST_TABLES_QUOTA_HOURS=$q->LIST_TABLES_QUOTA_HOURS();
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:: tables: ".count($LIST_TABLES_QUOTA_HOURS)."\n";}
+	print_r($LIST_TABLES_QUOTA_HOURS);
+	while (list ($tableWork,$none) = each ($LIST_TABLES_QUOTA_HOURS) ){
+		if($tableWork==$table){if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:: Skip Current table: $table\n";}continue;}
+		$xtime=$q->TIME_FROM_QUOTAHOUR_TABLE($tableWork);
+		$Day=date("Y-m-d",$xtime);
+		if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:: Analyze table: $tableWork ($Day)\n";}
+		if(!compile_table($tableWork,$xtime)){continue;}
+		if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:: Remove table: $tableWork ($Day)\n";}
+		$q->QUERY_SQL("DROP TABLE $tableWork");
+	}
+	
+	
+	$mysqladmin=$unix->find_program("mysqladmin");
+	shell_exec("$mysqladmin -u root -S /var/run/mysqld/squid-db.sock flush-tables >/dev/null 2>&1 &");
+	
+	
+	
+	
 }
 
 

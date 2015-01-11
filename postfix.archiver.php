@@ -230,7 +230,7 @@ function status2(){
 	
 	$html="
 			
-	<div style='font-size:16px' class=explain>{backupemail_behavior_text}</div>
+	<div style='font-size:16px' class=text-info>{backupemail_behavior_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>

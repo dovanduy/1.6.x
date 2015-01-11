@@ -38,7 +38,7 @@ function manual_update(){
 	$arch=$users->ArchStruct;
 	$html="
 	<H2>{manual_update}</H2>
-	<div class=explain style='font-size:16px'>
+	<div class=text-info style='font-size:16px'>
 	<strong>{your_operating_system}:$distri ({$arch}Bits)</strong>
 	<hr>
 	{nginx_manual_update_text}</div>

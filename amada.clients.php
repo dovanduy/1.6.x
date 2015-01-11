@@ -179,7 +179,7 @@ function page(){
 	$add=Paragraphe("64-net-server-add.png", "{add_computer}", "{add_amanda_computer}","javascript:AmandaComputer(0)");
 	
 	$html="
-	<div class=explain>{amanda_computers_explain}</div>
+	<div class=text-info>{amanda_computers_explain}</div>
 		<center>
 			<table style='width:99%' class=form>
 			<tr>

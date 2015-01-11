@@ -62,6 +62,9 @@ function popup_js(){
 
 function status_versions(){
 	$tpl=new templates();
+	$sock=new sockets();
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){return;}
 	$f="/usr/share/artica-postfix/ressources/index.ini";
 	
 	$ini=new Bs_IniHandler();
@@ -159,6 +162,7 @@ $EnablePatchUpdates=$sock->GET_INFO("EnablePatchUpdates");
 $ArticaScheduleUpdates=$sock->GET_INFO("ArticaScheduleUpdates");
 $DisableInstantLDAPBackup=$sock->GET_INFO("DisableInstantLDAPBackup");
 $EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
 
 if(!is_numeric($DisableInstantLDAPBackup)){$DisableInstantLDAPBackup=0;}
 if(!is_numeric($EnableNightlyInFrontEnd)){$EnableNightlyInFrontEnd=1;}
@@ -179,6 +183,25 @@ if(trim($AUTOUPDATE["CheckEveryMinutes"])==null){$AUTOUPDATE["CheckEveryMinutes"
 if(trim($AUTOUPDATE["front_page_notify"])==null){$AUTOUPDATE["front_page_notify"]="yes";}
 if(trim($AUTOUPDATE["samba_notify"])==null){$AUTOUPDATE["samba_notify"]="no";}
 if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
+
+
+$action_http_proxy="	<td valign='top' width=33%>
+	". 	Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}","javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');",300,null,$nowrap=1)."
+	</td>";
+
+$action_update_now="	<td valign='top' width=33%>
+	". Paragraphe('64-recycle.png','{update_now}','{perform_update_text}',
+			"javascript:Loadjs('artica.update.progress.php',true)","{perform_update_text}",300,null,$nowrap=1)."
+	</td>";
+
+$action_refresh_index="<td colspan=2 align='right'>". button("{refresh_index_file}", "Loadjs('setup.index.php?TestConnection-js=yes')")."</td>";
+
+if($EnableArticaMetaClient==1){
+	$action_http_proxy=null;
+	$action_update_now=null;
+	$action_refresh_index=null;
+}
+
 $CURVER=@file_get_contents("VERSION");
 $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	$html="
@@ -186,18 +209,12 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
-			
-			
 	<td valign='top' width=33%>
 	". 	Paragraphe("64-download.png","{manual_update}","{artica_manual_update_text}","javascript:Loadjs('artica.update-manu.php');",300,null,$nowrap=1)."
 	</td>	
 	</td>
-	<td valign='top' width=33%>
-	". 	Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}","javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');",300,null,$nowrap=1)."
-	</td>
-	<td valign='top' width=33%>
-	". Paragraphe('64-recycle.png','{update_now}','{perform_update_text}',
-			"javascript:Loadjs('artica.update.progress.php',true)","{perform_update_text}",300,null,$nowrap=1)."</td>
+	$action_http_proxy
+	$action_update_now
 	</tr>					
 	</table>
 	";
@@ -213,7 +230,7 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<tr>
 		<td style='width:30%' valign=middle><div id='status-versions'></div></td>
 		<td style='width:70%'>
-	<div class=explain style='font-size:16px'>
+	<div class=text-info style='font-size:16px'>
 		<div style='margin-bottom:5px;text-align:right;padding-bottom:1px;border-bottom:1px solid #999999;width:97%'>
 			<strong style='font-size:22px'>{current} Artica v.$CURVER Branch v.$CUR_BRANCH</strong>
 		</div>{autoupdate_text}
@@ -221,8 +238,8 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	</td>
 	</tr>
 	</tr>
-				<td colspan=2 align='right'>". button("{refresh_index_file}", "Loadjs('setup.index.php?TestConnection-js=yes')")."</td>
-			</tr>
+		$action_refresh_index
+	</tr>
 	</table>
 	<script>LoadAjax('status-versions','$page?status-versions=yes');</script>
 	
@@ -309,7 +326,11 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{HTTP_TIMEOUT}:</strong></td>
 		<td align='left' style='font-size:16px'>" . Field_text('CurlTimeOut',$CurlTimeOut,'font-size:16px;padding:3px;width:90px' )."&nbsp;{seconds}</td>
-	</tr>							
+	</tr>	
+	<tr>
+		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{limit_bandwidth}:</strong></td>
+		<td align='left' style='font-size:16px'>" . Field_text('CurlBandwith',$CurlBandwith,'font-size:16px;padding:3px;width:90px' )."&nbsp;kb/s</td>
+	</tr>										
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{EnableScheduleUpdates}:</strong></td>
 		<td align='left'>" . Field_checkbox('EnableScheduleUpdates',1,$EnableScheduleUpdates,"CheckSchedules()" )."&nbsp;
@@ -639,20 +660,20 @@ function webfiltering_tabs(){
 	$array["schedule"]='{update_schedule}';
 	$array["categories"]='{categories}';
 	$tpl=new templates();
-	$fontsize=18;
+	$fontsize=22;
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="status"){
 			$html[]= "<li>
-			<a href=\"dansguardian2.databases.php?statusDB=yes\">
+			<a href=\"dansguardian2.databases.php?statusDB=yes&from-ufdbguard={$_GET["from-ufdbguard"]}\">
 			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		if($num=="databases"){
 			$html[]= $tpl->_ENGINE_parse_body("<li>
-					<a href=\"dansguardian2.databases.progress.php\">
+					<a href=\"dansguardian2.databases.progress.php?from-ufdbguard={$_GET["from-ufdbguard"]}\">
 					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}

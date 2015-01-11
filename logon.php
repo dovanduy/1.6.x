@@ -21,21 +21,23 @@
 	if(isset($_POST["php5-ldap-restart"])){restart_phpldap();exit;}
 	if(isset($_POST["Changelang"])){applyLang();exit;}
 	
-	if(isset($_SESSION["uid"])){
-		include_once('ressources/class.templates.inc');
-		include_once('ressources/class.ldap.inc');
-		include_once('ressources/class.user.inc');
-		include_once('ressources/class.langages.inc');
-		include_once('ressources/class.sockets.inc');
-		include_once('ressources/class.mysql.inc');
-		include_once('ressources/class.privileges.inc');
-		include_once('ressources/class.browser.detection.inc');
-		$users=new usersMenus();
-		if($users->AsAnAdministratorGeneric){
-			header("location:admin.index.php");exit;
+	if(!isset($_POST["VIA_API"])){
+		if(isset($_SESSION["uid"])){
+			include_once('ressources/class.templates.inc');
+			include_once('ressources/class.ldap.inc');
+			include_once('ressources/class.user.inc');
+			include_once('ressources/class.langages.inc');
+			include_once('ressources/class.sockets.inc');
+			include_once('ressources/class.mysql.inc');
+			include_once('ressources/class.privileges.inc');
+			include_once('ressources/class.browser.detection.inc');
+			$users=new usersMenus();
+			if($users->AsAnAdministratorGeneric){
+				header("location:admin.index.php");exit;
+			}
+			error_log("[{$_SESSION["uid"]}]::Redirect to users.index.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+			header("location:users.index.php");exit;
 		}
-		error_log("[{$_SESSION["uid"]}]::Redirect to users.index.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
-		header("location:users.index.php");exit;
 	}
 
 	
@@ -90,7 +92,12 @@ function start_js(){
 	if($logon_parameters["LANGUAGE_SELECTOR_REMOVE"]==null){$logon_parameters["LANGUAGE_SELECTOR_REMOVE"]="0";}	
 	if(!is_numeric($logon_parameters["LANGUAGE_SELECTOR_REMOVE"])){$logon_parameters["LANGUAGE_SELECTOR_REMOVE"]=0;}
 	if($logon_parameters["DEFAULT_LANGUAGE"]==null){$logon_parameters["DEFAULT_LANGUAGE"]="en";}	
-
+	$ldap=new clladp();
+	$CRYPT=0;
+	if($ldap->IsKerbAuth()){
+		$CRYPT=1;
+		
+	}
 
 $html="
 var MEM_USERNAME='';
@@ -137,16 +144,22 @@ var x_SendLogonStart=function(obj){
 		if(document.getElementById('YouCanAnimateIt')){
 			document.getElementById('YouCanAnimateIt').innerHTML='<img src=\"/img/preloader.gif\">';
 		}
-		var XHR = new XHRConnection();
-		var LANGUAGE_SELECTOR_REMOVE={$logon_parameters["LANGUAGE_SELECTOR_REMOVE"]};
 		
+		var XHR = new XHRConnection();
+		var CRYPT=$CRYPT;
+		var LANGUAGE_SELECTOR_REMOVE={$logon_parameters["LANGUAGE_SELECTOR_REMOVE"]};
+		var password=document.getElementById('artica_password').value;
 		if(document.getElementById('template')){Set_Cookie('artica-template', document.getElementById('template').value, '3600', '/', '', '');}
 		if(document.getElementById('change-artica-name')){Set_Cookie('change-artica-name', document.getElementById('change-artica-name').value, '3600', '/', '', '');}
 		if(!document.getElementById('artica_username')){alert('missing tag `artica_username`');}
 		if(!document.getElementById('artica_password')){alert('missing tag `artica_password`');}
 		
 		XHR.appendData('artica_username',document.getElementById('artica_username').value);
-		XHR.appendData('artica_password',MD5(document.getElementById('artica_password').value));
+		XHR.appendData('artica_password',MD5(password));
+		if(CRYPT==1){
+			XHR.appendData('artica_password_crypted',login_crypt(password));
+			
+		}
 		Set_Cookie('mem-logon-user', document.getElementById('artica_username').value, '3600', '/', '', '');
 		if(LANGUAGE_SELECTOR_REMOVE==1){
 			if(document.getElementById('lang')){XHR.appendData('lang',document.getElementById('lang').value);}
@@ -204,6 +217,8 @@ function pagelogon(){
 	
 
 	
+
+	
 	if($user->SQUID_INSTALLED){
 		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
@@ -248,6 +263,7 @@ if($user->OPENVPN_APPLIANCE){$imglogon="img/logo-openvpn.png";}
 if($user->APACHE_APPLIANCE){$imglogon="img/artica-apache.png";}
 if($user->MYCOSI_APPLIANCE){$imglogon="img/my-cosi-3d.png";}
 if($user->GATEWAY_APPLIANCE){$imglogon="img/artica-nas.png";}
+
 
 
 $page=CurrentPageName();
@@ -325,9 +341,7 @@ function LoadModal(){
 
 LoadAjax('logon-form','$page?logon-form-build=yes');
 </script>
-$addedlogo
 $newacc
-
 <center>
 <span id='logon-form'></span>
 
@@ -338,7 +352,7 @@ $newacc
 </div>
 </center>
 
-<script>ChangeHTMLTitle();</script>
+<script>ChangeHTMLTitle();Loadjs('js/mouse.js')</script>
 ";
 
 $tpl=new templates();
@@ -352,6 +366,7 @@ function logonForm($ouptut=false){
 	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
 	$sock=new sockets();
 	$users=new usersMenus();
+	$page=CurrentPageName();
 	$_SESSION["DisableSSHControl"]=trim($sock->GET_INFO("DisableSSHControl"));
 	$AllowInternetUsersCreateOrg=$sock->GET_INFO("AllowInternetUsersCreateOrg");
 	$AddInArticaLogonFrontPage=$sock->GET_INFO("AddInArticaLogonFrontPage");
@@ -424,6 +439,17 @@ function logonForm($ouptut=false){
 	
 	}
 	
+	if($user->WEBSECURIZE){
+		$template="<input type='hidden' id='template' value='Websecurize'>";
+		$changename="<input type='hidden' id='change-artica-name' value='Web Securize'>";
+	}
+	
+	if($user->LANWANSAT){
+		$template="<input type='hidden' id='template' value='LanWanSAT'>";
+		$changename="<input type='hidden' id='change-artica-name' value='LanWanSAT Proxy'>";
+	}
+	
+	
 if($AllowInternetUsersCreateOrg==1){
 	if($AddInArticaLogonFrontPage==1){
 		$addon="
@@ -476,7 +502,9 @@ if(!function_exists('mysql_connect')){
 	}
 
 	
-$html="<div id='loginform'>
+$html="
+<!-- LINE ".__LINE__." -->			
+<div id='loginform'>
 <center>
 <div style='color:red;font-size:13px;font-weight:bold;width:70%;
 font-family:Helvetica,Tahoma,Verdana,sans-serif'>{$_GET["ERROR"]}</div>
@@ -509,11 +537,7 @@ font-family:Helvetica,Tahoma,Verdana,sans-serif'>{$_GET["ERROR"]}</div>
 				</table>	
 	
 </div>$template$changename
-$ldap_error
-	
-$script
-
-";
+$ldap_error";
 if($ouptut){
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
@@ -639,13 +663,21 @@ function logon(){
 	$tpl=new templates();
 	$_POST["artica_password"]=url_decode_special($_POST["artica_password"]);
 	writelogs("Testing logon....{$_POST["artica_username"]}",__FUNCTION__,__FILE__,__LINE__);
-	writelogs("Testing logon.... password:{$_POST["artica_password"]}",__FUNCTION__,__FILE__,__LINE__);	
+	//writelogs("Testing logon.... password:{$_POST["artica_password"]}",__FUNCTION__,__FILE__,__LINE__);	
 	$_COOKIE["artica-language"]=$_POST["lang"];
 	$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
 	$sock->SET_INFO($FileCookyKey, $_POST["Changelang"]);
 	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
+	$VIA_API=false;
+	if(isset($_POST["VIA_API"])){$VIA_API=true;}
 	
-	if($_SESSION["uid"]<>null){echo "location:admin.index.php";return;}
+	if($_SESSION["uid"]<>null){
+		if(!$VIA_API){
+			echo "location:admin.index.php";
+			return;
+		}
+		
+	}
 	
 	$socks=new sockets();
 	
@@ -660,20 +692,30 @@ function logon(){
 	}
 	
 	if($_GLOBAL["ldap_admin"]==null){
+		if($VIA_API){echo "FALSE";return;}
 		$tpl=new templates();
 		echo $tpl->javascript_parse_text("{ldap_username_corrupt_text}");
 		return null;
 	}
 	
 	$md5submitted=$_POST["artica_password"];
+	if($VIA_API){$md5submitted=md5($_POST["artica_password"]);}
 	$md5Manager=md5(trim($_GLOBAL["ldap_password"]));
 	if(trim($GLOBALS["FixedLanguage"])<>null){$_POST["lang"]=$GLOBALS["FixedLanguage"];}
+	
+	
+	$trimed_artica_username=trim(strtolower($_POST["artica_username"]));
+	$trimed_ldap_admin=trim(strtolower($_GLOBAL["ldap_admin"]));
+	writelogs("Manager -> $trimed_artica_username ?=== $trimed_ldap_admin",_FUNCTION__,__FILE__,__LINE__);
+	
 
-	if(trim(strtolower($_POST["artica_username"]))==trim(strtolower($_GLOBAL["ldap_admin"]))){
+	if($trimed_artica_username==$trimed_ldap_admin){
+		writelogs("Manager: `YES`",__FUNCTION__,__FILE__,__LINE__);
 		if($md5Manager<>$md5submitted){
 			$tpl=new templates();
 			//writelogs("Testing logon.... password:{$_POST["artica_password"]}!==\"{$_GLOBAL["ldap_password"]}\"",__FUNCTION__,__FILE__,__LINE__);	
 			artica_mysql_events("Failed to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]}",@implode("\n",$notice),"security","security");
+			if($VIA_API){echo "FALSE";return;}
 			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return null;
 		}else{
@@ -700,7 +742,16 @@ function logon(){
 			[AsSystemAdministrator]="yes"
 			[AsPostfixAdministrator]="yes"
 			[AsArticaAdministrator]="yes"
+			[AsArticaMetaAdmin]="yes"
 			';
+			
+			
+		if($VIA_API){
+			writelogs("VIA API = TRUE -> BUILD SESSION",_FUNCTION__,__FILE__,__LINE__);
+			BuildSession($_SESSION["uid"]);
+			echo "TRUE";
+			return;
+		}
 		$tpl=new templates();
 		$sock->getFrameWork("squid.php?clean-catz-cache=yes");
 		writelogs("OK it is a global admin -> location:admin.index.php",_FUNCTION__,__FILE__,__LINE__);
@@ -709,11 +760,64 @@ function logon(){
 		}
 	}
 	
-	writelogs('This is not Global admin, so test Radius user...',__FUNCTION__,__FILE__,__LINE__);
+	
+	
+	$ldap=new clladp();
+	
+	if($ldap->IsKerbAuth()){
+		$userPassword=$_POST["artica_password"];
+		
+		if(isset($_POST["artica_password_crypted"])){
+			$userPassword=$_POST["artica_password_crypted"];
+			include_once(dirname(__FILE__)."/ressources/class.cryptform.inc");
+			$userPassword=logon_decrypt($userPassword);
+		}
+
+		writelogs("*** TEST Active Directory user {$_POST["artica_username"]} ****",__FUNCTION__,__FILE__,__LINE__);
+		$external_ad_search=new external_ad_search();
+		if($external_ad_search->CheckUserAuth($_POST["artica_username"],$userPassword)){
+			writelogs("*** TEST Active Directory user {$_POST["artica_username"]} success ****",__FUNCTION__,__FILE__,__LINE__);
+			$_SESSION["MINIADM"]=false;
+			setcookie("MINIADM", "No", time()+1000);
+			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+			setcookie("artica-language", $_POST["lang"], time()+172800);
+			$_SESSION["detected_lang"]=$_POST["lang"];
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
+			$users=new usersMenus();
+			$privs=new privileges($_POST["artica_username"]);
+			$privileges_array=$privs->privs;
+			DumpPrivileges($_POST["artica_username"],$privileges_array);
+			$users->_TranslateRights($privileges_array,true);
+			
+			setcookie("mem-logon-user", $_POST["artica_username"], time()+172800);
+			$_SESSION["privileges_array"]=$privs->privs;
+			$_SESSION["uid"]=$_POST["artica_username"];
+			
+			BuildSession($_POST["artica_username"]);
+			$sock->getFrameWork("squid.php?clean-catz-cache=yes");
+			$_SESSION["MINIADM"]=false;
+			setcookie("MINIADM", "No", time()+1000);
+			if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
+			echo("location:admin.index.php");
+			return;
+		}else{
+			if(is_array($GLOBALS["CLASS_ACTV"])){
+				while (list ($key, $line) = each ($GLOBALS["CLASS_ACTV"])){
+					writelogs("*** Active Directory $line",__FUNCTION__,__FILE__,__LINE__);
+				}
+			}
+			
+		}
+	}
+	
+	
+	
 	if(Radius_admins($_POST["artica_username"],$md5submitted)){
+		writelogs('*** TEST RADIUS USER ****',__FUNCTION__,__FILE__,__LINE__);
 		$tpl=new templates();
 		$sock->getFrameWork("squid.php?clean-catz-cache=yes");
 		writelogs("OK it is a global admin -> location:admin.index.php",_FUNCTION__,__FILE__,__LINE__);
+		if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
 		echo("location:admin.index.php");
 		exit;
 	}
@@ -723,7 +827,7 @@ function logon(){
 	$u=new user($_POST["artica_username"]);
 	$userPassword=$u->password;
 	if(trim($u->uidNumber)==null){
-		
+		if($VIA_API){echo "FALSE";return;}
 		writelogs('Unable to get user infos abort',__FUNCTION__,__FILE__);
 		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 		return null;
@@ -742,24 +846,30 @@ function logon(){
 			
 			$users->_TranslateRights($privileges_array,true);
 			if(!$users->IfIsAnuser(true)){
+				if($VIA_API){echo "TRUE";return;}
 				artica_mysql_events("Success to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]} as User",@implode("\n",$notice),"security","security");
 				writelogs("[{$_POST["artica_username"]}]: This is not an user =>admin.index.php",__FUNCTION__,__FILE__);
 				$sock->getFrameWork("squid.php?clean-catz-cache=yes");
 				$_SESSION["MINIADM"]=false;
 				setcookie("MINIADM", "No", time()+1000);
+				if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
 				echo("location:admin.index.php");
 				return null;
 			}
 			
+			
+			if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
 			writelogs("[{$_POST["artica_username"]}]: IS AN USER =>../user-backup/logon.php",__FUNCTION__,__FILE__);
 			
 			$array["USERNAME"]=$_POST["artica_username"];
 			$array["PASSWORD"]=md5($_POST["artica_username"]);
 			$credentials=base64_encode(serialize($array));
+			
 			artica_mysql_events("Success to redirect on the end-user management console from {$_SERVER["REMOTE_HOST"]} as User",@implode("\n",$notice),"security","security");
 			echo "location:../miniadm.logon.php?credentials=$credentials";
 			return null;
 		exit;}else{	
+		if($VIA_API){echo "FALSE";return;}
 		writelogs("[{$_POST["artica_username"]}]: The password typed  is not the same in ldap database...",__FUNCTION__,__FILE__);
 		artica_mysql_events("Failed to logon on the management console as user from {$_SERVER["REMOTE_HOST"]} (bad password)",@implode("\n",$notice),"security","security");
 		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
@@ -769,6 +879,20 @@ function logon(){
 
 	
 }
+
+function DumpPrivileges($username,$array){
+	while (list ($key, $val) = each ($array) ){
+		if($val=="yes"){
+			$f[]="[$key]=\"$val\"";
+		}
+		writelogs("[$username]: $key = $val",__FUNCTION__,__FILE__,__LINE__);
+	}
+	
+	
+	$_SESSION["privileges"]["ArticaGroupPrivileges"]=@implode("\n", $f);
+	
+}
+
 
 function Radius_admins($username,$MD5password){
 	
@@ -1038,6 +1162,7 @@ function buildPage(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	unset($_SESSION);
+	unset($_COOKIE["artica-template"]);
 	$sslcert=null;
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	if($GLOBALS["VERBOSE"]){echo "<H1>articaLang() function line ".__LINE__."</H1>";}
@@ -1048,24 +1173,41 @@ function buildPage(){
 	$TEMPLATE_INDEX="logon.html";
 	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
 	
+	$ie=browser_detection();
+	
+	if($ie=="ie"){
+		FATAL_ERROR_SHOW_128_NO_IE();
+		
+		return;
+	}
+	
 	
 	$logo="logo.gif";
 	$logo_bg="bg_header.gif";
 	$bg_color="#005447";
 	$ProductName="Artica";
+	$link_company_name="http://www.articatech.com";
+	$OEM_CompanyName="Artica Tech";
 	$template=null;
-	
+	$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$SSlBumpAllowLogon=intval($sock->GET_INFO("SSlBumpAllowLogon"));
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	$LOCK_TEMPLATE=false;
+	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
+	$AsMetaServer=intval($sock->GET_INFO("AsMetaServer"));
 	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){if($EnableNginx==1){$SquidActHasReverse=1;} }
 	$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	if($hostname==null){$hostname=$users->hostname;}
+	if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
+	$tpl2=new templates();
+	
 	
 	
 	if($users->KASPERSKY_WEB_APPLIANCE){
@@ -1075,24 +1217,56 @@ function buildPage(){
 	}
 	if($users->ZARAFA_APPLIANCE){$template="zarafa";$logo="logo-kav.gif";}	
 	if($users->MYCOSI_APPLIANCE){$logo_bg="bg_header_kavweb.gif";$logo="logo-mycosi.gif";$bg_color="#FFB683";$ProductName="MyCosi";$template="myCosi";}
-	if($users->APACHE_APPLIANCE){$template="Apache";$users->SAMBA_APPLIANCE=false;$logo="logo-kav.gif";}	
+	if($users->APACHE_APPLIANCE){$template="Apache";$users->SAMBA_APPLIANCE=false;$logo="logo-kav.gif";}
+	if($users->WEBSECURIZE){
+			$LOCK_TEMPLATE=true;
+			$users->SQUID_APPLIANCE=false;
+			$template="Websecurize";
+			$users->SAMBA_APPLIANCE=false;
+			$logo="logo-kav.gif";
+			$ProductName="Web Securize";
+			$link_company_name="http://www.lemnia.com";
+			$OEM_CompanyName="LEMNIA SAS";
+	}
+	if($users->LANWANSAT){
+		$LOCK_TEMPLATE=true;
+		$users->SQUID_APPLIANCE=false;
+		$template="LanWanSAT";
+		$users->SAMBA_APPLIANCE=false;
+		$logo="logo-kav.gif";
+		$ProductName="LanWanSAT Proxy";
+		$link_company_name="http://lanwansan.synology.me/wordpress/";
+		$OEM_CompanyName="LanWanSan";
+		
+	}
+	
+	
+	$LinkColor="white";
+	if(is_file("/usr/share/artica-postfix/ressources/templates/$template/logon-link-color.conf")){
+		$LinkColor=trim(@file_get_contents("/usr/share/artica-postfix/ressources/templates/$template/logon-link-color.conf"));
+	}
+	
+	
 	
 	if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 	
 	if($users->SQUID_APPLIANCE){
 		if(!$users->KASPERSKY_WEB_APPLIANCE){
-			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID_APPLIANCE DETECTED</div>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:$LinkColor;color:black'>".__LINE__.": SQUID_APPLIANCE DETECTED</div>\n";}
 			$template="Squid";
 		}
 	}
 	
-	
-	if($users->LOAD_BALANCE_APPLIANCE){$template="LoadBalance";}
-	if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
-	if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
-	if($users->GATEWAY_APPLIANCE){$template="Gateway";$TEMPLATE_INDEX="logon.html";}
-	if($users->WORDPRESS_APPLIANCE){$template="Wordpress";}
-	
+	if(!$LOCK_TEMPLATE){
+		if($users->LOAD_BALANCE_APPLIANCE){$template="LoadBalance";}
+		if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
+		if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
+		if($users->GATEWAY_APPLIANCE){$template="Gateway";$TEMPLATE_INDEX="logon.html";}
+		if($users->WORDPRESS_APPLIANCE){$template="Wordpress";}
+		if($AsCategoriesAppliance==1){$template="UfdbCat";}
+		if($AsMetaServer==1){$template="MetaServer";}
+		
+	}
 	
 	
 	
@@ -1130,8 +1304,8 @@ function buildPage(){
 		}
 	}
 	
-	if($users->SAMBA_APPLIANCE){$template="Samba";}
-	if($users->WORDPRESS_INSTALLED){$template="Wordpress";}
+	if(trim($template)==null){if($users->SAMBA_APPLIANCE){$template="Samba";}}
+	if(trim($template)==null){if($users->WORDPRESS_INSTALLED){$template="Wordpress";}}
 	if(trim($template)==null){if($users->SQUID_INSTALLED){$template="Squid";}}
 	if(trim($template)==null){if($users->SAMBA_INSTALLED){$template="Samba";}}
 	if(trim($template)==null){if($users->APACHE_INSTALLED){$template="Apache";}}
@@ -1139,6 +1313,19 @@ function buildPage(){
 	if($template=="Squid"){
 		if($SquidActHasReverse==1){$TEMPLATE_INDEX="logonr.html";}
 		if($AsSquidLoadBalancer==1){$TEMPLATE_INDEX="logonb.html";}
+		if($MikrotikTransparent==1){$TEMPLATE_INDEX="logon_mikrotik.html";}
+		
+	}
+	
+	if($users->APP_UFDBGUARD_INSTALLED){
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) AS tcount FROM personal_categories WHERE PublicMode=1";
+		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+		$ligneCatz=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if($ligneCatz["tcount"]>0){
+			$categoriesPublic="<span style='color:$LinkColor'>&nbsp;|&nbsp;</span>
+			<a href='public.categories.personnal.php' style='color:$LinkColor'>".$tpl2->_ENGINE_parse_body("{categories}")."</a>&nbsp;";
+		}
 	}
 	
 
@@ -1176,7 +1363,7 @@ function buildPage(){
 		}
 		
 		
-		$lang2Link="<a href=\"javascript:blur();\" OnClick=\"javascript:PopupLogonLang()\" style='color:white'>{language}</a>";
+		$lang2Link="<a href=\"javascript:blur();\" OnClick=\"javascript:PopupLogonLang()\" style='color:$LinkColor !important'>{language}</a>";
 		if(trim($GLOBALS["FixedLanguage"])<>null){$lang2Link=null;}
 		
 		
@@ -1195,8 +1382,6 @@ function buildPage(){
 		if(is_file($TITLE_RESSOURCE)){$title=@file_get_contents($TITLE_RESSOURCE);$title=str_replace("%server", $users->hostname, $title);}else{$title=$users->hostname;}
 		
 		
-		if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
-		$tpl2=new templates();
 		$FPM=null;
 		if(method_exists("templates","parsePHPModules")){
 			$modules=$tpl2->parsePHPModules();
@@ -1217,7 +1402,15 @@ function buildPage(){
 		$UnlockCompanyName=$sock->GET_INFO("UnlockCompanyName");
 		if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
 		
-		$miniadm="<span style='color:white'>&nbsp;|&nbsp;</span><a href='miniadm.logon.php' style='color:white'>End-User WebAccess</a>&nbsp;";
+		
+		$roundcube_uri=roundcube_uri($users);
+		if($roundcube_uri<>null){
+			$miniadm="<span style='color:$LinkColor !important'>&nbsp;|&nbsp;</span><a href=\"$roundcube_uri\" style='color:$LinkColor;text-decoration:underline'>WebMail<a>&nbsp;";
+		}
+		
+		
+		
+		$miniadm=$miniadm."<span style='color:$LinkColor'>&nbsp;|&nbsp;</span><a href='miniadm.logon.php' style='color:$LinkColor'>End-User WebAccess</a>&nbsp;";
 		if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 		$company_name=$WizardSavedSettings["company_name"];		
 		if($UnlockCompanyName<>null){$company_name=$UnlockCompanyName;}
@@ -1225,7 +1418,7 @@ function buildPage(){
 		
 		if($company_name<>null){
 				$company_name="<center style='margin:5px;font-size:16px;padding:5px;
-				border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";
+				border-top:1px solid $LinkColor;border-bottom:1px solid $LinkColor'>-&nbsp;$company_name&nbsp;-</center>";
 		}
 		
 		$company_name="<center style='margin:5px;font-size:12px;padding:5px;'>-&nbsp;$hostname&nbsp;-</center>$company_name";
@@ -1247,19 +1440,19 @@ function buildPage(){
 		if($users->SQUID_INSTALLED){
 			if($SQUIDEnable==1){
 				if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID INSTALLED</div>\n";}
-				$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:white'>Proxy requests</a>&nbsp;";
+				$userslogs="<span style='color:$LinkColor'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:$LinkColor'>Proxy requests</a>&nbsp;";
 				$EnableSquidUrgencyPublic=$sock->GET_INFO("EnableSquidUrgencyPublic");
 				if(!is_numeric($EnableSquidUrgencyPublic)){$EnableSquidUrgencyPublic=0;}
 				if($EnableSquidUrgencyPublic==1){
 					$urgency_mode=$tpl2->_ENGINE_parse_body("{urgency_mode}");
-					$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php',true);\" style='color:white'>$urgency_mode</a>&nbsp;$userslogs";
+					$userslogs="<span style='color:$LinkColor'>&nbsp;|&nbsp;</span><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php',true);\" style='color:$LinkColor'>$urgency_mode</a>&nbsp;$userslogs";
 				}
 	
 				if($SSlBumpAllowLogon==1){
 					if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
 						$certificate=$tpl2->_ENGINE_parse_body("{certificate}");
-						$sslcert="<span style='color:white'>&nbsp;|&nbsp;</span>
-								<a href='ressources/squid/certificate.der' style='color:white'>
+						$sslcert="<span style='color:$LinkColor'>&nbsp;|&nbsp;</span>
+								<a href='ressources/squid/certificate.der' style='color:$LinkColor'>
 						$certificate</a>&nbsp;
 								";
 					}
@@ -1268,7 +1461,7 @@ function buildPage(){
 			}
 			
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID !!NOT!! INSTALLED</div>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:$LinkColor'>".__LINE__.": SQUID !!NOT!! INSTALLED</div>\n";}
 		}
 		
 		
@@ -1276,11 +1469,15 @@ function buildPage(){
 			$WEBSEVERV="&nbsp;|&nbsp;Kav4Proxy v{$users->KAV4PROXY_VERSION}";
 			
 		}
+
+
 		
 		$ARTICAVER=@file_get_contents("VERSION").$WEBSEVERV.$PHPVERSION.$FPM;
 		
-		$tpl=str_replace("{COPYRIGHT}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.com\" style='color:white'>Artica Tech</a>",$tpl);
-		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.com\" style='color:white'>Artica Tech</a>",$tpl);
+
+		
+		$tpl=str_replace("{COPYRIGHT}","$lang2Link$miniadm$userslogs$sslcert$categoriesPublic<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"$link_company_name\" style='color:$LinkColor'>$OEM_CompanyName</a>",$tpl);
+		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert$categoriesPublic<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"$link_company_name\" style='color:$LinkColor'>$OEM_CompanyName</a>",$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		
@@ -1341,6 +1538,7 @@ function buildPage(){
 	
 		
 		if($GLOBALS["VERBOSE"]){echo "Success return form ". strlen($tpl)." bytes lenght<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "Success return complete page line ".__LINE__."<br>\n";}
 		return $tpl2->_ENGINE_parse_body($tpl)."<script>//LockPage();</script>";
 		
 	}
@@ -1399,6 +1597,7 @@ $html="<html xmlns='http://www.w3.org/1999/xhtml'>
 
 </head>
 <body>
+<!-- LINE ".__LINE__." -->		
 <center>
 <div style=\"width:900px;background-image:url(/css/images/$logo_bg);background-repeat:repeat-x;background-position:center top;margin:0px;padding:0px;\">
 	<table style=\"width:100%;margin:0px;padding:0px;border:0px;\">
@@ -1508,7 +1707,8 @@ $('#loginform').modal({onOpen: function (dialog) {
 </tr>
 <tr>
 <td valign='top' align=left colspan=2 >
-<div style='background-color:#736e6c;font-size:13px;color:white;height:25px;padding:0px;margin:0px;padding-top:5px;width:900px;text-align:center;margin-left:-5px;margin-bottom:-3px'>
+<div style='background-color:#736e6c;font-size:13px;color:$LinkColor;height:25px;padding:0px;margin:0px;padding-top:5px;
+width:900px;text-align:center;margin-left:-5px;margin-bottom:-3px'>
 
 <strong>$ProductName Copyright 2006-". date('Y')."</strong>
 </div>
@@ -1539,7 +1739,7 @@ Loadjs('logon.php?start=yes',true);</script>
 		<div id=\"SearchUser\" style='width:0;height:0'></div>
 </body>
 </html>";	
-if($GLOBALS["VERBOSE"]){echo "Success return complete page line ".__LINE__."<br>\n";}
+
 return $html;
 
 }
@@ -1734,5 +1934,214 @@ StartBrowserLoc();
 $fillUsername
 ";
 }
+function roundcube_uri($users){
+	
+	if(!$users->roundcube_installed){return null;}
+	$sock=new sockets();
+	$RoundCubeHTTPEngineEnabled=intval($sock->GET_INFO("RoundCubeHTTPEngineEnabled"));
+	if($RoundCubeHTTPEngineEnabled==0){return null;}
+	$RoundCubeUserLink=$sock->GET_INFO("RoundCubeUserLink");
+	if($RoundCubeUserLink<>null){return $RoundCubeUserLink;}
+	
+	
+	$RoundCubeHTTPSPort=intval($sock->GET_INFO("RoundCubeHTTPSPort"));
+	$RoundCubeHTTPPort=intval($sock->GET_INFO("RoundCubeHTTPPort"));
+	if($RoundCubeHTTPSPort==0){$RoundCubeHTTPSPort=449;}
+	if($RoundCubeHTTPPort==0){$RoundCubeHTTPPort=8888;}
+	$RoundCubeUseSSL=intval($sock->GET_INFO("RoundCubeUseSSL"));
+	
+	
+	$RDCUBE_proto="http";
+	$RDCUBE_port=$RoundCubeHTTPPort;
+	
+	if($RoundCubeUseSSL==1){
+		$RDCUBE_proto="https";
+		$RDCUBE_port=$RoundCubeHTTPSPort;
+	}
+		
+	$uri="$RDCUBE_proto://{$_SERVER["SERVER_NAME"]}:$RDCUBE_port";
+	$sock->SET_INFO("RoundCubeUserLink",$uri);
+	return $uri;
+	
+}
+
+function FATAL_ERROR_SHOW_128_NO_IE(){
+	$tpl=new templates();
+	
+	$NOIEPLEASE_TEXT=$tpl->_ENGINE_parse_body("{NOIEPLEASE_TEXT}");
+	$ie_not_really_compatible=$tpl->_ENGINE_parse_body("{ie_not_really_compatible}");
+	$incompatible_browser=$tpl->_ENGINE_parse_body("{incompatible_browser}");
+	$sorry_ie=$tpl->_ENGINE_parse_body("{sorry_ie}");
+	$f[]="<!DOCTYPE HTML>";
+	$f[]="<html>";
+	$f[]="<head>";
+	$f[]="";
+	$f[]="<title>$incompatible_browser</title>";
+	$f[]="<script type=\"text/javascript\">";
+	$f[]="    function Blur(){ }";
+	$f[]="    function checkIfTopMostWindow()";
+	$f[]="    {";
+	$f[]="        if (window.top != window.self) ";
+	$f[]="        {  ";
+	$f[]="            document.body.style.opacity    = \"0.0\";";
+	$f[]="            document.body.style.background = \"#FFFFFF\";";
+	$f[]="        }";
+	$f[]="        else";
+	$f[]="        {";
+	$f[]="            document.body.style.opacity    = \"1.0\";";
+	$f[]="            document.body.style.background = \"#8c1919\";";
+	$f[]="        } ";
+	$f[]="    }";
+	$f[]="</script>";
+	$f[]="<style type=\"text/css\">";
+	$f[]="    body {";
+	$f[]="        color:            #FFFFFF; ";
+	$f[]="        background-color: #FFFFFF; ";
+	$f[]="        font-family:      Arial; ";
+	$f[]="        font-weight:      lighter;";
+	$f[]="        font-size:        14pt; ";
+	$f[]="        ";
+	$f[]="        opacity:            0.0;";
+	$f[]="        transition:         opacity 2s;";
+	$f[]="        -webkit-transition: opacity 2s;";
+	$f[]="        -moz-transition:    opacity 2s;";
+	$f[]="        -o-transition:      opacity 2s;";
+	$f[]="        -ms-transition:     opacity 2s;    ";
+	$f[]="    }";
+	$f[]="    h1 {";
+	$f[]="        font-size: 72pt; ";
+	$f[]="        margin-bottom: 0; ";
+	$f[]="        font-family: Arial;";
+	$f[]="        margin-top: 0 ;";
+	$f[]="    }    ";
+	$f[]=".bad{ font-size: 110px; float:left; margin-right:30px; }";
+	$f[]=".bad:before{ content: \"\2639\";}";
+	$f[]="    h2 {";
+	$f[]="        font-size: 22pt; ";
+	$f[]="        font-family: Arial; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }   ";
+	$f[]="    h3 {";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: Arial; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }   ";
+	$f[]="    #wrapper {";
+	$f[]="        width: 700px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]="    #info {";
+	$f[]="        width: 600px ;";
+	$f[]="        margin-left: auto ;";
+	$f[]="        margin-right: auto ;";
+	$f[]="    }    ";
+	$f[]=".important{";
+	$f[]="        font-size: 18pt; ";
+	$f[]="        font-family: Arial; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }    ";
+	$f[]="p {";
+	$f[]="        font-size: 12pt; ";
+	$f[]="        font-family: Arial; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="        margin-bottom: 0 ;";
+	$f[]="    }    ";
+	$f[]="    td.info_title {    ";
+	$f[]="        text-align: right;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="        min-width: 100px;";
+	$f[]="    }";
+	$f[]="    td.info_content {";
+	$f[]="        text-align: left;";
+	$f[]="        padding-left: 10pt ;";
+	$f[]="        font-size:  12pt;  ";
+	$f[]="    }";
+	$f[]="    .break-word {";
+	$f[]="        width: 500px;";
+	$f[]="        word-wrap: break-word;";
+	$f[]="    }    ";
+	$f[]="    a {";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: #FFFFFF; ";
+	$f[]="        font-family: Arial; ";
+	$f[]="        font-weight: lighter;";
+	$f[]="    }";
+	$f[]="    a:visited{";
+	$f[]="        text-decoration: underline;";
+	$f[]="        color: #FFFFFF; ";
+	$f[]="    }";
+	$f[]="			";
+	$f[]="			";
+	$f[]=".Button2014-lg {";
+	$f[]="	border-radius: 6px 6px 6px 6px;";
+	$f[]="	-moz-border-radius: 6px 6px 6px 6px;";
+	$f[]="	-khtml-border-radius: 6px 6px 6px 6px;";
+	$f[]="	-webkit-border-radius: 6px 6px 6px 6px;";
+	$f[]="	font-size: 18px;";
+	$f[]="	line-height: 1.33;";
+	$f[]="	padding: 10px 16px;";
+	$f[]="}";
+	$f[]=".Button2014-success {";
+	$f[]="	background-color: #625FFD;";
+	$f[]="	border-color: #000000;";
+	$f[]="	color: #FFFFFF;";
+	$f[]="}";
+	$f[]=".Button2014 {";
+	$f[]="	-moz-user-select: none;";
+	$f[]="	border: 1px solid transparent;";
+	$f[]="	border-radius: 4px 4px 4px 4px;";
+	$f[]="	cursor: pointer;";
+	$f[]="	display: inline-block;";
+	$f[]="	font-size: 22px;";
+	$f[]="	font-weight: normal;";
+	$f[]="	line-height: 1.42857;";
+	$f[]="	margin-bottom: 0;";
+	$f[]="	padding: 6px 22px;";
+	$f[]="	text-align: center;";
+	$f[]="	vertical-align: middle;";
+	$f[]="	white-space: nowrap;";
+	$f[]="	font-family: Arial;";
+	$f[]="}";
+	$f[]="</style>";
+	$f[]="</head>";
+	$f[]="<body onLoad='checkIfTopMostWindow()'>";
+	$f[]="<div id=\"wrapper\">";
+	$f[]="    <h1 class=bad></h1>";
+	$f[]="    <h2>$incompatible_browser</h2>    ";
+	$f[]="    <p>$sorry_ie</p>";
+	$f[]="    <h3>Microsoft Internet Explorer</h3>";
+	
+	$f[]="    ";
+	$f[]="    <div id=\"info\"><p>&nbsp;</p>";
+	$f[]="    <p>$NOIEPLEASE_TEXT<p>&nbsp;</p><p>$ie_not_really_compatible</p>";
+	
+	$f[]="<p></p>";
+
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="<!-- ";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	$f[]="-->";
+	$f[]="</html>";
+	echo @implode("\n", $f);
+	
+}
+
 
 ?>

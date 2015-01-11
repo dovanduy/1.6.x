@@ -36,6 +36,16 @@ function js(){
 function step0(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	
+	$array=$q->WebFilteringAllSystems();
+	if(count($array)>0){
+		echo FATAL_ERROR_SHOW_128("{webfiltering_all_system_warning}<br>".@implode("\n", $array));
+		return;
+			
+	}
+	
+	
 	$t=time();
 	echo "<div id='main-$t'></div>
 	<script>
@@ -62,7 +72,7 @@ function step1(){
 	$t=time();
 	$html="
 <div style='font-size:22px;margin-bottom:20px'>{wizard_rule}</div>
-<div class=explain style='font-size:18px'>{wizard_rule_ufdb_1}</div>	
+<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_1}</div>	
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -117,7 +127,7 @@ function step2_IPADDR(){
 	$WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 	$html="
 <div style='font-size:22px;margin-bottom:20px'>{ipaddr}</div>
-<div class=explain style='font-size:18px'>{wizard_rule_ufdb_2}</div>
+<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_2}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -167,7 +177,7 @@ function step2_AD(){
 		
 	$html="
 <div style='font-size:22px;margin-bottom:20px'>{ActiveDirectory}</div>
-<div class=explain style='font-size:18px'>{wizard_rule_ufdb_ad}</div>
+<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_ad}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -214,17 +224,18 @@ function step3(){
 	$t=$_GET["t"];
 	$page=CurrentPageName();
 	$tpl=new templates();
-	
-$ARRAY[0]="{block_sexual_websites}";
-$ARRAY[1]="{block_susp_websites}";
-$ARRAY[2]="{block_multi_websites}";
+$ARRAY[0]="{block_unproductive_websites}";	
+$ARRAY[1]="{block_sexual_websites}";
+$ARRAY[2]="{block_susp_websites}";
+$ARRAY[3]="{block_multi_websites}";
+
 $sock=new sockets();
 $WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 if(!is_numeric($WizardUFDB["CATZ"])){$WizardUFDB["CATZ"]=0;}
 	
 	$html="
 <div style='font-size:22px;margin-bottom:20px'>{categories}</div>
-<div class=explain style='font-size:18px'>{wizard_rule_ufdb_3}</div>
+<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_3}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -270,9 +281,10 @@ function step4(){
 		$ARRAY1["AD"]="{ActiveDirectory}";
 	}
 	
-	$ARRAY[0]="{block_sexual_websites}";
-	$ARRAY[1]="{block_susp_websites}";
-	$ARRAY[2]="{block_multi_websites}";
+$ARRAY[0]="{block_unproductive_websites}";	
+$ARRAY[1]="{block_sexual_websites}";
+$ARRAY[2]="{block_susp_websites}";
+$ARRAY[3]="{block_multi_websites}";
 	$sock=new sockets();
 	$WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 	if(!is_numeric($WizardUFDB["CATZ"])){$WizardUFDB["CATZ"]=0;}
@@ -296,7 +308,7 @@ function step4(){
 	
 	$html="
 <div style='font-size:22px;margin-bottom:20px'>{build_the_rule}</div>
-<div class=explain style='font-size:18px'>{wizard_rule_ufdb_4}</div>
+<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_4}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -407,20 +419,46 @@ function step5(){
 	$array["sect"]=true;
 	$array["proxy"]=true;
 	$array["gamble"]=true;
+	$array["redirector"]=true;
 	
 	if($WizardUFDB["CATZ"]==0){
+		$array["porn"]=true;
+		$array["agressive"]=true;
+		$array["dynamic"]=true;
+		
+		$array["alcohol"]=true;
+		$array["astrology"]=true;
+		$array["dangerous_material"]=true;
+		$array["drugs"]=true;
+		$array["hacking"]=true;
+		$array["tattooing"]=true;
+		$array["terrorism"]=true;
+		
+		$array["dating"]=true;
+		$array["mixed_adult"]=true;
+		$array["sex/lingerie"]=true;
+		$array["publicite"]=true;
+		$array["tracker"]=true;
+		$array["marketingware"]=true;
+		$array["mailing"]=true;
+		$array["downloads"]=true;
+		$array["gamble"]=true;
+	}	
+	
+	
+	if($WizardUFDB["CATZ"]==1){
 		$array["porn"]=true;
 		$array["dating"]=true;
 		$array["mixed_adult"]=true;
 		$array["sex/lingerie"]=true;
 	}
-	if($WizardUFDB["CATZ"]==1){
+	if($WizardUFDB["CATZ"]==2){
 		$array["publicite"]=true;
 		$array["tracker"]=true;
 		$array["marketingware"]=true;
 		$array["mailing"]=true;
 	}
-	if($WizardUFDB["CATZ"]==2){
+	if($WizardUFDB["CATZ"]==3){
 		$array["audio-video"]=true;
 		$array["webtv"]=true;
 		$array["music"]=true;

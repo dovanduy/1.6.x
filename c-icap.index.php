@@ -130,6 +130,10 @@ function status(){
 	$users=new usersMenus();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));	
 	$CICAP=DAEMON_STATUS_ROUND("C-ICAP",$ini,null,0);
+	
+	$CLAMAv=DAEMON_STATUS_ROUND("CLAMAV",$ini,null,0);
+	$FRESHCLAM=DAEMON_STATUS_ROUND("FRESHCLAM",$ini,null,0);
+	
 	$CICAP_LOCAL_WARNING=null;
 	$t=time();
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
@@ -172,9 +176,9 @@ function status(){
 	<div id='$t'>
 	<table style='width:100%'>
 	<tr>
-		<td width=350px valign='top'>$CICAP$CICAP_LOCAL_WARNING
+		<td width=350px valign='top'>$CICAP$CLAMAv$FRESHCLAM$CICAP_LOCAL_WARNING
 			<div style='text-align:right'>". 
-				imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_config_cicap')")."
+				imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_icapwebfilter_tabs');RefreshTab('main_config_cicap')")."
 			</div>
 		</td>
 		<td valign='top'>
@@ -201,17 +205,13 @@ function status(){
 			
 		</table>
 		</div>
-	</td>
-	</tr>
-	<tr>
-	<td></td>
-	<td>
-	<div style='width:98%' class=form>
+			<div style='width:98%' class=form>
 	". Paragraphe_switch_img("{ACTIVATE_ICAP_AV}", "{ACTIVATE_ICAP_AV_TEXT}","CicapEnabled-$t",$CicapEnabled, null,450)."
 	<hr>
-	<div style='text-align:right'>". button("{apply}","SaveEnable$t()",18)."</td>
-			
+	<div style='text-align:right'>". button("{apply}","SaveEnable$t()",32)."</td>
 	</td>
+	</tr>
+
 	</table>
 	</div>
 <script>
@@ -408,7 +408,7 @@ function clamav(){
 	
 	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}			
 	$html="
-	<div style='font-size:16px;margin:8px' class=explain>{clamav_settings_text}</div>
+	<div style='font-size:16px;margin:8px' class=text-info>{clamav_settings_text}</div>
 	
 	<div id='ffmcc2' style='width:98%' class=form>
 	<table style='width:99%'>
@@ -595,7 +595,7 @@ function daemons(){
 	
 	
 	$html="
-	<div style='font-size:22px' class=explain >{daemon_settings_text}</div>
+	<div style='font-size:22px' class=text-info >{daemon_settings_text}</div>
 	<input type='hidden' id='EnableClamavInCiCapCheck' value='$EnableClamavInCiCap'>
 	<div id='ffmcc1' style='width:95%'  class=form>
 	<table  style='width:100%'>	
@@ -876,8 +876,8 @@ function save_settings(){
 
 function events_table(){
 	$sock=new sockets();
-	$zdata=$sock->getFrameWork("services.php?cicap-events=yes");
-	$rows=unserialize(base64_decode($zdata));
+	$sock->getFrameWork("services.php?cicap-events=yes");
+	$rows=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cicap.events"));
 	@krsort($rows);
 	$data = array();
 	$data['page'] = 1;

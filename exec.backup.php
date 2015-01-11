@@ -369,6 +369,7 @@ if(!$GLOBALS["NO_STANDARD_BACKUP"]){
 			backup_events($ID,"initialization","INFO, MySQL Database processing",__LINE__);
 			backup_mysql($ID,0);
 			backup_events($ID,"initialization","INFO, Restarting MySQL service...",__LINE__);
+			mysql_admin_mysql(0,"Restarting mysql service.", null,__FILE__,__LINE__);
 			shell_exec("/etc/init.d/mysql restart");
 			backup_events($ID,"initialization","INFO, Artica settings processing",__LINE__);
 			backup_artica($ID);
@@ -427,6 +428,7 @@ if(!$GLOBALS["NO_STANDARD_BACKUP"]){
 	if(!$q->ok){
 		if(strpos($q->mysql_error, "gone away")){
 			backup_events($ID,"personal","ERROR, mysql $q->mysql_error Restarting MySQL server (Patch p.20130807)",__LINE__);
+			mysql_admin_mysql(0,"Restarting mysql service.", $q->mysql_error ,__FILE__,__LINE__);
 			shell_exec("/etc/init.d/mysql restart");
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,"artica_backup");

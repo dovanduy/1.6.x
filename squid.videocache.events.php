@@ -35,7 +35,7 @@ function page(){
 	$client=$tpl->_ENGINE_parse_body("{client}");
 	$sitename=$tpl->javascript_parse_text("{sitename}");
 	$uuid=$tpl->javascript_parse_text("{uuid}");
-	$uri=$tpl->javascript_parse_text("{uri}");
+	$uri=$tpl->javascript_parse_text("{uri2}");
 	$t=time();
 	$SE_SERV="{display: '$service', name : 'service'},";
 	$TB_SERV="{display: '$service', name : 'zDate', width :97, sortable : false, align: 'left'},";
@@ -61,13 +61,13 @@ $('#events-table-$t').flexigrid({
 url: '$page?search=yes&prepend={$_GET["prepend"]}&force-prefix={$_GET["force-prefix"]}',
 	dataType: 'json',
 	colModel : [
-	{display: '$date', name : 'zDate', width :93, sortable : true, align: 'left'},
+	{display: '$date', name : 'zDate', width :125, sortable : true, align: 'left'},
 	{display: 'PID', name : 'zDate', width :40, sortable : false, align: 'left'},
 	{display: '$client', name : 'ipaddr', width : 88, sortable : false, align: 'left'},
 	{display: '$sitename', name : 'sitename', width : 69, sortable : false, align: 'left'},
 	{display: 'HIT', name : 'HIT', width : 81, sortable : false, align: 'left'},
 	{display: '$uuid', name : 'sitename', width : 128, sortable : false, align: 'left'},
-	{display: '$uri', name : 'uri', width : 396, sortable : false, align: 'left'},
+	{display: '$uri', name : 'uri', width : 532, sortable : false, align: 'left'},
 	],
 	$buttons
 
@@ -144,6 +144,11 @@ $data['rows'] = array();
 if($_POST["sortname"]<>null){
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 }
+
+
+$REPLACEPOINT["VIDEOCACHE_START"]="{starting}";
+$REPLACEPOINT["VIDEOCACHE_EXIT"]="{stopping}";
+
 $today=$tpl->_ENGINE_parse_body("{today}");
 $c=0;
 if($GLOBALS["VERBOSE"]){echo "<H1>Array of ".count($array)." Lines</H1>\n";}
@@ -162,27 +167,14 @@ while (list ($key, $line) = each ($array) ){
 	$uid=$re[7];
 	$uri=$re[8];
 		
-	if(preg_match("#([0-9]+)\/(.+?)\/([0-9]+):([0-9]+):([0-9]+):([0-9]+)#", $xdate,$ri)){
-		$day=$ri[1];
-		$Month=$ri[2];
-		$year=$ri[3];
-		$hour=$ri[4];
-		$min=$ri[5];
-		$sec=$ri[6];
-		$strtime="$day $Month $year $hour:$min:$sec";
-		$strtotime=strtotime($strtime);
+	if(isset($REPLACEPOINT[$HIT])){
+		$HIT=$tpl->_ENGINE_parse_body($REPLACEPOINT[$HIT]);
 	}
-
-	$zdate=date("Y-m-d H:i:s",$date);
-	if(date("Y-m-d",$strtotime)==date("Y-m-d")){
-		$date=$today." ".date('H:i:s',strtotime($date));
-	}else{
-		$date=date('m-d H:i:s',strtotime($date));
-	}
+	
 		
 			
 	$lines=array();
-	$lines[]="$style$date$styleoff";
+	$lines[]="$style$xdate$styleoff";
 	$lines[]="$style$pid$styleoff";
 	$lines[]="$style$ipaddr$styleoff";
 	$lines[]="$style$WEBSITE$styleoff";

@@ -1,5 +1,4 @@
 <?php
-
 class usb{
 	var $uuid;
 	var $path;
@@ -239,7 +238,24 @@ function getSystemMemInfo(){
 			$meminfo[$key] = trim($val);
 		}
 		return $meminfo;
-	}		
+	}	
+
+	
+function system_is_overloaded_report(){
+		if(!class_exists("unix")){return;}
+		$unix=new unix();
+		$python=$unix->find_program("python");
+		$results[]="************* Memory summarize ************************";
+		$results[]="";
+		exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
+		return @implode("\n", $results);
+		$ps=$unix->find_program("ps");
+		$results[]="";
+		$results[]="";
+		$results[]="************* Processes ************************";
+		exec("$ps auxww 2>&1",$results);
+		return @implode("\n", $results);
+	}
 
 
 function system_is_overloaded($file=null){
@@ -303,9 +319,12 @@ function system_is_overloaded($file=null){
 		
 		$d->events("Load: OVERLOADED $called","/var/log/artica-postfix/syslog.log");
 		if($GLOBALS["VERBOSE"]){echo "$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called\n";}
-		if(!$notlog[$file]){
-			os_system_ToSyslog("OVERLOADED [$internal_load] ( Max: $cpunum) $called ");
-			$d->events("$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called","/var/log/artica-postfix/artica-status.debug");
+		
+		if(isset($notlog[$file])){
+			if(!$notlog[$file]){
+				os_system_ToSyslog("OVERLOADED [$internal_load] ( Max: $cpunum) $called ");
+				$d->events("$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called","/var/log/artica-postfix/artica-status.debug");
+			}
 		}
 		return true;
 		
@@ -355,10 +374,22 @@ function SquidStatisticsTasksOverTime(){
 		return true;}
 	
 	$unix=new unix();
-	$time=$unix->file_time_min("/var/run/squid-stats-central.run");
+	$time=0;
+	if(is_file("/var/run/squid-stats-central.run")){
+		$time=$unix->file_time_min("/var/run/squid-stats-central.run");
+		if($GLOBALS["VERBOSE"]){echo "SquidStatisticsTasksOverTime(): Last execution: {$time}Mn MAX:{$GLOBALS["ArticaProxyStatisticsMaxTime"]}mn\n";}
+	}
+	
+	
 	if($time>=$GLOBALS["ArticaProxyStatisticsMaxTime"]){
 		if($GLOBALS["VERBOSE"]){echo "/var/run/squid-stats-central.run {$time}Mn > {$GLOBALS["ArticaProxyStatisticsMaxTime"]}Mn STOP! \n";}
+		
+		
 		return true;}
+		
+		if($GLOBALS["VERBOSE"]){
+			$reste=$GLOBALS["ArticaProxyStatisticsMaxTime"]-$time;
+			echo "SquidStatisticsTasksOverTime(): Again :{$reste}Mn OK\n";}
 	return false;
 }
 

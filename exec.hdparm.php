@@ -31,15 +31,16 @@ function GetDisks(){
 
 function launch_tests(){
 	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		system_admin_events("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__,"system");
 		return;
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
 		system_admin_events("Overloaded, aborting task...",__FUNCTION__,__FILE__,__LINE__,"system");
+		$unix->THREAD_COMMAND_SET("$php ".__FILE__);
 		return;
 	}
 	

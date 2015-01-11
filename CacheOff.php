@@ -128,6 +128,7 @@ if(function_exists("apc_clear_cache")){
 			unset($_SESSION["translation"]);
 			unset($_SESSION["ICON_MYSQL_CACHE"]);
 			unset($_SESSION["SETTINGS_FILES"]);
+			unset($_SESSION["FONT_CSS"]);
 			
 			unset($_SESSION[md5("statusPostfix_satus")]);
 			unset($_SESSION["EnableWebPageDebugging"]);
@@ -146,7 +147,7 @@ if(function_exists("apc_clear_cache")){
 			$ToDelete["admin.index.status-infos.php.page"]=true;
 			$ToDelete["admin.index.status-infos.php.left_menus_actions"]=true;
 			@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
-			
+			@unlink("/usr/share/artica-postfix/ressources/logs/web/ufdb.rules_toolbox_left.html");
 			
 			$ToDelete["logon.html"]=true;
 			$ToDelete["traffic.statistics.html"]=true;
@@ -163,7 +164,7 @@ if(function_exists("apc_clear_cache")){
 			$tpl=new templates();
 			$html=$tpl->javascript_parse_text($text,1);
 			$html=str_replace("\n", "<br>", $html);
-			echo "<div class=explain style='font-size:14px'>".$html."</div>";
+			echo "<div class=text-info style='font-size:14px'>".$html."</div>";
 			$sock=new sockets();
 			$sock->getFrameWork("services.php?cache-pages=yes");
 			

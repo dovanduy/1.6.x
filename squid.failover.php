@@ -75,14 +75,56 @@ function status(){
 	
 	$sql="SELECT COUNT(*) as tcount FROM nics WHERE `ucarp-enable`=1";
 	$ligne2=mysql_fetch_array($qs->QUERY_SQL($sql,"artica_backup"));
-	$ini->loadString(base64_decode($sock->getFrameWork('system.php?ucarp-status-service=yes')));
+	
+	
+	$data=base64_decode($sock->getFrameWork('system.php?ucarp-status-service=yes'));
+	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
+	$array=unserialize(base64_decode($sock->getFrameWork('system.php?ucarp-isactive=yes')));
+	
+	if(isset($array["NIC"])){
+		$l[]="[UCARP_NIC]";
+		$l[]="service_name={$array["NIC"]}";
+		$l[]="master_version={$array["IP"]}";
+		$l[]="service_cmd=/etc/init.d/artica-failover";
+		$l[]="service_disabled=1";
+		$l[]="watchdog_features=1";
+		$l[]="running=1";
+		$l[]="master_pid=1";
+		$l[]="processes_number=1";
+		$l[]="";
+		
+		
+	}else{
+		$l[]="[UCARP_NIC]";
+		$l[]="service_name={$MAIN["eth"]}";
+		$l[]="master_version=0.0.0.0";
+		$l[]="service_cmd=/etc/init.d/artica-failover";
+		$l[]="service_disabled=1";
+		$l[]="watchdog_features=1";
+		$l[]="running=0";
+		$l[]="master_pid=0";
+		$l[]="processes_number=0";
+		$l[]="";
+		
+	}
+	
+	$ini->loadString($data.@implode("\n", $l));
 	
 	$UCARP_MASTER=DAEMON_STATUS_ROUND("UCARP_MASTER",$ini,null,1);
 	$UCARP_SLAVE=DAEMON_STATUS_ROUND("UCARP_SLAVE",$ini,null,1);
+	$UCARP_NIC=DAEMON_STATUS_ROUND("UCARP_NIC",$ini,null,0);
 	
-	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
+	
 	$SLAVE_IP=$MAIN["SLAVE"];
 	$ucarp_vid=$MAIN["ucarp_vid"];
+	
+	
+	
+	
+	
+	
+	
+	
 
 	
 	if($SLAVE_IP<>null){
@@ -128,13 +170,13 @@ function status(){
 	<table style='width:99%'>
 	<tr>
 		<td style='text-align:left;vertical-align:top;width:30%'>
-			<p>&nbsp;</p>$UCARP_MASTER<br>$UCARP_SLAVE
+			<p>&nbsp;</p>$UCARP_MASTER<br>$UCARP_SLAVE<br>$UCARP_NIC
 			
 		<div style='width:100%;text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_failover_tabs')")."</div>	
 		</td>
 		<td	style='text-align:left;vertical-align:top;width:70%'>
 				<div style='font-size:30px;margin-bottom:15px'>{failover}</div>
-				<div class=explain style='font-size:14px;'>{failover_explain}</div>
+				<div class=text-info style='font-size:14px;'>{failover_explain}</div>
 				$error
 				$statTable
 		</td>
@@ -199,9 +241,9 @@ function popup(){
 	$html="
 	<div id='failover-title' style='font-size:22px'></div>
 	<div id='failover-div'>		
-	<div style='font-size:16px' class=explain>{welcome_php_failover_explain}</div>
+	<div style='font-size:16px' class=text-info>{welcome_php_failover_explain}</div>
 	<p>&nbsp;</p>
-	<div style='font-size:16px' class=explain>{welcome_php_failover_explain_1}</div>
+	<div style='font-size:16px' class=text-info>{welcome_php_failover_explain_1}</div>
 	<p>&nbsp;</p>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
@@ -243,7 +285,7 @@ function unlink_setp1(){
 	$t=time();	
 	$html="
 	<div id='failover-unlink-div'>
-		<div style='font-size:16px' class=explain>{welcome_php_failoverunlink_explain_2}</div>
+		<div style='font-size:16px' class=text-info>{welcome_php_failoverunlink_explain_2}</div>
 		<p>&nbsp;</p>
 		<div style='text-align:right'><hr>". button("{next}", "StepR1()",18)."</div>
 	</div>
@@ -317,7 +359,7 @@ function step1(){
 	
 	$html="
 	<div id='failover-div'>
-	<div style='font-size:16px' class=explain>{welcome_php_failover_explain_2}</div>
+	<div style='font-size:16px' class=text-info>{welcome_php_failover_explain_2}</div>
 	<p>&nbsp;</p>
 	<div style='width:98%' class=form>	
 	<table style='width:100%'>
@@ -369,7 +411,7 @@ function step2(){
 	$welcome_php_failover_explain_net=$tpl->_ENGINE_parse_body("{welcome_php_failover_explain_net}");
 	$welcome_php_failover_explain_net=str_replace("%s", $ip->IPADDR, $welcome_php_failover_explain_net);
 	$html="
-	<div style='font-size:16px' class=explain>$welcome_php_failover_explain_net</div>
+	<div style='font-size:16px' class=text-info>$welcome_php_failover_explain_net</div>
 	<p>&nbsp;</p>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
@@ -402,6 +444,7 @@ function xStep1(obj){
 function Step2(){
 	var XHR = new XHRConnection();
 	XHR.appendData('second_ipaddr',document.getElementById('second_ipaddr-$t').value);
+	XHR.appendData('first_ipaddr','$nic->IPADDR');
 	XHR.sendAndLoad('$page', 'POST',xStep1);
 }
 						
@@ -437,12 +480,12 @@ function step3(){
 	
 	$html="
 	<div id='$t'>
-	<div class=explain style='font-size:16px'>{welcome_php_failover_explain_3}</div>
+	<div class=text-info style='font-size:16px'>{welcome_php_failover_explain_3}</div>
 	<div class=form style='width:95%'>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{interface}:</td>
-		<td style='font-size:16px'>{$MAIN["eth"]} - $nic->IPADDR</td>
+		<td style='font-size:16px'>{$MAIN["eth"]} - {$MAIN["first_ipaddr"]}</td>
 		<td>&nbsp;</td>
 	</tr>			
 	<tr>
@@ -518,13 +561,13 @@ function step4(){
 	
 	if(!is_numeric($MAIN["ucarp_vid"])){$MAIN["ucarp_vid"]=3;}
 $html="
-	<div style='font-size:16px' class=explain>{welcome_php_failover_explain_4}</div>
+	<div style='font-size:16px' class=text-info>{welcome_php_failover_explain_4}</div>
 	<p>&nbsp;</p>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{interface}:</td>
-		<td style='font-size:16px'>{$MAIN["eth"]} - $nic->IPADDR</td>
+		<td style='font-size:16px'>{$MAIN["eth"]} - {$MAIN["first_ipaddr"]}</td>
 	</tr>			
 	<tr>
 		<td class=legend style='font-size:16px'>{netzone}:</td>
@@ -566,6 +609,7 @@ function step0_save(){
 	while (list ($key, $val) = each ($_POST) ){
 		$MAIN[$key]=$val;
 	}
+	//first_ipaddr
 	$sock->SaveConfigFile(base64_encode(serialize($MAIN)), "HASettings");
 }
 
@@ -709,7 +753,7 @@ function unlink_notify_slave(){
 	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
 	$eth=$MAIN["eth"];
 	$nic=new system_nic($eth);
-	$MAIN["BALANCE_IP"]=$nic->IPADDR;
+	$MAIN["BALANCE_IP"]=$MAIN["first_ipaddr"];
 	
 	$SEND_SETTING=base64_encode(serialize($MAIN));
 	
@@ -797,7 +841,7 @@ function step6(){
 	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
 	$eth=$MAIN["eth"];
 	$nic=new system_nic($eth);
-	$MAIN["BALANCE_IP"]=$nic->IPADDR;
+	$MAIN["BALANCE_IP"]=$MAIN["first_ipaddr"];
 	
 	$SEND_SETTING=urlencode(base64_encode(serialize($MAIN)));
 	
@@ -860,7 +904,7 @@ function step7(){
 	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
 	$eth=$MAIN["eth"];
 	$nic=new system_nic($eth);
-	$MAIN["BALANCE_IP"]=$nic->IPADDR;
+	$MAIN["BALANCE_IP"]=$MAIN["first_ipaddr"];
 
 	$nic->IPADDR=$MAIN["second_ipaddr"];
 	$nic->ucarp_enabled=1;

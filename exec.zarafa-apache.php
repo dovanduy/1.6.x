@@ -424,17 +424,15 @@ $ldap=new clladp();
 	$f[]="    require valid-user";
 }
 if($ZarafaApachePHPFPMEnable==0){
-	$f[]="    php_value magic_quotes_gpc off";
-	$f[]="    php_flag register_globals off";
-	$f[]="    php_flag magic_quotes_gpc off";
-	$f[]="    php_flag magic_quotes_runtime off";
+	$f[]="    php_value magic_quotes_gpc 0";
+	$f[]="    php_value register_globals 0";
+	$f[]="    php_value magic_quotes_runtime 0";
 	$f[]="    php_value post_max_size 31M";
 	$f[]="    php_value include_path  \".:/usr/share/php:/usr/share/php5:/usr/local/share/php\"";
 	$f[]="    php_value upload_max_filesize 30M";
-	$f[]="    php_flag short_open_tag on";
+	$f[]="    php_value short_open_tag 1";
 	$f[]="    php_flag log_errors on";
-	$f[]="    php_flag short_open_tag off";
-	$f[]="    php_flag safe_mode 0";
+	$f[]="    php_value safe_mode 0";
 	$f[]="    php_flag log_errors on";
 	$f[]="    php_value  error_log  \"/var/log/apache-zarafa/php.log\"";
 }

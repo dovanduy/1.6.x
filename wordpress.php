@@ -102,14 +102,14 @@ function add_popup(){
 	
 	if(isset($_GET["duplicate"])){
 		$title="<div style='font-size:22px'>{duplicate}:{$_GET["duplicate"]}</div>
-		<div style='font-size:18px' class=explain>{wordpress_duplicate_explain}</div>";
+		<div style='font-size:18px' class=text-info>{wordpress_duplicate_explain}</div>";
 		$bt_title="{duplicate}";
 		$DUP=1;
 	}
 	
 	if(isset($_GET["restore"])){
 		$title="<div style='font-size:22px'>{restore_from_website}:{$_GET["duplicate"]}</div>
-		<div style='font-size:18px' class=explain>{restore_from_website_explain}</div>";
+		<div style='font-size:18px' class=text-info>{restore_from_website_explain}</div>";
 		$bt_title="{restore}";
 		$RESTORE=1;
 		$free=new freeweb($_GET["restore"]);
@@ -615,7 +615,7 @@ function wordpress_info(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
-	$html="<div style='font-size:18px;margin-bottom:30px' class=explain>{APP_WORDPRESS_TEXT}<p>&nbsp;</p>{APP_WORDPRESS_ARTICA_TEXT}</div>
+	$html="<div style='font-size:18px;margin-bottom:30px' class=text-info>{APP_WORDPRESS_TEXT}<p>&nbsp;</p>{APP_WORDPRESS_ARTICA_TEXT}</div>
 		<center style='margin:30px'>". button("{new_wordpress_site}","Loadjs('$page?add-js=yes&t=')",35)."</center>
 		<center style='margin:30px'>". button("{import_wordpress_backup}","Loadjs('wordpress.import.php')",35)."</center>		
 			
@@ -635,7 +635,7 @@ function wordpress_backup(){
 	
 $html="
 <div id='div-$t'></div>
-	<div class=explain style='font-size:16px'>{wordpress_backup_parameters}</div>
+	<div class=text-info style='font-size:16px'>{wordpress_backup_parameters}</div>
 	<div style='width:98%' class=form>
 		<table style='width:99%'>
 		<tr>

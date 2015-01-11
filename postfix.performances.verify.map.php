@@ -96,7 +96,7 @@ if($address_verify_positive_refresh_time==null){$address_verify_positive_refresh
 
 $html="
 <span id='PostFixVerifyDatabaseSaveDiv'></span>
-<div style='font-size:16px'>{address_verify_map_minitext}</div><div class=explain>{address_verify_map_text}</div><br>
+<div style='font-size:16px'>{address_verify_map_minitext}</div><div class=text-info>{address_verify_map_text}</div><br>
 
 		<table style='width:99%;margin:10px;' class='form'>
 		<tbody>

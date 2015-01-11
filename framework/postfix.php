@@ -3,7 +3,9 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
-
+if(isset($_GET["postfix-mime-header-checks"])){postfix_mime_header_checks();exit;}
+if(isset($_GET["postfix-hash-smtp-generic"])){postfix_hash_smtp_generic_maps();exit;}
+if(isset($_GET["apply_sender_routing_rule"])){apply_sender_routing_rule();exit;}
 if(isset($_GET["smtpd-client-restrictions"])){smtpd_client_restrictions();exit;}
 if(isset($_GET["mastercf"])){master_cf();exit;}
 if(isset($_GET["RunSaUpd"])){RunSaUpd();exit;}
@@ -93,6 +95,38 @@ function restart_mailarchiver(){
 }
 
 
+function postfix_mime_header_checks(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/HEADER_CHECK";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/HEADER_CHECK.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+
+	if($_GET["hostname"]<>null){
+		if($_GET["hostname"]=="master"){
+			$cmd="$nohup $php /usr/share/artica-postfix/exec.postfix.maincf.php --mime-header-checks >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+			writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+			shell_exec($cmd);
+		}else{
+			$cmd="$nohup $php /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"{$_GET["hostname"]}\" >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+			shell_exec($cmd);
+			writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+		}
+		return;
+	}
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.postfix.maincf.php --mime-header-checks >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+
 function multibubble(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
@@ -131,6 +165,9 @@ function build_milters(){
 	shell_exec($cmd);
 	$MilterGreyListEnabled=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/MilterGreyListEnabled")));
 	if($MilterGreyListEnabled==1){
+		if(!is_file("/etc/init.d/milter-greylist")){
+			shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --milter-greylist");
+		}
 		$cmd=trim("$nohup /etc/init.d/milter-greylist restart >/dev/null 2>&1 &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
@@ -578,6 +615,50 @@ function test_smtp_watchdog(){
 	exec($cmd,$results);
 	echo  "<articadatascgi>".base64_encode(@implode("\n", $results))."</articadatascgi>";
 	
+}
+function postfix_hash_smtp_generic_maps(){
+	
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$hostname=$_GET["hostname"];
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/smtp_generic_maps";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/smtp_generic_maps.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.hashtables.php --smtp-generic-maps >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+}
+
+
+function apply_sender_routing_rule(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$hostname=$_GET["hostname"];
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/build_progress_sender_routing";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/build_progress_sender_routing.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	
+	
+	if($hostname=="master"){
+		$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.hashtables.php --sender-dependent-relayhost >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+		shell_exec($cmd);
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		
+	}
 }
 
 die();

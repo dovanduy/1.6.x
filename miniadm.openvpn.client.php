@@ -79,7 +79,7 @@ function config_popup(){
 	
 	$os=Field_array_Hash($os,"ComputerOS",null,"style:font-size:18px;padding:3px");
 	
-	$html="<div class=explain id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
+	$html="<div class=text-info id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
 	
 	<center>
 		<table style='width:75%' class=form>

@@ -82,36 +82,37 @@ function expression_popup(){
 	$t=time();
 	$html="
 	<center id='center-$t'></center>
-	<div class=explain style='font-size:13px' id='$t'>{addexpression_ufdbguard_explain}</div>
-	
-	<table style='width:99%' class=form>
+	<div class=text-info style='font-size:11px' id='$t'>{addexpression_ufdbguard_explain}</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td><textarea id='pattern-$t' style='font-size:16px;margin-top:10px;margin-bottom:10px;
-		font-family:\"Courier New\",Courier,monospace;padding:3px;border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;
-		width:100%;height:120px;overflow:auto'
+		font-family:\"Courier New\",Courier,monospace;padding:3px;
+		border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;
+		width:100%;height:120px;overflow:auto;font-size:16px !important'
 		OnKeyPress=\"javascript:CheckBrowseExprField(event)\"
 		>{$ligne["term"]}</textarea>
 		</td>
 	</tr>
 	<tr>
 		<td>
-			<table style='width:99%' class=form>
+			<table style='width:99%'>
 			<tr>
-				<td class=legend style='font-size:16px'>{isaregex_pattern}:</td>
+				<td class=legend style='font-size:18px'>{isaregex_pattern}:</td>
 				<td>". Field_checkbox("xregex-$t", 1,$ligne["xregex"])."</td>
 				</tr> 		
 			<tr>
-				<td class=legend style='font-size:16px'>{enabled}:</td>
+				<td class=legend style='font-size:18px'>{enabled}:</td>
 				<td>". Field_checkbox("enabled-$t", 1,$ligne["enabled"])."</td>
 				</tr>
 			</table>
 		</td>
 	</tr>
 	<tr>
-		<td align='center'>". button("$button","SaveNewTermINDB()",16)."</td>
+		<td align='center'>". button("$button","SaveNewTermINDB()",26)."</td>
 	</tr>
 	</table>
-	
+	</div>
 	<script>
 	var x_SaveNewTermINDB= function (obj) {
 			var ID=$ID;
@@ -231,7 +232,7 @@ $page=CurrentPageName();
 
 	
 $html="
-<div id='tableau-termgroupsEXP-regles' class=explain style='font-size:14px'>$squid_tgroups_expression_explain</div>
+<div id='tableau-termgroupsEXP-regles' class=text-info style='font-size:14px'>$squid_tgroups_expression_explain</div>
 <table class='$t1$t' style='display: none' id='$t1$t' style='width:100%'></table>
 
 	
@@ -258,7 +259,7 @@ $('#$t1$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 485,
+	width: '99%',
 	height: 250,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -344,24 +345,15 @@ function browse_expressions_list(){
 	
 	$total=0;
 	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
+		json_error_show("No data");
 		return ;
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(webfilter_terms.*) as TCOUNT FROM `$table`WHERE 1 $searchstring";
-
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		
@@ -378,10 +370,10 @@ function browse_expressions_list(){
 	
 	
 	$sql="SELECT webfilter_terms.* FROM $table WHERE 1 $searchstring $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql);
 	
-	if(mysql_num_rows($result)==0){json_error_show(1,"No data");}
+	if(mysql_num_rows($results)==0){json_error_show("No data",1);}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -389,10 +381,7 @@ function browse_expressions_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show($q->mysql_error,1);
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
@@ -441,7 +430,7 @@ function term_group_expression_popup(){
 
 	
 $html="
-<div id='tableau-termgroupsW-regles' class=explain style='font-size:14px'>$squid_tgroups_expression_explain</div>
+<div id='tableau-termgroupsW-regles' class=text-info style='font-size:14px'>$squid_tgroups_expression_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -466,7 +455,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 585,
+	width: '99%',
 	height: 250,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -546,7 +535,7 @@ function term_group(){
 
 	
 $html="
-<div id='tableau-termgroups-regles' class=explain style='font-size:14px'>$squid_termsgroups_explain</div>
+<div id='tableau-termgroups-regles' class=text-info style='font-size:18px'>$squid_termsgroups_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -557,8 +546,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?group-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$groupname', name : 'groupname', width : 140, sortable : true, align: 'left'},	
-		{display: '$explain', name : 'ItemsNumber', width :504, sortable : false, align: 'left'},
+		{display: '$groupname', name : 'groupname', width : 202, sortable : true, align: 'left'},	
+		{display: '$explain', name : 'ItemsNumber', width :724, sortable : false, align: 'left'},
 		{display: '$words', name : 'WordCount', width : 48, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'delete2', width : 32, sortable : false, align: 'center'},
@@ -574,7 +563,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 830,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -704,7 +693,7 @@ function term_group_expression_list(){
 		AND `$table`.term_group={$_GET["groupid"]} $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
-	
+	if(mysql_num_rows($results)==0){json_error_show("No data",1);}
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
@@ -729,7 +718,8 @@ function term_group_expression_list(){
 						
 	$data['rows'][] = array(
 		'id' => "groupExp".$ligne['ID'],
-		'cell' => array("<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?expression-edit=yes&ID={$ligne["termzID"]}');\" style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>{$ligne["term"]}$textdisabledRow</span>",
+		'cell' => array("<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?expression-edit=yes&ID={$ligne["termzID"]}');\" 
+			style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>{$ligne["term"]}$textdisabledRow</span>",
 		$delete )
 		);
 	}
@@ -751,23 +741,13 @@ function term_group_list(){
 	$page=1;
 	
 	$total=0;
-	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
-	}
+	if($q->COUNT_ROWS($table)==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -789,6 +769,7 @@ function term_group_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)==0){json_error_show("No data",1);}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -796,10 +777,7 @@ function term_group_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show($q->mysql_error,1);
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}

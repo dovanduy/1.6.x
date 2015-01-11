@@ -62,7 +62,7 @@ if($argv[1]=="--dump-db_extern"){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',
 if($GLOBALS["EnablePostfixMultiInstance"]==1){if($argv[1]=="--aliases"){system(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.postfix-multi.php --aliases");die();}system(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.postfix-multi.php");die();}
 if($argv[1]=="--postmaster"){postmaster();die();}	
 
-
+$php=$unix->LOCATE_PHP5_BIN();
 
 if($argv[1]=="--mailbox-transport-maps"){
 	mailbox_transport_maps();
@@ -105,7 +105,7 @@ if($argv[1]=="--bcc"){
 
 if($argv[1]=="--recipient-canonical"){
 	internal_pid($argv);
-	recipient_canonical_maps_build();
+	
 	recipient_canonical_maps();
 	perso_settings();
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
@@ -136,11 +136,13 @@ if($argv[1]=="--aliases"){
 		
 if($argv[1]=="--smtp-passwords"){
 	internal_pid($argv);
-	sender_canonical_maps_build();
+	
 	sender_canonical_maps();
+	recipient_canonical_maps();
 	smtp_generic_maps_build_global();
 	smtp_generic_maps();
 	sender_dependent_relayhost_maps();
+	sender_dependent_default_transport_maps();
 	smtp_sasl_password_maps_build();
 	smtp_sasl_password_maps();
 	perso_settings();
@@ -148,14 +150,46 @@ if($argv[1]=="--smtp-passwords"){
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();}	
 	
+	
+
+	
+if($argv[1]=="--sender-dependent-relayhost"){	
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	build_progress_sender_routing("{building}: relayhost",10);
+	relayhost();
+	build_progress_sender_routing("{building}: sender routing table",20);
+	sender_dependent_relayhost_maps();
+	sender_dependent_default_transport_maps();
+	build_progress_sender_routing("{building}: Patching service table",30);
+	system("$php /usr/share/artica-postfix/exec.postfix.maincf.php --ssl --progress-sender-dependent-relayhost");
+	
+	build_progress_sender_routing("{building}: SMTP authentication passwords",70);
+	smtp_sasl_password_maps();
+	build_progress_sender_routing("{building}: Personal settings",80);
+	perso_settings();
+	build_progress_sender_routing("{reloading}",90);
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
+	system("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
+	build_progress_sender_routing("{done}",100);
+	die();
+}
+	
 if($argv[1]=="--smtp-generic-maps"){
 	internal_pid($argv);
-	sender_canonical_maps_build();
+	build_progress_smtp_generic_maps("{buiding} {senders} Canonicals...",10);
+	sender_canonical_maps();
+	build_progress_smtp_generic_maps("{buiding} {recipients} Canonicals...",10);
+	recipient_canonical_maps();
+	build_progress_smtp_generic_maps("{buiding} SMTP Generic Maps...",20);
 	smtp_generic_maps_build_global();
+	build_progress_smtp_generic_maps("{configuring} SMTP Generic Maps...",30);
 	smtp_generic_maps();
+	build_progress_smtp_generic_maps("{building}: Personal settings",90);
 	perso_settings();
+	build_progress_smtp_generic_maps("{reloading}",95);
 	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
+	build_progress_smtp_generic_maps("{done}",100);
 	die();
 
 }
@@ -180,7 +214,7 @@ $functions=array(
 		"LoadLDAPDBs","maillings_table","aliases_users","aliases","catch_all","build_aliases_maps","build_virtual_alias_maps",
 		"relais_domains_search","build_relay_domains","relay_recipient_maps_build","recipient_canonical_maps_build",
 		"recipient_canonical_maps","sender_canonical_maps_build","sender_canonical_maps",
-		"smtp_generic_maps_build_global","smtp_generic_maps","sender_dependent_relayhost_maps","smtp_sasl_password_maps_build",
+		"smtp_generic_maps_build_global","smtp_generic_maps","sender_dependent_relayhost_maps","sender_dependent_default_transport_maps","smtp_sasl_password_maps_build",
 		"smtp_sasl_password_maps","recipient_bcc_maps","recipient_bcc_domain_maps","recipient_bcc_maps_build",
 		"sender_bcc_maps","sender_bcc_maps_build","build_local_recipient_maps",
 		"transport_maps_search","build_transport_maps","mailbox_transport_maps","restrict_relay_domains",
@@ -218,6 +252,25 @@ $functions=array(
 	SEND_PROGRESS(100,"Reload postfix");
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 
+function build_progress_smtp_generic_maps($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/smtp_generic_maps";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}		
+	
+function build_progress_sender_routing($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/build_progress_sender_routing";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}	
 
 function SEND_PROGRESS($POURC,$text,$error=null){
 	$cache="/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES";
@@ -246,6 +299,7 @@ function internal_pid($argv){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$md5.pid";
 	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,$mef)){
+		build_progress_smtp_generic_maps("{failed} Process Already exist pid $pid",110);
 		echo "Starting......: ".date("H:i:s")." Postfix : Process Already exist pid $pid line:".__LINE__."\n";
 		system_admin_events("`$cmsline` task cannot be performed, a Process Already exist pid $pid", __FUNCTION__, __FILE__, __LINE__, "postfix");
 		die();
@@ -1024,11 +1078,22 @@ function recipient_canonical_maps_build(){
 		$canonical=$hash[$i][strtolower("MailAlternateAddress")][0];
 		$GLOBALS["recipient_canonical_maps"][]="$mail\t$canonical";
 	}		
+	
+	$q=new mysql();
+	$sql="SELECT * FROM smtp_generic_maps WHERE ou='POSTFIX_MAIN' AND recipient_canonical_maps=1 ORDER BY generic_from";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(trim($ligne["generic_from"])==null){continue;}
+		if(trim($ligne["generic_to"])==null){continue;}
+		$GLOBALS["recipient_canonical_maps"][]="{$ligne["generic_from"]}\t{$ligne["generic_to"]}";
+	}
+	
 }
 
 function smtp_sasl_password_maps_build(){
 	$ldap=new clladp();
-	
+	$smtp_sasl_password_maps=array();
+	$main=new maincf_multi();
 	$filter="(&(objectClass=PostfixSmtpSaslPaswordMaps)(cn=*))";
 	$attrs=array("cn","SmtpSaslPasswordString");
 	$dn="cn=smtp_sasl_password_maps,cn=artica,$ldap->suffix";
@@ -1069,18 +1134,59 @@ function smtp_sasl_password_maps_build(){
 		}
 	}
 	
+	$q=new mysql();
+	
+	
+	
+	$results=$q->QUERY_SQL("SELECT * FROM relay_host WHERE enabledauth=1","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$relay_text=$main->RelayToPattern($ligne["relay"], $ligne["relay_port"], $ligne["lookups"]);
+		$username=$ligne["username"];
+		$password=$ligne["password"];
+		$GLOBALS["smtp_sasl_password_maps"][]="$relay_text\t{$username}:$password";
+	}
+	
+	$q=new mysql();
+	
+	if(!$q->FIELD_EXISTS("sender_dependent_relay_host","enabledauth","artica_backup")){
+		$sql="ALTER TABLE `sender_dependent_relay_host` ADD `enabledauth` smallint(1) NULL,
+		ADD INDEX ( `enabledauth` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+	}
+	
+	
+	$results=$q->QUERY_SQL("SELECT * FROM relay_host WHERE enabledauth=1","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$relay_text=$main->RelayToPattern($ligne["relay"], $ligne["relay_port"], $ligne["lookups"]);
+		$username=$ligne["username"];
+		$password=$ligne["password"];
+		$GLOBALS["smtp_sasl_password_maps"][]="$relay_text\t{$username}:$password";
+	}
+	
+
+	
+	
+	$results=$q->QUERY_SQL("SELECT * FROM sender_dependent_relay_host WHERE enabledauth=1","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if($ligne["relay"]=="*"){continue;}
+		$relay_text=$main->RelayToPattern($ligne["relay"], $ligne["relay_port"], $ligne["lookups"]);
+		$username=$ligne["username"];
+		$password=$ligne["password"];
+		$GLOBALS["smtp_sasl_password_maps"][]="$relay_text\t{$username}:$password";
+	}
+	
+	
 
 }
 
 function smtp_sasl_password_maps(){
 	smtp_sasl_password_maps_build();
+	if(!isset($GLOBALS["smtp_sasl_password_maps"])){$GLOBALS["smtp_sasl_password_maps"]=null;}
 	if(!is_array($GLOBALS["smtp_sasl_password_maps"])){
-		
-		
 		echo "Starting......: ".date("H:i:s")." 0 smtp password rule(s)\n"; 
-		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"smtp_sasl_password_maps\" >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_auth_enable =no\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps =\" >/dev/null 2>&1");
+		
 		return;
 	}
 	reset($GLOBALS["smtp_sasl_password_maps"]);
@@ -1094,8 +1200,48 @@ function smtp_sasl_password_maps(){
 	shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_auth_enable = yes\" >/dev/null 2>&1");
 }
 
+function  sender_dependent_default_transport_maps_build(){
+	$q=new mysql();
+	$main=new maincf_multi();
+	$sender_dependent_default_transport_maps=array();
+	$q=new mysql();
+	$sql="SELECT * FROM sender_dependent_relay_host WHERE enabled=1 
+			AND `override_transport`=1 
+			AND `override_relay`=1 
+			AND `hostname`='master' ORDER by zOrders";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$relay=$ligne["relay"];
+		$relay_port_text=null;
+		$relay_port=$ligne["relay_port"];
+		$lookups=$ligne["lookups"];
+		$relay_text=$main->RelayToPattern($relay, $relay_port,$lookups);
+		if($ligne["directmode"]==1){$relay_text="{$ligne["zmd5"]}:";}
+		$domain=$ligne["domain"];
+		
+		$sender_dependent_default_transport_maps[$domain]=$relay_text;
+	}
+	
+	
+	
+	
+	
+	
+	if(is_array($sender_dependent_default_transport_maps)){
+		while (list ($mail, $value) = each ($sender_dependent_default_transport_maps) ){
+			if(strpos("   $mail", "@")==0){$mail="@$mail";}
+			$mail=str_replace(".", "\.", $mail);
+			$mail=str_replace("*", ".*", $mail);
+			
+			$GLOBALS["sender_dependent_default_transport_maps"][]="/$mail/\t$value";
+		}
+	}
+}
+
 function sender_dependent_relayhost_maps_build(){
 	$ldap=new clladp();
+	$main=new maincf_multi();
 	$filter="(&(objectClass=SenderDependentRelayhostMaps)(cn=*))";
 	$attrs=array("cn","SenderRelayHost");
 	$dn="cn=Sender_Dependent_Relay_host_Maps,cn=artica,$ldap->suffix";
@@ -1147,29 +1293,69 @@ function sender_dependent_relayhost_maps_build(){
 		if($value==":"){continue;}
 		$sender_dependent_relayhost_maps[$mail]=$value;
 	}
+	
+	$q=new mysql();
+
+	$sql="SELECT * FROM sender_dependent_relay_host WHERE enabled=1
+			AND `override_transport`=0
+			AND `override_relay`=0
+			AND `hostname`='master' ORDER by zOrders";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$relay=$ligne["relay"];
+		$relay_port_text=null;
+		$relay_port=$ligne["relay_port"];
+		$lookups=$ligne["lookups"];
+		$relay_text=$main->RelayToPattern($relay, $relay_port, $lookups);
+		if($ligne["directmode"]==1){$relay_text="smtp:";}
+		$domain=$ligne["domain"];
+		$sender_dependent_relayhost_maps[$domain]=$relay_text;
+	}	
 
 	if(is_array($sender_dependent_relayhost_maps)){
 		while (list ($mail, $value) = each ($sender_dependent_relayhost_maps) ){
-			$GLOBALS["sender_dependent_relayhost_maps"][]="$mail\t$value";
+			$mail=str_replace(".", "\.", $mail);
+			$mail=str_replace("*", ".*", $mail);
+			if(strpos($mail, "@")==0){$mail=".*@$mail";}
+			$GLOBALS["sender_dependent_relayhost_maps"][]="/$mail/\t$value";
 		}
 	}
 
 }
 
+
+
 function sender_dependent_relayhost_maps(){
 	sender_dependent_relayhost_maps_build();
 	if(!is_array($GLOBALS["sender_dependent_relayhost_maps"])){
 		echo "Starting......: ".date("H:i:s")." 0 sender dependent relayhost rule(s)\n"; 
-		shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_relayhost_maps =hash:/etc/postfix/sender_dependent_relayhost\" >/dev/null 2>&1");
-		@file_put_contents("/etc/postfix/sender_dependent_relayhost","#");
-		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_dependent_relayhost >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"sender_dependent_relayhost_maps\" >/dev/null 2>&1");
+		return;
 	}
 
 	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_dependent_relayhost_maps"])." sender dependent relayhost rule(s)\n"; 
-	@file_put_contents("/etc/postfix/sender_dependent_relayhost",implode("\n",$GLOBALS["sender_dependent_relayhost_maps"]));
-	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_dependent_relayhost >/dev/null 2>&1");
-	shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_relayhost_maps = hash:/etc/postfix/sender_dependent_relayhost\" >/dev/null 2>&1");
+	@file_put_contents("/etc/postfix/sender_dependent_relayhost",implode("\n",$GLOBALS["sender_dependent_relayhost_maps"])."\n");
+	//shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_dependent_relayhost >/dev/null 2>&1");
+	shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_relayhost_maps = regexp:/etc/postfix/sender_dependent_relayhost\" >/dev/null 2>&1");
 }
+
+
+function sender_dependent_default_transport_maps(){
+	sender_dependent_default_transport_maps_build();
+	if(!is_array($GLOBALS["sender_dependent_default_transport_maps"])){
+		echo "Starting......: ".date("H:i:s")." 0 sender dependent default transport rule(s)\n";
+		shell_exec("{$GLOBALS["postconf"]} -X \"sender_dependent_default_transport_maps\" >/dev/null 2>&1");
+		@file_put_contents("/etc/postfix/sender_dependent_default_transport_maps","#");
+		
+	}
+
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_dependent_default_transport_maps"])." sender dependent default transport rule(s)\n";
+	@file_put_contents("/etc/postfix/sender_dependent_default_transport_maps",implode("\n",$GLOBALS["sender_dependent_default_transport_maps"])."\n");
+	shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_default_transport_maps = regexp:/etc/postfix/sender_dependent_default_transport_maps\" >/dev/null 2>&1");
+
+}
+
 
 
 function sender_canonical_maps_build(){
@@ -1186,6 +1372,15 @@ function sender_canonical_maps_build(){
 		if($canonical==null){continue;}
 		$GLOBALS["sender_canonical_maps"][]="$mail\t$canonical";
 		$GLOBALS["smtp_generic_maps"][]="$mail\t$canonical";
+	}
+	
+	$q=new mysql();
+	$sql="SELECT * FROM smtp_generic_maps WHERE ou='POSTFIX_MAIN' AND sender_canonical_maps=1 ORDER BY generic_from";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(trim($ligne["generic_from"])==null){continue;}
+		if(trim($ligne["generic_to"])==null){continue;}
+		$GLOBALS["sender_canonical_maps"][]="{$ligne["generic_from"]}\t{$ligne["generic_to"]}";
 	}
 
 	
@@ -1206,9 +1401,10 @@ function smtp_generic_maps_build_global(){
 
 
 function sender_canonical_maps(){
+	sender_canonical_maps_build();
 	if(!is_array($GLOBALS["sender_canonical_maps"])){
 		echo "Starting......: ".date("H:i:s")." 0 sender retranslation rule(s)\n"; 
-		shell_exec("{$GLOBALS["postconf"]} -e \"sender_canonical_maps =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"sender_canonical_maps\" >/dev/null 2>&1");
 	}
 
 	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_canonical_maps"])." sender retranslation rule(s)\n"; 
@@ -1218,13 +1414,21 @@ function sender_canonical_maps(){
 }
 
 function smtp_generic_maps(){
+	
+	
+	
 	if(!is_array($GLOBALS["smtp_generic_maps"])){
+		build_progress_smtp_generic_maps("{building}: smtp_generic_maps 0 items",70);
 		echo "Starting......: ".date("H:i:s")." 0 SMTP generic retranslations rule(s)\n"; 
-		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_generic_maps =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"smtp_generic_maps\" >/dev/null 2>&1");
 	}	
+	
+	build_progress_smtp_generic_maps(" ". count($GLOBALS["smtp_generic_maps"])." SMTP generic retranslations rule(s)",40);
 	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["smtp_generic_maps"])." SMTP generic retranslations rule(s)\n"; 
-	@file_put_contents("/etc/postfix/smtp_generic_maps",implode("\n",$GLOBALS["smtp_generic_maps"]));
+	@file_put_contents("/etc/postfix/smtp_generic_maps",implode("\n",$GLOBALS["smtp_generic_maps"])."\n");
+	build_progress_smtp_generic_maps("{compiling}",50);
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/smtp_generic_maps >/dev/null 2>&1");
+	build_progress_smtp_generic_maps("{save}",60);
 	shell_exec("{$GLOBALS["postconf"]} -e \"smtp_generic_maps = hash:/etc/postfix/smtp_generic_maps\" >/dev/null 2>&1");
 }
 
@@ -1234,6 +1438,7 @@ function smtp_generic_maps(){
 
 
 function recipient_canonical_maps(){
+	recipient_canonical_maps_build();
 	$recipient_canonical_maps=array();
 	$pst=new postfix_extern();
 	$pstData=$pst->build_extern("master", "recipient_canonical_maps");
@@ -1253,7 +1458,7 @@ function recipient_canonical_maps(){
 		shell_exec("{$GLOBALS["postconf"]} -e \"recipient_canonical_maps = ".@implode(", ", $recipient_canonical_maps)."\" >/dev/null 2>&1");
 	}else{
 		echo "Starting......: ".date("H:i:s")." Postfix 0 retranslation database\n";
-		shell_exec("{$GLOBALS["postconf"]} -e \"recipient_canonical_maps =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"recipient_canonical_maps\" >/dev/null 2>&1");
 	}
 }
 
@@ -1375,36 +1580,11 @@ function transport_maps_search(){
 }
 
 function relayhost(){
-	$sock=new sockets();
-	$PostfixRelayHost=trim($sock->GET_INFO("PostfixRelayHost"));
+
+	$main=new maincf_multi("master");
+	$main->relayhost();
+	return;
 	
-	if($PostfixRelayHost==null){
-		$main=new main_cf();
-		$main=new main_cf()	;
-		$PostfixRelayHost=$main->main_array["relayhost"];
-	}
-	
-	
-	if($PostfixRelayHost==null){
-		shell_exec("{$GLOBALS["postconf"]} -e \"relayhost =\" >/dev/null 2>&1");
-		return null;
-	}
-	$tools=new DomainsTools();
-	$hash=$tools->transport_maps_explode($PostfixRelayHost);
-	if($hash[2]==null){$hash[2]=25;}
-	$PostfixRelayHost_pattern="[{$hash[1]}]:{$hash[2]}";
-	echo "Starting......: ".date("H:i:s")." Relay host: $PostfixRelayHost_pattern\n"; 
-	$ldap=new clladp();
-	$sasl_password_string=$ldap->sasl_relayhost($hash[1]);
-	if($sasl_password_string<>null){
-		$relayhost_hash="$PostfixRelayHost_pattern\t$sasl_password_string\n";
-		@file_put_contents("/etc/postfix/sasl_passwd",$relayhost_hash);
-		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sasl_passwd >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd\" >/dev/null 2>&1");
-	}
-	
-	
-	shell_exec("{$GLOBALS["postconf"]} -e \"relayhost =$PostfixRelayHost_pattern\" >/dev/null 2>&1");
 	
 }
 
@@ -1412,6 +1592,7 @@ function postmaster(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	if($hostname==null){$hostname=$users->hostname;}
 	if($GLOBALS["DEBUG"]){echo "postmaster():: Hostname=$hostname\n";}
 	$hosts=explode(".",$hostname);
@@ -1464,8 +1645,8 @@ function build_cyrus_lmtp_auth(){
 	
 	if($disable){
 		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_auth_enable =no\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_password_maps =\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_security_options =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"lmtp_sasl_password_maps\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"lmtp_sasl_security_options\" >/dev/null 2>&1");
 		return;		
 	}
 	
@@ -1475,8 +1656,8 @@ function build_cyrus_lmtp_auth(){
 	$CyrusEnableLMTPUnix=$sock->GET_INFO("CyrusEnableLMTPUnix");	
 	if($CyrusEnableLMTPUnix==1){
 		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_auth_enable =no\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_password_maps =\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_security_options =\" >/dev/null 2>&1");	
+		shell_exec("{$GLOBALS["postconf"]} -X \"lmtp_sasl_password_maps\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"lmtp_sasl_security_options\" >/dev/null 2>&1");	
 	}else{
 		$ldap=new clladp();
 		$CyrusLMTPListen=trim($sock->GET_INFO("CyrusLMTPListen"));
@@ -1487,7 +1668,7 @@ function build_cyrus_lmtp_auth(){
 		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_auth_enable =yes\" >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_password_maps = hash:/etc/postfix/lmtpauth\" >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_mechanism_filter = plain, login\" >/dev/null 2>&1");
-		shell_exec("{$GLOBALS["postconf"]} -e \"lmtp_sasl_security_options =\" >/dev/null 2>&1");
+		shell_exec("{$GLOBALS["postconf"]} -X \"lmtp_sasl_security_options\" >/dev/null 2>&1");
 	}
 	
 }
@@ -1523,7 +1704,7 @@ function mailbox_transport_maps(){
 		if(count($f)>0){
 			shell_exec("{$GLOBALS["postconf"]} -e \"mailbox_transport_maps = hash:$DestinationFile\" >/dev/null 2>&1");
 		}else{
-			shell_exec("{$GLOBALS["postconf"]} -e \"mailbox_transport_maps =\" >/dev/null 2>&1");	
+			shell_exec("{$GLOBALS["postconf"]} -X \"mailbox_transport_maps\" >/dev/null 2>&1");	
 		}
 	
 }

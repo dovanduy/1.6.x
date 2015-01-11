@@ -562,6 +562,7 @@ function clean_squid_stats_dbs(){
 	}
 	
 	if($count_tables>0){
+		mysql_admin_mysql(1,"Restarting MySQL service...", null,__FILE__,__LINE__);
 		shell_exec("/etc/init.d/mysql restart");
 	}
    	$sock->TOP_NOTIFY("$count_tables statistics tables as been deleted with $rows rows","info");

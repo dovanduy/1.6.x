@@ -197,7 +197,7 @@ function mysql_dir_popup(){
 	$t=time();
 	$html="
 	<div id='ChangeMysqlDirDiv$t'></div>
-	<div class=explain style='font-size:16px'>{ChangeMysqlDir_explain}</div>
+	<div class=text-info style='font-size:16px'>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>

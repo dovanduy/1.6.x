@@ -126,19 +126,29 @@ function Checks(){
 
 
 function GetMyIp(){
-	Checks();
 	$sock=new sockets();
+	$unix=new unix();
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){return;}
+	
+		
+	
+	
+	
 	if($sock->GET_INFO("DoNotResolvInternetIP")==1){
 		$ip=$sock->GET_INFO("PublicIPAddress");
 		if($ip<>null){return $ip;}
 	}
 	
 	if(!$GLOBALS["FORCE"]){
-		$time=file_time_min("/usr/share/artica-postfix/ressources/logs/web/myIP.conf");
+		$time=$unix->file_time_min("/usr/share/artica-postfix/ressources/logs/web/myIP.conf");
 		if($time<60){return trim(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/myIP.conf"));}
-		
+	
 	}
-	$unix=new unix();
+	
+	Checks();
+	
+	
 	$URIBASE=$unix->MAIN_URI();	
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/myIP.conf");
 	$curl=new ccurl("$URIBASE/my-ip.php");
@@ -306,7 +316,7 @@ function ChecksDNSBL($iptocheck=null,$output=false,$increment=false){
 		$GLOBALS["DDNS"][]="dnsbl-1.uceprotect.net";
 		$GLOBALS["DDNS"][]="dnsbl-2.uceprotect.net";
 		$GLOBALS["DDNS"][]="dnsbl-3.uceprotect.net";
-		$GLOBALS["DDNS"][]="dnsbl.ahbl.org";
+		
 		$GLOBALS["DDNS"][]="dnsbl.cyberlogic.net";
 		$GLOBALS["DDNS"][]="dnsbl.inps.de";
 		$GLOBALS["DDNS"][]="dnsbl.njabl.org";
@@ -357,7 +367,7 @@ function ChecksDNSBL($iptocheck=null,$output=false,$increment=false){
 		$GLOBALS["DDNS"][]="spamlist.or.kr";
 		$GLOBALS["DDNS"][]="spamrbl.imp.ch";
 		$GLOBALS["DDNS"][]="t3direct.dnsbl.net.au";
-		$GLOBALS["DDNS"][]="tor.ahbl.org";
+		
 		$GLOBALS["DDNS"][]="tor.dnsbl.sectoor.de";
 		$GLOBALS["DDNS"][]="torserver.tor.dnsbl.sectoor.de";
 		$GLOBALS["DDNS"][]="ubl.lashback.com";

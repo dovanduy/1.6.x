@@ -63,12 +63,15 @@ class squid_reverse{
 	
 	
 	public function ssl_certificates_list(){
-		$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+		$sql="SELECT CommonName,IsClientCert,clientkey FROM sslcertificates ORDER BY CommonName";
 		$q=new mysql();
 		$sslcertificates[null]="{default}";
 		$results=$q->QUERY_SQL($sql,'artica_backup');
 		while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-			$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
+			$client=null;
+			if($ligneZ["IsClientCert"]==1){$client=" (client)";}
+			if(strlen($ligneZ["clientkey"])>50){$client=" (client)";}
+			$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"].$client;
 		}
 		return $sslcertificates;
 	}
@@ -136,6 +139,8 @@ class squid_reverse{
 		if(!$q->TABLE_EXISTS("reverse_www")){
 			$sql="CREATE TABLE IF NOT EXISTS `reverse_www` (
 			  `servername` CHAR(255)  NOT NULL,
+			  `servername_pattern`  CHAR(255)  NULL,
+			  `zOrder` smallint(100) NOT NULL DEFAULT 0,
 			  `ipaddr` CHAR(60)  NOT NULL,
 			  `cache_peer_id` INT(10)  NOT NULL DEFAULT '0',
 			  `cacheid` INT(10)  NOT NULL DEFAULT '0',
@@ -151,6 +156,7 @@ class squid_reverse{
 			  `certificate` VARCHAR(255),
 			  `default_server` smallint(1),
 			  `tmperrordisabled` smallint(1),
+			  `ConfBuilded` TEXT,
 			  PRIMARY KEY (`servername`),
 			  UNIQUE KEY (`aclname`),
 			  KEY `ipaddr` (`ipaddr`),
@@ -166,6 +172,27 @@ class squid_reverse{
 			$q->QUERY_SQL($sql,$this->database);
 			if(!$q->ok){echo $q->mysql_error_html();return;}
 		}
+		
+		if(!$q->TABLE_EXISTS("reverse_mailauth")){
+			$sql="CREATE TABLE IF NOT EXISTS `reverse_mailauth` (
+			  `zmd5` CHAR(90)  NOT NULL,
+			  `username` CHAR(255) NOT NULL,
+			  `protocol` CHAR(60)  NOT NULL,
+			  `ipsrc` CHAR(40)  NULL,
+			  `destination` CHAR(255)  NULL,
+			  `backend`CHAR(255)  NOT NULL,
+			  `backend_port` smallint(3)  NOT NULL DEFAULT '143',
+			  `enabled` smallint(1) NOT NULL DEFAULT '1',		  
+			  PRIMARY KEY (`zmd5`),
+			  KEY `username` (`username`),
+			  KEY `protocol` (`protocol`),
+			  KEY `ipsrc` (`ipsrc`),
+			  KEY `destination` (`destination`),
+			  KEY `enabled` (`enabled`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){echo $q->mysql_error_html();return;}
+		}		
 		
 		
 			$sql="CREATE TABLE IF NOT EXISTS `reverse_dirs` (
@@ -277,6 +304,10 @@ class squid_reverse{
 		if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffering")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `proxy_buffering` smallint(1) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
 		
+		if(!$q->FIELD_EXISTS("reverse_www", "ConfBuilded")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ConfBuilded` TEXT");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "zOrder")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `zOrder` smallint(100) NOT NULL default '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
 		
 		//
 		if(!$q->FIELD_EXISTS("reverse_www", "EnableHSTS")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
@@ -302,6 +333,11 @@ class squid_reverse{
 		
 		
 		//
+		
+		
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "servername_pattern")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `servername_pattern` CHAR(255) NULL");if(!$q->ok){echo $q->mysql_error_html();}}
 		
 		if(!$q->FIELD_EXISTS("reverse_www", "LimitCnx")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `LimitCnx` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
@@ -674,6 +710,19 @@ class squid_reverse{
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ssl_backend_port` smallint(3 ) NOT NULL DEFAULT '443', ADD INDEX ( `ssl_backend_port`)");
 			if(!$q->ok){echo $q->mysql_error_html();}
 		}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "ssl_client_certificate")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ssl_client_certificate` smallint(1 ) NOT NULL DEFAULT '0', ADD INDEX ( `ssl_client_certificate`)");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}
+
+		if(!$q->FIELD_EXISTS("reverse_www", "ssl_verify_client")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ssl_verify_client` smallint(1 ) NOT NULL DEFAULT '0', ADD INDEX ( `ssl_verify_client`)");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}		
+		
+		
+		
 		
 		
 		

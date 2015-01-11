@@ -52,23 +52,23 @@ function rewrite_rule_items_popup(){
 	
 	$html="
 	<div id='$t'>
-	<center>
-	<table style='width:70%' class=form>
+	<center style='width:98%' class=form>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:14px'>{enabled}:</td>
+		<td class=legend style='font-size:18px'>{enabled}:</td>
 		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{searchthestring}:</td>
-		<td>". Field_text("frompattern-$t",$ligne["frompattern"],"font-size:14px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{searchthestring}:</td>
+		<td>". Field_text("frompattern-$t",$ligne["frompattern"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{replacewith}:</td>
-		<td>". Field_text("topattern-$t",$ligne["topattern"],"font-size:14px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{replacewith}:</td>
+		<td>". Field_text("topattern-$t",$ligne["topattern"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter$t()",16)."</td>
+		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter$t()",26)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -92,8 +92,8 @@ function rewrite_rule_items_popup(){
 		function SaveMainRewriteFilter$t(){
 			var XHR = new XHRConnection();
 			if(document.getElementById('enabled-$t').checked){XHR.appendData('enabled',1);}else{XHR.appendData('enabled',0);}
-		    XHR.appendData('frompattern', document.getElementById('frompattern-$t').value);
-		    XHR.appendData('topattern', document.getElementById('topattern-$t').value);
+		    XHR.appendData('frompattern', encodeURIComponent(document.getElementById('frompattern-$t').value));
+		    XHR.appendData('topattern', encodeURIComponent(document.getElementById('topattern-$t').value));
 		    XHR.appendData('ID', '$ID');
 		    XHR.appendData('ruleid', '{$_GET["ruleid"]}');
 		    if(document.getElementById('$t')){AnimateDiv('$t');}
@@ -128,19 +128,19 @@ function rewrite_rule_settings(){
 	$ligne["rulename"]=utf8_encode($ligne["rulename"]);
 	$html="
 	<div id='$t'>
-	<center>
-	<table style='width:70%' class=form>
+	<center style='width:98%' class=form>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:14px'>{rule_name}:</td>
-		<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:14px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck(event)")."</td>
+		<td class=legend style='font-size:18px'>{rule_name}:</td>
+		<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{enabled}:</td>
+		<td class=legend style='font-size:18px'>{enabled}:</td>
 		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"])."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter()",16)."</td>
+		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter()",26)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -238,6 +238,13 @@ function rewrite_rule_items_delete(){
 }
 function rewrite_rule_items_save(){
 	$ID=$_POST["ID"];
+	
+	$_POST["frompattern"]=url_decode_special_tool($_POST["frompattern"]);
+	$_POST["topattern"]=url_decode_special_tool($_POST["topattern"]);
+	
+	$_POST["topattern"]=mysql_escape_string2($_POST["topattern"]);
+	$_POST["frompattern"]=url_decode_special_tool($_POST["frompattern"]);
+	
 	if($ID==0){
 		$sql="INSERT INTO webfilters_rewriteitems (enabled,frompattern,topattern,ruleid) 
 		VALUES('{$_POST["enabled"]}','{$_POST["frompattern"]}','{$_POST["topattern"]}','{$_POST["ruleid"]}');";
@@ -290,7 +297,7 @@ function rewrite_rule_tab(){
 	
 	$array["rewrite-rule-settings"]="{settings}";
 	if($ID>0){$array["rewrite-rule-items"]="{items}";}
-	$fontsize=14;
+	$fontsize=22;
 	
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -334,7 +341,7 @@ function rewrite_rule_items_js(){
 
 	$title="$ID:{item}";
 	$title=$tpl->_ENGINE_parse_body(utf8_encode($title));
-	$html="YahooWin3('550','$page?rewrite-rule-item-popup=yes&ID=$ID&ruleid={$_GET["ruleid"]}','$title');";
+	$html="YahooWin3('750','$page?rewrite-rule-item-popup=yes&ID=$ID&ruleid={$_GET["ruleid"]}','$title');";
 	echo $html;	
 }
 
@@ -460,7 +467,7 @@ if($_GET["blk"]==4){
 	
 	
 $html="
-<div id='tableau-reecriture-regles' class=explain style='font-size:14px'>$rewrite_rules_fdb_explain</div>
+<div id='tableau-reecriture-regles' class=text-info style='font-size:14px'>$rewrite_rules_fdb_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -471,9 +478,9 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$rulename', name : 'rulename', width : 650, sortable : false, align: 'left'},	
-		{display: '$items', name : 'ItemsNumber', width :60, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'enabled', width : 25, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'left'},
+		{display: '$items', name : 'ItemsNumber', width :99, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'enabled', width : 99, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 99, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -561,14 +568,11 @@ function popup_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -615,8 +619,8 @@ function popup_list(){
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:18px;text-decoration:underline'>{$ligne["rulename"]}</span>",
-			"<span style='font-size:18px'>{$ligne["ItemsCount"]}</span>",$enable,$delete )
+			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:22px;text-decoration:underline'>{$ligne["rulename"]}</span>",
+			"<span style='font-size:22px'>{$ligne["ItemsCount"]}</span>",$enable,$delete )
 		);
 	}
 	
