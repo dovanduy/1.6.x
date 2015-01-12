@@ -8444,7 +8444,7 @@ private function ssl_bump_no_decrypt(){
 	$array[]="# no_ssl_bump ".count($array_www)." items (".count($www_table)." source items) [".__LINE__."]";
 	@file_put_contents("/etc/squid3/no_ssl_bump.acl", @implode("\n", $array_www));
 	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." SSLBUMP:: not bumped for ". count($array_www)." domains\n";}
-	$array[]="acl no_ssl_bump dstdomain \"/etc/squid3/ssl_not_bump.acl\"";
+	$array[]="acl no_ssl_bump dstdomain \"/etc/squid3/no_ssl_bump.acl\"";
 	$array[]="ssl_bump $deny no_ssl_bump";
 	$array[]="ssl_bump $allow all";
 	return @implode("\n", $array);
