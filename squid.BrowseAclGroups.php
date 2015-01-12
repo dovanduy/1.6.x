@@ -480,7 +480,7 @@ function item_form(){
 
 	$html="
 	<div style='font-size:16px'>$GroupTypeText</div>
-	<div class=explain style='font-size:14px'>$explain</div>
+	<div class=text-info style='font-size:14px'>$explain</div>
 	<div id='$t'>
 	
 	<table style='width:99%' class=form>
@@ -575,10 +575,10 @@ function group_list(){
 				$FORCE_FILTER="AND GroupType='arp'";
 				break;
 			case "uid":
-				$FORCE_FILTER="AND ( GroupType='ext_user' OR GroupType='proxy_auth_ads' OR GroupType='proxy_auth')";
+				$FORCE_FILTER="AND ( GroupType='ext_user' OR GroupType='proxy_auth_ads' OR GroupType='proxy_auth' OR GroupType='proxy_auth_statad')";
 				break;
 			case "ADMBR":
-				$FORCE_FILTER="AND ( GroupType='proxy_auth_ads' OR GroupType='proxy_auth')";
+				$FORCE_FILTER="AND ( GroupType='proxy_auth_ads' OR GroupType='proxy_auth'  OR GroupType='proxy_auth_statad')";
 				break;	
 			case "IPTABLES":
 				$f=$q->acl_GroupType_iptables;

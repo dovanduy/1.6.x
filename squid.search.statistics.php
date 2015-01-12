@@ -63,7 +63,7 @@ function start(){
 	<div style='width:104%;margin:-10px;margin-left:-15px'>
 			<div style='width:98%' class=form>
 			<div id='search-stats-results'></div>
-			<div class=explain>{SQUID_SEARCH_STATS_EXPLAIN}</div>
+			<div class=text-info>{SQUID_SEARCH_STATS_EXPLAIN}</div>
 			</div>
 	</div>
 

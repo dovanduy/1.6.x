@@ -1,4 +1,5 @@
 <?php
+if(!isset($GLOBALS["NO_COMPILE_POSTFIX"])){$GLOBALS["NO_COMPILE_POSTFIX"]=false;}
 include_once(dirname(__FILE__) .'/class.templates.inc');
 include_once(dirname(__FILE__) .'/class.ldap.inc');
 include_once(dirname(__FILE__) .'/class.users.menus.inc');
@@ -2606,6 +2607,7 @@ function FTPSettingsEdit(){
 	
 	private function AddObjectClassReturned($objectClass,$upd){
 		$ldap=new clladp();
+		if(trim($this->dn)==null){return null;}
 		writelogs("Adding new class '$objectClass' $this->uid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$upd["objectClass"]=$objectClass;
 		if(!$ldap->Ldap_add_mod($this->dn,$upd)){echo $ldap->ldap_last_error;return null;}
@@ -2776,6 +2778,7 @@ function FTPSettingsEdit(){
 		
 		writelogs("objectClass `ArticaSettings`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ldap=new clladp();
+		$upd=array();
 		if(!$ldap->ExistsDN($this->dn)){writelogs("$this->dn NO SUCH DN",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
 		$users=new usersMenus();
 		if(!isset($this->objectClass_array["ArticaSettings"])){
@@ -2838,6 +2841,7 @@ function FTPSettingsEdit(){
 	}
 	
 	private function AmavisAccount(){
+		$upd=array();
 		writelogs("objectClass `amavisAccount`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$ldap=new clladp();
 		if(!$ldap->ExistsDN($this->dn)){writelogs("$this->dn NO SUCH DN",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}		

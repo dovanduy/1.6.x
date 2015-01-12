@@ -61,7 +61,7 @@ function js(){
 	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics"; }
 	
 	if($_GET["backup"]=="yes"){
-		$warn=$tpl->_ENGINE_parse_body("{warn_backup_database}");
+		$warn=$tpl->javascript_parse_text("{warn_backup_database}");
 		$warn=str_replace("%s", $ArticaProxyStatisticsBackupFolder, $warn);
 	}
 	

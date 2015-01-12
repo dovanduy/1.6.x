@@ -34,6 +34,7 @@
 	js();
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$start="CategorizeLoad()";

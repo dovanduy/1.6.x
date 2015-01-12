@@ -9,7 +9,7 @@
 <av_notify_rules>Notifiez et  r&egrave;gles d'actions</av_notify_rules>
 <bt_add_aliases>Sauvegarder l'alias</bt_add_aliases>
 <bt_delete_alias>Supprimer l'alias</bt_delete_alias>
-<bt_delete_transport>supprimer</bt_delete_transport>
+<bt_delete_transport>Supprimer</bt_delete_transport>
 <bt_edit_antivirus_protection>Envoyer</bt_edit_antivirus_protection>
 <bt_edit_mailbox>&Eacute;diter la bo&icirc;te aux lettres</bt_edit_mailbox>
 <bt_edit_notify>Envoyer</bt_edit_notify>

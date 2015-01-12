@@ -47,8 +47,8 @@ function popup(){
 	$html="
 	
 	<div id='$t-animate'></div>
-	<div id='$t' class=explain style='font-size:14px'>{bubble_mode_explain}</div>
-	<div id='$t' class=explain style='font-size:14px'>{advanced_settings_in_miniadm}</div>
+	<div id='$t' class=text-info style='font-size:14px'>{bubble_mode_explain}</div>
+	<div id='$t' class=text-info style='font-size:14px'>{advanced_settings_in_miniadm}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td colspan=2>". Paragraphe_switch_img("{activate_bubble_mode}","{activate_bubble_explain}",

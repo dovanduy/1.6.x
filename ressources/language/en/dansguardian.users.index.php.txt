@@ -1,2 +1,2 @@
-<unlock>unlock</unlock>
-<unlock_web_site>unlock this web site</unlock_web_site>
+<unlock>Unlock</unlock>
+<unlock_web_site>Unlock this web site</unlock_web_site>

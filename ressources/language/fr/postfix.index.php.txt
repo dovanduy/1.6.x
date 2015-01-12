@@ -26,7 +26,7 @@
 <backupemail_behavior_text>Activer/D&eacute;sactiver le backup &agrave; la vol&eacute;e des e-mails</backupemail_behavior_text>
 <badmx>Serveurs de courriers BAD</badmx>
 <badmx_text>Ajouter/&eacute;diter les serveurs/clients que vous d&eacute;sirez bannir</badmx_text>
-<block>bloc</block>
+<block>Bloquer</block>
 <BLOCK_DOMAIN>Refuser un Domaine de messagerie</BLOCK_DOMAIN>
 <BLOCK_DOMAIN_HOWTO>Donnez le domaine de messagerie que vous voulez bloquer (ex. domaine*,domaine.*,domaine.tld)
 Si vous en avez plus qu'un, s&eacute;parez les par une virgule.</BLOCK_DOMAIN_HOWTO>
@@ -161,7 +161,7 @@ Avec cette fonctionnalit&eacute; vous allez augmenter les performances par le re
 <relayhost_orange_text>Envoyer tous vos emails en passant par le FAI Orange</relayhost_orange_text>
 <relayhost_ssl>Vers Relais SSL</relayhost_ssl>
 <relayhost_ssl_text>Serveur d'authentification SMTPS et relais pour l'envoi de mails sortants</relayhost_ssl_text>
-<relayhost_title>serveur de transfert</relayhost_title>
+<relayhost_title>Relais global</relayhost_title>
 <relayhost_title_text>Utiliser un serveur de relais pour le transfert des messages &agrave; des domaines ext&eacute;rieurs(FAI)</relayhost_title_text>
 <relayhost_wanadoo>FAI Wanadoo</relayhost_wanadoo>
 <relayhost_wanadoo_text>Envoyer tous vos emails en passant par le FAI Wanadoo</relayhost_wanadoo_text>

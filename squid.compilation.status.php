@@ -71,7 +71,7 @@ function manu(){
 	
 	$html="
 	<H2>Squid-Cache $realsquidversion $ArchStruct</H2>
-	<div class=explain style='font-size:16px'>{manual_update_root_text}</div>
+	<div class=text-info style='font-size:16px'>{manual_update_root_text}</div>
 	<div style='font-size:16px;font-weight:bold'>{your_system}: ". $sock->getFrameWork("system.php?system-text=yes")."</div>
 	<center>
 	<table style='width:80%'>

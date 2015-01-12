@@ -42,7 +42,7 @@ function popup(){
 	if(!is_numeric($tsource)){$tsource=time();}
 	$html="
 	<div id='id-final-$t'>		
-	<div id='text-$t' style='font-size:16px' class=explain>{import_acl_rules_explain}</div>
+	<div id='text-$t' style='font-size:16px' class=text-info>{import_acl_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
 	<div style='width:98%' class=form>
 	<table>
@@ -57,7 +57,7 @@ function popup(){
 	</table>
 	</div>
 	
-	<div id='text-$t' style='font-size:16px;margin-top:20px' class=explain>{import_aclsquid_rules_explain}</div>
+	<div id='text-$t' style='font-size:16px;margin-top:20px' class=text-info>{import_aclsquid_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
 		<div style='width:98%' class=form>
 			<table>
@@ -76,7 +76,7 @@ function popup(){
 			<table style='width:100%'>
 			<tr>
 				
-				<td class=legend colspan=3><div class=explain style='font-size:16px'>{import_squid_zip_explain}</td>
+				<td class=legend colspan=3><div class=text-info style='font-size:16px'>{import_squid_zip_explain}</td>
 			</tr>
 			<tr>
 				<td colspan=3 align='center'><hr>". button("{compressed_file}...","Loadjs('import.squid.zip.php')","18px")."</td>

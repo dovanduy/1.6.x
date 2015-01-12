@@ -145,8 +145,8 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_a_parent_proxy>Ajouter un proxy parent</add_a_parent_proxy>
 <add_a_proxy>Ajouter un proxy</add_a_proxy>
 <add_backend_server>Ajouter un serveur interne</add_backend_server>
-<add_backend_server_loadb_text>Exp&eacute;die le trafique vers un serveur interne</add_backend_server_loadb_text>
-<add_bandwith_rule>Ajouter une nouvelle r&egrave;gle qui limite la bande passante</add_bandwith_rule>
+<add_backend_server_loadb_text>Exp&eacute;die le trafic vers un serveur interne</add_backend_server_loadb_text>
+<add_bandwith_rule>Nouvelle r&egrave;gle de limite de bande passante</add_bandwith_rule>
 <add_block_site_explain>Ajouter un site web qui sera stock&eacute; dans cette cat&eacute;gorie</add_block_site_explain>
 <add_bridge>Ajouter le pont r&eacute;seau</add_bridge>
 <ADD_COMPUTER>Ajouter un nouvel ordinateur</ADD_COMPUTER>
@@ -220,7 +220,7 @@ exemples[br]
 [li]Level _STARS(*)_[/li]
 [li]Checker-Version SpamAssassin _VERSION_ (_SUBVERSION_) on _HOSTNAME_[/li]</add_spamassassin_header_txt>
 <add_task>Ajouter une nouvelle t&acirc;che</add_task>
-<add_tls_smtp_server>Ajoutez le serveur SMTP TLS cible</add_tls_smtp_server>
+<add_tls_smtp_server>Nouvelle cible TLS</add_tls_smtp_server>
 <add_user>Ajouter un utilisateur</add_user>
 <add_users_and_groups>Ajouter des membres et groupes</add_users_and_groups>
 <add_user_computer>Lier un ordinateur utilisateur</add_user_computer>
@@ -414,7 +414,7 @@ Contrairement aux autres syt&egrave;mes de r&eacute;partition de charge, l'agg&e
 <APP_DHCP_EVENTS>Ev&egrave;nements du serveur DHCP</APP_DHCP_EVENTS>
 <APP_DHCP_MAIN_CONF>Configuration principale du serveur DHCP</APP_DHCP_MAIN_CONF>
 <APP_DHCP_MAIN_CONF_TEXT>Afficher le fichier g&eacute;n&eacute;r&eacute;</APP_DHCP_MAIN_CONF_TEXT>
-<APP_DHCP_ROUTES_CONF>Information de routage dans DHCP</APP_DHCP_ROUTES_CONF>
+<APP_DHCP_ROUTES_CONF>Table de routage DHCP</APP_DHCP_ROUTES_CONF>
 <APP_DHCP_ROUTES_CONF_TEXT>Ajoutez les informations de routage dans les param&egrave;tres du serveur DHCP afin de les attribuer aux clients</APP_DHCP_ROUTES_CONF_TEXT>
 <APP_DHCP_ROUTES_EXPLAIN>Ajoutez une route avec adresse IP le r&eacute;seau comme 192.168.1.0 ou 10.10.0.0 associ&eacute; par un masque de sous-r&eacute;seau comme 255.255.255.0 et la passerelle qui va effectuer le routage</APP_DHCP_ROUTES_EXPLAIN>
 <APP_DHCP_TEXT>Le Protocole de Configuration d'H&ocirc;tes Dynamique d&eacute;fini votre r&eacute;seau pour fournir des adresses IP dynamique</APP_DHCP_TEXT>
@@ -508,7 +508,7 @@ Vous pouvez modifier les param&egrave;tres afin de d&eacute;finir &agrave; quel 
 <APP_MSMTP_NOT_INSTALLED>Vous avez besoin d'installer la nouvelle version du moteur SMTP afin d'utiliser les fonctionnalit&eacute;s d'authentification</APP_MSMTP_NOT_INSTALLED>
 <APP_MYSQL>Serveur de base de donn&eacute;es MySQL</APP_MYSQL>
 <APP_MYSQL_ARTICA>MySQL pour Artica</APP_MYSQL_ARTICA>
-<APP_MYSQL_CLUSTER_MGMT>Manageur de Cluster Mysql</APP_MYSQL_CLUSTER_MGMT>
+<APP_MYSQL_CLUSTER_MGMT>Manageur de Cluster MySQL</APP_MYSQL_CLUSTER_MGMT>
 <APP_MYSQL_CLUSTER_REPLICA>R&eacute;pliqua Cluster Mysql</APP_MYSQL_CLUSTER_REPLICA>
 <APP_NFS>Syst&egrave;me de fichiers sur r&eacute;seau (NFS)</APP_NFS>
 <APP_NMAP>Scanner de S&eacute;curit&eacute; nMap</APP_NMAP>
@@ -584,7 +584,7 @@ Si vous activez cette fonctionnalit&eacute;, vous serez en mesure de partager vo
 <APP_SAMBA_NMBD>R&eacute;solution Samba</APP_SAMBA_NMBD>
 <APP_SAMBA_SMBD>D&eacute;mon TCP/IP Samba</APP_SAMBA_SMBD>
 <APP_SAMBA_WINBIND>D&eacute;mon Samba Winbind</APP_SAMBA_WINBIND>
-<APP_SARG>G&eacute;n&eacute;rateur de rapport d'analyse Squid</APP_SARG>
+<APP_SARG>G&eacute;n&eacute;rateur de statistiques</APP_SARG>
 <APP_SASLAUTHD>Auth SASL Cyrus</APP_SASLAUTHD>
 <APP_SA_BLACKLIST>Listes noires SpamAssassin</APP_SA_BLACKLIST>
 <APP_SA_BLACKLIST_AUTOUPDATE>Mettez &agrave; jour SpamAssassin avec plus de 300.000 domaines en liste noire</APP_SA_BLACKLIST_AUTOUPDATE>
@@ -669,7 +669,7 @@ Squid optimise donc de fa&ccedil;on cons&eacute;quente le flux de donn&eacute;es
 <artica-cron-mailgraph>G&eacute;n&eacute;rateur d'images Mailgraph</artica-cron-mailgraph>
 <artica-cron-mailgraph_text>G&eacute;n&eacute;rer des graphiques et des images dans le dossier artica</artica-cron-mailgraph_text>
 <artica-cron-postfixinet>Changer les interfaces r&eacute;seau de Postfix</artica-cron-postfixinet>
-<artica-cron-postfixinet_text>Changement des valeurs des interfaces r&eacute;seaux si le fichier de configuration ne refl&egrave;te pas la r&eacute;alit&eacute;.[br]Ceci emp&ecirc;che l'installation de Postfix en mode DHCP ..</artica-cron-postfixinet_text>
+<artica-cron-postfixinet_text>Changement des valeurs des interfaces r&eacute;seau si le fichier de configuration ne refl&egrave;te pas la r&eacute;alit&eacute;.[br]Ceci emp&ecirc;che l\'installation de Postfix en mode DHCP ..</artica-cron-postfixinet_text>
 <artica-cron-quarantine>G&eacute;n&eacute;rateur de quarantaine Artica</artica-cron-quarantine>
 <artica-cron-quarantine_text>Vider la quarantaine des utilisateurs et g&eacute;n&eacute;rer des rapports HTML pour les utilisateurs par email.</artica-cron-quarantine_text>
 <artica-cron-queuegraph>G&eacute;n&eacute;ration QueueGraph</artica-cron-queuegraph>
@@ -730,7 +730,7 @@ Squid optimise donc de fa&ccedil;on cons&eacute;quente le flux de donn&eacute;es
 <auditd_explain>Auditer ce r&eacute;pertoire afin de mettre en historique ses modifications.[br]Cette fonctionnalit&eacute; vous autorise &agrave; visualiser tous les mouvements de fichiers / &eacute;changes dans ce r&eacute;pertoire et ses sous-r&eacute;pertoires.</auditd_explain>
 <AUDITD_FOLDERS_LIST_EXPLAIN>Ici, la liste des r&eacute;pertoires en cours de surveillance temps r&eacute;el.[br]Vous pouvez ajouter des r&eacute;pertoires &agrave; surveiller en utilisant la fonctionnalit&eacute; &quot;Explorateur&quot;</AUDITD_FOLDERS_LIST_EXPLAIN>
 <AuditFrequency>Fr&eacute;quence de rapatriement</AuditFrequency>
-<AuditFrequency_explain>Ceci pilote la fr&eacute;quence de rapatriement des &eacute;v&egrave;nements dans la base Mysql.[br]La valeur par d&eacute;faut est de 10 minutes. Chaque 10 minutes, artica exporte les &eacute;v&egrave;nements et les injecte dans Mysql pour g&eacute;n&eacute;rer les statistiques.</AuditFrequency_explain>
+<AuditFrequency_explain>Ceci pilote la fr&eacute;quence de rapatriement des &eacute;v&egrave;nements dans la base Mysql.[br]La valeur par d&eacute;faut est de 10 minutes. Chaque 10 minutes, artica exporte les &eacute;v&egrave;nements et les injecte dans MySQL pour g&eacute;n&eacute;rer les statistiques.</AuditFrequency_explain>
 <audit_main_domains>Audit sur les domaines de la main.cf</audit_main_domains>
 <audit_this_directory>Cr&eacute;er un syst&egrave;me de surveillance sur ce r&eacute;pertoire</audit_this_directory>
 <august>Ao&ucirc;t</august>
@@ -952,7 +952,7 @@ Si le parent n'est pas titulaire d'un objet de requ&ecirc;te, il transmet la req
 <check_helo_ns_access_text>Rechercher la r&egrave;gle sp&eacute;cifi&eacute;e pour les serveurs DNS pour le nom d'h&ocirc;te HELO ou EHLO, et d'ex&eacute;cuter l'action correspondante[br]. Note [strong]: un r&eacute;sultat &laquo;ACCEPTER&raquo; n'est pas autoris&eacute;e pour des raisons de s&eacute;curit&eacute;[br].
 &Agrave; la place, utilisez DUNNO pour exclure des h&ocirc;tes sp&eacute;cifiques des listes noires.[/strong]</check_helo_ns_access_text>
 <check_in_headers>V&eacute;rifiez le contenu des r&egrave;gles dans l'en-t&ecirc;te</check_in_headers>
-<check_policy_service>v&eacute;rifier la politique de serveur</check_policy_service>
+<check_policy_service>V&eacute;rifier le serveur de strat&eacute;gie</check_policy_service>
 <check_policy_service_text>Requ&ecirc;te du serveur de politique sp&eacute;cifi&eacute;</check_policy_service_text>
 <check_recipient_access>V&eacute;rifier l'acc&egrave;s destinataire</check_recipient_access>
 <check_recipient_access_text>Rechercher dans l'acc&egrave;s sp&eacute;cifi&eacute; l'adresse r&eacute;solue RCPT TO, domaine, domaines parent, ou localpart @, et ex&eacute;cuter l'action correspondante</check_recipient_access_text>
@@ -985,7 +985,7 @@ Le param&egrave;tre relay_domains_reject_code sp&eacute;cifie le code de r&eacut
 <clamav_unofficial_text>Mise &agrave; jour des signatures antivirus tiers fournies par SaneSecurity, SecuriteInfo,MalwarePatrol, OITC, INetMsg et ScamNailer</clamav_unofficial_text>
 <CLAMD_NOT_INSTALLED>Le d&eacute;mon Clamd est manquant</CLAMD_NOT_INSTALLED>
 <CLAMD_NOT_INSTALLED_TEXT>Il semble que le d&eacute;mon Clamd n'est pas install&eacute;, des fonctionnalit&eacute;s antivirus ne seront pas disponibles</CLAMD_NOT_INSTALLED_TEXT>
-<clean_database>vider la base de donn&eacute;es</clean_database>
+<clean_database>Vider la base de donn&eacute;es</clean_database>
 <clean_update>Effacer et effectuer les mises &agrave; jour</clean_update>
 <clickonthelink>Clickez sur le lien</clickonthelink>
 <click_add_filter>Cliquez pour ajouter une r&egrave;gle de transport ou une r&egrave;gle de filtrage</click_add_filter>
@@ -1005,7 +1005,7 @@ Le param&egrave;tre relay_domains_reject_code sp&eacute;cifie le code de r&eacut
 <click_to_expand_or_collapse>Cliquez pour agrandir ou r&eacute;duire</click_to_expand_or_collapse>
 <click_to_launch>Cliquez pour effectuer cette op&eacute;ration</click_to_launch>
 <click_to_mount>Cliquer pour monter</click_to_mount>
-<client>client</client>
+<client>Client</client>
 <client-timout>Temps imparti lors du transfert des donn&eacute;es</client-timout>
 <client-timout-xr>Temps imparti lors du transfert des donn&eacute;es.[br]pendant cette p&eacute;riode, les serveurs internes doivent r&eacute;pondre aux donn&eacute;es sinon la connexion est termin&eacute;e.</client-timout-xr>
 <ClientConnectTimeout>Temps d'attente maximal autoris&eacute; (en secondes) lors de l'&eacute;tablissement d'une connexion avec le processus de filtrage. [br]
@@ -1047,7 +1047,7 @@ La valeur par d&eacute;faut est d'accepter le message.</ClientOnError>
 <COMPILING_SQUIDGUARD_DATABASES_TEXT>Artica est encours de compilation de vos bases de filtrage web. Ceci peut faire monter le serveur en charge</COMPILING_SQUIDGUARD_DATABASES_TEXT>
 <COMPLETED>Connect&eacute;</COMPLETED>
 <computer>ordinateur</computer>
-<computers>ordinateurs</computers>
+<computers>Ordinateurs</computers>
 <computers_list>Liste des ordinateurs</computers_list>
 <computers_list_text>Lister et recherche des ordinateurs dans la base de donn&eacute;es</computers_list_text>
 <computers_management>Administration des ordinateurs</computers_management>
@@ -1210,7 +1210,7 @@ Vous pouvez ajouter des privil&egrave;ges de groupe afin d'autoriser certains ut
 <dansguardian_user_whitelists>Listes blanches.</dansguardian_user_whitelists>
 <Data exchange timeout>Timeout d'&eacute;change de Donn&eacute;es</Data exchange timeout>
 <database>Base de donn&eacute;es</database>
-<databases>bases de donn&eacute;es</databases>
+<databases>Bases de donn&eacute;es</databases>
 <databases_maintenance>Maintenance des bases</databases_maintenance>
 <databases_maintenance_explain>Ce formulaire d&eacute;fini la fr&eacute;quence journali&egrave;re des bases d'urls.[br]Chaque jour, &agrave; l'heure indiqu&eacute;e, artica va effectuer une maintenance de vos bases de filtrage.[br]Vous recevrez une notification par eMail du r&eacute;sultat des op&eacute;rations.[br]Indiquez &agrave; quelle heure l'op&eacute;ration va &ecirc;tre ex&eacute;cut&eacute;e.</databases_maintenance_explain>
 <databases_maintenance_text>Programmez la maintenance des bases d'urls de filtrage afin de pr&eacute;venir des corruptions et d'acc&eacute;l&eacute;rer le processus de filtrage.</databases_maintenance_text>
@@ -1250,7 +1250,7 @@ Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services
 <delay_pool_param_user_limit>alors limiter la bande passante &agrave;</delay_pool_param_user_limit>
 <delay_pool_param_user_max>Lorsqu'un t&eacute;l&eacute;chargement exc&egrave;de</delay_pool_param_user_max>
 <delay_template>masque de retardement</delay_template>
-<delete>supprimer</delete>
+<delete>Supprimer</delete>
 <delete aliase>Supprimer cet alias</delete aliase>
 <delete group explain>Supprimer ce groupe de l\'arborescence</delete group explain>
 <delete mail>Supprimer cette adresse</delete mail>
@@ -1303,7 +1303,7 @@ Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services
 <dev_point>Point de Dev</dev_point>
 <directory>R&eacute;pertoire</directory>
 <disable>d&eacute;sactiver</disable>
-<disable tls postfix>D&eacute;sactiver TLS pour Postfix</disable tls postfix>
+<disable tls postfix>D&eacute;sactiver le support TLS</disable tls postfix>
 <disabled>d&eacute;sactiv&eacute;</disabled>
 <disabled_amavis_enabled>Cette fonctionnalit&eacute; est d&eacute;sactiv&eacute;e car elle est &eacute;cras&eacute;e par les param&egrave;tres de Amavis.</disabled_amavis_enabled>
 <DisableMagicQuotesGpc>D&eacute;sactiver magic_quotes sur les op&eacute;rations GPC</DisableMagicQuotesGpc>
@@ -1375,7 +1375,7 @@ Les spammeurs connus sont ainsi bloqu&eacute;s lorsqu'ils tentent d'obtenir l'ad
 <DomainKeysCompat>Compatibilit&eacute; DomainKeys</DomainKeysCompat>
 <DomainKeysCompat_text>Assure la compatibilit&eacute; avec la technique des &quot;DomainKeys&quot; (RFC4870) . Si non activ&eacute;, les clefs &quot;DomainKeys&quot; seront consid&eacute;r&eacute;es automatiquement comme invalides.</DomainKeysCompat_text>
 <domainName>Domaine SMTP</domainName>
-<domains>domaines</domains>
+<domains>Domaines</domains>
 <domains_link>Gestion de vos domaines de messagerie</domains_link>
 <domains_title>Vos domaines</domains_title>
 <domain_activated>Domaine activ&eacute;</domain_activated>
@@ -1475,7 +1475,7 @@ prend en charge l'extension DSN.[/b]</EHLOsupportDSN_text>
 <empty_your_mailbox>Vider votre bo&icirc;te aux lettres</empty_your_mailbox>
 <eMuleIDServers>Note affect&eacute;e (ID)</eMuleIDServers>
 <enable>activ&eacute;</enable>
-<enable tls postfix>Activer le TLS dans Postfix</enable tls postfix>
+<enable tls postfix>Activer le support TLS</enable tls postfix>
 <EnableArticaWatchDog>Activer la surveillance</EnableArticaWatchDog>
 <EnableArticaWatchDog_explain>Si activ&eacute;, Artica va s'assurer toutes les 10Mn que les services sont correctement d&eacute;marr&eacute;s. Si certains sont arr&ecirc;t&eacute;s, il les red&eacute;marrera.[br]
 Durant cette op&eacute;ration, il peut avoir un consommation CPU non n&eacute;gligeable.</EnableArticaWatchDog_explain>
@@ -1645,7 +1645,7 @@ Cette fonctionnalit&eacute; ne sera pas disponible</error_blkid_not_installed>
 <error_must_be_ip_address>Erreur cela doit &ecirc;tre une adresse TCP/IP</error_must_be_ip_address>
 <ERROR_MYSQL_CONNECTION>Echec de connexion MySQL</ERROR_MYSQL_CONNECTION>
 <error_mysql_user>Erreur sur le compte MySQL</error_mysql_user>
-<error_mysql_user_text>Il semble que le compte Mysql n'est pas indiqu&eacute; or en &eacute;chec. D&eacute;finissez-le dans les Param&egrave;tres Globaux, Base de donn&eacute;es Mysql</error_mysql_user_text>
+<error_mysql_user_text>Il semble que le compte MySQL n\'est pas indiqu&eacute; or en &eacute;chec. D&eacute;finissez-le dans les Param&egrave;tres Globaux, Base de donn&eacute;es Mysql</error_mysql_user_text>
 <error_need_smbmount_feature>Pour activer cette fonctionnalit&eacute;, vous devez avoir l'application smbmount</error_need_smbmount_feature>
 <ERROR_NEED_TO_SAVEAPPLY>Vous devez lancer l'application des param&egrave;tres sur le serveur pour passer en mode de production.</ERROR_NEED_TO_SAVEAPPLY>
 <error_network>Erreur de r&eacute;seau</error_network>
@@ -1699,7 +1699,7 @@ L'op&eacute;ration d'affichage est annul&eacute;e.</error_no_datas>
 <error_unable_to_create_dir>Erreur, impossible de cr&eacute;er le r&eacute;pertoire</error_unable_to_create_dir>
 <error_unable_to_find_path>Erreur impossible de lire le fichier dans le chemin</error_unable_to_find_path>
 <error_unable_to_move_file>Erreur, impossible de d&eacute;placer le fichier</error_unable_to_move_file>
-<error_unable_to_upload_file>Erreur: Impossible de transf&eacute;rer votre fichier</error_unable_to_upload_file>
+<error_unable_to_upload_file>Erreur: Impossible de charger votre fichier</error_unable_to_upload_file>
 <error_unknown_domain>Erreur, domaine non reconnu</error_unknown_domain>
 <ERROR_value_exceed_maximum_number_allowed>Erreur: La valeur maximum autoris&eacute;e est d&eacute;pass&eacute;</ERROR_value_exceed_maximum_number_allowed>
 <ERROR_VALUE_MISSING_PLEASE_FILL_THE_FORM>Erreur, une valeur est manquante, replissez correctement le formulaire</ERROR_VALUE_MISSING_PLEASE_FILL_THE_FORM>
@@ -1791,7 +1791,7 @@ Il retransfert les messages sur un autre serveur sur le port 25.[br]Fetchmail n'
 <filetp_explain>Cette fonctionnalit&eacute; vous permet de t&eacute;l&eacute;charger un fichier en HTTP,FTP par son lien web.[br]Donnez le lien web complet dans le formulaire afin de lancer l'op&eacute;ration de r&eacute;cup&eacute;ration.</filetp_explain>
 <FILE_ALREADY_SCHEDULED>Fichier d&eacute;j&agrave; programm&eacute;</FILE_ALREADY_SCHEDULED>
 <file_path>Chemin du fichier</file_path>
-<file_to_upload>fichier &agrave; charger</file_to_upload>
+<file_to_upload>Fichier &agrave; charger</file_to_upload>
 <fill_form>Remplissez le formulaire</fill_form>
 <filter>filtre</filter>
 <Filtered>Filtr&eacute;</Filtered>
@@ -1940,8 +1940,8 @@ La charge g&eacute;r&eacute;e par la construction de ce rapport va d&eacute;pend
 <group how to del user>Cliquez sur l'utilisateur pour le supprimer du groupe</group how to del user>
 <group list>listes de groupes</group list>
 <group name>Nom du groupe</group name>
-<group policy>Politique du groupe</group policy>
-<group user policy>Politique de groupe d'utilisateurs</group user policy>
+<group policy>Strat&eacute;gies du groupe</group policy>
+<group user policy>Strat&eacute;gie de groupe utilisateurs</group user policy>
 <groups>Groupes</groups>
 <groups_allow>Droits sur le groupe</groups_allow>
 <groupwares>Groupwares</groupwares>
@@ -1995,7 +1995,7 @@ Artica effectue des tests r&eacute;guliers de performances (toutes les 60mn).[br
 <hosts_number>Nombre d'h&ocirc;tes</hosts_number>
 <hosts_without_proxy>Les h&ocirc;tes sans proxy</hosts_without_proxy>
 <hotmail>Hotmail &amp; Live</hotmail>
-<hour>heure</hour>
+<hour>Heure</hour>
 <hourBegin>Heure de d&eacute;marrage</hourBegin>
 <hourEnd>Heur de fin</hourEnd>
 <hourly>horraire</hourly>
@@ -2123,7 +2123,7 @@ Exemples:
 [li][::1] (Postfix version 2.2 and later)[/li]
 [li]192.168.1.2[/li]
 [/ul]</inet_interfaces_text>
-<inet_interfaces_title>Interfaces r&eacute;saux</inet_interfaces_title>
+<inet_interfaces_title>Interfaces r&eacute;seau</inet_interfaces_title>
 <Infected>Infect&eacute;</Infected>
 <infected_spam>infect&eacute;</infected_spam>
 <infos>Informations</infos>
@@ -2610,7 +2610,7 @@ thekelleys.org.uk sera redirig&eacute; vers  eyas.biff.org.uk avec un poid de 30
 <mxheight>Priorit&eacute; MX</mxheight>
 <mxrecdomainfrom>Domaine</mxrecdomainfrom>
 <mxrecdomainto>Domaine ou ordinateur cible</mxrecdomainto>
-<MX_lookups>MX lookups</MX_lookups>
+<MX_lookups>Recherche le MX</MX_lookups>
 <MX_lookups_text>l'option de recherches MX active/d&eacute;sactive la suppression des recherches MX.[br] Ceci &eacute;vite les boucles de routage des mail lorsque votre machine est le principal h&ocirc;te MX.</MX_lookups_text>
 <mydestination_text>[b](default: $myhostname, localhost.$mydomain, localhost)[/b]
 
@@ -2642,7 +2642,7 @@ Exemples[ul]
 [li][::1]/128[/li] (version IPv6)
 [li][2001:240:587::]/64 (version IPv6)[/li]
 [/ul]</mynetworks_text>
-<mynetworks_title>Quels clients pour relayer les mails de ?</mynetworks_title>
+<mynetworks_title>Adresses autoris&eacute;es &agrave; &ecirc;tre relay&eacute;es</mynetworks_title>
 <myorigin_text>Ce param&egrave;tre sp&eacute;cifie le domaine de messagerie qui va appara&icirc;tre dans les messages qui on &eacute;t&eacute;s post&eacute;s depuis le serveur.[br]
 La valeur par d&eacute;faut est d'utiliser le nom du serveur.[br]Si vous &ecirc;tes dans une organisation dont le nom du serveur n'est pas un domaine valide, vous devriez modifier cette entr&eacute;e.[br]Cette valeur sert aussi pour ajouter un domaine de fa&ccedil;on automatique lorsque dans les adresses de destination aucun domaine n'a &eacute;t&eacute; ajout&eacute;</myorigin_text>
 <myorigin_title>Nom de domaine &agrave; utiliser dans le courrier sortant?</myorigin_title>
@@ -2695,7 +2695,7 @@ Dans ce cas, Il est possible de l'utiliser va script de connexion ou bien via un
 <nic>Interface r&eacute;seau</nic>
 <nickname>surnom</nickname>
 <nic_dynamic_dns>DNS Dynamique</nic_dynamic_dns>
-<nic_infos>Interfaces r&eacute;seaux</nic_infos>
+<nic_infos>Interfaces r&eacute;seau</nic_infos>
 <nic_infos_text>Informations r&eacute;seaux de ce serveur</nic_infos_text>
 <nic_interfaces>Interfaces NIC</nic_interfaces>
 <NIC_NAME>Nom de la carte r&eacute;seau</NIC_NAME>
@@ -2711,7 +2711,7 @@ Dans ce cas, Il est possible de l'utiliser va script de connexion ou bien via un
 <nofoldersizes>Pas de tailles sur le dossier</nofoldersizes>
 <nofoldersizes_text>Ne pas calculer la taille de chaque dossier dans les comptes respectifs</nofoldersizes_text>
 <NOIEPLEASE>Ne pas utiliser Internet Explorer</NOIEPLEASE>
-<NOIEPLEASE_TEXT>Cette interface n'est pas compatible avec Internet Explorer, vous pouvez t&eacute;l&eacute;charger Mozilla Firefox ou Op&eacute;ra gratuitement.</NOIEPLEASE_TEXT>
+<NOIEPLEASE_TEXT>Cette interface Web n\'est pas compatible avec Microsoft Internet Explorer, Il conseill&eacute; d\'utiliser Mozilla Firefox, Op&eacute;ra Chrome ou Safari.</NOIEPLEASE_TEXT>
 <nokeepmess>Supprimer les messages apr&egrave;s r&eacute;cup&eacute;ration</nokeepmess>
 <none>Ne pas utiliser</none>
 <normal>Normale</normal>
@@ -2835,7 +2835,7 @@ Vous devrez alors reconstruire le certificat SSL principal et demander &agrave; 
 <or_add_db>Ou ajouter une nouvelle base</or_add_db>
 <or_select>Ou s&eacute;lectionnez une valeur</or_select>
 <other>autre</other>
-<others>autres</others>
+<others>Autres</others>
 <others_options>Autres options</others_options>
 <other_network_card>Autre carte r&eacute;seau</other_network_card>
 <other_proxy>Autre proxy</other_proxy>
@@ -2948,7 +2948,7 @@ Les sous-r&eacute;seaux sont couverts gr&acirc;ce &agrave; la troncation r&eacut
 [li]Postfix est la destination finale: l'adresse r&eacute;solue RCPT TO correspond &agrave; des domaines, l'interfaces inet et l'adresse ne contient pas un routage sp&eacute;cifi&eacute;-exp&eacute;diteur (user@elsewhere@domain).[/li]
 [/ul]</permit_auth_destination_text>
 <permit_inet_interfaces>Autorise l'interface r&eacute;seau</permit_inet_interfaces>
-<permit_inet_interfaces_text>Autoriser les connexions lorsque l'adresse de l'&eacute;metteur correspond aux param&egrave;tres des interfaces r&eacute;seaux.</permit_inet_interfaces_text>
+<permit_inet_interfaces_text>Autoriser les connexions lorsque l\'adresse de l\'&eacute;metteur correspond aux param&egrave;tres des interfaces r&eacute;seau.</permit_inet_interfaces_text>
 <permit_mx_backup>Permet la sauvegarde MX</permit_mx_backup>
 <permit_mx_backup_text>Autorise la requ&ecirc;te lorsque le syst&egrave;me de mail local sauvegarde MX pour le RCPT TO adresse,
 ou lorsque l'adresse est une destination autoris&eacute;e (voir &quot;permit auth destination&quot; pour la d&eacute;finition).
@@ -2986,7 +2986,7 @@ ou lorsque l'adresse est une destination autoris&eacute;e (voir &quot;permit aut
 <plugin_sieve>plugin de filtrage bo&icirc;te aux lettres</plugin_sieve>
 <plugin_sieve_enable>Activez le plugin de filtre bo&icirc;tes aux lettres</plugin_sieve_enable>
 <plugin_sieve_text>Ajoutez un onglet dans les param&egrave;tres personnels (comme les filtres thunderbird) afin d'autoriser vos utilisateurs &agrave; piloter leur propres r&egrave;gles</plugin_sieve_text>
-<policy>r&egrave;gles</policy>
+<policy>Strat&eacute;gie</policy>
 <pool>pool</pool>
 <populate>remplir</populate>
 <POP_HACK_ARTICA>Blocages par d&eacute;tections sur POP3</POP_HACK_ARTICA>
@@ -3051,7 +3051,7 @@ Ceci parce que Postfix a besoin d'ouvrir tables de recherche &agrave; l'avance, 
 <prepend_text>ajouter avant au texte trouv&eacute;</prepend_text>
 <previous>pr&eacute;c&eacute;dent</previous>
 <printers>Imprimantes</printers>
-<privileges>droits</privileges>
+<privileges>Droits</privileges>
 <privileges_text>Modifier les droits et les r&egrave;gles de s&eacute;curit&eacute; des utilisateurs enregistr&eacute;s dans ce groupe</privileges_text>
 <Pro>programme</Pro>
 <Process Server Settings>Param&egrave;tres de Processus Serveur</Process Server Settings>
@@ -3130,7 +3130,7 @@ Vous visualisez ici le nombre total d'&eacute;v&egrave;nements sauvegard&eacute;
 <query_quarantine_text>Trouver des mails stock&eacute;s dans un domaine sp&eacute;cifique et d&eacute;livrer les.</query_quarantine_text>
 <question_company_name>Donner le nom de votre soci&eacute;t&eacute;</question_company_name>
 <question_domain_name>Donner votre domaine email</question_domain_name>
-<queue>queue</queue>
+<queue>File d\'attente</queue>
 <queuegraph_about>Mailgraph est un simple outils de statistiques de messagerie port&eacute; par RRDTool. Il produit des rapports journaliers, hebdomadaires, mensuels et annuels avec des graphiques sur les messages stock&eacute;s dans les diff&eacute;rentes files d'attente de Postfix</queuegraph_about>
 <queue_flow>Flux de file d'attente</queue_flow>
 <queue_flow_day>Messages stock&eacute;s par jour</queue_flow_day>
@@ -3176,7 +3176,7 @@ Les bo&icirc;tes aux lettres d&eacute;j&agrave; cr&eacute;es ne seront pas impac
 <received>re&ccedil;us</received>
 <received_mails>mails re&ccedil;us</received_mails>
 <recipient>Destinataire</recipient>
-<recipients>destinataires</recipients>
+<recipients>Destinataires</recipients>
 <recipients_domains>Domaines destinataires</recipients_domains>
 <recipient_address>Adresse de Destinataire</recipient_address>
 <recipient_bcc_maps_text>Copie cach&eacute;e optionnelle.La Copie Cach&eacute;e (BCC) (les adresses multiples ne sont pas support&eacute;es) est ajout&eacute;e lorsque les messages proviennent de l'ext&eacute;rieur du serveur.</recipient_bcc_maps_text>
@@ -3297,12 +3297,11 @@ Ceci est une plus faible restriction que la r&egrave;gle de rejet des noms d'h&o
 <relay explain>Si ce serveur ne stocke pas d'utilisateurs, vous devez pointer le nouveau serveur de messagerie afin de continuer &agrave; transmettre les messages</relay explain>
 <relay explain 2>Cliquez sur le bouton ci-dessus afin de cr&eacute;er une r&egrave;gle de transport</relay explain 2>
 <relay explain 3>Donnez le nom du serveur ou l'adresse ip vers laquelle on va relayer les messages</relay explain 3>
-<relayhost>relais pour les domaines inconnus</relayhost>
+<relayhost>Relais SMTP pour les autres domaines</relayhost>
 <relayhost_laposte>FAI LaPoste.net</relayhost_laposte>
 <relayhost_laposte_text>Envoyez tous vos messages &agrave; destination d'internet vers le FAI laposte.net</relayhost_laposte_text>
-<relayhost_text>Par d&eacute;faut, Postfix essai de d&eacute;livrer les messages directement sur Internet.[br]
-Ceci peut &ecirc;tre diff&eacute;rent de ce que vous d&eacute;sirez.[br]
-Par exemple, le serveur peut &ecirc;tre derri&egrave;re un pare-feu ou doit obligatoirement utiliser un autre relais.[br]Cette fonctionnalit&eacute; vous permet de forcer Postfix &agrave; transmettre les domaines inconnus vers un autre serveur de messagerie.</relayhost_text>
+<relayhost_text>Par d&eacute;faut, votre serveur essai de d&eacute;livrer les messages directement sur Internet.[br]
+Si votre serveur doit obligatoirement utiliser un autre relais.[br]Cette fonctionnalit&eacute; vous permet de forcer le service de messagerie &agrave; transmettre les messages vers des domaines inconnus &agrave; travers un autre relais comme celui de votre fournisseur d\'acc&egrave;s.</relayhost_text>
 <relayhost_title>Quel mode de livraison: directe ou indirecte?</relayhost_title>
 <relay_address>Adresse du serveur SMTP</relay_address>
 <relay_behavior>Comportement du Relais</relay_behavior>
@@ -3374,7 +3373,7 @@ Placer une limite sur les ent&ecirc;tes HTTP peut r&eacute;soudre certains probl
 <resources>ressources</resources>
 <resource_testing>V&eacute;rification des ressources</resource_testing>
 <ressources_insuffisantes>Ressources insuffisantes</ressources_insuffisantes>
-<restarting>red&eacute;marrage</restarting>
+<restarting>Red&eacute;marrage</restarting>
 <restart_all_services>Red&eacute;marrer tous les services</restart_all_services>
 <restart_autofs>Red&eacute;marrer le service Auto-connect</restart_autofs>
 <restart_autofs_text>Red&eacute;marrez le service Auto-connect afin d'appliquer vos param&egrave;tres en mode &quot;production&quot;</restart_autofs_text>
@@ -3510,13 +3509,10 @@ Vous pouvez activer la fonctionnalit&eacute; RBL RHSBL afin d'&eacute;viter les 
 <sender_bcc_to>Dupliquer les messages sortants vers</sender_bcc_to>
 <sender_canonical>R&eacute;&eacute;criture d'adresse</sender_canonical>
 <sender_dependent_relayhost_maps>tables de recherche d'h&ocirc;te actif exp&eacute;diteur-d&eacute;pendantes</sender_dependent_relayhost_maps>
-<sender_dependent_relayhost_maps_text>[strong]Tables de recherche de machine relais exp&eacute;diteur-d&eacute;pendantes.[/strong][br]
-La table est parcourue par adresse d'exp&eacute;diteur et par domaine exp&eacute;diteur[br]
-Un remplacement exp&eacute;diteur-d&eacute;pendant pour le param&eacute;trage global la &quot;destination next-hop de courrier non-locale (h&ocirc;te relais)&quot;.[br]
-Les tables sont recherch&eacute;s par adresse d'exp&eacute;diteur d'enveloppe et par domaine.[br] Cette information est rejet&eacute;e avec {relay_transport}, {default_transport}[br]
-Si vous avez besoin qu'un serveur SMTP relaye le courrier &agrave; partir de chaque domaine/e-mail vers chaque serveur SMTP,
-tout en distribuant le courrier &agrave; domain2.com comme d'habitude.[br]
-[i]Ceci s'applique uniquement aux destinataires distants, donc des livraisons locales pourront &ecirc;tre, aussi, poursuivie sans encombre..[/i]</sender_dependent_relayhost_maps_text>
+<sender_dependent_relayhost_maps_text>Table de routage par exp&eacute;diteur.[br]
+Cette table s\'attarde sur l\'adresse de l\'&eacute;metteur.[br]
+Elle vous permet de sp&eacute;cifier un domaine ou une adresse eMail ainsi qu\'un serveur de destination.[br]
+Elle assure aussi le syst&egrave;me d\'authentification SMTP n&eacute;cessaire si le relais distant requi&egrave;re une authentification.</sender_dependent_relayhost_maps_text>
 <sender_dependent_relayhost_maps_title>Routage par &eacute;metteur</sender_dependent_relayhost_maps_title>
 <sender_dependent_relayhost_maps_title2>Routage par &eacute;metteur</sender_dependent_relayhost_maps_title2>
 <sender_rules>R&egrave;gles d'exp&eacute;diteurs</sender_rules>
@@ -3611,7 +3607,7 @@ Renvoie le message &agrave; l'exp&eacute;diteur, l'enveloppant dans une forme &l
 <SIMPLE_SHARE_IS_ENABLED>Le partage simple est activ&eacute;, cette section est d&eacute;sactiv&eacute;e.</SIMPLE_SHARE_IS_ENABLED>
 <simulation_mode>Mode simulation</simulation_mode>
 <simulation_mode_explain>Le mode simulation va changer chaque destinataire par l'adresse eMail stipul&eacute;e dans le champs ci-dessous.[br]Dans ce cas, vous pouvez envoyer l'envoi en masse en toute confiance afin de tester le processus d'&eacute;mission avant l'envoi d&eacute;finitif.</simulation_mode_explain>
-<since>depuis</since>
+<since>Depuis</since>
 <single_ip>Adresse IP simple</single_ip>
 <size>taille</size>
 <size_of_message>Taille du message</size_of_message>
@@ -3687,7 +3683,7 @@ Et c'est l&agrave; que les surprises peuvent arriver.</smtpd_recipient_restricti
 <smtpd_reject_unlisted_recipient_text>Demande que le serveur SMTP de Postfix rejette le courrier pour les adresses des destinataires inconnus,
 m&ecirc;me si aucune restriction d'acc&egrave;s explicites &quot;rejeter les destinataires non list&eacute;s&quot; n'est sp&eacute;cifi&eacute;e.[br]
 Cela &eacute;vite &agrave; la file d'attente de Postfix de se remplir de messages MAILER-DAEMON non distribuable.</smtpd_reject_unlisted_recipient_text>
-<smtpd_sasl_authenticated_header>Reporte le nom d'utilisateur authentifi&eacute; SASL dans le journal smtpd En-t&ecirc;te de message re&ccedil;u</smtpd_sasl_authenticated_header>
+<smtpd_sasl_authenticated_header>Indiquer le compte utilisateur dans les logs</smtpd_sasl_authenticated_header>
 <smtpd_sasl_auth_enable>Activer l'authentification SASL</smtpd_sasl_auth_enable>
 <smtpd_sasl_exceptions_networks>Exceptions r&eacute;seaux</smtpd_sasl_exceptions_networks>
 <smtpd_sasl_exceptions_networks_explain>Indiquez ici les r&eacute;seaux, nom d'ordinateurs, adresses IP des &eacute;l&eacute;ments qui ne subiront pas la demande d'authentification de ce serveur</smtpd_sasl_exceptions_networks_explain>
@@ -3707,12 +3703,12 @@ Les restrictions sont appliqu&eacute;es dans l'ordre indiqu&eacute;, la premi&eg
 <smtpd_soft_error_limit>Limite d'erreur de soft</smtpd_soft_error_limit>
 <smtpd_soft_error_limit_text>Nombre d\'erreurs qu\'un client SMTP distant est autoris&eacute; &agrave; faire, sans livrer le courrier avant que le serveur SMTP de Postfix ralentisse toutes ses r&eacute;ponses.[br]
 Le serveur SMTP de Postfix retarde toutes les r&eacute;ponses par \&quot;retardement\&quot; en secondes.</smtpd_soft_error_limit_text>
-<smtpd_tls_auth_only>n'annonce ou n'accepte pas les authentifications SASL dans une connexion non chiffr&eacute;e</smtpd_tls_auth_only>
+<smtpd_tls_auth_only>N\'autoriser que les authentifications</smtpd_tls_auth_only>
 <smtpd_tls_auth_only_text>Lorsque le chiffrement TLS est optionel dans le serveur SMTP de Postfix, n'annonce ou n'accepte pas les authentifications SASL dans une connexion non chiffr&eacute;e</smtpd_tls_auth_only_text>
 <smtpd_tls_CAfile>Fichier de Certificat de l'Autorit&eacute; de Certification</smtpd_tls_CAfile>
 <smtpd_tls_cert_file>Fichier de certificat RSA</smtpd_tls_cert_file>
 <smtpd_tls_key_file>Fichier de cl&eacute; priv&eacute; RSA</smtpd_tls_key_file>
-<smtpd_tls_received_header>produit des en-t&ecirc;tes de message Received: avec des informations</smtpd_tls_received_header>
+<smtpd_tls_received_header>Ajoute Received: dans les logs</smtpd_tls_received_header>
 <smtpd_tls_received_header_text>Requiert que le serveur SMTP de Postfix produise des en-t&ecirc;tes de message Received: qui incluent les informations &agrave; propos du protocole et du chiffrement utilis&eacute; ainsi que les champs CommonName des certificats client et de l'autorit&eacute; dont il est issu.[br] Ceci est d&eacute;sactiv&eacute; par d&eacute;faut, l'iinformation &eacute;tant susceptible d'&ecirc;tre modifi&eacute;e pendant le transit dans d'autres serveurs de messagerie. Seules l'information enregistr&eacute;e pas la destination finale est fiable.</smtpd_tls_received_header_text>
 <smtpd_tls_security_level>Niveau de s&eacute;curit&eacute; TLS</smtpd_tls_security_level>
 <smtpd_tls_security_level_text>Le niveau de s&eacute;curit&eacute; TLS du serveur Postfix</smtpd_tls_security_level_text>
@@ -4039,12 +4035,12 @@ Certains g&eacute;n&eacute;rateurs de statistiques peuvent ne pas &ecirc;tre ins
 <street>Rue</street>
 <strict-hashed-ip>strict hashed ip</strict-hashed-ip>
 <string>variable</string>
-<subdirectory>sous-r&eacute;pertoire</subdirectory>
+<subdirectory>Sous-r&eacute;pertoire</subdirectory>
 <subject>sujet</subject>
 <submailbox>Sous-dossiers</submailbox>
 <submit>Soumettre</submit>
 <submit_license>Soumettre votre licence</submit_license>
-<subnet>sous-r&eacute;seau</subnet>
+<subnet>Sous-r&eacute;seau</subnet>
 <success>Succ&egrave;s</success>
 <success operations>Op&eacute;rations r&eacute;ussies</success operations>
 <success_artica_agent_backup_finish>Sauvegarde termin&eacute;e</success_artica_agent_backup_finish>
@@ -4298,11 +4294,11 @@ peuvent &ecirc;tre utilis&eacute;es pour pr&eacute;venir la congestion lorsque u
 Si n&eacute;cessaire, r&eacute;glez la &laquo;limite de simultan&eacute;it&eacute; de destination de transport&quot; &agrave; une valeur plus &eacute;lev&eacute;e et le &quot;d&eacute;lai de connexion SMTP&quot; &agrave; une valeur plus basse (en outrepassant &quot;-o&quot; dans le fichier master.cf car ce param&egrave;tre n'a pas de nom de transport) pour le transport de relais et les transports d&eacute;di&eacute;s vers des destinations &agrave; volume &eacute;lev&eacute;.</title_postfix_tuning_8_text>
 <title_postfix_tuning_text>Les astuces de ce documents vous aide &agrave; am&eacute;liorer les performances de Postfix</title_postfix_tuning_text>
 <TLS_EXPLAIN>[b]Secure SMTP over Transport Layer Security[/b]
-Les serveurs SMTP et les clients communiquent normalement en clair sur Internet.[br]
-Dans plusieurs cas, cette communication passe &agrave; travers un ou plusieurs routeurs qui n'est pas contr&ocirc;l&eacute; ou de confiance.[br]
+Les serveurs SMTP et les clients communiquent par habitude en clair sur Internet.[br]
+Dans plusieurs cas, cette communication passe &agrave; travers un ou plusieurs routeurs qui n\'est pas contr&ocirc;l&eacute; ou de confiance.[br]
 Un routeur inconnu pourrait alors autoriser un programme tiers &agrave; surveiller ou alt&eacute;rer les communications de messagerie.[br]
-Il a &eacute;t&eacute; demand&eacute; alors de pouvoir authentifier et s&eacute;curiser les communications entre deux agents de messagerie.[br]
-Ainsi un serveur peut alors autoriser de communiquer uniquement avec des clients identifi&eacute;s et change son comportement avec des clients non identifi&eacute;s.[br]TLS ou plus commun&eacute;ment SSL est une m&eacute;canisme populaire am&eacute;liorant les communications TCP gr&acirc;ce &agrave; de l'authentification et du chiffrement.</TLS_EXPLAIN>
+Il a &eacute;t&eacute; demand&eacute; alors de pouvoir authentifier et s&eacute;curiser les communications entre deux serveurs de messagerie.[br]
+Ainsi un serveur peut alors autoriser de communiquer uniquement avec des clients identifi&eacute;s et modifie son comportement avec des clients non identifi&eacute;s.[br]TLS ou plus commun&eacute;ment SSL est une m&eacute;canisme populaire am&eacute;liorant les communications TCP gr&acirc;ce &agrave; des m&eacute;canismes d%u2019authentification et de chiffrement.</TLS_EXPLAIN>
 <tls_level>Niveau TLS</tls_level>
 <tls_logging>Enregistrement des activit&eacute;es TLS</tls_logging>
 <tls_logging_intro>Pour obtenir des informations suppl&eacute;mentaires sur l'activit&eacute; du serveur SMTP Postfix TLS, vous pouvez augmenter le niveau de journalisation.[br]
@@ -4316,7 +4312,7 @@ Chaque niveau de journalisation inclut &eacute;galement l'information journalis&
 <tls_log_field_4>enregistrer le dump exad&eacute;cimal et ASCII des transmissions apr&egrave;s la commande STARTTLS</tls_log_field_4>
 <tls_smtp_server>Serveur SMTP TLS</tls_smtp_server>
 <tls_table>Niveau de la table de routage TLS</tls_table>
-<tls_table_explain>Table de recherche pour le client SMTP postfix TLS afin de s'authentifier sur les serveurs de destination.</tls_table_explain>
+<tls_table_explain>Table de recherche des serveurs de destination qui supportent le TLS.</tls_table_explain>
 <tls_title>Transport Layer Security (TLS)</tls_title>
 <to>vers</to>
 <To Address>Vers l'Adresse</To Address>
@@ -4406,15 +4402,15 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <upgrade_artica>Nouvelle version d'Artica</upgrade_artica>
 <upgrade_artica_text>Une nouvelle version d'Artica est disponible, vous pouvez effectuer une mise &agrave; jour si vous voulez ...</upgrade_artica_text>
 <upgrade_your_system>Mettez &agrave; jour votre syst&egrave;me</upgrade_your_system>
-<upload>t&eacute;l&eacute;charger</upload>
+<upload>Charger</upload>
 <upload file>Charger le fichier</upload file>
 <uploaded>Charg&eacute;</uploaded>
-<upload_a_file>charger un fichier</upload_a_file>
+<upload_a_file>Charger un fichier</upload_a_file>
 <upload_kbs>Bande passante de chargement</upload_kbs>
-<upload_max_filesize>Taille Max du fichier de t&eacute;l&eacute;chargement</upload_max_filesize>
+<upload_max_filesize>Taille Max du fichier de chargement</upload_max_filesize>
 <upload_new_license>Charger une nouvelle licence</upload_new_license>
 <upload_vpn_configuration>Charger les param&egrave;tres VPN</upload_vpn_configuration>
-<upload_your_file_here>Chargez vos fichiers ici</upload_your_file_here>
+<upload_your_file_here>Chargez votre fichier ici</upload_your_file_here>
 <uptime>temps de vie</uptime>
 <uri_add_in_browser>Lien web &agrave; rajouter dans les param&egrave;tres des navigateurs</uri_add_in_browser>
 <uri_dnsbl>Lien DNSBL</uri_dnsbl>
@@ -4559,7 +4555,7 @@ Il offre aussi le filtrage de contenu avec un antivirus et le filtrage des pages
 <web_proxy>Proxy Web</web_proxy>
 <web_proxy_text>Param&eacute;trer votre serveur Proxy</web_proxy_text>
 <web_server_path>Chemin complet vers le dossier source php artica</web_server_path>
-<wednesday>mercredi</wednesday>
+<wednesday>Mercredi</wednesday>
 <week>semaine</week>
 <weekdays>Jours de la semaine</weekdays>
 <weekly>hebdomadaire</weekly>

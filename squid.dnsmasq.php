@@ -51,7 +51,7 @@ function popup(){
 	$html="
 	
 	<div id='$t-animate'></div>
-	<div id='$t' class=explain style='font-size:14px'>{dns_cache_explain}</div>
+	<div id='$t' class=text-info style='font-size:14px'>{dns_cache_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%' >
 	<tr>
@@ -67,14 +67,13 @@ function popup(){
 		<td>". Field_text("LocalDNSMASQItems", $LocalDNSMASQItems,"font-size:16px;width:160px")."</td>
 	</tr>				
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","Save$t()","16px")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","Save$t()","32px")."</td>
 	</tr>
 	</table>
 	<script>
 	var xSave$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
-		document.getElementById('$t-animate').innerHTML='';
 		Loadjs('system.services.cmd.php?APPNAME=dns_cache&action=restart&cmd=%2Fetc%2Finit.d%2Fdnsmasq');
 		RefreshTab('squid_main_svc');
 	

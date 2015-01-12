@@ -89,6 +89,7 @@ function UnlinkGroup(){
 function popup(){
 	$category=$_GET["category"];
 	$tpl=new templates();
+	$about=$tpl->javascript_parse_text("{about2}");
 	$TB_WIDTH=915;
 	
 	$users=new usersMenus();
@@ -116,6 +117,8 @@ function popup(){
 
 $buttons="buttons : [
 	{name: '$link_group', bclass: 'Add', onpress : LinkGroup$t},
+	{name: '$about', bclass: 'Help', onpress : Help$t},
+	
 	],";
 		
 $searchitem="	searchitems : [
@@ -128,9 +131,8 @@ $searchitem="	searchitems : [
 $rowebsite=461;
 if(isset($_GET["rowebsite"])){$rowebsite=$_GET["rowebsite"];$rowebsite=$rowebsite-40;}
 $categoryencoded=urlencode($_GET["category"]);
-	$CATEGORIES_PRIVS_EXPLAIN=$tpl->_ENGINE_parse_body("{CATEGORIES_PRIVS_EXPLAIN}");
+	$CATEGORIES_PRIVS_EXPLAIN=$tpl->javascript_parse_text("{CATEGORIES_PRIVS_EXPLAIN}");
 echo "
-<div class=explain style='font-size:14px'>$CATEGORIES_PRIVS_EXPLAIN</div>
 <table class='$t' style='display: none' id='$t' style='width:99%;'></table>
 
 <script>
@@ -141,7 +143,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 			{display: '$groups', name : 'groupdata', width : 554, sortable : true, align: 'left'},
-			{display: '$compile', name : 'allowrecompile', width : 40, sortable : true, align: 'center'},		
+			{display: '$compile', name : 'allowrecompile', width : 166, sortable : true, align: 'center'},		
 			{display: '&nbsp;', name : 'none2', width : 40, sortable : false, align: 'left'},
 		
 	],
@@ -154,12 +156,16 @@ $searchitem
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 300,
 	singleSelect: true
 	
 	});   
 });
+
+function Help$t(){
+	alert('$CATEGORIES_PRIVS_EXPLAIN');
+}
 
 	function LinkGroup$t(){
 		Loadjs('MembersBrowse.php?OnlyGroups=1&t=$t&callback=LinkGroupDB$t');

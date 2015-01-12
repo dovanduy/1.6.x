@@ -29,7 +29,7 @@ function js(){
 	$html="
 			
 	function xRefreshDisable$t(){
-			Loadjs('squid.compile.progress.php');
+			Loadjs('ufdbguard.enable.progress.php');
 	}
 	
 		var xEnable$t= function (obj) {
@@ -58,9 +58,5 @@ function Disable(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableUfdbGuard",1);
 	$sock->SET_INFO("EnableUfdbGuard2",1);
-	$sock->getFrameWork("cmd.php?reload-dansguardian=yes");
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
-	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
-	
 }
 

@@ -1,4 +1,4 @@
-<add_address>Ajouter une nouvelle adresse IP</add_address>
+<add_address>Nouvelle adresse TCP/IP</add_address>
 <add_address_dansguardian>Ajoutez un groupe d'ip ou une seule IP pour correspondre &agrave; une r&egrave;gle</add_address_dansguardian>
 <add_category>Ajouter une cat&eacute;gorie</add_category>
 <add_extension>Ajouter une extension</add_extension>
@@ -19,7 +19,7 @@
 <banned_catgories_text>Choisissez des cat&eacute;gories que vous voulez bannir dans cette r&egrave;gle</banned_catgories_text>
 <black_ip_group>Ordinateurs bannis</black_ip_group>
 <black_ip_group_text>Bannir l'acc&egrave;s des ordinateurs &agrave; Internet par leur adresse IP</black_ip_group_text>
-<blog>Blogs.</blog>
+<blog>Sites de `blogs` ou sites personnels. Plus pr&eacute;cis&eacute;ment tous les sites web dont le domaine principal appartient au fournisseur d\'acc&egrave;s tel que monsite.monisp.com</blog>
 <build_dansguardian_databases>Construire les bases et tables pour Dansguardian</build_dansguardian_databases>
 <categories>Cat&eacute;gories</categories>
 <categories_enabled>Cat&eacute;gories permises :</categories_enabled>
@@ -161,7 +161,7 @@ Indiquez 0 pour aucune limite et pour d&eacute;sactiver le processus de cache d'
 <maxsparechildren>Max de syst&egrave;mes de secours enfants</maxsparechildren>
 <maxsparechildren_text>D&eacute;finissez le nombre maximal de processus qui n'ont rien &agrave; faire.[br]
 Lorsque de nombreux processus sont charg&eacute;s sans processus, ils sont tu&eacute;s.[br]Vous pouvez essayer la valeur 64</maxsparechildren_text>
-<maxuploadsize>Taille Max de t&eacute;l&eacute;chargement</maxuploadsize>
+<maxuploadsize>Taille Max de chargement</maxuploadsize>
 <maxuploadsize_text>[b]La protection POST (upload web et formulaires)[/b][br] ne bloque pas les formulaires sans aucun upload de fichier, i.e. c'est seulement pour bloquer ou limiter les uploads mesur&eacute;s dans kibibytes apr&egrave;s l'encodage MIME ainsi que les ent&ecirc;te superflues.
 [ul][li]Utilisez 0 pour un blocage complet[/li][li] utilisez une valeur plus &eacute;lev&eacute;e (par exemple 512 = 512 Ko) pour limiter[/li][li] utilisez -1 pour ne pas bloquer[/li]
 [/ul]</maxuploadsize_text>

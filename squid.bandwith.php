@@ -146,7 +146,7 @@ function bandwith_rule_class_explain(){
 	$rules_class_explains[4]="{delay_class_4}";
 	$rules_class_explains[5]="{delay_class_5}";
 
-	$html="<div style='font-size:14px' class=explain><strong>{class} $classid:</strong><br>".$rules_class_explains[$classid]."</div>";
+	$html="<div style='font-size:14px' class=text-info><strong>{class} $classid:</strong><br>".$rules_class_explains[$classid]."</div>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -213,22 +213,14 @@ function bandwith_rules_list(){
 	$total=0;
 	
 	if($q->COUNT_ROWS($table,$database)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
+		json_error_show("no data");
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
@@ -246,7 +238,7 @@ function bandwith_rules_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql,$database);
 	writelogs($sql." ==> ". mysql_num_rows($results)." items",__FUNCTION__,__FILE__,__LINE__);
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -254,10 +246,7 @@ function bandwith_rules_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show("$q->mysql_error");
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
@@ -265,6 +254,7 @@ function bandwith_rules_list(){
 
 	$byacl=false;
 	if(isset($_GET["by-acls"])){$byacl=true;$byaclToken="&by-acls=yes";}
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
 		$md5=md5($ligne["ID"]);
@@ -337,7 +327,7 @@ if(isset($_GET["choose"])){
 }
 	
 $html="
-<div id='tableau-bandwith-regles' class=explain style='font-size:14px'>$squid_bandwith_rules_explain</div>
+<div id='tableau-bandwith-regles' class=text-info style='font-size:14px'>$squid_bandwith_rules_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -547,7 +537,7 @@ $tables[]="</table>";
 	$s->compile();
 	$html=implode("\n",$tables)."
 	<hr>
-	<div class=explain>".@implode("<br>",$s->rules_explain[$_GET["rule-id"]])." {then} $maintext</div>
+	<div class=text-info>".@implode("<br>",$s->rules_explain[$_GET["rule-id"]])." {then} $maintext</div>
 	<input type='hidden' id='right-panel-id' value='{$_GET["rule-id"]}'>";
 	
 	
@@ -999,7 +989,7 @@ function acl_net_add_popup(){
 	$tpl=new templates();
 	$html="
 	<div id='BandAclNetDivAdd'>
-	<div class=explain style='font-size:13px'>{SQUID_NETWORK_HELP}</div>
+	<div class=text-info style='font-size:13px'>{SQUID_NETWORK_HELP}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td width=100%'>
@@ -1138,7 +1128,7 @@ $mdACL_TYPE=md5($ACL_TYPE);
 $arrayEXP[$ACL_TYPE]=$tpl->_ENGINE_parse_body($arrayEXP[$ACL_TYPE]);
 $t=time();	
 $html="
-<div id='tableau-$mdACL_TYPE' class=explain style='font-size:14px'>{$arrayEXP[$ACL_TYPE]}</div>
+<div id='tableau-$mdACL_TYPE' class=text-info style='font-size:14px'>{$arrayEXP[$ACL_TYPE]}</div>
 <div style='text-align:right'><table style='width:5%'>
 <tbody>
 <tr>
@@ -1308,25 +1298,24 @@ function bandwith_table_list(){
 	$sql="SELECT * FROM squid_pools_acls WHERE pool_id={$_GET["pool_id"]} AND ACL_TYPE='{$_GET["ACL_TYPE"]}'";
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+	
+	
+	
+	if(!$q->ok){
+		json_error_show($q->mysql_error);
+	}
+	
 	$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));		
 	
 	if(count($ACL_DATAS)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
+		json_error_show("no data");
 		return ;
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", ".+?", $_POST["query"]);
-		$search=$_POST["query"];
-	}
+	
 	
 
 	
@@ -1336,12 +1325,7 @@ function bandwith_table_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	

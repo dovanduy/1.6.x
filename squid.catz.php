@@ -48,16 +48,10 @@ function popup(){
 	$tablesize=629;
 	$descriptionsize=465;
 	$bts=array();
-
+	$size=$tpl->javascript_parse_text("{size}");
 	
-	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
-	unset($CATZ_ARRAY["TIME"]);
-	$c=0;
-	while (list ($tablename, $items) = each ($CATZ_ARRAY) ){
-		$items=intval($items);
-		$c=$c+$items;
-	}
-	$c=FormatNumber($c);
+
+	$c=FormatNumber(intval(@file_get_contents("/usr/share/artica-postfix/ressources/UFDB_ARTICA_COUNT")));
 	
 	$title=$tpl->_ENGINE_parse_body("{categories}");
 	$description=$tpl->javascript_parse_text("{items}");
@@ -70,7 +64,8 @@ function popup(){
 	url: '$page?search=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$title', name : 'zDate', width : 414, sortable : false, align: 'left'},
+	{display: '$title', name : 'zDate', width : 300, sortable : false, align: 'left'},
+	{display: '$size', name : 'zDate2', width : 100, sortable : false, align: 'left'},
 	{display: '$description', name : 'description', width : 198, sortable : false, align: 'right'},
 	],
 	searchitems : [
@@ -114,7 +109,8 @@ function search(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+	$CATZ_ARRAY=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/UFDB_ARTICA_CATZ"));
+	$CATZ_ITEMS=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/UFDB_ARTICA_COUNTZ"));
 	unset($CATZ_ARRAY["TIME"]);
 	
 	$data = array();
@@ -125,7 +121,11 @@ function search(){
 	$catz=new mysql_catz();
 	$TransArray=$catz->TransArray();
 	$c=0;
-	while (list ($tablename, $items) = each ($CATZ_ARRAY) ){
+	while (list ($tablename, $size) = each ($CATZ_ARRAY) ){
+		
+		$items=intval($CATZ_ITEMS[$tablename]);
+		$size=$size/1024;
+		$size=FormatBytes($size);
 		
 		if(isset($TransArray[$tablename])){$tablename=$TransArray[$tablename];}
 		
@@ -140,6 +140,7 @@ function search(){
 				'id' => md5($tablename),
 				'cell' => array(
 						"<strong style='font-size:18px;color:$color'>{$tablename}</strong>",
+						"<div style='font-size:18px;font-weight:normal;color:$color'>$size</div>",
 						"<div style='font-size:18px;font-weight:normal;color:$color'>$items</div>",
 				)
 		);

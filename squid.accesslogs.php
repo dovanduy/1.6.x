@@ -14,6 +14,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
+if(isset($_POST["DisableLogFileDaemonMySQL"])){logfile_daemon_save();exit;}
 if(isset($_GET["tabs-all"])){tabs_all();exit;}
 if(isset($_GET["external"])){external();exit;}
 if(isset($_GET["events-list"])){events_search();exit;}
@@ -29,7 +30,8 @@ if(isset($_POST["csv-delete"])){csv_delete();exit;}
 if(isset($_POST["empty-store"])){empty_store();exit;}
 if(isset($_GET["change-date-js"])){change_date_js();exit;}
 if(isset($_GET["change-date-popup"])){change_date_popup();exit;}
-
+if(isset($_GET["logfile-daemon-js"])){logfile_daemon_js();exit;}
+if(isset($_GET["logfile-daemon-popup"])){logfile_daemon_popup();exit;}
 
 page();
 
@@ -59,8 +61,7 @@ function tabs_all(){
 	
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
-	$array["parameters"]='{log_retention}';
-	$array["schedule"]='{schedules}';
+	
 
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -77,17 +78,7 @@ function tabs_all(){
 
 		}
 		
-		if($num=="parameters"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.params.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
-			continue;
-		
-		}
 
-		if($num=="schedule"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php?TaskType=54\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
-			continue;
-		
-		}
 		
 		if($num=="today-squidaccess"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.access.today.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
@@ -116,9 +107,129 @@ function tabs_all(){
 
 }
 
+function logfile_daemon_js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$ID=$_GET["ID"];
+	$hostname=$_GET["hostname"];
+	$hostname_enc=urlencode($hostname);
+	$title=$tpl->javascript_parse_text("{parameters}");
+	echo "YahooWin2('800','$page?logfile-daemon-popup=yes','$title');";
+}
+
+function logfile_daemon_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled_see_performance}"));
+		return;
+	}
+	
+	$RemoteUfdbCat=intval($sock->GET_INFO("RemoteUfdbCat"));
+	
+	
+	$t=time();
+	$DisableLogFileDaemonMySQL=intval($sock->GET_INFO("DisableLogFileDaemonMySQL"));
+	$DisableLogFileDaemonCategories=intval($sock->GET_INFO("DisableLogFileDaemonCategories"));
+	$DisableLogFileDaemonCategories_INV=1;
+	$DisableLogFileDaemonMySQL_INV=1;
+	
+	
+	
+	if($DisableLogFileDaemonCategories==1){
+		$DisableLogFileDaemonCategories_INV=0;
+	}
+	
+	if($DisableLogFileDaemonMySQL==1){
+		$DisableLogFileDaemonMySQL_INV=0;
+	}	
+	
+	
+	$detect_categories=Paragraphe_switch_img("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
+	
+	
+	if($SquidPerformance>0){
+		$detect_categories=Paragraphe_switch_disable("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
+		$explain_RemoteUfdbCat="<div style='font-size:18px' class=text-info>{explain_SquidPerformance_nocat}</div>";
+	}
+	
+	if($RemoteUfdbCat==1){
+		$detect_categories=Paragraphe_switch_disable("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
+		$explain_RemoteUfdbCat="<div style='font-size:18px' class=text-info>{explain_RemoteUfdbCat}</div>";
+	}
+	
+	
+	$html="<div style='width:98%' class=form>$explain_RemoteUfdbCat
+	".Paragraphe_switch_img("{direct_to_mysql}", "{logfile_direct_to_mysql_explain}","DisableLogFileDaemonMySQL",$DisableLogFileDaemonMySQL_INV,null,750)
+	."$detect_categories
+	 <div style='width:100%;text-align:right;margin-top:20px'><hr>".button("{apply}","Save$t()",26)."</div>
+<script>
+var xSave$t= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);return;}
+	YahooWin2Hide();
+	Loadjs('squid.reconfigure.simple.php');
+}
+function SaveCK$t(e){
+	if(!checkEnter(e)){return;}
+	Save$t();
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('DisableLogFileDaemonMySQL',document.getElementById('DisableLogFileDaemonMySQL').value);
+	XHR.appendData('DisableLogFileDaemonCategories',document.getElementById('DisableLogFileDaemonCategories').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}				
+</script>
+";
+	
+	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function logfile_daemon_save(){
+	$sock=new sockets();
+	
+	
+	if(isset($_POST["DisableLogFileDaemonMySQL"])){
+		if($_POST["DisableLogFileDaemonMySQL"]==1){
+			$sock->SET_INFO("DisableLogFileDaemonMySQL", 0);
+		}else{
+			$sock->SET_INFO("DisableLogFileDaemonMySQL", 1);
+		}
+	}
+	
+	
+	
+	if(isset($_POST["DisableLogFileDaemonCategories"])){
+		
+		if($_POST["DisableLogFileDaemonCategories"]==1){
+			$sock->SET_INFO("DisableLogFileDaemonCategories", 0);
+			
+			
+		}else{
+			$sock->SET_INFO("DisableLogFileDaemonCategories", 1);
+			$sock->SET_INFO("EnableLocalUfdbCatService", 0);
+		}
+	}
+		
+	
+}
+
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		return;
+	}
 	$t=time();
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$zdate=$tpl->_ENGINE_parse_body("{zDate}");
@@ -160,14 +271,14 @@ function page(){
 	$table_size=855;
 	$url_row=650;
 	$member_row=330;
-	$table_height=420;
+	$table_height=500;
 	$distance_width=230;
 	$tableprc="100%";
 	$margin="-10";
 	$margin_left="-15";
 	if(is_numeric($_GET["table-size"])){$table_size=$_GET["table-size"];}
 	if(is_numeric($_GET["url-row"])){$url_row=$_GET["url-row"];}
-	
+	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 		
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
@@ -199,7 +310,7 @@ function page(){
 	//$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
 	
-	//$buttons[]="{name: '<strong>$change_date</stong>', bclass: 'Reload', onpress : ChangeDate$t},";
+	$buttons[]="{name: '<strong>$parameters</stong>', bclass: 'Settings', onpress : Settings$t},";
 	//$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
 	
 	$buttons=@implode("", $buttons);
@@ -259,6 +370,10 @@ function OnlyCached$t(){
 }
 function OnlyAll$t(){
 	$('#flexRT$t').flexOptions({url: '$page?events-list=yes'}).flexReload(); 
+}
+
+function Settings$t(){
+	Loadjs('$page?logfile-daemon-js=yes');
 }
 
 function ReloadProxy$t(){
@@ -474,6 +589,7 @@ $table="squidhour_".date("YmdH");
 		$cached=$ligne["cached"];
 		$return_code=$ligne["TYPE"];
 		$size=$ligne["QuerySize"];
+		$category=$ligne["category"];
 		$ident=array();
 		$md=md5(serialize($ligne));
 		$today=date("Y-m-d");
@@ -530,7 +646,7 @@ $table="squidhour_".date("YmdH");
 		style='text-decoration:underline;color:$color;font-weight:bold'>$www</a>",$uri);
 		
 		
-		
+		if($category<>null){$category="<strong style=color:#D2904A>&laquo;&nbsp;$category&nbsp;&raquo;</strong>";}
 		
 				
 		$data['rows'][] = array(
@@ -538,7 +654,7 @@ $table="squidhour_".date("YmdH");
 			'cell' => array(
 				"<div style='background-color:$colorDiv;margin-top:-5px;margin-left:-5px;margin-right:-5px;margin-bottom:-5px;'>&nbsp;</div>",
 				"$spanON$date$spanOFF",
-				"$spanON$uri.$return_code_text$spanOFF",
+				"$spanON$uri.$return_code_text$category$spanOFF",
 				"$spanON$identities$spanOFF"
 				)
 			);

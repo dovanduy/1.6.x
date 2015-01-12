@@ -1,4 +1,4 @@
-<add_a_rule>Ajouter une nouvelle r&egrave;gle</add_a_rule>
+<add_a_rule>Nouvelle r&egrave;gle</add_a_rule>
 <edit_a_rule>Editer une r&egrave;gle</edit_a_rule>
 <error_header>Choisissez s'il vous pla&icirc;t la valeur dans le champ d'en-t&ecirc;te</error_header>
 <error_pattern>Tapez s'il vous pla&icirc;t un mod&egrave;le pour d&eacute;tecter</error_pattern>

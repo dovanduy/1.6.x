@@ -485,7 +485,7 @@ Note that members may disable their own individual password reminders.</send_rem
 to distinguish mailing list messages in mailbox summaries.[br]Brevity is premium here, it's ok to shorten long mailing list names to[br]
 something more concise, as long as it still identifies the mailing list.[br][br] You can also add a sequential number by %d substitution
 directive. eg.; [ul][li][listname %d] -&amp;raquo; [listname 123][/li][li] (listname %05d) -&amp;raquo; (listname 00123)[/li][/ul]</subject_prefix_text>
-<subscribe_policy>R&egrave;gle d'inscription</subscribe_policy>
+<subscribe_policy>Strat&eacute;gie d\'inscription</subscribe_policy>
 <subscribe_policy_text>What steps are required for subscription?[br]
 [ul][li]Confirm (*) - email confirmation required[/li]
 [li]Require approval - require list administrator approval for subscriptions[/li]
@@ -513,7 +513,7 @@ The topic matcher will scan this many lines of the message body looking for topi
 <topic_desc>description</topic_desc>
 <topic_name>Nom du sujet</topic_name>
 <topic_pattern>mod&egrave;le Regex</topic_pattern>
-<unsubscribe_policy>R&egrave;gle de d&eacute;sincription</unsubscribe_policy>
+<unsubscribe_policy>Strat&eacute;gie de d&eacute;sinscription</unsubscribe_policy>
 <unsubscribe_policy_text>
 Is the list moderator's approval required for unsubscription requests?[br](No is recommended)[br]
 When members want to leave a list, they will make an unsubscription request, either via the web or via email.

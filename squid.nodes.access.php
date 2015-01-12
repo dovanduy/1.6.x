@@ -24,7 +24,7 @@ function page(){
 	$webservers=$tpl->_ENGINE_parse_body("{webservers}");
 	$hits=$tpl->_ENGINE_parse_body("{hits}");
 	$size=$tpl->_ENGINE_parse_body("{size}");
-	$time=$tpl->_ENGINE_parse_body("{time}");
+	$time=$tpl->_ENGINE_parse_body("{day}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$country=$tpl->_ENGINE_parse_body("{country}");
 	$url=$tpl->_ENGINE_parse_body("{url}");
@@ -32,12 +32,13 @@ function page(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$title=$tpl->_ENGINE_parse_body("{today}: {requests} {since} ".date("H")."h");
 	$change_day=$tpl->_ENGINE_parse_body("{change_day}");
+	$this_week=$tpl->javascript_parse_text("{this_week}");
+	$title="$this_week {$_GET["MAC"]} {$_GET["ipaddr"]}";
+	
 	$t=time();
 	$html="
 	<input type='hidden' id='daycache$t' value='$defaultday'>
-	<div style='margin:-10px;margin-left:-15px'>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
 	
 <script>
 $(document).ready(function(){
@@ -45,25 +46,19 @@ $('#flexRT$t').flexigrid({
 	url: '$page?search=yes&day=$defaultday&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$time', name : 'hour', width :60, sortable : true, align: 'left'},
-		{display: '$country', name : 'country', width : 70, sortable : false, align: 'left'},
-		{display: '$webservers', name : 'sitename', width : 282, sortable : true, align: 'left'},
-		{display: '$size', name : 'size', width : 73, sortable : true, align: 'left'},
-		{display: 'hits', name : 'hits', width : 60, sortable : true, align: 'left'}
-
+		{display: '$time', name : 'day', width :301, sortable : true, align: 'left'},
+		{display: '$size', name : 'size', width : 204, sortable : true, align: 'left'},
 		],
 		
-buttons : [
-		{name: '$change_day', bclass: 'add', onpress : ChangeDay},
-		],			
+			
 	
 	searchitems : [
-		{display: '$webservers', name : 'sitename'},
+		{display: '$time', name : 'day'},
 		],
-	sortname: 'hour',
-	sortorder: 'desc',
+	sortname: 'day',
+	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:18px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -139,27 +134,31 @@ function search(){
 	$field_query2="SUM(size)";	
 	$table_field="{size}";
 	$category=$tpl->_ENGINE_parse_body("{category}");
-	$table=date('Ymd',strtotime($_GET["day"]))."_hour";
+	$table="WEEK_RTTH";
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	
-	$D=date('D',strtotime("{$_GET["day"]} 00:00:00"));
+	
 	
 	$search='%';
 	$page=1;
 	$ORDER="ORDER BY ID DESC";
 	$ip=new IP();
+	$Select="MAC";
 	$FORCE_FILTER=" AND `MAC`='{$_GET["MAC"]}'";	
 	
 	if($ip->isIPAddress($_GET["ipaddr"])){
 		$Select="ipaddr";
-		$FORCE_FILTER="AND client='{$_GET["ipaddr"]}'";
+		
+		$FORCE_FILTER="ipaddr='{$_GET["ipaddr"]}'";
 	}
 	
 	if($ip->IsvalidMAC($_GET["MAC"])){
 		$Select="MAC";
-		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}'";
+		$FORCE_FILTER="MAC='{$_GET["MAC"]}'";
 	}
+	
+	$table="(SELECT `day`,SUM(size) as size,$Select FROM WEEK_RTTH GROUP BY `day`,$Select HAVING $FORCE_FILTER) as t";
 	
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
@@ -167,12 +166,12 @@ function search(){
 	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
 	$search=string_to_flexquery();
 	if($search<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $search $FORCE_FILTER";
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER ";
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 	}	
@@ -181,7 +180,7 @@ function search(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT* FROM $table WHERE 1 $search $FORCE_FILTER $ORDER $limitSql";
+	$sql="SELECT* FROM $table WHERE 1 $search $ORDER $limitSql";
 	$results=$q->QUERY_SQL($sql);
 	
 	$data = array();
@@ -195,7 +194,7 @@ function search(){
 	
 	$data['total'] = mysql_num_rows($results);
 	
-	$style="style='font-size:{$fontsize}px'";
+	$style="style='font-size:22px'";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		
@@ -222,17 +221,15 @@ function search(){
 		OnClick=\"javascript:Loadjs('squid.traffic.statistics.hours.php?familysite={$ligne["sitename"]}&day={$_GET["day"]}')\" 
 		style='font-size:{$fontsize}px;text-decoration:underline'>";
 		
- 	
+		$dd=date("Y-m");
+		$D=$q->time_to_date(strtotime("$dd-{$ligne["day"]} 00:00:00"));
+ 		
 		
 		$data['rows'][] = array(
 			'id' => $id,
 			'cell' => array(
-			"<span $style>$D&nbsp;{$ligne["hour"]}h</span>",
-			"<span $style>{$ligne["country"]}</a></span>",
-			"<span $style>{$ligne["sitename"]}</a></span>",
+			"<span $style>$D</span>",
 			"<span $style>{$ligne["size"]}</a></span>",
-			"<span $style>{$ligne["hits"]}</span>",
-			"<span $style>$categorize{$ligne["category"]}</a></span>"
 			)
 			);		
 		

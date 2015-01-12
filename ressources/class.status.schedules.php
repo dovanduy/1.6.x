@@ -1,12 +1,27 @@
 <?php
 function load_stats(){
 	events("************************ SCHEDULE ****************************",__FUNCTION__,__LINE__);
-	$unix=new unix();
+	
+	if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
+	
+	if(!isset($GLOBALS["CLASS_UNIX"])){
+		$unix=new unix();
+	}else{
+		$unix=$GLOBALS["CLASS_UNIX"];
+	}
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	$time=time();
 	$BASEDIR="/usr/share/artica-postfix";
 	$hash_mem=array();
+	$files=$unix->DirFiles("/usr/share/artica-postfix/bin");
+	while (list ($filename,$line) = each ($files)){
+		@chmod("/usr/share/artica-postfix/bin/$filename",0755);
+		@chown("/usr/share/artica-postfix/bin/$filename","root");
+	}
+	
+	
+	@chmod("/usr/share/artica-postfix/ressources/mem.pl",0755);
 	$datas=shell_exec(dirname(__FILE__)."/mem.pl");
 	if(preg_match('#T=([0-9]+) U=([0-9]+)#',$datas,$re)){$ram_used=$re[2];}
 
@@ -20,21 +35,41 @@ function load_stats(){
 	
 	@file_put_contents("/var/log/artica-postfix/sys_loadavg/$time", $internal_load);
 	@file_put_contents("/var/log/artica-postfix/sys_mem/$time", $ram_used);
+	$NtpdateAD=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("NtpdateAD"));
+	$NTPDClientEnabled=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("NTPDClientEnabled"));
+	if($NtpdateAD==1){$NTPDClientEnabled=1;}
+	
+	
 
 	if(system_is_overloaded(basename(__FILE__))){
-		$date=date("Y-m-d-H-i");
+		$date=time();
 		if(!is_file("/var/log/artica-postfix/sys_alerts/$date")){
 			$ps=$unix->find_program("ps");
+			$load=$GLOBALS["SYSTEM_INTERNAL_LOAD"];
 			if(!$unix->process_exists($GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("$ps"))){
-				$cmd=trim($GLOBALS["nohup"]." {$GLOBALS["NICE"]} $ps aux >/var/log/artica-postfix/sys_alerts/$date 2>&1");
+				$cmd=trim($GLOBALS["nohup"]." {$GLOBALS["NICE"]} $ps auxww >/var/log/artica-postfix/sys_alerts/$date-$load 2>&1");
+				shell_exec($cmd);
 			}
 		}
 	}else{
-		if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){
-			shell_exec_time("exec.squid.php --ping-clients-proxy",5);
-		}
+		if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){shell_exec_time("exec.squid.php --ping-clients-proxy",5); }
 
 	}
+	
+	
+// NTP CLIENT *****************************************************************************
+if($NTPDClientEnabled==1){
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.watchdog.php.start_watchdog.ntp.time");
+	$NTPDClientPool=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("NTPDClientPool"));
+	if($NTPDClientPool==0){$NTPDClientPool=120;}
+	if($time_file>$NTPDClientPool){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.ntpdate.php >/dev/null 2>&1 &");
+	}
+}
+// ****************************************************************************************
+	
+	
+	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.syslog-engine.php.load_stats.time");
 	if($time_file>5){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.syslog-engine.php --load-stats >/dev/null 2>&1 &");
@@ -44,13 +79,24 @@ function load_stats(){
 	if($time_file>1){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.mpstat.php >/dev/null 2>&1 &");
 	}
-
-	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.jgrowl.php.BuildJgrowl.time");
-	if($time_file>1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.jgrowl.php --build >/dev/null 2>&1 &");
+	
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.philesight.php.scan_directories.time");
+	if($time_file>60){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.philesight.php --directories >/dev/null 2>&1 &");
 	}
+	
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.seeker.php.xtart.time");
+	events("seeker: {$time_file}mn/30mn");
+	$GLOBALS["CLASS_UNIX"]->events("seeker: {$time_file}mn/30mn (/etc/artica-postfix/pids/exec.seeker.php.xtart.time)","/var/log/seeker.log",false,__FUNCTION__,__LINE__,basename(__FILE__));
+	if($time_file>5){
+		events("************ Executing seeker... ************");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.seeker.php >/dev/null 2>&1 &");
+	}
+
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/croned.1/cron.notifs.php.time");
-	if($time_file>1){
+	if($time_file>5){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/cron.notifs.php >/dev/null 2>&1 &");
 	}
 
@@ -60,6 +106,11 @@ function load_stats(){
 	if($time_file>120){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.cleanfiles.php >/dev/null 2>&1 &");
 	}
+	
+	$timefile=$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.clean.logs.php.CleanLogs.time");
+	if($time_file>240){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.clean.logs.php --clean-tmp >/dev/null 2>&1 &");
+	}	
 
 
 
@@ -68,6 +119,15 @@ function load_stats(){
 
 	if($time_file>4){
 		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.watchdog.php --dns >/dev/null 2>&1 &";
+		events($cmd,__FUNCTION__,__LINE__);
+		shell_exec2("$cmd");
+	}
+	
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.clean.logs.php.clean_space.time");
+	events("clean_space: {$time_file}mn",__FUNCTION__,__LINE__);
+	if($time_file>240){
+		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.clean.logs.php --clean-space >/dev/null 2>&1 &";
 		events($cmd,__FUNCTION__,__LINE__);
 		shell_exec2("$cmd");
 	}

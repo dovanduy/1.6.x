@@ -1,7 +1,15 @@
 <?php
 
 if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get")){@date_default_timezone_set(@date_default_timezone_get());}
-if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+if(!isset($GLOBALS["ARTICALOGDIR"])){
+		$GLOBALS["ARTICALOGDIR"]=null;
+		if(is_file("/etc/artica-postfix/settings/Daemons/ArticaLogDir")){
+			$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir");
+		}
+		if($GLOBALS["ARTICALOGDIR"]==null){ 
+			$GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; 
+		} 
+}
 ini_set("log_errors", 1);
 ini_set("error_log", "/var/log/php.log");
 
@@ -27,6 +35,22 @@ function writeToFile($text,$filepath){
 	@fwrite($f,$text);
 	@fclose($f);
 }
+
+function writelogs_meta($text,$function,$file,$line){
+	$pid=getmypid();
+	$file=basename($file);
+	$date=date("Y-m-d H:i:s");
+	if(!isset($GLOBALS["CLIENT_META_IP"])){$GLOBALS["CLIENT_META_IP"]="127.0.0.1";}
+	$ip=$GLOBALS["CLIENT_META_IP"];
+	$filelogs="/usr/share/artica-postfix/ressources/logs/web/artica-meta-server.log";
+	writeToFile("$date [$ip][$file][$function][$line]: $text\n",$filelogs);
+	if(posix_getuid()==0){
+		writeToFile("$date [$ip][$file][$function][$line]: $text\n","/var/log/artica-meta.log");
+	}
+
+}
+
+
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	$EnableWebPageDebugging=0;
 	if(!isset($GLOBALS["ARTICA"]["EVENTS"])){$GLOBALS["ARTICA"]["EVENTS"]=array();}

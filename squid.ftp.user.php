@@ -244,7 +244,7 @@ function restrictions(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$pattern=$tpl->javascript_parse_text("{pattern}");
-	$html="<div class=explain>{ftp_restrictions_explain}<p>&nbsp;</p>{SQUID_NETWORK_HELP}</div>
+	$html="<div class=text-info>{ftp_restrictions_explain}<p>&nbsp;</p>{SQUID_NETWORK_HELP}</div>
 	
 	<table style='width:100%'>
 	<tr>

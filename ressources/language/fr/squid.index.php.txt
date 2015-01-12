@@ -258,7 +258,7 @@ Rejeter contient la totalit&eacute; de l'URL http://www.google.co.in/index.html<
 <add_cache_dir>Nouveau Cache</add_cache_dir>
 <add_cache_dir_text>Ajouter un nouveau dossier de stockage du cache</add_cache_dir_text>
 <add_icap_class>Ajouter un groupe</add_icap_class>
-<add_icap_rule>Ajouter une nouvelle r&egrave;gle d'acc&egrave;s</add_icap_rule>
+<add_icap_rule>Nouvelle r&egrave;gle d\'acc&egrave;s</add_icap_rule>
 <add_icap_service>Ajouter un nouveau service ICAP</add_icap_service>
 <add_rule_here>Ajouter une r&egrave;gle de restriction apr&egrave;s cette r&egrave;gle</add_rule_here>
 <allow_all_days>Autoriser tout le temps ... Pas de restriction</allow_all_days>
@@ -368,7 +368,7 @@ Si aucune r&eacute;ponse &agrave; une requ&ecirc;te DNS n'est re&ccedil;ue au co
 <error_squid_upto_three>Votre version est trop vieille (doit &ecirc;tre sup&eacute;rieure &agrave; 3.0)</error_squid_upto_three>
 <events_stats>Ev&egrave;nements &amp; statistiques</events_stats>
 <feature_not_installed>Il y a quelques fonctionnalit&eacute;s manquantes, ou le produit n'est pas install&eacute;</feature_not_installed>
-<file_blocking>Bloquage des fichiers</file_blocking>
+<file_blocking>Blocage des fichiers</file_blocking>
 <file_blocking_text>Cr&eacute;er des r&egrave;gles afin de bloquer les t&eacute;l&eacute;chargements</file_blocking_text>
 <filters>Filtrage</filters>
 <fqdncache_size>Taille du cache FQDN</fqdncache_size>

@@ -443,13 +443,9 @@ function website_popup(){
 		$ligne["enabled"]=1;
 	}	
 	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{select}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[strtolower($ligneZ["CommonName"])]=$ligneZ["CommonName"];
-	}
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	
 	
 	if(!is_numeric($ligne["website_port"])){$ligne["website_port"]=80;}

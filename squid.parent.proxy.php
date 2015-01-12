@@ -54,6 +54,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$array["status"]='{status}';
 	$array["popup"]='{proxy_parents}';
+	$array["popup-ntlm"]='{APP_CNTLM_PARENT}';
 	$array["master"]='{master_proxy}';
 	$array["zipproxy"]='{http_compression}';
 	
@@ -72,6 +73,12 @@ function tabs(){
 			continue;
 		
 		}	
+		
+		if($num=="popup-ntlm"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-ntlm.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 
 		if($num=="zipproxy"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.zipproxy.php\" style='font-size:18px'><span>$ligne</span></a></li>\n");
@@ -980,6 +987,8 @@ function parent_options_popup(){
 	$options[base64_encode("multicast-responder")]="multicast-responder";
 	$options[base64_encode("closest-only")]="closest-only";
 	$options[base64_encode("no-digest")]="no-digest";
+	$options[base64_encode("no-tproxy")]="no-tproxy";
+	
 	$options[base64_encode("no-netdb-exchange")]="no-netdb-exchange";
 	$options[base64_encode("no-delay")]="no-delay";
 	$options[base64_encode("login=user:password")]="login=user:password";
@@ -1055,6 +1064,8 @@ function parent_option_explain_text($key){
 	$options[base64_encode("login=PASS")]="{parent_options_login_pass}";
 	$options[base64_encode("connect-timeout=nn")]="{parent_options_proxy_connect_timeout}";
 	$options[base64_encode("digest-url=url")]="{parent_options_proxy_digest_url}";
+	$options[base64_encode("no-tproxy")]="{parent_options_no_tproxy}";
+	
 	return $options[$key];
 }
 
@@ -1086,7 +1097,7 @@ function parent_options_explain(){
 	}
 	
 	$explain=parent_option_explain_text($_GET["edit-proxy-parent-options-explain"]);
-	$html="<div class=explain style='font-size:16px'>$explain</div>
+	$html="<div class=text-info style='font-size:16px'>$explain</div>
 	$form
 	<div style='text-align:right'><hr>
 	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",22)."</div>";

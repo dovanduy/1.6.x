@@ -54,7 +54,7 @@ Plus le score est &eacute;lev&eacute;, plus le message &agrave; des chances d'&e
 <add_multiple_members_explain>Indiquez ici les membres (adresses de messagerie) que vous d&eacute;sirez ajouter.[br]
 Chaque membre devra &ecirc;tre s&eacute;par&eacute; par un retour chariot.</add_multiple_members_explain>
 <add_multiple_rbl_explain>Ajoutez ici vos serveurs RBL, s&eacute;par&eacute;s par un retour chariot,que vous voulez v&eacute;rifier</add_multiple_rbl_explain>
-<add_mysql_user_text>Ajouter un nouvel administrateur mysql pouvant se connecter au serveur</add_mysql_user_text>
+<add_mysql_user_text>Ajouter un nouvel administrateur MySQL pouvant se connecter au serveur</add_mysql_user_text>
 <add_new_disk>Ajouter un nouveau disque</add_new_disk>
 <add_new_route_text>Ajouter une nouvelle route TCP</add_new_route_text>
 <add_official_domains_popup_text>Ajoutez ici votre nom de domaine (ex domain.tld).
@@ -213,7 +213,7 @@ Patientez quelques secondes et rafra&icirc;chissez cette page.</apply_network_co
 <APP_HAMACHI_ABOUT>LogMeIn Hamachi est un service de RPV/VPN h&eacute;berg&eacute; qui connecte les appareils et les r&eacute;seaux de mani&egrave;re s&eacute;curis&eacute;e et &eacute;tend une connectivit&eacute; de type r&eacute;seau local aux utilisateurs mobiles, dispers&eacute;s et aux applications professionnelles.[br]Vous pouvez cr&eacute;er facilement des r&eacute;seaux virtuels &agrave; la demande, sur des r&eacute;seaux publics et priv&eacute;s.[br] La gestion et la maintenance de Hamachi s'effectuent &agrave; partir de n'importe o&ugrave; sur Internet, en toute s&eacute;curit&eacute;.</APP_HAMACHI_ABOUT>
 <APP_IETD>Service iSCSI</APP_IETD>
 <APP_IPTACCOUNT>Statistiques TCP/IP</APP_IPTACCOUNT>
-<APP_IPTACOUNT_EXPLAIN>les Statistiques TCP/IP vous permet d'obtenir des informations sur le trafique re&ccedil;u, travers&eacute; ou achemin&eacute; en fonction de simples r&egrave;gles .</APP_IPTACOUNT_EXPLAIN>
+<APP_IPTACOUNT_EXPLAIN>les Statistiques TCP/IP vous permet d\'obtenir des informations sur le trafic re&ccedil;u, travers&eacute; ou achemin&eacute; en fonction de simples r&egrave;gles .</APP_IPTACOUNT_EXPLAIN>
 <APP_JOOMLA17>Joomla 1.7x</APP_JOOMLA17>
 <APP_KAV4PROXY_INTRO>Administrer votre moteur antivirus ICAP pour Proxy</APP_KAV4PROXY_INTRO>
 <APP_KAVMETASCANNER>Kaspersky HSTR MetaScanner</APP_KAVMETASCANNER>
@@ -235,7 +235,7 @@ Patientez quelques secondes et rafra&icirc;chissez cette page.</apply_network_co
 <APP_PHPFCGI>Module FastCGI</APP_PHPFCGI>
 <APP_PIWIK>Piwik</APP_PIWIK>
 <APP_PIWIK_TEXT>Piwik est un logiciel d'analyse Web en temps r&eacute;el . Il vous fournit des rapports d&eacute;taill&eacute;s sur les visiteurs de votre site Web: moteur de recherche et mots cl&eacute;s utilis&eacute;s, leurs langues, vos pages les plus populaires%u2026 et bien plus encore.</APP_PIWIK_TEXT>
-<APP_POSTFWD2>R&egrave;gles de d&eacute;l&eacute;gation</APP_POSTFWD2>
+<APP_POSTFWD2>Strat&eacute;gie de d&eacute;l&eacute;gation</APP_POSTFWD2>
 <APP_POSTFWD2_ICON_TEXT>G&eacute;rer vos r&egrave;gles SMTP comme un pare-feu avec PostFwd</APP_POSTFWD2_ICON_TEXT>
 <APP_POSTFWD2_TEXT>Policy Delegation est une sorte de pare-feu qui vous autorise &agrave; d&eacute;finir des r&egrave;gles permettant de limiter les flux de messagerie</APP_POSTFWD2_TEXT>
 <APP_POWERADMIN>PowerAdmin</APP_POWERADMIN>
@@ -254,8 +254,7 @@ En combinant les avantages des signatures, du protocole et des inspection d'anom
 <APP_SQUID2>Proxy Cache Squid 3.2.x</APP_SQUID2>
 <APP_SQUIDKERAUTH>Authentification kerberos</APP_SQUIDKERAUTH>
 <APP_SQUIDKERAUTH_TEXT>L'authentification kerberos autorise ce serveur &agrave; int&eacute;grer l'authentification du proxy avec un serveur Microsoft Active Directory 2003/2008</APP_SQUIDKERAUTH_TEXT>
-<APP_SQUIDKERAUTH_TEXT_REF>L'utilisateur Windows doit &ecirc;tre membre du groupe &quot;SQUID_USERS&quot; dans l'active Directory.[br]
-Les deux machines doivent pouvoir se r&eacute;soudre avec leur nom complet.[br]Vous pourriez faire &quot;ipconfig /flushdns&quot;  plusieurs fois.[br]
+<APP_SQUIDKERAUTH_TEXT_REF>Les deux machines doivent pouvoir se r&eacute;soudre avec leur nom complet.[br]Vous pourriez faire \&quot;ipconfig /flushdns\&quot;  plusieurs fois.[br]
 Un reboot peut aussi aider.[br]
 Pour Windows 2008, v&eacute;rifiez que le [b]Hotfix 951191[/b] soit appliqu&eacute;.</APP_SQUIDKERAUTH_TEXT_REF>
 <APP_TOMCAT>Service Web Tomcat</APP_TOMCAT>
@@ -286,10 +285,10 @@ Par d&eacute;faut, lorsque l'injecteur traite plus de 2400 fichiers (mails) il s
 Par d&eacute;faut, l'injecteur est ex&eacute;cut&eacute; toutes les 2 minutes.[br]
 Avec une attente de boucle de 50000 microsecondes, l'injecteur peut alors suivre le relais SMTP sur une cadence de 20 messages par seconde</ArticaSMTPStatsTimeFrame_explain>
 <ArticaStatusUsleep>Latence de boucle en millisecondes</ArticaStatusUsleep>
-<ArticaStatusUsleep_explain>exec.maillog.php est un service qui re&ccedil;oit en temps r&eacute;el les &eacute;v&egrave;nements SMTP. Chaque &eacute;v&egrave;nement sera traduit par un fichier de statistiques dans une file d'attente.[br]
-Le processus d'injection r (exec.postfix-logger.php)  est ordonnanc&eacute; afin de r&eacute;cup&eacute;rer ces fichiers et de les traduire en requ&ecirc;te Mysql.[br]
-Ce param&egrave;tre force l'injecteur &agrave; &quot;attendre&quot; &agrave; chaque traitement de fichier r&eacute;cup&eacute;r&eacute; dans la file d'attente afin de lib&eacute;rer le processeur et de l'emp&ecirc;cher de passer en 100% CPU pendant le traitement des fichiers.[br]La valeur par d&eacute;faut est de 50000 microsecondes (0.05 seconde) soit &agrave; peut pr&egrave;s 20 messages par seconde.[br]
-Augmenter cette valeur va r&eacute;duire la charge du processeur mais augmenter le temps de nettoyage de la file d'attente des statistiques.</ArticaStatusUsleep_explain>
+<ArticaStatusUsleep_explain>exec.maillog.php est un service qui re&ccedil;oit en temps r&eacute;el les &eacute;v&egrave;nements SMTP. Chaque &eacute;v&egrave;nement sera traduit par un fichier de statistiques dans une file d\'attente.[br]
+Le processus d\'injection r (exec.postfix-logger.php)  est ordonnanc&eacute; afin de r&eacute;cup&eacute;rer ces fichiers et de les traduire en requ&ecirc;te MySQL.[br]
+Ce param&egrave;tre force l\'injecteur &agrave; \&quot;attendre\&quot; &agrave; chaque traitement de fichier r&eacute;cup&eacute;r&eacute; dans la file d\'attente afin de lib&eacute;rer le processeur et de l\'emp&ecirc;cher de passer en 100% CPU pendant le traitement des fichiers.[br]La valeur par d&eacute;faut est de 50000 microsecondes (0.05 seconde) soit &agrave; peut pr&egrave;s 20 messages par seconde.[br]
+Augmenter cette valeur va r&eacute;duire la charge du processeur mais augmenter le temps de nettoyage de la file d\'attente des statistiques.</ArticaStatusUsleep_explain>
 <ARTICA_ADM>Console d'administration Artica</ARTICA_ADM>
 <ARTICA_ADM_TEXT>C'est l'interface principale d'Artica sur laquelle vous &ecirc;tes en train de naviguer.</ARTICA_ADM_TEXT>
 <ARTICA_AS_GATEWAY_HAMACHI>Cette option autorise ce serveur &agrave; transf&eacute;rer les r&eacute;seaux locaux vers d'autres r&eacute;seaux</ARTICA_AS_GATEWAY_HAMACHI>
@@ -301,7 +300,7 @@ Augmenter cette valeur va r&eacute;duire la charge du processeur mais augmenter 
 <ARTICA_P_SUPPORT_TEXT>Le contrat de support Artica assure les serveurs Artica utilis&eacute;s en production pour des entreprises.[br]Il inclut un support professionnel par eMail ou par t&eacute;l&eacute;phone en un minimum de temps de r&eacute;ponse. [br]En fonction du contrat de support il vous permet d'influer sur les calendriers de d&eacute;veloppements.[br]
 Cliquez sur le lien ci-dessous afin d'obtenir de plus amples renseignements et d'obtenir un devis personnalis&eacute;.</ARTICA_P_SUPPORT_TEXT>
 <ARTICA_REGISTER_OU>Formulaire d'enregistrement d'organisation</ARTICA_REGISTER_OU>
-<ARTICA_REGISTER_OU_TEXT>C'est un formulaire d'enregistrement qui autorise les clients &agrave; s'enregistrer automatiquement afin de cr&eacute;er une nouvelle organisation.</ARTICA_REGISTER_OU_TEXT>
+<ARTICA_REGISTER_OU_TEXT>Ce formulaire d\'enregistrement autorise les clients &agrave; s\'enregistrer automatiquement afin de cr&eacute;er une nouvelle organisation.</ARTICA_REGISTER_OU_TEXT>
 <artica_server_address>Adresse du serveur Artica</artica_server_address>
 <ARTICA_SMTP_STATS_EXPLAIN>Le moteur de statistiques Artica est une fonctionnalit&eacute; qui fournit des graphiques, historiques et analyses sur le flux SMTP Postfix.[br]Des fonctionnalit&eacute;s en d&eacute;pendent comme VIPTrack.[br]
 Vous pouvez d&eacute;sactiver ou activer cette fonctionnalit&eacute; en fonction de vos besoins.[br]
@@ -390,7 +389,7 @@ Les messages dont les &eacute;metteurs correspondent aux r&egrave;gles seront di
 <blocked_ips>IPs rejet&eacute;es</blocked_ips>
 <blocked_websites>Sites interdits</blocked_websites>
 <Blocking_period>P&eacute;riode d'interdiction</Blocking_period>
-<blockio>I/O bloc</blockio>
+<blockio>Blocage I/O</blockio>
 <blocktype>Type de blocage</blocktype>
 <block_countries>Bloquer des pays</block_countries>
 <block_keywords>Blocage par mots clefs</block_keywords>
@@ -731,8 +730,8 @@ PowerDNS ne sera pas d&eacute;sinstaller et vous serez en mesure de le maintenir
 <DNSBL>DNSBL</DNSBL>
 <DNSBL_WHY>Le DNS Black Listing (DNSBL) est une m&eacute;thode permettant de consulter une liste noire d'&eacute;metteurs de courrier &eacute;lectronique en utilisant le protocole DNS.[br]Le nom DNS Black Listing vient de l'expression anglaise black list qui signifie liste noire.[br]
 Il existe de nombreux services de ce type, chacun utilise des m&eacute;thodes diverses pour l'inclusion et le retrait de la liste noire. [br]Celle-ci inclut les adresses IP des machines connues pour &ecirc;tre la source de malices, des plages d'adresses utilis&eacute;es par les fournisseurs d'acc&egrave;s &agrave; Internet qui h&eacute;bergent des spammeurs, ou encore des adresses IP qui ont tent&eacute; d'envoyer des messages &agrave; des syst&egrave;mes &quot;pots de miel&quot;.[br]</DNSBL_WHY>
-<DNSMasqUseStatsAppliance>Utilise les param&egrave;tres de l'appliance de statistiques</DNSMasqUseStatsAppliance>
-<DNSMasqUseStatsAppliance_explain>Si votre Appliance de statistiques Web utilise d&eacute;j&agrave; dnsMASQ comme serveur DNS, vous pouvez c&ocirc;cher cette option afin de forcer ce serveur &agrave; r&eacute;pliquer les entr&eacute;es DNS de l'appliance au lieu d'utiliser les siennes.</DNSMasqUseStatsAppliance_explain>
+<DNSMasqUseStatsAppliance>Utilise les param&egrave;tres de la passerelle de statistiques</DNSMasqUseStatsAppliance>
+<DNSMasqUseStatsAppliance_explain>Si votre passerelle de statistiques Web utilise d&eacute;j&agrave; dnsMASQ comme serveur DNS, vous pouvez c&ocirc;cher cette option afin de forcer ce serveur &agrave; r&eacute;pliquer les entr&eacute;es DNS de la passerelle au lieu d\'utiliser les siennes.</DNSMasqUseStatsAppliance_explain>
 <dnsmasq_address_text>Cette section vous permet de sp&eacute;cifier une ou des adresses IP &agrave; retourner pour toute requ&ecirc;te pour les domaines fournis en option.[br]
 Les requ&ecirc;tes pour ce(s) domaine(s) ne sont jamais transmises aux serveurs amonts et re&ccedil;oivent comme r&eacute;ponse l'adresse IP sp&eacute;cifi&eacute;e.[br]
 Une utilisation courante de cette option est de rediriger la totalit&eacute; du domaine doubleclick.net vers un serveur web local afin d'&eacute;viter les banni&egrave;res publicitaires.[br]
@@ -1175,9 +1174,9 @@ Ainsi les deux services sont en accord avec les machines clientes.</IncludeDHCPL
 <INTERNET_FAILED_TEXT>Artica n'a pas la possibilit&eacute; de se connecter sur Internet afin de r&eacute;cup&eacute;rer les informations n&eacute;cessaires pour les mises &agrave; jour.[br]
 Veuillez v&eacute;rifier votre configuration r&eacute;seau</INTERNET_FAILED_TEXT>
 <IoType>Type d'I/O</IoType>
-<ipatccount_rule_explain>Indiquez ici les adresses TCP/IP afin d'en ressortir les statistiques d&eacute;sir&eacute;es.[br]Pour une simple adresse, indique l'adresse TCP/IP et ne remplissez pas l'option masque de r&eacute;seau.[br]
+<ipatccount_rule_explain>Indiquez ici les adresses TCP/IP afin d\'en ressortir les statistiques d&eacute;sir&eacute;es.[br]Pour une simple adresse, indique l\'adresse TCP/IP et ne remplissez pas l\'option masque de r&eacute;seau.[br]
 Si vous souhaitez visualiser les statistiques de votre r&eacute;seau internet, indiquez le r&eacute;seau utilis&eacute; par vos postes de travail tel que : 192.168.1.0 255.255.255.0.[br]
-Si vous voulez afficher la somme de tout le trafique, indiquez 0.0.0.0 et le masque &agrave; 0.0.0.0.</ipatccount_rule_explain>
+Si vous voulez afficher la somme de tout le trafic, indiquez 0.0.0.0 et le masque &agrave; 0.0.0.0.</ipatccount_rule_explain>
 <ipblocks_explain>Cette option permet de bloquer toutes les communications depuis un pays sp&eacute;cifi&eacute;.[br]Elle peut &ecirc;tre activ&eacute; si votre serveur est disponible sur Internet.[br]Les pays activ&eacute;s dans cette section ne seront plus en mesure de communiquer avec votre serveur.
 [br]Soyez attentif afin de ne pas bloquer votre propre pays... Sous quel cas, vous ne pourrez plus communiquer vous m&ecirc;me avec votre serveur.</ipblocks_explain>
 <ipblocks_text>IPDeny est un service permettant de bloquer des blocs d'adresses IP localis&eacute;es par Pays (RIR's)</ipblocks_text>
@@ -1498,7 +1497,7 @@ Dans ce cas, red&eacute;marrez le serveur.</network_sended_require_reboot>
 <NEW_SMTP_INSTANCE>Service SMTP</NEW_SMTP_INSTANCE>
 <new_time_rule>Nouvelle r&egrave;gle de temps</new_time_rule>
 <next-server>Prochain serveur</next-server>
-<nics>Interfaces r&eacute;seaux</nics>
+<nics>Interfaces r&eacute;seau</nics>
 <NIC_UNCONFIGURED_ERROR>Il semble que vos interfaces r&eacute;seaux principales ne sont pas encore param&eacute;tr&eacute;es, vous devez les &eacute;diter avant toute op&eacute;ration.</NIC_UNCONFIGURED_ERROR>
 <NoDryReboot>Pas de red&eacute;marrage en cas de panne disques</NoDryReboot>
 <NoDryReboot_explain>Si des probl&egrave;mes de disque durs sont d&eacute;tect&eacute;s, Artica va red&eacute;marrer le serveur.[br]Activer cette option interdit &agrave; Artica d'op&eacute;rer de la sorte.</NoDryReboot_explain>
@@ -1516,7 +1515,7 @@ Voyez &eacute;galement le paragraphe luser_relay et &quot;2bounce&quot; (ci-dess
 La notification est envoy&eacute;e &agrave; l'adresse indiqu&eacute;e au param&egrave;tre de configuration bounce_notice_recipient (d&eacute;faut : postmaster).</notify_class_bounce_text>
 <notify_class_delay>courriers retard&eacute;s</notify_class_delay>
 <notify_class_delay_text>Informe le postmaster des courriers retard&eacute;s. Dans ce cas, le postmaster re&ccedil;oit les en-t&ecirc;tes de message seulement. La notification est envoy&eacute;e &agrave; l'adresse indiqu&eacute;e au param&egrave;tre de configuration delay_notice_recipient (d&eacute;faut : postmaster).</notify_class_delay_text>
-<notify_class_policy>politique de restriction</notify_class_policy>
+<notify_class_policy>Strat&eacute;gie</notify_class_policy>
 <notify_class_policy_text>Informe le postmaster des demandes clients qui ont &eacute;t&eacute; rejet&eacute;es en raison de la politique de restriction UCE (anti-spam). [br]
 Le postmaster re&ccedil;oit une transcription de la session SMTP enti&egrave;re. La notification est envoy&eacute;e &agrave; l'adresse indiqu&eacute;e au param&egrave;tre de configuration error_notice_recipient (d&eacute;faut : postmaster).</notify_class_policy_text>
 <notify_class_protocol>erreurs de protocole</notify_class_protocol>
@@ -1633,8 +1632,8 @@ Par exemple, les t&eacute;l&eacute;phones Avaya sont cod&eacute;s en dur pour &q
 <page_interval>Intervalle pour une page</page_interval>
 <partition>Partition</partition>
 <partition_automount_center_text>Connecter cette partition avec le service d'Auto-connexion.</partition_automount_center_text>
-<password_no_match_policy>Le mot de passe ne correspond pas &agrave; la politique de mots de passe</password_no_match_policy>
-<password_policy>Politique de mot de passe</password_policy>
+<password_no_match_policy>Le mot de passe ne correspond pas &agrave; la Strat&eacute;gie de mots de passe</password_no_match_policy>
+<password_policy>Strat&eacute;gie de mot de passe</password_policy>
 <patchs>Correctifs</patchs>
 <patterns_versions>Versions de signatures</patterns_versions>
 <pattern_database_version>Version des bases de donn&eacute;es</pattern_database_version>
@@ -1792,8 +1791,8 @@ Vous pouvez sp&eacute;cifier &quot;all&quot; afin d'&eacute;valuer tous les attr
 <prepend>Pr&eacute;fixer</prepend>
 <privileges_users_warning>Les privil&egrave;ges d&eacute;finis ici vont &quot;&eacute;craser&quot; les droits accord&eacute;s sur le groupe et l'organisation.</privileges_users_warning>
 <processors>Processeurs</processors>
-<prodservers_statsappliance_explain>Lorsque vous utilisez une appliance de statistiques Web, les serveurs Proxy ne disposent plus de la possibilit&eacute; de cr&eacute;er leur configuration de filtrage Web.[br]Cette initiative provient de ce serveur uniquement.[br]
-Dans ce cas, lorsque vous modifiez une param&egrave;tre de filtrage, la passerelle de statistiques est en charge de compiler les param&egrave;tres de filtrage et d'informer les serveurs Proxy d'une nouvelle configuration.[br]
+<prodservers_statsappliance_explain>Lorsque vous utilisez une passerelle de statistiques Web, les serveurs Proxy ne disposent plus de la possibilit&eacute; de cr&eacute;er leur configuration de filtrage Web.[br]Cette initiative provient de ce serveur uniquement.[br]
+Dans ce cas, lorsque vous modifiez une param&egrave;tre de filtrage, la passerelle de statistiques est en charge de compiler les param&egrave;tres de filtrage et d\'informer les serveurs Proxy d\'une nouvelle configuration.[br]
 Ci-dessous, la liste des serveurs que cette passerelle doit notifier lors du changement de param&egrave;tres.</prodservers_statsappliance_explain>
 <production_mailboxes>Bo&icirc;tes aux lettres en production</production_mailboxes>
 <production_servers>Serveurs de production</production_servers>
@@ -2323,14 +2322,14 @@ Cette taille doit correspondre au minium &agrave; la taille autoris&eacute;e d'u
 <Start_Stop_Count>Nb Arr&ecirc;ts/D&eacute;marrages</Start_Stop_Count>
 <Start_Stop_Count_text>Nombre de cycles arr&ecirc;t/d&eacute;marrage de l'axe de rotation</Start_Stop_Count_text>
 <statistics_appliance>Appliance de statistiques</statistics_appliance>
-<STATISTICS_APPLIANCE_EXPLAIN>Pour utiliser une appliance de statistiques, vous avez besoin d'un autre serveur Artica activ&eacute; en tant que tel.[br]Dans ce cas, les &eacute;v&egrave;nements seront envoy&eacute;s au serveur de statistiques.[br]
-Ce serveur distant sera alors en charge d'effectuer les calculs n&eacute;cessaires aux statistiques et permettra par la m&ecirc;me occasion de g&eacute;rer les r&egrave;gles de filtrage Web.[br]
-Cette architecture permet d'&eacute;conomiser de la puissance machine car cette machine ne sera plus attribu&eacute;e aux t&acirc;ches ergonomiques.[br]
-Indiquez le port d'&eacute;coute Web/SSL de la console Artica du serveur distant ainsi que ses cordonn&eacute;es.</STATISTICS_APPLIANCE_EXPLAIN>
+<STATISTICS_APPLIANCE_EXPLAIN>Pour utiliser une passerelle de statistiques, vous avez besoin d\'un autre serveur Artica activ&eacute; en tant que tel.[br]Dans ce cas, les &eacute;v&egrave;nements seront envoy&eacute;s au serveur de statistiques.[br]
+Ce serveur distant sera alors en charge d\'effectuer les calculs n&eacute;cessaires aux statistiques et permettra par la m&ecirc;me occasion de g&eacute;rer les r&egrave;gles de filtrage Web.[br]
+Cette architecture permet d\'&eacute;conomiser de la puissance machine car cette machine ne sera plus attribu&eacute;e aux t&acirc;ches ergonomiques.[br]
+Indiquez le port d\'&eacute;coute Web/SSL de la console Artica du serveur distant ainsi que ses cordonn&eacute;es.</STATISTICS_APPLIANCE_EXPLAIN>
 <STATISTICS_APPLIANCE_SYSLOG_EXPLAIN>Cette option va activer le serveur syslog en mode &eacute;coute.[br]Dans ce cas, les proxy distants seront en mesure d'envoyer leur &eacute;v&egrave;nements &agrave; ce serveur.[br]
 Ceci va permettre au proxy de production de se d&eacute;charger de l'analyse en temps r&eacute;el des &eacute;v&egrave;nements et de les envoyer &agrave; ce serveur.[br]
 Toutes ces t&acirc;ches seront alors &agrave; la charge de ce serveur.[br]Si cette fonctionnalit&eacute; est activ&eacute;e, assurez-vous de aussi d'ordonner les proxy &agrave; envoyer leurs &eacute;v&egrave;nements &agrave; ce serveur.</STATISTICS_APPLIANCE_SYSLOG_EXPLAIN>
-<statistics_appliance_text>Transforme ce serveur en une appliance qui va permettre de calculer et d'afficher les statistiques comme le Proxy Internet ou le flux SMTP</statistics_appliance_text>
+<statistics_appliance_text>Transforme ce serveur en une passerelle qui va permettre de calculer et d\'afficher les statistiques comme le Proxy Internet ou le flux SMTP</statistics_appliance_text>
 <statistics_tasks_events_explain>Cette page affiche les &eacute;v&egrave;nements des t&acirc;ches qui effectuent les analyses, l'exportation des cat&eacute;gories des sites Web.</statistics_tasks_events_explain>
 <stockexchange>Sites Internet sur la bourse et les informations boursi&egrave;res telles que les cotations en temps r&eacute;el, informations sur le march&eacute; boursier, variables de r&eacute;gulation, nouvelles informations.</stockexchange>
 <stop_messaging>Arr&ecirc;ter la messagerie</stop_messaging>
@@ -2430,12 +2429,12 @@ Indiquez le temps maximal de contournement. Apr&egrave;s le d&eacute;lai imparti
 <total_memory>M&eacute;moire totale</total_memory>
 <total_requests>Requ&ecirc;tes total</total_requests>
 <total_threshold>Seuil total</total_threshold>
-<total_traffic>Trafique total</total_traffic>
+<total_traffic>Trafic total</total_traffic>
 <toulouse_university>Universit&eacute; de Toulouse</toulouse_university>
 <to_date>Vers</to_date>
-<traffic_request>Trafique/Requ&ecirc;te</traffic_request>
-<traffic_second>Trafique/Seconde</traffic_second>
-<traffic_statistics>Statistiques du trafique</traffic_statistics>
+<traffic_request>Trafic/Requ&ecirc;te</traffic_request>
+<traffic_second>Trafic/Seconde</traffic_second>
+<traffic_statistics>Statistiques du trafic</traffic_statistics>
 <transfert_messages_if_av_failed>Transf&eacute;rer les messages m&ecirc;me si l'antivirus est indisponible</transfert_messages_if_av_failed>
 <translators>Traducteurs</translators>
 <transparent_mode_limitations>[h3]Information sur le mode transparent[/h3]
@@ -2502,7 +2501,7 @@ Lorsque cette option est sup&eacute;rieure ou &eacute;gale &agrave; 1, alors le 
 L'identifiant unique envoy&eacute; en requ&ecirc;te par le proxy devra &ecirc;tre renvoy&eacute; dans la r&eacute;ponse du redirecteur.</url_rewrite_concurrency_text>
 <url_rewrite_idle>Processus disponibles</url_rewrite_idle>
 <url_rewrite_idle_text>Indiquez un nombre minimum de processus &agrave; pr&eacute;parer et toujours disponibles.[br]
-Lorsque le trafique augmente, le proxy va pr&eacute;-charger X processus jusqu'au maximum autoris&eacute;.[br]Un minimum de 1 processus est obligatoire.</url_rewrite_idle_text>
+Lorsque le trafic augmente, le proxy va pr&eacute;-charger X processus jusqu\'au maximum autoris&eacute;.[br]Un minimum de 1 processus est obligatoire.</url_rewrite_idle_text>
 <url_rewrite_startup>Processus pr&eacute;-charg&eacute;s</url_rewrite_startup>
 <url_rewrite_startup_text>Indique un minimum de processus &agrave; pr&eacute;-charger lorsque le proxy d&eacute;marre ou est re-param&eacute;tr&eacute;.[br]Lorsque qu'aucun processus (0) est d&eacute;fini, la premi&egrave;re requ&ecirc;te sera plus longue car le proxy va tenter de charger en m&ecirc;me temps un redirecteur.[br]En revanche, mettre trop de processus va ralentir le temps de chargement du d&eacute;mon proxy car celui-ci va attendre que l'ensemble de ses redirecteurs soient pr&eacute;-charg&eacute;s avant d'accepter les requ&ecirc;tes.</url_rewrite_startup_text>
 <usable_mechanisms>M&eacute;canismes disponibles</usable_mechanisms>
@@ -2518,7 +2517,7 @@ Si un internaute vous envoi un message alors que son serveur de messagerie est i
 Si le message en renvoy&eacute; dans un d&eacute;lai fix&eacute; alors le message est transmis et vous serez en mesure de le recevoir.</user_greylist_explain>
 <user_most_active>Les utilisateurs les plus actifs &eacute;taient</user_most_active>
 <UseSamePHPMysqlCredentials>Utiliser le m&ecirc;me identifiant</UseSamePHPMysqlCredentials>
-<UseSSL>Utiliser l'encryption SSL</UseSSL>
+<UseSSL>D&eacute;chiffrement SSL</UseSSL>
 <use_another_WINS_server>Utiliser un autre serveur WINS</use_another_WINS_server>
 <use_another_WINS_server_explain>Toutes requ&ecirc;tes WINS seront redirig&eacute;es vers le serveur indiqu&eacute;. [br]Indiquez 0.0.0.0 afin de d&eacute;sactiver cette fonctionnalit&eacute;</use_another_WINS_server_explain>
 <use_external_mysql_server>Utiliser un serveur MySQL distant</use_external_mysql_server>
@@ -2596,7 +2595,7 @@ Les sites webs inconnus seront enregistr&eacute;s dans la base des sites visit&e
 <webfilter_status_text>Le filtrage Web utilise &agrave; la fois une approche communautaire enrichie par vos propres cat&eacute;gorisations et celles des autres utilisateurs et la cat&eacute;gorisation des &eacute;quipes de d&eacute;veloppement Artica.[br]Les bases de filtrage sont &agrave; la fois utilis&eacute;e pour effectuer le filtrage Web mais aussi pour fournir des statistiques d'acc&egrave;s par cat&eacute;gorie.[br]Cette section vous permet de g&eacute;rer et de surveiller les bases de donn&eacute;es de filtrage Web.</webfilter_status_text>
 <webinterface>Interface Web</webinterface>
 <webiste_notfound_additask>Ce site Internet n'est pas trouv&eacute; dans la base de donn&eacute;es. Toutefois vous pouvez toujours l'inscrire dans une cat&eacute;gorie existante.</webiste_notfound_additask>
-<webproxy_statistics_appliance>Appliance de statistiques de Proxy Internet</webproxy_statistics_appliance>
+<webproxy_statistics_appliance>Passerelle de statistiques Internet</webproxy_statistics_appliance>
 <webproxy_statistics_appliance_text>Si vous activez cette fonctionnalit&eacute;, ce serveur sera autoris&eacute; &agrave; recevoir les &eacute;v&egrave;nements d'autres Proxy Artica ou du Proxy Squid en version 3.2.[br]
 Il ex&eacute;cutera des t&acirc;ches de calcule sp&eacute;cifiques afin d'offrir les capacit&eacute;s d'analyse de l'utilisation d'Internet avec des graphiques.</webproxy_statistics_appliance_text>
 <webservers_status>&Eacute;tat des serveurs Web</webservers_status>

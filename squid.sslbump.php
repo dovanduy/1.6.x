@@ -122,27 +122,32 @@ function popup(){
 	$tpl=new templates();
 	$array["parameters"]='{global_parameters}';
 	$array["certificate"]='{certificate}';
-	$array["whitelist"]='{whitelist}';
+	//$array["whitelist"]='{whitelist}';
 	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
 	$array["certificate-center"]=$tpl->_ENGINE_parse_body('{ssl_certificate}');
 	$array["help"]=$tpl->_ENGINE_parse_body('{help}');
 	//$array["popup-bandwith"]='{bandwith}';
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
+	
+	$fontsize=20;
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="http-safe-ports-ssl"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li>
+			<a href=\"squid.advParameters.php?http-safe-ports-ssl=yes&t=$t\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="certificate-center"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.php?popup=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.php?popup=yes&t=$t\">
+					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\">
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -216,15 +221,9 @@ function certificate(){
 	$ini=new Bs_IniHandler();
 	$ini->loadString($ArticaSquidParameters);
 	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{select}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$CommonName=$ligneZ["CommonName"];
-		//$CommonName=str_replace("*", "_ALL_", $CommonName);
-		$sslcertificates[$CommonName]=$ligneZ["CommonName"];
-	}
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	
 	$DefaultSSLParams=unserialize(base64_decode($sock->GET_INFO("DefaultSSLParams")));
 	if($DefaultSSLParams["countryName"]==null){$DefaultSSLParams["countryName"]="US";}
@@ -236,7 +235,7 @@ function certificate(){
 	$page=CurrentPageName();
 	
 $html="
-<div style='font-size:16px' class=explain>{squid_ssl_certificate_explain}</div>
+<div style='font-size:16px' class=text-info>{squid_ssl_certificate_explain}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>		
 <tr>
@@ -371,7 +370,7 @@ function parameters_main(){
 	    	if($re[1]>=3){if($re[2]>=1){$sslbumb=true;}}}
 		
 		$enableSSLBump=Paragraphe_switch_img("{activate_ssl_bump}",
-	"{activate_ssl_bump_text}","EnableSSLBump-$t",$squid->SSL_BUMP,null,650);
+	"{activate_ssl_bump_text2}","EnableSSLBump-$t",$squid->SSL_BUMP,null,650);
 		
 		$FIELD_StandardPortSSL=Paragraphe_switch_img("{activate_ssl_on_standard_ports}",
 	"{activate_ssl_on_standard_ports_text}$DisableSSLStandardPort_warn","StandardPortSSL-$t",$StandardPortSSL,null,650);
@@ -389,16 +388,19 @@ function parameters_main(){
 			
 	}
 	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{select}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$CommonName=$ligneZ["CommonName"];
-		//$CommonName=str_replace("*", "_ALL_", $CommonName);
-		$sslcertificates[$CommonName]=$ligneZ["CommonName"];
-	}
-
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
+	
+	
+	$sslproxy_versions[1]="{default}";
+	$sslproxy_versions[2]="SSLv2 {only}";
+	$sslproxy_versions[3]="SSLv3 {only}";
+	$sslproxy_versions[4]="TLSv1.0 {only}";
+	$sslproxy_versions[5]="TLSv1.1 {only}";
+	$sslproxy_versions[6]="TLSv1.2 {only}";
+	$sslproxy_version=intval($sock->GET_INFO("sslproxy_version"));
+	if($sslproxy_version==0){$sslproxy_version=1;}
 	
 
 
@@ -430,7 +432,14 @@ function parameters_main(){
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td colspan=2>$enableSSLBump$FIELD_StandardPortSSL
+		<td colspan=2>$enableSSLBump
+			<table style='width:100%'>
+			<tr>
+				<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{sslproxy_version}:</td>
+				<td>". Field_array_Hash($sslproxy_versions,"sslproxy_version-$t",$sslproxy_version,"style:font-size:22px")."</td>
+			</tr>
+			</table>
+			$FIELD_StandardPortSSL
 			$DownloadDER
 			<center style='margin:10px'>
 				". button("{generate_certificate}","Loadjs('$page?gen-certif-js=yes')",18)."
@@ -465,6 +474,8 @@ var x_SaveEnableSSLDump$t=function(obj){
 function SaveEnableSSLDump$t(){
 	var XHR = new XHRConnection();
 	if(!document.getElementById('EnableSSLBump-$t')){return;}
+	
+	XHR.appendData('sslproxy_version',document.getElementById('sslproxy_version-$t').value);
 	XHR.appendData('EnableSSLBump',document.getElementById('EnableSSLBump-$t').value);
 	XHR.appendData('SSlBumpAllowLogon',document.getElementById('SSlBumpAllowLogon-$t').value);
 	XHR.appendData('StandardPortSSL',document.getElementById('StandardPortSSL-$t').value);
@@ -505,6 +516,7 @@ function parameters_enable_save(){
 		$sock->SET_INFO("SSlBumpAllowLogon", $_POST["SSlBumpAllowLogon"]);
 	}
 	
+	$sock->SET_INFO("sslproxy_version", $_POST["sslproxy_version"]);
 		
 	if($squid->IS_33){
 		$sock->SET_INFO("EnableSquidSSLCRTD", 1);
@@ -595,7 +607,7 @@ function whitelist_popup(){
 	],";	
 	
 $html="
-<div class=explain style='font-size:13px'>$SSL_BUMP_WL</div>
+<div class=text-info style='font-size:13px'>$SSL_BUMP_WL</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	

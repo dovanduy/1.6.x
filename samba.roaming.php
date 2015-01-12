@@ -68,7 +68,7 @@ function popup(){
 	<table style='width:100%'>
 	<tr>
 		<td width=1% valign='top'><img src='img/logon-profiles-128.png'></td>
-		<td valign='top'><div class=explain>{roaming_profiles_text}</div>
+		<td valign='top'><div class=text-info>{roaming_profiles_text}</div>
 		<div id='roamingdiv' style='width:98%' class=form>
 		$enable
 		<div style='text-align:right'><hr>". button("{apply}","EnableProfileSamba()",16)."</div>

@@ -85,7 +85,7 @@ function popup(){
 	<table style='width:99%' class=form>
 	<td valign='top'><img src='img/server-disable-128.png'></td>
 	<td valign='top'>
-		<div class=explain style='font-size:14px'>{enable_disable_samba_text}</div>
+		<div class=text-info style='font-size:14px'>{enable_disable_samba_text}</div>
 		$p
 		<hr>
 		<div style='width:100%;text-align:right'>". button("{apply}", "SaveSambaEnabled()","18px")."</div>

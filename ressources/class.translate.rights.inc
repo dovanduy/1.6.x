@@ -5,7 +5,9 @@ class TranslateRights{
 	private $priv;
 	private $uid;
 	public $FINAL_PRIVS;
+	private $CurrentPageName;
 	function TranslateRights($priv=null,$uid=null){
+		if(function_exists("CurrentPageName")){$this->CurrentPageName=CurrentPageName();}
 		$this->priv=$priv;
 		$this->uid=$uid;
 	}
@@ -63,12 +65,14 @@ class TranslateRights{
 			$f['OverWriteRestrictedDomains']=true;
 			$f['AsProxyMonitor']=true;
 			$f["AsSystemWebMaster"]=true;
+			$f["AsArticaMetaAdmin"]=true;
 			return $f;		
 	}
 	
 	private function Allrights(){
 		$f=$this->GetPrivsArray();
 		while (list ($num, $ligne) = each ($f) ){
+			
 			$this->FINAL_PRIVS[$num]=true;
 		
 		}	
@@ -96,11 +100,19 @@ class TranslateRights{
 	}	
 	
 	function ParseRights(){
+		if(isset($_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]])){
+			if($this->CurrentPageName=="admin.index.php"){writelogs("$this->CurrentPageName: --> FINAL_PRIVS = FROM Memory",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			$this->FINAL_PRIVS=$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]];
+			$this->priv=$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]];
+			return;
+		}
+		
 		$log=false;
 		$priv=$this->priv;
 		if(!isset($GLOBALS["posix_getuid"])){$GLOBALS["posix_getuid"]=1000;if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}}
-		if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::ParseRights()\n";}
+		if($GLOBALS["VERBOSE"]){echo "[{$_SESSION["uid"]}]::ParseRights() [".__CLASS__."][".__FUNCTION__."][".__LINE__."]\n";}
 		if($_SESSION["uid"]==-100){
+			
 			$this->FINAL_PRIVS["AsArticaAdministrator"]=true;
 			$this->FINAL_PRIVS["AllowEditOuSecurity"]=true;
 			$this->FINAL_PRIVS["AsSquidAdministrator"]=true;
@@ -108,6 +120,8 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsMessagingOrg"]=true;
 			$this->FINAL_PRIVS["AsHotSpotManager"]=true;
 			$this->Allrights();
+			$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]]=$this->FINAL_PRIVS;
+			$this->priv=$this->FINAL_PRIVS;
 			return;
 		}
 		
@@ -122,6 +136,8 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsArticaAdministrator"]=true;
 			$this->FINAL_PRIVS["AsSystemAdministrator"]=true;
 			$this->Allrights();
+			$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]]=$this->FINAL_PRIVS;
+			$this->priv=$this->FINAL_PRIVS;
 			return;
 		}
 		$this->FINAL_PRIVS["AsArticaAdministrator"]=false;
@@ -248,6 +264,12 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsAnAdministratorGeneric"]=true;
 			$this->FINAL_PRIVS["OverWriteRestrictedDomains"]=true;
 		}
+		
+		if($this->FINAL_PRIVS["AsArticaMetaAdmin"]){
+			$this->FINAL_PRIVS["AsDansGuardianAdministrator"]=true;
+		
+		}
+		
 			
 		if($this->FINAL_PRIVS["AsSystemAdministrator"]){
 			$this->FINAL_PRIVS["AllowUserMaillog"]=true;
@@ -348,6 +370,7 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsAnAdministratorGeneric"]=true;
 		}
 
+		$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]]=$this->FINAL_PRIVS;
 		$this->priv=$this->FINAL_PRIVS;
 	}
 	

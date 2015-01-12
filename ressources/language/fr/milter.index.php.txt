@@ -1,6 +1,6 @@
 <add_a_license>Installer une nouvelle cl&eacute;</add_a_license>
-<add_a_license_text>Mettez &agrave; jour votre fichier de licence en le t&eacute;l&eacute;chargeant vers votre serveur</add_a_license_text>
-<add_clientip>Ajouter une nouvelle adresse IP source</add_clientip>
+<add_a_license_text>Mettez &agrave; jour votre fichier de licence en le chargeant vers le serveur</add_a_license_text>
+<add_clientip>Nouvelle adresse IP source</add_clientip>
 <add_clienturl>Ajouter un nouveau lien web</add_clienturl>
 <add_ExcludeMimeType>Ajouter une r&egrave;gle Mime</add_ExcludeMimeType>
 <add_ExcludeURL>Ajouter une URL</add_ExcludeURL>
@@ -178,7 +178,7 @@ la d&eacute;cision est prise d'envoyer en analysant la liste des actions mention
 <scanner>Scanner</scanner>
 <ScanPacked>analyse des ex&eacute;cutables compress&eacute;s</ScanPacked>
 <ScanPacked_text>Scan des ex&eacute;cutables compress&eacute;s</ScanPacked_text>
-<ScanPolicy>Politiques de Messagerie</ScanPolicy>
+<ScanPolicy>Strat&eacute;gie de Messagerie</ScanPolicy>
 <ScanPolicy_text>Les r&egrave;gles d'analyses d&eacute;finissent comment un message doit &ecirc;tre trait&eacute;:[ul]
  [li]message - Analyse tout le message et si trouv&eacute;, analyser chaque partie;[/li]
 [li]Combin&eacute; - Analyser tout le message puis chaque partie du message en fonction de la premi&egrave;re analyse.[/li]

@@ -8,7 +8,7 @@ if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"
 	include_once('ressources/class.calendar.inc');
 	include_once('ressources/class.tcpip.inc');
 	$users=new usersMenus();
-	if(!$users->AsSquidAdministrator){die();}	
+	if(!$users->AsDansGuardianAdministrator){die();}	
 	if(isset($_GET["events"])){popup_list();exit;}
 	if(isset($_POST["unlock"])){unlock();exit;}
 	if(isset($_POST["biglock"])){biglock();exit;}
@@ -138,8 +138,8 @@ function flexigridStart$t(){
 	{display: '$category', name : 'category', width : 89, sortable : true, align: 'left'},
 	{display: '$rule', name : 'rulename', width : 89, sortable : true, align: 'left'},
 	{display: '$move', name : 'xmove', width : 155, sortable : false, align: 'center'},
-	{display: '$move', name : 'xmove1', width : 31, sortable : false, align: 'center'},
-	{display: '$unblock', name : 'move', width : 44, sortable : false, align: 'center'},
+	{display: '$move', name : 'xmove1', width : 60, sortable : false, align: 'center'},
+	{display: '$unblock', name : 'move', width : 70, sortable : false, align: 'center'},
 	
 	],
 	$buttons
@@ -276,13 +276,13 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$time', name : 'zDate', width :119, sortable : true, align: 'left'},
-		{display: '$member', name : 'client', width : 92, sortable : true, align: 'left'},
-		{display: '$webservers', name : 'website', width : 194, sortable : true, align: 'left'},
+		{display: '$member', name : 'client', width : 139, sortable : true, align: 'left'},
+		{display: '$webservers', name : 'website', width : 234, sortable : true, align: 'left'},
 		{display: '$category', name : 'category', width : 89, sortable : true, align: 'left'},
-		{display: '$rule', name : 'rulename', width : 89, sortable : true, align: 'left'},
+		{display: '$rule', name : 'rulename', width : 200, sortable : true, align: 'left'},
 		{display: '$move', name : 'unblock1', width : 155, sortable : false, align: 'left'},
 		{display: '$move', name : 'unblock2', width : 31, sortable : false, align: 'center'},
-		{display: '$unblock', name : 'unblock3', width : 50, sortable : false, align: 'center'},
+		{display: '$unblock', name : 'unblock3', width : 70, sortable : false, align: 'center'},
 		
 		],
 		$buttons
@@ -426,23 +426,25 @@ function week_events(){
 		$ligne["zDate"]=str_replace($today,"{today}",$ligne["zDate"]);
 		if(preg_match("#plus-(.+?)-artica#",$ligne["category"],$re)){$ligne["category"]=$re[1];}
 		$ligne["zDate"]=$tpl->_ENGINE_parse_body("{$ligne["zDate"]}");
-	$id=md5(serialize($ligne));
+		$id=md5(serialize($ligne));
 		$blocktype=null;
 	
 		$member=$ligne["client"];
 		if($ligne["hostname"]<>null){$member=$ligne["hostname"];}
-	if($ligne["uid"]<>null){$member=$ligne["uid"];}
-	
+		if($ligne["uid"]<>null){$member=$ligne["uid"];}
 		$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('{$ligne["website"]}')");
 	
-	$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='{$ligne["website"]}'","artica_backup"));
-	if(!$q->ok){ $unblock="<img src='img/icon_err.gif'><br>$q->mysql_error"; }else{
-	if($ligne3["items"]<>null){
-		$unblock=imgsimple("20-check.png",null,null);
-	}
-	}
+		$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='{$ligne["website"]}'","artica_backup"));
+		if(!$q->ok){ $unblock="<img src='img/icon_err.gif'><br>$q->mysql_error"; }
+		else{
+			if($ligne3["items"]<>null){
+				$unblock=imgsimple("20-check.png",null,null);
+			}
+		}
+		
+		
 	if($ligne["blocktype"]<>null){
-		$blocktype="<div><i style='font-size:10px'>{$ligne["blocktype"]}</i></div>";
+		$blocktype="<br><i style='font-size:10px'>{$ligne["blocktype"]}</i>";
 	}
 	
 	$field=Field_array_Hash($CATEGORIES, "Move$id",trim($ligne["category"]),"blur()");
@@ -451,7 +453,7 @@ function week_events(){
 		'id' => $id,
 		'cell' => array(
 			"<span style='font-size:14px;'>{$ligne["day"]}</span>",
-			"<span style='font-size:14px;'>$member</a></span>",
+			"<strong style='font-size:14px;'>$member</a></strong>",
 			"<span style='font-size:14px;'>
 				<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\"
@@ -538,27 +540,30 @@ function popup_list(){
 	$member=$ligne["client"];
 	if($ligne["hostname"]<>null){$member=$ligne["hostname"];}
 	if($ligne["uid"]<>null){$member=$ligne["uid"];}
-		
-	$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('{$ligne["website"]}')");
+	$websiteenc=urlencode($ligne["website"]);
+	$unblock=imgsimple("whitelist-24.png",null,"Loadjs('squid.unblock.php?www=$websiteenc')");
 	
 	$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='{$ligne["website"]}'","artica_backup"));
 	if(!$q->ok){
 		$unblock="<img src='img/icon_err.gif'><br>$q->mysql_error";
 	}else{
 		if($ligne3["items"]<>null){
-		$unblock=imgsimple("20-check.png",null,null);
+			$unblock=imgsimple("20-check.png",null,null);
 		}
 	}
+	
 	if($ligne["blocktype"]<>null){
-	$blocktype="<div><i style='font-size:10px'>{$ligne["blocktype"]}</i></div>";
+		$blocktype="<br><i style='font-size:10px'>{$ligne["blocktype"]}</i>";
 	}
+	
+	
 	$field=Field_array_Hash($CATEGORIES, "Move$id",trim($ligne["category"]),"blur()");
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
 			"<span style='font-size:12px;'>{$ligne["zDate"]}</span>",
-			"<span style='font-size:12px;'>$member</a></span>",
-			"<span style='font-size:12px;'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
+			"<strong style='font-size:12px;'>$member</a></strong>",
+			"<span style='font-size:13px;'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
 			style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></span>$blocktype",
 			"<span style='font-size:13px;font-weight:bold'>{$ligne["category"]}</a></span>",
 			"<span style='font-size:13px;'>{$ligne["rulename"]}</a></span>",

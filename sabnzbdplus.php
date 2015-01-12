@@ -50,7 +50,7 @@ function status(){
 	<table style='width=100%'>
 	<tr>
 		<td valign='top'><div id='APP_SABNZBDPLUS_STATUS'></div></td>
-		<td valign='top' width=99%>$title<div class=explain >{APP_SABNZBDPLUS_EXPLAIN}</div></td>
+		<td valign='top' width=99%>$title<div class=text-info >{APP_SABNZBDPLUS_EXPLAIN}</div></td>
 	</tr>
 	</table>
 	<script>

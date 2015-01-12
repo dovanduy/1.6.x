@@ -96,6 +96,9 @@ function defaults_values(){
 	
 	
 	
+	if(!isset($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
+	if(!is_numeric($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
+	if($MonitConfig["watchdogRestart"]==0){$MonitConfig["watchdogRestart"]=80;}
 	
 	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
@@ -111,6 +114,7 @@ function defaults_values(){
 	if(!isset($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
 	if(!is_numeric($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
 	if(!is_numeric($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
+	
 	
 	
 	if(!is_numeric($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
@@ -157,6 +161,7 @@ function defaults_values(){
 	if(!is_numeric($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
 	
 	
+	
 	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
 	if(!isset($MonitConfig["EnableFailover"])){
 		$sock=new sockets();
@@ -201,6 +206,9 @@ function SAVE(){
 }
 
 function SAVE_SMTP(){
+	
+	if(isset($_POST["smtp_auth_passwd"])){$_POST["smtp_auth_passwd"]=url_decode_special_tool($_POST["smtp_auth_passwd"]);}
+	
 	$UfdbguardSMTPNotifs=smtp_defaults();
 	while (list ($num, $ligne) = each ($_POST) ){
 		$UfdbguardSMTPNotifs[$num]=$ligne;
@@ -462,10 +470,16 @@ function PERFORMANCE_PAGE(){
 	</tr>
 	<tr>
 		<td class=legend style='font-size:18px'>{notify_when_memory_exceed}:</td>
-<td	style='font-size:18px'>". Field_text("watchdogMEM",$MonitConfig["watchdogMEM"],
-					"font-size:18px;width:190px")."&nbsp;MB</td>
-		<td width=1%></td>
+			<td	style='font-size:18px'>". Field_text("watchdogMEM",$MonitConfig["watchdogMEM"],
+			"font-size:18px;width:190px")."&nbsp;MB</td>
+		<td width=1%>". help_icon("{squid_notify_when_memory_exceed}")."</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{restart_when_memory_exceed}:</td>
+			<td	style='font-size:18px'>". Field_text("watchdogRestart",$MonitConfig["watchdogRestart"],
+			"font-size:18px;width:190px")."&nbsp;% {of_total_memory}</td>
+		<td width=1%></td>
+	</tr>					
 	<tr>
 		<td class=legend style='font-size:18px'>{MaxSwapPourc}:</td>
 		<td	style='font-size:18px'>". Field_text("MaxSwapPourc",$MonitConfig["MaxSwapPourc"],
@@ -504,6 +518,8 @@ function PERFORMANCE_PAGE(){
 	XHR.appendData('watchdogMEM',document.getElementById('watchdogMEM').value);
 	XHR.appendData('MaxSwapPourc',document.getElementById('MaxSwapPourc').value);
 	XHR.appendData('MaxLoad',document.getElementById('MaxLoad').value);
+	XHR.appendData('watchdogRestart',document.getElementById('watchdogRestart').value);
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
 	</script>
@@ -585,7 +601,7 @@ function SETTINGS_PAGE(){
 				
 				
 	<tr><td colspan=3 style='font-size:24px'>{when_fetching_proxy_informations}</td></tr>
-	<tr><td colspan=3 ><div class=explain style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
+	<tr><td colspan=3 ><div class=text-info style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
 	<tr>
 		<td class=legend style='font-size:18px'>{tests_timeout}:</td>
 		<td	style='font-size:18px'>". Field_text("MgrInfosMaxTimeOut",$MonitConfig["MgrInfosMaxTimeOut"],

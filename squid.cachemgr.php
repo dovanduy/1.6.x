@@ -55,7 +55,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain>{cachemgr_text}</div><div style='text-align:right;margin-bottom:5px'><i>$link</i></div>
+	<div class=text-info>{cachemgr_text}</div><div style='text-align:right;margin-bottom:5px'><i>$link</i></div>
 	<div id='cachemgr-div'>
 	<div style='font-size:16px'>{cachemgr}:: {authentication}</div>
 	<table style='width:100%'>

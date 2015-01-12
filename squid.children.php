@@ -271,8 +271,8 @@ function proxies_add_popup(){
 	$t=time();	
 	$tt=$_GET["t"];
 	$html="
-	<div id='$t'>
-	<table style='width:99%' class=form>
+	<div id='$t' style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{source}:</td>
 		<td>". field_ipv4("ipsrc-$t", null,"font-size:18px",false,"ChildEventAddCK$t(event)")."</td>

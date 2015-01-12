@@ -2,8 +2,8 @@
 <AnonymousBandwidth_text>Bande passante Maximum pour les utilisateurs anonymes en KB/s</AnonymousBandwidth_text>
 <AnonymousCanCreateDirs>Les utilisateurs anonymes peuvent cr&eacute;er des r&eacute;pertoires</AnonymousCanCreateDirs>
 <AnonymousCanCreateDirs_text>Est-ce que les utilisateurs anonymes sont autoris&eacute;s a cr&eacute;er de nouveaux r&eacute;pertoires ?</AnonymousCanCreateDirs_text>
-<AnonymousCantUpload>Les utilisateurs anonymes ne sont pas autoris&eacute;s a tranf&eacute;rer</AnonymousCantUpload>
-<AnonymousCantUpload_text>Refuser aux utilisateurs anonymes de transf&eacute;rer de nouveaux fichiers (non coch&eacute; = le t&eacute;l&eacute;chargement est autoris&eacute;)</AnonymousCantUpload_text>
+<AnonymousCantUpload>Les utilisateurs anonymes ne sont pas autoris&eacute;s a charger des fichiers</AnonymousCantUpload>
+<AnonymousCantUpload_text>Refuser aux utilisateurs anonymes de transf&eacute;rer de nouveaux fichiers (non coch&eacute; = le chargement est autoris&eacute;)</AnonymousCantUpload_text>
 <AntiWarez>Anti Warez</AntiWarez>
 <AntiWarez_text>Interdire le t&eacute;l&eacute;chargement des fichiers d&eacute;tenus par &quot;ftp&quot;, c'est-&agrave;-dire. les fichiers qui ont &eacute;t&eacute; t&eacute;l&eacute;charg&eacute;es, mais pas valid&eacute;e par un administrateur local.</AntiWarez_text>
 <AutoRename>Renommer automatiquement</AutoRename>

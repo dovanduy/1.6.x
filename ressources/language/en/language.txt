@@ -288,7 +288,7 @@ Unlike other systems for load balancing IMAP mailboxes, the aggregator allows us
 <APP_DHCP_EVENTS>DHCP server events</APP_DHCP_EVENTS>
 <APP_DHCP_MAIN_CONF>DHCP Server main configuration file</APP_DHCP_MAIN_CONF>
 <APP_DHCP_MAIN_CONF_TEXT>Display the generated configuration file by artica</APP_DHCP_MAIN_CONF_TEXT>
-<APP_DHCP_ROUTES_CONF>Routing information in DHCP</APP_DHCP_ROUTES_CONF>
+<APP_DHCP_ROUTES_CONF>DHCP Routing table</APP_DHCP_ROUTES_CONF>
 <APP_DHCP_ROUTES_CONF_TEXT>Adding routing informations when clients retreive IP address from the DHCP server</APP_DHCP_ROUTES_CONF_TEXT>
 <APP_DHCP_ROUTES_EXPLAIN>Add a route has the IP address is 192.168.1.0 or 10.10.0.0 associated by a mask 255.255.255.0 and the gateway IP address that will route network</APP_DHCP_ROUTES_EXPLAIN>
 <APP_DHCP_TEXT>Dynamic Host Configuration Protocol define your network to provide dynamically IP addresses</APP_DHCP_TEXT>
@@ -872,7 +872,7 @@ You can add privileges allows users to administrate this rule in their end-user 
 <debug>Debug</debug>
 <debug_mode>Debug mode</debug_mode>
 <december>December</december>
-<dedicated_storage>dedicated storage</dedicated_storage>
+<dedicated_storage>Dedicated storage</dedicated_storage>
 <default>Default</default>
 <Default domain>Default domain</Default domain>
 <default_destination_concurrency_limit>default destination concurrency limit</default_destination_concurrency_limit>
@@ -886,7 +886,7 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
 <default_process_limit_text>The default maximal number of Postfix child processes that provide a given service.</default_process_limit_text>
 <DEF_ICO_POSTFIX_TLS_TEXT>Using SSL in your SMTP communications</DEF_ICO_POSTFIX_TLS_TEXT>
 <delay_template>Delay template</delay_template>
-<delete>delete</delete>
+<delete>Delete</delete>
 <delete aliase>Delete this aliase</delete aliase>
 <delete group explain>Delete this group from tree</delete group explain>
 <delete mail>Delete this email address</delete mail>
@@ -931,8 +931,8 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
 <DisableMagicQuotesGpc_text>Disable fixing the magic_quotes on the GPC operations (get/post/cookie).[br] especially for egroupware compatibility</DisableMagicQuotesGpc_text>
 <disable_all_filters>Disable all filters</disable_all_filters>
 <disable_service_text_operation>This operation will disable the service:</disable_service_text_operation>
-<disable_this_service_click>click here to Disable this service</disable_this_service_click>
-<discard>discard</discard>
+<disable_this_service_click>Click here to Disable this service</disable_this_service_click>
+<discard>Discard</discard>
 <DISCARD_help>Claim  successful delivery and silently discard the
               message.[br] Log the optional text if specified,  otherwise log a generic message.[br]
 [/i]Note:  this action currently affects all recipients of the message.[/i]</DISCARD_help>
@@ -1020,11 +1020,11 @@ supports the DSN extension.[/b]</EHLOsupportDSN_text>
 <empty_quarantine_text_mesgbox>Are you sure to empty your quarantine area ? All mails wille be deleted</empty_quarantine_text_mesgbox>
 <empty_swap>Empty swap and memory</empty_swap>
 <empty_table_confirm>This operation will delete all SQL table rows. Execute this operation ?</empty_table_confirm>
-<enable>enable</enable>
+<enable>Enable</enable>
 <enable tls postfix>enable TLS for PostFix</enable tls postfix>
 <EnableArticaWatchDog>Enable watchdog</EnableArticaWatchDog>
 <EnableArticaWatchDog_explain>If enabled, artica will check all services every 10mn and try to start some of them is there are stopped, this operation should take performance during analyzing services.</EnableArticaWatchDog_explain>
-<enabled>enabled</enabled>
+<enabled>Enabled</enabled>
 <EnableDHCPServer_text>Active the service and transform Artica server has a DHCP server</EnableDHCPServer_text>
 <EnableMalwarePatrol>Activate Malware Patrol database</EnableMalwarePatrol>
 <EnablePolicydWeight>Enable Policy Daemon for Postfix</EnablePolicydWeight>
@@ -1072,12 +1072,12 @@ If devices or this server is stolen, nobody can use it except your users compute
 <end>end</end>
 <End With>End With</End With>
 <enduser_fronted>End User Frontend</enduser_fronted>
-<ensure>ensure</ensure>
+<ensure>Ensure</ensure>
 <Entire Message>Entire Message</Entire Message>
 <entities>Entities</entities>
 <entries>entrie(s)</entries>
-<environement>environement</environement>
-<error>error</error>
+<environement>Environement</environement>
+<error>Error</error>
 <error_alias_exists>Error, it seems that this alias is already added in the database</error_alias_exists>
 <error_app_not_installed_disabled>This feature is disabled because some mandatories applications are not installed on this system</error_app_not_installed_disabled>
 <error_bad_mail_formated>Please, verify email address format, it is not SMTP address compliance</error_bad_mail_formated>
@@ -1223,7 +1223,7 @@ On some operating systems, the host file content is used preferentially over oth
 <february>February<february>
 <march>March</february>
 <fetch>fetch server</fetch>
-<fetchmail>fetchmail</fetchmail>
+<fetchmail>Fetchmail</fetchmail>
 <fetchmail_about>Fetchmail is a one-stop solution to the remote mail retrieval problem for Unix machines, quite useful to anyone with an intermittent PPP or SLIP connection to a remote mailserver.[br]
 It can collect mail using any variant of POP or IMAP and forwards via port 25 to the local SMTP listener, enabling all the normal forwarding/filtering/aliasing mechanisms that would apply to local mail or mail arriving via a full-time TCP/IP connection.[br]
 Fetchmail is not a toy or a coder's learning exercise, but an industrial-strength tool capable of transparently handling every retrieval demand from those of a simple single-user ISP connection up to mail retrieval and rerouting for an entire client domain.[br]
@@ -1246,7 +1246,7 @@ Fetchmail is licensed under the GNU General Public License</fetchmail_about>
 <filedate>File date</filedate>
 <fileinto>Put into imap folder</fileinto>
 <filename>File name</filename>
-<files>files</files>
+<files>Files</files>
 <fileshare>Files Sharing</fileshare>
 <filesharing_service>File Sharing service</filesharing_service>
 <filesharing_service_text>File Sharing service lets you turn this server into a storage system including print services,backup,computers management and domain master.</filesharing_service_text>
@@ -1254,14 +1254,14 @@ Fetchmail is licensed under the GNU General Public License</fetchmail_about>
 <Filesystem>File system</Filesystem>
 <files_transfered>files transfered</files_transfered>
 <fill_form>Fill the form</fill_form>
-<filter>filter</filter>
+<filter>Filter</filter>
 <Filtered>Filtered</Filtered>
 <filtered_spam>Filtered</filtered_spam>
 <Filtering size limit>Filtering size limit (KB)</Filtering size limit>
 <filters>Filters</filters>
 <filters_ad_settings>Define filters in order to import specific users</filters_ad_settings>
-<filters_connect>connection filters</filters_connect>
-<FILTER_help>after the message is queued, send the  entire  message through the specified external content filter or transport type</FILTER_help>
+<filters_connect>Connection filters</filters_connect>
+<FILTER_help>After the message is queued, send the  entire  message through the specified external content filter or transport type</FILTER_help>
 <filter_stats>Filter statistics</filter_stats>
 <Filtration Process>Filtration Process</Filtration Process>
 <find>Find</find>
@@ -1271,14 +1271,14 @@ Fetchmail is licensed under the GNU General Public License</fetchmail_about>
 <find_members>Find members</find_members>
 <find_members_text>search your members in the database</find_members_text>
 <find_messages_whose>Find messages whose</find_messages_whose>
-<finish>finish</finish>
+<finish>Finish</finish>
 <firstname>First Name</firstname>
 <first_emails>first emails</first_emails>
 <flow>flow</flow>
-<folder>folder</folder>
-<folders>folders</folders>
+<folder>Folder</folder>
+<folders>Folders</folders>
 <folders_monitor>Folders monitor</folders_monitor>
-<for>for</for>
+<for>For</for>
 <form add/mod>Form Add & modify</form add/mod>
 <format_device>Format this device</format_device>
 <format_device_explain>This operation will format this device in order to perform writeable operations</format_device_explain>
@@ -1286,24 +1286,24 @@ Fetchmail is licensed under the GNU General Public License</fetchmail_about>
 There is one or multiple errors
 in this form you want to submit</form_error>
 <ForwardMailer>Forward Mail ip/port</ForwardMailer>
-<found>found</found>
-<free>free</free>
-<frequency>frequency</frequency>
+<found>Found</found>
+<free>Free</free>
+<frequency>Frequency</frequency>
 <friday>Friday</friday>
-<from>from</from>
+<from>From</from>
 <From Address>From Address</From Address>
-<from_cache_file>from cache file</from_cache_file>
-<from_ip_address>from tcp/ip address</from_ip_address>
-<fs_type>filesystem type</fs_type>
+<from_cache_file>From cache file</from_cache_file>
+<from_ip_address>From tcp/ip address</from_ip_address>
+<fs_type>Filesystem type</fs_type>
 <gateway>Gateway</gateway>
 <GDPHP_NOT_INSTALLED>GD Library !</GDPHP_NOT_INSTALLED>
 <general_settings>General settings</general_settings>
-<generate certificate>generate certificate</generate certificate>
-<generate temporary error>generate temporary error</generate temporary error>
+<generate certificate>Generate certificate</generate certificate>
+<generate temporary error>Generate temporary error</generate temporary error>
 <generate_config>Rebuild config</generate_config>
 <generate_config_text>Build all yours settings to a temporary ldap field</generate_config_text>
 <GENERIC_LDAP_ERROR>OpenLDAP generic error</GENERIC_LDAP_ERROR>
-<give ext>fill the attachments extension in order to block it</give ext>
+<give ext>Fill the attachments extension in order to block it</give ext>
 <give the new interface>Give the new interface</give the new interface>
 <give the new network>Give the new network</give the new network>
 <add_new_network>Add a new network</add_new_network>
@@ -1312,7 +1312,7 @@ in this form you want to submit</form_error>
 <give_a_number_0_60>Put in this filed a number between 0 to 59 or "*" to set all[br]and press "Enter" key to submit</give_a_number_0_60>
 <give_a_number_1_31>Put in this filed a number between 1 to 31 or "*" to set all and press "Enter" key to submit</give_a_number_1_31>
 <give_class_name>Give the class name</give_class_name>
-<Give_email_or_domain>set an email address or a domain name</Give_email_or_domain>
+<Give_email_or_domain>Set an email address or a domain name</Give_email_or_domain>
 <give_ip_from_ip_to>Give the from IP and the to IP addresses</give_ip_from_ip_to>
 <give_password>Type the user password</give_password>
 <give_password_text>This password is used to access to the portal and to the mailbox</give_password_text>
@@ -1326,10 +1326,10 @@ in this form you want to submit</form_error>
 <global_services_status>Global services status</global_services_status>
 <global_smtp_rules>SMTP rules</global_smtp_rules>
 <global_whitelist>White & black list admin</global_whitelist>
-<go>go</go>
+<go>Go</go>
 <goback>Return to domains list</goback>
 <go_back>Go Back</go_back>
-<go_to_section>go to this section</go_to_section>
+<go_to_section>Go to this section</go_to_section>
 <graphs>Graphs</graphs>
 <grelisting_text>Your mail server temporarily reject any email from a sender it does not recognize</grelisting_text>
 <greylisting>GreyListing</greylisting>
@@ -1340,12 +1340,12 @@ in this form you want to submit</form_error>
 <group name>Group name</group name>
 <group policy>Group policy</group policy>
 <group user policy>Group users policy</group user policy>
-<groups>groups</groups>
+<groups>Groups</groups>
 <groups_allow>Group privilege</groups_allow>
 <groupwares>Groupwares</groupwares>
 <group_behavior>Groups behavior</group_behavior>
 <group_behavior_text>Some applications use settings by group.
-enable or disable this feature.</group_behavior_text>
+Enable or disable this feature.</group_behavior_text>
 <group_behavior_text2>Some applications allows you to specify settings for each groups. (antivirus, anti-spam...). If you enable this feature, you must allocate users on specific group that store defined settings</group_behavior_text2>
 <group_identity>Group Identity</group_identity>
 <group_identity_text>Edit the group name and others infomations about this group</group_identity_text>
@@ -1357,13 +1357,13 @@ enable or disable this feature.</group_behavior_text>
 <hdFree_stat>Hard drive space statistics</hdFree_stat>
 <hd_stat>Hard Drive performances</hd_stat>
 <Header Field>Header Field</Header Field>
-<header_address_token_limit>address limit</header_address_token_limit>
+<header_address_token_limit>Address limit</header_address_token_limit>
 <header_address_token_limit_text>The maximal number of address tokens are allowed in an address message header.[br]Information that exceeds the limit is discarded</header_address_token_limit_text>
 <header_rule>header rule</header_rule>
-<help>help</help>
+<help>Help</help>
 <high>High</high>
 <hits_number>Hits number</hits_number>
-<hold>hold</hold>
+<hold>Hold</hold>
 <HOLD_help>Place the message on the hold queue,[br] where it  will sit  until someone either deletes it or releases it for delivery.[br]              
 Log the optional text if  specified,[br]otherwise log a generic message.</HOLD_help>
 <home>Home</home>
@@ -1373,13 +1373,13 @@ Log the optional text if  specified,[br]otherwise log a generic message.</HOLD_h
 <homePostalAddress>Home Postal Address</homePostalAddress>
 <PostalAddress>Postal Address</PostalAddress>
 <host>Host</host>
-<hostname>hostname</hostname>
-<hosts>hosts</hosts>
+<hostname>Hostname</hostname>
+<hosts>Hosts</hosts>
 <hosts_number>Hosts number</hosts_number>
 <hotmail>Hotmail & Live</hotmail>
-<hour>hour</hour>
-<hourly>hourly</hourly>
-<hours>hours</hours>
+<hour>Hour</hour>
+<hourly>Hourly</hourly>
+<hours>Hours</hours>
 <htmlSizeBlocker>HTML Size Manager</htmlSizeBlocker>
 <htmlSizeBlocker_intro>HTML Size Manager allows you to define rule to transform messages with a specified size and allow recipients to donwload attached files</htmlSizeBlocker_intro>
 <htmlSizeBlocker_text>HTML Size Manager use mhonarc application to transform big messages,defined in rules, to HTML[br]This to prevent sending mails with a big size to pass trought network.[br]
@@ -1387,13 +1387,13 @@ It send notifications to recipients in order to allow them to "download" attache
 <https_mode>HTTPS Mode</https_mode>
 <HTTP_FILTER_MONITOR>Web filter monitor</HTTP_FILTER_MONITOR>
 <identity>Identity</identity>
-<if>if</if>
-<if_in>if in</if_in>
-<illimited>illimited</illimited>
+<if>If</if>
+<if_in>If in</if_in>
+<illimited>Illimited</illimited>
 <imap_connection_broken>Imap connection is currently broken and informations could not be read</imap_connection_broken>
 <imap_connection_locked>The imap connection is currently locked cause the imap server didn't respond on time</imap_connection_locked>
-<import>import</import>
-<import users>import users in this organization</import users>
+<import>Import</import>
+<import users>Import users in this organization</import users>
 <import users explain>This form allows you to put a csv file in order to import users in this organization.[br]
 [ul]
 [li]Your file must be in [strong]csv formatted[/strong][/li][br]
@@ -1407,15 +1407,15 @@ It send notifications to recipients in order to allow them to "download" attache
 <importation_success_scheduled>Operation has been scheduled, display events to follow process</importation_success_scheduled>
 <import_ad_domain_only>Import only users matching this email domain</import_ad_domain_only>
 <import_sub_branch>Start importation from this sub-branch</import_sub_branch>
-<in>in</in>
+<in>In</in>
 <inbox_junk>Junk mailbox</inbox_junk>
 <inbox_sent>Sent mailbox</inbox_sent>
 <inbox_trash>Trash mailbox</inbox_trash>
 <incremental_backup>Incremental backup</incremental_backup>
 <incremental_backup_text>Backup your files using incremental backup in order to reduce backup size</incremental_backup_text>
-<index>index</index>
-<index page>index</index page>
-<indexed>indexed</indexed>
+<index>Index</index>
+<index page>Index</index page>
+<indexed>Indexed</indexed>
 <INDEXING_STORAGE>Indexing your storages</INDEXING_STORAGE>
 <index_database>Index the database</index_database>
 <index_database_text>Perform indexing the database</index_database_text>
@@ -1535,10 +1535,9 @@ This limit applies to delivery via smtp, and via the pipe and virtual delivery a
 <inputbox add user>Give the first name and last name or eMail address of your new user</inputbox add user>
 <inputbox delete group>Delete this group ?</inputbox delete group>
 <input_select_list>Select in list</input_select_list>
-<install>install</install>
-<installed>installed</installed>
-<installed applications>installed applications</installed applications>
-<installed_applications>installed applications</installed_applications>
+<install>Install</install>
+<installed>Installed</installed>
+<installed applications>Installed applications</installed applications>
 <installed_applications_text>See wich applications versions are installed in your system</installed_applications_text>
 <installing>Installing</installing>
 <install_queuegraph>Install QueueGraph application</install_queuegraph>
@@ -1546,7 +1545,7 @@ This limit applies to delivery via smtp, and via the pipe and virtual delivery a
 <install_search_engine_explain>To install Search engine into your browser, give your user name and password in the form below</install_search_engine_explain>
 <install_this_prog>Install this application.[br]If it exists, artica will update this program.</install_this_prog>
 <INSTALL_THIS_SERVICE>Install this service now</INSTALL_THIS_SERVICE>
-<INSTALL_UPGRADE_RECOMPILE>re-install or upgrade</INSTALL_UPGRADE_RECOMPILE>
+<INSTALL_UPGRADE_RECOMPILE>Re-install or upgrade</INSTALL_UPGRADE_RECOMPILE>
 <install_wait_few_minutes>The installation is executed and running in background mode...[br]please wait few minutes in order to see if this operation is successfull</install_wait_few_minutes>
 <install_yorel>Install YorHel's RRD scripts</install_yorel>
 <InstantSearch>InstantSearch</InstantSearch>
@@ -1555,8 +1554,8 @@ This limit applies to delivery via smtp, and via the pipe and virtual delivery a
 <interface_restarted>This user interface will be restarted to change your settings</interface_restarted>
 <internal_hard_drives>Internal hard drives</internal_hard_drives>
 <internal_hard_drives_text>Display and drive your internal hard disks</internal_hard_drives_text>
-<invalid>invalid</invalid>
-<invisible_disk>hidden disk</invisible_disk>
+<invalid>Invalid</invalid>
+<invisible_disk>Hidden disk</invisible_disk>
 <in_flow_delay>In flow delay</in_flow_delay>
 <in_flow_delay_text>Time to pause before accepting a new message, when the message arrival rate exceeds the message delivery rate.[br]
 This feature is turned on by default (it's disabled on SCO UNIX due to an SCO bug).[br]
@@ -1567,13 +1566,13 @@ With the default 100 SMTP server process limit, "in flow delay as 1s" limits the
 <ip_address>IP Address</ip_address>
 <ip_aliases>IP aliases</ip_aliases>
 <Is>Is</Is>
-<Is greater than>is greater than</Is greater than>
-<Is less than>is less than</Is less than>
+<Is greater than>Is greater than</Is greater than>
+<Is less than>Is less than</Is less than>
 <Is not>Is not</Is not>
 <is not regex>Regular Expression not matches</is not regex>
 <is regex>Regular Expression matches</is regex>
-<is up>is up</is up>
-<isnot>is not</isnot>
+<is up>Is up</is up>
+<isnot>Is not</isnot>
 <ISP>Internet Provider</ISP>
 <ISP_MODE>Internet Provider Mode</ISP_MODE>
 <items>Items</items>
@@ -1931,7 +1930,8 @@ The default is to use the local machine name, $myhostname, which defaults to the
 <NMAP_NEWVERSION_TEXT>A new NMAP version is available in artica update server, it is recommended to upgrade to this version</NMAP_NEWVERSION_TEXT>
 <no>no</no>
 <NOIEPLEASE>Don't use Internet Explorer</NOIEPLEASE>
-<NOIEPLEASE_TEXT>Artica is not compliance with Internet Explorer, You can download for Free Mozilla Firefox or Opera</NOIEPLEASE_TEXT>
+<NOIEPLEASE_TEXT>Artica is not compliance with [b]Internet Explorer[b], 
+You are Free to use Mozilla Firefox, Opera, Chrome or Safari</NOIEPLEASE_TEXT>
 <none>Don't use feature</none>
 <normal>Normal</normal>
 <normal_infos>Information</normal_infos>
@@ -2207,7 +2207,7 @@ This is because Postfix needs to open lookup tables ahead of time, but the reade
 <query_quarantine_text>Find mails stored in a specific area and release them.</query_quarantine_text>
 <question_company_name>Give your company name</question_company_name>
 <question_domain_name>Give your eMail domain</question_domain_name>
-<queue>queue</queue>
+<queue>Queue</queue>
 <queuegraph_about>Queuegraph is a very simple mail statistics RRDtool frontend for Postfix that produces daily, weekly, monthly and yearly graphs of Postfix's active, deferred, incoming and bounce queues.</queuegraph_about>
 <queue_flow>Queue flow</queue_flow>
 <queue_flow_day>Messages stored per day</queue_flow_day>

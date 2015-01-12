@@ -55,7 +55,6 @@ $conf["njabl"]="http://www.dnsbl.njabl.org/";
 $conf["SORBS"]="http://www.dnsbl.sorbs.net/";
 $conf["Spamhaus"]="http://www.spamhaus.org/lookup.lasso";
 $conf["RFC-Ignorant"]="http://www.rfc-ignorant.org/";
-$conf["rhsbl.ahbl.org"]="http://www.robtex.com/dns/rhsbl.ahbl.org.html";
 $conf["sa-hil.habeas.com"]="http://www.robtex.com/dns/habeas.com.html";
 $conf["sa-hul.habeas.com"]="http://www.robtex.com/dns/habeas.com.html";
 $conf["senderbase.org"]="http://www.senderbase.org/";

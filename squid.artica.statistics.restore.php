@@ -100,7 +100,7 @@ function popup(){
 	
 	<div id='$t'></div>
 	<div id='title-$t'></div>
-	<div style='font-size:14px;' class=explain>{restore_statistics_database_explain2}</div>	
+	<div style='font-size:14px;' class=text-info>{restore_statistics_database_explain2}</div>	
 
 	<table style='width:99%' class=form>
 		<tr>

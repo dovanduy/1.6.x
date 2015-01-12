@@ -20,10 +20,26 @@ if(!$users->AsDansGuardianAdministrator){
 	die();
 }
 //ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
+if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["events-list"])){events_list();exit;}
 
 page();
+
+
+function js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
+	$title=$tpl->_ENGINE_parse_body("{realtime_requests}::{$_GET["SearchString"]}");
+	$html="YahooWin('1200','$page?popup=yes&SearchString={$_GET["SearchString"]}&minsize=1','$title')";
+	echo $html;
+	
+	
+}
+
 function page(){
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -75,6 +91,17 @@ echo "<!DOCTYPE html>
 
 
 function popup(){
+	
+	$sock=new sockets();
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
+	if($SquidNoAccessLogs==1){
+		
+		echo FATAL_ERROR_SHOW_128("{FATAL_SQUID_ACCESS_LOG}");
+		return;
+		
+	}
+	
+	
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
@@ -122,6 +149,23 @@ function popup(){
 	$tableprc="100%";
 	$margin="-10";
 	$margin_left="-15";
+	$ip_field=161;
+	$date_field=139;
+	$uri_field=650;
+	$uri_field=233;
+	$cod_field=233;
+	$size_field=106;
+	$duration_field=106;
+	
+	if($_GET["minsize"]==1){
+		$uri_field=450;
+		$date_field=76;
+		$ip_field=161;
+		$cod_field=103;
+		$size_field=86;
+		$duration_field=66;
+	}
+	
 	
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
@@ -165,17 +209,17 @@ function popup(){
 	var mem$t='';
 	function StartLogsSquidTable$t(){
 		$('#flexRT$t').flexigrid({
-			url: '$page?events-list=yes',
+			url: '$page?events-list=yes&minsize={$_GET["minsize"]}&SearchString={$_GET["SearchString"]}',
 			dataType: 'json',
 			colModel : [
 			
-			{display: '$zdate', name : 'zDate', width :139, sortable : true, align: 'left'},
-			{display: '$ipaddr', name : 'events', width : 233, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'code', width : 233, sortable : false, align: 'left'},
+			{display: '$zdate', name : 'zDate', width :$date_field, sortable : true, align: 'left'},
+			{display: '$ipaddr', name : 'events', width : $ip_field, sortable : false, align: 'left'},
+			{display: '&nbsp;', name : 'code', width : $cod_field, sortable : false, align: 'left'},
 			{display: '$proto', name : 'proto', width : 75, sortable : false, align: 'left'},
-			{display: '$uri', name : 'events', width : 650, sortable : false, align: 'left'},
-			{display: '$size', name : 'size', width : 106, sortable : false, align: 'left'},
-			{display: '$duration', name : 'duration', width : 106, sortable : false, align: 'left'},
+			{display: '$uri', name : 'events', width : $uri_field, sortable : false, align: 'left'},
+			{display: '$size', name : 'size', width : $size_field, sortable : false, align: 'left'},
+			{display: '$duration', name : 'duration', width : $duration_field, sortable : false, align: 'left'},
 			],
 				
 			buttons : [
@@ -194,7 +238,7 @@ function popup(){
 			sortname: 'zDate',
 			sortorder: 'desc',
 			usepager: true,
-			title: '<span style=\"font-size:16px\">$title</span>',
+			title: '<span style=\"font-size:16px\">$title {$_GET["SearchString"]}</span>',
 			useRp: true,
 			rp: 50,
 			showTableToggleBtn: false,
@@ -216,7 +260,9 @@ echo $html;
 
 function events_list(){
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?access-real=yes&rp={$_POST["rp"]}&query=".urlencode($_POST["query"]));
+	
+	
+	$sock->getFrameWork("squid.php?access-real=yes&rp={$_POST["rp"]}&query=".urlencode($_POST["query"])."&SearchString={$_GET["SearchString"]}");
 	$filename="/usr/share/artica-postfix/ressources/logs/access.log.tmp";
 	$dataZ=explode("\n",@file_get_contents($filename));
 	$tpl=new templates();
@@ -232,7 +278,7 @@ function events_list(){
 	
 	if(count($dataZ)==0){json_error_show("no data");}
 	$logfileD=new logfile_daemon();
-	
+	krsort($dataZ);
 	
 	while (list ($num, $line) = each ($dataZ)){
 		$TR=preg_split("/[\s]+/", $line);
@@ -254,20 +300,30 @@ function events_list(){
 		if($PROTO=="CONNECT"){$color="#BAB700";}
 		if($zCode[1]>399){$color="#D0080A";}
 		
+		if(($PROTO=="GET") or ($PROTO=="POST")){
+			if(preg_match("#TCP_REDIRECT#", $zCode[0])){
+				$color="#A01E1E";
+			}
+		}
 		
+		
+		$fontsize=14;
+		if($_GET["minsize"]==1){
+			$fontsize=12;
+		}
 		
 		if($size>1024){$size=FormatBytes($size/1024);}else{$size="$size Bytes";}
 		$date=str_replace($today." ", "", $date);
 		$data['rows'][] = array(
 				'id' => md5($line),
 				'cell' => array(
-						"<span style='font-size:14px;color:$color'>$date</span>",
-						"<span style='font-size:14px;color:$color'>$ip/{$TR[7]}</span>",
-						"<span style='font-size:14px;color:$color'>{$zCode[0]} - $codeToString</span>",
-						"<span style='font-size:14px;color:$color'>{$PROTO}</span>",
-						"<span style='font-size:14px;color:$color'>{$TR[6]}</span>",
-						"<span style='font-size:14px;color:$color'>$size</span>",
-						"<span style='font-size:14px;color:$color'>{$duration}$durationunit</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$date</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$ip/{$TR[7]}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$zCode[0]} - $codeToString</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$PROTO}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$TR[6]}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$size</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$duration}$durationunit</span>",
 						"$ip"
 				)
 		);

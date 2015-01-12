@@ -179,19 +179,7 @@ width:99%;
 	-o-border-radius: 5px;		
 }
 
-div .form{
-  -moz-border-radius: 5px;
-  border-radius: 5px;
-  border:1px solid #DDDDDD;
-  background:url("/img/gr-greybox.gif") repeat-x scroll 0 0 #FBFBFA;
-  background:-moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
-  margin:5px;padding:5px;
-  -webkit-border-radius: 5px;
-  -o-border-radius: 5px;		
- -moz-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
- -webkit-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
- box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
-}
+
 
 div .formOver{
   -moz-border-radius: 5px;

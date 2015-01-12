@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__).'/class.mysql.inc');
 class openssh{
 	
 	
@@ -69,7 +69,8 @@ class openssh{
 		if($this->main_array["Subsystem"]==null){$this->main_array["Subsystem"]="sftp /usr/lib/openssh/sftp-server";}											
 		if($this->main_array["AuthorizedKeysFile"]==null){$this->main_array["AuthorizedKeysFile"]="%h/.ssh/authorized_keys";}
 		if($this->main_array["PasswordAuthentication"]==null){$this->main_array["PasswordAuthentication"]="yes";}
-		if($this->main_array["AllowGroups"]==null){$this->main_array["AllowGroups"]="root";}
+		unset($this->main_array["AllowGroups"]);
+		
 			
 		
 		
@@ -77,7 +78,7 @@ class openssh{
 		if(count($this->ListenAddress)==0){$this->ListenAddress[]="0.0.0.0";}
 	}
 	
-	function save(){
+	function save($returnconf=false){
 		$users=new usersMenus();
 		$sock=new sockets();
 		$SSHDBanner=$sock->GET_INFO("SSHDBanner");		
@@ -102,12 +103,30 @@ class openssh{
 			$conf[]="ListenAddress\t$line";
 		}
 		
-			while (list ($num, $line) = each ($this->HostKey)){
+		while (list ($num, $line) = each ($this->HostKey)){
 			$conf[]="HostKey\t$line";
-		}		
+		}
+		$sshd_allowusers=array();
+		$q=new mysql();
+		if($q->COUNT_ROWS("sshd_allowusers", "artica_backup")){
+			$results=$q->QUERY_SQL("SELECT pattern FROM sshd_allowusers");
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+				$pattern=$ligne["pattern"];
+				$sshd_allowusers[]=$pattern;
+			}
+		}
+		
+		if(count($sshd_allowusers)==0){
+			$conf[]="AllowGroups\troot";
+			
+		}else{
+			$conf[]="AllowUsers\t".@implode(" ", $sshd_allowusers);
+		}
+			
 		$conf[]="";
 		$sock=new sockets();
 		$sock->SaveConfigFile(@implode("\n",$conf),"OpenSSHDConfig");
+		if($returnconf){return @implode("\n", $conf);}
 		$sock->getFrameWork("cmd.php?sshd-restart=yes");
 		
 	}

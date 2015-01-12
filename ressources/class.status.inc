@@ -1166,17 +1166,19 @@ function Squid_status($NOCACHE=false){
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
 	$users=new usersMenus();
+	$start=null;
 	
-	
-	$content=base64_decode($sock->getFrameWork("cmd.php?squid-ini-status=yes"));
+	$sock->getFrameWork('cmd.php?squid-ini-status=yes');
+	$ini->loadFile("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
 	
 	if($GLOBALS["VERBOSE"]){echo "<p style='color:red'>".__FUNCTION__.":: cmd.php?squid-ini-status=yes [".strlen($content)."bytes]</p>\n";}
 	
-	$ini->loadString($content);
+	
 	$master_pid=$ini->_params["SQUID"]["master_pid"];
 	$master_version=$ini->_params["SQUID"]["master_version"];
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	$APP_SQUID_NAT=null;
 	
 
 	
@@ -1188,7 +1190,7 @@ if($ini->_params["SQUID"]["running"]==0){
 		$status="{stopped}";
 		if($SQUIDEnable==1){
 			$start="<hr><div style='text-align:right'>".
-			button("{restart}","Loadjs('system.services.cmd.php?APPNAME=APP_SQUID&action=restart&cmd=%2Fetc%2Finit.d%2Fsquid&appcode=SQUID');")."</div>";
+			button("{check_status}","Loadjs('squid.check.status.php');")."</div>";
 		}
 	}else{
 			if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
@@ -1240,6 +1242,9 @@ if($IsIcapClient<>'TRUE'){
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){$DisableArticaProxyStatistics=1;}
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 	
 	if($EnableKavICAPRemote==1){
 		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);
@@ -1266,11 +1271,20 @@ if($IsIcapClient<>'TRUE'){
 	
 	$cicap=DAEMON_STATUS_LINE("C-ICAP",$ini,null,1,"220px");
 	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_LINE("APP_SQUIDGUARD_HTTP",$ini,null,1,"220px",true,1,"Loadjs('squidguardweb.php')");
-	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
+	$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,1,"220px",true,1,"LoadAjax('BodyContent','dansguardian2.mainrules.php')");
 	
-	$APP_UFDBGUARD_CLIENT=DAEMON_STATUS_LINE("APP_UFDBGUARD_CLIENT",$ini,null,1,"220px",true,1,"Loadjs('dansguardian2.php?js-ufdbguard=yes')");
+	$APP_UFDBGUARD_CLIENT=DAEMON_STATUS_LINE("APP_UFDBGUARD_CLIENT",$ini,null,1,"220px",true,1,"LoadAjax('BodyContent','dansguardian2.mainrules.php')");
 	$DNSMASQ_SQUID=DAEMON_STATUS_LINE("DNSMASQ_SQUID",$ini,null,1,"220px",true,1,"Loadjs('squid.dnsmasq.php')");
 	$APP_NGINX=DAEMON_STATUS_LINE("APP_NGINX",$ini,null,1,"220px",true,1,"blur()");
+	$APP_UFDBCAT=DAEMON_STATUS_LINE("APP_UFDBCAT",$ini,null,1,"220px",true,1,"blur()");
+	$APP_HYPERCACHE_WEB=DAEMON_STATUS_LINE("APP_HYPERCACHE_WEB",$ini,null,1,"220px",true,1,"blur()");
+	
+	
+	if($EnableTransparent27==1){
+		$APP_SQUID_NAT=DAEMON_STATUS_LINE("APP_SQUID_NAT",$ini,null,1,"220px",true,1,"blur()");
+		
+		
+	}
 	
 	if($users->KASPERSKY_WEB_APPLIANCE){
 		$status_kav4proxy=DAEMON_STATUS_LINE("KAV4PROXY",$ini,null,0,"220px",true,1,"QuickLinkSystems('section_kav4proxy')");
@@ -1367,10 +1381,6 @@ if($IsIcapClient<>'TRUE'){
 					echo "<span style='color:red;font-size:22px'>COUNT_CATEGORIES -> $categories</span><br>\n";
 				}
 				
-				
-				if($categories<500){$sock->getFrameWork("squid.php?update-blacklist=yes");}
-				
-				
 				if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
 				$categories_text=$this->squid_categorized_websites();
 				
@@ -1459,23 +1469,31 @@ if($IsIcapClient<>'TRUE'){
 	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
 	if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 	
+	if($start==null){$start="&nbsp;&laquo;&nbsp;<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.check.status.php');\"
+			style='font-size:11px;text-decoration:underline'>{refresh}</a>&nbsp;&raquo;";
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "<H1>APP_UFDBCAT : ".strlen($APP_UFDBCAT)."</H1>";}
+	
 	$design="
 	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_SQUID}</h3>
-			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap
+			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$icap$APP_SQUID_NAT
 			$status_dansguardian$status_kav4proxy$cicap$APP_SQUIDGUARD_HTTP
 			$APP_UFDBGUARD
 			$APP_UFDBGUARD_CLIENT
 			$APP_ARTICADB
 			$APP_SQUID_DB
+			$APP_UFDBCAT
+			$APP_HYPERCACHE_WEB
 			$DNSMASQ_SQUID
 			$APP_NGINX</span>
 			$stats_paragraphe
 			$quota_hour_text
 			$quota_day_text
 			$connectedApps
-			<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:s_PopUp('squid.accesslogs.php?external=yes',1024,768);\"><i><strong style='text-decoration:underline'>{access_events}</strong></i></div> 
+			 
 		</div>
 	</div>
 	
@@ -1589,6 +1607,43 @@ return $design;
 	
 }
 
+function CATEGORIES_APPLIANCE(){
+	if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
+	include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
+	$tpl=new templates();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?ufdbcat-ini-status=yes")));
+	$q=new mysql_squid_builder();
+	
+	
+	$img='status_postfix_bg_ok32.png';
+	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
+	
+	
+	$APP_UFDBCAT=DAEMON_STATUS_LINE("APP_UFDBCAT",$ini,null,0,"220px",true,0,"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','ufdbcat.php');");
+	
+	$CATZ_ARRAY=unserialize(base64_decode(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY")));
+	$TIME=$CATZ_ARRAY["TIME"];
+	
+	if($TIME>0){
+		$version=$tpl->time_to_date($TIME,true);
+	}
+	
+	$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:200px'>
+	<div style='padding-left:155px;min-height:250px'>
+	<h3 style='font-size:16px;font-weight:bold;'>{APP_UFDBCAT}</h3>
+	<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>{version}:$version</i></span>
+	$APP_UFDBCAT
+	</div>
+	</div>
+	
+	";
+	
+	return $design;
+}
+
 function WEBSTATS(){
 		if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
 		include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
@@ -1647,7 +1702,7 @@ $design="
 			APP_ARTICADB$icap
 			$status_dansguardian$status_kav4proxy$cicap
 			$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD
-			$APP_UFDBGUARD_CLIENT</span>
+			$APP_UFDBGUARD_CLIENT$APP_UFDBCAT</span>
 			$stats_paragraphe
 			
 		</div>

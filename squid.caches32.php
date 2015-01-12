@@ -135,7 +135,7 @@ function page(){
 		
 		
 		</table>
-		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>";
+		<div class=text-info style='margin-top:10px'>{squid32_caches_explain}</div>";
 		
 		if($DisableAnyCache==1){$toolbox=null;}
 		
@@ -843,7 +843,7 @@ function add_new_disk_popup(){
 		<td colspan=4>
 					
 					<input type='hidden' id='$t-mem' value='$SquidBoosterMem'>
-					<div class=explain style='font-size:13px'>{warn_calculate_nothdsize}</div></td>		
+					<div class=text-info style='font-size:13px'>{warn_calculate_nothdsize}</div></td>		
 
 		<tr>
 			<td class=legend nowrap style='font-size:16px'>{cache_dir_level1}:</td>

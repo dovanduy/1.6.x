@@ -208,6 +208,8 @@ function global_parameters(){
 	$SquidDebugCacheProc=$sock->GET_INFO("SquidDebugCacheProc");
 	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
+	$DisableSquidSMP=intval($sock->GET_INFO("DisableSquidSMP"));
+	if($DisableSquidSMP==0){$EnableSQUIDSMP=1;}else{$EnableSQUIDSMP=0;}
 	
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
@@ -275,13 +277,19 @@ function global_parameters(){
 		$DisableAnyCache,null,850);
 	}
 	
+	$DisableSquidSMPF=Paragraphe_switch_img("{EnableSQUIDSMP}","{EnableSQUIDSMP_explain}",
+			"EnableSQUIDSMP-$t",$EnableSQUIDSMP,null,850);
+	
+	$CORP_LICENSE=1;
 	if(!$users->CORP_LICENSE){
+		$CORP_LICENSE=0;
+		$DisableSquidSMPF=Paragraphe_switch_disable('{EnableSQUIDSMP}',"{EnableSQUIDSMP_explain}","EnableSQUIDSMP-$t",
+		$EnableSQUIDSMP,null,850);
+		
 		$license_error="<p class=text-error style='font-size:18px'>".$tpl->_ENGINE_parse_body("{license_error}")."</p>";}
 
 	
-	$reload_into_ims_p=Paragraphe_switch_img("{reload_into_ims}", "{reload_into_ims_explain}",
-			"SquidReloadIntoIMS-$t",$SquidReloadIntoIMS,
-			null,850);
+
 	
 	$ForceWindowsUpdateCaching=Paragraphe_switch_img("{ForceWindowsUpdateCaching}", "{ForceWindowsUpdateCaching_explain}",
 			"ForceWindowsUpdateCaching-$t",$ForceWindowsUpdateCaching,
@@ -297,18 +305,18 @@ function global_parameters(){
 	<div style='margin:10px;padding:10px;width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$DisableSquidSMPF</td>
+	</tr>	
+	<tr>
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$level</td>
 	</tr>
-	<tr>
-	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$reload_into_ims_p</td>
-	</tr>	
 	<tr>
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ForceWindowsUpdateCaching</td>
 	</tr>	
 	<tr>
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ProxyDedicateMicrosoftRules</td>
 	</tr>
-	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",26)."</td><tr>
+	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",36)."</td><tr>
 	<tr><td colspan=3 style='margin-bottom:15px;vertical-align:top'><p>&nbsp;</p></td></tr>
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top;font-size:26px'>{advanced_options}</td>
 	</tr>	
@@ -345,7 +353,7 @@ function global_parameters(){
 	</tr>
 			
 <tr>
-		<td align='right' class=legend nowrap style='font-size:16px'>{minimum_object_size}:</strong></td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{minimum_object_size}:</strong></td>
 		<td align='left' style='font-size:18px'>" . Field_text("minimum_object_size-$t",$minimum_object_size,'width:90px;font-size:16px')."&nbsp;KB</td>
 		<td>" . help_icon('{minimum_object_size_text}',false,'squid.index.php')."</td>
 </tr>
@@ -356,7 +364,7 @@ function global_parameters(){
 	<td align='left' style='font-size:18px'>" . Field_checkbox("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
 	<td width=1%></td>
 	</tr>	
-	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",26)."</td>
+	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",36)."</td>
 	</tr>
 	
 	
@@ -369,20 +377,23 @@ function global_parameters(){
 	var x_Save$t= function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
-			Loadjs('squid.compile.progress.php?ask=yes');
+			Loadjs('squid.restart.php?ask=yes');
 		}		
 
 		function Save$t(){
 			var SquidDebugCacheProc=0;
+			var CORP_LICENSE=$CORP_LICENSE;
 			var XHR = new XHRConnection();
 			XHR.appendData('DisableAnyCache',document.getElementById('DisableAnyCache-$t').value);
 			XHR.appendData('ForceWindowsUpdateCaching',document.getElementById('ForceWindowsUpdateCaching-$t').value);
 			XHR.appendData('ProxyDedicateMicrosoftRules',document.getElementById('ProxyDedicateMicrosoftRules-$t').value);
-			XHR.appendData('SquidReloadIntoIMS',document.getElementById('SquidReloadIntoIMS-$t').value);
+			
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
 
 			
-			
+			if(CORP_LICENSE==1){
+				XHR.appendData('EnableSQUIDSMP',document.getElementById('EnableSQUIDSMP-$t').value);
+			}
 			
 			
 			XHR.appendData('minimum_object_size',document.getElementById('minimum_object_size-$t').value);
@@ -432,9 +443,15 @@ function global_parameters_save(){
 	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
 	if(isset($_POST["ForceWindowsUpdateCaching"])){$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);}
 	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
-	$sock->SET_INFO("SquidReloadIntoIMS", $_POST["SquidReloadIntoIMS"]);
 	
 	
+	if(isset($_POST["EnableSQUIDSMP"])){
+		if($_POST["EnableSQUIDSMP"]==1){
+			$sock->SET_INFO("DisableSquidSMP", 0);
+		}else{
+			$sock->SET_INFO("DisableSquidSMP", 1);
+		}
+	}
 	
 	
 	
@@ -508,7 +525,8 @@ function subrules_tabs(){
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&SourceT={$_GET["SourceT"]}&ID=$ID&tt={$_GET["tt"]}&mainid={$_GET["mainid"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&SourceT={$_GET["SourceT"]}&ID=$ID&tt={$_GET["tt"]}&mainid={$_GET["mainid"]}\" 
+		style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	echo build_artica_tabs($html, "main_subrules_tabs");
 }
@@ -526,6 +544,8 @@ function main_tabs(){
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
+	if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
 	
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
@@ -538,8 +558,27 @@ function main_tabs(){
 		$array["caches-center"]='{caches_center}';
 	}
 	
-	$array["dyn-section"]="{dynamic_enforce_rules}";
-	$array["main-section"]="{cache_rules}";
+	
+	$array["artica-cache"]="{enforce_rules}";
+	
+	
+	
+	
+	
+	
+	if($UseSimplifiedCachePattern==0){
+		if($SquidCacheLevel>2){
+			$array["dyn-section"]="{dynamic_enforce_rules}";
+		}
+		
+	}
+	
+	if($SquidCacheLevel>1){
+		$array["main-section"]="{cache_rules}";
+	}
+	
+
+	
 	$array["parameters"]='{global_parameters}';
 	if($CacheManagement2==0){
 		$array["caches"]='{caches}';
@@ -556,47 +595,67 @@ function main_tabs(){
 	
 			}
 		}
-	}	
+	}
+
+	if(count($array)>=4){
+		$fontsize=18;
+	}
 	
-	$fontsize=15;
+	if(count($array)>=7){
+		$fontsize=14;
+	}
 	while (list ($num, $ligne) = each ($array) ){
 		
+		
+		if($num=="artica-cache"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.artica-rules.php\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
 		if($num=="caches-level"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.level.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.level.php\">
+					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		
 		if($num=="caches-status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.status.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.status.php\">
+					 <span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="caches"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches32.php?uuid=$squid->uuid\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"squid.caches32.php?uuid=$squid->uuid\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		if($num=="caches-params"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.php?parameters=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"squid.caches.php?parameters=yes\">
+						<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="caches-center"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.center.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.center.php\" ><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 
 		if($num=="cached_items"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cached.itemps.php?hostid=localhost\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li ><a href=\"squid.cached.itemps.php?hostid=localhost\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="dyn-section"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cache.dynamic.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.cache.dynamic.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;			
 		}
 						
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID&tt={$_GET["tt"]}&SourceT={$_GET["SourceT"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"$page?$num=yes&t=$t&ID=$ID&tt={$_GET["tt"]}&SourceT={$_GET["SourceT"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 	}
 	echo build_artica_tabs($html, "main_cache_rules_main_tabs")."<script>LeftDesign('caches-center-white-256-opac20.png');</script>";
 	
@@ -622,7 +681,8 @@ function main_section_tabs(){
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&SourceT={$_GET["SourceT"]}&t=$t&ID=$ID&mainid=$ID&tt={$_GET["tt"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&SourceT={$_GET["SourceT"]}&t=$t&ID=$ID&mainid=$ID&tt={$_GET["tt"]}\" 
+		style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	echo build_artica_tabs($html, "main_section_tabs_$ID");	
 	
@@ -835,19 +895,19 @@ function main_popup(){
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
-	<td class=legend style='font-size:16px'>{rulename}:</td>
-		<td>". Field_text("rulename-$tt",$ligne["rulename"],"font-size:18px;width:99%",null,null,null,false,"SaveCheck$tt(event)")."</td>
+	<td class=legend style='font-size:22px'>{rulename}:</td>
+		<td>". Field_text("rulename-$tt",$ligne["rulename"],"font-size:22px;width:99%",null,null,null,false,"SaveCheck$tt(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$tt",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:22px'>{enabled}:</td>
+		<td>". Field_checkbox_design("enabled-$tt",1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{order}:</td>
-		<td>". Field_text("zorder-$tt",$ligne["zorder"],"font-size:18px;width:90px",null,null,null,false,"SaveCheck$tt(event)")."</td>
+		<td class=legend style='font-size:22px'>{order}:</td>
+		<td>". Field_text("zorder-$tt",$ligne["zorder"],"font-size:22px;width:90px",null,null,null,false,"SaveCheck$tt(event)")."</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr>". button("$btname", "Save$tt()",20)."</td>
+		<td colspan=2 align='right'><hr>". button("$btname", "Save$tt()",36)."</td>
 	</tr>
 	</table>
 </div>
@@ -1413,24 +1473,24 @@ function items_popup(){
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{rule}:</td>
-		<td style='font-size:16px'>$mainname</td>
+		<td class=legend style='font-size:26px'>{rule}:</td>
+		<td style='font-size:26px'>$mainname</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{type}:</td>
-		<td style='font-size:16px'>$GroupType [{$ligne["GroupType"]}]</td>
+		<td class=legend style='font-size:26px'>{type}:</td>
+		<td style='font-size:26px'>$GroupType [{$ligne["GroupType"]}]</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	
-	<tr><td colspan=3><div class=explain style='font-size:14px'>$explain</div></td></tr>
+	<tr><td colspan=3><div class=text-info style='font-size:26px'>$explain</div></td></tr>
 	
-	<td class=legend style='font-size:16px'>{item}:</td>
-		<td>". Field_text("items-$t",$ligne["item"],"font-size:18px;width:99%",null,null,null,false,"SaveCheck$t(event)")."</td>
+	<td class=legend style='font-size:26px'>{item}:</td>
+		<td>". Field_text("items-$t",$ligne["item"],"font-size:26px;width:99%",null,null,null,false,"SaveCheck$t(event)")."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td colspan=3 align=right><hr>".button("$btname","Save$t()",18)."</td>
+		<td colspan=3 align=right><hr>".button("$btname","Save$t()",32)."</td>
 	</tr>
 	</table>
 </div>
@@ -1636,32 +1696,32 @@ $html="<div id='anim-$t'></div>
 <div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{rulename}:</td>
-			<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:16px;width:99%",null,null,null,false,"SaveCheck$t(event)")."</td>
+			<td class=legend style='font-size:22px'>{rulename}:</td>
+			<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:22px;width:99%",null,null,null,false,"SaveCheck$t(event)")."</td>
 			<td width=1%>&nbsp;</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{type}:</td>
-			<td>". Field_array_Hash($q->CACHES_RULES_TYPES,"type-$t",$ligne["GroupType"],"style:font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{type}:</td>
+			<td>". Field_array_Hash($q->CACHES_RULES_TYPES,"type-$t",$ligne["GroupType"],"style:font-size:22px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{minimal_time}:</td>
-			<td>". Field_array_Hash($q->CACHE_AGES,"min-$t",$ligne["min"],"style:font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{minimal_time}:</td>
+			<td>". Field_array_Hash($q->CACHE_AGES,"min-$t",$ligne["min"],"style:font-size:22px")."</td>
 			<td width=1%>". help_icon("{caches_rules_min}")."</td>
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:16px'>{max_time}:</td>
-			<td>". Field_array_Hash($q->CACHE_AGES,"max-$t",$ligne["max"],"style:font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{max_time}:</td>
+			<td>". Field_array_Hash($q->CACHE_AGES,"max-$t",$ligne["max"],"style:font-size:22px")."</td>
 			<td width=1%>". help_icon("{caches_rules_max}")."</td>
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:16px'>{percent}:</td>
-			<td>". Field_array_Hash($precents,"perc-$t",$ligne["perc"],"style:font-size:16px",null,null,null,false,"SaveCheck$t(event)")."</td>
+			<td class=legend style='font-size:22px'>{percent}:</td>
+			<td>". Field_array_Hash($precents,"perc-$t",$ligne["perc"],"style:font-size:22px",null,null,null,false,"SaveCheck$t(event)")."</td>
 			<td width=1%>". help_icon("{caches_rules_percent}")."</td>
 		</tr>					
 					
 		<tr>
-			<td colspan=3 align=right><hr>".button("$btname","Save$t()",18)."</td>
+			<td colspan=3 align=right><hr>".button("$btname","Save$t()",32)."</td>
 		</tr>
 	</table>
 </div>
@@ -1723,6 +1783,7 @@ function main_rule(){
 	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
 	$options=$tpl->javascript_parse_text("{options}");
 	$restart=$tpl->javascript_parse_text("{restart}");
+	$cache_rules=$tpl->javascript_parse_text("{cache_rules}");
 	
 	$tablewidht=883;
 	$t=time();
@@ -1755,13 +1816,13 @@ function start$tt(){
 		url: '$page?main-search=yes&t=$t',
 		dataType: 'json',
 		colModel : [
-		{display: '&nbsp;', name : 'zorder', width : 40, sortable : false, align: 'center'},
-		{display: '$rulename', name : 'rulename', width : 161, sortable : false, align: 'left'},
-		{display: '$explain', name : 'username', width : 468, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'enabled', width : 31, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'up', width : 31, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'down', width : 31, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'del', width : 31, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'zorder', width : 55, sortable : false, align: 'center'},
+		{display: '$rulename', name : 'rulename', width : 269, sortable : false, align: 'left'},
+		{display: '$explain', name : 'username', width : 551, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'enabled', width : 45, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'up', width : 45, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'down', width : 45, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'del', width : 45, sortable : false, align: 'center'},
 		
 		],
 		$buttons
@@ -1771,7 +1832,7 @@ function start$tt(){
 		sortname: 'zorder',
 		sortorder: 'asc',
 		usepager: true,
-		title: '',
+		title: '<span style=font-size:22px>$cache_rules</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
@@ -1896,11 +1957,11 @@ function main_search(){
 	$refresh_pattern_def_min=$q->CACHE_AGES[$refresh_pattern_def_min];
 	$refresh_pattern_def_max_text=$q->CACHE_AGES[$refresh_pattern_def_max];
 	
-	$no_license="<div style='color:red'>".$tpl->javascript_parse_text("* * {no_license} * *")."</div>";
+	$no_license="<div style='color:red;font-size:18px;'>".$tpl->javascript_parse_text("* * {no_license} * *")."</div>";
 	
 	$href="<a href=\"javascript:blur();\"
 	OnClick=\"javascript:Loadjs('$MyPage?default-js=yes&t=$t&SourceT={$_GET["t"]}');\"
-	style=\"font-size:14px;text-decoration:underline;color:black\">";
+	style=\"font-size:18px;text-decoration:underline;color:black\">";
 	
 	
 	$explain=$tpl->_ENGINE_parse_body("{if_no_rule_matches}<br>{cache_objects_during} $refresh_pattern_def_min
@@ -1911,9 +1972,9 @@ function main_search(){
 	$data['rows'][] = array(
 			'id' => "none",
 			'cell' => array(
-					"<span style=\"font-size:14px;\">*</span>",
+					"<span style=\"font-size:18px;\">*</span>",
 					"$href$default</a>",
-					"$explain",
+					"<span style='font-size:16px'>$explain</span>",
 					null,null,null,null
 			)
 	);
@@ -1933,12 +1994,12 @@ function main_search(){
 
 		$href="<a href=\"javascript:blur();\"
 						OnClick=\"javascript:Loadjs('$MyPage?main-js=yes&ID={$ligne["ID"]}&t=$t&SourceT={$_GET["t"]}');\"
-						style=\"font-size:14px;text-decoration:underline;color:$color\">";
+						style=\"font-size:18px;text-decoration:underline;color:$color\">";
 		
 		
 		$href_move="<a href=\"javascript:blur();\"
 						OnClick=\"javascript:MoveRuleDestinationAsk$t({$ligne["ID"]},{$ligne['zorder']});\"
-						style=\"font-size:14px;text-decoration:underline;color:$color\">";
+						style=\"font-size:18px;text-decoration:underline;color:$color\">";
 		
 		$explain=explainThisRule($ligne["ID"],$tpl,$q);
 		if(!$users->CORP_LICENSE){$lic=$no_license;}
@@ -1948,7 +2009,7 @@ function main_search(){
 				'cell' => array(						
 						"$href_move{$ligne['zorder']}</a>",
 						"$href{$ligne['rulename']}</a>",
-						"$lic$explain",
+						"$lic<span style='font-size:16px'>$explain</span>",
 						$enable,$up,$down,$delete 
 				)
 		);
@@ -1961,12 +2022,12 @@ function explainThisRule($ID,$tpl,$q){
 	if($GLOBALS["VERBOSE"]){echo "<hr>\nexplainThisRule - $ID\n<hr>\n";}
 
 	$sql="SELECT *  FROM `cache_rules` WHERE ruleid='$ID' AND `enabled`=1 ORDER BY zorder";
-	if($GLOBALS["VERBOSE"]){echo "<li>$sql</li>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='font-size:16px'>$sql</li>\n";}
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){return $q->mysql_error;}
 	$ct=mysql_num_rows($results);
 	
-	if($GLOBALS["VERBOSE"]){echo "<li>Rules:$ct</li>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='font-size:16px>Rules:$ct</li>\n";}
 	if($ct==0){return $tpl->_ENGINE_parse_body("{no_rule}  [$ID] Line:".__LINE__);}
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
 	$and=null;
@@ -1979,7 +2040,7 @@ function explainThisRule($ID,$tpl,$q){
 	$MAIN=array();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
-		if($GLOBALS["VERBOSE"]){echo "<li>{$ligne["ID"]}</li>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<li style='font-size:16px'>{$ligne["ID"]}</li>\n";}
 		
 		if(isset($EXTENSIONS[$ligne["ID"]])){continue;}
 		
@@ -1999,7 +2060,7 @@ function explainThisRule($ID,$tpl,$q){
 		$maxage=$q->CACHE_AGES[$ligne["max"]];
 		$type=$q->CACHES_RULES_TYPES[$ligne["GroupType"]];
 		
-		$MAIN[]=$tpl->_ENGINE_parse_body("{cache_objects_during} $age {for_a_maximal_time_of} $maxage<br>{with_a_ratio_of} {$ligne["perc"]}%<br>
+		$MAIN[]=$tpl->_ENGINE_parse_body("{cache_objects_during} $age<br>{for_a_maximal_time_of} $maxage<br>{with_a_ratio_of} {$ligne["perc"]}%<br>
 		{for_requests_to} $type ($items {items})$and");
 
 		
@@ -2097,12 +2158,12 @@ function items_search(){
 	
 		$href="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('$uri');\"
-		style=\"font-size:14px;text-decoration:underline;color:$color\">";
+		style=\"font-size:18px;text-decoration:underline;color:$color\">";
 	
 	
 		$href_move="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:MoveItemAsk$t({$ligne["ID"]},{$ligne['zorder']});\"
-		style=\"font-size:14px;text-decoration:underline;color:$color\">";
+		style=\"font-size:18px;text-decoration:underline;color:$color\">";
 	
 		$data['rows'][] = array(
 				'id' => $md5,

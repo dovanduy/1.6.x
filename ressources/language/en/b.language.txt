@@ -49,9 +49,9 @@ For example if you define domain.tld as the domain suffix and you enable WebDav 
 <remote_domains>Remote domains</remote_domains>
 <refresh_index>Refresh Index</refresh_index>
 <failover_explain>
-Failover is switching to a redundant or standby computer server, system, hardware component or network upon the failure or abnormal 
+Fail-over is switching to a redundant or standby computer server, system, hardware component or network upon the failure or abnormal 
 termination of the previously active application,server, system, hardware component, or network.[br]
-Failover and switchover are essentially the same operation, except that failover is automatic and usually operates without warning, 
+Fail-over and switchover are essentially the same operation, except that Fail-over is automatic and usually operates without warning, 
 while switchover requires human intervention</failover_explain>
 <welcome_php_failoverunlink_explain_2>This operation will disconnect this server from it's slave for failover operation.[br]
 To confirm this operation, press next button</welcome_php_failoverunlink_explain_2>
@@ -59,7 +59,7 @@ To confirm this operation, press next button</welcome_php_failoverunlink_explain
 <continue>Continue</continue>
 <please_wait_reconfigure_network>Please wait... reconfiguring network</please_wait_reconfigure_network>
 <you_should_reboot_the_server>In order to clean all settings, you should reboot your server</you_should_reboot_the_server>
-<failover_wizard>Failover wizard</failover_wizard>
+<failover_wizard>Fail-over wizard</failover_wizard>
 <saving_local_parameters>Saving local parameters</saving_local_parameters>
 <error_missing_software>Error, a software is not available on your server.[br]The service will not working as expected, you should contact our support team.</error_missing_software>
 
@@ -1369,7 +1369,7 @@ Enjoy !!!
 <thumbnail_parse_explain>During the internet navigation, Artica will put in a thumbnail queue all visisted websites.[br]
 This task will parse this queue in order to build thumbnails for stattistics purpose according the visisted sites</thumbnail_parse_explain>
 <you_using_this_server_for>Your using this server for</you_using_this_server_for>
-<EnableGoogleSafeSearch>Force Google SafeSearch</EnableGoogleSafeSearch>
+<EnableGoogleSafeSearch>Force SafeSearch</EnableGoogleSafeSearch>
 <load_balancing_compatibility>Load-balancing support</load_balancing_compatibility>
 <load_balancing_compatibility_text>Activate the Load-balancing support with Artica Load-balance appliance or HaProxy service</load_balancing_compatibility_text>
 <this_feature_require_210v_minimal>This feature require version 2.10 or above</this_feature_require_210v_minimal>
@@ -3769,7 +3769,7 @@ This should be a server hostname (server.domain.tld).[br]
 After submiting this form, Artica will generate a Certificate Signing Request and a default auto-signed certificate.[br]
 You will be able to change default settings in the future.
 </wizard_certificate_1>
-<CSR>Certificate Signing Request</CSR>
+<CSR>Certificate CSR</CSR>
 <CSR_MULTIPLE_EXPLAIN>If you need multiple certificate to handle multiple subdomains set *.domain.tld</CSR_MULTIPLE_EXPLAIN>
 <SRCA>Self-Signed Root CA Certificate</SRCA>
 <proxy_behavior>Proxy behavior</proxy_behavior>
@@ -4315,7 +4315,7 @@ Display this section and try to categorize yourself websites in order to add the
 Categorize google websites into the porn category has no sense.</categorize_becare>
 <years>years</years>
 <max_execution_time>MAX execution time</max_execution_time>
-<UCARP_LICENSE_EXPLAIN>The failover feature can be enabled only with the corporate License.[br]
+<UCARP_LICENSE_EXPLAIN>The Fail-over feature can be enabled only with the corporate License.[br]
 The corporate license include 2 servers license by default for high availability purpose.</UCARP_LICENSE_EXPLAIN>
 <UCARP_HOWTO_EXPLAIN>
 With this feature you will be able to link a backup server.[br]
@@ -4431,16 +4431,16 @@ is it a service that stores RoundCube service on this computer (server) ?
 <PING_FAILED_REPORT_EXPLAIN>If remote address is failed to ping then send a local report by email (if configured).</PING_FAILED_REPORT_EXPLAIN> 
 <external_page>External page</external_page>
 <PING_FAILED_FAILOVER_EXPLAIN>If ping failed then switch to backup server and continue other tasks...</PING_FAILED_FAILOVER_EXPLAIN>
-<switch_to_failover>Switch to failover</switch_to_failover>
+<switch_to_failover>Switch to Fail-over</switch_to_failover>
 <max_system_load>Max system load</max_system_load>
 <max_system_load_squid_explain>By default, restart the proxy service if the system load exceed this value.[br]To disable this feature set it to 0 </max_system_load_squid_explain>
 <max_system_load_reboot>Reboot the system (load)</max_system_load_reboot>
 <max_system_load_reboot_explain>If the system load exceed the value then reboot the system</max_system_load_reboot_explain>
-<max_system_load_failover>Swith to failover (load)</max_system_load_failover>
-<max_system_load_failover_explain>If the system load exceed the value then switch to failover backup</max_system_load_failover_explain>
+<max_system_load_failover>Swith to Fail-over (load)</max_system_load_failover>
+<max_system_load_failover_explain>If the system load exceed the value then switch to Fail-over backup</max_system_load_failover_explain>
 <minimum_reboot_interval>Minimum intervall between reboot</minimum_reboot_interval>
 <minimum_reboot_interval_explain>If reboot operation is set, Artica will not reboot again the server between this interval in minutes</minimum_reboot_interval>
-<failover_ttl>FailOver TTL</failover_ttl>
+<failover_ttl>Fail-over TTL</failover_ttl>
 <failover_ttl_explain>When the service is switched to backup server it will not return back to master mode between this interval.[br]
 This to prevent too many switches between the master and the slave.
 </failover_ttl_explain>
@@ -5273,8 +5273,8 @@ Set the full path to the compressed file in the path field and click on update b
 <SWAP_MONITOR_EXPLAIN>Check the SWAP usage and perform empty SWAP on defined percentage </SWAP_MONITOR_EXPLAIN>
 <SWAP_MIN>Clean Swap when exceed</SWAP_MIN>
 <SWAP_MIN_EXPLAIN>If the Swap exceed in percentage the defined value, Artica will try to clean the SWAP</SWAP_MIN_EXPLAIN>
-<SWAP_MAX>Swap: Reboot and failover</SWAP_MAX>
-<SWAP_MAX_EXPLAPIN>If the Swap exceed in percentage the defined value, Artica will turn the Proxy OFF in order to switch to failover system and reboot the server</SWAP_MAX_EXPLAIN>
+<SWAP_MAX>Swap: Reboot and Fail-over</SWAP_MAX>
+<SWAP_MAX_EXPLAPIN>If the Swap exceed in percentage the defined value, Artica will turn the Proxy OFF in order to switch to Fail-over system and reboot the server</SWAP_MAX_EXPLAIN>
 <used_databases>Used databases</used_databases>
 <ufdb_used_db_explain>This is the list of web filtering databases/categories currently used in production.[br]
 Grey databases means there not enough content and the database should be empty.
@@ -5326,7 +5326,7 @@ This path is used to store the certificate file for communicate with the CAS ser
 You need to share a directory on your NAS and put it a file formatted in the same way of the template available in this page.[br]
 You have to set a schedule in order to let Artica periodically scan your file and import data if it as been changed.[br]
 </csv_to_ldap_howto>
-<welcome_php_failover_explain>Welcome to the Failover wizard.[br]
+<welcome_php_failover_explain>Welcome to the Fail-over wizard.[br]
 This wizard will help you to setup a High availability service.[br]
 If this server is overloaded or some services are unavailable, 
 this feature allows you to dynamically switch all network connections to a second Artica server.[br]
@@ -5359,7 +5359,7 @@ By clicking on next button, this server will send to the slave your parameters a
 <unconfigured_network>Unconfigured network</unconfigured_network>
 <reboot_networks>Reboot Networks</reboot_networks>
 <UCARP_MASTER>FailOver (Master mode)</UCARP_MASTER>
-<UCARP_SLAVE>FailOver (Slave mode)</UCARP_SLAVE>
+<UCARP_SLAVE>Fail-over (Slave mode)</UCARP_SLAVE>
 <use_remote_shared_folder>Use remote shared folder</use_remote_shared_folder>
 <artica_db_shared_folder_explain>Download the compressed database and put it on your NAS system.[br]
 Define here parameters to access to the shared folder in order to force Artica use this package to update the system.
@@ -6610,7 +6610,1273 @@ DNS domain name of other internal hosts, but all external hosts are unresolvable
 [b]Note: if browsers are able to resolve webservers inside the network, ! Do not enable this option ![/b]
 </dnot_proxy_lisResolvable_explain>
 <main_webfiltering_rules>Webfiltering categories rules</main_webfiltering_rules>
-<webpage_deny_url>Webpage deny URL</webpage_deny_url>
+<webpage_deny_url>Deny Web page</webpage_deny_url>
 <VPS_COMPATIBLE>VPS compatible</VPS_COMPATIBLE>
 <company_website>Company website</company_website>
 <server_aliases_title>Website aliases</server_aliases_title>
+<proxy_cookie_domain>Change Set-Cookie header</proxy_cookie_domain>
+<nginx_proxy_cookie_domain>Replace in the domain attribute of the "Set-Cookie" header fields of the proxied server response.[br]
+Suppose the proxied server returned the "Set-Cookie" header field with the attribute "domain=localhost" and replace it with the connection domain.
+</nginx_proxy_cookie_domain>
+<blocked_members>Blocked members</blocked_members>
+<wizard_rule_ufdb_compile_explain>Rebuild parameters, add your webfiltering rules and refresh the Webfiltering service</wizard_rule_ufdb_compile_explain>
+<url-lookup-result-during-database-reload-explain>After reloading the Web filtering service,the service should be unavailable during 15/30 seconds.[br]
+If turned to green the members will be redirected to the Web page error until the service become ready to accept connections.[br]
+It turned to red, members will be allowed to surf trough Internet without any web filter.
+</url-lookup-result-during-database-reload-explain>
+<url-lookup-result-when-fatal-error-explain>
+If green and if the Web filtering service have issues (configuration error or corrupted databases or overloaded system) 
+but is still available,  all requests will be denied and redirected to the web page error.[br]
+If red, members will be allowed to surf trough Internet without any Web filtering engine.
+</url-lookup-result-when-fatal-error-explain>
+<url_rewrite_bypass>Bypass the Web filter service on fatal errors</url_rewrite_bypass>
+<webservice_status>Web service status</webservice_status>
+<artica_meta_howto>Artica Meta is the global Management console designed centralize Artica servers to a single point.[br]
+In this form, defines the credentials that allows your Artica servers to be connected and managed from this server.[br]
+</artica_meta_howto>
+<activate_the_booster_cache>Enable the Proxy Booster feature</activate_the_booster_cache>
+<hard_disk>Hard disk</hard_disk>
+<squid_whitelist_meta_explain>This is the global whitelist used by the Artica Meta global management console.[br]
+You can define domains and IP addresses separated by a carriage return.
+</squid_whitelist_meta_explain>
+<caches_are_disabled>Caches are disabled</caches_are_disabled>
+<WCCP_LAYER3_EXPLAIN>The Artica Caching Proxy Server have to be in the same Interface to the Clients , 
+it is the only topology which ASA supported the WCCP , 
+for example  you cannot run the Proxy Server in the management Network to use it for web redirection in the production Network.[br]
+The configuration of a Cisco Router or a Layer 3 Switch is very similar to the ASA.[br]
+First of all you have to create two ACLs , with the first ACL you tell the ASA who and where is (are) 
+the Artica Caching Proxy Sever, You can name this ACL "wccp-server" :[br]
+Our ASA as 172.16.1.254 IP address, Artica proxy server as  172.16.1.100 IP address, clients network is 172.16.1.0/224
+[br][code]access-list wccp-server extended permit ip host 172.16.1.100 any[/code][br]
+With the other ACL you declare the clients and the traffic which should be intercepted.[br]
+But off course you have to remove the proxy server from the client ACL:[br]
+[code]access-list wccp-traffic line 1 extended deny ip host 172.16.8.100 any[br]
+access-list wccp-traffic line 2 extended permit tcp ip 172.16.1.0 255.255.255.0 any eq www[/code][br]
+Then you configure the WCCP protocol on the ASA and apply it to the interface, in this case the production interface.[br]
+[code]wccp web-cache redirect-list wccp-traffic group-list wccp-server[br]
+wccp interface production web-cache redirect in[/code][br]
+you can always control and debugging you configuration by using :[code]show wccp[/code][br]
+Next you have to set in the form the IP address of the ASA ( 172.16.1.254 ) in this case.
+</WCCP_LAYER3_EXPLAIN>
+<WCCP_LAYER3>WCCP Layer 3</WCCP_LAYER3>
+<wccp_asa_addr>ASA IP address</wccp_asa_addr>
+<wccp_asa_int>ASA Internal IP address</wccp_asa_addr>
+<wccp_local_gre_ip>Local IP tunnel address</wccp_local_gre_ip>
+<wccp_local_gre_interface>Local Interface for tunnel</wccp_local_gre_interface>
+<wccp2_gre_enabled_explain>If enabled, Artica will create an IP tunnel with your Cisco router in order to enable the WCCP</wccp2_gre_enabled_explain>
+<gre_route_explain>If set, it defines the Route to send the content back to the GRE tunnel.[br]
+Example: 192.168.182.225/32
+</gre_route_explain>
+<recursive_group_is>Recursive group feature is:</recursive_group_is>
+<EnableRecursiveGroups>Enable Recursive groups</EnableRecursiveGroups>
+<EnableRecursiveGroups_text>By default (red) Artica search only members stored in the defined group.[br]If you add a group inside a group, Artica will not search members in the second level.[br]
+If you want to merge groups inside groups, turn to green this feature.
+</EnableRecursiveGroups_text>
+<APP_ARTICA_STATISTICS>Artica statistics task</APP_ARTICA_STATISTICS>
+<standard>Standard</standard>
+<enable_artica_meta>Activate Artica Meta</enable_artica_meta>
+<artica_meta_client_howto>If green, this server will report and accept orders from an Artica Meta client.[br]Be sure you have already installed/configured an Artica act as Artica Meta service</artica_meta_client_howto>
+<use_local_proxy>Use local Proxy</use_local_proxy>
+<local_storage>Local storage</local_storage>
+<log_only>Only logging</log_only>
+<only_for_a_period>Only for a period</only_for_a_period>
+<fw_period_explain>
+Apply some rules with mistakes should make the Appliance unavailable.
+This feature allows you to apply FireWall rules for a short period.
+After the defined period, all firewall rules will be deleted.
+period can be in second (s), minutes (m).
+Define here the period like 30s for 30 seconds or 1m for 1 minute</fw_period_explain>
+<enable_qos_fornic>Enable the Quality Of Service for this Interface</enable_qos_fornic>
+<enable_qos_fornic_explain>If turned to green, then you will be able to create QOS limitation rules for this Network Interface.
+</enable_qos_fornic_explain>
+<nic_capacity>Network card capacity</nic_capacity>
+<guaranteed_rate>Guaranteed Rate</guaranteed_rate>
+<MARK>Mark</MARK>
+<MARK>Mark number</MARK>
+<mark_packets_for_bandwidth>Mark TCP packets for bandwidth</mark_packets_for_bandwidth>
+<enable_pinger_process>Enable Pinger process</enable_pinger_process>
+<enable_pinger_process_text>Proxy uses this process to securely do ICMP to measure distance to the possible
+source servers of a request.[br] Optimizing which peers get used for fastest
+responses.[br]It is not mandatory to use it when proxy did not have any parent or is not used in load balancing mode.
+</enable_pinger_process_text>
+
+<HOTSPOT_SERVICE>HotSpot Service</HOTSPOT_SERVICE>
+<ERROR_SERVICE_NOT_INSTALLED>Error, the service is not installed</ERROR_SERVICE_NOT_INSTALLED>
+<supported_softwares>Supported Softwares</supported_softwares>
+<please_wait_redirecting_to>Please wait, redirecting to</please_wait_redirecting_to>
+<artica_HTTP_traffic>Artica HTTP traffic</artica_HTTP_traffic>
+<incoming2>Incoming</incoming2>
+<defaults>Defaults</defaults>
+<service2>Service</service2>
+<your_account_is_disabled>Your account is disabled</your_account_is_disabled>
+<extend_account>Extend account</extend_account>
+<hotspot_ad_groups_explain>If you want to restrict HotSpot members only for specific Active Directory groups, define here groups separated by a carriage return</hotspot_ad_groups_explain>
+<enable_append_domain>Appends local domain name</enable_append_domain>
+<squid_enable_append_domain>if turned to green, proxy appends local domain name to hostnames without any domain.[br]
+If your query http://host1, proxy will automaticaly appends local domain and change the uri to http://host1.local.domain[br]
+If you use the proxy to access to internal websites available without any domain name, turn to red this feature.
+</squid_enable_append_domain>
+<send_orders>Send Orders</send_orders>
+<change_hostname>Change hostname</change_hostname>
+<reboot_ask_uuid>This order will reboot %s.
+The reboot operation will force a check disk too.
+Do you want to carry out this operation ?</reboot_ask_uuid>
+<APP_CRON>Cron Daemon</APP_CRON>
+<APP_SQUID_CACHE_TAIL>Cache Log Watchdog</APP_SQUID_CACHE_TAIL>
+<APP_SPWANFCGI>fcgi Daemon</APP_SPWANFCGI>
+<RECONFIGURING_WEBFILTERING>Reconfigure Web Filtering</RECONFIGURING_WEBFILTERING>
+<compile_ufdb_restart>This operation will reconfigure and restart the Web filtering engine.
+Do you want to perform this operation ?
+</compile_ufdb_restart>
+<checking_configuration>Checking configuration</checking_configuration>
+<end_session>End session</end_session>
+<UFDBGUARD_TITLE_1>This Web Page is Blocked</UFDBGUARD_TITLE_1>
+<UFDBGUARD_PARA1>Sorry, access to requested page had to be blocked by our policy.[br]
+Requested page contains inappropriate material for a correct production environment.[br]
+Such pages are considered unacceptable in our network.
+</UFDBGUARD_PARA1>
+<UFDBGUARD_TITLE_2>How to fix this issue ?</UFDBGUARD_TITLE_2>
+<UFDBGUARD_PARA2>Please contact your network administrator to clarify the reasons for blocking.[br]
+The following technical information may prove to be helpful.</UFDBGUARD_PARA2>
+<requested_uri>Requested URI</requested_uri>
+<application>Application</application>
+<parapgraph>Paragraph</parapgraph>
+<font_family>Font family</font_family>
+<font_color>Font Color</font_color>
+<remove_artica_version>Remove Artica version</remove_artica_version>
+<titletext>Title</titletext>
+<add_webmaster>Add Webmaster</add_webmaster>
+<syslog_engine2>Syslog Engine</syslog_engine2>
+<enable_hotspot_smtp>Enable SMTP engine for the HotSpot system</enable_hotspot_smtp>
+<enable_hotspot_smtp_explain>If turned to green, the Hotspot will allow members to recover their lots passwords and allows you to enable the self register feature.</enable_hotspot_smtp_explain>
+<enable_hotspot_autologin>Activate the register form</enable_hotspot_autologin>
+<enable_hotspot_autologin_explain>If turned to green, the hostpost allows users to register themself trough the HotSpot system.[br]
+The HotSpot system will send a confirmation message to user's email address.[br]
+freshed register users will be allowed for a limited time to retreive sent messages in order to confirm their account.
+</enable_hotspot_autologin_explain>
+<smtp_register_message>Message sent for register</smtp_register_message>
+<smtp_recover_message>Message sent for recover password</smtp_recover_message>
+<this_account_already_exists>This account already exists</this_account_already_exists>
+<error_domain_email_invalid>Error email address domain is invalid</error_domain_email_invalid>
+<max_time_register>Max time to register</max_time_register>
+<failed_to_create_session>Failed to create session</failed_to_create_session>
+<error_while_sending_message>Error while sending message</error_while_sending_message>
+<this_account_didnot_exists>This account doesn't exists</this_account_didnot_exists>
+<smtp_recover_message_confirmation>SMTP recover message confirmation</smtp_recover_message_confirmation>
+<continue_to_internet>Continue to internet</continue_to_internet>
+<updated_password_successfully>Updated Password Successfully</updated_password_successfully>
+<waiting_confirmation>Waiting confirmation</waiting_confirmation>
+<confirmed>Confirmed</confirmed>
+<smtp_register_message_success>Message after validated the registration</smtp_register_message_success>
+<change_password>Change password</change_password>
+<recover_password_message>Recover password message</recover_password_message>
+<smtp_register_subject>SMTP subject message for register</smtp_register_subject>
+<smtp_confirm>SMTP confirmation message</smtp_confirm>
+<register_form_explain>Register form explain</register_form_explain> 
+<Terms_Conditions_explain>Terms & conditions explain</Terms_Conditions_explain>
+<Terms_Conditions>Terms & Conditions</Terms_Conditions>
+<hostpot2_pattern_explain>Define here Firewall rules that will be used in 3 conditions, globally, when user is kown (logged), When user is unknown (not logged).[br]
+in the pattern field, you can define a full network like 192.168.0.0/16 or a single IP address.[br]
+use 0.0.0.0/0 to define everything.[br]
+If you not define a port, or you define a port 0 this means "all ports".[br]
+You specify a host or a web server, Artica will resolve it before creating the rule.
+</hostpot2_pattern_explain>
+<unknown-users>Unkown users</unknown-users>
+<known-users>Known users</known-users>
+<trusted_MAC>Trusted MACs</trusted_MAC>
+<hostpot_MACWHITE_explain>List of MAC addresses who are allowed to pass the HotSpot whithout any redirection to the splash screen.</hostpot_MACWHITE_explain>
+<new_mac>New MAC Address</new_mac>
+<add_macs_popup_explain>Specify here MAC addresses seperated by a comma</add_ports_explain>
+<WARN_RESTART_HOTSPOT>This operation will restart the HotSpot service.[br]
+All current sessions will be removed and HotSpot users will be redirected to the authentication web page.[br]
+Do you want to carry out this operation ?</WARN_RESTART_HOTSPOT>
+<verify_web_engine>Checking Web server engine...</verify_web_engine>
+<garbage>Garbage</garbage>
+<transparent_ssl>Transparent SSL</transparent_ssl>
+<trusted_ssl_sites>Trusted SSL sites</trusted_ssl_sites>
+<trusted_ssl_sites_explain>According the MAN-IN-THE-MIDDLE issue, this list exclude SSL sites to pass trough the SSL proxy.[br]
+In order to remove the faked proxy certificate</trusted_ssl_sites_explain>
+<enable_ssl_portal>Enable SSL explain portal</enable_ssl_portal>
+<enable_ssl_portal_explain>If turned to green, after establishing a session to the HotSpot system, a web page will be displayed in order to explain the MAN-IN-THE-MIDDLE behavior and explain to the user How to import the Proxy SSL certificate</enable_ssl_portal_explain>
+<ssl_certificate_explain>SSL certificate explain</ssl_certificate_explain>
+<download_certificate>Download certificate</download_certificate>
+<buttons_size>Buttons size</buttons_size>
+<fontsize>Font size</fontsize>
+<windows_content>Windows content</windows_content>
+<label>Label</label>
+<logon_message>Login message</logon_message>
+<links_color>Links color</links_color>
+<top_position>Top position</top_position>
+<height>Height</height>
+<border_color>Border color</border_color>
+<footer_message>Footer message</footer_message>
+<key_file>Key file</key_file>
+<removing_old_licenses>Removing old licenses</removing_old_licenses>
+<analyze_license>Analyze the license</analyze_license>
+<launch_updates>Launch updates</launch_updates>
+<hooking_local_service>Hooking local service</hooking_local_service>
+<verify_icap_center>Verify ICAP center</verify_icap_center>
+<configuring>Configuring</configuring>
+<unhooking_local_service>Unhooking local service</unhooking_local_service>
+<UFDBGUARD_UNLOCK_EXPLAIN>It turned to green, members are allowed to unlock for a period blocked websites.[br]
+In order to unlock websites, they have to login using their account.[br]
+Account should be the local LDAP database or MySQL members or the Active Directory if Artica is linked to an Active Directory system.[br]
+When a website is unlocked, an event is created.
+</UFDBGUARD_UNLOCK_EXPLAIN>
+<UFDBGAURD_ALLOW_UNBLOCK>Allow unlock websites by users</UFDBGUARD_UNLOCK_EXPLAIN>
+<unlock_during>Unlock during</unlock_during>
+<text_in_block_page>Explain in the block page</text_in_block_page>
+<text_in_form_page>Explain text in the form page</text_in_form_page>
+<DisableTCPWindowScaling>Disable TCP Window Scaling</DisableTCPWindowScaling>
+<DisableTCPWindowScaling_explain>Window scaling is a standard TCP feature which makes TCP perform well over high speed wan links.[br]
+ Without window scaling the round trip latency seriously limits the bandwidth that can be used by a single TCP connection. 
+ [br]But be warned that this will quite noticeably degrade TCP performance.
+</DisableTCPWindowScaling_explain> 
+<EnableL7Filter>Enable application layer detection</EnableL7Filter>
+<EnableL7Filter_explain>This feature is a classifier that identifies packets based on application layer data.[br]
+It can classify packets as Kazaa, HTTP, Jabber, Citrix, Bittorrent, FTP, Gnucleus, eDonkey2000, etc., 
+regardless of port.[br]It complements existing classifiers that match on IP address, port numbers and so on.[br]
+It is usefull if you want to limit or monitor different network protocols in your network.
+</EnableL7Filter_explain>
+<appl7>Application layer detection</appl7>
+<applications>Applications</applications>
+<application_detection>Applications detection</application_detection>
+<good>Good</good>
+<probable>Probable</probable>
+<marginal>Marginal</marginal>
+<poor>Poor</poor>
+<detection_rate>Detection rate</detection_rate>
+<wccp2_enabled_ssl>Enable WCCP for HTTPS/SSL mode</wccp2_enabled_ssl>
+<wccp2_gre_enabled_explain_ssl>If turned to green the the Proxy will accept tunnel for hooking SSL mode sent by the Cisco ASA.</wccp2_gre_enabled_explain_ssl>
+<MARK>Mark</MARK>
+<MARK_ITEM>Mark paquets</MARK_ITEM>
+<APP_l7FILTER>Layer7 Daemon</APP_l7FILTER>
+<firewall_rules>Firewall Rules</firewall_rules>
+<only>Only</only>
+<sslproxy_version>SSL version level</sslproxy_version>
+<ip_queue_maxlen>TCP/IP Queue Max size</ip_queue_maxlen>
+<CYRUS_CLUSTER_TEXT>Build a Cyrus-imapd cluster backend to not loosing your mailboxes datas</CYRUS_CLUSTER_TEXT>
+<authentication_failed_cyrus>Authentication failed on the IMAP service</authentication_failed_cyrus>
+<user_no_mailbox_authfailed>Artica is unable to determine if the mailbox exists.[br]Try to restart the IMAP service in order to synchronize administrators privileges</user_no_mailbox_authfailed>
+<create_a_mailbox>Create a mailbox</create_a_mailbox>
+<cyrquota_table_explain>This section display only mailbox limited to a defined quota.[br]
+Mailboxes without quota are not seen in this interface
+</cyrquota_table_explain>
+<delete_ask_uuid>This operation will delete the computer from the management console.[br]
+If the server is still alive, it will be added automatically.[br]
+</delete_ask_uuid>
+<OSNAME>System info</OSNAME>
+<checking_proxy_service>Checking Proxy service</checking_proxy_service>
+<remove_cached_datas>Remove cached datas</remove_cached_datas>
+<reconfigure_hostpot_service>Reconfigure HotSpot service</reconfigure_hostpot_service>
+<building_parameters>Building parameters</building_parameters>
+<top_ipaddr>TOP clients TCP/IP addresses</top_ipaddr>
+<realtime_flow>Real-time flow</realtime_flow>
+<change_directories_paths_text>Change directories locations</change_directories_paths_text>
+<logs_directory>Logs directory</logs_directory>
+<change_path_services_warn>This operation will move critical directories and will restart some services.
+Do you want to carry out this operation ?
+</change_path_services_warn>
+<logs_backup>Logs Backup</logs_backup>
+<transparent_http>HTTP transparent</transparent_http>
+<building_firewall_rules>Building FireWall rules</building_firewall_rules>
+<APP_UFDBCAT>Categories service</APP_UFDBCAT>
+<artica_sync>Artica sync.</artica_sync>
+<direct_to_mysql>Direct to MySQL</direct_to_mysql>
+<logfile_direct_to_mysql_explain>If turned to green, the Artica Logger Daemon will insert all Proxy requests to the MySQL service ( in memory mode).[br]
+This behavior allows you to get events in realtime.[br]
+According the number of requests, this behavior should stress the MySQL service.[br]
+If Turned to red then the Artica Logger Daemon will save requests into the disk instead insert them into MySQL.[br]
+A background task will be in charge to parse all logs and insert them into MySQL tables.[br]
+In this case a stressed Proxy will have not impact to the MySQL service but events should be displayed few times after.
+</logfile_direct_to_mysql_explain>
+<detect_categories>Detect categories</detect_categories>
+<logfile_detect_categories>If turned to green the process will cheks to the category service to detect the correct category.[br]
+This allows you to get categories in the realtime viewer but should stress the system according Category service will parse the full categories database</logfile_detect_categories>
+<tls_security_level>TLS security level</tls_security_level>
+<tls_table>TLS table</tls_table>
+<protocols>Protocols</protocols>
+<rewrite_source_address>Rewrite source address</rewrite_source_address>
+<artica_squid_performance_text>According the performance of your server, you are able to use Artica features with your proxy service.[br]
+Select the performance level you want to use on your server.
+</artica_squid_performance_text>
+<SquidPerformance_0>[b]Full features[/b][br][br]This option require at least more than [b]5,9GB of memory[/b].[br]
+It will use : [br]
+[br][b]Categories service[/b]: This service will allows you to define ACLs in order to limit users in realtime with
+bandwidth,quotas,categories.[br] categories database store more than 30 Million of classfied websites like porn, movies, audio-video, social...[br]This service took about 2.5GB of memory[br]
+[br][b]Statistics service[/b]: This service allows you to get charts/graphs of the visited web sites and of your users.[br]This service took about 1.5GB of memory.
+[br][br][b]Realtime monitor[/b]: This service allows you to display Proxy bandwith and flow use.[br]This service took about 128MB of memory.
+</SquidPerformance_0>
+<SquidPerformance_1>
+[b]Medium features[/b][br][br]
+This option require at least [b]3GB of memory[/b][br]
+It will disable : [br]
+[br][b]Categories service[/b]: You will not be able to set ACLs according categories.[br]Statistics cannot display charts and graphs according categories.[br]
+[br]It will use : [br]
+[br][b]Statistics service[/b]: This service allows you to get charts/graphs of the visited web sites and of your users.[br]
+[br][b]Realtime monitor[/b]: This service allows you to display Proxy bandwith and flow use.[br]
+</SquidPerformance_1>
+<SquidPerformance_2>
+[b]Less features, best performances[/b][br][br]
+This option require at least [b]1.5GB of memory[/b][br]
+It will disable : [br]
+[br][b]Categories service[/b]: You will not be able to set ACLs according categories.[br]Statistics cannot display charts and graphs according categories.[br]
+[br][b]Statistics service[/b]: Only Analytic Generator is available to display statistics[br]
+[br][b]Realtime monitor[/b]: Only pure proxy events can be displayed without extra features.[br]
+</SquidPerformance_2>
+<server_did_not_have_enough_memory_ufdbcat>[b]Warning not enough memory[/b][br]
+Server does not meet memory requirements (more than 5.9GB).[br]
+Your server is enabled with all proxy features, we estimate these values:[br]
+For the [b]Categories service[/b]: 2.5GB[br]
+For the [b]Statistics Database service [/b]: 2GB[br]
+For the [b]Proxy service[/b]: about 1GB[br]
+For the [b]system[b] itself and other tasks:512MB[br]
+Click on this warning in order to reduce features and safe memory on your proxy service.
+</server_did_not_have_enough_memory_ufdbcat>
+<SquidAsSeenPerformanceFeature>[b]New feature ![/b][br]
+A new feature "Performance" allows you to tune Artica features according your server performance.[br]
+Click on this message to display the feature
+</SquidAsSeenPerformanceFeature>
+<no_categories>No categories</no_categories>
+<no_statistics>No statistics</no_statistics>
+<global_performance>Global performance</global_performance>
+<performance_level>Performance level</performance_level>
+<artica_statistics_disabled>Artica statistics Are disabled</artica_statistics_disabled>
+<artica_ufdbcat_disabled>Categories Daemon is disabled</artica_ufdbcat_disabled>
+<artica_statistics_disabled_see_performance>Artica statistics are globally disabled by the performance feature ( see top menu/performance) item</artica_statistics_disabled_see_performance>
+<artica_logger>Artica Logger</artica_logger>
+<enable_http_service_squidguard>It turn to green then the proxy will load a dedicated web service 
+in order to display the deny web page.[br]
+It allows you to enable extra features:[br]
+This web page can be tuned on the skin section.[br]
+You can allow users to temporary unlock a deny websites in the unlock
+</enable_http_service_squidguard>
+<remove_proxy_hostname>Remove proxy hostname</remove_proxy_hostname>
+<disabled>Disabled</disabled>
+<enable_sarg_service>Activate Squid Analysis Report Generator</enable_sarg_service>
+<enable_sarg_service_text>If turned to green, you will have to define the schedule in order to process Proxy events.[br]
+You can enable a dedicated Web service in order to allows you to display statistics or you can use the FreeWeb feature in order to build a dedicated website to display statistics.
+</enable_sarg_service_text>
+<enable_sarg_webservice>Enable dedicated Web service</enable_sarg_webservice>
+<enable_sarg_webservice_text>If turned to green, a dedicated Web service will be installed in order to display reports.</enable_sarg_webservice_text>
+<APP_SARG_HTTP>Web Proxy Report</APP_SARG_HTTP>
+<sarg_aliases>Grouping websites</sarg_aliases> 
+<webfiltering_in_debug_mode>The Web filtering service is on debug</webfiltering_in_debug_mode>
+<webfiltering_in_debug_mode_text>The Web filtering is turned to debug mode.[br]
+You should use this option for a limited time because it use system performance.[br]
+Click on the link in order to disable this mode</webfiltering_in_debug_mode_text>
+<sarg_daily_explain>This task execute daily SARG statistics</sarg_daily_explain>
+<sarg_daily>Daily Statistics analytics</sarg_daily>
+<clean_all_caches>Clean all caches</clean_all_caches>
+<clean_proxy_cache_explain>This operation will empty all caches used by the proxy service.
+Do you want to carry out this operation ?
+</clean_proxy_cache_explain>
+<reload_proxy_service_ask>This operation will reload the proxy service.
+Do you want to carry out this operation ?
+</reload_proxy_service_ask>
+<web_service>Web service</web_service>
+<proxy_service>Proxy service</web_service>
+<log2>Event</log2>
+<hostpot_net>Hotspot network</hostpot_net>
+<DisableForceFCK>Disable check disk at each reboot</DisableForceFCK>
+<DisableForceFCK_explain>Artica schedule a check filesystem at each reboot.[br]If you want to disable it, check this option</DisableForceFCK_explain>
+<check_status>Check status</check_status>
+<SquidPerformance_3>This option will remove some external services that should consume performances such as bandwidth monitoring, web server</SquidPerformance_3>
+<software_is_disabled_performance>Performance features is defined to minimal features, this section is disabled</software_is_disabled_performance>
+
+<safesearch_explain>
+Google, Yahoo and other search engines offer a SafeSearch™ feature which blocks most adult images.[br]
+This option enforce the safesearch policies of the search engines.[br]
+The safesearch feature enforces safe searches for the following search engines:[br]
+A9, AOL search,Alltheweb, Ask, Bing, Blinkx, Buscamundo, Dogpile, Excite, Foxnews, Google, Infospace, Live, Lycos,
+Metacrawler, Metaspy, MSN, Terra, Webcrawler, webpile, Yahoo[br]
+and other less popular search engine.[br]
+[b]Warning, when using HTTPs whith Google and SafeSearch option ![/b][br]
+Click on the link below.[br]
+</safesearch_explain>
+
+<orders>Orders</orders>
+<add_tag>Set a tag</add_tag>
+<tag>Tag</tag>
+<use_simple_template_mode>Use simple template mode</use_simple_template_mode>
+<use_simple_template_mode_squid_explain>If turned to green, then Artica will build itself templates according simple settings.[br]
+In other case, you have to create your own templates yourself.
+</use_simple_template_mode_squid_explain>
+<simple_template_gene_explain>This section allows to define default settings for all error page generated for the proxy.[br]
+You are able to redefine these settings for each template.
+</simple_template_gene_explain>
+<logo>Logo</logo>
+<saving>Saving</saving>
+<self_register>Self register</self_register>
+<minimal_features>Minimal features</minimal_features>
+<change_uuid>Change UUID</change_uuid>
+<disable_udpates>Disable updates</disable_udpates>
+<disable_udpates_explain>If turned to green, then updates tasks will not be executed and will not retreive updates in any cases</disable_udpates_explain>
+<compile2>Compile</compile2>
+<access_to_internet>Access trought Internet</access_to_internet>
+<redirected>Redirected</redirected>
+<error_page>Error page</error_page>
+<do_no_verify_range>Do not verify range</do_no_verify_range>
+<warning_deny_for_all_users>Notice all listed web sites will be denied for all users</warning_deny_for_all_users>
+<reload_byschedule>Reload only by schedule</reload_byschedule>
+<ufdb_reload_byschedule_explain>After updating Databases or compiling webfiltering database, 
+the Web filtering service need to be reloaded.[br]
+After been reloaded, the Web filtering is unavailable during 15 seconds.[br]
+To prevent multiple reloads you can turn to green this feature. 
+In this case the service will be reloaded only bu schedule.[br]
+If turn to red then your allow Artica to reload the service when needed.
+</ufdb_reload_byschedule_explain>
+<reload_webfiltering_service>Reload Webfiltering service</reload_webfiltering_service>
+<no_credentials>No credentials</no_credentials>
+<no_credentials_explain>If green then the form will no ask username and password to pass the feature.[br]
+If turned to green the the user must be authenticated trough the system.
+</no_credentials_explain>
+<use_local_directory>Use a local directory</use_local_directory>
+<backup_all_databases>Backup all databases</backup_all_databases>
+<enable_NAT_proxy>Redirect HTTP/HTTPS connection</enable_NAT_proxy>
+<enable_NAT_proxy_text>If turned to green then all connections will be redirected to a transparent HTTP proxy service.[br]
+This feature is only available if this server act as gateway.</enable_NAT_proxy_text>
+<destination_server>Destination server</destination_server>
+<merge_access_logs>Merge access logs files</merge_access_logs>
+<merge_access_logs_explain>This feature merge cutted access logs files to a single file.[br]
+It used to store one big file instead several files and can be used for statistics and performance analysis tasks.
+</merge_access_logs_explain>
+<performance_reports>Performances reports</performance_reports>
+<checking_caches>Checking caches</checking_caches>
+<refresh_percent>Refresh rate</refresh_percent>
+<simple_cache_configuration>Simple cache configuration</simple_cache_configuration>
+<simple_cache_configuration_explain>if set to green, Simple cache configuration, let you to define a generic and simple rule about the caching behavior.[br]
+In some cases, it override the Cache level above.[br]This setting is used in most cases.[br]But it did not allows you to create specifics extra cache rules for some domains.[br]
+It disable the Dynamic enforce cache rules too.
+</simple_cache_configuration_explain>
+<proxy_performances_task_explain>This task is able to generate a report according Proxy performances.[br]It parse the merged access log in order to provide information about cached items and performances of your cache proxy</proxy_performances_task_explain>
+<create_a_new_organization>Create a new organization</create_a_new_organization>
+<sync_services>Synchronize services</sync_services>
+<listing_mailboxes>Listing Mailboxes</listing_mailboxes>
+<no_cached_sites_warn>No website can be cached</no_cached_sites_warn>
+<default_behavior>Default behavior</default_behavior>
+<min_size>Minimal size</min_size>
+<cache_dir_max_size_text>Objects [b]more[/b] than this size (KB) will be not stored in this cache system.[br]Value of 0 will use the default value</cache_dir_max_size_text>
+<cache_dir_min_size_text>Objects [b]less[/b] than this size (KB) will be not stored in this this cache system</cache_dir_min_size_text>
+<need_to_reload_proxy>To apply paramaters on your proxy service, Artica need to reload it.
+Do you want to apply parameters and reload the proxy service ?
+</need_to_reload_proxy>
+<log_location>Logs location</log_location>
+<log_location_text>Modify logs storage directory path.</log_location_text>
+<PLEASE_WAIT_APPLY_PARAMETERS>Please wait, apply parameters</PLEASE_WAIT_APPLY_PARAMETERS>
+<restart_service_each>Restart service each</restart_service_each>
+<directories_monitor>Directories monitor</directories_monitor>
+<PLEASE_WAIT_SCANNING_HARD_DRIVES>Please wait, scanning hard drives</PLEASE_WAIT_SCANNING_HARD_DRIVES>
+<scaning_directories>Scanning directories</scaning_directories>
+<scaning_directory>Scanning directory</scaning_directory>
+<scan_period>Scan period</scan_period>
+<APP_SYNCTHING>Syncthing</APP_SYNCTHING>
+<enable_syncthing>Enable Syncthing service</enable_syncthing>
+<enable_syncthing_text>Syncthing replaces proprietary sync and cloud services with something open, 
+trustworthy and decentralized.[br]
+Your data is your data alone and you deserve to choose where it is stored, if it is shared with 
+some third party and how it's transmitted over the Internet.[br]
+[br][b]Private:[/b] None of your data is ever stored anywhere else than on your computers.[br]
+There is no central server that might be compromised, legally or illegally.[br]
+[br][b]Encrypted:[/b] All communication is secured using TLS.[br]
+The encryption used includes perfect forward secrecy to prevent any eavesdropper 
+from ever gaining access to your data.[br]
+[br][b]Authenticated:[/b] Every node is identified by a strong cryptographic certificate.[br]
+Only nodes you have explicitly allowed can connect to your cluster.
+</enable_syncthing_text>
+<load_alerts>Load alerts</load_alerts>
+<static_activedirectory_group>Static Active Directory Group</static_activedirectory_group>
+<static_activedirectory_group_task_explain>This task is able to parse your Active directory server in order to search members according Static Active Directory Group proxy objects.[br]
+If there are changes, the proxy service will be refreshed in order to reload users lists.</static_activedirectory_group_task_explain>
+<static_activedirectory_group_task>Static Active Directory group refresh</static_activedirectory_group_task>
+<proxy_performances>Proxy performances</proxy_performances>
+<identd_server>Identification server</identd_server>
+<error_squid_ident_not_compiled>Error, you proxy service doesn't supports Identification service.[br]Please Update your Proxy service</error_squid_ident_not_compiled>
+<activate_identd_lookup>Activate the Identification Daemon lookup</activate_identd_lookup>
+<squid_identd_daemon_explain>
+The Ident Protocol (Identification Protocol, IDENT), specified in RFC 1413, is an Internet protocol that helps identify the user of a particular TCP connection.[br]
+The Identification daemon allows you to identify your users based on log in name.[br]
+This simplifies management so you don't have to go around matching IP addresses to computers.[br]
+Of course it also allows you to add users to groups based on their username.[br]
+Using this feature for user authentication has several benefits over the SSL or proxy login methods.[br]
+Primarily that the user does not need to enter username and password credentials to access trough Internet.[br]
+Instead, an Ident service running on the client system will automatically provide the Windows username to the proxy.[br]
+[b]You have to install a tool ( provided bellow ) on each computer.[br]
+[br]You have to allow [b]TCP port 113[/b] through all internal software firewalls.[br]
+Note that unlike earlier versions of Windows, Windows Vista/Windows 7/Windows 8 no longer 
+reject packets sent to port 113 if no running Ident server is found.[br]
+This will result in no website being displayed in the browser.[br]
+Consequently all machines must have an Ident server installed if you use Ident on your network.
+</squid_identd_daemon_explain>
+<allow_only_identified_members>Allow only identified members</allow_only_identified_members>
+<allow_only_identified_members_explain>If green then only members that are compliance with the Identification Daemon will be allowed to surf trough Internet.
+</allow_only_identified_members_explain> 
+<microsoft_windows_softwares>Microsoft Windows Softwares</microsoft_windows_softwares>
+<update_proxy_software>Update Proxy software</update_proxy_software>
+<nginx_welcome_step1>Welcome to the reverse proxy server creation wizard.[br]
+This wizard will help you to protect your Web site trough this machine.[br]
+First define the web site name.[br]This server will be in charge to receive connections from your users.[br]It will replace your orginal Web server.[br]
+Set here your server like http://www.mywebsite.com if you use HTTP or http[b]s[/b]://www.mywebsite.com if you want reverse proxy service to generate the HTTPS.
+</nginx_welcome_step1>
+<nginx_welcome_step2>Define here your real destination Web server.[br]you can set the destination in several ways:[br]
+[b]http://10.2.3.4:80[/b] Connections from %s will be redirected to the HTTP server 10.2.3.4 port 80[br]
+[b]https://10.2.3.4[/b] Connections from %s will be redirected to the HTTP[b]S[/b] server 10.2.3.4 port 443[br]
+[b]https://10.2.3.4:9000[/b] Connections from %s will be redirected to the HTTP[b]S[/b] server 10.2.3.4 port 9000[br]
+[b]http://10.2.3.4:443/blog1[/b] Connections from %s will be redirected to the HTTP server 10.2.3.4 port 80 and path blog1 direcly.[br]
+[b]http://www.domain.com[/b]  Connections from %s will be redirected to the HTTP 10.2.3.4 and will force host www.domain.com to access to virtual host[br]
+</nginx_welcome_step2>
+<nginx_welcome_step3>[b]Your settings[/b][br]
+Wen users will have Requests for [b]%s[/b] will be redirected to [b]%d[/b].[br]
+If you are aggree to these setttings, press on the build button to create the configuration.[br]
+After complete, you can return to the configuration in order to tune your reverse proxy settings and create more options.
+</nginx_welcome_step3>
+<build_settings>Build settings</build_settings>
+<virtualhost>Virtual host</virtualhost>
+<reverse_proxy_not_enabled>The reverse Proxy service is not enabled.[br]Click on the button in order to enable it</reverse_proxy_not_enabled>
+<enable_reverse_proxy_service>Activate the Reverse Proxy service</enable_reverse_proxy_service>
+<nginx_default_server_text>If green, this server will be used in priority mode.[br]
+By default, the reverse proxy use the order setting to choose the best server.[br]
+You can set several default servers.[br]
+In this case the order will adjust which server will be used</nginx_default_server_text>
+<remote_ssl_port>Remote SSL Port</remote_ssl_port>
+<enable_website>Enable this website</enable_website>
+<disable_ntopng_ask>This task will disable the NtopNG service and remove all databases.[br]
+Do you want to carry out this operation ?</disable_ntopng_ask>
+<authenticate_ip_ttl>
+this directive controls how long proxy remembers the IP addresses associated with each user.[br]
+Use a small value (e.g., 60 seconds) if your users might change addresses quickly, as is the case with dialup.[br]
+You might be safe using a larger value (e.g., 7200 seconds (2 hours) ) in a corporate LAN environment 
+with relatively static address assignments.
+</authenticate_ip_ttl>
+<hostname_exceed_15>Error the server hostname - [b]%s[/b] -, exceed 15 characters.[br]
+Please change the hostname of the Artica server in order to allow it to be connected trough your Active Directory</hostname_exceed_15> 
+<antivirus_eat_memory>Antivirus service eat memory</antivirus_eat_memory>
+<antivirus_eat_memory_text>Your antivirus service eat your server memory.[br]
+This server memory reach 80% use, increase your server memory or click here to disable the Antivirus service.
+</antivirus_eat_memory_text>
+<PLEASE_WAIT_UPDATING_MODULES>Please wait, updating modules</PLEASE_WAIT_UPDATING_MODULES>
+<version-up-to-date>The version is up-to-date</version-up-to-date>
+<warnin_nginx_unlink_site>This operation will unlink %s from this destination server.[br]
+The %s will be disabled because it will have no destination server.
+Do you want to carry out this operation ?
+</warnin_nginx_unlink_site>
+<enable_reverse_proxy_service_explain>If turn to green, you will be able to protect web sites, 
+mail services trough this server.[br]
+This server will act as reverse proxy for these protocols.[br]
+If you plan to not use reverse-proxy features, turn it to red.</enable_reverse_proxy_service_explain>
+<enable_reverse_imap_proxy_service>Enable reverse proxy for mail protocols</enable_reverse_imap_proxy_service>
+<enable_reverse_imap_proxy_service_explain>If turn to green and if you have enabled the reverse proxy service then you will be able to serve IMAP, POP3, and SMTP protocols trough the reverse proxy</enable_reverse_imap_proxy_service_explain>
+<choose_destination>Choose a destination</choose_destination>
+<no_destination>No destination set</no_destination>
+<nginx_destination_none_explain>This website did not have a destination.[br]In this case it will redirect connections to the local web server ( if enabled )</nginx_destination_none_explain>
+<checking_reverse_proxy_service>Checking reverse proxy settings</checking_reverse_proxy_service>
+<reloading_reverse_proxy_service>Reloading reverse proxy service</reloading_reverse_proxy_service>
+<verify_global_configuration>Cheking global parameters</verify_global_configuration>
+<building_website_configuration>Building Website configuration</building_website_configuration>
+<web_servers>Web servers</web_servers>
+<source_name>Source name</source_name>
+<stopping_reverse_proxy>Stopping reverse Proxy service</stopping_reverse_proxy>
+<starting_reverse_proxy>Starting Reverse Proxy service</starting_reverse_proxy>
+<replace_server_directive>Replace server directive</replace_server_directive>
+<enable_openvpn_server_mode_text>If green then computers will be allowed to establish a VPN session on this server with a dedicated OpenVPN client.
+</enable_openvpn_server_mode_text>
+<DHCP_SERVICE_OPENVPN>DHCP service inside a VPN session</DHCP_SERVICE_OPENVPN>
+<openvpn_whatis>This section allows you to build a VPN network with your server.[br]
+In this case you will be able to link Artica servers with a VPN network and/or allow clients to be connected to your LAN using a dedicated VPN client.[br]
+Your Firewall needs to only to redirect defined Open VPN service port (UDP or TCP) from Internet to this server.
+</openvpn_whatis>  
+<enable_rule_text>If turn to green then this rule will be implemented and activated.[br]
+To disable this rule, turn to red.
+</enable_rule_text>
+<ipsrc>Source IP address</ipsrc>
+<backup_hourly_tables_text>When Artica purge the MySQL Statistics database it delete daily tables.[br]
+If green then daily tables will be backuped before been deleted</backup_hourly_tables_text>
+<open_www_to_backup_dir>Allow to browse the backup directory</open_www_to_backup_dir>
+<open_www_to_backup_dir_explain>If green then the Artica Web console will provide access
+to the backup directory in order download backuped containers[br]
+[b]Note: Only available if Artica Web console run under Apache Web server[/b]</open_www_to_backup_dir_explain>
+<reconfigure>Reconfigure</reconfigure>
+<reloading_reverse_proxy>Reloading reverse proxy service</reloading_reverse_proxy>
+<refresh_caches_status>Refresh Cache status</refresh_caches_status>
+<use_cache>Use cache</use_cache>
+<configuration>Configuration</configuration>
+<reverse_proxy_ssl>Reverse Proxy generate SSL</reverse_proxy_ssl>
+<UsePrivKeyCrt_text>If green then only private key and certificate you upload on this section will be used.[br]
+This option is used if you have built your own certificate and your private key.[br]
+Use tabs in order to save your certificate content and private key content.
+</UsePrivKeyCrt_text>
+<choose_UsePrivKeyCrt>Cannot generate self-signed certificate, you have dediced to use your own private key</choose_UsePrivKeyCrt>
+<PLEASE_WAIT_GENERATING_CERTIFICATE>Please wait, generating certificate</PLEASE_WAIT_GENERATING_CERTIFICATE>
+<change_settings>Change settings</change_settings>
+<rebuild_all_websites>Rebuild all websites</rebuild_all_websites>
+<building_main_settings>Building main settings</building_main_settings>
+<cleaning_old_configs>Cleaning old configs</cleaning_old_configs>
+<PLEASE_WAIT_BACKUP_SETTINGS>Please wait, backup your settings</PLEASE_WAIT_BACKUP_SETTINGS>
+<PLEASE_WAIT_RESTORE_SETTINGS>Please wait, restore your settings</PLEASE_WAIT_RESTORE_SETTINGS>
+<caching_webpages_is_disabled>Remote content is not cached</caching_webpages_is_disabled>
+<remote_webpages_are_cached>Remote content is cached</remote_webpages_are_cached>
+<RedirectQueries_explain>If defined then the reverse will not use the destination<br>but send a redirect to the browser to be connected to the defined URL<br>
+In this case the reverse proxy will not a reverse but just a redirector</RedirectQueries_explain>
+<autoconfiguration_wizard>proxy.pac autoconfiguration wizard</autoconfiguration_wizard>
+<autoconfiguration_wizard1>Welcome to the proxy.pac/WPAD autoconfiguration wizard.[br]
+This wizard will help you to create on your server a service that will help all your browsers to get parameters in order to connect to the proxy.[br]
+First set here the domain of your network usually sent by your dhcp server.[br]
+You can see this domain with the command [b]ipconfig /all[/b] on your workstation.[br]
+See the domain connection suffix entry.
+</autoconfiguration_wizard1>
+<autoconfiguration_wizard2>
+The website [b]wpad[/b] or [b]wpad.%a[/b] will be designed to provide configuration script[br]
+Set here your local network, this will force browsers to not pass trough the proxy for requests to computers that are the part of this network such as[br]
+192.168.1.0/24, 10.10.1.0/24...[br]
+After the complete wizard, you will be able to change and add more networks.</autoconfiguration_wizard2>
+<autoconfiguration_wizard3>The website [b]wpad[/b] or [b]wpad.%a[/b] will be designed to provide configuration script[br]
+browsers will not use proxy for the network [b]%b[/b][br]
+Set here the proxy address and proxy port that will be used by browsers that will retreive the configuration script.
+</autoconfiguration_wizard3> 
+<autoconfiguration_wizard4>The website [b]wpad[/b] or [b]wpad.%a[/b] will be designed to provide configuration script in order to use the proxy %c on port %d[br]
+browsers will not use proxy for the network [b]%b[/b][br]
+If you agree on these parameters, click on the button bellow in order to create rules and website service.</autoconfiguration_wizard4>
+<network_domain>Network domain</network_domain>
+<squid_ipv4_dns_prio>ipV4 proprity on DNS queries</squid_ipv4_dns_prio>
+<squid_ipv4_dns_prio_explain>if turn to green then the proxy will try to connect/query on IPv4 websites first.[br]
+In most cases the IPv6 Internet is faster than IPv4 Internet.[br]
+Depends of your Ipv6 ISP compatibilities you can turn to red in order to 
+enable contact websites websites over IPv6 first.[br]
+The proxy will still perform both IPv6 and IPv4 DNS lookups before connecting.
+</squid_ipv4_dns_prio_explain>
+<enable_BWMng>Enable bandwidth Network card statistics</enable_BWMng>
+<enable_BWMng_text>If green then the server will report bandwidth use for each network card.[br]
+These statistics should take performance.[br]
+If you want to safe performance, turn to red this feature.
+</enable_BWMng_text>
+<APP_BMWNG>Network cards statistics</APP_BMWNG>
+<link_host>Link host</link_host>
+<unlink_host>Unlink host</unlink_host>
+<activate_webfiltering_wizard>If green, then the Webfiltering service will be linked and activated during the wizard task</activate_webfiltering_wizard>
+<activate_dhcp_service_wizard>If green, then this Artica server will act as DHCP server and is able to provide TCP/IP settings trough the network</activate_dhcp_service_wizard>
+<act_has_categories>Act has categories appliance</act_has_categories>
+<act_has_categories_wizard>If turned to green then this server will be only act as categories appliance.[br]
+In this case, Artica Proxy servers are allowed to use this Appliance in order to retreive category for a defined website</act_has_categories_wizard>
+<act_has_categories_explain>This server will act has Categories Appliance.[br]
+This means that it will not a proxy service but a service that will able to retreive websites categories from requests sent by Artica Proxy/statistics servers.[br]
+If your are agree with this setup, click on Next button.[br]
+Artica Customers with a valid Entreprise license are able to use this appliance for free.[br]
+In this case, you just have to request a Free license for this server. 
+</act_has_categories_explain>
+<categories_service>Categories Service</categories_service>
+<use_remote_categories_services>Use remote categories service</use_remote_categories_services>
+<use_remote_categories_services_explain>if turned to green then this server will allowed to queries a remote Artica service act as Categories Service in order to retreive category for a defined website.[br]
+This will allows you to use extra features such as ACLs, statistics, realtime monitor according categories.
+</use_remote_categories_services_explain>
+<remote_address>Remote address</remote_address>
+<execution_time>Execution time</execution_time>
+<connection_error>Connection error</connection_error>
+<restarting_service>Restarting service</restarting_service>
+<PLEASE_WAIT_RESTARTING_SERVICE>Please wait, restarting service</PLEASE_WAIT_RESTARTING_SERVICE>
+<explain_RemoteUfdbCat>This server is currently connected to a Categories Appliance, Categories services are available by default</explain_RemoteUfdbCat>
+<explain_SquidPerformance_nocat>The Performance level has been defined with "without categories", in this case relatime categories feature is disabled</explain_SquidPerformance_nocat>
+<squid_articadb_restore_explain>This section allows you to upload a statistics backup container in order to inject data into the current MySQL service.[br]
+If your backup container size is important.[br]You should not able to upload the backuped container.[br]
+In this case, copy the container on the server using winscp and run this command line:[br]
+[code]/usr/share/artica-postfix/exec.articadb.restore.php /path/to/the/container.gz[/code]
+</squid_articadb_restore_explain>
+<upload_backuped_container>Upload backuped container</upload_backuped_container>
+<add_report_text>Give the report name</add_report_text>
+<from_the_last_time>From the last</from_the_last_time>
+<recategorize>Re-categorize</recategorize>
+<by_category>By category</by_category>
+<current_month>Current month</current_month>
+<report_not_categorized>Report not categorized websites</report_not_categorized>
+<error_engine_categorization>Error, no categorization service is available, the report will failed</error_engine_categorization>
+<limit_access>Limit access</limit_access>
+<sshd_AllowUsers_explain>This form restrict to an user and/or a domain or an IP address.[br]
+You can set for example root without any domain to restrict SSH access to only root from any remote address.[br]
+You can set root and 192.168.1.* into the to restrict access to root only on the network 192.168.1.1-255.[br]
+You can set root and domain.tld or domain.* to restrict access to root only on the specified domain.
+</sshd_AllowUsers_explain>
+<user2>User</user2>
+<link_all_hosts>Link all hosts</link_all_hosts>
+<link_all_hosts_ask>This operation will link all available hosts to this object.[br]
+Do you want to carry out this operation ?
+</link_all_hosts_ask>
+<wizard_transparent_button>Enable transparent mode wizard</wizard_transparent_button>
+<wizard_transparent_button1>Welcome to the transparent mode wizard.[br]
+This wizard will help you to build a "mixed" proxy that will accept both methods:[br]
+The first one was [b]transparent mode[/b]: You need to change the main gateway address of your computers in order to point to this server.[br]
+The second one was [b]connected mode[/b]: Computer can still use the proxy address in browsers settings.[br]
+To implement these methods, define here listens ports for the transparent mode and the connected mode.[br]
+And click on the Next button.
+</wizard_transparent_button1>
+
+<wizard_transparent_buttonC>This is the non-transparent port used for settings in browsers</wizard_transparent_buttonC>
+<wizard_transparent_buttonD>This the transparent port, used to catch HTTP requests and only available on the server side</wizard_transparent_buttonD>
+
+<activate_ssl_bump_text2>If green then the Proxy will be able to catch SSL requests in order to decrypt the protocol.[br]
+In this case, the proxy will be able to analyze content and URL when using SSL mode.[br]
+[b]Be carrefull on this option[b] because the proxy will replace the webserver certificate by it's own certificate.[br]
+This means that all browsers will complain about a non-trusted certificate when accessing to each SSL website.
+</activate_ssl_bump_text2>
+<wizard_transparent_buttonE>This is the transparent SSL port used to catch HTTPS requests and only available on the server side</wizard_transparent_buttonE>
+<ready_to_build>Ready to build settings</ready_to_build>
+<wizard_transparent_button_final>Your proxy will use the port %p1 in standard mode and browser can use this port to surf trough Internet.[br]
+The transparent mode will catch requests to 80 port and redirect them to the local port %p2.[br]
+Transparent SSL is %enabled.[br]
+If your are agree, click on the Apply button.
+</wizard_transparent_button_final>
+<transparent_port>Transparent listen port</transparent_port>
+<building_settings>Building settings</building_settings>
+<connected_port>Connected Listen Port</connected_port>
+<MetaClientAutoUpdate>Automatic Update</MetaClientAutoUpdate>
+<MetaClientAutoUpdate_text>If turn to green then when communicate with the Meta server, clients will requests available Artica version.[br]
+If a new version is available, then clients will be updated automatically</MetaClientAutoUpdate_text>
+<link_policy>Link a policy</link_policy>
+<synchronize_policies_explain>This operation will rebuild all linked policies and order all Artica clients to replicate active policies.
+Do you want to carry out this operation ?</synchronize_policies_explain>
+<enable_notifications_on_errors>Notify on errors/Fatal</enable_notifications_on_errors>
+<enable_notifications_on_warnings>Notify on Warnings</enable_notifications_on_warnings>
+<enable_notifications_metaclient_text>If green, the Artica client will ping the Meta server to send a SMTP notification message.</enable_notifications_metaclient_text>
+<system_logs_path_explain>Here it is the working directory used by services in order to write log files.[br]
+By default all services use [b]/var/log[/b] but if you have changed it set it here.</system_logs_path_explain> 
+<temporay_storage_path>Temporary storage path</temporay_storage_path>
+<temporay_storage_path_explain>Before backuping logs files, Artica will move files from [b]/var/log[/b] to this directory.[br]
+Logs will be compressed in this directory and copied to the destination (NAS, folder or other shared directory).
+</temporay_storage_path_explain>
+<max_storage_days_log_explain>If you use the local filesystem to store logs, in order to not fill the entire disk, you can define here how many days a log file can live.[br]
+If you use external resource, then Artica will not remove old logs and this parameter will be not used.
+</max_storage_days_log_explain>
+<BackupLogsMaxStoragePercent_explain>This is the space partition percentage that will be used to store backuped logs files.[br]
+When this value is reached, Artica will remove old backuped files in order to not reach this limit.
+</BackupLogsMaxStoragePercent_explain>
+<nginx_zavailb_explain>Your website is not applied to the reverse proxy service, compile it to make it available</nginx_zavailb_explain> 
+<pdf_reports>PDF reports</pdf_reports>
+<max_percent_storage>Max storage %</max_percent_storage>
+<select_main_service>Select your main service</select_main_service>
+<reverse_proxy_service>Reverse Proxy service</reverse_proxy_service>
+<connected_http_proxy>Connected HTTP Proxy</connected_http_proxy>
+<transparent_http_proxy>Transparent HTTP proxy</transparent_http_proxy>
+<SSL_BUMP_CONNECTED_EXPLAIN>This section can be used only for the [b]Connected[/b] mode. Means the opposite of the transparent mode ( when proxy parameters is defined in browsers)</SSL_BUMP_CONNECTED_EXPLAIN>
+<sslbump_whitelist_all_domains_explain>If green the the proxy will not hook all SSL sites but only SSL websites specified in the [b]Decrypted SSL websites[/b] section</sslbump_whitelist_all_domains_explain>
+<decrypted_ssl_websites>Decrypted SSL Websites</decrypted_ssl_websites>
+<activate_ssl_only_standard_ports_text>If green then SSL connections using the [b]Connected[/b] mode will be decrypted by the proxy.[br]
+You have to way to decrypt Websites.[br]
+if [b]Whitelist all domains[/b] is green then have to specify which domains will be decrypted.[br]
+If red, you have to specify which domains will be not decrypted.
+</activate_ssl_only_standard_ports_text>
+<decrypt_ssl>Decrypt SSL</decrypt_ssl>
+<SquidGuardUseRefreshDomainList>Use Dynamic categories</SquidGuardUseRefreshDomainList>
+<SquidGuardUseRefreshDomainList_explain>By default, your personals categories must be compiled from the MySQL database to a binary file on the disk.[br]
+In this case, you must did not forget to "compile" your categories on each changes.[br]
+If turned to green, then the Web filtering engine will query periodically your categories from the MySQL database and load websites list from memory.[br]
+This behavior is more dynamic but it [b]consume more memory on your server[/b].
+</SquidGuardUseRefreshDomainList_explain>  
+<SquidClientDSTPassThru>DNS mismatch checking</SquidClientDSTPassThru>
+<SquidClientDSTPassThru_explain>With NAT or TPROXY intercepted traffic Proxy may pass the request
+directly to the original client destination IP or seek a faster source using the HTTP Host header.[br]
+Using Host to locate alternative servers can provide faster connectivity with a range of failure recovery options.[br]
+But can also lead to connectivity trouble when the client and server are attempting stateful interactions unaware 
+of the proxy.[br]
+This option (if checked) prevents alternative DNS entries being	located to send intercepted 
+traffic DIRECT to an origin server.[br]
+The clients original destination IP and port will be used instead.[br]
+Regardless of this option setting, when dealing with intercepted traffic Proxy will verify the Host: header 
+and any traffic which fails Host verification will be treated as if this option is enabled.
+</SquidClientDSTPassThru_explain>
+<explain_reverse_proxy>The reverse proxy is the opposite of a Proxy.[br]
+It is designed to secure and redirect connections from browsers to your Web services.</explain_reverse_proxy>
+<explain_http_proxy_connected>The Web Proxy in connected mode is able to filter/cache connection from browsers to Internet.[br]
+The connected mode means that you have to set proxy address and port in your browser settings.[br]
+Use this option is you plan to authenticate users trough the proxy ( eg Active Directory server).
+</explain_http_proxy_connected>
+<explain_http_proxy_transparent>The Web Proxy in transparent mode is able to filter/cache connection from browsers to Internet.[br]
+The transparent mode means that connections to the proxy are made by network configuration.[br]
+In this mode you did not have to change the browser settings but you have to define the proxy as the default gateway in your network configuration 
+or use NAT rules.[br]
+In this mode, you cannot perform any authentication system trough the proxy.
+</explain_http_proxy_transparent>
+<explain_categories_appliance>The categories Appliance transform this server to a categories server that will help Artica Proxy servers to retreive category from a visisted Web site.[br]
+It increase Artica Proxy features like Allow/Block users by category in ACLs or add categories in Web statistics.
+</explain_categories_appliance>
+<categories_appliance>Categories Appliance</categories_appliance>
+<by_categories>By categories</by_categories>
+<by_websites>By websites</by_websites>
+<date_range>Date range</date_range>
+<reports_center>Reports center</reports_center>
+<PLEASE_WAIT_BUILDING_ITEMS>Please, wait... Building items</PLEASE_WAIT_BUILDING_ITEMS>
+<use_local_categories_services>Activate the local categories service</use_local_categories_services>
+<use_local_categories_services_explain_warn>
+Be sure that your server handle required memory for this service ( about 1.7 GB).
+</use_local_categories_services_explain_warn>
+<LockLdapConfig_explain>If turned to green then Artica will not change the configuration of the OpenDLAP server in order to allows changing the configuration file manually
+</LockLdapConfig_explain>
+<allowanonymouslogin_explain>If turned to green then the OpenLDAP server will allow anonymous access in read-only mode</allowanonymouslogin_explain>
+<remote_addressbook_text_explain>For messaging purpose only, if turned to green it will allow messaging client to query the LDAP service for AdressBook features</remote_addressbook_text_explain>
+<add_interface>Add a new interface</add_interface>
+<local_service>Local service</local_service>
+<mikrotik_compliance>MikroTik Compliance</mikrotik_compliance>
+<mikrotik_compliance_explain>If green then Artica will turn transparent mode to MikroTik compliance system in order to allow MikroTik to forward packets to the proxy</mikrotik_compliance_explain>
+<MikrotikVirtualIP>You need to define here an IP address that is different than your computers networks.[br]
+For example if your have 192.168.1.0/24, 10.10.1.0/24,192.168.96.0/24 networks, define here a really different IP address.[br]
+Like [b]172.16.54.2[/b]
+</MikrotikVirtualIP>
+<mikrotik_address>MikroTik address</mikrotik_address>
+<mikrotik_address_explain>Define here the MikroTik address added on your MikroTik port.[br]It will be used as default gateway by the proxy in order to access trough Internet.
+</mikrotik_address_explain>
+<local_ip_address>Local IP address</local_ip_address>
+<mikrotik_address>MikroTik Address</mikrotik_address>
+<local_interface>Local interface</local_interface>
+<mikrotik_ssl_compliance>MikroTik SSL interception</mikrotik_ssl_compliance>
+<mikrotik_ssl_compliance_explain>If turned to green then the proxy will be able to intercept SSL requests sent by the Mikrotik router</mikrotik_ssl_compliance>
+<block_unproductive_websites>Block unproductive websites</block_unproductive_websites>
+<allow_in_public_mode>Public mode</allow_in_public_mode>
+<catz_allow_in_public_mode>If green, then everyone will be able to see this category and it's content in read-only mode.[br]
+Provide this URL to your users: %URI
+</catz_allow_in_public_mode>
+<ntpd_server_not_installed_only_client_mode>The NTPD server is not installed on your server.[br]
+It cannot serve clocks for your network.[br]
+You can still define in this configuration file the NTPD service to use under [b]Main settings[/b]
+</ntpd_server_not_installed_only_client_mode>
+<ENABLE_APP_NTPDCLI>Enable NTP client mode</ENABLE_APP_NTPDCLI>
+<ENABLE_APP_NTPDCLI_TEXT>If turned to green the Artica will query NTP server defined in the server settings to synchronize the clock trough NTP protocol.[br]
+[b]Note:[/b] Verify that  UDP protocol and 123 port in outgoing mode is open on your firewall.[br]
+[b]Note:[/b] If Synchronize time with Active Directory is checked, only the Active directory will be used as NTP server</ENABLE_APP_NTPDCLI_TEXT>
+<of_total_memory>Of total memory</of_total_memory>
+<restart_when_memory_exceed>Restart when memory exceed</restart_when_memory_exceed>
+<squid_notify_when_memory_exceed>If the memory percentage used by the proxy service exceed the value then the proxy service will be restart automatically.[br]
+Set 100% to disable the watchdog feature.
+</squid_notify_when_memory_exceed>
+<memory_size_this_day>Memory size today</memory_size_this_day>
+<memory_size_this_hour>Memory size this hour</memory_size_this_hour>
+<proxy_memory_service_status>Proxy service: Physical Memory use</proxy_memory_service_status>
+<smtp_complain>SMTP complain</smtp_complain>
+<squidguard_smtp_complain>It turned to green then the link to postmaster will be displayed.[br]
+By default a link to the postmaster is created in order to open the Mail client.[br]
+This feature allow directly the proxy server to send directly the message.[br]
+If this server is connected to an Active Directory server, Artica will try to find the email address of the connected user.[br]
+In other case a popup will be displayed in order to let the user fill it's email address.
+</squidguard_smtp_complain>
+<smtp_recipient>Message recipient</smtp_recipient>
+<give_your_email_address>Give your eMail address</g>ive_your_email_address>
+<your_query_was_sent_to_administrator>Your query was send to your administrator</your_query_was_sent_to_administrator>
+<building_organization>Building organization</building_organization>
+<creating_domain>Creating domain</creating_domain>
+<building_cache_pages>Building cache pages</building_cache_pages>
+<creating_services>Creating services</creating_services>
+<creating_databases>Creating Databases</creating_databases>
+<mysql_server>MySQL server</mysql_server>
+<scanning_hardware_software>Scanning Hardware/Software</scanning_hardware_software>
+<restarting_service>Restarting service</restarting_service>
+<openldap_server>OpenLDAP server</openldap_server>
+<refresh_global_settings>Refresh global settings</refresh_global_settings>
+<set_permissions>Set permissions</set_permissions>
+<creating_webservices>Creating Web services</creating_webservices>
+<restarting_artica_status>Restarting Artica status</restarting_artica_status>
+<restarting_webservices>Restarting Web services</restarting_webservices>
+<creating_default_website>Creating default web site</creating_default_website>
+<creating_accounts>Creating accounts</creating_accounts>
+<checking_parameters>Checking parameters</checking_parameters>
+<SYSLOG_TYPE_EXPLAIN>Choose where you want to store old logs</SYSLOG_TYPE_EXPLAIN>
+<LOGROTATE_EXPLAIN>Welcome to the log rotation storage wizard.[br]
+This wizard will help you to define the old logs storage policy.
+</LOGROTATE_EXPLAIN>
+<PLEASE_WAIT_COMPILING_WEBFILTERING_SETTINGS>Please wait, Compiling Web filtetring settings</PLEASE_WAIT_COMPILING_WEBFILTERING_SETTINGS>
+<webfiltering_service>Web filtering service</webfiltering_service>
+<error_page_service>Webfiltering splash service</error_page_service>
+<unblock_queue>Unblock queue</unblock_queue>
+<move_to_category>Move to category</move_to_category>
+<all_categories>All categories</all_categories>
+<snapshots>Snapshots</snapshots>
+<please_wait_creating_snapshot>Please wait, creating the snaphost</please_wait_creating_snapshot>
+<please_wait_restoring_snapshot>Please wait, restoring the snapshot</please_wait_restoring_snapshot>
+<create_a_snapshot>Create a snapshot</create_a_snapshot>
+<create_a_snapshot_explain>This task is able to create an Artica snapshot backup</create_a_snapshot_explain>
+<artica_meta>Artica Meta</artica_meta>
+<artica_meta_server>Artica Meta Server</artica_meta_server>
+<artica_meta_server_explain>An Artica Meta Server is able to manage multiple Artica servers from a single Web management Interface.[br]
+This server will not act as a Proxy but will be able to manage multiple Artica Proxy servers.
+</artica_meta_server_explain>
+<you_need_to_compile>You need to compile parameters in order to apply your settings in production mode</you_need_to_compile>
+<ROOT_CERT>Root Certificate</ROOT_CERT>
+<ENCRYPTED_PRIVATE_KEY>Encrypted Private Key</ENCRYPTED_PRIVATE_KEY>
+<generate_x509_client>Create Self-signed certificate with client verification</generate_x509_client>
+<generate_x509_client_explain>Generate a self-signed certificate with client certificates[br]if you need to enable client certificate verification method</generate_x509_client_explain>
+<SSL_CLIENT_VERIFICATION>Verify Client certificate</SSL_CLIENT_VERIFICATION>
+<SSL_CLIENT_VERIFICATION_EXPLAIN>If turned to green, your users must have your certificate installed on their browsers in order to be able to display web pages.[br]
+This feature can be enabled if you want to restrict internet access to the website only for a set of members ( WebMail, CRM, Web applications...).
+</SSL_CLIENT_VERIFICATION_EXPLAIN>
+<RestartingProxyStatisticsDatabase>Restarting Proxy Statistics Database</RestartingProxyStatisticsDatabase>
+<LaunchActiveDirectoryConnection>Launch Active Directory Connection</LaunchActiveDirectoryConnection>
+<RestartingArticaStatus>Restarting Artica Status</RestartingArticaStatus>
+<ReconfiguringProxy>Reconfiguring Proxy</ReconfiguringProxy>
+<ask_to_send_a_snapshot_to_meta>Ask to send a snapshot to Artica Meta</ask_to_send_a_snapshot_to_meta>
+<ask_to_restore_a_snapshot_from_meta>Restore the snaphost to this server ?
+All parameters will be restored except networks/Active Directory parameters</ask_to_send_a_snapshot_to_meta>
+<send_ping>Send PING</send_ping>
+<reconnect_activedirectroy_ask>This operation will send order to re-establish Active Directory connection on %s.
+Do you want to carry out this operation ?
+</reconnect_activedirectroy_ask>
+<restore_a_snapshot>Restore a snapshot</restore_a_snapshot>
+<update_artica>Update Artica</update_artica>
+<activedirectroy_reconnection>Re-link Active Directory</activedirectroy_reconnection>
+<EnableSQUIDSMP>Enable multi-processors behavior</EnableSQUIDSMP>
+<EnableSQUIDSMP_explain>If turned to green then you will be able to create cache for each processor in the Cache center section</EnableSQUIDSMP_explain>
+<muliproc_disabled>Multi-processors feature is disabled</muliproc_disabled>
+<sources_files>Sources files</sources_files>
+<yes1>Yes</yes1>
+<no1>No</no1>
+<squid_logs_urgency>[b]Service running in Log emergency!!:[/b][br]This means there is no space left on the partition log.[br]
+logging feature was disabled by Artica.[br]
+This means your proxy service continue to processing without writing any event on disk.[br]
+You should fix this issue by removing items in the log partition.[br]
+Contact our support team in order to perform this operation.[br]
+After cleaning your log partition, you can use the link bellow in order to re-establish the log system.
+</squid_logs_urgency>
+<squid_logs_urgency_section>Logs emergency section</squid_logs_urgency_section>
+<enable_logs_urgency>Enable logs emergency</enable_logs_urgency>
+<enable_logs_urgency_explain>if turned to green then Artica will disable all logs on services in order to force continue processing without any logs systems</enable_logs_urgency_explain>
+<mikrotik_ping>MikroTik Ping</mikrotik_ping>
+<deny_unlock>Deny unlock</deny_unlock>
+<allow_unlock>Allow unlock</allow_unlock>
+<not_authenticate>Do not authenticate</not_authenticate>
+<automatically_add_to>Automatically add to</automatically_add_to>
+<multiprocessor_performance>Multi-processors performances</multiprocessor_performance> 
+<multiprocessor_performance_no_license>Your server is on community mode.[br]
+The community mode did not allow to use all your server processors.[br]
+In this case only one processor can be displayed
+</multiprocessor_performance_no_license>
+<multi-processorsP>Multi-processors performances</multi-processorsP>
+<repair_tables>Repair MySQL tables</repair_tables>
+<PLEASE_WAIT_REPAIR_TABLES>Please wait, repair all tables</PLEASE_WAIT_REPAIR_TABLES>
+<building_networks>Building networks</building_networks>
+<building_networks_scripts>Building networks scripts</building_networks_scripts>
+<client_certificate>Client certificate</client_certificate>
+<notify_your_administrator>Notify your administrator</notify_your_administrator>
+<error_vsftpd_not_installed>Error VSFTPD software is not installed</error_vsftpd_not_installed>
+<apply_modifications_to_the_proxy>Apply modifications to the proxy</apply_modifications_to_the_proxy>
+<to_return_back>To return back</to_return_back>
+<analyze_page_white_perform>This form is able to parse a remote web page in order to display all internal links.[br]
+Sometimes, adding a single Website into whitelist is not enough to display correctly the web page.[br]
+This section will helps you to display all links using in a web page.
+</analyze_page_white_perform>
+<quota_time>Time quota</quota_time>
+<acl_no_license_explain>License issue: This object cannot be used</acl_no_license_explain>
+<wait>Wait</wait>
+<acl_quota_time_text>Only one line is matched for this proxy object.[br]
+Create a line with these token:[br]
+Values are in minutes:
+max:xxx; wait:xxx; interval:xxx[br]
+Example:[br]
+max:10; wait:60; interval:5[br]
+Means time quota max is 10mn on a website and need to wait 60mn in order to be allowed to returning back to the website.[br]
+do not calculate duration if time between 2 requests is more than 5 minutes;
+[br]
+</acl_quota_time_text>
+<date_start>Start date</date_start>
+<realtime>Real-time</realtime>
+<quota_size>Quota size</quota_size>
+<acl_quota_size_text>Only one line is matched for this proxy object.[br]
+Create a line with these token:[br]
+Values are in minutes/MB:
+max_hour:xxx; max_day:xxx; max_week:xxx[br]
+Example:[br]
+max_hour:10; max_day:120;[br]
+Means maximal quota per website and per user and per hour is 10MB or 120MB per per website and per user and per day[br]
+[br]
+</acl_quota_size_text>
+<enable_logo_image>Enable the logo in the Web page</enable_logo_image>
+<align>Align</align>
+<float>Float</float>
+<center>Center</center>
+<left>Left</left>
+<right>Right</right>
+<absolute>Absolute</absolute>
+<fixed>Fixed</fixed>
+<new_skin>New skin</new_skin>
+<skins>Skins</skins>
+<proxy_clients>Proxy clients</proxy_clients>
+<block_unknown_websites>Block unknown web sites</block_unknown_websites>
+<unlock_rules>Unlock rules</unlock_rules>
+<skins_rules>Skins rules</skins_rules>
+<Moved_Temporarily>Moved Temporarily</Moved_Temporarily>
+<http_code_see_other>See Other</http_code_see_other>
+<Moved_Permanently>Moved Permanently</Moved_Permanently>
+<redirect_behavior>Redirect behavior</redirect_behavior>
+<RSA_PRIVATE_KEY>RSA Private key</RSA_PRIVATE_KEY>
+<certificates>Certificates</certificates>
+<statistic_appliance>Statistics appliance</statistic_appliance>
+<launch_wizard>Launch wizard</launch_wizard>
+<APP_CONNECTION>Connection status</APP_CONNECTION>
+<gold_license_explain>The gold license is a dedicated license that allows you to install unlimited servers on unlimited clients.[br]
+It is [b]Not mandatory[/b] to have a gold license to use the product</gold_license_explain>
+<register_license>Register license</register_license>
+<gold_license>Gold License</gold_license>
+<use_tproxy_mode_text>The TProxy method TProxy is a feature enhances standard Interception Caching so that 
+it further hides the presence of your cache.[br]
+Normally with Interception Caching the remote server sees your cache engine as the source of the HTTP request.[br]
+TProxy takes this a step further by hiding your cache engine so that the end client is seen as the source 
+of the request (even though really they aren't).</use_tproxy_mode_text>
+<use_tproxy_mode_text_disabled>Your system kernel did not supports TProxy feature!</use_tproxy_mode_text_disabled>
+<parent_options_no_tproxy>Do not use the client-spoof TPROXY support when forwarding requests to this parent.[br]
+Use normal address selection instead</parent_options_no_tproxy>
+<proxy_in_emergency_mode>The Proxy is in Emergency mode !</proxy_in_emergency_mode>
+<proxy_in_emergency_mode_explain>Artica as dedected a fatal issue on your proxy service.[br]
+In this case, the emergency was turned to ON and all features was disabled in order to make the service running.[br]
+Check Watchdog events in order to see why the emergency mode has been enabled.
+You can disable the emergency mode by clicking on this warning</proxy_in_emergency_mode_explain>
+<everyone>Everyone</everyone>
+<Webfiltering_maintenance>Web filtering maintenance</Webfiltering_maintenance>
+<please_wait_reloading_databases>Please wait, reloading databases</please_wait_reloading_databases>
+<waiting_service>Waiting service</waiting_service>
+<webfiltering_issue>Web filtering issue</webfiltering_issue>
+<system_Webfiltering_error>System Web filtering error</system_Webfiltering_error>
+<service_error>Service error</service_error>
+<direct_mode>Direct mode</direct_mode>
+<sender_domain_email>Sender domains or emails</sender_domain_email>
+<dns_destination>Direct method</dns_destination>
+<all_others_domains>All others domains</all_others_domains>
+<display_logo>Display logo</display_logo>
+<override_transport>Override transport table</override_transport>
+<smtp_bind_address>Bind address</smtp_bind_address>
+<smtp_helo_name>Helo name</smtp_helo_name>
+<create_zarafa_mailbox_text>Create a new Zarafa Mailbox and member on this server.</create_zarafa_mailbox_text>
+<please_wait_creating_member>Please wait, creating member</please_wait_creating_member>
+<create_store>Create store</create_store>
+<export_stores_data>Export stores data</export_stores_data>
+<override_relay>Override relay</override_relay>
+<enable_NetDiscover>Enable passive address reconnaissance</enable_NetDiscover>
+<enable_NetDiscover_text>If turned to green, Artica will run a a network address discovering service 
+that sends ARP requests and sniffs for replies in order to discover computers around the server.
+</enable_NetDiscover_text>
+<APP_NETDISCOVER>Passive ARP scanner</APP_NETDISCOVER>
+<enable_smtp_authentication>Activate SMTP authentication</enable_smtp_authentication>
+<rule_enabled>Rule enabled</rule_enabled>
+<syslog_name>Syslog name</syslog_name>
+<SSL_TUNNELS>SSL Tunnels</SSL_TUNNELS>
+<enable_stunnel4>Enable SSL tunnels feature</enable_stunnel4>
+<enable_stunnel_gtext>This feature allows you to create an SSL tunnel between this server and a targeted SSL service.[br]
+It allows you to connect any application that did not supports SSL to a remote SSL service such as a SSL mail system (smtps,imaps) or a web service (HTTPS/FTPS).
+</enable_stunnel_gtext>
+<ISCSI_share>ISCSI sharing</ISCSI_share>
+<iscsi_delete_explain_file>Note: The created virtual disk %p will be not removed.[br]
+If you want to remove it, you have to do it yourself.
+</iscsi_delete_explain_file> 
+<checking_containers>Checking containers</checking_containers>
+<checking_startup_script>Checking startup script</checking_startup_script>
+<ISCSI_client>ISCSI Client</ISCSI_client>
+<uri2>URL</uri2>
+<retreiver_events>Retreiver events</retreiver_events>
+<warn_videocache_nossl>Note that this feature doesn't supports video fetched in [b]HTTPS[/b] mode like Youtube.[br]
+If you want to cache Video SSL websites, you need to enable SSL interception on your proxy service</warn_videocache_nossl>
+<write_message_and_send>Write message and send it</write_message_and_send>
+<outgoing_mails_only>Outgoing messages only</outgoing_mails_only>
+<sender_address>Sender address</sender_address>
+<UfdbUseArticaClient>Use Artica client processing</UfdbUseArticaClient>
+<UfdbUseArticaClient_explain>If turned to green then proxy service will be hooked by the Artica client.[br]
+If turned to red then the native process will be used.
+</UfdbUseArticaClient_explain>
+<ufdbgclient_explain>This section define parameters of the Web filtering client that will be able to hook proxy service in order to to filter requests</ufdbgclient_explain>
+<persistent_connections>Persistent connections</persistent_connections>
+<persistent_connections_explain>
+HTTP persistent connection, also called HTTP keep-alive, or HTTP connection reuse, 
+is the idea of using a single TCP connection to send and receive multiple HTTP requests/responses, 
+as opposed to opening a new connection for every single request/response pair.[br]
+If HTTP persistent connections are enabled, it will force the proxy to keep open connections at increase CPU consumption.[br]
+By default, HTTP persistent connections are disabled.
+</persistent_connections_explain>
+<server_persistent_connections>Server persistent connections</server_persistent_connections>
+<server_persistent_connections_explain>
+If green then persistent connection support to servers will be enabled if allowed from targeted servers.[br]
+This directive controls whether or not proxy uses persistent HTTP connections to origin servers and neighbors.[br]
+When disabled, proxy sends [b]Connection: close[/b] headers in forwarded requests.
+</server_persistent_connections_explain>
+<client_persistent_connections>Client persistent connections</client_persistent_connections>
+<client_persistent_connections_explain>
+If green If green then persistent connection support from browsers will be enabled.[br]
+This directive controls whether or not proxy uses persistent HTTP connections to browsers.[br]
+When disabled, proxy sends [b]Connection: close[/b] headers in its responses to browsers
+</client_persistent_connections_explain>
+
+<cache_mem_explain2>
+As a rule of thumb on proxy uses approximately 14 MB of RAM per GB of the total of all caches saved in cache center, plus your this memory setting and about an additional 10-20MB.[br]
+It is recommended to have at least twice this amount of physical RAM available.[br]
+The recommended extra RAM besides what is used by proxy is used by the operating system to improve disk I/O performance and 
+by other applications or services running on the server.[br]
+If you have a low memory server, and a large disk, then you will not necessarily be able to use all the disk space, 
+since as the cache fills the memory available will be insufficient, forcing proxy to swap out memory and affecting performance.[br]
+A very large cache on disk total and insufficient physical RAM + Swap could cause proxy to stop functioning completely.[br]
+The solution for larger caches is to get more physical RAM; allocating more to proxy via this setting will not help. 
+</cache_mem_explain2>
+<downloaded_flow_this_month>Downloaded flow this month</downloaded_flow_this_month>
+<cached_websites>Cached websites</cached_websites>
+<UfdbUseGlobalWebPage>Redirect all blocked sites to a remote web page</UfdbUseGlobalWebPage>
+<UfdbUseGlobalWebPage_explain>By default, The web filtering service use the Artica local web server in order to provide the [b]Deny[/b] Web page.[br]
+This to provide extra features such as unlock system, SMTP notification or change the blocked page design by rule/category.[br]
+If you did not want to use these extra features, you can turn to green this option.[br]
+In this case, all banned websites will be redirected to the target web pages specified in this section.
+</UfdbUseGlobalWebPage>
+<web_page_service_is_disabled>Banned page service is disabled</web_page_service_is_disabled>
+<use_personalized_event>Use a personalized event</use_personalized_event>
+<you_need_to_restart_proxy_service_manually>You need to restart manually the proxy service</you_need_to_restart_proxy_service_manually>
+<disable_emergency_mode>Disable Emergency mode</disable_emergency_mode>
+<incompatible_browser>Incompatible browser</incompatible_browser>
+<sorry_ie>
+Sorry, access to Web administration page had to be blocked for compatibily issues.[br]
+Your browser contains inappropriate incompatibilites for a correct production environment
+</sorry_ie>
+<no_web_filtering>No webfiltering</no_web_filtering>
+<activate_webfiltering_service>Activate Web filtering service</activate_webfiltering_service>
+<check_tables>Check tables</check_tables>
+<creating_rules>Creating rules</creating_rules>
+<restarting_webfiltering_service>Restarting Web filtering service</restarting_webfiltering_service>
+<saving_network>Saving Network</saving_network>
+<remote_webpage>Remote block page</remote_webpage>
+<local_realtime_statistics_explain>This task run bandwidth, websites local statistics</local_realtime_statistics_explain>
+<local_realtime_statistics>Local statistics</local_realtime_statistics>
+<miniadm_wizard_admin_explain>This account is the account used to access to the main Artica Web interface, please remember it.</miniadm_wizard_admin_explain>
+<building_openldap_configuration_file>Building OpenLDAP configuration file</building_openldap_configuration_file>
+<set_new_hostname>Set the new hostname</set_new_hostname>
+<smtpd_discard_ehlo_keywords>Keywords to remove in the EHLO</smtpd_discard_ehlo_keywords>
+<smtpd_discard_ehlo_keywords_explain>A case insensitive list of EHLO keywords (pipelining, starttls, auth, etc.) that your SMTP server will not send in the EHLO response to a remote SMTP client.</smtpd_discard_ehlo_keywords_explain>
+<greylist_intro>If turned to green, it implements the greylist filtering method.[br]
+Grey listing works by assuming that, unlike legitimate MTA, spam engines will not retry sending their junk mail on a temporary error.[br]
+The filter will always reject mail temporarily on a first attempt, then accept it after some time has elapsed.[br]
+If spammers ever try to resend rejected messages, we can assume they will not stay idle between 
+the two sends (if they do, the spam problem would just be solved).[br]
+Odds are good that the spammer will send a mail to a honey pot address and get blacklisted in several real-time distributed black lists before the second attempt.
+</greylist_intro>
+<APP_CNTLM_PARENT>NTLM Proxy Parent</APP_CNTLM_PARENT>
+<SquidEnableParentNTLM>Use an NTLM proxy parent</SquidEnableParentNTLM>
+<SquidEnableParentNTLM_text>If turned to green,it will allow your proxy to use a dedicated service that will able to communicate with a prent proxy using Microsoft Windows authentication method ( NTLM ).
+</SquidEnableParentNTLM_text>
+<local_listen_port>Local listen port</local_listen_port>
+<get_lease_hostnames_text>Configure DHCP service to set the host-name option 
+based on DNS data</get_lease_hostnames_text>
+<deny_dhcp_requests>Deny DHCP requests</deny_dhcp_requests>
+<MODULES_NOT_INSTALLED>Required modules are not installed on your system.[br]Please contact our support team.</MODULES_NOT_INSTALLED>
+<LMSensorsEnable>Enable temperature monitoring</LMSensorsEnable>
+<LMSensorsEnable_text>If turned to green, then Artica will be able to monitor the system temperature.[br]
+Note that this feature did not make sense on a virtual machine.
+</LMSensorsEnable_text>
+<temperature>Temperature</temperature>
+<uploads_timeout>Uploads timeout</uploads_timeout>
+<need_to_apply_network_settings_interface>You need to apply network configuration for this interface</need_to_apply_network_settings_interface>
+<system_optimization>System optimization</system_optimization>
+<enable_system_optimization>Activate system optimization tuning</enable_system_optimization>
+<enable_system_optimization_text>If turn to green then Artica will tune the system in order to optimize it when using Artica on a Virtual machine such as VMWare, HyperV, XenServer or when using SSD hard drives.[br]
+If you did not use such system, please contact our support team before enable it.
+</enable_system_optimization_text>
+<you_need_to_reboot_in_order_to_finish>You need to reboot the system in order to make settings into production mode</you_need_to_reboot_in_order_to_finish>
+<proxy_members_aliases>Proxy members aliases</proxy_members_aliases>
+<deny_unkown_clients>Deny unknown clients</deny_unkown_clients>
+<deny_unkown_clients_explain>If set then the DHCP service will not serve IP configuration for clients that are not added in the DHCP fixed hosts table</deny_unkown_clients_explain>
+<dhcp_requests>DHCP requests</dhcp_requests>
+<top_filetypes>TOP file types</top_filetypes>
+<file_type>File type</file_type>
+<file_types>File types</file_types>
+<enforce_rules>Hyper Cache</enforce_rules>
+<APP_HYPERCACHE_WEB>Hyper Cache Web</APP_HYPERCACHE_WEB>
+<enforce_rules_explain>Over the years, Web pages have become more complex,
+making Web page loads notoriously slow even though the
+underlying network has signifcantly improved.[br]The situation is worse for the mobile scenario, 
+partly due to the lowercompute power available on these devices, and partly due to network inefciencies.[br]
+Many web servers did not follow HTTP standards by forcing the proxy [b]To not cache[/b] web pages.[br]
+Web servers use CDN websites (Content delivery Network) that multiply sources of objects.[br]
+With these new behaviors, the standard proxy cache method is not able to increase cache rate.[br]
+This feature allows you to create rules for specific websites.[br]These rules are able to drive your proxy server to retreive downloaded objects in order to serve it trough a local web server.
+</enforce_rules_explain>
+<artica_cache_rule_explain_sitename>Give here the Web site you want to Hyper cache.[br]
+The website should be the global domain website: ibm.com or sourceforge.net.[br]
+You can define a regular expression by add the prefix "regex:" regex:(download|update)\.(microsoft|windowsupdate)\.com )
+</artica_cache_rule_explain_sitename>
+<downloader_events>HyperCache Downloader</downloader_events>
+<EnableGoogleSafeBrowsing>Enable Google Safe Browsing</EnableGoogleSafeBrowsing>
+<EnableGoogleSafeBrowsing_explain>
+Google Safe Browsing is a service provided by Google that provides lists of URLs for 
+web resources that contain malware or phishing content.[br]
+The Google Chrome, Apple Safari and Mozilla Firefox web browsers use the lists from the 
+Google Safe Browsing service for checking pages against potential threats.[br]
+If turned to green then you are agree to centralize Safe Browsing requests.[br]
+In this case Artica will block all Safe Browsing queries from your users in order to reduce bandwidth consumption.
+[br]Before please register to google ( https://developers.google.com/safe-browsing/key_signup[br] ) in order
+to obtain a free Key from Google and save the key trough the link bellow.[br]
+</EnableGoogleSafeBrowsing_explain>
+<API_KEY>API Key</AP_KEY>
+<back_to_webfiltering>Back to Web filtering</back_to_webfiltering>
+<nmap_scan_ping_title>Scan your networks (ping method)</nmap_scan_ping_title>
+<ping_networks>Ping Networks</ping_networks>
+<timeout_ping_networks>Time out when discovering networks</timeout_ping_networks>
+<free_register>Free registration</free_register>
+<GoogleSafeBrowsingApiKey_ask>Your Google Safe Browsing API Key</GoogleSafeBrowsingApiKey_ask>
+<enable_local_cache>Enable local cache</enable_local_cache>
+<local_cache_time>Local cache time</local_cache_time>
+<not_set>Not set</not_set>
+<building_service>Building service</building_service>
+<checking_proxy_service>Checking Proxy service</checking_proxy_service>
+<reconfiguring_proxy_service>Reconfiguring proxy service</reconfiguring_proxy_service>
+<reloading_web_service>Reloading Web service</reloading_web_service>
+<reloading_proxy_plugins>Reloading proxy service plugins</reloading_proxy_plugins>
+<stopping_web_service>Stopping Web service</stopping_web_service>
+<elements>Items</elements>
+<update_each>Update each</update_each>
+<mirror>Mirror</mirror>
+<clean_logs>Clean Logs</clean_logs>
+<clean_logs_explain>Empty logs that are not important for the system ( eg  syslog,deamon.log...)</clean_logs_explain>
+<defined>Defined</defined>
+<webfiltering_all_system_warning>An [b]all systems[b] rule as been already created.[br]
+In this case, create a new rule did not make sense because an [b]all systems rule[/b] will always match.[br]
+[b]Rules:[/b][br]
+</webfiltering_all_system_warning>
+<access_log>Access logs</access_log>
+<squid_access_log_text>If turned to green, the proxy is able to write transactions to a log file on the disk.[br]
+This log file is the source access events and Artica is able to backup it regulary.[br]
+If turned to red, then the proxy will not write events to the disk.
+</squid_access_log_text>
+<FATAL_SQUID_ACCESS_LOG>Access logs has been disabled in your configuration.[br]
+In this case, no event can be displayed</FATAL_SQUID_ACCESS_LOG>
+<hyper_cache_default_rules_ask>This operation will add Hyper Cache examples rules based on Microsoft websites.
+Do you want to carry out this operation ?
+</hyper_cache_default_rules_ask>
+<example_rules>Examples rules</example_rules>
+<not_cached_this_week>Not cached this week</not_cached_this_week>
+<removing_old_rules>Removing old rules</removing_old_rules>
+<building_rules>Building rules</building_rules>
+<no_table_see_support>The required MySQL table is not reachable or not created.[br]
+This issue should be caused if you have disabled statistics method in Artica or you have a MySQL issue.[br]
+Please contact our technical support team in order to fix this behavior
+</no_table_see_support>
+<members_this_month>Members this month</members_this_month>
+<flow_by_day>Flow by day</flow_by_day>
+<request_is_less_2>The query requested return less than 2 values.[br]
+In this case the graph cannot be displayed.[br]
+You need to wait more time in order to let Artica store more values in order to see graph or the final result is correctly set.
+</request_is_less_2>
+<requests_number_per_day>Requests number per day</requests_number_per_day>
+<flow_by_day>Flow by day</flow_by_day>
+<flow_by_hour>Flow by hour</flow_by_hour>
+<categories_this_month>Categories this month</categories_this_month>
+<day_tracking>Daily tracking</day_tracking>
+<requests_number_per_hour>Requests number per hour</requests_number_per_hour>
+<chronology>Chronology</chronology>
+<create_a_new_hypercache_rule>Create a new Hyper Cache rule</create_a_new_hypercache_rule>
+<artica_cache_rule_explain_mime>Define here which content type you want to save in cache</artica_cache_rule_explain_mime>
+<webpages_and_cssjs>html,css and javascript</webpages_and_cssjs>
+<filesandcompressedfiles>Files and compressed files</filesandcompressedfiles>
+<musicandvideos>Music and videos</musicandvideos>
+<create_rule>Create rule</create_rule>
+<images>Images</images>
+<replies>Replies</replies>
+<exec_time>Execution time</exec_time>
+<redirectors>Redirectors</redirectors>
+<this_computers_database_explain>This computer doesn't exists in the main database.[br]
+If you want to add it, click on Apply button</this_computers_database_explain>
+<enable_internet_restriction>Enable Internet access restriction</enable_internet_restriction>
+<enable_internet_restriction_explain>if turned to green then you will be able to restrict computer access to Internet for some periods during the week</enable_internet_restriction>
+<no_activated_rule>No activated rule</no_activated_rule>
+<internet_access_restrictions>Internet access restrictions</internet_access_restrictions>
+<please_define_default_values>Please define default values</please_define_default_values>
+<restricted_members>Restricted members</restricted_members>
+<restricted_access>Restricted Access</restricted_access>
+<allow_internet_between>Allow Internet between</allow_internet_between>
+<internet_access>Internet access</internet_access>
+<for_all_days>For all days</for_all_days>
+<internet_activity>Internet activity</internet_activity>
+<dns_settings>DNS settings</dns_settings>

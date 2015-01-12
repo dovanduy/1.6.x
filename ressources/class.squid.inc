@@ -22,11 +22,16 @@ include_once(dirname(__FILE__)."/class.squid.caches.rules.inc");
 include_once(dirname(__FILE__)."/class.squid.caches.inc");
 include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
 include_once(dirname(__FILE__)."/class.tcpip.inc");
+include_once(dirname(__FILE__)."/class.squid.meta.inc");
+include_once(dirname(__FILE__)."/class.compile.ufdbguard.inc");
 class squid{
 	
 
 }
 class squidbee{
+	public $CURRENT_PROGRESS=0;
+	private $CORP_LICENSE=false;
+	public $MAX_PROGRESS=0;
 	public $dn;
 	public $network_array=array();
 	public $dns_array=array();
@@ -63,6 +68,7 @@ class squidbee{
 	public $EnableTransparent27=0;
 	public $ASROOT=false;
 	public $SQUID_BIN_VERSION=0;
+	public $sslbump_token_debug=array();
 	public $SQUID_ICAP_ENABLED=false;
 	public $SQUID_VERSION="";
 	public $KAV4PROXY_INSTALLED=false;
@@ -77,10 +83,12 @@ class squidbee{
 	public $IS_32=false;
 	public $IS_33=false;
 	public $IS_34=false;
+	public $IS_35=false;
 	public $intvalVersion=false;
 	public $ICAP_SERVICES_COUNT=0;
 	public $FTP_PARAMS=array();
 	public $wccp2_enabled=0;
+	public $SquidWCCPL3Enabled=0;
 	public $wccp2_router=null;
 	public $wccp2_forwarding_method=1;
 	public $wccp2_return_method=1;
@@ -119,6 +127,7 @@ class squidbee{
 	public $SquidActHasReverse=0;
 	public $EnableSplashScreen=0;
 	public $AsSquidLoadBalancer=0;
+	Public $LogsWarninStop=0;
 	
 	public $max_filedesc=8192;
 	public $snmp_community=null;
@@ -152,6 +161,8 @@ class squidbee{
 	private $ArticaHotSpotPort=0;
 	private $ArticaSSLHotSpotPort=0;
 	private $UtDNSEnable=0;
+	private $SquidEnableIdentdService=0;
+	private $SquidEnableIdentdServiceOnly=0;
 	
 	public $peer_connect_timeout=30;
 	public $connect_timeout=120;
@@ -162,7 +173,7 @@ class squidbee{
 	public $pconn_timeout=120;
 	public $dns_timeout=120;
 	public $dead_peer_timeout=10;
-	public $shutdown_lifetime=10;
+	public $shutdown_lifetime=5;
 	public $read_timeout=900;
 	public $incoming_rate=30;	
 	private $SQUID_REVERSE_APPLIANCE;
@@ -196,6 +207,7 @@ class squidbee{
 		$this->SQUID_ICAP_ENABLED=$users->SQUID_ICAP_ENABLED;
 		$this->KAV4PROXY_INSTALLED=$users->KAV4PROXY_INSTALLED;
 		$this->MEMORY_INSTALLEE=$users->MEM_TOTAL_INSTALLEE;
+		$this->CORP_LICENSE=$users->CORP_LICENSE;
 
 		$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 		if($EnableClamavInCiCap==null){$EnableClamavInCiCap=1;$sock->SET_INFO("EnableClamavInCiCap","1");}
@@ -222,6 +234,7 @@ class squidbee{
 		$this->EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
 		$this->EnableMacAddressFilterCentral=$sock->GET_INFO("EnableMacAddressFilterCentral");
 		$this->SquidBubbleMode=$sock->GET_INFO("SquidBubbleMode");
+		$this->LogsWarninStop=intval($sock->GET_INFO("LogsWarninStop"));
 		
 		$this->SquidClientParams=unserialize(base64_decode($sock->GET_INFO("SquidClientParams")));
 		$this->ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
@@ -238,6 +251,11 @@ class squidbee{
 		$this->WCCPListenPort=$sock->GET_INFO("WCCPListenPort");
 		$this->CacheManagement2=$sock->GET_INFO("CacheManagement2");
 		$this->UtDNSEnable=intval($sock->GET_INFO("UtDNSEnable"));
+		$this->SquidEnableIdentdService=intval($sock->GET_INFO("SquidEnableIdentdService"));
+		$this->SquidEnableIdentdServiceOnly=intval($sock->GET_INFO("SquidEnableIdentdServiceOnly"));
+		
+		
+		
 		
 		if(!is_numeric($this->ProxyDedicateMicrosoftRules)){$this->ProxyDedicateMicrosoftRules=0;}
 		if(!is_numeric($this->DisableWinbindd)){$this->DisableWinbindd=0;}
@@ -365,6 +383,7 @@ class squidbee{
 		
 		// Urgency ********************* always at end.
 		if($this->SquidUrgency==1){
+			$this->SquidEnableIdentdService=0;
 			$this->enable_UfdbGuard=0;
 			$this->DisableAnyCache=1;
 			$this->SquidBubbleMode=0;
@@ -373,12 +392,15 @@ class squidbee{
 		// Urgency ********************* always at end.
 		
 		
-		
+		if($this->SquidEnableIdentdService==0){$this->SquidEnableIdentdServiceOnly=0;}
 		
 	}
 	
 	private function EnableUfdbGuard(){
 		$sock=new sockets();
+		$LogsWarninStop=$sock->GET_INFO("LogsWarninStop");
+		if($LogsWarninStop==1){return 0;}
+		if($this->EnableTransparent27==1){return 0;}
 		return $sock->EnableUfdbGuard();
 		
 	}
@@ -460,6 +482,8 @@ class squidbee{
 
 	
 	private function log_access_acls_csv(){
+		if($this->LogsWarninStop==1){return;}
+		if($this->SquidUrgency==1){return;}
 		$f[]="#--------- CVS log rules";
 		$q=new mysql_squid_builder();
 		$MACFILER="%>eui";
@@ -815,7 +839,21 @@ class squidbee{
 				$GLOBALS["SQUID_IS_VERSION"][34]=true;
 				return;
 			}			
-			
+			if($re[2]>=5){
+				$this->IS_30=false;
+				$this->IS_31=false;
+				$this->IS_32=true;
+				$this->IS_33=true;
+				$this->IS_35=true;
+				$this->IS_34=true;
+				$GLOBALS["SQUID_IS_VERSION"][30]=false;
+				$GLOBALS["SQUID_IS_VERSION"][31]=false;
+				$GLOBALS["SQUID_IS_VERSION"][32]=true;
+				$GLOBALS["SQUID_IS_VERSION"][33]=true;
+				$GLOBALS["SQUID_IS_VERSION"][34]=true;
+				$GLOBALS["SQUID_IS_VERSION"][35]=true;
+				return;
+			}			
 			
 		}
 		
@@ -1092,9 +1130,9 @@ class squidbee{
 			$this->dead_peer_timeout=$ini->_params["NETWORK"]["dead_peer_timeout"];
 			if(!is_numeric($this->dead_peer_timeout)){$this->dead_peer_timeout=10;}			
 			
-			if(!isset($ini->_params["NETWORK"]["shutdown_lifetime"])){$ini->_params["NETWORK"]["shutdown_lifetime"]=30;}
+			if(!isset($ini->_params["NETWORK"]["shutdown_lifetime"])){$ini->_params["NETWORK"]["shutdown_lifetime"]=5;}
 			$this->shutdown_lifetime=$ini->_params["NETWORK"]["shutdown_lifetime"];
-			if(!is_numeric($this->shutdown_lifetime)){$this->shutdown_lifetime=10;}			
+			if(!is_numeric($this->shutdown_lifetime)){$this->shutdown_lifetime=5;}			
 			
 			
 			if(!isset($ini->_params["NETWORK"]["read_timeout"])){$ini->_params["NETWORK"]["read_timeout"]=900;}
@@ -1273,6 +1311,7 @@ class squidbee{
 		$this->enable_squidguard=$sock->GET_INFO('squidGuardEnabled');
 		$this->UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
 		$this->AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
+		$this->SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
 		
 		if(!is_numeric($this->enable_kavproxy)){$this->enable_kavproxy=0;}
 		if(!is_numeric($this->enable_cicap)){$this->enable_cicap=0;}
@@ -1288,7 +1327,22 @@ class squidbee{
 			$this->enable_squidclamav=0;
 		}		
 		if($this->DisableWinbindd==1){$this->EnableKerbAuth=0;$this->NTLM_AUTH=0;}
+		if($this->SquidWCCPL3Enabled==1){$this->wccp2_enabled=0;}
 		
+		$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+		if($SquidWCCPL3SSLEnabled==1){
+			$this->SSL_BUMP=1;
+			$this->EnableSquidSSLCRTD=1;
+		}
+		$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+		if($EnableArticaHotSpot==1){
+			$ArticaHotSpotEnableMIT=$sock->GET_INFO("ArticaHotSpotEnableMIT");
+			if(!is_numeric($ArticaHotSpotEnableMIT)){$ArticaHotSpotEnableMIT=1;}
+			if($ArticaHotSpotEnableMIT==1){
+				$this->SSL_BUMP=1;
+				$this->EnableSquidSSLCRTD=1;
+			}
+		}
 		
 		if($this->ASROOT){
 			if(!isset($GLOBALS["NOSQUIDOUTPUT"])){
@@ -1304,6 +1358,7 @@ class squidbee{
 		}
 		
 		if($this->SSL_BUMP==0){
+			
 			$this->EnableSquidSSLCRTD=0;
 		}
 		
@@ -1342,14 +1397,14 @@ class squidbee{
 		
 		if(!$q->TABLE_EXISTS("dns_servers")){
 			$filldef=true;
-			$q->QUERY_SQL("CREATE TABLE `squidlogs`.`dns_servers` ( `ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY , `dnsserver` VARCHAR( 90 ) NOT NULL , `zOrder` SMALLINT( 2 ) NOT NULL, 
-						INDEX (`zOrder`), UNIQUE KEY `dnsserver` (`dnsserver`) ) ENGINE=MyISAM;" );
+			$q->QUERY_SQL("CREATE TABLE `squidlogs`.`dns_servers` ( `ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY , `dnsserver` VARCHAR( 90 ) NOT NULL , `zOrder` SMALLINT( 2 ) NOT NULL,  INDEX (`zOrder`), UNIQUE KEY `dnsserver` (`dnsserver`) ) ENGINE=MyISAM;" );
 			
 		}
 		
 		if($q->COUNT_ROWS("dns_servers")==0){$filldef=true;}
 		
 		if($filldef){
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [DNS]: Filling DNS - DEFAULT -...\n";}
 			if(isset($GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"])){
 				$dns=explode(';',$GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"]["NETWORK"]["dns_servers"]);
 				if(is_array($dns)){
@@ -1366,9 +1421,25 @@ class squidbee{
 		$results=$q->QUERY_SQL($sql);
 		if($q->ok){
 			while ($ligne = mysql_fetch_assoc($results)) {
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [DNS]: Filling DNS - {$ligne["dnsserver"]} -...\n";}
 				$dns_array[]=$ligne["dnsserver"];
 			}
 		}
+		
+		if(count($dns_array)==0){
+			
+			$f=explode("\n",@file_get_contents("/etc/resolv.conf"));
+			$this->build_progress("Open resolv.conf ".count($f)." lines");
+			while (list ($index, $line) = each ($f) ){
+				$line=trim($line);
+				if(!preg_match("#^nameserver\s+(.+)#", $line,$re)){continue;}
+				$dns_array[$re[1]]=$re[1];
+			}
+				
+				
+		}
+		
+		
 		$nameserver=array();
 		while (list ($num, $ip) = each ($dns_array) ){$nameserver[$ip]=true;}
 		while (list ($ip, $none) = each ($nameserver) ){
@@ -1376,6 +1447,12 @@ class squidbee{
 			$GLOBALS["squid_dns_array"][]=$ip;
 			$this->dns_array[]=$ip;
 		}
+		
+
+		
+		$this->build_progress(count($this->dns_array)." DNS items...");
+		
+		
 	}
 	
 
@@ -1384,6 +1461,8 @@ class squidbee{
 		if(!$this->ASROOT){return;}
 		$sock=new sockets();
 		$SquidAppendDomain=trim($sock->GET_INFO("SquidAppendDomain"));
+		$SquidAppendDomainDisabled=intval($sock->GET_INFO("SquidAppendDomainDisabled"));
+		if($SquidAppendDomainDisabled==1){return;}
 		
 		$f[]="# Append domain: SquidAppendDomain = $SquidAppendDomain [".__LINE__."]";
 		
@@ -1536,6 +1615,8 @@ class squidbee{
 		$negative_ttl=$array["CACHE_TIME"];
 		$ttl=$array["CACHE_TIME"];
 		
+		
+		
 		if(isset($ForceConf["ttl"])){$ttl=$ForceConf["ttl"];}
 		if(isset($ForceConf["negative_ttl"])){$negative_ttl=$ForceConf["ttl"];}
 		if(isset($ForceConf["children-startup"])){$external_acl_startup=$ForceConf["children-startup"];}
@@ -1567,11 +1648,84 @@ class squidbee{
 		
 	}
 	
+	private function external_acl_helper_restrict_access(){
+		if($this->SquidUrgency==1){return null;}
+		if(!$this->ASROOT){return;}
+		if(!$this->ACL_ARP_ENABLED){return null;}
+		if($this->IS_31){return null;}
+		$sock=new sockets();
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		if($SquidPerformance>2){return null;}
+		
+		$q=new mysql_squid_builder();
+		$sql="SELECT * FROM computers_time WHERE `enabled`=1";
+		$array["CACHE_TIME"]=300;
+		$results = $q->QUERY_SQL($sql);
+		$helper="/usr/share/artica-postfix/external_acl_restrict_access.php";
+		@chmod($helper,0755);
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM computers_time WHERE `enabled`=1"));
+		if(!is_numeric($ligne["tcount"])){$ligne["tcount"]=0;}
+		if($ligne["tcount"]==0){return;}
+		$L[]="%SRC";
+		$L[]="%SRCEUI48";
+		$L[]="%>{X-Forwarded-For}";
+		if($this->IS_32){$ipv4=" ipv4";}
+		$external_acl_childrens=$this->external_acl_childrens();
+		$f[]="external_acl_type ArticaRestrictAccess  $external_acl_childrens ".@implode(" ", $L)." $helper";
+		$f[]="acl ArticaRestrictAccess external ArticaRestrictAccess\n";
+		$GLOBALS["HTTP_ACCESS"]["ArticaRestrictAccess"]="http_access deny ArticaRestrictAccess";
+		$UfdbGuardSquidGuardIPWeb=$this->UfdbGuardSquidGuardIPWeb();
+		$f[]="# Web filtering error page: \"$UfdbGuardSquidGuardIPWeb\"";
+		if($UfdbGuardSquidGuardIPWeb<>null){
+			$f[]="deny_info 307:$UfdbGuardSquidGuardIPWeb?clientaddr=%i&clientname=&clientuser=%i&clientgroup=default&targetgroup=restricted_time&url=%u ArticaRestrictAccess";
+			
+		}
+				
+				
+		
+		if(class_exists("unix")){
+			if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
+			$php=$unix->LOCATE_PHP5_BIN();
+			$nohup=$unix->find_program("nohup");
+			echo "Starting......: ".date("H:i:s")." [MAC]: Restrict Access, building database...\n";
+			if($GLOBALS["VERBOSE"]){
+				system("$php /usr/share/artica-postfix/exec.squid.computer.access.php --nocheck");
+			}else{
+				shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.computer.access.php --nocheck >/dev/null 2>&1 &");
+			}
+		}
+		
+		return @implode("\n", $f)."\n";
+	}
+	
+	
+	
+	private function UfdbGuardSquidGuardIPWeb(){
+		if(isset($GLOBALS["SquidGuardIPWebMEM"])){return $GLOBALS["SquidGuardIPWebMEM"];}
+		$sock=new sockets();
+		if($sock->EnableUfdbGuard()==0){
+			$GLOBALS["SquidGuardIPWebMEM"]=null;
+			return null;
+		}
+		include_once(dirname(__FILE__)."/class.compile.ufdbguard.inc");
+		$conf=new compile_ufdbguard();
+		$SquidGuardIPWeb=unserialize(@file_get_contents("/var/log/squid/SquidGuardIPWeb"));
+		if(is_array($SquidGuardIPWeb)){
+			$GLOBALS["SquidGuardIPWebMEM"]=$SquidGuardIPWeb["SquidGuardIPWeb"];
+		}
+		
+		return $GLOBALS["SquidGuardIPWebMEM"];
+		
+	}
+	
+	
 	private function external_acl_helper_MacToUid(){
 		if($this->SquidUrgency==1){return null;}
 		$sock=new sockets();
-		$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
-		if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
+		$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		if($SquidPerformance>2){return;}
+		
 		$q=new mysql();
 		
 		if(!$this->ASROOT){return;}
@@ -1611,9 +1765,6 @@ class squidbee{
 		
 		if($this->is_auth()){$L[]="%LOGIN";}
 	
-		$external_acl_children=$this->SquidClientParams["external_acl_children"];
-		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
-		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
 		
 		$SRCEUI48="%SRCEUI48";
 		if(!$this->ACL_ARP_ENABLED){$SRCEUI48=null;}
@@ -1658,8 +1809,18 @@ class squidbee{
 	
 	
 	public function external_acl_helper_categories(){
+		$ScriptFileName="/usr/share/artica-postfix/external_acl_categories.php";
 		$GLOBALS["ArtcExtrnCategoryScanner"]=false;
-		if($this->SquidUrgency==1){return null;}
+		$sock=new sockets();
+		if(!$this->CORP_LICENSE){return "# No license set\n";}
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		$RemoteUfdbCat=intval($sock->GET_INFO("RemoteUfdbCat"));
+		if($SquidPerformance>0){
+			if($RemoteUfdbCat==0){
+				return "# external_acl_helper_categories:: No enabled for performance reason\n";;
+			}
+		}
+		if($this->SquidUrgency==1){return "# external_acl_helper_categories:: SquidUrgency is enabked, aborting\n";}
 		if(!$this->ASROOT){return;}
 		$array["CACHE_TIME"]=360;
 		$q=new mysql_squid_builder();
@@ -1673,7 +1834,9 @@ class squidbee{
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: Categories $q->mysql_error\n";}return;}
 		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: Categories {$ligne["tcount"]} items\n";}
-		if($ligne["tcount"]==0){return;}
+		if($ligne["tcount"]==0){
+			return "# external_acl_helper_categories:: first query return no item\n";
+		}
 		
 		
 		$SRCEUI48="%SRCEUI48";
@@ -1687,6 +1850,7 @@ class squidbee{
 		$CMDILES=@implode(" ", $L);
 		
 		$GLOBALS["ArtcExtrnCategoryScanner"]=true;
+		
 		$external_acl_children=$this->SquidClientParams["external_acl_children"];
 		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
 		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
@@ -1702,9 +1866,13 @@ class squidbee{
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$rulename=$ligne["aclname"];
+			$GLOBALS["LoadingArtcatz"][$ligne["ID"]]=true;
 			$this->external_acl_helper_categories_items($ligne["ID"],$rulename);
-			$f[]="external_acl_type ArtCatz{$ligne["ID"]} $external_acl_childrens $CMDILES %URI /usr/share/artica-postfix/external_acl_dynamic.php --categories {$ligne["ID"]}\n";
+			$f[]="external_acl_type ArtCatz{$ligne["ID"]} $external_acl_childrens %DST $ScriptFileName --categories {$ligne["ID"]}\n";
 		}
+		
+		@chmod($ScriptFileName, 0755);
+		@chown($ScriptFileName, "squid");
 		return @implode("\n", $f);
 		
 	}
@@ -1767,11 +1935,215 @@ class squidbee{
 		
 		
 	}
+	
+	private function external_acl_helper_sizequota(){
+		$GLOBALS["ArtcExtrnQuotaSizeScanner"]=false;
+		if(!$this->CORP_LICENSE){return "# No license set\n";}
+		$sock=new sockets();
+		if($this->SquidUrgency==1){return null;}
+		if(!$this->ASROOT){return;}
+		$array["CACHE_TIME"]=360;
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) as tcount
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'quota_size'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: quota_size $q->mysql_error\n";}return;}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: quota_size {$ligne["tcount"]} items\n";}
+		if($ligne["tcount"]==0){return;}
+	
+		if($this->is_auth()){$L[]="%LOGIN";}else{$L[]="%%";}
+		$SRCEUI48="%SRCEUI48";
+		if(!$this->ACL_ARP_ENABLED){$SRCEUI48=null;}
+		if($this->IS_31){$SRCEUI48=null;}
+		if($SRCEUI48==null){$SRCEUI48="%%";}
+	
+		$L[]="%SRC";
+		$L[]=$SRCEUI48;
+		$L[]="%>{X-Forwarded-For}";
+		$CMDILES=@implode(" ", $L);
+	
+		$GLOBALS["ArtcExtrnQuotaSizeScanner"]=true;
+		$external_acl_children=$this->SquidClientParams["external_acl_children"];
+		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
+		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
+		$external_acl_childrens=$this->external_acl_childrens(0);
+		$sql="SELECT webfilters_sqgroups.*,webfilters_sqacls.aclname
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'quota_size'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$results=$q->QUERY_SQL($sql);
+	
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$rulename=$ligne["aclname"];
+			$GLOBALS["LoadingExtrnQuotaSize"][$ligne["ID"]]=true;
+			$count=$this->external_acl_helper_sizequota_items($ligne["ID"]);
+			$f[]="#Group id {$ligne["ID"]} $count item(s)";
+			$f[]="external_acl_type ArtSize{$ligne["ID"]}  ttl=60 negative_ttl=60 children-startup=1 children-idle=2 $CMDILES %DST /usr/share/artica-postfix/external_acl_size_quota.php --gpid {$ligne["ID"]}\n";
+		}
+	
+	
+		@chmod("/usr/share/artica-postfix/external_acl_size_quota.php", 0755);
+		@chown("/usr/share/artica-postfix/external_acl_size_quota.php", "squid");
+	
+		return @implode("\n", $f);
+	
+	}	
+	
+	private function external_acl_helper_timequota(){
+		$GLOBALS["ArtcExtrnQuotaTimeScanner"]=false;
+		if(!$this->CORP_LICENSE){return "# No license set\n";}
+		$sock=new sockets();
+		if($this->SquidUrgency==1){return null;}
+		if(!$this->ASROOT){return;}
+		$array["CACHE_TIME"]=360;
+		$q=new mysql_squid_builder();
+		$sql="SELECT COUNT( * ) as tcount
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'quota_time'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: quota_time $q->mysql_error\n";}return;}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [CATZ]: quota_time {$ligne["tcount"]} items\n";}
+		if($ligne["tcount"]==0){return;}
+		
+		if($this->is_auth()){$L[]="%LOGIN";}else{$L[]="%%";}
+		$SRCEUI48="%SRCEUI48";
+		if(!$this->ACL_ARP_ENABLED){$SRCEUI48=null;}
+		if($this->IS_31){$SRCEUI48=null;}
+		if($SRCEUI48==null){$SRCEUI48="%%";}
+		
+		$L[]="%SRC";
+		$L[]=$SRCEUI48;
+		$L[]="%>{X-Forwarded-For}";
+		$CMDILES=@implode(" ", $L);
+		
+		$GLOBALS["ArtcExtrnQuotaTimeScanner"]=true;
+		$external_acl_children=$this->SquidClientParams["external_acl_children"];
+		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
+		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
+		$external_acl_childrens=$this->external_acl_childrens(0);
+		$sql="SELECT webfilters_sqgroups.*,webfilters_sqacls.aclname
+			FROM webfilters_sqgroups, webfilters_sqacls, webfilters_sqacllinks
+			WHERE webfilters_sqacllinks.aclid = webfilters_sqacls.ID
+			AND webfilters_sqacllinks.gpid = webfilters_sqgroups.ID
+			AND webfilters_sqgroups.GroupType = 'quota_time'
+			AND webfilters_sqgroups.enabled =1
+			AND webfilters_sqacls.enabled =1";
+		$results=$q->QUERY_SQL($sql);
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$rulename=$ligne["aclname"];
+			$GLOBALS["LoadingExtrnQuotaTime"][$ligne["ID"]]=true;
+			$count=$this->external_acl_helper_timequota_items($ligne["ID"]);
+			$f[]="#Group id {$ligne["ID"]} $count item(s)";
+			$f[]="external_acl_type ArtTime{$ligne["ID"]}  ttl=60 negative_ttl=30 children-startup=1 children-idle=2 $CMDILES %DST /usr/share/artica-postfix/external_acl_time_quota.php --gpid {$ligne["ID"]}\n";
+		}
+		
+		
+		@chmod("/usr/share/artica-postfix/external_acl_time_quota.php", 0755);
+		@chown("/usr/share/artica-postfix/external_acl_time_quota.php", "squid");
+		
+		return @implode("\n", $f);
+		
+	}	
+	
+	private function external_acl_helper_timequota_items($gpid){
+		$q=new mysql_squid_builder();
+		$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND enabled=1";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$rules[]=$ligne["pattern"];
+			
+		}
+	
+		@file_put_contents("/etc/squid3/acls/time_gpid{$gpid}.acl", serialize($rules));
+		@chmod("/etc/squid3/acls/time_gpid{$gpid}.acl", 0755);
+		@chown("/etc/squid3/acls/time_gpid{$gpid}.acl", "squid");
+		return count($rules);
+	
+	}
+	
+	private function external_acl_helper_sizequota_items($gpid){
+		$q=new mysql_squid_builder();
+		$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND enabled=1";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$rules[]=$ligne["pattern"];
+				
+		}
+	
+		@file_put_contents("/etc/squid3/acls/size_gpid{$gpid}.acl", serialize($rules));
+		@chmod("/etc/squid3/acls/size_gpid{$gpid}.acl", 0755);
+		@chown("/etc/squid3/acls/size_gpid{$gpid}.acl", "squid");
+		return count($rules);
+	
+	}	
+	
+	
+	
+	private function external_acl_helper_Unlock(){
+		$sock=new sockets();
+		if($this->SquidUrgency==1){return null;}
+		if($sock->EnableUfdbGuardArtica()==1){return null;}
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+		$ACL_ARP_ENABLED=$this->ACL_ARP_ENABLED;
+		if($EnableTransparent27==1){$ACL_ARP_ENABLED=false;}
+		if($SquidPerformance>2){return;}
+		if(!$this->ASROOT){return;}
+		$UfdbGuardHTTPAllowUnblock=intval($sock->GET_INFO("UfdbGuardHTTPAllowUnblock"));
+		if($UfdbGuardHTTPAllowUnblock==0){
+			$q=new mysql_squid_builder();
+			if($q->COUNT_ROWS("ufdb_page_rules")>0){$UfdbGuardHTTPAllowUnblock=1;}
+		}
+		
+		if($UfdbGuardHTTPAllowUnblock==0){return;}
+		
+		$array["CACHE_TIME"]=60;
+		$external_acl_children=$this->SquidClientParams["external_acl_children"];
+		$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
+		$external_acl_idle=$this->SquidClientParams["external_acl_idle"];
+		$UnbblockMaxTime=intval($sock->GET_INFO("UfdbGuardHTTPUnbblockMaxTime"));
+		if($UnbblockMaxTime<5){$UnbblockMaxTime=30;}
+		$UnbblockMaxTime=$UnbblockMaxTime-1;
+		$UnbblockMaxTime=$UnbblockMaxTime*60;
+		$ProcessesNumber=$external_acl_children;
+		$L[]="%SRC";
+		if($ACL_ARP_ENABLED){$L[]="%SRCEUI48";}else{$L[]="%%";}
+		$L[]="%>{X-Forwarded-For}";
+		$L[]="%DST";
+		if($this->IS_32){$ipv4=" ipv4";}
+		$ProcessesNumber=$external_acl_children;
+		$ForceConf["ttl"]=$UnbblockMaxTime;
+		$external_acl_childrens=$this->external_acl_childrens($ProcessesNumber,true,$ForceConf);
+		$f[]="# EnableTransparent27 = $EnableTransparent27\n";
+		$f[]="#-----------------------------------------------------------------\n";
+		$f[]="external_acl_type ArtAutoUnblock  $external_acl_childrens ".@implode(" ", $L)." /usr/share/artica-postfix/external_ufdbunblock.php\n";
+		$f[]="acl UfdbAutoblock external ArtAutoUnblock";
+		$f[]="#-----------------------------------------------------------------\n";
+		$f[]="url_rewrite_access deny UfdbAutoblock";
+		@chmod("/usr/share/artica-postfix/external_ufdbunblock.php", 0755);
+		return @implode("\n", $f);
+		
+	
+	}
 	private function external_acl_helper_ITChart(){
 		if($this->SquidUrgency==1){return null;}
 		if(!$this->ASROOT){return;}$sock=new sockets();
-		$EnableITChart=$sock->GET_INFO("EnableITChart");
-		if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+		$EnableITChart=intval($sock->GET_INFO("EnableITChart"));
+		
+		
 		
 		if($EnableITChart==0){return;}
 		$array["CACHE_TIME"]=360;
@@ -2002,6 +2374,8 @@ class squidbee{
 		if(!is_numeric($array["DISABLE_MODULE"])){$array["DISABLE_MODULE"]=0;}
 		if($array["DISABLE_MODULE"]==1){return;}
 		if($array["TEMPLATE"]==null){$array["TEMPLATE"]="ERR_ACCESS_DENIED";}		
+		
+		
 		if($this->is_auth()){$L[]="%LOGIN";}else{$L[]="%%";}
 		$L[]="%SRC";
 		if($this->ACL_ARP_ENABLED){$L[]="%SRCEUI48";}else{$L[]="%SRCEUI48";}
@@ -2651,14 +3025,14 @@ function SaveToLdap($norestart=false){
 			$returned=null;
 			if(count($f)>0){
 				$f[]="";
-				$GLOBALS["HTTP_ACCESS"]["BANNED_COMPUTERS"]="http_access deny {$this->MyStandPort}banned_computers";
+				$GLOBALS["HTTP_ACCESS"]["BANNED_COMPUTERS"]="http_access deny banned_computers all";
 				@file_put_contents("/etc/squid3/banned-computers.acl",@implode("\n",$f));
 				$returned="acl banned_computers src \"/etc/squid3/banned-computers.acl\"\n";
 			}
 			
 			if(count($MC)>0){
 				
-				$GLOBALS["HTTP_ACCESS"]["BANNED_COMPUTERS_MAC"]="http_access deny {$this->MyStandPort}banned_mac_computers";
+				$GLOBALS["HTTP_ACCESS"]["BANNED_COMPUTERS_MAC"]="http_access deny banned_mac_computers all";
 				@file_put_contents("/etc/squid3/banned-computers-by-mac.acl",@implode("\n",$MC));
 				$returned=$returned."acl banned_mac_computers arp \"/etc/squid3/banned-computers-by-mac.acl\"\n";
 			}
@@ -2742,7 +3116,7 @@ function SaveToLdap($norestart=false){
 			if(count($f)>0){
 				$f[]="";
 				$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS"]="http_access allow {$this->MyStandPort}whitelisted_computers";
-				$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="url_rewrite_access deny {$this->MyStandPort}whitelisted_computers";
+				
 				@file_put_contents("/etc/squid3/whitelisted-computers.acl",@implode("\n",$f));
 				$returned="\nacl whitelisted_computers src \"/etc/squid3/whitelisted-computers.acl\n";
 			}
@@ -2751,42 +3125,13 @@ function SaveToLdap($norestart=false){
 			
 				//$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_MAC"]="http_access allow whitelisted_mac_computers";
 				@file_put_contents("/etc/squid3/whitelisted-computers-by-mac.acl",@implode("\n",$MC));
-				//$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="url_rewrite_access deny whitelisted_mac_computers";
-				//$returned=$returned."acl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\n";
-			
+				
+				
 			
 			if(!is_file(dirname(__FILE__)."/class.squid.acls.groups.inc")){$sock->TOP_NOTIFY("WARNING class.squid.acls.groups.inc no such class contact support !!!");}else{include_once(dirname(__FILE__)."/class.squid.acls.groups.inc");}
 			if(!class_exists("squid_acls_groups")){$sock->TOP_NOTIFY("WARNING !!!!!!!!!!!!!!!!!!! squid_acls_groups no such class contact support !!!");echo "WARNING !!!!!!!!!!!!!!!!!!! squid_acls_groups no such class !!!\n";}
 			
-			if(class_exists("squid_acls_groups")){
-				$acls=new squid_acls_groups();
-				
-				$acls_deny=$acls->buildacls_bytype("url_rewrite_access_deny");
-				if(count($acls_deny)>0){
-					while (list ($index, $line) = each ($acls_deny) ){
-						$myStandPort=$this->MyStandPort;
-						if(preg_match("#MyPort[0-9]+#", $line)){$myStandPort=null;}
-						$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="url_rewrite_access deny $myStandPort$line";
-					}
-				}
-				if($GLOBALS["VERBOSE"]){echo "url_rewrite_access_deny SquidBubbleMode:$this->SquidBubbleMode\n";}
-				if($this->SquidBubbleMode==1){
-					$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
-					$q=new mysql_squid_builder();
-					$results = $q->QUERY_SQL($sql);
-					while ($ligne = mysql_fetch_assoc($results)) {
-						if($GLOBALS["VERBOSE"]){echo "url_rewrite_access_deny SquidBubbleMode:Port:{$ligne["aclport"]}\n";}
-						$acls_deny=$acls->buildacls_bytype("url_rewrite_access_deny",$ligne["aclport"]);
-						$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="# BUBBLE {$ligne["portname"]} ". __FUNCTION__."({$ligne["aclport"]}) ".count($acls_deny)." items $acls->error";
-						if(count($acls_deny)>0){
-							$aclport=$ligne["aclport"];
-							while (list ($index, $line) = each ($acls_deny) ){
-								$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="url_rewrite_access deny MyPort{$aclport} $line";
-							}
-						}
-					}
-				}
-			}			
+			
 			
 			
 			$GLOBALS["ACL_WHITE_COMPUTERS_IP"]=$returned;
@@ -2795,9 +3140,72 @@ function SaveToLdap($norestart=false){
 			
 		}		
 		
+		private function build_progress($text){
+			
+			if(!isset($GLOBALS["PRC"])){$GLOBALS["PRC"]=$this->CURRENT_PROGRESS;}
+			if(!$this->ASROOT){return;}
+			
+				///--wccp-build
+			
+			$GLOBALS["PRC"]++;
+			echo "Starting......: ".date("H:i:s")." $text {$GLOBALS["PRC"]}%\n";
+			if(!function_exists("build_progress")){return;}
+			if($this->CURRENT_PROGRESS==0){return;}
+			if($GLOBALS["PRC"]>$this->MAX_PROGRESS){$GLOBALS["PRC"]=$this->MAX_PROGRESS;}
+			build_progress("{reconfigure} $text",$GLOBALS["PRC"]);
+		}
+		
+		private function WCCPL3(){
+			$sock=new sockets();
+			$SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
+			if($SquidWCCPL3Enabled==0){return "# --------- Cisco's Web Cache Coordination Protocol Layer 3 is not enabled\n";}
+			$SquidWCCPL3Addr=$sock->GET_INFO("SquidWCCPL3Addr");
+			$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+			$SquidWCCPL3SSServiceID=intval($sock->GET_INFO("SquidWCCPL3SSServiceID"));
+			if($SquidWCCPL3SSServiceID==0){$SquidWCCPL3SSServiceID=70;}
+			$conf[]="# --------- Cisco's Web Cache Coordination Protocol Layer 3 SSL:$SquidWCCPL3SSLEnabled service ID:$SquidWCCPL3SSServiceID [".__LINE__."]";
+			$conf[]="wccp2_router $SquidWCCPL3Addr";
+			$conf[]="wccp2_forwarding_method 1";
+			$conf[]="wccp2_return_method 1";
+			$conf[]="wccp2_service standard 0";
+			//$conf[]="wccp2_address 0.0.0.0";
+			if($SquidWCCPL3SSLEnabled==1){
+				$conf[]="wccp2_service dynamic $SquidWCCPL3SSServiceID";
+				$conf[]="wccp2_service_info $SquidWCCPL3SSServiceID protocol=tcp flags=src_ip_hash,ports_source priority=240 ports=443 ";
+				
+			}
+			
+			if($this->ASROOT){
+				$this->build_progress("[WCCP]: Running WCCP Network configuration");
+				$unix=new unix();
+				$php=$unix->LOCATE_PHP5_BIN();
+				system("$php /usr/share/artica-postfix/exec.virtuals-ip.php --wccp-build");
+				$this->build_progress("[WCCP]: Executing WCCP Network configuration");
+				system("/bin/artica-wccp.sh");
+			}
+			
+			$conf[]="";
+			return implode("\n",$conf);
+			
+		}
+		
+		function WCCPL3_SSL(){
+			$sock=new sockets();
+			$SquidWCCPL3SSCertificate=intval($sock->GET_INFO("SquidWCCPL3SSCertificate"));
+			
+			$SquidWCCPL3SSLProxPort=intval($sock->GET_INFO("SquidWCCPL3SSLProxPort"));
+			if($SquidWCCPL3SSLProxPort==0){$SquidWCCPL3SSLProxPort=rand(40700, 64000);$sock->SET_INFO("SquidWCCPL3SSLProxPort", $SquidWCCPL3SSLProxPort);}
+			$conf[]="# --------- WCCPL3 SSL Certificate: $SquidWCCPL3SSCertificate port:$SquidWCCPL3SSLProxPort [".__LINE__."]";
+			$conf[]=$this->ssl_bump_tranparent($SquidWCCPL3SSLProxPort,$SquidWCCPL3SSCertificate,true);
+			return @implode("\n", $conf);
+		}
+		
+		
 		private function WCCP(){
 			$ipClass=new IP();
-			if($this->wccp2_enabled<>1){return "#Cisco's Web Cache Coordination Protocol is not enabled\n";}
+			
+			
+			if($this->wccp2_enabled<>1){return "# --------- Cisco's Web Cache Coordination Protocol is not enabled\n";}
 			$conf[]="";	
 			$sock=new sockets();
 			
@@ -2809,7 +3217,7 @@ function SaveToLdap($norestart=false){
 				$wccp2_router[]=$wccp2_routers;
 			}
 			
-			$conf[]="#Cisco's Web Cache Coordination Protocol";
+			$conf[]="# --------- Cisco's Web Cache Coordination Protocol";
 			while (list ($none, $ipaddr) = each ($wccp2_router) ){
 				if($ipClass->isValid($ipaddr)){
 					$conf[]="wccp2_router $ipaddr";
@@ -2844,15 +3252,25 @@ function SaveToLdap($norestart=false){
 		
 		private function pinger(){
 			if(!$this->ASROOT){return;}
+			$sock=new sockets();
+			$SquidEnablePinger=intval($sock->GET_INFO("SquidEnablePinger"));
+			if($SquidEnablePinger==0){
+				$f[]="#ICMP Pinger ------------- (". __FUNCTION__." L.".__LINE__.")";
+				$f[]="pinger_enable off";
+				$f[]="";
+				return implode("\n",$f);
+			}
+			
 			$pinger=$this->find_program("pinger");
 			if(!is_file($pinger)){return;}
 			$f[]="#ICMP Pinger ------------- (". __FUNCTION__." L.".__LINE__.")";
 			$f[]="pinger_program $pinger";
+			$f[]="pinger_enable on";
 			$f[]="";
 			if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
 			$unix->chown_func("root","root" ,$pinger);
 			$unix->chmod_func(04755, $pinger);
-			
+			return implode("\n",$f);
 		}
 		
 		
@@ -2963,9 +3381,7 @@ function SaveToLdap($norestart=false){
     
     private function memory_pools(){
     	$sock=new sockets();
-    	$SquidMemoryPools=$sock->GET_INFO("SquidMemoryPools");
-    	
-    	if(!is_numeric($SquidMemoryPools)){$SquidMemoryPools=1;}
+    	$SquidMemoryPools=intval($sock->GET_INFO("SquidMemoryPools"));
     	if($SquidMemoryPools==0){return "memory_pools off";}
     	
     	$memory_pools_limit_suffix=null;
@@ -2996,6 +3412,23 @@ function SaveToLdap($norestart=false){
     	$f[]="tcp_outgoing_address $ListenIP ChilliPort";
     	return @implode("\n", $f);
     }
+    
+    private function Mikrotik_tcp_outgoing_address(){
+    	$sock=new sockets();
+    	$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
+    	
+    	if($MikrotikTransparent==0){return;}
+    	$this->global_conf_array["tcp_outgoing_address"]=null;
+    	$MikrotikHTTPSquidPort=intval($sock->GET_INFO('MikrotikHTTPSquidPort'));
+    	$MikrotikVirtualIP=$sock->GET_INFO('MikrotikVirtualIP');
+    	$f[]="# Mikrotik outgoing Interface: [$MikrotikVirtualIP] [".__LINE__."]";
+    	$f[]="tcp_outgoing_address $MikrotikVirtualIP all";
+    	return @implode("\n", $f);
+    	
+    }
+
+    
+    
     
 		
 	private function CoovaTransparent(){
@@ -3149,60 +3582,6 @@ function SaveToLdap($norestart=false){
 			
 		}
 		
-		private function ACLS_USERS_ASKS(){
-			if($this->SquidUrgency==1){return null;}
-			if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
-			$q=new mysql_squid_builder();
-			$ident=false;
-			if($this->LDAP_AUTH==1){$ident=true;}
-			if($this->LDAP_EXTERNAL_AUTH==1){$ident=true;}
-				
-			
-			
-			if($q->COUNT_ROWS("webfilters_usersasks")==0){return;}
-			@mkdir("/etc/squid3/users-asks",0755,true);
-			
-			$sql="SELECT * FROM webfilters_usersasks";
-			$results=$q->QUERY_SQL($sql);
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				$ipaddr=$ligne["ipaddr"];
-				
-				$website=$ligne["sitename"];
-				$ipaddrName=str_replace(".", "", $ipaddr);
-				$ARRAY[$ipaddrName]["UID"]=null;
-				$ARRAY[$ipaddrName]["IPADDR"]=$ipaddr;
-				if($ident){$ARRAY[$ipaddrName]["UID"]=$ligne["uid"];}
-				$ARRAY[$ipaddrName]["WEBSITES"][$website]=true;
-				
-			}
-			$c=0;
-			while (list ($aclname, $arrayDef) = each ($ARRAY)){
-				$c++;
-				//if($arrayDef["UID"]<>null){
-					//$f[]="acl AutoW{$c}a ident {$arrayDef["UID"]}";
-				//}else{
-					$f[]="acl AutoW{$c}a src {$arrayDef["IPADDR"]}";
-				//}
-				
-				
-				$tt=array();
-				while (list ($sitename, $none) = each ($arrayDef["WEBSITES"])){$tt[]=".$sitename";}
-				if(count($tt)>20){
-					@file_put_contents("/etc/squid3/users-asks/{$aclname}dest.conf", @implode("\n", $tt)."\n");
-					@chown("/etc/squid3/users-asks/{$aclname}dest.conf", "squid");
-					$f[]="acl AutoW{$c}b dstdomain \"/etc/squid3/users-asks/{$aclname}dest.conf\"";
-				}else{
-					$f[]="acl AutoW{$c}b dstdomain ".@implode(" ", $tt);
-				}
-				$GLOBALS["url_rewrite_access_users"][]="url_rewrite_access deny AutoW{$c}a AutoW{$c}b";
-			
-			
-			}
-
-			$GLOBALS[__FUNCTION__]=@implode("\n", $f);
-			return $GLOBALS[__FUNCTION__];
-			
-		}
 	
 		
 		
@@ -3466,6 +3845,7 @@ function SaveToLdap($norestart=false){
 			$hostname_bin=$unix->find_program("hostname");
 			exec("$hostname_bin -f 2>&1",$results);
 			$GLOBALS["my_full_hostname"]=trim(@implode("", $results));
+			if($GLOBALS["my_full_hostname"]==null){$GLOBALS["my_full_hostname"]="artica-proxy";}
 			return $GLOBALS["my_full_hostname"]; 
 		}
 		
@@ -3523,13 +3903,43 @@ function SaveToLdap($norestart=false){
 		private function BaseNameWebSite($www){
 			if(trim($www)==null){return;}
 			if(is_numeric(trim($www))){return;}
-			if(preg_match("#http.+?\/\/(.+)#", $www,$re)){$www=$re[1];}
+			
+			if(strpos(" $www", "//")>0){
+				$arrayURI=parse_url($www);
+				$www=$arrayURI["host"];
+				
+			}
 			if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
+			if(preg_match("#(.+):[0-9]+#", $www,$re)){$www=$re[1];}
 			if(substr($www,0,1)<>"."){$www=".$www";}
 			if(substr($www,strlen($www)-1,1)=="/"){$www=substr($www, 0,strlen($www)-1);}
 			$exploded=explode(".", $www);
 			$sitebase=$exploded[count($exploded)-2].".".$exploded[count($exploded)-1];
-			if(substr($sitebase, 0,1)=="."){$sitebase=substr($sitebase, 1,strlen($sitebase));}		
+			if(substr($sitebase, 0,1)=="."){$sitebase=substr($sitebase, 1,strlen($sitebase));}
+			$sitebase=str_replace('.*.', '.', $sitebase);
+			$sitebase=str_replace('*', '.', $sitebase);
+			$sitebase=str_replace('$', '', $sitebase);
+			$sitebase=str_replace('(', '', $sitebase);
+			$sitebase=str_replace(')', '', $sitebase);
+			$sitebase=str_replace(';', '.', $sitebase);
+			$sitebase=str_replace(',', '.', $sitebase);
+			$sitebase=str_replace('%', '', $sitebase);
+			$sitebase=str_replace('+', '', $sitebase);
+			$sitebase=str_replace('/', '', $sitebase);
+			$sitebase=str_replace('?', '', $sitebase);
+			$sitebase=str_replace('!', '', $sitebase);
+			$sitebase=str_replace(':', '', $sitebase);
+			$sitebase=str_replace('{', '', $sitebase);
+			$sitebase=str_replace('}', '', $sitebase);
+			$sitebase=str_replace('^', '', $sitebase);
+			$sitebase=str_replace('\\', '', $sitebase);
+			$sitebase=str_replace('\'', '', $sitebase);
+			$sitebase=str_replace('"', '', $sitebase);
+			$sitebase=str_replace('&', '', $sitebase);
+			$sitebase=str_replace('<', '', $sitebase);
+			$sitebase=str_replace('>', '', $sitebase);
+			$sitebase=str_replace('[', '', $sitebase);
+			$sitebase=str_replace(']', '', $sitebase);
 			return $sitebase;
 		}
 		
@@ -3723,7 +4133,6 @@ function SaveToLdap($norestart=false){
 		if($Multiple){
 			$conf=array();
 			echo "Starting......: ".date("H:i:s")." [AUTH]: Basic: multiple authentication methods enabled\n";
-			if(!is_numeric($array["CACHE_TIME"])){$array["CACHE_TIME"]=120;}
 			$basic_fake_auth=$this->locate_generic_bin("basic_fake_auth");
 			if($this->NTLM_AUTH==1){$conf[]= "#Basic authentication for other browsers that did not supports NTLM:";}
 			if($this->NTLM_AUTH==0){$conf[]= "#Basic authentication for other browsers";}
@@ -3768,23 +4177,7 @@ function SaveToLdap($norestart=false){
 		if($users->SQUIDGUARD_INSTALLED){if($this->enable_squidguard==1){return true;}}
 	}
 	
-	private function url_rewrite_programs(){
-		if($this->SquidUrgency==1){return null;}
-		$redirect=array();
-		if($this->enable_adzapper==1){
-			if(is_file("/usr/bin/wrapzap")){$redirect[]="\"/usr/bin/wrapzap\"";}
-		}		
-		$streamcache=$this->zapchain_streamcache();
-		$squidguard=$this->zapchain_squidguard();
-		$ufdbguard=$this->zapchain_ufdbguard();
-		$squidclamav=$this->zapchain_squidclamav();
-		if($squidclamav<>null){$redirect[]="\"$squidclamav\"";}
-		if($squidguard<>null){$redirect[]="\"$squidguard\"";}
-		if($ufdbguard<>null){$redirect[]="\"$ufdbguard\"";}
-		if($streamcache<>null){$redirect[]="\"$streamcache\"";}		
-		return $redirect;
-		
-	}
+
 	
 	private function zapchain(){
 		if($this->SquidUrgency==1){return null;}
@@ -3809,21 +4202,11 @@ function SaveToLdap($norestart=false){
 		if(count($redirect)>1){
 			$conf[]= "url_rewrite_program /usr/bin/zapchain ". implode(" ",$redirect);
 			$conf[]= $this->url_rewrite_children();	
-			$conf[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"";
-			if($SquidDebugPort==1){$conf[]="url_rewrite_access deny MyTestPort"; }
-			$conf[]="url_rewrite_access deny MgRDest";
-			$conf[]="url_rewrite_access deny MgRPort";
-			$conf[]="url_rewrite_access deny ToArticaWWW";
-			$conf[]="url_rewrite_access deny UrlRewriteDenyList";			
 		}else{
 			$conf[]= "url_rewrite_program ".implode("",$redirect);
 			$conf[]= $this->url_rewrite_children();		
-			$conf[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"";
-			if($SquidDebugPort==1){$conf[]="url_rewrite_access deny MyTestPort"; }
-			$conf[]="url_rewrite_access deny MgRDest";
-			$conf[]="url_rewrite_access deny MgRPort";
-			$conf[]="url_rewrite_access deny ToArticaWWW";
-			$conf[]="url_rewrite_access deny UrlRewriteDenyList";				
+			
+				
 		}
 		
 		return @implode("\n",$conf);
@@ -3844,7 +4227,7 @@ function SaveToLdap($norestart=false){
 		
 	}
 	
-	private function ufdbguard_value($key){
+	public function ufdbguard_value($key){
 		if(!is_file("/etc/squid3/ufdbGuard.conf")){return null;}
 		if(isset($GLOBALS[__FUNCTION__][$key])){return $GLOBALS[__FUNCTION__][$key];}
 		if(!isset($GLOBALS["UFDGUARDDATAFILE"])){$GLOBALS["UFDGUARDDATAFILE"]=file("/etc/squid3/ufdbGuard.conf");}
@@ -3858,7 +4241,9 @@ function SaveToLdap($norestart=false){
 	}
 	
 	public function zapchain_ufdbguard(){
+		
 		if($this->SquidUrgency==1){return null;}
+		if($this->EnableTransparent27==1){return null;}
 		if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
@@ -3875,13 +4260,19 @@ function SaveToLdap($norestart=false){
 		
 		$sock=new sockets();
 		$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+		$UfdbUseArticaClient=$sock->GET_INFO("UfdbUseArticaClient");
+		if(!is_numeric($UfdbUseArticaClient)){$UfdbUseArticaClient=1;}
+		$squidversion=$this->SQUID_VERSION;
+		if($UfdbUseArticaClient==1){
+			@chmod("/usr/share/artica-postfix/ufdbgclient.php", 0755);
+			@chown("/usr/share/artica-postfix/ufdbgclient.php", "squid");
+			
+			return "/usr/share/artica-postfix/ufdbgclient.php";
+		}
+		$ufdbClass=new compile_ufdbguard();
+		$datas=$ufdbClass->SetDefaultsConfig($datas);
 		
-		if(!isset($datas["UseRemoteUfdbguardService"])){$datas["UseRemoteUfdbguardService"]=0;}
-		if(!isset($datas["remote_port"])){$datas["remote_port"]=3977;}
-		if(!isset($datas["remote_server"])){$datas["remote_server"]=null;}
-		if(!isset($datas["listen_addr"])){$datas["listen_addr"]="127.0.0.1";}
-		if(!isset($datas["listen_port"])){$datas["listen_port"]="3977";}
-		if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=1;}
+
 		if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
 		if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
 		if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}		
@@ -3901,6 +4292,9 @@ function SaveToLdap($norestart=false){
 		}		
 		
 		$binary=$users->ufdbgclient_path;
+		
+		//$binary="/usr/share/artica-postfix/ufdbgclient.php";
+		$binary=$users->ufdbgclient_path;
 		$log="-l /var/log/squid";
  		
  		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
@@ -3913,7 +4307,6 @@ function SaveToLdap($norestart=false){
 		
 		if(!is_numeric($datas["listen_port"])){$datas["listen_port"]="3977";}
 		if(!is_numeric($datas["tcpsockets"])){$datas["tcpsockets"]=1;}			
-		if(!is_numeric($datas["UseRemoteUfdbguardService"])){$datas["UseRemoteUfdbguardService"]=0;}
 		if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}
 		
 		if($datas["remote_port"]==null){$datas["UseRemoteUfdbguardService"]=0;}
@@ -3927,7 +4320,6 @@ function SaveToLdap($norestart=false){
 		echo "Starting......: ".date("H:i:s")." ufdbguardd: Major:$major, Minor:$minor use TCP socket:{$datas["tcpsockets"]}\n";
 		if($datas["UseRemoteUfdbguardService"]==1){
 			if(trim($datas["remote_server"]==null)){$datas["remote_server"]="127.0.0.1";}
-			
 			$address="-S {$datas["remote_server"]} -p {$datas["remote_port"]} ";	
 			echo "Starting......: ".date("H:i:s")." ufdbguardd: Use remote ufdbguard service: {$datas["remote_server"]}:{$datas["remote_port"]}\n";
 			$GLOBALS[__FUNCTION__]="$binary $moinsC$address $log";	
@@ -3973,6 +4365,7 @@ function SaveToLdap($norestart=false){
 	
 	private function zapchain_squidguard(){
 		if($this->SquidUrgency==1){return null;}
+		if($this->EnableUfdbGuard()==0){return null;}
 	if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 	$users=$GLOBALS["CLASS_USERS"];
 		if(!$users->SQUIDGUARD_INSTALLED){
@@ -4041,7 +4434,7 @@ function SaveToLdap($norestart=false){
 		return false;
 	}
 		
-	private function url_rewrite_children(){
+	public function url_rewrite_children(){
 		if(isset($GLOBALS["squimem_url_rewrite_children"])){return $GLOBALS["squimem_url_rewrite_children"];}
 		$sock=new sockets();
 		$RedirectorsArray=unserialize(base64_decode($sock->GET_INFO("SquidRedirectorsOptions")));
@@ -4060,6 +4453,7 @@ function SaveToLdap($norestart=false){
 		
 		$url_rewrite_children="url_rewrite_children {$RedirectorsArray["url_rewrite_children"]} startup={$RedirectorsArray["url_rewrite_startup"]} idle={$RedirectorsArray["url_rewrite_idle"]} concurrency={$RedirectorsArray["url_rewrite_concurrency"]}";
 		$GLOBALS["squimem_url_rewrite_children"]=$url_rewrite_children;		
+		return $url_rewrite_children;
 		}
 		
 		
@@ -4069,118 +4463,192 @@ function SaveToLdap($norestart=false){
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
 		$sock=new sockets();
+		$unix=new unix();
 		$SquidDebugPort=intval($sock->GET_INFO("SquidDebugPort"));
-		
-		if($users->APP_SQUIDCLAMAV_INSTALLED){
-			if($this->enable_squidclamav==1){
-				return $this->squidclamav();
-			}
-		}
-		
-		if($this->enable_streamcache==1){
-			$conf[]= "url_rewrite_program ".$this->zapchain_streamcache();	
-			$conf[]= $this->url_rewrite_children();
-			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Activate StreamCache\n";}
-			return implode("\n",$conf);
-		}
-		
-		if(!$users->SQUIDGUARD_INSTALLED){if(!$users->APP_UFDBGUARD_INSTALLED){if(!$users->ADZAPPER_INSTALLED){return null;}}}
-		
-		$redirects=$this->url_rewrite_programs();
-		if(count($redirects)>1){return $this->zapchain();}
-				
 		$sock=new sockets();
 		$this->enable_UfdbGuard=$sock->EnableUfdbGuard();
-		$EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
-		if($EnableSquidGuardInCiCAP==null){$EnableSquidGuardInCiCAP=1;}
-		if(!$users->C_ICAP_INSTALLED){$EnableSquidGuardInCiCAP=0;}
-		if($this->enable_UfdbGuard==1){$this->enable_squidguard=0;$EnableSquidGuardInCiCAP=0;}
+		$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
+		if(!$users->APP_UFDBGUARD_INSTALLED){$this->enable_UfdbGuard=0;}
+		$UfdbUseArticaClient=$sock->GET_INFO("UfdbUseArticaClient");
+		if(!is_numeric($UfdbUseArticaClient)){$UfdbUseArticaClient=1;}
+		$SquidEnforceRules=intval($sock->GET_INFO("SquidEnforceRules"));
+		$HyperCacheStoragePath=$sock->GET_INFO("HyperCacheStoragePath");
+		$EnableGoogleSafeBrowsing=intval($sock->GET_INFO("EnableGoogleSafeBrowsing"));
+		if($HyperCacheStoragePath==null){$HyperCacheStoragePath="/home/artica/proxy-cache";}
+		$squidversion=$this->SQUID_VERSION;
+		$conf[]= "\n#--------- UfdbGuard [".__LINE__."]";
 		
+		@file_put_contents("/var/log/squid/ufdbgclient.version", $squidversion);
+		@chown("/var/log/squid/ufdbgclient.version", "squid");
 		
-		
-		if($EnableSquidGuardInCiCAP==1){
-			if($this->enable_cicap==1){
-				$conf[]= "\n#--------- squidGuard";
-				$conf[]= "\n#transfered to C-ICAP -> EnableSquidGuardInCiCAP=1";
-				return implode("\n",$conf);
-			}
+		if($SquidEnforceRules==1){
+			$EnableStreamCache=0;
+			$this->enable_UfdbGuard=1;
 		}
 		
-		if($users->APP_UFDBGUARD_INSTALLED){
-			if($this->enable_UfdbGuard<>1){
-				$conf[]= "\n#--------- UfdbGuard";
-				$conf[]= "\n#Disabled enable_UfdbGuard=$this->enable_UfdbGuard";
-			}
-			
-			if($this->enable_UfdbGuard==1){
-				$this->enable_dansguardian=0;
-				$conf[]= "\n#--------- UfdbGuard";
-				$zapchain_ufdbguard=$this->zapchain_ufdbguard();
-				if($zapchain_ufdbguard<>null){	
-					$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
-					if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
-					if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
-					if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}
-					if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=20;}
-					$conf[]= "url_rewrite_program $zapchain_ufdbguard";	
-					$conf[]= "url_rewrite_children {$datas["url_rewrite_children_max"]} startup={$datas["url_rewrite_children_startup"]} idle={$datas["url_rewrite_children_idle"]} concurrency={$datas["url_rewrite_children_concurrency"]}";
-					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: \"$zapchain_ufdbguard\"\n";}
-					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Max processes        : \"{$datas["url_rewrite_children_max"]}\"\n";}
-					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Startup processes    : \"{$datas["url_rewrite_children_startup"]}\"\n";}
-					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Idle processes       : \"{$datas["url_rewrite_children_idle"]}\"\n";}
-					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Concurrency processes: \"{$datas["url_rewrite_children_concurrency"]}\"\n";}
-					$conf[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"";
-					if($SquidDebugPort==1){$conf[]="url_rewrite_access deny MyTestPort"; }
-					$conf[]="url_rewrite_access deny MgRDest";
-					$conf[]="url_rewrite_access deny ToArticaWWW";
-					$conf[]="url_rewrite_access deny MgRPort";
-					$conf[]="url_rewrite_access deny UrlRewriteDenyList";
+		if($EnableGoogleSafeBrowsing==1){
+			$EnableStreamCache=0;
+			$this->enable_UfdbGuard=1;
+		}
+	
+		
+		if($this->enable_UfdbGuard==0){
+			if($EnableStreamCache==1){
+				$python=$unix->find_program("python");
+				if(is_file("/usr/share/videocache/videocache.py")){
+					$conf[]= "url_rewrite_program /usr/share/artica-postfix/ufdbgclient.php";
+					$conf[]=$this->url_rewrite_children();
+					return implode("\n",$conf);
 				}
-				return implode("\n",$conf);	
-				}
-		}
-
-			
-		
-		
-		
-		if($this->enable_squidguard<>1){
-			$conf[]= "\n#--------- squidGuard";
-			$conf[]= "\n#Disabled enable_squidguard= $this->enable_squidguard";
-			return implode("\n",$conf);			
-			return null;
-		
-		}
-		$this->enable_dansguardian=0;
-		$bin=trim($users->SQUIDGUARD_BIN_PATH);
-		if($bin==null){
-			$sock=new sockets();
-			$bin=base64_decode($sock->getFrameWork("cmd.php?find-program=squidGard"));
-			if(trim($bin)==null){
-				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Unable to activate squidGuard no path found\n";}
-				return null;
 			}
 		}
 		
-		if(posix_getuid()==0){
-			$array=$this->SquidGuardDatabasesStatus();
-			if(is_array($array)){
-				$conf[]= "\n#--------- squidGard";
-				while (list ($num, $val) = each ($array) ){
-					$conf[]="#not compiled $val";
-					
-				}
-				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." disable squidGuard \"". count($array)."\" databases not compiled\n";}
-				return implode("\n",$conf);
-				
-			}
-		}
-			$conf[]= "\n#--------- squidGard";
-			$conf[]= "\n#IS C-ICAP enabled = $this->enable_cicap";
-			$conf[]= "url_rewrite_program $users->SQUIDGUARD_BIN_PATH";
-			$conf[]= $this->url_rewrite_children();
-			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Activate squidGuard \"$bin\"\n";}
+	
+		if($this->enable_UfdbGuard==0){
+			$conf[]= "\n#Disabled enable_UfdbGuard=$this->enable_UfdbGuard";
 			return implode("\n",$conf);
+		}
+		
+		if($EnableStreamCache==1){
+			$conf[]= "url_rewrite_program /usr/share/artica-postfix/ufdbgclient.php";
+			$conf[]=$this->url_rewrite_children();
+			return implode("\n",$conf);
+		}
+		
+		if($SquidEnforceRules==1){
+			$conf[]= "url_rewrite_program /usr/share/artica-postfix/ufdbgclient.php";
+			$conf[]=$this->url_rewrite_children();
+			@mkdir($HyperCacheStoragePath,0755,true);
+			@chown($HyperCacheStoragePath, "squid");
+			@chgrp($HyperCacheStoragePath, "squid");
+			return implode("\n",$conf);		
+		}
+		
+		
+		
+			
+		$this->enable_dansguardian=0;
+		$conf[]= "\n#--------- UfdbGuard / UfdbUseArticaClient=$UfdbUseArticaClient";
+		$zapchain_ufdbguard=$this->zapchain_ufdbguard();
+		if($zapchain_ufdbguard==null){	
+			$conf[]= "\n#--------- zapchain_ufdbguard return a null value";
+			return implode("\n",$conf);
+		}
+		$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+		if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
+		if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
+		if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}
+		if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=20;}
+		$conf[]= "url_rewrite_program $zapchain_ufdbguard";	
+		$conf[]=$this->url_rewrite_children();
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: \"$zapchain_ufdbguard\"\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Max processes        : \"{$datas["url_rewrite_children_max"]}\"\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Startup processes    : \"{$datas["url_rewrite_children_startup"]}\"\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Idle processes       : \"{$datas["url_rewrite_children_idle"]}\"\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." ufdbguardd: Concurrency processes: \"{$datas["url_rewrite_children_concurrency"]}\"\n";}
+		return implode("\n",$conf);
+		
+
+	}
+	
+	
+	
+	private function url_rewrite_access(){
+		$sock=new sockets();
+		if($this->SquidUrgency==1){return null;}
+		$SquidDebugPort=intval($sock->GET_INFO("SquidDebugPort"));
+		$UfdbGuardHTTPAllowUnblock=intval($sock->GET_INFO("UfdbGuardHTTPAllowUnblock")); //UfdbAutoblock
+		$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+		if($SquidPerformance>2){$UfdbGuardHTTPAllowUnblock=0;}
+		$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));
+		$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
+		$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
+		$AllowSquidGoogle=intval($sock->GET_INFO("AllowSquidGoogle"));
+		
+		$conf[]="acl vc_header req_header X-Requested-With -i videocache";
+		$conf[]=$this->external_acl_helper_Unlock();
+		
+		if($SquidDebugPort==1){$conf[]="url_rewrite_access deny MyTestPort"; }
+		$conf[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"\n";
+		if(!is_file("/etc/squid3/url_rewrite_program.deny.db")){@touch("/etc/squid3/url_rewrite_program.deny.db");}
+		$conf[]="url_rewrite_access deny vc_header";
+		$conf[]="url_rewrite_access deny ArticaMetaWhiteDoms";
+		$conf[]="url_rewrite_access deny ArticaMetaWhiteIPs";
+		$conf[]="url_rewrite_access deny MgRDest";
+		$conf[]="url_rewrite_access deny ToArticaWWW";
+		$conf[]="url_rewrite_access deny MgRPort";
+		$conf[]="url_rewrite_access deny UrlRewriteDenyList";
+		$conf[]="url_rewrite_access deny MyLocalIpsDest";
+		$conf[]="url_rewrite_access deny BrowsersNoWebF";
+		
+			
+		
+		
+		if($this->ACL_ARP_ENABLED){
+			$conf[]="url_rewrite_access deny whitelisted_mac_computers";
+		
+		}
+		
+
+		$conf[]="#--------- AllowSquidDropBox:$AllowSquidDropBox, AllowSquidSkype:$AllowSquidSkype, AllowSquidOffice365:$AllowSquidOffice365 F:".__FUNCTION__." line:".__LINE__;
+		if($AllowSquidDropBox==1){
+			$conf[]="url_rewrite_access deny dropbox_ips";
+			$conf[]="url_rewrite_access deny dropbox_www";
+		}
+		if($AllowSquidSkype==1){
+			$conf[]="url_rewrite_access deny skype_ips";
+			$conf[]="url_rewrite_access deny skype_ips";
+		}
+		if($AllowSquidOffice365==1){
+			$conf[]="url_rewrite_access deny office365_ips";
+			$conf[]="url_rewrite_access deny office365_www";
+		}
+		if($AllowSquidGoogle==1){
+			$conf[]="url_rewrite_access deny google_ips";
+			$conf[]="url_rewrite_access deny google_www";
+		}
+		
+		$conf[]="url_rewrite_access deny MgRPort localhost";
+		$conf[]="url_rewrite_access deny MgRPort squidclient";
+		if(isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS"])){
+			$conf[]="url_rewrite_access deny whitelisted_computers";
+		}
+		
+		
+		if(class_exists("squid_acls_groups")){
+			$acls=new squid_acls_groups();
+		
+			$acls_deny=$acls->buildacls_bytype("url_rewrite_access_deny");
+			if(count($acls_deny)>0){
+				while (list ($index, $line) = each ($acls_deny) ){
+					$myStandPort=$this->MyStandPort;
+					if(preg_match("#MyPort[0-9]+#", $line)){$myStandPort=null;}
+					$conf[]="url_rewrite_access deny $myStandPort $line";
+				}
+			}
+			if($GLOBALS["VERBOSE"]){echo "url_rewrite_access_deny SquidBubbleMode:$this->SquidBubbleMode\n";}
+			if($this->SquidBubbleMode==1){
+				$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
+				$q=new mysql_squid_builder();
+				$results = $q->QUERY_SQL($sql);
+				while ($ligne = mysql_fetch_assoc($results)) {
+					if($GLOBALS["VERBOSE"]){echo "url_rewrite_access_deny SquidBubbleMode:Port:{$ligne["aclport"]}\n";}
+					$acls_deny=$acls->buildacls_bytype("url_rewrite_access_deny",$ligne["aclport"]);
+					$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"][]="# BUBBLE {$ligne["portname"]} ". __FUNCTION__."({$ligne["aclport"]}) ".count($acls_deny)." items $acls->error";
+					if(count($acls_deny)>0){
+						$aclport=$ligne["aclport"];
+						while (list ($index, $line) = each ($acls_deny) ){
+							$conf[]="url_rewrite_access deny MyPort{$aclport} $line";
+						}
+					}
+				}
+			}
+		}		
+		
+		$conf[]="url_rewrite_access allow all";
+		@file_put_contents("/etc/squid3/url_rewrite_access.conf", @implode("\n", $conf));
+		return "include /etc/squid3/url_rewrite_access.conf\n";
+		
 	}
 	
 	
@@ -4260,6 +4728,21 @@ function SaveToLdap($norestart=false){
 		
 	}
 	
+	private function cache_peer_ntlm(){
+		$sock=new sockets();
+		$f[]="#";
+		$f[]="# --------- SQUID NTLM PARENT --------- [".__LINE__."]";
+		$SquidParentNTLMPort=intval($sock->GET_INFO("SquidParentNTLMPort"));
+		$f[]="cache_peer 127.0.0.1 parent $SquidParentNTLMPort 0 default no-query login=PASSTHRU name=NTLMParent";
+		$f[]="prefer_direct off";
+		$f[]="nonhierarchical_direct off";
+		$f[]="never_direct allow all";
+		$f[]="forwarded_for on";
+		$this->forwarded_for=null;
+		$f[]="";
+		return @implode("\n", $f);
+	}
+	
 	
 	
 	
@@ -4272,7 +4755,10 @@ function SaveToLdap($norestart=false){
 		$EnableParentProxy=intval($ini->_params["NETWORK"]["EnableParentProxy"]);
 		$EnableParentProxy2=intval($sock->GET_INFO("EnableParentProxy"));
 		if($EnableParentProxy2==1){$EnableParentProxy=1;}
-		
+		$SquidEnableParentNTLM=intval($sock->GET_INFO("SquidEnableParentNTLM"));
+		if($SquidEnableParentNTLM==1){
+			return $this->cache_peer_ntlm();
+		}
 		
 		$f[]="#";
 		$f[]="# --------- SQUID PARENTS --------- [".__LINE__."]";
@@ -4365,6 +4851,7 @@ function SaveToLdap($norestart=false){
 	
 	private function cache_peer_streamcache(){
 		$sock=new sockets();
+		return null;
 		@unlink("/etc/squid3/vc_dom.db");
 		$enableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
 		if($enableStreamCache==0){
@@ -4529,9 +5016,164 @@ private function isRemoteStatsAppliance(){
 	
 }	
 
+private function access_logs_30($ChildProxysIPs,$denylogsTXT){
+	$sock=new sockets();
+	$stdio=null;
+	
+	$SquidStoreLogLogging=intval($sock->GET_INFO("SquidStoreLogLogging"));
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
+	
+	
+	
+	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.0x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
+	if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
+	
+	$conf[]="access_log syslog:authpriv.info common $ChildProxysIPs$denylogsTXT";
+	
+	if($this->LogsWarninStop==1){
+		$conf[]="access_log none all";
+		return @implode("\n", $conf);
+	}
+
+	if($SquidNoAccessLogs==1){
+		@unlink("/var/log/squid/access.log");
+		$conf[]="access_log none all";
+		return @implode("\n", $conf);
+	}
+	
+	
+	
+	$conf[]="access_log /var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT";
+	
+		
+	return @implode("\n", $conf);
+	
+	
+}
+
+private function access_logs_31($ChildProxysIPs,$denylogsTXT){
+	$sock=new sockets();
+	$stdio=null;
+
+	$SquidStoreLogLogging=intval($sock->GET_INFO("SquidStoreLogLogging"));
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
+
+
+
+	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.1x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
+	if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
+	$MACFILER='00:00:00:00:00:00';
+	$conf[]="# --------- on a 3.1x, MAC cannot be logged..\n";
+	$conf[]="logformat $MACFILER:::%>a:::%[ui:::%[un:::%tl:::%rm:::%ru:::HTTP/%rv:::%>Hs:::%<st:::%Ss:%Sh:::%{User-Agent}>h:::%{X-Forwarded-For}>h%<A:::%>A:::%tr:::%mt";
+	$conf[]="access_log syslog:authpriv.info common $ChildProxysIPs$denylogsTXT";
+	
+	if($this->LogsWarninStop==1){
+		$conf[]="access_log none all";
+		return @implode("\n", $conf);
+	}
+	
+	if($SquidNoAccessLogs==1){
+		@unlink("/var/log/squid/access.log");
+		$conf[]="access_log none all";
+		return @implode("\n", $conf);
+	}
+	
+	
+	
+	$conf[]="access_log /var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT";
+	return @implode("\n", $conf)."\n";
+
+}
+
+
+private function access_logs32($ChildProxysIPs,$denylogsTXT){
+	$stdio=null;
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$SquidStoreLogLogging=intval($sock->GET_INFO("SquidStoreLogLogging"));
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
+	$isRemoteStatsAppliance=$this->isRemoteStatsAppliance();
+	$MACFILER="%>eui";
+	
+	$logfile_daemon_ext=null;
+	if($this->SquidActHasReverse==1){$logfile_daemon_ext=" --reverse";}
+	if($isRemoteStatsAppliance){$logfile_daemon_ext=" --no-disk";}
+	
+	if($this->EnableMacAddressFilter==0){$MACFILER='00:00:00:00:00:00';}
+	if($this->IS_32){$stdio="stdio:";}
+	
+	
+	if($this->SquidUrgency==1){
+		$conf[]="#access_log !!!!!!!!!!!!!!!! Proxy service in Emergency mode !!!!!!!!!!!!!!!!";
+		$conf[]="access_log none all";
+		$conf[]="";
+		$conf[]="# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #";
+		$conf[]="#";
+		return @implode("\n", $conf);
+	}
+	
+	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.2x or 3.3x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
+	$conf[]="# LOG FORMAT MODE 3.2/3.3/3.4 LogsWarninStop=$this->LogsWarninStop";
+	if($SquidStoreLogLogging==1){$conf[]="cache_store_log	stdio:/var/log/squid/store.log\n";}
+	
+	
+	
+	if($SquidPerformance<2){
+		$conf[]="logfile_daemon /usr/share/artica-postfix/exec.logfile_daemon.php";
+		$conf[]="logformat common $MACFILER:::%>a:::%[ui:::%[un:::%tl:::%rm:::%ru:::HTTP/%rv:::%>Hs:::%<st:::%Ss:%Sh:::%{User-Agent}>h:::%{X-Forwarded-For}>h:::%<A:::%>A:::%tr:::%mt";
+		$conf[]="access_log daemon: common $options34!MgRPort $ChildProxysIPs$denylogsTXT$options34";
+	}else{
+		$conf[]="#access_log: No statistics, logs are not sended to the statistics daemon [".__LINE__."]";
+	}
+	
+	if($this->LogsWarninStop==1){
+		$conf[]="#access_log !!!!!!!!!!!!!!!! Proxy service in Logs Warning mode !!!!!!!!!!!!!!!!";
+		$conf[]="access_log none all";
+		$conf[]="";
+		$conf[]="# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #";
+		$conf[]="#";
+		return @implode("\n", $conf);
+	}
+	
+	
+	
+	if($SquidNoAccessLogs==1){
+		@unlink("/var/log/squid/access.log");
+		$conf[]="#access_log Deny local logging [".__LINE__."]";
+		$conf[]="access_log none all";
+		$conf[]="";
+		$conf[]="# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #";
+		$conf[]="#";
+		return @implode("\n", $conf);
+	}
+	
+	$conf[]="access_log $stdio/var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT$options34";
+	$conf[]="";
+	$conf[]="# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #";
+	$conf[]="#";
+	return @implode("\n", $conf)."\n";
+}
+
+private function netdb_filename(){
+	$compile_params=$this->compilation_params();
+	if(!isset($compile_params["enable-icmp"])){
+		$conf[]="# netdb_filename not compiled";
+		return @implode("\n",$conf);
+		
+	}
+	if($this->LogsWarninStop==1){return;}
+	if($this->SquidUrgency==1){return;}
+	$stdio=null;
+	if($this->IS_32){$stdio="stdio:";}
+	$conf[]="netdb_filename $stdio/var/log/squid/netdb.state";
+	return @implode("\n",$conf);
+	
+}
+
+
 
 private function access_logs(){
-	$compile_params=$this->compilation_params();
+	
 	$ExternalSyslog=$this->syslog_remote();
 	$sock=new sockets();
 	$stdio=null;
@@ -4547,8 +5189,10 @@ private function access_logs(){
 	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
 	$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
-	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$SquidNoAccessLogs=intval($sock->GET_INFO("SquidNoAccessLogs"));
 	$ChildProxysIPs=null;
+	if($this->IS_32){$stdio="stdio:";}
 	
 	$acls=new squid_acls_groups();
 	$denylogsTXT=null;
@@ -4566,14 +5210,11 @@ private function access_logs(){
 	$denylogs=$acls->buildacls_bytype("deny_log");
 	if(count($denylogs)>0){$denylogsTXT=trim(@implode(" ", $denylogs));}
 	if(strlen($denylogsTXT)>2){$denylogsTXT=" $denylogsTXT";}
-	if($this->IS_32){$stdio="stdio:";}
-	if(isset($compile_params["enable-icmp"])){
-		$conf[]="netdb_filename $stdio/var/log/squid/netdb.state";
-	}else{
-		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid Main cache enable-icmp not compiled, skip it\n";}
-	}
-
 	
+
+	$conf[]="#";
+	$conf[]="# # # # # # # # # # # # # # # # # # LOGGING # # # # # # # # # # # # # # # # # #";
+	$conf[]="# --------- SquidNoAccessLogs 	     = $SquidNoAccessLogs [".__LINE__."]";
 	$conf[]="# --------- ActAsASyslogServer 	 = $ActAsASyslogServer [".__LINE__."]";
 	$conf[]="# --------- EnableSargGenerator	 = $EnableSargGenerator [".__LINE__."]";
 	$conf[]="# --------- isRemoteStatsAppliance	 = $isRemoteStatsAppliance [".__LINE__."]";;
@@ -4582,30 +5223,30 @@ private function access_logs(){
 	$conf[]="# --------- EnableMacAddressFilter	 = $this->EnableMacAddressFilter [".__LINE__."]";
 	$conf[]="# --------- SquidAsMasterCacheChilds= $SquidAsMasterLogChilds [".__LINE__."]";
 	$conf[]="# --------- Is a 3.4 version		 = $this->IS_34 [".__LINE__."]";
+	$conf[]="# --------- Peformance Level 		 = $SquidPerformance [".__LINE__."]";
+	
+	$conf[]=$this->netdb_filename();
 	if($this->EnableMacAddressFilter==1){$conf[]="eui_lookup on";}
 	if($this->EnableMacAddressFilter==0){$conf[]="eui_lookup off";}
 	
 	
-	if($this->IS_34){
-		$options34=" on-error=drop buffer-size=64KB ";
-	}
-	
+
 	
 	if($ExternalSyslog<>null){$conf[]=$ExternalSyslog;}
 	
 	if($this->IS_27){
-		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 2.7x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
-		if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
+		if($this->LogsWarninStop==0){
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 2.7x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
+			if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
+		}
 		$conf[]="access_log syslog:authpriv.info  common $ChildProxysIPs$denylogsTXT";
 		return @implode("\n", $conf)."\n";
+		
 	}
 	
 	
 	if(($this->IS_30) && (!$this->IS_32)){
-		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.0x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
-		if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
-		$conf[]="access_log syslog:authpriv.info common $ChildProxysIPs$denylogsTXT";
-		$conf[]="access_log /var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT";
+		$conf[]=$this->access_logs_30($ChildProxysIPs,$denylogsTXT);
 		return @implode("\n", $conf)."\n";
 		
 	}
@@ -4617,44 +5258,21 @@ private function access_logs(){
 	}
 				
 	$log_access_acls_csv=$this->log_access_acls_csv();
-	if($log_access_acls_csv<>null){
-		$conf[]=$log_access_acls_csv;
-	}
+	if($log_access_acls_csv<>null){$conf[]=$log_access_acls_csv;}
 	
 	$log_childs=$this->access_log_childs();
-	if($log_childs<>null){
-		$conf[]=$log_childs;
-	}	
+	if($log_childs<>null){$conf[]=$log_childs;}	
 	
 	
 	if(($this->IS_31) && (!$this->IS_32)){
-		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.1x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
-		if($SquidStoreLogLogging==1){$conf[]="cache_store_log	/var/log/squid/store.log";}
-		$MACFILER='00:00:00:00:00:00';
 		$conf[]="# --------- on a 3.1x, MAC cannot be logged..\n";
-		$conf[]="logformat $MACFILER:::%>a:::%[ui:::%[un:::%tl:::%rm:::%ru:::HTTP/%rv:::%>Hs:::%<st:::%Ss:%Sh:::%{User-Agent}>h:::%{X-Forwarded-For}>h%<A:::%>A:::%tr";
-		$conf[]="access_log syslog:authpriv.info common $ChildProxysIPs$denylogsTXT";
-		$conf[]="access_log /var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT";
-		return @implode("\n", $conf)."\n";
+		$conf[]=$this->access_logs_31($ChildProxysIPs, $denylogsTXT);
+		return @implode("\n", $conf);
 		
 	}
 	
-	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [LOG ]: Build log for 3.2x or 3.3x: EnableMacAddressFilter=$this->EnableMacAddressFilter\n";}
-	$MACFILER="%>eui";
-	
-	$logfile_daemon_ext=null;
-	if($this->SquidActHasReverse==1){$logfile_daemon_ext=" --reverse";}
-	if($isRemoteStatsAppliance){$logfile_daemon_ext=" --no-disk";}
-	
-	if($this->EnableMacAddressFilter==0){$MACFILER='00:00:00:00:00:00';}
-	
-	$conf[]="# LOG FORMAT MODE 3.2/3.3/3.4";
-	$conf[]="logfile_daemon /usr/share/artica-postfix/exec.logfile_daemon.php";
-	$conf[]="logformat common $MACFILER:::%>a:::%[ui:::%[un:::%tl:::%rm:::%ru:::HTTP/%rv:::%>Hs:::%<st:::%Ss:%Sh:::%{User-Agent}>h:::%{X-Forwarded-For}>h:::%<A:::%>A:::%tr";
-	if($SquidStoreLogLogging==1){$conf[]="cache_store_log	stdio:/var/log/squid/store.log\n";}
-	$conf[]="access_log $stdio/var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT$options34";
-	$conf[]="access_log daemon: common $options34!MgRPort $ChildProxysIPs$denylogsTXT$options34";
-	return @implode("\n", $conf)."\n";
+	$conf[]=$this->access_logs32($ChildProxysIPs, $denylogsTXT);
+	return @implode("\n", $conf);
 		
 }
 
@@ -4684,13 +5302,41 @@ private function build_http_ports(){
 	$http_port_sslbump_2=$http_port_sslbump;
 	$http_port_sslbump_3=$http_port_sslbump;
 	$CooVaHTTPPort=$this->CoovaTransparent();
-	$ArticaHotSpotPort=$this->ArticaHotSpot();
+	
+	
 	$ssl_bump_token=$this->ssl_bump_token();
 	$transparent_token=$this->transparent_token();
 	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 	$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));
 	$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 	$SquidAsMasterPeerIPAddr=$sock->GET_INFO("SquidAsMasterPeerIPAddr");
+	$SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
+	$SquidWCCPL3ProxPort=intval($sock->GET_INFO("SquidWCCPL3ProxPort"));
+	$SquidWCCPL3SSLProxPort=intval($sock->GET_INFO("SquidWCCPL3SSLProxPort"));
+	$EnableSSLOnStandardPort=intval($sock->GET_INFO("EnableSSLOnStandardPort"));
+	
+	$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
+	$MikrotikHTTPSquidPort=intval($sock->GET_INFO('MikrotikHTTPSquidPort'));
+	$MikrotikSSLTransparent=intval($sock->GET_INFO("MikrotikSSLTransparent"));
+	$MikrotikHTTPSSquidPort=intval($sock->GET_INFO("MikrotikHTTPSSquidPort"));
+	
+	
+	$SquidHotSpotPort=intval($sock->GET_INFO("SquidHotSpotPort"));
+	$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+	$SquidHotSpotSSLPort=intval($sock->GET_INFO("SquidHotSpotSSLPort"));
+	$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+	$SquidWCCPL3SSServiceID=intval($sock->GET_INFO("SquidWCCPL3SSServiceID"));
+	$SquidWCCPL3SSCertificate=intval($sock->GET_INFO("SquidWCCPL3SSCertificate"));
+	if($SquidWCCPL3SSServiceID==0){$SquidWCCPL3SSServiceID=70;}
+	
+	if($EnableSSLOnStandardPort==1){$this->DisableSSLStandardPort=0;}
+	
+	
+	if($SquidHotSpotPort==0){$SquidHotSpotPort=rand(40000, 64000);$sock->SET_INFO("SquidHotSpotPort", $SquidHotSpotPort);}
+	if($SquidHotSpotSSLPort==0){$SquidHotSpotSSLPort=rand(40500, 64000);$sock->SET_INFO("SquidHotSpotSSLPort", $SquidHotSpotSSLPort);}
+	if($SquidWCCPL3ProxPort==0){$SquidWCCPL3ProxPort=rand(40600, 64000);$sock->SET_INFO("SquidWCCPL3ProxPort", $SquidWCCPL3ProxPort);}
+	if($SquidWCCPL3SSLProxPort==0){$SquidWCCPL3SSLProxPort=rand(40700, 64000);$sock->SET_INFO("SquidWCCPL3SSLProxPort", $SquidWCCPL3SSLProxPort);}
+	
 	$this->NETWORK_ALL_INTERFACES();
 	if( (!is_numeric($this->MGR_LISTEN_PORT)) OR ($this->MGR_LISTEN_PORT==0)){
 		$this->MGR_LISTEN_PORT=$sock->GET_INFO("SquidMgrListenPort");
@@ -4703,25 +5349,69 @@ private function build_http_ports(){
 	
 	if($SquidAsMasterPeerPort==0){$SquidAsMasterPeerPort=8050;}
 	if($SquidAsMasterPeerPortSSL==0){$SquidAsMasterPeerPortSSL=8051;}
-	$build_http_debug_port=$this->build_http_debug_port();
+	
 	$conf[]="#";
 	$conf[]="#";
-	if($build_http_debug_port<>null){$conf[]=$build_http_debug_port;}
-	$conf[]="# --------- http/https ports Second:$this->second_listen_port, SmartPhones:$this->smartphones_port, WCCP=$this->WCCPListenPort [".__LINE__."]";
-	$conf[]="# --------- DisableSSLStandardPort = $this->DisableSSLStandardPort SSL token:$ssl_bump_token [".__LINE__."]";
-	$conf[]="# --------- SquidAsMasterPeer = $SquidAsMasterPeer $SquidAsMasterPeerPort/$SquidAsMasterPeerPortSSL [".__LINE__."]";
-	$conf[]="# --------- Manager Port =  $this->MGR_LISTEN_PORT [".__LINE__."]";
-	$conf[]="# --------- NAT compatible =  $this->EnableTransparent27 [".__LINE__."]";
-	$conf[]="# --------- Transparent =  $this->hasProxyTransparent [".__LINE__."]";
+	
+	$conf[]="# --------- http/https ports Second: $this->second_listen_port, SmartPhones:$this->smartphones_port, WCCP=$this->WCCPListenPort [".__LINE__."]";
+	$conf[]="# --------- DisableSSLStandardPort.: $this->DisableSSLStandardPort SSL token:$ssl_bump_token [".__LINE__."]";
+	$conf[]="# --------- SquidAsMasterPeer......: $SquidAsMasterPeer $SquidAsMasterPeerPort/$SquidAsMasterPeerPortSSL [".__LINE__."]";
+	$conf[]="# --------- Manager Port...........: $this->MGR_LISTEN_PORT [".__LINE__."]";
+	$conf[]="# --------- NAT compatible.........: $this->EnableTransparent27 [".__LINE__."]";
+	$conf[]="# --------- Transparent............: $this->hasProxyTransparent [".__LINE__."]";
+	$conf[]="# --------- WCCP Layer 3...........: $SquidWCCPL3Enabled HTTP Port $SquidWCCPL3ProxPort SSL Port $SquidWCCPL3SSLProxPort [".__LINE__."]";
+	$conf[]="# --------- HotSpot rev 3..........: $EnableArticaHotSpot HTTP Port $SquidHotSpotPort SSL Port $SquidHotSpotSSLPort [".__LINE__."]";
 	$myportToKen=$this->myport_token();
 	$sql="SELECT * FROM proxy_ports WHERE enabled=1";
 	$results = $q->QUERY_SQL($sql);
 	$transparent_token=$this->transparent_token();
-	$conf[]="# --------- proxy_ports ". mysql_num_rows($results)." ports";
+	$conf[]="# --------- proxy_ports ". mysql_num_rows($results)." ports [".__LINE__."]";
 	
 	if( $this->EnableTransparent27==1){
 		if($this->ICP_PORT==0){$this->ICP_PORT=3130;}
 	}
+	$this->build_progress("[WCCP]: Checking WCCP Layer 3");
+	if($SquidWCCPL3Enabled==1){
+		$conf[]="# --------- WCCP Layer 3...........: Port $SquidWCCPL3ProxPort SSL:$SquidWCCPL3SSLEnabled [".__LINE__."]";
+		$this->TRANSPARENT_PORTS_LIST[]=$SquidWCCPL3ProxPort;
+		$conf[]="http_port $SquidWCCPL3ProxPort $transparent_token";
+		if($SquidWCCPL3SSLEnabled==1){
+			$this->build_progress("[WCCP]: Checking WCCP Layer 3 SSL");
+			$conf[]=$this->WCCPL3_SSL();
+		}
+		
+	}
+	
+	$this->build_progress("Checking HotSpot ports");
+	if($EnableArticaHotSpot==1){
+		$this->EnableSquidSSLCRTD=1;
+		$ArticaSplashHotSpotCertificate=$sock->GET_INFO("ArticaSplashHotSpotCertificate");
+		$conf[]="# --------- http port for Artica hotspot Certificate: $ArticaSplashHotSpotCertificate [".__LINE__."]\n";
+		$conf[]="http_port $SquidHotSpotPort $transparent_token";
+		$certificates=$this->BuildSquidCertificate($ArticaSplashHotSpotCertificate);
+		$conf[]="https_port $SquidHotSpotSSLPort intercept ssl-bump $certificates";
+		$this->TRANSPARENT_PORTS_LIST[]=$SquidHotSpotPort;
+		$this->TRANSPARENT_PORTS_LIST[]=$SquidHotSpotSSLPort;
+		
+	}
+	$this->build_progress("Checking Mikrotik ports");
+	if($MikrotikTransparent==1){
+		$conf[]="# --------- http port for MikroTik [".__LINE__."]";
+		$this->TRANSPARENT_PORTS_LIST[]=$MikrotikHTTPSquidPort;
+		$conf[]="http_port 0.0.0.0:$MikrotikHTTPSquidPort $transparent_token";
+		$conf[]="acl MikroTikHTTPPort $myportToKen $MikrotikHTTPSquidPort";
+	}
+	
+
+	if($MikrotikSSLTransparent==1){
+		$MikrotikSSLTransparent_sslbump=$this->ssl_bump_line($this->certificate_center);
+		$conf[]="# --------- http'S' port for MikroTik [".__LINE__."]";
+		$this->TRANSPARENT_PORTS_LIST[]=$MikrotikHTTPSSquidPort;
+		$conf[]="https_port 0.0.0.0:$MikrotikHTTPSSquidPort $transparent_token $MikrotikSSLTransparent_sslbump";
+		$conf[]="acl MikroTikHTTPSPort $myportToKen $MikrotikHTTPSSquidPort";
+		
+	}
+	
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -4747,7 +5437,7 @@ private function build_http_ports(){
 	}
 	
 	
-	$conf[]="http_port 0.0.0.0:$this->MGR_LISTEN_PORT";
+	
 	if($SquidAsMasterPeerIPAddr==null){$SquidAsMasterPeerIPAddr="0.0.0.0";}
 	if($SquidAsMasterPeerIPAddr<>"0.0.0.0"){
 		if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"][$SquidAsMasterPeerIPAddr])){
@@ -4765,22 +5455,23 @@ private function build_http_ports(){
 		$conf[]=$CooVaHTTPPort;
 	}
 	
-	if($ArticaHotSpotPort<>null){
-		$conf[]="# --------- http port for Artica hotspot [".__LINE__."]\n";
-		$conf[]=$ArticaHotSpotPort;
-		$this->TRANSPARENT_PORTS_LIST[]=$this->ArticaHotSpotPort;
-		$this->TRANSPARENT_PORTS_LIST[]=$this->ArticaSSLHotSpotPort;
-		
-	}
+
 	
 	
 	
 	if($this->SSL_BUMP==0){
 		$this->EnableSquidSSLCRTD=0; 
-		$http_port_sslbump_2=null; 
+		if($EnableSSLOnStandardPort==0){
+			$http_port_sslbump_2=null; 
+		}
 		$http_port_sslbump=null;
 		$http_port_sslbump_3=null;
 	}
+	
+	if($EnableSSLOnStandardPort==1){
+		$this->EnableSquidSSLCRTD=1;
+	}
+	
 	
 	if($this->wccp2_enabled==1){
 		$conf[]="# --------- http port ( $transparent_token ) for WCCP2 [".__LINE__."]\n";
@@ -4806,16 +5497,26 @@ private function build_http_ports(){
 		}
 	}
 	
-	if($this->second_port_transparent<>null){$conf[]="$this->second_port_transparent$http_port_sslbump_2\n";}
+	if($this->second_port_transparent<>null){
+		
+			$conf[]="$this->second_port_transparent$http_port_sslbump_2\n";
+		
+	}
 	
 	if($this->second_listen_port>0){
-		
+		$conf[]="# http_port: Second listen port ($this->second_listen_port) DisableSSLStandardPort=$this->DisableSSLStandardPort [".__LINE__."]";
 		$this->MyPortsArray[$this->second_listen_port]=$this->second_listen_port;
 		if($this->DisableSSLStandardPort==1){
-			$conf[]="# Second listen port With SSL `DISABLED` on standard port[".__LINE__."]";
+			$conf[]="# http_port: Second listen port With SSL `DISABLED` on standard port[".__LINE__."]";
 			$conf[]="http_port $this->SquidBinIpaddr$this->second_listen_port\n";
 		}else{
-			$conf[]="# Second listen port With SSL `ENABLED` on standard port[".__LINE__."]";
+			$conf[]="# http_port: Second listen port With SSL `ENABLED` on standard port[".__LINE__."]";
+			if($http_port_sslbump_2==null){
+				$conf[]="# http_port: ssl_bump_port is null -> ssl_bump_port() [".__LINE__."]";
+				$http_port_sslbump_2=$this->ssl_bump_port();
+				$conf[]=@implode("\n", $this->sslbump_token_debug);
+			
+			}
 			$conf[]="http_port $this->SquidBinIpaddr$this->second_listen_port$http_port_sslbump_2\n";
 		}
 	}
@@ -4844,7 +5545,7 @@ private function build_http_ports(){
 		
 	}
 	
-	
+	$this->build_progress("Checks SSL ports");
 	$ssl_port_text=$this->https_port();
 	
 	if($GLOBALS["VERBOSE"]){
@@ -4873,6 +5574,9 @@ private function build_http_ports(){
 		$conf[]="htcp_port $this->HTCP_PORT"; // should 4827
 		}	
 		
+	$build_http_debug_port=$this->build_http_debug_port();
+	if($build_http_debug_port<>null){$conf[]=$build_http_debug_port;}
+	$conf[]="http_port 0.0.0.0:$this->MGR_LISTEN_PORT";
 	$conf[]="#";
 	$conf[]="#";
 	return @implode("\n",$conf)."\n";
@@ -4882,17 +5586,17 @@ private function build_http_ports(){
 public function dns_nameservers($dnsmasq=false){
 	$sock=new sockets();
 	$noresol=false;
-	$EnableLocalDNSMASQ=$sock->GET_INFO('EnableLocalDNSMASQ');
-	if(!is_numeric($EnableLocalDNSMASQ)){$EnableLocalDNSMASQ=0;}
+	$IpClass=new IP();
+	$EnableDNSMASQ=$sock->dnsmasq_enabled();
+	
 	writelogs("dns server: ".count($this->dns_array) . ' rows',__CLASS__.'/'.__FUNCTION__,__FILE__);
 	
 	$dns_nameservers=array();
-	if(!$dnsmasq){
-		if($EnableLocalDNSMASQ==1){
-			if($GLOBALS["VERBOSE"]){echo " ***** DNS: add 127.0.0.1 at the top\n";}
+	if($EnableDNSMASQ==1){
+		if($GLOBALS["VERBOSE"]){echo " ***** DNS: add 127.0.0.1 at the top\n";}
 			$dns_nameservers[]="127.0.0.1";
 		}
-	}
+	
 	
 	if(count($this->dns_array)==0){
 		$dns_nameservers_from_resolv=$this->dns_nameservers_from_resolv(true);
@@ -4925,19 +5629,14 @@ public function dns_nameservers($dnsmasq=false){
 	}
 	
 	while (list ($num, $val) = each ($dns_nameservers) ){
-		$CLEAN[$val]=true;
+		if(!$IpClass->isIPAddress($val)){continue;}
+		$CLEAN[$val]=$val;
 	}
 	
 	$dns_nameservers=array();
 	while (list ($num, $val) = each ($CLEAN) ){
 		$dns_nameservers[]=$num;
 	}
-	
-	if($dnsmasq){
-		if(count($dns_nameservers)==0){return array();}
-		return $dns_nameservers;
-	}
-	
 	
 	
 	
@@ -4949,6 +5648,7 @@ public function dns_nameservers($dnsmasq=false){
 		
 function BuildSquidConf(){
 		$sock=new sockets();
+		$artica_meta=new squid_meta();
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$users=$GLOBALS["CLASS_USERS"];
 		$conf=null;
@@ -4970,7 +5670,10 @@ function BuildSquidConf(){
 		$SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 		$SquidBoosterOnly=$ws->zcheck_squidbooster_value();
 		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+		$SquidClientPersistentConnections=intval($sock->GET_INFO("SquidClientPersistentConnections"));
+		$SquidServerPersistentConnections=intval($sock->GET_INFO("SquidServerPersistentConnections"));
 		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+		$SquidUploadTimeouts=intval($sock->GET_INFO("SquidUploadTimeouts"));
 		
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		$this->EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
@@ -4995,6 +5698,9 @@ function BuildSquidConf(){
 		$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 		if(!is_numeric($SquidAsMasterCacheChilds)){$SquidAsMasterCacheChilds=1;}
 		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
+		$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
+		if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
+		
 		if($SquidCacheLevel==0){$this->DisableAnyCache=1;}
 		if($this->SquidUrgency==1){
 			$SquidCacheLevel=0;
@@ -5067,6 +5773,7 @@ function BuildSquidConf(){
 		
 		if($this->SquidActHasReverse<>1){
 			if($this->SquidDisableAllFilters==0){
+				$this->build_progress("Checks Webfiltering");
 				$squidGuard=$this->squidGuard();
 			}
 		}
@@ -5113,7 +5820,7 @@ function BuildSquidConf(){
 			$conf=$conf.$this->squid_reverse_websites();
 		}		
 		
-		
+		$this->build_progress("Checks SSL ports");
 		$conf=$conf.$this->build_http_ports();
 		
 		
@@ -5134,11 +5841,25 @@ function BuildSquidConf(){
 		$this->MyStandPort=null;
 		$d=array();
 		$token=$this->myport_token();
-		
 		$conf=$conf."# --------- NormalPorts ".count($this->MyPortsArray)." Item(s) [".__LINE__."]\n";
 		
 		while (list ($port, $ligne) = each ($this->MyPortsArray) ){if(!is_numeric($port)){continue;}$d[]=$port;}
 		$StandardPorts=@implode(" ", $d);
+		
+		$conf=$conf . "#--------- Authentication methods (v 2014 - Dec 9) --------- --------- ---------\n";
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [AUTH] Building NTLM Settings\n";}
+		
+		$this->build_progress("Checks NTLM");
+		$ntlm_auth_conf=$this->ntlm_auth_conf();
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [AUTH] Building NTLM  = ".strlen($ntlm_auth_conf)." bytes\n";}
+		if(strlen($ntlm_auth_conf)>0){$conf=$conf . $ntlm_auth_conf;}
+		
+		$this->build_progress("Checks LDAP");
+		$conf=$conf . $this->ldap_auth_conf();
+		$conf=$conf . $this->auth_param_basic(true);
+		$conf=$conf . "#--------- --------- --------- --------- --------- ---------\n";
+		
+		
 	
 		
 		$CoovaChilliAcls=$this->CoovaChilliAcls();
@@ -5153,9 +5874,18 @@ function BuildSquidConf(){
 			$conf=$conf."acl MobilePhones browser -i (CFNetwork|iPhone|iPad|Mobile|Android|BlackBerry|PalmSource|SymbianOS|IEMobile|Opera Mobi|Apple-iPhone|Apple-iPad|Apple-iPod)\n";
 			$conf=$conf."acl MobilePhones browser -i (android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i || substr($ENV{'HTTP_USER_AGENT'}, 0, 4) =~ m/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i)\n";
 		}
+
 		$conf=$conf."acl ToArticaWWW dstdomain .artica.fr .articatech.net .articatech.com\n";
-		$conf=$conf."acl DenyBlacksites dstdomain \"/etc/squid3/www-blacklists.db\"\n";
+		if($sock->EnableUfdbGuardArtica()==0){
+			$conf=$conf."# DenyBlacksites EnableUfdbGuardArtica() = 0\n";
+			$conf=$conf."acl DenyBlacksites dstdomain \"/etc/squid3/www-blacklists.db\"\n";
+		}
+		$conf=$conf."acl DenyCachedSites dstdomain \"/etc/squid3/www-denycache.db\"\n";
+		
 		if(!is_file("/etc/squid3/www-blacklists.db")){@touch("/etc/squid3/www-blacklists.db");}
+		if(!is_file("/etc/squid3/www-denycache.db")){@touch("/etc/squid3/www-denycache.db");}
+		if(!is_file("/etc/squid3/url_rewrite_program.deny.db")){@touch("/etc/squid3/url_rewrite_program.deny.db");}
+		$this->build_progress("Checks backends proxys");
 		$conf=$conf .$this->ACL_ChildProxysIPs()."\n";
 		$conf=$conf .$this->ACL_MyLocalIpsDest();"\n";
 		
@@ -5172,12 +5902,12 @@ function BuildSquidConf(){
 		if($GLOBALS["HAARP_ACL"]<>null){$conf=$conf."{$GLOBALS["HAARP_ACL"]}\n";}
 		$isp_networks=$this->isp_networks();
 		if($isp_networks<>null){$conf=$conf."$isp_networks\n";}
-		
+		$this->build_progress("Checks ACLs");
 		$kav_acl=$this->acls_multimedias();
 		if($this->SquidDisableAllFilters==0){
 			$acl_blocked_sites="acl blockedsites url_regex \"/etc/squid3/squid-block.acl\"\n";
 		}
-			
+		$conf=$conf.$artica_meta->build_acls();
 		$conf=$conf.$this->ACLS_DROPBOX()."\n";
 		$conf=$conf.$this->ACLS_SKYPE()."\n";
 		$conf=$conf.$this->ACLS_OFFICE365()."\n";
@@ -5185,17 +5915,7 @@ function BuildSquidConf(){
 		$conf=$conf.$this->ACLS_BROWSERS()."\n";
 		$squid_sessions_builder=$this->squid_sessions_builder();
 	
-		$conf=$conf . "#--------- Authentication methods (v 2013 - Sept 16)\n";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [AUTH] Building NTLM Settings\n";}
-		
 
-		$ntlm_auth_conf=$this->ntlm_auth_conf();
-		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [AUTH] Building NTLM  = ".strlen($ntlm_auth_conf)." bytes\n";}
-		if(strlen($ntlm_auth_conf)>0){$conf=$conf . $ntlm_auth_conf;}
-		
-		
-		$conf=$conf . $this->ldap_auth_conf();
-		$conf=$conf . $this->auth_param_basic(true);
 
 		
 
@@ -5205,8 +5925,9 @@ function BuildSquidConf(){
 			$conf=$conf.$GLOBALS["ACL_AUTHENTICATED"]."\n";
 		}
 		
-		
+		$this->build_progress("Checks Externals ACLS");
 		$conf=$conf . $this->AclsStreamCache();
+		$conf=$conf.  $this->external_acl_helper_restrict_access();
 		$conf=$conf . $this->external_acl_helper_MacToUid();
 		$conf=$conf.  $this->external_acl_helper_splash_screen();
 		$conf=$conf.  $this->external_acl_helper_nudity_scanner();
@@ -5214,13 +5935,16 @@ function BuildSquidConf(){
 		$conf=$conf.  $this->external_acl_helper_time_quota_acl();
 		$conf=$conf.  $this->external_acl_helper_ITChart();
 		$conf=$conf.  $this->external_acl_helper_categories();
+		$conf=$conf.  $this->external_acl_helper_sizequota();
+		$conf=$conf.  $this->external_acl_helper_timequota();
+		
 		$conf=$conf . $this->external_acl_helper_quota();
 		
 		$conf=$conf . "#--------- Bubble Mode ($this->SquidBubbleMode)\n";
 		
 		if($this->SquidBubbleMode==1){
 			$conf=$conf . "acl MyStandPort $token $StandardPorts\n";
-			$this->MyStandPort="MyStandPort ";
+			$this->MyStandPort=" MyStandPort ";
 			$q=new mysql_squid_builder();
 			$sql="SELECT * FROM webfilters_sqaclsports WHERE enabled=1 ORDER BY aclport";
 			$results = $q->QUERY_SQL($sql);
@@ -5246,7 +5970,8 @@ function BuildSquidConf(){
 		
 
 		
-		$conf=$conf . "quick_abort_min $quick_abort_min\n";
+		$conf=$conf . "quick_abort_min -1\n";
+		$conf=$conf . "range_offset_limit -1\n";
 		$conf=$conf . "quick_abort_max 0 KB\n";
 		if(($this->ForceWindowsUpdateCaching==1) OR ($this->ProxyDedicateMicrosoftRules==1)){
 			$conf=$conf . "range_offset_limit -1\n";
@@ -5255,6 +5980,7 @@ function BuildSquidConf(){
 		$conf=$conf . "client_db on\n";
 		$conf=$conf . "buffered_logs off\n";
 		$conf=$conf . "half_closed_clients off\n";
+		$conf=$conf . "error_directory /usr/share/squid-langpack/templates\n";
 		if($this->max_filedesc>1024 ){$conf=$conf . "max_filedesc $this->max_filedesc\n";}
 		
 		
@@ -5292,8 +6018,10 @@ function BuildSquidConf(){
 		$http_port_transparent_acl=$this->http_port_transparent_acl();
 		if($http_port_transparent_acl<>null){$conf=$conf.$http_port_transparent_acl."\n";}
 		
-		$ACLS_USERS_ASKS=$this->ACLS_USERS_ASKS();
-		if($ACLS_USERS_ASKS<>null){$conf=$conf. $ACLS_USERS_ASKS."\n";}
+		
+		$ACL_identd_server=$this->ACL_identd_server();
+		
+		if($ACL_identd_server<>null){$conf=$conf. $ACL_identd_server."\n";}
 
 		
 		
@@ -5364,7 +6092,7 @@ function BuildSquidConf(){
 		
 
 		$conf=$conf."\n\n#--------- http_access: on TOP: Authentication rules...\n";
-		$NormalPorts="NormalPorts ";
+		$NormalPorts=" NormalPorts ";
 		if($this->MyStandPort<>null){$NormalPorts=$this->MyStandPort;}
 		$MobilePhones=null;
 		$MyMobilesPort=null;
@@ -5391,6 +6119,10 @@ function BuildSquidConf(){
 				$office_network=null;
 		}
 
+		if($this->SquidEnableIdentdServiceOnly==1){
+			$GLOBALS["HTTP_ACCESS"]["IDENT_SERVICE"]="http_access deny $NormalPorts$MobilePhones!identhosts all\n";
+			
+		}
 		
 
 		if($this->EnableKerbAuth==1){
@@ -5539,6 +6271,8 @@ function BuildSquidConf(){
 		if($this->SquidDisableAllFilters==0){
 			$conf=$conf .$this->ACL_BANNED_COMPUTERS_IP();
 			$conf=$conf .$this->ACL_MESSENGERS();
+		}else{
+			$conf=$conf ."# ----- ACL_BANNED_COMPUTERS_IP() SKIPPED [".__LINE__."]\n";
 		}
 		if($this->ASROOT){
 			$GLOBALS["aclGen"]=new squid_acls();
@@ -5568,6 +6302,8 @@ function BuildSquidConf(){
 		
 		$conf=$conf."\n# # # # # # # # # # # # # # # # # # RULES DEFINITIONS # # # # # # # # # # # # # # # # # #\n";
 		
+		$conf=$conf.$this->url_rewrite_access();
+		$conf=$conf.$artica_meta->http_access();
 		$conf=$conf.$this->http_access();
 		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ICAP]: SquidDisableAllFilters=$this->SquidDisableAllFilters\n";}
 		if($this->SquidDisableAllFilters==0){
@@ -5577,7 +6313,10 @@ function BuildSquidConf(){
 			$conf=$conf.@implode("\n", $icap->icap_lines)."\n";
 			
 			//$ecap=new ecap();
-			$conf=$conf."# --------- eCAP Services - not suppoorted yet...\n";
+			$conf=$conf."# --------- eCAP Services - not supported yet...\n";
+			
+			
+			
 			//$conf=$conf.$ecap->build();
 			
 		}else{
@@ -5589,15 +6328,24 @@ function BuildSquidConf(){
 		
 		$conf=$conf."\n";
 		$conf=$conf.$this->WCCP();
+		$conf=$conf.$this->WCCPL3();
+		$this->build_progress("Checks SNMP ports");
 		$conf=$conf.$this->SNMP();
 		$conf=$conf.$this->request_header_add();
 		$conf=$conf."\n";
-		$conf=$conf."# --------- ident_lookup_access\n";
-		$conf=$conf."hierarchy_stoplist cgi-bin ?\n";
+		
+		if(!$this->IS_35){
+			$conf=$conf."# --------- ident_lookup_access\n";
+			$conf=$conf."hierarchy_stoplist cgi-bin ?\n";
+		}
 		$conf=$conf."\n";
 		$conf=$conf."# --------- General settings \n";
 		$conf=$conf."visible_hostname ".$this->visible_hostnameF()."\n";
 		$conf=$conf."unique_hostname ".$this->my_full_hostname()."\n";
+		$conf=$conf."mime_table /etc/squid3/mime.conf\n";
+		$conf=$conf."icon_directory /usr/share/squid3/icons\n";
+		$conf=$conf."global_internal_static on\n";
+		
 		if(($this->IS_30) && (!$this->IS_32)){
 			$conf=$conf."ignore_expect_100 $ignore_expect_100\n";
 		}
@@ -5622,7 +6370,7 @@ function BuildSquidConf(){
 		}
 		
 		
-		
+		$this->build_progress("Checks TimeOut parameters");
 		$conf=$conf."\n";
 		$conf=$conf."\n";
 		$conf=$conf."# --------- time-out \n";
@@ -5632,15 +6380,37 @@ function BuildSquidConf(){
 			$conf=$conf."dead_peer_timeout {$this->dead_peer_timeout} seconds\n";
 		}
 		
+		if($SquidClientPersistentConnections==1){
+			$conf=$conf."client_persistent_connections on\n";
+		}else{
+			$conf=$conf."client_persistent_connections off\n";
+		}
 		
+		if($SquidServerPersistentConnections==1){
+			$conf=$conf."server_persistent_connections on\n";
+		}else{
+			$conf=$conf."server_persistent_connections off\n";
+		}		
 		
 		$conf=$conf."forward_max_tries {$this->forward_max_tries}\n";
 		$conf=$conf."forward_timeout {$this->forward_timeout} seconds\n";
 		$conf=$conf."connect_timeout {$this->connect_timeout} seconds\n";
-		$conf=$conf."persistent_request_timeout $this->persistent_request_timeout seconds\n";
-		$conf=$conf."pconn_timeout $this->pconn_timeout seconds\n"; 
+		
+		
 		$conf=$conf."shutdown_lifetime $this->shutdown_lifetime seconds\n";
-		$conf=$conf."read_timeout $this->read_timeout seconds\n";
+		
+		if($SquidUploadTimeouts==0){
+			$conf=$conf."read_timeout $this->read_timeout seconds\n";
+			$conf=$conf."pconn_timeout $this->pconn_timeout seconds\n";
+			$conf=$conf."persistent_request_timeout $this->persistent_request_timeout seconds\n";
+			
+		}else{
+			$conf=$conf."read_timeout $SquidUploadTimeouts minutes\n";
+			$conf=$conf."pconn_timeout $SquidUploadTimeouts minutes\n";
+			$conf=$conf."persistent_request_timeout $SquidUploadTimeouts minutes\n";
+			$conf=$conf."request_timeout $SquidUploadTimeouts minutes\n";
+			
+		}
 		
 		if($this->IS_27){
 			$conf=$conf."incoming_rate $this->incoming_rate\n";
@@ -5693,24 +6463,41 @@ function BuildSquidConf(){
 		
 		if(!isset($this->global_conf_array["tcp_outgoing_address"])){$this->global_conf_array["tcp_outgoing_address"]=null;}
 		$CoovaChilli_tcp_outgoing_address=$this->CoovaChilli_tcp_outgoing_address();
+		$Mikrotik_tcp_outgoing_address=$this->Mikrotik_tcp_outgoing_address();
+		
+		
 		
 		if($CoovaChilli_tcp_outgoing_address<>null){
 			$conf=$conf."$CoovaChilli_tcp_outgoing_address\n";
 		}
 		
+		if($Mikrotik_tcp_outgoing_address<>null){
+			$conf=$conf."$Mikrotik_tcp_outgoing_address\n";
+		}
+		
+			
+		
 		if(trim($this->global_conf_array["tcp_outgoing_address"])<>null){
 			$conf=$conf."tcp_outgoing_address {$this->global_conf_array["tcp_outgoing_address"]}\n";	
 		}
+		
+		
+		
+		
 		if($this->SquidBubbleMode==1){$prefixacls=" MyStandPort ";}
 		$conf=$conf."\n";
 		$conf=$conf ."# -----------------------------\n";
 		$conf=$conf ."# --------- SSL Rules ---------[".__LINE__."]\n";
 		$conf=$conf ."# -----------------------------\n";
+		$this->build_progress("Checks SSL Rules");
 		$conf=$conf .$this->ssl_dropbox();
 		$conf=$conf .$this->ssl_skype();
 		$conf=$conf. $this->ssl_office365();
 		$conf=$conf .$this->ssl_bump_access();
+		$conf=$conf .$this->sslproxy_options();
 		$conf=$conf."\n\n";
+		
+		$this->build_progress("Checks Caches");
 		$conf=$conf ."# --------- Caches \n\n";
 		if(isset($GLOBALS["HAARP_CACHE_DENY"])){
 			$conf=$conf ."{$GLOBALS["HAARP_CACHE_DENY"]}\n";
@@ -5721,6 +6508,8 @@ function BuildSquidConf(){
 		$conf=$conf ."# --------- SquidAsMasterPeer =  $SquidAsMasterPeer [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterCacheChilds =  $SquidAsMasterCacheChilds [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterFollowxForward =  $SquidAsMasterFollowxForward [". __LINE__."]\n";
+		
+		
 		
 		
 		if($SquidCacheLevel==0){
@@ -5745,11 +6534,14 @@ function BuildSquidConf(){
 
 		
 		
-		$conf=$conf ."# --------- Do not cache from Browsers [". __LINE__."]\n";
-		$conf=$conf ."cache deny BrowsersNoCache\n";
+			
+			$conf=$conf ."# --------- Do not cache from Action menu [". __LINE__."]\n";
+			$conf=$conf ."cache deny DenyCachedSites\n";
+			$conf=$conf ."# --------- Do not cache from Browsers [". __LINE__."]\n";
+			$conf=$conf ."cache deny BrowsersNoCache\n";
 		
 			
-			
+			$this->build_progress("Checks Deny Cache acls (1)");
 			$cache_deny_array=$this->cache_deny_array();
 			$conf=$conf ."# --------- Do not cache these ". count($cache_deny_array)." website(s) [". __LINE__."]\n";
 			if(count($cache_deny_array)>0){
@@ -5760,6 +6552,7 @@ function BuildSquidConf(){
 		
 			$q=new mysql_squid_builder();
 			$acls=new squid_acls_groups();
+			$this->build_progress("Checks Deny Cache acls (2)");
 			$acls_deny=$acls->buildacls_bytype("cache_deny");
 			if(count($acls_deny)>0){
 				while (list ($index, $line) = each ($acls_deny) ){$conf=$conf ."cache deny {$prefixacls}$line\n";}
@@ -5783,7 +6576,7 @@ function BuildSquidConf(){
 			$this->global_conf_array["read_ahead_gap"]="1 MB";
 		}
 		
-		
+		$this->build_progress("Checks Memory tuning");
 		$conf=$conf . "cache_effective_user squid\n";
 		$conf=$conf ."# --------- CACHE MANAGEMENT AND MEMORY [".__LINE__."]\n";
 		
@@ -5821,6 +6614,7 @@ function BuildSquidConf(){
 				if($CacheReplacementPolicyT==null){$CacheReplacementPolicyT="heap LFUDA";}
 				$conf=$conf ."#Policy $CacheReplacementPolicy\n";
 				$conf=$conf ."cache_replacement_policy $CacheReplacementPolicyT\n";
+				$this->build_progress("Cache Manager...");
 				$conf=$conf .$this->CacheManager();
 			}
 	
@@ -5828,6 +6622,26 @@ function BuildSquidConf(){
 		}
 		
 		$conf=$conf."# --------- DNS AND IP CACHES [".__LINE__."]\n";
+		$SquidIpv6DNSPrio=intval($sock->GET_INFO("SquidIpv6DNSPrio"));
+		$SquidClientDSTPassThru=intval($sock->GET_INFO("SquidClientDSTPassThru"));
+		
+		
+		
+		if($SquidIpv6DNSPrio==1){
+			$conf=$conf ."dns_v4_first off\n";
+		}else{
+			$conf=$conf ."dns_v4_first on\n";
+		}
+		
+		if($SquidClientDSTPassThru==1){
+			$conf=$conf ."client_dst_passthru on\n";
+		}else{
+			$conf=$conf ."client_dst_passthru off\n";
+		}
+			
+		
+		
+		
 		$conf=$conf .$this->append_domain()."\n";
 		$conf=$conf ."dns_timeout {$this->dns_timeout} seconds\n";
 		$conf=$conf ."ipcache_size {$this->global_conf_array["ipcache_size"]}\n";
@@ -5838,6 +6652,7 @@ function BuildSquidConf(){
 		$conf=$conf ."negative_dns_ttl {$this->global_conf_array["negative_dns_ttl"]}\n";
 
 		$conf=$conf ."\n\n# --------- SPECIFIC DNS SERVERS [".__LINE__."]\n";
+		$this->build_progress("DNS tuning");
 		$conf=$conf.$this->dns_nameservers();
 		
 		$conf=$conf."# --------- PERSONNAL SETTINGS [".__LINE__."]\n";
@@ -5848,7 +6663,20 @@ function BuildSquidConf(){
 		
 
 		$conf=$conf.$this->ftp_parameters();
-		$conf=$conf."debug_options ".$this->debug_options()."\n";
+		$this->build_progress("Debug options");
+		$debug_options=$this->debug_options();
+		// debug option 84,9  -> Helpers
+		if($debug_options<>null){
+			$conf=$conf."debug_options $debug_options\n";
+		}else{
+			$conf=$conf."debug_options ALL,1\n";
+		}
+			
+		if(isset($GLOBALS["authenticate_ip_ttl"])){
+			$authenticate_ip_ttl=intval($sock->GET_INFO("authenticate_ip_ttl"));
+			if($authenticate_ip_ttl==0){$authenticate_ip_ttl=60;}
+			$conf=$conf."authenticate_ip_ttl $authenticate_ip_ttl seconds\n";
+		}
 		
 		$conf=$conf."# --------- CACHES RULES SquidCacheLevel:$SquidCacheLevel [".__LINE__."]\n";
 		
@@ -5861,6 +6689,7 @@ function BuildSquidConf(){
 			@chown("/etc/squid3/refresh_patterns.conf","squid");
 		}
 		
+		$this->build_progress("Cache rules...");
 		$refresh_pattern_list=$this->refresh_pattern_list();
 		$conf=$conf.$refresh_pattern_list;
 		
@@ -5901,17 +6730,27 @@ function BuildSquidConf(){
 		
 		$conf=$conf."coredump_dir	/var/squid/cache\n";
 		
-		$conf=$conf."cache_log	/var/log/squid/cache.log\n";
+		if($this->LogsWarninStop==0){
+			$conf=$conf."cache_log	/var/log/squid/cache.log\n";
+		}
+		if($this->LogsWarninStop==1){
+			$conf=$conf."cache_log	/dev/null\n";
+			$conf=$conf."logfile_rotate 0\n";
+		}
 		$conf=$conf."pid_filename	/var/run/squid/squid.pid\n";
 		$compile_params=$this->compilation_params();
 		$pinger=$this->pinger();
 		if($pinger<>null){$conf=$conf.$pinger;}
 		$conf=$conf.$this->access_logs();		
 		$conf=$conf."# --------- CacheManagement2 = $this->CacheManagement2 DisableAnyCache = \"$this->DisableAnyCache\"/Urgency=\"$this->SquidUrgency\" [". __LINE__."]\n";
+		if($this->DisableAnyCache==0){$conf=$conf."store_dir_select_algorithm round-robin\n";}
+		$this->build_progress("Cache directory method 1...");
 		$conf=$conf.$this->cache_dir_method_1()."\n";
+		$this->build_progress("Cache directory method 2...");
 		$conf=$conf.$this->cache_dir_method_2()."\n";
 		$conf=$conf."\n";
 		$conf=str_replace("\n\n", "\n", $conf);
+		$this->build_progress("Done...");
 		return $conf;	
 	}
 	
@@ -5927,9 +6766,15 @@ function BuildSquidConf(){
 	private function cache_dir_method_2(){
 		if($this->CacheManagement2==0){return;}
 		if($this->SquidUrgency==1){$this->DisableAnyCache=1;}
-		if($this->DisableAnyCache==1){return;}
+		$f[]="# --------- cache_dir_method_2 SquidCacheCenter/build [".__LINE__."]";
+		
+		$this->build_progress("Open cache center...");
 		$cache=new SquidCacheCenter();
-		return $cache->build();
+		$cache->CURRENT_PROGRESS=$this->CURRENT_PROGRESS;
+		$cache->MAX_PROGRESS=$this->MAX_PROGRESS;
+		$cache->ASROOT=$this->ASROOT;
+		$f[]=$cache->build();
+		return @implode("\n", $f);
 	}
 	
 	
@@ -6070,6 +6915,8 @@ function BuildSquidConf(){
 	}
 	
 	private function access_log_childs(){
+		if($this->LogsWarninStop==1){return;}
+		if($this->SquidUrgency==1){return;}
 		$sock=new sockets();
 		$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 		if($SquidAsMasterPeer==0){return null;}
@@ -6108,6 +6955,8 @@ function BuildSquidConf(){
 	
 	
 	private function access_log_csv(){
+		if($this->SquidUrgency==1){return;}
+		if($this->LogsWarninStop==1){return;}
 		if($this->EnableSquidCSV==0){return;}
 		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid create logs in csv enabed\n";}
 		$sock=new sockets();
@@ -6186,6 +7035,7 @@ function BuildSquidConf(){
 	private function syslog_remote(){
 		$sock=new sockets();
 		if(!$this->ASROOT){return;}
+		$restart=false;
 		$array=unserialize(base64_decode($sock->GET_INFO("SquidSyslogAdd")));
 		if(!isset($array["ENABLE"])){
 			echo "Starting......: ".date("H:i:s")." Squid remote syslog is disabled\n";
@@ -6193,20 +7043,37 @@ function BuildSquidConf(){
 		if(!is_numeric($array["ENABLE"])){$array["ENABLE"]==0;}
 		if($array["ENABLE"]==0){
 			echo "Starting......: ".date("H:i:s")." Squid remote syslog is disabled\n";
-			if(is_file("/etc/rsyslog.d/artica-client-local6.conf")){@unlink("/etc/rsyslog.d/artica-client-local6.conf");}
+			if(is_file("/etc/rsyslog.d/artica-client-local6.conf")){@unlink("/etc/rsyslog.d/artica-client-local6.conf");$restart=true;}
 			return;
 		}
+		
+		
 		if($array["SERVER"]==null){
 			echo "Starting......: ".date("H:i:s")." Squid remote syslog is disabled (no server set)\n";
-			if(is_file("/etc/rsyslog.d/artica-client-local6.conf")){@unlink("/etc/rsyslog.d/artica-client-local6.conf");}
+			if(is_file("/etc/rsyslog.d/artica-client-local6.conf")){@unlink("/etc/rsyslog.d/artica-client-local6.conf");$restart=true;}
 			return;
 		}
+		
+		if($this->IS_34){
+			$options34=" on-error=drop buffer-size=64KB ";
+		}
+		
+		if(!is_file("/etc/rsyslog.d/artica-client-local6.conf")){$restart=true;}
+		
 		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$nohup=$unix->find_program("nohup");
 		echo "Starting......: ".date("H:i:s")." Squid remote syslog exec.syslog-engine.php --squidsys\n";
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.syslog-engine.php --squidsys >/dev/null 2>&1 &");
-		return "access_log syslog:local6.info common\n";
+		
+		if(intval($array["ENABLE_PERSO_EVENT"])==1){
+			$f[]="logformat Syslog6 {$array["PERSO_EVENT"]}";
+			$f[]="access_log syslog:local6.info Syslog6$options34";
+			return @implode("\n", $f);
+		}
+		
+		
+		return "access_log syslog:local6.info common$options34\n";
 	}
 	
 	
@@ -6228,6 +7095,21 @@ function BuildSquidConf(){
 			return "acl ISP_CLIENTS src \"/etc/squid3/isp_acls_src\"";
 		
 		}
+		
+	}
+	
+	private function GoogleSafeBrowsing(){
+		if($this->SquidUrgency==1){return null;}
+		$sock=new sockets();
+		if($sock->EnableUfdbGuardArtica()==0){return;}
+		$EnableGoogleSafeBrowsing=intval($sock->GET_INFO("EnableGoogleSafeBrowsing"));
+		$f[]="# SafeBrowsing EnableGoogleSafeBrowsing = $EnableGoogleSafeBrowsing [".__LINE__."]";
+		if($EnableGoogleSafeBrowsing==0){return @implode("\n", $f);}
+		$f[]="acl BanSafeBrowsing dstdomain safebrowsing.clients.google.com";
+		$f[]="acl BanSafeBrowsing dstdomain safebrowsing-cache.google.com";
+		$f[]="acl BanSafeBrowsing dstdomain safebrowsing.google.com";
+		$f[]="http_access deny BanSafeBrowsing";
+		return @implode("\n", $f);
 		
 	}
 	
@@ -6308,7 +7190,8 @@ function BuildSquidConf(){
 			if($this->SquidUrgency==1){return null;}
 			if(!$this->ASROOT){return;}
 			$s=array();
-			$f=file("/etc/resolv.conf");
+			$this->build_progress("Checks resolv.conf - 2 -");
+			$f=explode("\n",@file_get_contents("/etc/resolv.conf"));
 			while (list ($num, $val) = each ($f)){
 				if(preg_match("#nameserver\s+(.+)#", $val,$re)){
 					$s[]=trim($re[1]);
@@ -6321,20 +7204,42 @@ function BuildSquidConf(){
 			
 		}
 		
+		public function CacheManager_default(){
+			$sock=new sockets();
+			$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+			$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+			
+			if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+			if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]="contact@articatech.com";}
+			$LicenseInfos["EMAIL"]=str_replace("'", "", $LicenseInfos["EMAIL"]);
+			$LicenseInfos["EMAIL"]=str_replace('"', "", $LicenseInfos["EMAIL"]);
+			$LicenseInfos["EMAIL"]=str_replace(' ', "", $LicenseInfos["EMAIL"]);
+			$conf[]="";
+			$conf[]="#Cache Manager Authentication";
+			$conf[]="cache_mgr {$LicenseInfos["EMAIL"]}";
+			$conf[]="";
+			return @implode("\n", $conf);
+		}
+		
 		private function CacheManager(){
+			$users=new usersMenus();
+			if(!$users->CORP_LICENSE){return $this->CacheManager_default();}
+			
+			
 			$sock=new sockets();
 			$cache_mgr_user=$sock->GET_INFO("cache_mgr_user");
 			$cachemgr_passwd=$sock->GET_INFO("cachemgr_passwd");
-			if($cache_mgr_user<>null){
+			if($cache_mgr_user==null){return $this->CacheManager_default();}
 				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [MGR]: Cache Manager set has $cache_mgr_user\n";} 
 				$conf[]="";
 				$conf[]="#Cache Manager Authentication";
 				$conf[]="cache_mgr $cache_mgr_user";
-				$conf[]="cachemgr_passwd $cachemgr_passwd all";
+				if($cachemgr_passwd<>null){
+					$conf[]="cachemgr_passwd $cachemgr_passwd all";
+				}
 				$conf[]="";
-			}else{
-				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [MGR]: Cache Manager is not set\n";} 
-			}
+				return @implode("\n", $conf);
+			
 			
 		}
 		
@@ -6347,6 +7252,46 @@ function BuildSquidConf(){
 				}
 			}
 		}
+		
+		
+		private function ACL_identd_server(){
+			$sock=new sockets();
+			
+			$SquidEnableIdentdService=intval($sock->GET_INFO("SquidEnableIdentdService"));
+			if($SquidEnableIdentdService==0){return null;}
+			$f[]="acl identhosts ident REQUIRED";
+			$q=new mysql_squid_builder();
+			$sql="SELECT * FROM ident_networks";
+			$results = $q->QUERY_SQL($sql);
+			$network_items=array();
+			$ip=new IP();
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$network_item=trim($ligne["network_item"]);
+				if($network_item==null){continue;}
+				if(!$ip->isIPAddressOrRange($network_item)){continue;}
+				$network_items[]=$network_item;
+			}
+			
+			if(count($network_items)==0){
+				$f[]="ident_lookup_access allow all";
+			}else{
+				@file_put_contents("/etc/squid3/ident_aware_hosts.db", @implode("\n", $network_items)."\n");
+				@chown("/etc/squid3/ident_aware_hosts.db", "squid");
+				@chgrp("/etc/squid3/ident_aware_hosts.db", "squid");
+				$f[]="acl ident_aware_hosts src \"/etc/squid3/ident_aware_hosts.db\"";
+				$f[]="ident_lookup_access allow ident_aware_hosts";
+				$f[]="ident_lookup_access deny all";
+			}
+			$SquidEnableIdentTimeout=intval($sock->GET_INFO("SquidEnableIdentTimeout"));
+			if($SquidEnableIdentTimeout==0){$SquidEnableIdentTimeout=3;}
+			$f[]="ident_timeout $SquidEnableIdentTimeout seconds";
+			return @implode("\n",$f);
+			
+			
+			
+		}
+		
+		
 		
 		private function ACL_ChildProxysIPs(){
 			// ChildProxysIPs
@@ -6399,7 +7344,7 @@ function BuildSquidConf(){
 			if($SquidDebugPort==0){return;}
 			$f[]="#";
 			$f[]="#--------- Disable Web filtering for the Test Port [".__LINE__."]";
-			$f[]="url_rewrite_access deny MyTestPort";
+			
 			if(!$q->TABLE_EXISTS("debugport_addr")){
 				$f[]="#--------- debugport_addr no such table";
 				$f[]="http_access allow MyTestPort all";
@@ -6433,21 +7378,38 @@ function BuildSquidConf(){
 			$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 			$SquidDebugPort=intval($sock->GET_INFO("SquidDebugPort"));
 			$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
-			
-			
+			$EnableSquidPortsRestrictions=intval($sock->GET_INFO("EnableSquidPortsRestrictions"));
+			$UfdbGuardHTTPAllowUnblock=intval($sock->GET_INFO("UfdbGuardHTTPAllowUnblock")); //UfdbAutoblock
+			$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+			if($SquidPerformance>2){$UfdbGuardHTTPAllowUnblock=0;}
 			
 			if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
 			$conf[]="# # # # # # # # # # MAIN RULES # # # # # # # # # # [".__LINE__."]";
 			$conf[]="#--------- Dedicated rule that allow Access to Artica repositories";
 			$conf[]="#--------- in any cases for updates [".__LINE__."]";
+		
 			$conf[]="http_access allow ToArticaWWW";
 			$conf[]="http_access allow MyLocalIpsDest";
-			$conf[]="url_rewrite_access deny MyLocalIpsDest";
-			$conf[]="http_access deny DenyBlacksites";
+			$conf[]="http_access allow FTP";
+			
+			$conf[]=$this->GoogleSafeBrowsing();
+			
+			
+			if($sock->EnableUfdbGuardArtica()==0){
+				$conf[]="http_access deny all DenyBlacksites";
+				$conf[]="deny_info ERR_BLACKLISTED_SITE DenyBlacksites";
+				if($this->ASROOT){
+					if(!is_file("/usr/share/squid-langpack/ERR_BLACKLISTED_SITE")){
+						shell_exec("/etc/init.d/squid templates --noreload");	
+					}
+				}
+			
+			}
+			
 			if($this->SquidUrgency==0){
 				$conf[]="#--------- http_access: Dedicated rule that deny UserAgents [".__LINE__."]";
 				$conf[]="http_access deny BrowsersDeny all";
-				$conf[]="url_rewrite_access deny BrowsersNoWebF";
+				
 			}
 			
 			
@@ -6471,26 +7433,22 @@ function BuildSquidConf(){
 			if($AllowSquidDropBox==1){
 				$conf[]="http_access allow dropbox_ips";
 				$conf[]="http_access allow dropbox_www";
-				$conf[]="url_rewrite_access deny dropbox_ips";
-				$conf[]="url_rewrite_access deny dropbox_www";
+
 			}
 			if($AllowSquidSkype==1){
 				$conf[]="http_access allow skype_ips";
 				$conf[]="http_access allow skype_www";
-				$conf[]="url_rewrite_access deny skype_ips";
-				$conf[]="url_rewrite_access deny skype_ips";
+
 			}
 			if($AllowSquidOffice365==1){
 				$conf[]="http_access allow office365_ips";
 				$conf[]="http_access allow office365_www";
-				$conf[]="url_rewrite_access deny office365_ips";
-				$conf[]="url_rewrite_access deny office365_www";
+
 			}
 			if($AllowSquidGoogle==1){
 				$conf[]="http_access allow google_ips";
 				$conf[]="http_access allow google_www";
-				$conf[]="url_rewrite_access deny google_ips";
-				$conf[]="url_rewrite_access deny google_www";
+
 			}			
 			
 			
@@ -6503,9 +7461,8 @@ function BuildSquidConf(){
 			if($this->enable_dansguardian==1){$this->allow_squid_localhost=1;}
 			$this->allow_squid_localhost=1;
 			$ACL_MANAGER=$this->ACL_MANAGER();
-			$sock=new sockets();
-			$EnableSquidPortsRestrictions=$sock->GET_INFO("EnableSquidPortsRestrictions");
-			if(!is_numeric($EnableSquidPortsRestrictions)){$EnableSquidPortsRestrictions=0;}
+	
+			
 			if($ACL_MANAGER<>null){$conf[]=$ACL_MANAGER;}
 			
 			if(isset($GLOBALS["HTTP_ACCESS_ALLOW_TEMPLATES"])){
@@ -6523,13 +7480,13 @@ function BuildSquidConf(){
 			}
 			
 			
-			
+			if(isset($GLOBALS["HTTP_ACCESS"]["ArticaRestrictAccess"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["ArticaRestrictAccess"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["ExtrnQuota"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["ExtrnQuota"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["MacToUid"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["MacToUid"];}
 			
 			if($this->ACL_ARP_ENABLED){
 				$conf[]="http_access allow {$this->MyStandPort}whitelisted_mac_computers";
-				$conf[]="url_rewrite_access deny {$this->MyStandPort}whitelisted_mac_computers";
+				
 				
 			}
 
@@ -6579,19 +7536,17 @@ function BuildSquidConf(){
 			if(!isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"])){$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"]=array();}
 			//if($this->allow_squid_localhost<>1){$conf[]="http_access deny to_localhost";}else{$conf[]="http_access allow to_localhost";}
 			$conf[]="http_access allow to_localhost";
-			$conf[]="url_rewrite_access deny MgRPort localhost";
+
+			
+			
+			
 			if(count($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"])>0){
 				$conf[]=implode("\n",$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"]);
 			}
-			if(isset($GLOBALS["url_rewrite_access_users"])){
-				if(count($GLOBALS["url_rewrite_access_users"])>0){
-					$conf[]=implode("\n",$GLOBALS["url_rewrite_access_users"]);
-				}
-			}
+		
 			
 			
-			$conf[]="url_rewrite_access deny MgRPort squidclient";
-			$conf[]="url_rewrite_access allow all";
+	
 			
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_MAC"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_MAC"];}			
 			if(isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS"];}
@@ -6615,8 +7570,10 @@ function BuildSquidConf(){
 			if(isset($GLOBALS["HTTP_ACCESS"]["ItChart"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["ItChart"];}
 			
 			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ACLS]: Building http_access rules... (Line ".__LINE__.")\n";}
-			
-			$conf[]="#--------- ACLS added by administrators F:".__FUNCTION__." line:".__LINE__;
+			$conf[]="#";
+			$conf[]="#";
+			$conf[]="# # # # # # # # # # # # # # # # # # RULES ADDED BY ADMINISTRATORS # # # # # # # # # # # # # # # # # # F:".__FUNCTION__." line:".__LINE__;
+			$conf[]="#";
 			$conf[]=$acls->buildacls_order(0);
 			
 			if($this->SquidBubbleMode==1){
@@ -6669,7 +7626,8 @@ function BuildSquidConf(){
 			if(isset($GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["EXTERNAL_ARTICA_HELPER"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["LDAP_AUTH"];}
 			if(isset($GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["LDAP_GROUP"];}
-							
+			if(isset($GLOBALS["HTTP_ACCESS"]["IDENT_SERVICE"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["IDENT_SERVICE"];}
+										
 			if($this->ASROOT){
 				$acls_rules=$GLOBALS["aclGen"]->build_http_access(0);
 				echo "Starting......: ".date("H:i:s")." [ACLS]: ". count($acls_rules)." rule(s) from engine (Line ".__LINE__.")\n";}
@@ -6803,7 +7761,7 @@ private function BuildSquidCertificateCRTD_default($commname=null){
 	if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
 	$sock=new sockets();
 	if($commname==null){$commname=$unix->hostname_g();}
-	
+	$commname=strtolower($commname);
 	$openssl=$unix->find_program("openssl");
 	$certificate_filename=str_replace("*", "_ALL_", $commname);
 	
@@ -6817,6 +7775,12 @@ private function BuildSquidCertificateCRTD_default($commname=null){
 			shell_exec($cmd);
 			if(!is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){ echo "Starting......: ".date("H:i:s")." [SSL]: Warning /usr/share/artica-postfix/ressources/squid/certificate.der no such file\n"; }
 		}
+		if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
+			if(@unlink("/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der")){
+				@copy("/usr/share/artica-postfix/ressources/squid/certificate.der", "/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der");
+			}
+		}
+		
 		echo "Starting......: ".date("H:i:s")." [SSL]: Already generated OK\n";
 		return " generate-host-certificates=on dynamic_cert_mem_cache_size=4MB cert=$keyout";
 	}
@@ -6859,6 +7823,10 @@ private function BuildSquidCertificateCRTD_default($commname=null){
 		echo "Starting......: ".date("H:i:s")." [SSL]: Warning /usr/share/artica-postfix/ressources/squid/certificate.der no such file\n";
 	}
 	
+	if(@unlink("/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der")){
+		@copy("/usr/share/artica-postfix/ressources/squid/certificate.der", "/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der");
+	}
+	
 	return " generate-host-certificates=on dynamic_cert_mem_cache_size=4MB cert=$keyout";
 }
 
@@ -6866,6 +7834,7 @@ private function BuildSquidCertificateCRTD_default($commname=null){
 private function  BuildSquidCertificateCRTD($commname){
 	if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
 	$openssl=$unix->find_program("openssl");
+	$commname=strtolower($commname);
 	$certificate_filename=str_replace("*", "_ALL_", $commname);
 	$keyout="/etc/squid3/ssl/$certificate_filename.dyn";
 	if(is_file($keyout)){
@@ -6892,6 +7861,10 @@ private function  BuildSquidCertificateCRTD($commname){
 		shell_exec($cmd);
 	}
 	
+	if(@unlink("/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der")){
+		@copy("/usr/share/artica-postfix/ressources/squid/certificate.der", "/usr/share/artica-postfix/ressources/squid/hotspot-$certificate_filename.der");
+	}
+	
 	
 	return " generate-host-certificates=on dynamic_cert_mem_cache_size=4MB cert=$keyout";
 
@@ -6901,6 +7874,7 @@ private function  BuildSquidCertificateCRTD($commname){
 
 public function BuildSquidCertificate($commname=null){
 	if(!$this->ASROOT){return;}
+	$GLOBALS["BuildSquidCertificate"]=array();
 	@mkdir("/etc/squid3",0755,true);
 	@mkdir("/etc/squid3/ssl",0755,true);
 	@mkdir("/usr/share/artica-postfix/ressources/squid",0755,true);
@@ -6909,12 +7883,16 @@ public function BuildSquidCertificate($commname=null){
 		$commname=$unix->hostname_g();
 	}
 	
+	$GLOBALS["BuildSquidCertificate"][]="sslcrtd_program = $this->sslcrtd_program EnableSquidSSLCRTD=$this->EnableSquidSSLCRTD [".__LINE__."]";
+	
 	if(strlen($this->sslcrtd_program)==0){$this->EnableSquidSSLCRTD=0;}
 	
 	echo "Starting......: ".date("H:i:s")." [SSL]: CommonName: `$commname`, EnableSquidSSLCRTD=$this->EnableSquidSSLCRTD\n";
 	if($this->EnableSquidSSLCRTD==1){
+		$GLOBALS["BuildSquidCertificate"][]="CommonName: `$commname` -> BuildSquidCertificateCRTD($commname)";
 		return $this->BuildSquidCertificateCRTD($commname);
 	}
+	$GLOBALS["BuildSquidCertificate"][]="CommonName: `$commname` -> SaveCertificate($commname)";
 	return $this->SaveCertificate($commname);
 	
 }
@@ -7028,7 +8006,7 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 			$KeyToken2="key=/etc/squid3/$certificate_filename.key";
 			$CertToken2="$cert_token=/etc/squid3/$certificate_filename.crt";
-			return " $CertToken2 $KeyToken=$KeyToken2";		
+			return " $CertToken2 $KeyToken2";		
 		}
 		
 		private function NETWORK_ALL_INTERFACES(){
@@ -7186,8 +8164,43 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 		}
 		
 		
+		private function ssl_bump_line($certificate_center){
+			if(!is_numeric($this->intvalVersion)){$this->CheckVersion();}
+			if($this->IS_27){
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SSL]: SSLBUMP:: Not supported in 2.7x\n";}
+				return null;
+			}
+				
+			if($this->intvalVersion<290){
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SSL]: SSLBUMP:: Not supported in 2.x\n";}
+				return null;
+			}
+			
+			$ADD=array();
+			$token=" ".$this->ssl_bump_token();
+			$certificates=$this->BuildSquidCertificate($certificate_center);
+			if(strlen($this->sslcrtd_program)>3){
+					if($this->EnableSquidSSLCRTD==1){
+						if(!isset($GLOBALS["sslcrtd_program_added"])){
+							@mkdir("/var/lib/squid/session/ssl",0755,true);
+							@chown("/var/lib/squid/session/ssl","squid");
+							@chgrp("/var/lib/squid/session/ssl", "squid");
+							$ADD[]="# Added by ".__CLASS__."/".__FUNCTION__." Line:".__LINE__;
+							$GLOBALS["sslcrtd_program_added"]=true;
+							$ADD[]="sslcrtd_program $this->sslcrtd_program -s /var/lib/squid/session/ssl/ssl_db -M 4MB";
+							shell_exec("$this->sslcrtd_program -c -s /var/lib/squid/session/ssl/ssl_db >/dev/null 2>&1");
+						}
+					}
+				}
+				
+			return "$token $certificates\n".@implode("\n", $ADD);
+				
+		}
+		
+		
 		private function ssl_bump_port(){
 			$addedlog=null;
+			$this->sslbump_token_debug=array();
 			if(!is_numeric($this->intvalVersion)){$this->CheckVersion();}
 			if($this->IS_32){$addedlog=";is 3.2x:yes";}
 			if($this->IS_31){$addedlog=$addedlog.";is 3.1x:yes";}
@@ -7205,25 +8218,39 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SSL]: SSLBUMP:: Not supported in 2.x\n";}
 				return null;		
 			}			
-			if(!is_numeric($this->SSL_BUMP)){return null;}
-			if($this->SSL_BUMP==null){return null;}
-			if($this->SSL_BUMP==0){return null;}
+			$sock=new sockets();
+			$EnableSSLOnStandardPort=intval($sock->GET_INFO("EnableSSLOnStandardPort"));
+			$this->sslbump_token_debug[]="# EnableSSLOnStandardPort = $EnableSSLOnStandardPort [".__LINE__."]";
+			
+			if($EnableSSLOnStandardPort==0){
+				$this->sslbump_token_debug[]="# SSL_BUMP = $this->SSL_BUMP [".__LINE__."]";
+				if(!is_numeric($this->SSL_BUMP)){return null;}
+				if($this->SSL_BUMP==null){return null;}
+				if($this->SSL_BUMP==0){return null;}
+			}
 			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SSL]: SSLBUMP:: ENABLED ($this->SSL_BUMP)\n";}
 			
 			writelogs("SQUID INTVAL: $this->intvalVersion",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			
+			$this->sslbump_token_debug[]="# Certificate = $this->certificate_center [".__LINE__."]";
+			
 			$certificates=$this->BuildSquidCertificate($this->certificate_center);
 			
 			$token=" ".$this->ssl_bump_token();
+			$this->sslbump_token_debug[]="# Token = $token [".__LINE__."]";
 			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SSL]: SSLBUMP:: Token $token L.".__LINE__."\n";}
 			$f[]="$token $certificates";
 			if(strlen($this->sslcrtd_program)>3){
 				if($this->EnableSquidSSLCRTD==1){
-					@mkdir("/var/lib/squid/session/ssl",0755,true);
-					@chown("/var/lib/squid/session/ssl","squid");
-					@chgrp("/var/lib/squid/session/ssl", "squid");
-					$f[]="sslcrtd_program $this->sslcrtd_program -s /var/lib/squid/session/ssl/ssl_db -M 4MB";
-					shell_exec("$this->sslcrtd_program -c -s /var/lib/squid/session/ssl/ssl_db >/dev/null 2>&1");
+					if(!isset($GLOBALS["sslcrtd_program_added"])){
+						@mkdir("/var/lib/squid/session/ssl",0755,true);
+						@chown("/var/lib/squid/session/ssl","squid");
+						@chgrp("/var/lib/squid/session/ssl", "squid");
+						$f[]="# Added by ".__CLASS__."/".__FUNCTION__." Line:".__LINE__;
+						$GLOBALS["sslcrtd_program_added"]=true;
+						$f[]="sslcrtd_program $this->sslcrtd_program -s /var/lib/squid/session/ssl/ssl_db -M 4MB";
+						shell_exec("$this->sslcrtd_program -c -s /var/lib/squid/session/ssl/ssl_db >/dev/null 2>&1");
+					}
 				}
 			}
 			
@@ -7381,61 +8408,165 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 		}
 		
 		
+private function ssl_bump_no_decrypt(){
+	
+	
+	$deny="deny";
+	$allow="allow";
+	
+	if($this->IS_33){
+		$deny="none";
+		$allow="client-first";
+		if($this->EnableSquidSSLCRTD==1){
+			$allow="server-first";
+		}
+	}
+	
+	$sql="SELECT website_name FROM squid_ssl WHERE `type`='ssl-bump-wl' AND enabled=1 ORDER BY website_name LIMIT 0,50";
+	$q=new mysql();	
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$c=0;
+	if(mysql_num_rows($results)>0){
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if($ligne["website_name"]==null){continue;}
+			$c=$c+1;
+			$www=$this->BaseNameWebSite($ligne["website_name"]);
+			if($www==null){continue;}
+			if(isset($ALREADY[$www])){continue;}
+			$ALREADY[$www]=true;
+			$www_table[]=$www;
+		}
+	}
+	
+	
+	$acl=new squid_acls();
+	$array_www=$acl->clean_dstdomains($www_table);
+	$array[]="# no_ssl_bump ".count($array_www)." items (".count($www_table)." source items) [".__LINE__."]";
+	@file_put_contents("/etc/squid3/no_ssl_bump.acl", @implode("\n", $array_www));
+	if($this->ASROOT){echo "Starting......: ".date("H:i:s")." SSLBUMP:: not bumped for ". count($array_www)." domains\n";}
+	$array[]="acl no_ssl_bump dstdomain \"/etc/squid3/ssl_not_bump.acl\"";
+	$array[]="ssl_bump $deny no_ssl_bump";
+	$array[]="ssl_bump $allow all";
+	return @implode("\n", $array);
+	
+}
 		
-		private function ssl_bump_tranparent($listen_port=null){
-			$listen_port=0;
-			if($this->SSL_BUMP==null){return null;}
-			if($this->SSL_BUMP==0){return null;}
-			if($this->hasProxyTransparent==0){return null;}
-			if($this->EnableTransparent27==1){return "# No SSL bump for transparent nat compatitbility [".__LINE__."]\n";}
+private function ssl_bump_to_decrypt(){
+	$sql="SELECT website_name FROM squid_ssl WHERE `type`='ssl-bump-enc' AND enabled=1 ORDER BY website_name LIMIT 0,50";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$c=0;
+	
+	$deny="deny";
+	$allow="allow";
+		
+	if($this->IS_33){
+		$deny="none";
+		$allow="client-first";
+		if($this->EnableSquidSSLCRTD==1){
+			$allow="server-first";
+		}
+	}
+	
+	
+	if(mysql_num_rows($results)>0){
+		$array[]="# ssl_bump_to_decrypt ".mysql_num_rows($results)." cleaned websites stored in squid_ssl [".__LINE__."]";
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if($ligne["website_name"]==null){continue;}
+			$c=$c+1;
+			$www=$this->BaseNameWebSite($ligne["website_name"]);
+			if($www==null){continue;}
+			if(isset($ALREADY[$www])){continue;}
+			$ALREADY[$www]=true;
+			$www_table[]=$www;
+		}
+	}else{
+		$array[]="# ssl_bump_to_decrypt no website stored in squid_ssl [".__LINE__."]";
+	}	
+	
+	
+	$acl=new squid_acls();
+	$array[]="# ssl_bump_to_decrypt ".count($www_table)." cleaned websites stored in squid_ssl [".__LINE__."]";
+	$destTable=$acl->clean_dstdomains($www_table);
+	if(count($destTable)>0){
+		@file_put_contents("/etc/squid3/ssl_to_bump.acl", @implode("\n", $destTable));
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." SSLBUMP:: to bumped for ". count($destTable)." domains\n";}
+		$array[]="acl ssl_to_bump dstdomain \"/etc/squid3/ssl_to_bump.acl\"";
+		$array[]="ssl_bump $allow ssl_to_bump";
+
+	}
+	$array[]="ssl_bump $deny all";
+	return @implode("\n", $array);
+	
+}		
+		
+private function ssl_bump_tranparent($listen_port=0,$forceCertificate=null,$force=false){
+			$SquidBinIpaddr=null;
+			$sock=new sockets();
+			if(!$force){
+				if($this->SSL_BUMP==null){return null;}
+				if($this->SSL_BUMP==0){return null;}
+				if($this->hasProxyTransparent==0){return null;}
+				if($this->EnableTransparent27==1){return "# No SSL bump for transparent nat compatitbility [".__LINE__."]\n";}
+			}
 			
+			$EnableSquidSSLCRTD=$sock->GET_INFO("EnableSquidSSLCRTD");
+			if(!is_numeric($EnableSquidSSLCRTD)){$EnableSquidSSLCRTD=1;}
+			$this->EnableSquidSSLCRTD=$EnableSquidSSLCRTD;
+			if(strlen($this->sslcrtd_program)<3){$EnableSquidSSLCRTD=0;}
 			
 			$params=$this->compilation_params();
 			if(!isset($params["enable-ssl"])){
 				echo "Starting......: ".date("H:i:s")." [SSL]: FATAL: Not compiled...\n";
-				return null;
+				return "# FATAL: Not compiled\n";
 			}
 			
 			
-			$listen_port=$this->ssl_port;
+			if(!$force){$listen_port=$this->ssl_port;
+			$logs[]="# sslcrtd_program = $this->sslcrtd_program [".__LINE__."]";
 			$logs[]="# EnableSquidSSLCRTD = $this->EnableSquidSSLCRTD [".__LINE__."]";
 			$logs[]="# SSL_BUMP = $this->SSL_BUMP [".__LINE__."]";
 			$logs[]="# SQUID INTVAL = $this->intvalVersion [".__LINE__."]";
 			$logs[]="# sslcrtd_program = $this->sslcrtd_program (".strlen($this->sslcrtd_program).") [".__LINE__."]";
+			}
 			
 			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." SSLBUMP:: SSL Port: $listen_port\n";}
-			$sock=new sockets();
-			$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
+			
+			if(!$force){$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));}
 			if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
-			$this->NETWORK_ALL_INTERFACES();
-			if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"][$SquidBinIpaddr])){$SquidBinIpaddr="0.0.0.0";}
+			if($SquidBinIpaddr<>"0.0.0.0"){
+				$this->NETWORK_ALL_INTERFACES();
+				if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"][$SquidBinIpaddr])){$SquidBinIpaddr="0.0.0.0";}
+			}
 			
 			if($SquidBinIpaddr<>null){$SquidBinIpaddr="$SquidBinIpaddr:";}
 			writelogs("SQUID INTVAL: $this->intvalVersion",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				
 			if($this->EnableSquidSSLCRTD==1){
-				if(strlen($this->sslcrtd_program)>3){
-					$Chain=@file_get_contents("/etc/squid3/privkey.pem")."\n".@file_get_contents("/etc/squid3/cacert.pem");
-					@file_put_contents("/etc/squid3/ssl/chain-default.pem", $Chain);
-					$CertToken="generate-host-certificates=on cert=/etc/squid3/ssl/chain-default.pem";
-					$KeyToken="dynamic_cert_mem_cache_size=4MB";
-				}
+				$Chain=@file_get_contents("/etc/squid3/privkey.pem")."\n".@file_get_contents("/etc/squid3/cacert.pem");
+				@file_put_contents("/etc/squid3/ssl/chain-default.pem", $Chain);
+				$CertToken="generate-host-certificates=on cert=/etc/squid3/ssl/chain-default.pem";
+				$KeyToken="dynamic_cert_mem_cache_size=4MB";
 			}
 				
 
-			
+			$certificate=$this->certificate_center;
+			if($forceCertificate<>null){$certificate=$forceCertificate;}
 	
-			$logs[]="# certificate = $this->certificate_center [".__LINE__."]";
+			$logs[]="# certificate = $certificate [".__LINE__."]";
 			$logs[]="# EnableTransparent27 = $this->EnableTransparent27 [".__LINE__."]";
 			
 			
-			$logsTXT=@implode("\n", $logs)."\n";
 			
 			
-			$certificates=$this->BuildSquidCertificate($this->certificate_center);
+			
+			$certificates=$this->BuildSquidCertificate($certificate);
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [SSL]: this->TRANSPARENT_PORTS_LIST[]=$listen_port\n";}
 			
-				
+			
+			
+			while (list ($num, $val) = each ($GLOBALS["BuildSquidCertificate"])){$logs[]="# $val";}
+			$logsTXT=@implode("\n", $logs)."\n";
 			
 			
 			$this->TRANSPARENT_PORTS_LIST[]=$listen_port;
@@ -7462,14 +8593,30 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 		}
 		
 		private function ssl_bump_access(){
-			if($this->SSL_BUMP==0){return null;}
+			$sock=new sockets();
+			$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+			if($SquidWCCPL3SSLEnabled==1){
+				$this->SSL_BUMP=1;
+				$this->EnableSquidSSLCRTD=1;
+			}
+			$sslproxy_version=intval($sock->GET_INFO("sslproxy_version"));
+			if($sslproxy_version==0){$sslproxy_version=1;}
+			$sock=new sockets();
+			$EnableSSLOnStandardPort=intval($sock->GET_INFO("EnableSSLOnStandardPort"));
+			
+			if($EnableSSLOnStandardPort==0){
+				if($this->SSL_BUMP==0){return null;}
+			}
+			
 			if($this->IS_27){return null;}
 			if(!$this->ASROOT){return;}
 			
 			$params=$this->compilation_params();
 			if(!isset($params["enable-ssl"])){
+				$array[]="# [SSL]: FATAL: Not compiled [".__LINE__."]";
+				$array[]="";
 				echo "Starting......: ".date("H:i:s")." [SSL]: FATAL: Not compiled...\n";
-				return null;
+				return @implode("\n", $array);
 			}			
 			
 			$deny="deny";
@@ -7485,7 +8632,11 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 			if($this->EnableSquidSSLCRTD==1){
 				if(strlen($this->sslcrtd_program)>3){
-					$array[]="sslcrtd_program $this->sslcrtd_program -s /var/lib/squid/session/ssl/ssl_db -M 4MB";
+					if(!isset($GLOBALS["sslcrtd_program_added"])){
+						$GLOBALS["sslcrtd_program_added"]=true;
+						$array[]="# Added by ".__CLASS__."/".__FUNCTION__." Line:".__LINE__;
+						$array[]="sslcrtd_program $this->sslcrtd_program -s /var/lib/squid/session/ssl/ssl_db -M 4MB";
+					}
 					
 				}
 			}
@@ -7494,60 +8645,51 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 			$www_table=array();
 			if($this->SSL_BUMP_WHITE_LIST==1){
-				$array[]="ssl_bump $deny all";
-				$array[]="sslproxy_cert_error allow all";
-				$array[]="sslproxy_flags DONT_VERIFY_PEER";
+				$array[]="# ssl_bump_to_decrypt [".__LINE__."]";
+				$array[]=$this->ssl_bump_to_decrypt();
 				return @implode("\n",$array);
-			}
-			$ALREADY=array();
-			$sql="SELECT website_name FROM squid_ssl WHERE `type`='ssl-bump-wl' AND enabled=1 ORDER BY website_name LIMIT 0,50";
-			$q=new mysql();
-			$results=$q->QUERY_SQL($sql,"artica_backup");
-			$c=0;
-			if(mysql_num_rows($results)>0){
-				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-					if($ligne["website_name"]==null){continue;}
-					$c=$c+1;
-					$ligne["website_name"]=str_replace("https://","",$ligne["website_name"]);
-					$www=$ligne["website_name"];
-					if(preg_match("#^www\.(.+)#", $www,$re)){$www=".".$re[1];}
-					if(substr($www, 0,1)<>"."){$www=".".$www;}
-					if(isset($ALREADY[$www])){continue;}
-					$ALREADY[$www]=true;
-					$www_table[]=$www;
-				}
+			}else{
+				$array[]="# ssl_bump_no_decrypt [".__LINE__."]";
+				$array[]=$this->ssl_bump_no_decrypt();
 			}
 			
-			if(count($www_table)>0){
-				@file_put_contents("/etc/squid3/no_ssl_bump", @implode("\n", $www_table));
-				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." SSLBUMP:: no bump for ". count($www_table)." domains\n";}
-				$array[]="acl no_ssl_bump dstdomain \"/etc/squid3/no_ssl_bump\"";
-				$array[]="ssl_bump $deny no_ssl_bump";
-				
-			}
+
 			$array[]="ssl_bump $allow all";
-			$array[]="sslproxy_flags DONT_VERIFY_PEER";
-			$array[]="sslproxy_cert_error allow all";
-			$array[]="";
+			
 			$array[]="";
 			return @implode("\n",$array);
 		}
 		
-		private function ArticaHotSpot(){
-			if(!$this->ASROOT){return;}
+		private function if_isssl(){
 			$sock=new sockets();
-			$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
-			if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
-			if($EnableArticaHotSpot==0){return;}
-			$this->EnableSquidSSLCRTD=1;
-			$transparent_token=$this->transparent_token();
-			$ssl_bump_token=$this->ssl_bump_token();
-			$f[]="http_port 0.0.0.0:$this->ArticaHotSpotPort $transparent_token";
+			$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
+			if($SquidWCCPL3SSLEnabled==1){return true;}
+			$EnableSSLOnStandardPort=intval($sock->GET_INFO("EnableSSLOnStandardPort"));
+			if($EnableSSLOnStandardPort==1){return true;}
+			$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+			if($EnableArticaHotSpot==1){return true;}
+			$MikrotikSSLTransparent=intval($sock->GET_INFO("MikrotikSSLTransparent"));
+			if($MikrotikSSLTransparent==1){return true;}
+			if($this->SSL_BUMP==1){return true;}
+			return false;
 			
-			$http_port_sslbump=$this->https_certificates_token();
-			$ssl_bump_token=$this->ssl_bump_token();
-			$f[]="https_port 0.0.0.0:$this->ArticaSSLHotSpotPort $transparent_token $ssl_bump_token$http_port_sslbump";
-			return @implode("\n", $f);
+			
+		}
+		
+		private function sslproxy_options(){
+			if(!$this->if_isssl()){return;}
+			
+			$sock=new sockets();
+			$sslproxy_version=intval($sock->GET_INFO("sslproxy_version"));
+			if($sslproxy_version==0){$sslproxy_version=1;}
+			$array[]="";
+			$array[]="# SSL Proxy options [".__LINE__."]";
+			$array[]="sslproxy_version $sslproxy_version";
+			$array[]="sslproxy_options ALL";
+			$array[]="sslproxy_flags DONT_VERIFY_PEER";
+			$array[]="sslproxy_cert_error allow all";
+			$array[]="";
+			return @implode("\n", $array)."\n";
 			
 		}
 
@@ -7851,7 +8993,23 @@ public function refresh_pattern_list(){
 	$users=new usersMenus();
 	$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
+	$refresh_pattern_def_opts=unserialize(base64_decode($sock->GET_INFO("refresh_pattern_def_opts")));
+	
+	
+	if(count($refresh_pattern_def_opts)>0){
+		if($reload_into_ims==0){unset($refresh_pattern_def_opts["reload-into-ims"]);}
+		$DEFCMD=array();
+		while (list ($key, $val) = each ($refresh_pattern_def_opts) ){
+			if($key==null){continue;}
+			$refresh_pattern_def_opts2[$key]=$val;
+				
+		}
+	}
+	
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
+	
 	if($SquidCacheLevel==0){
 		$this->DisableAnyCache=1;
 		$conf[]="reload_into_ims off";
@@ -7869,9 +9027,9 @@ public function refresh_pattern_list(){
 	$refresh_pattern_def_max=$sock->GET_INFO("refresh_pattern_def_max");
 	$refresh_pattern_def_perc=$sock->GET_INFO("refresh_pattern_def_perc");
 	
-	if(!is_numeric($refresh_pattern_def_min)){$refresh_pattern_def_min=4320;}
+	if(!is_numeric($refresh_pattern_def_min)){$refresh_pattern_def_min=0;}
 	if(!is_numeric($refresh_pattern_def_max)){$refresh_pattern_def_max=43200;}
-	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=40;}
+	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=75;}
 	
 	if($SquidCacheLevel>2){
 		$compilation_params=$this->compilation_params();
@@ -7882,6 +9040,64 @@ public function refresh_pattern_list(){
 				$conf[]="reload_into_ims off";
 			}
 		}
+	}
+	
+	
+	if($SquidCacheLevel>1){
+		if($reload_into_ims==1){
+			$DEFCMD[]="reload-into-ims";
+		}
+		$DEFCMD[]="refresh-ims";
+	}
+	
+	if($SquidCacheLevel>2){
+		$DEFCMD[]="ignore-reload";
+	}
+	
+	if($SquidCacheLevel>3){
+		$conf[]="vary_ignore_expire on";
+		$conf[]="minimum_expiry_time 10080 second";
+		$DEFCMD[]="ignore-no-store";
+		$DEFCMD[]="ignore-must-revalidate";
+		$DEFCMD[]="override-expire";
+		$DEFCMD[]="override-lastmod";
+		
+	}
+	
+	
+	
+	
+	if(count($refresh_pattern_def_opts2)>0){
+		if($reload_into_ims==0){unset($refresh_pattern_def_opts["reload-into-ims"]);}
+		$DEFCMD=array();
+		while (list ($key, $val) = each ($refresh_pattern_def_opts) ){
+			$DEFCMD[]=$key;
+			
+		}
+	}
+	
+	$q=new mysql_squid_builder();
+	$countOfCacherules=$q->COUNT_ROWS("main_cache_rules");
+	
+	$conf[]="# --------- refresh_pattern: Count of rules caches = $countOfCacherules";
+	if($UseSimplifiedCachePattern==1){
+		if($SquidCacheLevel>1){
+			if($countOfCacherules>0){
+				$rules=new squid_caches_rules();
+				$rules->build();
+				$CountOfUsersRules=count($rules->final_array);
+				$conf[]=@implode("\n", $rules->final_array);
+			}
+			
+		}
+		
+		$conf[]="# --------- refresh_pattern: Use Simplified Refresh pattern -".count($DEFCMD);
+		$conf[]=$this->refresh_pattern_defaults(true);
+		$conf[]="refresh_pattern ^ftp: 1440 20% $refresh_pattern_def_max";
+		$conf[]="refresh_pattern ^gopher: 1440 0% $refresh_pattern_def_max";
+		$conf[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
+		$conf[]="refresh_pattern . $refresh_pattern_def_min {$refresh_pattern_def_perc}% $refresh_pattern_def_max ".@implode(" ", $DEFCMD);
+		return implode("\n",$conf)."\n";
 	}
 	
 	
@@ -7897,12 +9113,9 @@ public function refresh_pattern_list(){
 		$conf[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 		$conf[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 		$conf[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-	
 	}
 	
-	if($SquidCacheLevel<3){
-		$conf[]="reload_into_ims off";
-	}
+
 	
 	if($SquidCacheLevel==1){
 		$conf[]="# --------- SquidCacheLevel:$SquidCacheLevel, Cache level is set to minimalist";
@@ -7912,20 +9125,20 @@ public function refresh_pattern_list(){
 	}
 	
 	
-	$q=new mysql_squid_builder();
-	$count=$q->COUNT_ROWS("main_cache_rules");
+
 	
 	$CountOfUsersRules=0;
-	
-	if($count>0){
-		$rules=new squid_caches_rules();
-		$rules->build();
-		$CountOfUsersRules=count($rules->final_array);
-		$conf[]="# --------- $count Cache rules: ".count($rules->final_array)." Lines";
-		$conf[]=@implode("\n", $rules->final_array);
-		$conf[]=$this->refresh_pattern_domains();
-		$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max";
-		return implode("\n",$conf)."\n";
+	if($SquidCacheLevel>1){
+		if($countOfCacherules>0){
+			$rules=new squid_caches_rules();
+			$rules->build();
+			$CountOfUsersRules=count($rules->final_array);
+			$conf[]="# --------- $count Cache rules: ".count($rules->final_array)." Lines";
+			$conf[]=@implode("\n", $rules->final_array);
+			$conf[]=$this->refresh_pattern_domains();
+			$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max";
+			return implode("\n",$conf)."\n";
+		}
 	}
 	
 	$sql="SELECT *  FROM websites_caches_params WHERE `sitename` IS NOT NULL";
@@ -7998,81 +9211,139 @@ private function refresh_pattern_domains(){
 
 private function refresh_pattern_defaults($OnlyDefaults=false){
 	$sock=new sockets();
-	$final="refresh_pattern -i . 0 10% 5760 reload-into-ims ignore-reload";
+	$final="refresh_pattern -i . 0 75% 5760 reload-into-ims ignore-reload";
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	
 	if($SquidCacheLevel<4){
-		$final="refresh_pattern -i . 0 50% 4320";
+		$final="refresh_pattern -i . 0 75% 4320";
+	}
+	
+	if($this->ForceWindowsUpdateCaching==1){
+		$f[]="# --------- Make Windows Updates cache";
+		$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 	}
 	
 	$ignore_no_cache=" ";
 	if($this->IS_33){$ignore_no_cache=null;}
 	if($SquidCacheLevel>2){
-		$f[]="refresh_pattern (get_video\?|videoplayback\?|videodownload\?|\.flv\?|\.fid\?) 43200 99% 43200 override-expire ignore-reload ignore-must-revalidate ignore-private";
-		$f[]="refresh_pattern -i (get_video\?|videoplayback\?|videodownload\?) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		if($this->ForceWindowsUpdateCaching==0){
+			$f[]="# --------- Make Windows Updates cache";
+			$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+			$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+			$f[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		}		
+		
+		
+		$f[]="# -- refresh pattern for extension -- #";
+		$f[]="refresh_pattern -i \.js$ 1400 80% 10080 ignore-no-store override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.js\? 1400 80% 10080 ignore-no-store override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(jpeg|jpg|jpe|jp2|gif|tiff?|pcx|png|bmp|pic|ico|bif|ver|pict)(\?.*|$) 600 80% 10080 ignore-no-store override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(jpeg|jpg|jpe|jp2|gif|tiff?|pcx|png|bmp|pic|ico|bif|ver|pict)$ 600 80% 10080 ignore-no-store override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(class|svc|jar|exe|gz|bz|bz2|tar|tgz|zip|gzip|arj|ace|bin|cab|msi|rar)(\?.*|$) 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(class|svc|jar|exe|gz|bz|bz2|tar|tgz|zip|gzip|arj|ace|bin|cab|msi|rar)$ 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)$ 600 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(chm|dll|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|mdb|mdbx)(\?.*|$) 0 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(chm|dll|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|mdb|mdbx)$ 0 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(txt|conf|cfm|psd|wmf|emf|vsd|pdf|rtf|odt)(\?.*|$) 0 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(txt|conf|cfm|psd|wmf|emf|vsd|pdf|rtf|odt)$ 0 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
+		
+		$f[]="refresh_pattern -i \.(htm|html|mhtml|css|js|crl)(\?.*|$) 1440 90% 86400 override-expire ignore-reload reload-into-ims";
+		$f[]="refresh_pattern -i \.(htm|html|mhtml|css|js|crl)$ 1440 90% 86400 override-expire ignore-reload reload-into-ims";
+		
+		$f[]="refresh_pattern -i \.(swf|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm)(\?.*|$) 0 75% 10080 override-expire reload-into-ims ignore-reload ignore-no-store ignore-private";
+		$f[]="refresh_pattern -i \.(swf|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm)$ 0 75% 10080 override-expire reload-into-ims ignore-reload ignore-no-store ignore-private";
+		
+		$f[]="refresh_pattern -i \.(xml|flow|json)(\?.*|$) 0 75% 100000 reload-into-ims";
+		$f[]="refresh_pattern -i \.(xml|flow|json)$ 0 75% 100000 reload-into-ims";
+		
+		
+		
+		
+		
+		$f[]="refresh_pattern \.android\.clients\.google\.com\/market\/GetBinary\/ 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern \.(youtube|googlevideo)\.com\/videoplayback\? 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern \.(youtube|googlevideo)\.com\/videoplayback\/ 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern stream\.aol\.com\/(.*)/[a-zA-Z0-9]+\/(.*)\.(flv|mp4) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern videos\.5min\.com\/(.*)/[0-9_]+\.(mp4|flv) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern \.blip\.tv\/(.*)\.(m4v|mp4|flv) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern proxy[a-z0-9\-]?[a-z0-9]?[a-z0-9]?[a-z0-9]?\.dailymotion\.com\/(.*)\.(flv|on2|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern vid\.akm\.dailymotion\.com\/(.*)\.(flv|on2|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern \.dmcdn\.net\/(.*)\.(flv|on2|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern video\.(.*)\.fbcdn\.net\/(.*)/[0-9_]+\.(mp4|flv|avi|mkv|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern (.*)\.myspacecdn\.com\/(.*)\/[a-zA-Z0-9]+\/vid\.(flv|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern (.*)\.myspacecdn\.(.*)\.footprint\.net\/(.*)\/[a-zA-Z0-9]+\/vid\.(flv|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern c\.wrzuta\.pl\/w[a-zA-Z0-9]+\/[a-zA-Z0-9]+$ 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern \.hardsextube\.com\/.*\/.*\.(flv|mp4|avi|mkv|mp3|rm|rmvb|m4v|mov|wmv|3gp|mpg|mpeg) 20	80%	40 override-expire override-lastmod ignore-private";
+		$f[]="refresh_pattern -xh\.clients\.cdn[0-9a-zA-Z]?[0-9a-zA-Z]?[0-9a-zA-Z]?\.com\/data\/(.*)\.flv 20	80%	40 override-expire override-lastmod ignore-private";		
+		$f[]="refresh_pattern (get_video\?|videoplayback\?|videodownload\?|\.flv\?|\.fid\?) 0 75% 43200 override-expire ignore-reload ignore-must-revalidate ignore-private";
+		$f[]="refresh_pattern -i (get_video\?|videoplayback\?|videodownload\?) 0 75% 10080 override-expire ignore-reload reload-into-ims ignore-private";
 		$f[]="# -- refresh pattern for specific sites -- #";
-		$f[]="refresh_pattern ^http://*.jobstreet.com.*/.* 720 100% 10080 override-expire override-lastmod ";
-		$f[]="refresh_pattern ^http://*.indowebster.com.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
-		$f[]="refresh_pattern ^http://*.21cineplex.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
-		$f[]="refresh_pattern ^http://*.atmajaya.*/.* 720 100% 10080 override-expire ignore-auth";
-		$f[]="refresh_pattern ^http://*.kompas.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.theinquirer.*/.* 720 100% 10080 override-expire ignore-auth";
-		$f[]="refresh_pattern ^http://*.blogspot.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.wordpress.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ";
-		$f[]="refresh_pattern ^http://*.photobucket.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.tinypic.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.imageshack.us/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.jobstreet.com.*/.* 0 70% 10080 override-expire override-lastmod ";
+		$f[]="refresh_pattern ^http://*.indowebster.com.*/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
+		$f[]="refresh_pattern ^http://*.21cineplex.*/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
+		$f[]="refresh_pattern ^http://*.atmajaya.*/.* 0 70% 10080 override-expire ignore-auth";
+		$f[]="refresh_pattern ^http://*.kompas.*/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.theinquirer.*/.* 0 70% 10080 override-expire ignore-auth";
+		$f[]="refresh_pattern ^http://*.blogspot.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.wordpress.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ";
+		$f[]="refresh_pattern ^http://*.photobucket.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.tinypic.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.imageshack.us/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
 		$f[]="refresh_pattern ^http://*.kaskus.*/.* 720 100% 28800 override-expire override-lastmod reload-into-ims ignore-auth";
 		$f[]="refresh_pattern ^http://www.kaskus.com/.* 720 100% 28800 override-expire override-lastmod reload-into-ims ignore-auth";
 		$f[]="refresh_pattern ^http://*.detik.*/.* 720 50% 2880 override-expire override-lastmod reload-into-ims ignore-auth";
 		$f[]="refresh_pattern ^http://*.detiknews.*/*.* 720 50% 2880 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://video.liputan6.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://static.liputan6.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.friendster.com/.* 720 100% 10080 override-expire override-lastmod ignore-auth";
-		$f[]="refresh_pattern ^http://*.facebook.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://apps.facebook.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.fbcdn.net/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://profile.ak.fbcdn.net/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://static.playspoon.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://cooking.game.playspoon.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern -i http://[^a-z\.]*onemanga\.com/? 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://media?.onemanga.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.yahoo.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.google.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.forummikrotik.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="refresh_pattern ^http://*.linux.or.id/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
-		$f[]="# -- refresh pattern for extension -- #";
-		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(jpeg|jpg|jpe|jp2|gif|tiff?|pcx|png|bmp|pic|ico|bif|ver|pict)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(chm|dll|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|mdb|mdbx)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(txt|conf|cfm|psd|wmf|emf|vsd|pdf|rtf|odt)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(class|jar|exe|gz|bz|bz2|tar|tgz|zip|gzip|arj|ace|bin|cab|msi|rar)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="refresh_pattern -i \.(htm|html|mhtml|css|js|crl)(\?.*|$) 1440 90% 86400 override-expire ignore-reload reload-into-ims";
-		$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload ignore-no-store ignore-private";
-		$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
-		$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
-		$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-		$f[]="refresh_pattern -i my.windowsupdate.website.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern ^http://video.liputan6.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://static.liputan6.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.friendster.com/.* 0 70% 10080 override-expire override-lastmod ignore-auth";
+		$f[]="refresh_pattern ^http://*.facebook.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://apps.facebook.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.fbcdn.net/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://profile.ak.fbcdn.net/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://static.playspoon.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://cooking.game.playspoon.com/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern -i http://[^a-z\.]*onemanga\.com/? 0 75% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://media?.onemanga.com/.* 0 75% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.yahoo.com/.* 0 75% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.google.com/.* 0 75% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.forummikrotik.com/.* 0 75% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.linux.or.id/.* 0 70% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		
+		
+		
+		
+		
+		$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 0 75% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 0 75% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i my.windowsupdate.website.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 0 75% 43200 reload-into-ims";
 		$f[]="";
 		$f[]="##images facebook";
-		$f[]="refresh_pattern ((facebook.com)|(173.252.110.27)).*\.(jpg|png|gif) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
-		$f[]="refresh_pattern -i \.fbcdn.net.*\.(jpg|gif|png|swf|mp3) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
-		$f[]="refresh_pattern  static\.ak\.fbcdn\.net*\.(jpg|gif|png) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
-		$f[]="refresh_pattern ^http:\/\/profile\.ak\.fbcdn.net*\.(jpg|gif|png) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern ((facebook.com)|(173.252.110.27)).*\.(jpg|png|gif) 0 75% 10080 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern -i \.fbcdn.net.*\.(jpg|gif|png|swf|mp3) 0 75% 10080 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern  static\.ak\.fbcdn\.net*\.(jpg|gif|png) 0 75% 10080 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern ^http:\/\/profile\.ak\.fbcdn.net*\.(jpg|gif|png) 0 75% 10080 ignore-reload  override-expire ignore-no-store";
 		$f[]="";
 		$f[]="## ANTI VIRUS";
-		$f[]="refresh_pattern guru.avg.com/.*\.(bin)                      10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
-		$f[]="refresh_pattern (avgate|avira).*(idx|gz)$ 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
-		$f[]="refresh_pattern kaspersky.*\.avc$ 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
-		$f[]="refresh_pattern kaspersky 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
-		$f[]="refresh_pattern update.nai.com/.*\.(gem|zip|mcs) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
-		$f[]="refresh_pattern ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern guru.avg.com/.*\.(bin) 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern (avgate|avira).*(idx|gz)$ 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern kaspersky.*\.avc$ 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern kaspersky 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern update.nai.com/.*\.(gem|zip|mcs) 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern ^http:\/\/liveupdate.symantecliveupdate.com 0 75% 10080 ignore-no-store  ignore-reload  reload-into-ims";
 		$f[]="";
 		
-		$f[]="refresh_pattern -i ^ftp: 66000 90% 200000";
+		$f[]="refresh_pattern -i ^ftp: 0 90% 200000";
 		$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
 	}
 	
@@ -8189,10 +9460,12 @@ private function SSL_PORTS(){
 	}
 	
 	while (list ($num, $val) = each ($ports) ){
-		$conf[]="acl SSL_ports port $num\t#$val";		
+		if(!is_numeric($num)){continue;}
+		$ports2[]=$num;
 	}
 	$conf[]="";
-	return implode("\n",$conf);
+	@file_put_contents("/etc/squid3/acls/SSLPorts", @implode("\n", $ports2));
+	return "acl SSL_ports port \"/etc/squid3/acls/SSLPorts\"\n";
 	
 }
 
@@ -8261,6 +9534,7 @@ class cicap{
 		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 		$this->UfdbEnabledCentral=$sock->GET_INFO("UfdbEnabledCentral");
 		$this->AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
+		
 		
 		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($this->UfdbEnabledCentral)){$this->UfdbEnabledCentral=1;}
@@ -8581,6 +9855,9 @@ class cicap{
 		@file_put_contents("/etc/squid3/c-icap.whitelist.txt",@implode("\n",$t));
 		
 	}
+	
+	
+	
 	
 	
 	function Save(){

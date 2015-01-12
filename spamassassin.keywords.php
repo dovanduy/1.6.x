@@ -187,7 +187,7 @@ function keywords(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'><div class=explain>{block_keywords_explain}</div>
+	<td valign='top'><div class=text-info>{block_keywords_explain}</div>
 	<td valign='top'>". Paragraphe32("add_keywords","add_keywords_smtp_check","add_keywords_smtp()", "32-plus.png")."</td>
 	</tr>	
 	</table>
@@ -312,7 +312,7 @@ function keywords_add_popup(){
 	
 	$html="
 	<div id='simplekeywords-smtp-div'>
-	<div class=explain>{add_multiple_keywords_explain}</div>
+	<div class=text-info>{add_multiple_keywords_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{header}:</td>

@@ -1,5 +1,5 @@
 <browse_mysql_server>Parcourir les bases MySQL</browse_mysql_server>
-<browse_mysql_server_text>Affichez la base de donn&eacute;es et les tables de votre serveur Mysql.</browse_mysql_server_text>
+<browse_mysql_server_text>Affichez la base de donn&eacute;es et les tables de votre serveur MySQL.</browse_mysql_server_text>
 <change_mysql_power>Am&eacute;liorer le moteur MySQL</change_mysql_power>
 <databases_status>&Eacute;tat des bases de donn&eacute;es</databases_status>
 <database_size>Taille de la base de donn&eacute;es.</database_size>

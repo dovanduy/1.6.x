@@ -49,9 +49,9 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain>{addzapper_block_banner_advertisements}</div>
+	<div class=text-info>{addzapper_block_banner_advertisements}</div>
 	
-	<div class=explain>{pattern}:<br>{addzapper_pattern_explain}</div>
+	<div class=text-info>{pattern}:<br>{addzapper_pattern_explain}</div>
 	
 	<table style='width:100%;margin-bottom:10px'>
 	<tr>

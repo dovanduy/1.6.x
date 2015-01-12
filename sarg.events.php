@@ -235,25 +235,15 @@ function search(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$q=new mysql();	
-	$WHERE="category = 'update'";
-	$table="webfilter_updateev";
+	$table="sarg_admin_events";
 	if($_GET["table"]<>null){$table=$_GET["table"];$WHERE=1;}
 	$search='%';
 	$page=1;
+	$WHERE=1;
 	
-	if($_GET["category"]<>null){
-		$WHERE="category = '{$_GET["category"]}'";
-	}
 	
-	if($_GET["filename"]<>null){$ADD2=" AND filename='{$_GET["filename"]}'";}
-	if(!is_numeric($_GET["taskid"])){$_GET["taskid"]=0;}
 	
-	if($_GET["taskid"]>0){
-		if(!preg_match("#Task.*?[0-9]+#", $table)){
-			$ADD2=$ADD2." AND TASKID='{$_GET["taskid"]}'";
-			$WHERE=1;
-		}
-	}
+	
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -262,21 +252,16 @@ function search(){
 	}	
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*{$_POST["query"]}*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		$sql="SELECT COUNT( * ) AS tcount FROM $table WHERE $WHERE $ADD2$searchstring";
+	if($searchstring<>null){
+		
+		$sql="SELECT COUNT( * ) AS tcount FROM $table WHERE $WHERE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["tcount"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $WHERE $ADD2";
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $WHERE";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
 	}

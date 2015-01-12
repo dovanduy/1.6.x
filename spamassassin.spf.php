@@ -146,7 +146,7 @@ function settings(){
 	
 	<div>$global_enable</div>
 	<HR>
-	<div class=explain>{SPAMASS_SCORES_EXPLAIN}</div>
+	<div class=text-info>{SPAMASS_SCORES_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:13px'>{SPF_PASS}:</td>

@@ -238,6 +238,7 @@ function authenticate() {
 			[AsSystemAdministrator]="yes"
 			[AsPostfixAdministrator]="yes"
 			[AsArticaAdministrator]="yes"
+			[AsArticaMetaAdmin]="yes"
 			';
 		return true;
 		}

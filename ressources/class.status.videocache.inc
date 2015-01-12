@@ -24,50 +24,7 @@ function videocache(){
 	if(!is_file("/usr/share/videocache/videocache.py")){
 		if($GLOBALS["VERBOSE"]){videocache_events("APP_VIDEOCACHE: /usr/share/videocache/videocache.py no such file",__FUNCTION__,__LINE__);}
 		return;}
-	$masterbin=$GLOBALS["CLASS_UNIX"]->find_program("streamsquidcache");
-	if(!is_file($masterbin)){return;}
-	$enabled=videocache_is_enabled();
-	$l[]="[APP_VIDEOCACHE]";
-	$l[]="service_name=APP_VIDEOCACHE";
-	$l[]="master_version=".streamsquidcache_version();
-	$l[]="service_cmd=/etc/init.d/squid-stream";
-	$l[]="service_disabled=$enabled";
-	$l[]="family=proxy";
-	$l[]="watchdog_features=1";
 
-	if($enabled==0){return implode("\n",$l);return;}
-
-	$master_pid=streamsquidcache_pid();
-
-	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		videocache_events("APP_VIDEOCACHE: Not Running");
-		if(!$GLOBALS["DISABLE_WATCHDOG"]){
-			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} {$GLOBALS["BASE_ROOT"]}/exec.initslapd.php --squid-stream");
-			videocache_events("APP_VIDEOCACHE: $cmd");
-			shell_exec($cmd);
-			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/squid-stream start >/dev/null 2>&1 &");
-			videocache_events("APP_VIDEOCACHE: /etc/init.d/squid-stream start",__FUNCTION__,__LINE__);
-			squid_admin_mysql(0,"VideoCache backend not running, start it...",null,__FILE__,__LINE__);
-		}
-		$l[]="running=0\ninstalled=1";$l[]="";
-		return implode("\n",$l);
-		return;
-	}
-
-	$l[]="running=1";
-	videocache_events("APP_VIDEOCACHE: Running");
-	$l[]=GetMemoriesOf($master_pid);
-	$l[]="";
-	
-	if(!$GLOBALS["DISABLE_WATCHDOG"]){
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squidstream.php.get_status.time");
-		if($CacheSchedules>15){
-			$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} {$GLOBALS["BASE_ROOT"]}/exec.squidstream.php --status >/dev/null 2>&1 &");
-			videocache_events("APP_VIDEOCACHE_SCHEDULER: $cmd",__FUNCTION__,__LINE__);
-			shell_exec($cmd);
-		}
-	}
-	return implode("\n",$l);return;
 }
 function videocache_scheduler(){
 	if(!is_file("/usr/share/videocache/videocache.py")){
@@ -123,7 +80,6 @@ function videocache_scheduler(){
 
 function videocache_events($text,$function,$line){
 	$filename=basename(__FILE__);
-	
 	$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/var/log/squid/artica-videocache-watchddog.log");
 	
 }

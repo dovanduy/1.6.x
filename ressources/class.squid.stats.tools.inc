@@ -4,7 +4,7 @@
 class squid_stats_tools{
 	
 	public $NoCategorize=false;
-	
+	public $database="squidlogs";
 	
 	
 	function squid_stats_tools(){
@@ -227,7 +227,7 @@ class squid_stats_tools{
 		$month=substr($hour,4,2);
 		$day=substr($hour,6,2);
 		$day_table="{$year}{$month}{$day}_gsize";
-		
+		$d=0;
 		$sql="CREATE TABLE IF NOT EXISTS `$day_table` ( `hour` smallint(2) NOT NULL, `size` BIGINT UNSIGNED, cached smallint(1), KEY `hour` (`hour`), KEY `cached` (`cached`), KEY `size` (`size`) ) ENGINE=MYISAM;";
 		$GLOBALS["Q"]->QUERY_SQL($sql,$this->database);
 		if(!$GLOBALS["Q"]->ok){return;}
@@ -235,7 +235,7 @@ class squid_stats_tools{
 		$sql="SELECT SUM(`size`) AS size, HOUR(`zDate`) AS thour,cached FROM `$tablename` GROUP BY thour,cached";
 		$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 		if(!$GLOBALS["Q"]->ok){return;}
-		
+		$d++;
 		$pref="INSERT INTO `$day_table` (`hour`,`size`,`cached`) VALUES ";
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$f[]="('{$ligne["thour"]}','{$ligne["size"]}','{$ligne["cached"]}')";
@@ -405,7 +405,7 @@ class squid_stats_tools{
 			  `MAC` varchar(20) NOT NULL,
 			  `country` varchar(50) NOT NULL,
 			  `size` BIGINT UNSIGNED NOT NULL,
-			  `hits` int(10) NOT NULL,
+			  `hits` BIGINT UNSIGNED NOT NULL,
 			  `uid` varchar(90) NOT NULL,
 			  `category` varchar(50) NOT NULL,
 			  `cached` smallint(1) NOT NULL,

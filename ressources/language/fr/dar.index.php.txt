@@ -42,7 +42,7 @@ Bzip2 utilise par d&eacute;faut 6, qui est la meilleure vitesse et taux de compr
 <mount_dar>Montez votre collection de sauvegarde</mount_dar>
 <mount_dar_text>Connectez Artica &agrave; votre zone de sauvegarde afin d'interroger</mount_dar_text>
 <mount_this_collection>connecter une biblioth&egrave;que</mount_this_collection>
-<mysql_datas>Bases de donn&eacute;es Mysql</mysql_datas>
+<mysql_datas>Bases de donn&eacute;es MySQL</mysql_datas>
 <nice_int>Priorit&eacute; de Planification (bon)</nice_int>
 <nice_int_text>D&eacute;marrer le processus de sauvegarde, avec un calendrier de priorit&eacute;.[br]
 S'&eacute;tend de -20 (priorit&eacute; la plus &eacute;lev&eacute;e) &agrave; 19 (plus bas).</nice_int_text>
@@ -58,7 +58,7 @@ de sauvegarde</query_collection_text>
 <RebuildCollectionAsk>Reconstruisez la collection? Cela devrait prendre du temps car cela d&eacute;pend de la taille de vos fichiers de sauvegarde</RebuildCollectionAsk>
 <rebuild_collection>Reconstruire la collection</rebuild_collection>
 <rebuild_collection_text>Cette op&eacute;ration va recr&eacute;e une nouvelle index de collection</rebuild_collection_text>
-<refresh_cache>Rafraichir les caches de fichiers</refresh_cache>
+<refresh_cache>Rafra&icirc;chir les caches de fichiers</refresh_cache>
 <remote_foldersize>Taille de stockage &agrave; distance</remote_foldersize>
 <restore_choose_date>Choisissez le conteneur et sa date afin de restaurer le fichier</restore_choose_date>
 <restore_file_text>Cette op&eacute;ration va extraire les fichiers sauvegard&eacute;s depuis le conteneur.Indiquez ici o&ugrave; les fichiers vont &ecirc;tre restaur&eacute;s.</restore_file_text>

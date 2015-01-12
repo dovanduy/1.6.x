@@ -108,7 +108,7 @@ function popup(){
 	$html="
 	<div id='$t-animate'></div>
 	$current_text
-	<div class=explain style='font-size:12px'>
+	<div class=text-info style='font-size:12px'>
 		{windows_network_neighborhood_text}
 		<div><span id='neighborhood-$t' style='font-weight:bold'></span><br>
 		{samba_security_mode_explain}<br>

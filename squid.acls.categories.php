@@ -1,7 +1,6 @@
 <?php
-
-ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
-if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}	
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}	
 	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');$GLOBALS["VERBOSE"]=true;}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -160,11 +159,13 @@ function EnableDisableCategoryACL(){
 function blacklist_list(){
 	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	$tpl=new templates();
+	$cats=array();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
-	if(!is_numeric($_GET["TimeID"])){$_GET["TimeID"]=0;}
 	$users=new usersMenus();
+	if(!isset($_GET["group"])){$_GET["group"]=null;}
 	$text_license=null;
+	$OnlyEnabled=false;
 	if(!$users->CORP_LICENSE){
 		//$text_license=$tpl->_ENGINE_parse_body("({category_no_license_explain})");
 	}
@@ -172,7 +173,7 @@ function blacklist_list(){
 	$table="webfilters_categories_caches";
 	$tableProd="webfilters_sqitems";
 
-	if($_GET["TimeID"]>0){$tableProd="webfilters_dtimes_blks";}
+	
 
 	$page=1;
 	$ORDER="ORDER BY categorykey ASC";
@@ -281,15 +282,17 @@ function blacklist_list(){
 
 		$img="img/{$ligne["picture"]}";
 		$val=0;
+		if(!isset($cats[$ligne['categorykey']])){$cats[$ligne['categorykey']]=false;}
+		
 		if($cats[$ligne['categorykey']]){$val=1;}
 		if($OnlyEnabled){if($val==0){continue;}}
 
-		$disable=Field_checkbox("cats_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryACL('{$ligne['categorykey']}','{$_GET["RULEID"]}','{$_GET["modeblk"]}')");
+		$disable=Field_checkbox("cats_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryACL('{$ligne['categorykey']}','0','0')");
 		$ligne['description']=utf8_encode($ligne['description']);
 
 		$data['rows'][] = array(
 				'id' => $ligne['categorykey'],
-				'cell' => array("<img src='$img'>","$js{$ligne['categorykey']}</a>", $ligne['description']."<br>$database_items",$disable)
+				'cell' => array("<img src='$img'>","{$ligne['categorykey']}</a>", $ligne['description']."<br>$database_items",$disable)
 		);
 	}
 

@@ -4,6 +4,8 @@ class generic_categorize{
 	// http://winhelp2002.mvps.org/hosts.txt
 	//http://www.oxymium.net/policyrss.php?type=sender-domain
 	
+	
+	
 	private $ville1=null;
 	private $ville2=null;
 	private $ville3=null;
@@ -389,16 +391,13 @@ class generic_categorize{
 	
 	
 	
-	private function Blog($www){
+	public function Blog($www,$return_array=false){
 		
 		
-		$array=array("jimdo","azurewebsites.net","canalblog","home.pl","greenshift.eu","simply-webspace.fr","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
-		"e-monsite","yuku","tumblr","over-blog","ucoz","punt","grygorczuk","skyblog","blogspirit","jellybaby.net",
-		"freedomblogging","bloguez","pagesperso-orange","areavoices","blogspot","typepad","xanga.com",
-		"monsite-orange","blogspirit","blogspace","livejournal","blog.mongenie","diaryclub","blogcu.com","funpic",
-		"blogs-r","at.webry.info","hautetfort.com","dreamwidth.org","bbs.mythem.es","diary","free","cafe24.com","xooit",
-		"freeblog","myblog","egloos","coueb.fr","convex.ru","tripod.com","tripod.com.pe","inet.ezbase.net","bulks.jp","cekuj.net","blogdetik.com","securesites.net","blogcentral","easy-hebergement.net","chez.com","123.st","nextmp.net","bloblo.pl","bligoo","homespot","blogzoom.fr","blog4ever","orgfree.com","narod2.ru","perso.infonie.fr","webnode.com.co","blogfree.net","midiblogs.com","blogparty","viabloga","blogspot","monbook.net","kazeo.com","blog.sfr.fr","publicoton.fr","perso.neuf.fr","networkedblogs.com"
-		);
+		include_once(dirname(__FILE__)."/class.squid.category.array.blog.inc");
+		$class=new array_category_blog();
+		$array=$class->return_array();
+		if($return_array){return $array;}
 		
 		if($this->ParseArray($array, $www)){return "blog";}
 		
@@ -488,15 +487,30 @@ class generic_categorize{
 		if(preg_match("#ambulanc#", $www)){return "transport";}
 	}
 	
+	private function translators($www){
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.translator.inc");
+		$class=new array_category_translator();
+		$array =  $class->return_array();
+		if($this->ParseArray($array, $www)){return "translators";}
+		if(preg_match("#^translate.*\.#", $www)){return "translators";}
+		if(preg_match("#traductor#", $www)){return "translators";}
+
+		
+		if(preg_match("#^traduction-#", $www)){return "translators";}
+		
+	}
+	
+	
+	
 	private function Tracker($www){
+		
 		if(preg_match("#[0-9\-]+\.fbx\.proxad\.net$#", $www)){return "dynamic";}
 		
+		include_once(dirname(__FILE__)."/class.squid.category.array.tracker.inc");
+		$class=new array_category_tracker();
+		$array =  $class->return_array();
 		
-		$array=array("cnzz","xiti","trackad","adn-du-jour.fr","tracktor.in","outerstats.com","adprotect.net","appmetrx.com","statcamp.net","resultspage","hstrck.com","memecounter","meetrics","effectivemeasure","irotracker","rtrk","omtrdc.net",
-				"ezakus","statistik","odiso","online-metrix","cleervoyance","pandastats","estadisticasgratis",
-				"lognormal","zeroredirect","quantcount","raster-xml","revolvermaps","optimizely","hcatracker","adlooxtracking.com",
-				"redhelper","ceipmsn","quantserve.com","luckyorange.com","trafiz.net","applicationstat.com","himpi.com","pingjam.net","pingbutter.net","slipbutter.com","uqrzo.com","postclickmarketing.com","cedexis.org","trackvoluum.com","gcm-web.net","tv2nd.net","sharethis.com","emltrk.com","tlm100.net","userdail","webstatsdomain.net","wtstats.info","trkag1.com","clickbank.net","coremetrics.com","tradenote.net","my-super-super.com","go2cloud.org","cloud4stat.com","equipoelfa.at","zeni.fr","tcopartners.com","geovisite","celebros-analytics","chartbeat","feedjit","webtrekk","presencedynamicreport","directtrack.com","adlooxtracking","mobileapptracking","sindelclick.com","hitslink","rtrk.nl","shinystat.com","cmos.greencompute.org","ninjastat.com","oadz.com",
-		);
 		
 		if(preg_match("#[a-z][0-9]+tracking[0-9]+\.[a-z]+$#", $www)){return "tracker";}
 		
@@ -583,7 +597,11 @@ class generic_categorize{
 	
 	private function remote_control($www){
 		
-		$array=array("teamviewer","webex","islonline","ammyy","soluto.com","mysoluto.com");
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.remotecontrol.inc");
+		$class=new array_category_remotecontrol();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "remote-control";}
 		
 	}
@@ -594,10 +612,9 @@ class generic_categorize{
 			
 
 		
-		$array=array("ge.tt","filewatcher","cloudfront","edgesuite","amazonaws","staztic.com","nowdownload.eu","smcloud","mediafire","dnsmex",
-				"akamai","dropbox","dropboxusercontent","yousendit","scene7","vo\.msecnd","depositfiles",
-				"zingload","pinterest","e-loader","zcache.fr","wuala","wetransfer","lumfile.se","cherchelefile","whatyoushare","seewebstorage.it","fiberupload"
-		);
+		include_once(dirname(__FILE__)."/class.squid.category.array.filehosting.inc");
+		$class=new array_category_filehosting();
+		$array=$class->return_array();
 		
 		if($this->ParseArray($array, $www)){return "filehosting";}
 		
@@ -680,10 +697,13 @@ class generic_categorize{
 		
 		if(preg_match("#(advertise|publicitate|advertising|affiliation)#", $www)){return "publicite";}
 		
-		$array=array("bababian","photobucket","servimg","designermediacdn","imgur.com","nmimg.org","bousedezebu.com","frz.io","imgwykop.pl","edgefcs","picturepush","imagevenue","mzsimg.com","web-album.org","iofferphoto","rackcdn","t26","tinypic","imageshack","stylesfire","fotolog.com");
+		include_once(dirname(__FILE__)."/class.squid.category.array.imagehosting.inc");
+		$class=new array_category_imagehosting();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "imagehosting";}
 
-		if(strpos($www, ".yimg.com")>0){return "audio-video";}
+		
 		if(strpos($www, ".imageshack.")>0){return "imagehosting";}
 		if(strpos($www, ".turboimagehost.com")>0){return "imagehosting";}
 		if(strpos($www, ".imagevenue.com")>0){return "imagehosting";}
@@ -750,17 +770,11 @@ class generic_categorize{
 	
 	private function audiovideo($www){
 		
-		$array=array("googlevideo.com","tune.pk","exashare.com","video.sibnet.ru","vk.com","tunefiles.com","23video.com","minoto-video.com","wikiblue.com",
-				"youtube","piximedia","vuclip.com","mporatrons.com","viostream.com","ubistream.tv",
-				"atmcdn","samplage.com","vidspot.net","streamprovider.net",
-				"gamaniak","popscreen.com","dailymotion","vidzur.com",
-				"listentoyoutube","gis.bredband2.com","googlevideo.com",
-				"video.msn.com","shockya","brightcove","videostep.com","qbrick.com",
-				"castup","cdnvideo","ustream.tv","movideo.com","mvpitsolutions.com",
-				"rocktube","vimeocdn","freemake","windowsmedia","tare","livestream","nowvideo","vimeo","real",
-				"dropshots","allmyvideos","pcvideo","loadup","videobam","popscreencdn","ultimedia",
-				"firststreaming","videoegg","lkimg","flvstorage","topclip","dailymotion","trilulilu","videoplaza","video-loader");
 		
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.audiovideo.inc");
+		$class=new array_category_audiovideo();
+		$array=$class->return_array();
 		if($this->ParseArray($array,$www)){return "audio-video";}
 
 		if(preg_match("#video.*?\.msn\.[a-z]+$#", $www)){return "audio-video";}
@@ -778,23 +792,9 @@ class generic_categorize{
 		if(preg_match("#^video-.*?\.pagesjaunes\.[a-z]$#", $www)){return "audio-video";}
 		if(preg_match("#^video-[a-z][0-9]+\.pagesjaunes\.fr$#", $www)){return "audio-video";}
 		if(preg_match("#video.*?\.akamaihd\.net$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)videohub\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)5mn\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)vidyotv\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)popscreen\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)novamov\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)akamaistream\.net$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)videoweed\.es$#", $www)){return "audio-video";}
 		if(preg_match("#(^|\.)videomark\.[a-z]+$#", $www)){return "audio-video";}
 		if(preg_match("#^videomark\.[a-z]+$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)wrzuta\.pl$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)ipercast\.net$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)longtailvideo\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)playstream\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)brainsonic\.com$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)uloz\.to$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)nflxvideo\.net$#", $www)){return "audio-video";}
-		if(preg_match("#(^|\.)ivi\.ru$#", $www)){return "audio-video";}
+
 		if(preg_match("#(media-player|mediaplayer|plusbellelavie)#", $www)){return "audio-video";}
 		if(preg_match("#video.*?download#", $www)){return "audio-video";}
 		
@@ -813,12 +813,14 @@ class generic_categorize{
 	
 	private function Books($www){	
 		
+		include_once(dirname(__FILE__)."/class.squid.category.array.books.inc");
+		$class=new array_category_books();
+		$array=$class->return_array();
 		
-		$array=array("elsevier","booksite",'vonibo','bookos',"lyellcollection.org","eyrolles","wattpad.com","bibliosansfrontieres.org","cyberpresse","berghahnbooks","yoolib",'wikibooks',
-		"bnf","electre",'tradepub','docstoc-store','oreilly');
+		
 		if($this->ParseArray($array, $www)){return "books";}
 		
-		if(strpos($www, "books.google.")>0){return "books";}
+		
 		if(preg_match("#^books\.#", $www)){return "books";}
 		if(preg_match("#^librairie\.#", $www)){return "books";}
 		if(preg_match("#(bouquins|salondulivre|bibliotheek|libros)#", $www)){return "books";}
@@ -897,20 +899,24 @@ class generic_categorize{
 	private function schools($www){
 		include_once(dirname(__FILE__)."/class.squid.catz.schools.inc");
 		$pub=new squid_catz_schools();$cat=$pub->parse($www);if($cat<>null){return "recreation/schools";}
-		$array=array("universidad-finis-terrae","finisterrae.cl","tu-harburg","mathletics","grenet","powerschool",
-		"schoology","edublogs","sumdog","tableau-noir","avcr.cz","revues.org","uni-tuebingen.de","reseauecoleetnature.org","educationamerica","stv-chaville.com","hbxxedu.com","uam.es","edu.au","u-cergy","ac.id","espace-eleves.com");
+	
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.school.inc");
+		$class=new array_category_school();
+		$array=$class->return_array();
 		
 		if($this->ParseArray($array, $www)){return "recreation/schools";}
 		$def="(college|lycee|ecole|student|etudiant|cybercollege)";
+
+		
+		if(preg_match("#(^|\.)edu\.(au|br|nz|np|tw|ph|gr|pr)$#", $www)){return "recreation/schools";}
+		if(preg_match("#(^|\.)ac\.(id|th|ir)$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)state\.oh\.us$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)sch\.uk$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)raisoni\.net$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)insa-.*?\.fr$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)edu\.[a-z]+$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)sch.id$#", $www)){return "recreation/schools";}
-		if(preg_match("#(^|\.)ac.th$#", $www)){return "recreation/schools";}
-		if(preg_match("#(^|\.)ac.ir$#", $www)){return "recreation/schools";}
-		if(preg_match("#(^|\.)ac.id$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)sjks\.be$#", $www)){return "recreation/schools";}
 		if(preg_match("#(^|\.)sch\.uk$#", $www)){return "recreation/schools";}
 		
@@ -938,7 +944,14 @@ class generic_categorize{
 	
 	private function sports($www){
 		
-		$array=array("sofoot","lesjoueurs.com","msw.ms","foot-us.fr","ayosport.com");
+		include_once(dirname(__FILE__)."/class.squid.category.array.sport.inc");
+		$class=new array_category_sport();
+		$array=$class->return_array();
+		
+		
+		
+		
+		
 		if(preg_match("#sport.*?(gaming|games)#",$www)){return "games";}
 		$sports="foot|tennis|judo|jujitsu|rugby|football|championat|fifa|musculaction|musculation";
 		if($this->ParseArray($array, $www)){return "recreation/sports";}
@@ -1004,12 +1017,12 @@ class generic_categorize{
 	
 	private function shopping($www){
 		
-		$array=array("1jour-1bonplan","wholesalepowertools","cdiscount","blizko","focalprice","cherchons","diplotop",
-				"360buy","mbstatic","groupon","zura","amazon","htfacile","leguide","crystalcommerce","babidou","jd.com","coovee.net",
-				"couponcodes","alloy.ru","franceprix","marst.ru","souqcdn.com","outlet","consopremium","trustpilot",
-				"officedepot","topachat","bonsplansdemarc","netodr.fr","selectra.info","avtovideoglaz.ru","topshopdeals.com","shoppingshadow.com","services-carrefour","teamfanshop.com","prooxi.fr","livepepper.com","abo.com.ua","hmmm.cz","myshopify.com","darty-services.com","darty"
-				
-		);
+		include_once(dirname(__FILE__)."/class.squid.category.array.shopping.inc");
+		
+		$class=new array_category_shopping();
+		$array =  $class->return_array();
+		
+		
 		
 		if($this->ParseArray($array, $www)){return "shopping";}
 
@@ -1054,7 +1067,12 @@ class generic_categorize{
 		
 	}
 	private function pictureslib($www){
-		$array=array("mycanvas.com","photoshelter","ggpht.com","gamewallpapers.com","fliphotos","cargocollective.com","viewbook.com","portfoliobox.fr");
+		include_once(dirname(__FILE__)."/class.squid.category.array.pictureslib.inc");
+		$class=new array_category_pictureslib();
+		$array=$class->return_array();
+		
+		
+		
 		if($this->ParseArray($array, $www)){return "pictureslib";}
 		if(strpos($www, "asiaphotopro.com")>0){return "pictureslib";}
 		if(strpos($www, ".photozou.jp")>0){return "pictureslib";}
@@ -1099,7 +1117,12 @@ class generic_categorize{
 	
 	private function governments($www){
 		
-		$array=array("st-christo","cnam.fr","msh-vdl.fr","gov.uk","gov.yk.ca","oecdilibrary.org","oecd.org","rhonealpes.fr","com6-interactive.com","ineris.fr");
+		include_once(dirname(__FILE__)."/class.squid.category.array.governements.inc");
+		
+		$class=new array_category_governments();
+		$array =  $class->return_array();
+		
+		
 		if($this->ParseArray($array, $www)){return "governments";}
 		if(preg_match("#^gov\.uk$#", $www)){return "governments";}
 		if(preg_match("#(^|\.)justice\.gouv\.fr$#", $www)){return "justice";}
@@ -1156,10 +1179,11 @@ class generic_categorize{
 	
 	private function searchengines($www){
 		
-
+		include_once(dirname(__FILE__)."/class.squid.category.array.searchengines.inc");
 		
-		$array=array("vulka.es","atver","yandex","contacteo.com","gexperiments2.com","gexperiments1.com","webmarchand","yahoodns.net","dastelefonbuch.de","annuairefrancais.fr",
-				"googleusercontent","repertoire-web","towar.ru","cylex-france.fr","bdstatic.com");
+		$class=new array_category_searchengines();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "searchengines";}
 		
 		if(strpos($www, ".l.google.com")>0){return "searchengines";}
@@ -1241,7 +1265,13 @@ class generic_categorize{
 	
 	private function dictionaries($www){
 		
-		$array=array("thefreedictionary","jusbrasil.com.br","tandfonline.com","ebscohost.com","metapress.com","yourdictionary","turnikpedia","hudong.com","dbpedia.org","oxfordjournals","about","abes.fr","theses.fr","wikipedia","wikia","docstoc","wikidot","wikispaces","wikimedia","wikiquote","wikisource");
+		include_once(dirname(__FILE__)."/class.squid.category.array.dictionaries.inc");
+		
+		$class=new array_category_dictionaries();
+		$array =  $class->return_array();
+		
+		
+		
 		if($this->ParseArray($array, $www)){return "dictionaries";}
 		
 		
@@ -1265,50 +1295,37 @@ class generic_categorize{
 	
 	private function webtv($www){
 		
-		$array=array("moiseriali","blip","ustream","zap2it","simplestream.com","tvrage","arte","canalplus","mtv","diziizle","m6web",
-				"bfmtv","france2","france3","24tv.ua","francetv.fr","veberod.com","plitv.tv","spiegel.tv","ytv.com","televisionfanatic.com","markiza.sk","luxnet.ua","hypnoweb.net","fullrate.dk","entertv.gr","tidaltv","francetelevisions","mediasetpremium.it","tvnet","jcntv.jp","webtv-corp.ru","wmaker.tv","leclubcanal","premiumtv","partner-tvmag.net");
+		include_once(dirname(__FILE__)."/class.squid.category.array.webtv.inc");
 		
+		$class=new array_category_webtv();
+		$array =  $class->return_array();
 		if($this->ParseArray($array, $www)){return "webtv";}
 		
-		if(preg_match("#(^|\.)tv\.yahoo\.[a-z]+$#",$www)){return "webtv";}
-		if(preg_match("#(^|\.)tv\.search\.[a-z]+$#",$www)){return "webtv";}
-		if(preg_match("#(^|\.)rtl\.lu$#",$www)){return "webtv";}
+		
 		if(preg_match("#^tv.+?\.orange\.[a-z]+$#",$www)){return "webtv";}
 		
 		if(preg_match("#(^|\.)tv2\.dk$#",$www)){return "webtv";}
 		if(preg_match("#(^|\.)wat\.[a-z]+$#",$www)){return "webtv";}
 		
 
-		if(preg_match("#(^|\.)20min-tv\.ch$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)crystal-tv\.[a-z]+$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)programme-tv\.net#",$www)){return "webtv";}
-		if(preg_match("#(^|\.)france3\.fr$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)natgeotv\.com$#", $www)){return "webtv";}
+		
 		if(preg_match("#(freetv|onlinetv)#", $www)){return "webtv";}	
-		if(preg_match("#(^|\.)extratv\.com$#", $www)){return "webtv";}	
-		if(preg_match("#(^|\.)justin\.tv$#", $www)){return "webtv";}	
-		if(preg_match("#(^|\.)arcoiris\.tv$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)cc\.com$#", $www)){return "webtv";}
+		
 		if(preg_match("#(^|\.)tvb.com$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)flumotion\.[a-z]+$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)letv\.com$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)letvimg\.com$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)canalsat\.[a-z]+$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)canal13\.artear\.com\.ar$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)m6web\.fr$#", $www)){return "webtv";}
 		if(preg_match("#(offrescanal|televize|tvonline)#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)reise-tv\.com$#", $www)){return "webtv";}
+		
 		if(preg_match("#-tv\.[a-z]+$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)inttv\.ru$#", $www)){return "webtv";}
 		if(preg_match("#^tv\.$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)canal-plus\.[a-z]+$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)boomtv.[a-z]+$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)worldnow\.com$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)snacktv\.de$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)tv8montblanc\.com$#", $www)){return "webtv";}
+
 		if(preg_match("#(^|\.)canal13\.cl$#", $www)){return "webtv";}
 		if(preg_match("#(^|\.)volia\.[a-z]+$#", $www)){return "webtv";}
-		if(preg_match("#(^|\.)cgates\.lt$#", $www)){return "webtv";}
+		
 		if(preg_match("#^tvsl[0-9]+\.orange\.[a-z]+$#", $www)){return "webtv";}
 		if(preg_match("#program.*?-tv#", $www)){return "webtv";}
 		if(preg_match("#^webtv#", $www)){return "webtv";}
@@ -1320,7 +1337,12 @@ class generic_categorize{
 	
 private function webplugins($www){
 	
-	$array=array("onicon","jquerytools","readspeaker","talkinglayers","xmlrequest","googleapis","linkwithin");
+	
+
+	include_once(dirname(__FILE__)."/class.squid.category.array.webplugins.inc");
+	
+	$class=new array_category_webplugins();
+	$array =  $class->return_array();
 	
 	if($this->ParseArray($array, $www)){return "webplugins";}
 	
@@ -1333,8 +1355,10 @@ private function socialnet($www){
 	
 	
 	
-	
-		$array=array('tortugasocial',"fbcdn","timepad.ru","meetup.com","yfrog.com","loginradius.com","landable.net","xing.com","mylife","wamba","wambacdn","badoocdn","gfranq","gigya","badoo","twimg","pinterest","p4fb","thestudentroom","facebook","smeet","disqus","hostmonarchy","pipl","myspacecdn","myspace");
+		include_once(dirname(__FILE__)."/class.squid.category.array.socialnet.inc");
+		$class=new array_category_socialnet();
+		$array =  $class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "socialnet";}
 	
 				
@@ -1440,15 +1464,12 @@ private function socialnet($www){
 		
 	}
 	
-	private function publicite($www){
+	public function publicite($www,$returnarray=false){
 		
-		
-		
-		$array=array("adnexus.net","open-system","ptp22.com","ptp33.com","adsmogo","rtbads.com","ic-live","aug.me","ad6media.fr","perfoweb.fr","cp-proximity","aroundmeapi.com","toppic555","inteletrack.com","gestionpub","bidvertiser","banners-service","agency-siam.ru","servedbyopenx.com",
-				"easypush","ovoadv","clickbank" ,"adhood","betrad","deskrgas.net","smaato","cibleclick","madvertise","fmpub","plugrush","madnet.ru","client-privilege.com",
-				"jumpsavehuge.com","syn-api.com","nativeads.de","monetizheat.com","adxcore.com","tadssrv.info","doubleclick.net","advertising.com","admaster.com.cn","savills-vx.com","promoz.com.ua","exhost1.me","exhost2.me","promoz.com","11clicks.de","alclick.com","bases-prisma.com","luxup.ru","promolike.com","mydas.mobi","affiliatedupdate.com","eloqua.com","nuggad.net","displayadfeed.com","officeeoeo.com","networksad.com","mobeo.eu","googlsyndications.com","adlux.com","adpub.eu","addmob.info","ocito.com","paneaserver.net","adzmedia","cdndm5.com","wen9.net","frr.com","wvproxy.com","paristream.com","croiseo.com","croiseo.fr","rmmads.com","adsofts.cn","placedesleads.com","gamigoads.com","mobadsrv.com","graphidom972.fr","luxup.ru","prisasd.com","bbelements.com","ad-saver.com","otooxo","clickinvideo","oneclickad","adsmarket","wem.fr","nm17.fr","publimaestro","pubmatic","promo-onweb.com","network-media","network-medianet","mediagra.com",'ivwbox.de',"pubmatic.com","movad.de",
-		);
-		
+		include_once(dirname(__FILE__)."/class.squid.category.array.publicite.inc");
+		$array_category_publicite=new array_category_publicite();
+		$array=$array_category_publicite->return_array();
+		if($returnarray){return $array;}
 		if($this->ParseArray($array, $www)){return "publicite";}
 		
 		
@@ -1456,6 +1477,7 @@ private function socialnet($www){
 		$pub=new squid_catz_publicite();$cat=$pub->parse($www);if($cat<>null){return "publicite";}
 		if(preg_match("#\.ads.a[0-9]+cdn\.contentabc\.com$#", $www)){return "publicite";}
 		if(preg_match("#-clubdesmarchands\.[a-z]+$#", $www)){return "publicite";}
+		if(preg_match("#^reklama(\-|\.)#", $www)){return "publicite";}
 		if(preg_match("#^ad[0-9]+server\.[a-z]+$#", $www)){return "publicite";}
 		if(preg_match("#(^|\.)adserver[0-9]+\.mediacpm\.com$#", $www)){return "publicite";}
 		if(preg_match("#(^|\.)wt-rotator[0-9]+\.ru$#", $www)){return "publicite";}
@@ -1575,7 +1597,7 @@ private function socialnet($www){
 	private function clothing($www){
 		$array=array("glam","c-mod","etnies","morel-france","bon-clic-bon-genre","sport-trend","placedestendances",
 				"spartoo","spreadshirt","etam","zalando","ztat","shopstyle","forzieri","howards",
-				"orchestra","scarosso","xxfanli.com","misscoquines","costumemagic","marksandspencer",".network.com.tr"
+				"orchestra","scarosso","xxfanli.com","misscoquines","amazinggirl.pl","costumemagic","marksandspencer",".network.com.tr"
 		);
 		
 		if(preg_match("#(chaussure|shirtinator|maroquinerie|rayban|dresses|timberland|clothes|clothing|marquepaschere|hugoboss|vetement|burberry|basketnike|hollister|abercrombie|marroquineri|costume|workwear)#", $www)){return "clothing";}
@@ -1610,10 +1632,13 @@ private function socialnet($www){
 		$cat=$this->ScienceComputing($www);
 		if($cat<>null){return $cat;}
 		
-		$array=array("jlg","mindvalley","bunchball","ccmbenchmark","edf.com","adenweb.com","fastcompany","chat2deal","nachtmann","whopper","burgerking","burgerkingfrance","pagespro-orange",
-		"schneider-electric.com","sony-europe.com","afacerist","hubb","telenav","choosit","lyonnaise-des-eaux","adp","cat",
-		"danfoss","batiactu","schunk","advertory","safe-metal.com","konecranes.com","coop.br","exleam.fr","clariant.com","bnlparts.nl","samsonite",".madeira.","cristal.com","allomarie.fr","personal-wissen.net","etiuslugi.ru","schneider","198ic.com","gesep.com","samsung","datazug","surinternet","bankfirstcorp","sandhills",
-		);
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.industry.inc");
+		
+		$class=new array_category_industry();
+		$array=$class->return_array();
+		
+		
 		
 		if($this->ParseArray($array, $www)){return "industry";}
 		if(preg_match("#(telemarketing|industries|thyssenkrupp|ascenseurs|peteroli|eon-energia|patisserie|frigorifique|automation|automatism|automatisierung|entreprises|artisans|echafaudage|polypro|vitrier|miroiterie|fonderie|-expertise\.|electric|radyator|industrial|charcuterie|architekten|assainissement|electricite|europages|manutention|industrie)#", $www)){return "industry";}
@@ -1672,16 +1697,9 @@ private function socialnet($www){
 	
 	private function womanbrand($www){
 		
-		$array=array("mywoman",
-				"yxlady","semuaartikel.com",
-				"aufeminin",
-				"prime-beaute",
-				"mmasculin",
-				"vogue",
-				"cosmopolitan",
-				"grazia",
-				"gzmama","meltyfashion","mcm.fr","lockerz","onlylady","costume.dk","meltystyle.fr",
-				);
+		include_once(dirname(__FILE__)."/class.squid.category.array.womanbrand.inc");
+		$class=new array_category_womanbrand();
+		$array=$class->return_array();
 		
 		if($this->ParseArray($array, $www)){return "womanbrand";}
 		if(preg_match("#(fashion|beaute|mode|glamour|modeparis)#", $www)){return "womanbrand";}
@@ -1717,24 +1735,18 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)www3\.hp\.com$#",$www)){return "updatesites";}
 		if(preg_match("#(^|\.)spamfilter\.[a-z\.]+#",$www)){return "updatesites";}
 		
-		$array=array("canonical","n1adsl",".internetarchaeology","agate-sigb.com","newegg.com","neweggimages.com.cn",
-		"googlecode","proxyplus","novadata","apple.com","ipv6test.net","teknaria.com",
-		"sourceforge","sagepub.com","capgemini","icsor.com","your-server.de",
-		"opendns","planet-service.fr","sugarcrm.com","stackexchange.com",
-		"symantec","ipv6test.semnicneposilejte.cz","groupe-sigma.com","mailinblack.com",
-		"nabble","coremetrics.com","autodesk.com","accortech.com",
-		"htp","atos.net","atosorigin","atosworldline","ipv6test.net",
-		"citrix","dell","herculepro","archivospc.com","ricoh",
-		"hyves","spiceworks","dslreports","itpub.net","redsoft.at","smtproutes.com",
-		"sanasecurity","github","cmsmedia.fr","ora-code.com","netcode","global-coding.com",
-		"canonical.com","dell","codes-sources","ibm","parallels","unveiltech","jquery","opera","windows\.microsoft","canon-europe","canon",
-		"ubuntu","eye.fi","messagelabs.com","omniroot","ie.microsoft.com","microsoft.com","dashnxdomain.net","dotnxdomain.net");
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.sciencecomputing.inc");
+		$class=new array_category_sciencecomputing();
+		$array=$class->return_array();
+		
+		
+		
 		
 		if($this->ParseArray($array,$www)){return "science/computing";}
 		
 		
-		
-		if(preg_match("#([\.|-])photoshop([-|\.])#", $www)){return "science/computing";}
+		if(preg_match("#\.inf\.br$#", $www)){return "science/computing";}
 		if(preg_match("#^(clavier|keyboard)-#", $www)){return "science/computing";}
 		if(preg_match("#(informatique|informatic|harddrive|hardware|notebook|laptop|opensuse|vmware|imprimante|computing|komputer|autodesk|computer|kaspersky|pcastuces|squid-cache|ordinateur|reseaunance|logiciel|software|sourcecode|freebox)#", $www)){return "science/computing";}
 		if(preg_match("#zoneadsl\.#", $www)){return "science/computing";}
@@ -1825,7 +1837,11 @@ private function socialnet($www){
 
 	private function music($www){
 		
-		$array=array("easyzic.com","musicblog","sheetmusicengine","bandcamp.com","mp3slash.net","pitchfork","kazaa","universalmusic","sonymusic","hulkshare","projectplaylist");
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.music.inc");
+		$class=new array_category_music();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "music";}
 	
 		if(preg_match("#-music\.[a-z]+$#", $www)){return "music";}
@@ -1939,7 +1955,7 @@ private function socialnet($www){
 	
 	private function webmail($www){
 		
-		$array=array("webcamp.fr","szn.cz","hotmail.com");
+		$array=array("webcamp.fr","szn.cz","hotmail.com","newmail.ru","mail.ru");
 		if($this->ParseArray($array, $www)){return "webmail";}
 		if(preg_match("#^webmail\.#", $www)){return "webmail";}
 		if(preg_match("#webmail#", $www)){return "webmail";}
@@ -1976,13 +1992,14 @@ private function socialnet($www){
 	
 	private function chat($www){
 		
-		$array=array("iadvize","livechatinc","envolve","pop800","whatsapp","chatango","freeshoutbox","chatroll","vichatter","livechat");
 		
-		while (list ($none, $pattern) = each ($array) ){
-			if(preg_match("#(^|\.)$pattern\.[a-z\.]+$#", $www)){return "chat";}
-			if(preg_match("#^$pattern\.[a-z\.]+$#", $www)){return "chat";}
-			if(preg_match("#^$pattern-.*?\.[a-z\.]+$#", $www)){return "chat";}
-		}
+		include_once(dirname(__FILE__)."/class.squid.category.array.chat.inc");
+		$class=new array_category_chat();
+		$array=$class->return_array();
+		
+		if($this->ParseArray($array, $www)){return "chat";}
+		
+		
 		
 		
 		
@@ -2015,40 +2032,39 @@ private function socialnet($www){
 	
 	private function porn($www){
 		
-		$array=array('ruerotic',"xxx4u","sopital","pornblogspace.com","videoxstars.com","safeimageserver.com","24video.net","publicsexchat","nageoire.com","hardsextube","red8porn","xneu","fux.com","hidrvids","freepornvs","adultgamecity","youjizz","livesexbook","sex-zone","adnlt.com");
+		include_once(dirname(__FILE__)."/class.squid.category.array.porn.inc");
+		$class=new array_category_porn();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "porn";}
 		
 		
 		if(preg_match("#(video|film|movie).*?(sexo|erotic)#", $www)>0){return "porn";}
 		
 		include_once(dirname(__FILE__)."/class.squid.catz.porn.inc");
-		$pub=new squid_catz_porn();$cat=$pub->parse($www);if($cat<>null){return "porn";}	
-		if(preg_match("#(^|\.)newsfilter\.org$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)utrehter\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)smutxx\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)nastymovs\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)hardsextube\.com$#", $www)>0){return "porn";}
-		if(preg_match("#^sexyblog\.*$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)doublepimp\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)mesvip\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)celebsempire\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)smut\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)bfdare\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)brutaltops\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)ventedvdx\.net$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)orgasmatrix\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(blonde|teen).*?(porn)#", $www)>0){return "porn";}
-		if(preg_match("#(porn).*?(stars)#", $www)>0){return "porn";}
+		$pub=new squid_catz_porn();$cat=$pub->parse($www);if($cat<>null){return "porn";}
+		if(preg_match("#p0rn\.#", $www)){return "porn";}
+		if(preg_match("#(^|\.)newsfilter\.org$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)utrehter\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)smutxx\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)nastymovs\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)hardsextube\.com$#", $www)){return "porn";}
+		if(preg_match("#^sexyblog\.*$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)doublepimp\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)mesvip\.com$#", $www)){return "porn";}
+		
+		if(preg_match("#(blonde|teen).*?(porn)#", $www)){return "porn";}
+		if(preg_match("#(porn).*?(stars)#", $www)){return "porn";}
 		if(preg_match("#(fucking|youporn|erotik|ruporn|sexshop|sexmovi|zoophilie|pornhub|sextape|hard-sex|sex-tape|fucked-|pornsex|nudegirl|livesex|internetporn|freeporn|prostoporno|internetsex|transexual|fetichiste|contactsexe|girldatesforfree)#", $www)){return "porn";}
 		if(preg_match("#^gay-#", $www)){return "porn";}
-		if(preg_match("#mobileporn\.#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)fetishok\.com$#", $www)>0){return "porn";}
+		if(preg_match("#mobileporn\.#", $www)){return "porn";}
+		if(preg_match("#(^|\.)fetishok\.com$#", $www)){return "porn";}
 		if(preg_match("#sexserver[0-9]+\.[a-z]+$#", $www)){return "porn";}
-		if(preg_match("#(^|\.)adult-empire\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)teensaloon\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)redtubefiles\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)hazecash\.com$#", $www)>0){return "porn";}
-		if(preg_match("#(^|\.)freepornvs\.com$#", $www)>0){return "porn";}
+		if(preg_match("#(^|\.)adult-empire\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)teensaloon\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)redtubefiles\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)hazecash\.com$#", $www)){return "porn";}
+		if(preg_match("#(^|\.)freepornvs\.com$#", $www)){return "porn";}
 		if(preg_match("#(^|\.)xxx\.[a-z]+$#", $www)){return "porn";}
 		if(preg_match("#(^|\.)pornhubpremium\.[a-z]+$#", $www)){return "porn";}
 		if(preg_match("#(^|\.)mypornmotion\.[a-z]+$#", $www)){return "porn";}
@@ -2117,7 +2133,10 @@ private function socialnet($www){
 	
 	private function movies($www){
 		
-		$array=array("cine-news-mail","wiki-videos","filmografie","vimple.ru","kenhhd.tv","xemphimtot.com","madevid.com","serverfilm","filmboxextra","ztreaming.com","static-maxdome.de","maxdome.de","igru-film","tushkan.net","watchever.de","stream-up.com","eaglepictures","crackle.com","vidcache.net","purevid.com");
+		include_once(dirname(__FILE__)."/class.squid.category.array.movies.inc");
+		$class=new array_category_movies();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "movies";}
 		
 		if(strpos($www, ".cellcastmedia.com")>0){return "movies";}
@@ -2194,7 +2213,13 @@ private function socialnet($www){
 	private function health($www){
 		$cat=$this->medical($www);
 		if($cat<>null){return $cat;}
-		$array=array('zyzy.org',"healthcentral","sanofi-aventis","sanofi","valtaf","lgds","apigem","curie","doctuo","katalog-stomatologu");
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.health.inc");
+		
+		$class=new array_category_health();
+		$array=$class->return_array();
+		
+		
 		if($this->ParseArray($array, $www)){return "health";}
 		if(preg_match("#^optique-.*?\.(fr|com|lu)$#", $www)){return "health";}
 		
@@ -2235,12 +2260,54 @@ private function socialnet($www){
 	}
 	
 	
+	private function webapps($www){
+		
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.webapps.inc");
+		$array_category_games=new array_category_webapps();
+		$array=$array_category_games->return_array();
+		
+		if($this->ParseArray($array, $www)){return "games";}
+		
+		
+		
+		
+		if(preg_match("#(docs|apps-viewer)\.googleusercontent\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#^extranet\..+?$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)ingenie\.fr$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)dmvalet\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)fastviewer\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)salesforce.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)office\.microsoft\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)officeapps\.#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)force\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)infusionsoft\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)sgizmo\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)appspot\.com$#", $www)){return "webapps";}
+		if(preg_match("#(google-analytics|symbaloo)\.#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)sharethis\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)questionmarket\.com$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)brighttalk\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)salesforce\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)wimi\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)ixbus\.net+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)join\.me$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)phx\.gbl$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)viewnetcam\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)webasyst\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)37signals\.[a-z]+$#", $www)){return "webapps";}
+		if(preg_match("#(^|\.)clickbook\.net$#", $www)){return "webapps";}
+		
+		
+	}
+	
+	
 	private function games($www){	
 		include_once(dirname(__FILE__)."/class.squid.catz.games.inc");
+		include_once(dirname(__FILE__)."/class.squid.category.array.games.inc");
+		$array_category_games=new array_category_games();
+		$array=$array_category_games->return_array();
 		
-		$array=array("jeux-ios","majorleaguegaming","horizoncraft","doctorgame.it","infernogame.ru","unity3d.com","gaijinent","steampowered","101xp","gamer-info","gamefaqs","king.com",
-				"gamingfacts","midasplayer","king","happyoz","playstation.net","boardgamearena","didi*games","y8freegames","kaisergames",
-				"playdidi","fupa.com","la.net.ua","battle.net","girly.im","kaococo.com","playgem.co","defplay.com","machine9.net","get4mobile.net","eamythic.net","wowraider","shopto.net","playercom.ru","sg-static","microjogos","gamedonga.co.kr","wow-europe.com","blizzard.com");
 		if($this->ParseArray($array, $www)){return "games";}
 		
 		$pub=new squid_catz_games();
@@ -2308,7 +2375,7 @@ private function socialnet($www){
 	}
 	
 	private function associations($www){
-		$array=array("terres-de-lumieres.fr","asso.fr","asso-web.com");
+		$array=array("terres-de-lumieres.fr","asso.fr","asso-web.com","asn.au");
 		if($this->ParseArray($array, $www)){return "associations";}
 		if(preg_match("#(^|\.)admr[0-9]+\.[a-z]+$#", $www)){return "associations";}
 		if(preg_match("#^asso.*\.free\.fr$#", $www)){return "associations";}
@@ -2385,14 +2452,15 @@ private function socialnet($www){
 		
 		
 		
-		$array=array("rdw","otomoto","automotive","ebizautos","cooldrive","feuvert","stemco","texasdirectauto","ironhorse","opelreseau",
-				"mercedes-benz","webmotors","renault","digitaldealer.com.au","auto-occasion","codeclic.com","renault-egypt","carrental","myrenault","hertz","audi","avis","europcar","auto","autotrader","car.gr","carcdn.gr",
-		);
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.cars.inc");
+		$class=new array_category_cars();
+		$array=$class->return_array();
 		
 		if($this->ParseArray($array, $www)){return "automobile/cars";}
 		
 		$prefixrenault="(dacia|zoe|trafic|clio|sport|car|cancun|campaigns|sud|oyak|contact|occasion)";
-		if(preg_match("#(automotos|-auto-|pneumatik|autoservice|auto-service|coches|carburant|auto.*?ecole|mustang|autohaus|autoteile|nissan|daihatsu|remorques|controle-technique|rentacar|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
+		if(preg_match("#(automoto|-auto-|pneumatik|autoservice|auto-service|coches|automobil|carburant|auto.*?ecole|mustang|autohaus|autoteile|nissan|daihatsu|remorques|controle-technique|rentacar|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
 		if(preg_match("#auto\.sanook\.com$#",$www)){return "automobile/cars";}
 		
 		if(preg_match("#$prefixrenault.*?renault#",$www)){return "automobile/cars";}
@@ -2557,12 +2625,12 @@ private function socialnet($www){
 	}
 	
 	private function sslsites($www){
+		include_once(dirname(__FILE__)."/class.squid.category.array.sslsites.inc");
+		$class=new array_category_sslsites();
+		$array=$class->return_array();
+		if($this->ParseArray($array, $www)){return "sslsites";}
 		
-		if(preg_match("#(^|\.)verisign\.com$#",$www)){return "sslsites";}
-		if(preg_match("#(^|\.)geotrust\.com$#",$www)){return "sslsites";}
-		if(preg_match("#(^|\.)digicert\.com$#", $www)){return "sslsites";}
-		if(preg_match("#(^|\.)entrust\.net$#", $www)){return "sslsites";}
-		if(preg_match("#(^|\.)startssl\.com$#", $www)){return "sslsites";}
+
 	}
 	
 	private function gamble($www){
@@ -2584,10 +2652,11 @@ private function socialnet($www){
 	
 	private function downloads_catz($www){
 		
-		$array=array("fileice","rapidshare","soft32.fr","malavida.com","fileparade.com","rapidgator","updatestar.com","softonic","sftcdn","torrentino",
-				"yourfiledownloader","rutracker","alphacoders","altools","utorrent","bittorrent","vip-file","softsalad"
-				,"software\.informer","brothersoft","hdttp.com","uptodown.net","soft32.com","mvmfd.net","trulydownload.com","download-server.net","zbigz","otherdownload","uptodown","malavida","soft112","winds10","telecharsoft"
-				);
+		include_once(dirname(__FILE__)."/class.squid.category.array.downloads.inc");
+		$class=new array_category_downloads();
+		$array=$class->return_array();
+		
+
 		
 		if($this->ParseArray($array, $www)){return "downloads";}
 		
@@ -2614,44 +2683,24 @@ private function socialnet($www){
 		
 	}
 	
-	private function dynamic($www){
+	public function dynamic($www,$return_array=false){
 		if(preg_match("#^[0-9]+\.[a-z\.]+#", $www)){return;}
 
 		$array=array("filewatcher","cloudfront","edgesuite","amazonaws","staztic.com","smcloud","mediafire","dnsmex",
 				"akamai","dropbox","dropboxusercontent","yousendit","scene7","vo\.msecnd","depositfiles",
-				"zingload","pinterest","e-loader","wuala","wetransfer","cherchelefile","whatyoushare","fiberupload"
+				"zingload","pinterest","e-loader","wuala","adsl.proxad.net","fbxo.proxad.net","fbx.proxad.net","wetransfer","cherchelefile","whatyoushare","fiberupload"
 		);
 		
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.dynamic.inc");
+		$class=new array_category_dynamic();
+		$array=$class->return_array();
 		if($this->ParseArray($array, $www)){return "filehosting";}
 		
 		
-		$array=array("ifiber.telenet-ops.be","dynip.rothen.com","static.gorillaservers.com","rdns.ubiquity.io","ornage26.com","adsl.internode.on.net","static.ttnet.com.tr","rdns.ubiquityservers.com","rdns.scalabledns.com","static.reverse.lstn.net","dsl.dodo.com.au","adsl.proxad.net","no-ip.biz","no-ip.info","pskov.dslavangard.ru","vps-10.com","hkhost.me","rncdn3.com","hns.net.in","flatrate.dk","netsolhost.com","netcampus.ca","priv.bahnhof.se","telfortglasvezel.nl","btcentralplus.com","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
-		"barrel-of-knowledge.info","barrell-of-knowledge.info","better-than.tv","blogdns.com","izhnt.ru","qala.com.sg","online.dn.ua","infra.lync.com","sodetel.net.lb","internet-x.hu","keysurf.net","1scom.net","ondsl.gr","navoi.net.gs.uz","dsl*fidnet.com",
-		"blogdns.net","blogdns.org","blogsite.org","boldlygoingnowhere.org","broke-it.net","optonline.net","qwerty.ru","nationalcablenetworks.ru","chitaonline.ru",
-		"buyshouses.net","cechire.com","dnsalias.com","dnsalias.net","dnsalias.org","dnsdojo.com","kthopen.kth.se","mc.videotron.ca","flynet.by","unitymediagroup.de",
-		"dnsdojo.net","dnsdojo.org","does-it.net","doesntexist.com","doesntexist.org","dontexist.com","ddfr.nl","retail.datagroup.ua",
-		"dontexist.net","dontexist.org","resnet.mtu.edu","doomdns.com","doomdns.org","dvrdns.org","dyn-o-saur.com","orlandonet.net","alicedsl.de","fiberby.dk",
-		"dynalias.com","dynalias.net","dynalias.org","dynathome.net","direct-adsl.nl","dyndns-at-home.com","alfalinks.lv","is74.ru","optonline.net",
-		"dyndns-at-work.com","dyndns-blog.com","dyndns-free.com","dyndns-home.com","dyndns-ip.com","pip.digsys.bg","rdsnet.ro","moldtelecom.md","afb.bredband2.com",
-		"dyndns-mail.com","dyndns-office.com","adsl.as8758.net","dyndns-pics.com","dyndns-remote.com","dyndns-server.com","ip.primehome.com","ziggo.nl",
-		"dyndns-web.com","dyndns-wiki.com","dyndns-work.com","dyndns.biz","dyndns.info","dyndns.org","standardbroadband.ca","soskol.ru","plus.kerch.net","14-tataidc.co.in","residential.rdsnet.ro","dynamic.ziggo.nl","stv.ru",
-		"*cable.fidnet.com","host*pool*.leonet.it","tcat.ne.jp","host*.e4a.it","unitymediagroup.de","dsl*.greenmountainaccess.net","elektrons-k.lv","myown.be","host*.tygrys.net","istv.uz",
-		"dyndns.tv","dyndns.ws","endofinternet.net","endofinternet.org","tetanet.cz","direct-adsl.nl","mynet.at","endoftheinternet.org","ripe.coltfrance.com","cmk.ru","abakusbp.net",
-		"est-a-la-maison.com","broadband.neteshin.info","est-a-la-masion.com","est-le-patron.com","est-mon-blogueur.com","catnet","nationalcablenetworks.ru","avangarddsl.ru","baltnet.ru","pool.mediaways.net","optusnet.com.au",
-		"for-better.biz","for-more.biz","for-our.info","superkabel.de","glocalnet.net","for-some.biz","for-the.biz","forgot.her.name","forgot.his.name","from-ak.com","from-al.com","from-ar.com","from-az.net","from-ca.com","from-co.net","from-ct.com","from-dc.com","from-de.com","from-fl.com","from-ga.com","from-hi.com","from-ia.com","from-id.com","from-il.com","from-in.com","from-ks.com","from-ky.com","from-la.net","from-ma.com","from-md.com","from-me.org","from-mi.com","from-mn.com","from-mo.com","from-ms.com","from-mt.com","from-nc.com","from-nd.com","from-ne.com","from-nh.com","from-nj.com","from-nm.com","from-nv.com","from-ny.net","from-oh.com","from-ok.com","from-or.com","from-pa.com","from-pr.com","from-ri.com","from-sc.com","from-sd.com","from-tn.com","from-tx.com","from-ut.com","from-va.com","from-vt.com","from-wa.com","from-wi.com","from-wv.com","from-wy.com","ftpaccess.cc","fuettertdasnetz.de","game-host.org","game-server.cc","getmyip.com","gets-it.net","go.dyndns.org","gotdns.com","gotdns.org","groks-the.info","groks-this.info","ham-radio-op.net","here-for-more.info","hobby-site.com","hobby-site.org","home.dyndns.org","homedns.org","homeftp.net","homeftp.org","homeip.net","homelinux.com","homelinux.net","homelinux.org","homeunix.com","homeunix.net","homeunix.org","iamallama.com","in-the-band.net","is-a-anarchist.com","is-a-blogger.com","is-a-bookkeeper.com","is-a-bruinsfan.org","is-a-bulls-fan.com","is-a-candidate.org","is-a-caterer.com","is-a-celticsfan.org","is-a-chef.com","is-a-chef.net","is-a-chef.org","is-a-conservative.com","is-a-cpa.com","is-a-cubicle-slave.com","is-a-democrat.com","is-a-designer.com","is-a-doctor.com","is-a-financialadvisor.com","is-a-geek.com","is-a-geek.net","is-a-geek.org","is-a-green.com","is-a-guru.com","is-a-hard-worker.com","is-a-hunter.com","is-a-knight.org","is-a-landscaper.com","is-a-lawyer.com","is-a-liberal.com","is-a-libertarian.com","is-a-linux-user.org","is-a-llama.com","is-a-musician.com","is-a-nascarfan.com","is-a-nurse.com","is-a-painter.com","is-a-patsfan.org","is-a-personaltrainer.com","is-a-photographer.com","is-a-player.com","is-a-republican.com","is-a-rockstar.com","is-a-socialist.com","is-a-soxfan.org","is-a-student.com","is-a-teacher.com","is-a-techie.com","is-a-therapist.com","is-an-accountant.com","is-an-actor.com","is-an-actress.com","is-an-anarchist.com","is-an-artist.com","is-an-engineer.com","is-an-entertainer.com","is-by.us","is-certified.com","is-found.org","is-gone.com","is-into-anime.com","is-into-cars.com","is-into-cartoons.com","is-into-games.com","is-leet.com","is-lost.org","is-not-certified.com","is-saved.org","is-slick.com","is-uberleet.com","is-very-bad.org","is-very-evil.org","is-very-good.org","is-very-nice.org","is-very-sweet.org","is-with-theband.com","isa-geek.com","isa-geek.net","isa-geek.org","isa-hockeynut.com","issmarterthanyou.com","isteingeek.de","istmein.de","kicks-ass.net","kicks-ass.org","knowsitall.info","land-4-sale.us","lebtimnetz.de","leitungsen.de","likes-pie.com","likescandy.com","merseine.nu","mine.nu","misconfused.org","mypets.ws","myphotos.cc","neat-url.com","office-on-the.net","on-the-web.tv","podzone.net","podzone.org","readmyblog.org","saves-the-whales.com","scrapper-site.net","scrapping.cc","selfip.biz","selfip.com","selfip.info","selfip.net","selfip.org","sells-for-less.com","sells-for-u.com","sells-it.net","sellsyourhome.org","servebbs.com","servebbs.net","servebbs.org","serveftp.net","serveftp.org","servegame.org","shacknet.nu","simple-url.com","space-to-rent.com","stuff-4-sale.org","stuff-4-sale.us","teaches-yoga.com","thruhere.net","traeumtgerade.de","webhop.biz","webhop.info","webhop.net","webhop.org","worse-than.tv","writesthisblog.com",
-		"megared.net.mx","dynamic.irkutsk.ertelecom.ru","static-adsl.isurgut.ru","home.otenet.gr","pool.ukrtel.net","rdsnet.ro","cox.net","dyn.optonline.net","superkabel.de","telered.com.ar","telecentro-reversos.com.ar","fibertel.com.ar","speedy.com.ar","adsl.alicedsl.de","netcabo.co.ao","cable.netissat.bg","team.ba","bgcell.net",
-		"*dynamic*.connect.com.fj","static.nts-online.net","volia.com","cablenet.de",'metromax.ru',"cable.netins.net",'kapos-net.hu',"xdsl.ab.ru","podolsknet.ru","bredband.telia.com","dynamic.peoplenet.ua","cable.virginmedia.com",
-		"cpe.distributel.net","adsl.highway.telekom.at","cable-modem.tkk.net.pl","sssnet.com","cust.bredbandsbolaget.se","optisprint.bg","radiocom.net.ua","in-addr.arpa","kabel-badenwuerttemberg.de","skylink.ru","spb-teleport.ru",
-		"steel.net.ar","yota.com.ni","tstt.net.tt","dhcp*wayport.net","maxcom-bg.com","suddenlink.net","arcor-ip.net","dynamic.apogeenet.net",
-		"zajecar-web.net","klimovsk.net","alania.net","btc-net.bg","ricona.net.ua","pool.ukrtel.net","dyn.bashtel.ru","mts-nn.ru","retail.telecomitalia.it","net.upcbroadband.cz",
-		"pz.ekk.bg","netbynet.ru","megaline.telecom.kz","bccable.net","teleseti.net","astral.ro","sendgrid.org","uacity.net","dh-hfc.datazug.ch","telia.com","pioneernet.net","telecom.sk","nt55.ru","dianet.info","petrotel.pl","bayoucable","echoes.net","samfundet.no","tvs12.jp","szarvasnet.hu",
-		"mobileonline.telia.com","dialin.compot.ru","idnet.net","osnanet.de","cpe.powergate.ca","openband.net","cpenet.com.ar","mgtelecom.ru","satnet-bg.com","podolsknet.ru","nodosud.com.ar","p-t-k.net","netland.3s.pl","broadband.redcom.ru","cotelcam.net.ar","wtnet.de",
-		"actcom.co.il","iprevolution.co.jp","connect.az","jcsfiberlink.net","isp.timbrasil.com.br","hcinet.net","cnt.nerim.net","anitex.by","knology.net","bootp.virginia.edu","tricom.net","cablemodem.amnethn.com","cotas.com.bo","retail.datagroup.ua","rev.dansknet.dk",
-		"blomand.net","cpe.townisp.com","dynamic.hinet.net","kyivstar.net","moldtelecom.md","kristel.ru","kateka.lt","surewest.net","airstreamcomm.net","airnet.ru","nationalcablenetworks.ru","nt.net","ppcom.ru","20la.com.cn","shoreham.net","uln.ru","gcn.ua","cablenet.net.ar","netplaza.fi","broadband.kyivstar.net","is.com.fj","static.3bb.co.th","astinet.telkom.net.id","orangearmenia.am","charter.com","comstar.net.ua","king-online.ru","cable.virginmedia.com","zolcomp.hu","bigsandytelco.com","kyivstar.net","ertelecom.ru","broadband44.net","mojohost.com","balchik.net","e-telecom.ru","icnet.ne.jp","homenet.orn.ru","sktv.ru","lynet.no","skybroadband.com","ptt.rs","broadband.tesco.net","juropnet.hu","pacenet-india.com","teleweb.at","astra2connect.com","wonenbreburgnet.nl","dynamic-dsl.frii.net","norwoodlight","highspeed-baumann.de","dyn.telefonica.de","lipetsk.ru","troycable.net","omkc.ru","dhcp.transact.bm","net.il","iconnectbg.net","dhcp.surewest.net","host-telecom.com","adsl.dynamic.seed.net.tw",
-		"vinf.ru","kosnet.ru","seaside.ns.ca","tm.net.my","cli.hostelnet.ru","hcc.net","interkonekt.ru","adsl.proxad.net","onlink.net","adsl.kis.ru","hnt.ru","spectrum.com.au","ringnett.no","wi.net","zappmobile.ro","dyn.ctinets.com","kbcnet.rs","fament.com","hardynet.com","dynamic.ufanet.ru","dynamic-pool.mclaut.net","dhcp.mpi-stuttgart.mpg.de","gvtel.com",
-		"priv.bahnhof.se",".wbt.ru","dynip.bkg-neuruppin.de","prudok.net.ru","dynamic.163data.com.cn","adsl.proxad.net","upc-g.chello.nl","home.otenet.gr","dhcp.drexel.edu","home.uni-freiburg.de","remote.eur.nl","halls.manchester.ac.uk","modems.unam.mx","modem.umcs.lublin.pl","cablemodem.amnethn.com","modemcable.oricom.ca","cable.virginm.net","intelnet.net.gt","ntc.net.np","dsl.velcom.ca","ip.wktnet.ru","vpn-pool.com","wlan.cuhk.edu.hk","theedge.ca","primowireless.co.nz","web-pass.com","dunkerton.net","sitsanetworks.net","mbalt.lv","gcn.net.tw","sbone.cz","wcgwave.ca","logos-ktv.ru","lanoptic.ru","net.vutbr.cz","cust.bredbandsbolaget.se","vpn.uib.no","cox.net","triara.com","upc-j.chello.nl","dynamic.ziggo.nl","prod-infinitum.com.mx","wiktel.com","biol.rug.nl","qwerty.ru","sv-en.ru","medicom.bg","wiso.uni-erlangen.de","rdsnet.ro","dynamic.tbcnet.net.tw","linzag.net","nat.itkm.ru","parisat.hu","ftth.internl.net","nationalcablenetworks.ru","pool.ukrtel.net","systech.hu","ark.cablelynx.com","avangarddsl.ru","dyn.bashtel.ru","iusacell.net","isurgut.ru","saturn.infonet.ee","dyn.com","cable.virginmedia.com","superkabel.de","bredbandsbolaget.se","ephone.se","onlinehome-server.info","dynamic.adsl.gvt.net.br","retail.telecomitalia.it","wlms-broadband.com","airtelbroadband.in","isp.belgacom.be","adsl.cyta.gr","dsl.irvnca.pacbell.net","webside.pt","connect.com.fj","midsouth.biz.rr.com","aircel.co.in",
-		"au-net.ne.jp","t-net.ne.jp","cablenet.ne.jp","starnet.md","tscnet.ro","bitnet.nu","rev.komnet.hu","edudsl.gr","clovernet.ne.jp","c3-net.ne.jp","mrs.modulonet.fr","dyn.perspektivbredband.net"
-		);
+
+		
+		if($return_array){return $array;}
 		
 		if($this->ParseArray($array, $www)){return "dynamic";}
 		
@@ -2660,6 +2709,8 @@ private function socialnet($www){
 		include_once(dirname(__FILE__)."/class.squid.catz.dynamic.inc");
 		$pub=new squid_catz_dynamic();$cat=$pub->parse($www);if($cat<>null){return "dynamic";}
 		
+		
+		if(preg_match("#^business-[0-9\.]+\.stadtnetz-bamberg\.de#", $www)){return "dynamic";}
 		if(preg_match("#^[0-9\-]+-ftth\.on\.nl$#", $www)){return "dynamic";}
 		if(preg_match("#(^|\.)athome[0-9]+\.[a-z\.]+$#", $www)){return "dynamic";}
 		if(preg_match("#^box[0-9]+\.bluehost\.com$#", $www)){return "dynamic";}
@@ -2674,11 +2725,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)uio\.satnet\.net$#", $www)){return "dynamic";}
 		if(preg_match("#(^|\.)dsl\.iowatelecom\.net$#", $www)){return "dynamic";}
 		if(preg_match("#dsl\.telepac\.pt$#", $www)){return "dynamic";}
-		if(preg_match("#(^|\.)adsl\.kirov\.ru$#", $www)){return "dynamic";}
 		if(preg_match("#(^|\.)pool\.t-online\.[a-z]+$#", $www)){return "dynamic";}
-		if(preg_match("#(^|\.)dsl-dynamic\.vsi\.ru$#", $www)){return "dynamic";}
-		if(preg_match("#(^|\.)adsl\.datanet\.hu$#", $www)){return "dynamic";}
-		if(preg_match("#(^|\.)dmisinetworks\.net$#", $www)){return "dynamic";}
 		if(preg_match("#(^|\.)xnet\.hr$#", $www)){return "dynamic";}
 		if(preg_match("#^[0-9]+.*?\.scnet\.cz$#", $www)){return "dynamic";}
 		if(preg_match("#static\.quiettouch\.com$#", $www)){return "dynamic";}
@@ -2975,9 +3022,13 @@ private function socialnet($www){
 		
 	
 		$words_line="(".@implode("|", $words).")";
-		$array=array("secure-reservation","expedia","chatel","trivago","stationverte.com","isango","aeroport","hotels","ihg",
-		"makemytrip","opodo","cityway","airfrance","gho","hoteles","ihacom","tourinsoft","geo-web-mail","geo"
-		,"service-voyages.com","partirpascher","aeromexico.com","ruskompas","cote.azur.fr","absoluthongkong.com","reztripmobile.com","top-hotely.cz","japanrailpassmap.com","faire-savoir.com","theworldrace.org","clemetparks.com","clevelandmetroparks.com","hostelsystem","croisitour.com","novotel.com","jedecouvrelafrance.com","resawin","hotels-de-charme","campings","michelin.fr","trivago","audierne.oscim.org","viesumajas.lv","zafirotours");
+		
+		
+		
+		include_once(dirname(__FILE__)."/class.squid.category.array.travel.inc");
+		$class=new array_category_travel();
+		$array=$class->return_array();
+		
 		if($this->ParseArray($array, $www)){return "recreation/travel";}
 		
 		if(strpos($www, "voyages")>0){return "recreation/travel";}
@@ -3296,7 +3347,7 @@ private function socialnet($www){
 		$cat=$this->smallads($www);if($cat<>null){return $cat;}
 		
 		$cat=$this->womanbrand($www);if($cat<>null){return $cat;}
-		
+		$cat=$this->translators($www);if($cat<>null){return $cat;}
 		
 		$cat=$this->publicite($www);if($cat<>null){return $cat;}
 		$cat=$this->proxy($www);if($cat<>null){return $cat;}
@@ -3408,6 +3459,8 @@ private function socialnet($www){
 		if(preg_match("#(c|k)redit(s|e)-#",$www)){return "finance/moneylending";}
 		if(preg_match("#(c|k)redit.*?service#",$www)){return "finance/moneylending";}
 		if(preg_match("#-financements\.[a-z\.]+$#",$www)){return "finance/moneylending";}
+		if(preg_match("#financo#",$www)){return "finance/moneylending";}
+		
 		
 		if(preg_match("#^avocat[\-\.]#", $www)){return "justice";}
 		if(preg_match("#^avocats-.+?\..+?$#", $www)){return "justice";}
@@ -3518,10 +3571,14 @@ private function socialnet($www){
 		if(preg_match("#handicap.*?\.#",$www)){return "handicap";}
 		if(preg_match("#adapei-[0-9]+\.fr$#",$www)){return "handicap";}
 
+		
+		if(preg_match("#(^|\.)sfr\.fr$#",$www)){return "isp";}
+		if(preg_match("#(^|\.)s-sfr\.fr$#",$www)){return "isp";}
 		if(preg_match("#(^|\.)flip-zone\.com$#",$www)){return "models";}
 		if(preg_match("#(^|\.)book\.fr$#",$www)){return "models";}
 		if(preg_match("#(^|\.)[0-9]+castings\.[a-z]+#",$www)){return "models";}
 		if(preg_match("#(^|\.)scene7\.com$#",$www)){return "isp";}
+		if(preg_match("#(^|\.)routers\.proxad\.net$#",$www)){return "isp";}
 		if(preg_match("#(^|\.)dinaserver\.com$#",$www)){return "isp";}
 		if(preg_match("#(^|\.)sshn\.[a-z]+$#",$www)){return "isp";}
 		if(preg_match("#(^|\.)tinyurl\.[a-z]+$#",$www)){return "redirector";}
@@ -3560,35 +3617,11 @@ private function socialnet($www){
 		if(preg_match("#^ns.*?\.ovh\.net$#", $www)){return "isp";}
 		
 		
-		if(preg_match("#(docs|apps-viewer)\.googleusercontent\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#^extranet\..+?$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)ingenie\.fr$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)dmvalet\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)fastviewer\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)salesforce.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)office\.microsoft\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)officeapps\.#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)force\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)infusionsoft\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)sgizmo\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)appspot\.com$#", $www)){return "webapps";}
-		if(preg_match("#(google-analytics|symbaloo)\.#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)sharethis\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)questionmarket\.com$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)brighttalk\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)salesforce\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)wimi\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)ixbus\.net+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)join\.me$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)phx\.gbl$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)viewnetcam\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)webasyst\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)37signals\.[a-z]+$#", $www)){return "webapps";}
-		if(preg_match("#(^|\.)microsoftemail\.com$#", $www)){return "phishing";}
-		if(preg_match("#(^|\.)vkomdente\.ru$#", $www)){return "phishing";}
-		if(preg_match("#(^|\.)clickbook\.net$#", $www)){return "webapps";}
+
 		if(preg_match("#europol.*?\.fuckingcunt\.net$#", $www)){return "phishing";}
 		if(preg_match("#outlookmsgp.com#", $www)){return "phishing";}
+		if(preg_match("#(^|\.)microsoftemail\.com$#", $www)){return "phishing";}
+		if(preg_match("#(^|\.)vkomdente\.ru$#", $www)){return "phishing";}
 
 		if(preg_match("#solar.*thermal#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)kranok\.com$#", $www)){return "housing/accessories";}
@@ -3713,7 +3746,7 @@ private function socialnet($www){
 		if(preg_match("#-financial\.#",$www)){return "financial";}
 		if(preg_match("#finance\.[a-z]+$#",$www)){return "financial";}
 		if(preg_match("#finances\.[a-z]+$#",$www)){return "financial";}
-		if(preg_match("#(entrepreneurs|loi-duflot|finanzia|fiscal|economics|financni)#",$www)){return "financial";}
+		if(preg_match("#(entrepreneurs|loi-duflot|finanzia|fiscal|economics|financni|finance|financial|financier)#",$www)){return "financial";}
 		if(preg_match("#(^|\.)ucm.be$#",$www)){return "financial";}
 		if(preg_match("#(^|\.)forbes\.com$#",$www)){return "financial";}
 		if(preg_match("#(^|\.)clickbank\.net$#",$www)){return "financial";}
@@ -3900,19 +3933,7 @@ private function socialnet($www){
 		
 		if(preg_match("#(^|\.)bharatmatrimony\.com$#", $www)){return "dating";}
 		if(preg_match("#(^|\.)datingfactory\.com$#", $www)){return "dating";}
-		if(strpos($www, ".babylon.com")>0){return "translators";}
-		if(preg_match("#translator\.[a-z]+$#", $www)){return "translators";}
-		if(preg_match("#^translate.*\.#", $www)){return "translators";}
-		if(preg_match("#traductor#", $www)){return "translators";}
-		if(preg_match("#(^|\.)babelfish\.yahoo.com$#", $www)){return "translators";}
-		if(preg_match("#(^|\.)zaixian-fanyi\.[a-z\.]+$#", $www)){return "translators";}
-		if(preg_match("#(^|\.)nciku\.com$#", $www)){return "translators";}
-		if(preg_match("#(^|\.)woxikon\.de$#", $www)){return "translators";}
-		if(preg_match("#(^|\.)proz\.com$#", $www)){return "translators";}
-		if(preg_match("#(^|\.)allwords\.com$#", $www)){return "translators";}
-		
-		if(preg_match("#^traduction-#", $www)){return "translators";}
-		if(preg_match("#^translate\.google\.[a-z]+$#", $www)){return "translators";}
+
 		if(preg_match("#(^|\.)scorecardresearch\.com$#", $www)){return "marketingware";}
 		if(preg_match("#(^|\.)email-match\.com$#", $www)){return "marketingware";}
 		if(preg_match("#(^|\.)lb-clients\.com$#", $www)){return "marketingware";}
@@ -4026,6 +4047,8 @@ private function socialnet($www){
 		if(preg_match("#(maison|hous|wood).*?(construction|construccion)#", $www)){return "housing/builders";}
 		if(preg_match("#(terrassement|construsur|constructora|maconnerie|geometre|baticourtage|construction|construccion)#", $www)){return "housing/builders";}
 		
+		
+		$MAIN["amazonsilk.com"]=True; # !!! webplugin !!
 		if(preg_match("#^toolbar\..+#", $www)){return "browsersplugins";}
 		if(preg_match("#(^|\.)toolbar\.yahoo\.[a-z]+$#", $www)){return "browsersplugins";}
 		if(preg_match("#(^|\.)widdit\.[a-z]+$#", $www)){return "browsersplugins";}
@@ -4063,7 +4086,7 @@ private function socialnet($www){
 		
 	
 		
-		if(preg_match("#(alcool|alcohol|masterofmalt|baclofene)#", $www)){return "alcohol";}
+		if(preg_match("#(alcool|alcohol|masterofmalt|baclofene|alkogol)#", $www)){return "alcohol";}
 		if(preg_match("#(^|\.)persona\.org$#", $www)){return "browsersplugins";}
 		if(preg_match("#eleicoes.*?\.[a-z]+#", $www)){return "politic";}
 		
@@ -4117,7 +4140,7 @@ private function socialnet($www){
 		if(preg_match("#allbookez\.com#", $www)){return "books";}
 		
 		if(preg_match("#(^|\.)voirdessinanime\.com$#", $www)){return "children";}
-		if(preg_match("#(enfant|children|plushtoy|infobebes|toysrus|enfance)#", $www)){return "children";}
+		if(preg_match("#(enfant|children|plushtoy|infobebes|toysrus|enfance|coloriage)#", $www)){return "children";}
 		if(preg_match("#(^|\.)ptitclic\.net$#", $www)){return "children";}
 		if(preg_match("#(^|\.)baby-bus\.com$#", $www)){return "children";}
 		if(preg_match("#faire.*?part.*?naissance#", $www)){return "children";}

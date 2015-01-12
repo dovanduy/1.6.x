@@ -5,9 +5,9 @@
 	<style type="text/css">
 	html,body{height:100%}
 	body{
-	width:100%;min-height:100%;margin:0;padding:0;color:#2C2C2C;
+	width:100%;min-height:100%;margin:10px;padding:10px;color:#2C2C2C;
 	font-family:'Tahoma', 'Verdana';
-	font-size:11px;
+	font-size:18px;
 	background:#FFF
 	}
 	form{margin:0}
@@ -33,20 +33,23 @@
 	big,.big{font-size:125%}
 	small,.small{font-size:95%}
 	.micro{color:#DDD;font:normal 9px tahoma}
-	h1{font:bold 20px arial; margin:0}
+	h1{font:bold 24px;margin:0}
+	h2{font:bold 20px;margin:0;}
 	h4{font:bold 12px arial; margin:0}
 	p{text-align:justify;line-height:1.3;margin:0 0 0.5em 0}
 	.z{border:1px solid red}
 	.h1px{height:1px;font-size:1px;line-height:1px}
 	ul{margin:6px 0 6px 20px;padding:0}
 	ul li{margin:3px 0}
-	#titles h1,h2 {color:black;font-family:'Tahoma', 'Verdana';color:#BF0A0A;text-align:center}
+	#titles h1,h2 {color:black;font-family:'Tahoma', 'Verdana';color:black;text-align:center}
 	#content,#footer{	font-family:'Tahoma', 'Verdana';color:black;}
-	blockquote {margin:5px;padding:0px;font-size:13px;text-align:center;width:100%}
+	blockquote {margin:5px;padding:0px;font-size:18px;text-align:center;width:100%}
+	#error{text-align:center;font-size:20px;}
+	#error p{text-align:center;font-size:22px;}
 	hr{width:80%;text-aling:center;border:1px solid black;}
-	#footer{text-align:center;font-size:9px;background:background:#F7F7F7;padding:0 2px 2px;margin-left:-30px;margin-right:-30px;margin-bottom:-40px}
-	#footer p{background:#E9E9E9;padding:12px 30px 14px;text-align:center;}
-	pre{font-size:12px;color:#BF0A0A;font-family:arial}
+	#footer{text-align:center;padding:0 2px 2px;margin-left:-30px;margin-right:-30px;margin-bottom:-40px}
+	#footer p{padding:12px 30px 14px;text-align:center;font-size:16px;color:#949494;}
+	pre{font-size:20px;color:black;font-family:'Tahoma', 'Verdana';font-weight:bold}
 </style>
 </head>
 <body>

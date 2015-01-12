@@ -313,7 +313,7 @@ function AddNewSchedule_explain(){
 	$q=new mysql_squid_builder();
 	if(!isset($q->tasks_explain_array[$_GET["explainthis"]])){return;}
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{$q->tasks_explain_array[$_GET["explainthis"]]}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{$q->tasks_explain_array[$_GET["explainthis"]]}</div>");
 }
 
 function AddNewSchedule_enable(){
@@ -370,7 +370,7 @@ function page(){
 		$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
 		$events=$tpl->_ENGINE_parse_body("{events}");
 		$title="$CountTasks $tasks $CountEvents $events";
-		$explain_div="<div class=explain style='font-size:13px'>$explain</div>";
+		$explain_div="<div class=text-info style='font-size:13px'>$explain</div>";
 		$add_def_button="{name: '$add_default', bclass: 'Reconf', onpress : Addefaults$t},";
 	}else{
 		$title=$tpl->_ENGINE_parse_body($qS->tasks_array[$_GET["TaskType"]]);

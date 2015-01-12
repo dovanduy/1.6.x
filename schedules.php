@@ -401,7 +401,7 @@ function AddNewSchedule_explain(){
 	$tasks=new system_tasks();
 	if(!isset($tasks->tasks_explain_array[$_GET["explainthis"]])){return;}
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{$tasks->tasks_explain_array[$_GET["explainthis"]]}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{$tasks->tasks_explain_array[$_GET["explainthis"]]}</div>");
 }
 
 function AddNewSchedule_enable(){

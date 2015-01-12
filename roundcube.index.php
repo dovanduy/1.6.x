@@ -12,7 +12,7 @@ if(isset($_GET["verbose"])){$GLOBALS["OUTPUT"]=true;$GLOBALS["VERBOSE"]=true;$GL
 
 	
 	$user=new usersMenus();
-	if($user->AsPostfixAdministrator==false){
+	if($user->AsMailBoxAdministrator==false){
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -110,12 +110,12 @@ $tpl=new templates();
 	
 	
 	
-	$freeweb=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWebB",$EnableFreeWeb,null,400);
-	$Roundcube=Paragraphe_switch_img("{enable_roundcubehttp}","{enable_enable_roundcubehttp_text}","RoundCubeHTTPEngineEnabled",$RoundCubeHTTPEngineEnabled,null,400);
+	$freeweb=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWebB",$EnableFreeWeb,null,810);
+	$Roundcube=Paragraphe_switch_img("{enable_roundcubehttp}","{enable_enable_roundcubehttp_text}","RoundCubeHTTPEngineEnabled",$RoundCubeHTTPEngineEnabled,null,810);
 	
 	$form="
 	<hr>
-	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",18)."</div>
+	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",26)."</div>
 	
 	<script>
 	
@@ -193,7 +193,7 @@ function ajax_index(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>
-			<img src='img/roundcube-original-logo.png'><div class=explain style='font-size:13px'>{about_roundcube}<br>{ROUNDCUBE_HTTP_ENGINE_FORMS_EXPLAIN}</div>
+			<img src='img/roundcube-original-logo.png'><div class=text-info style='font-size:13px'>{about_roundcube}<br>{ROUNDCUBE_HTTP_ENGINE_FORMS_EXPLAIN}</div>
 			<div id='httpengines-form'></div>
 			</td>
 		<td valign='top'>
@@ -306,15 +306,21 @@ function main_tabs(){
 	$page=CurrentPageName();
 	$array["index"]='{index}';
 	$array["mysql"]='{mysql}';
-	$array["settings"]='{settings}';
-	$array["conf"]='{conf}';
+	$array["mains"]='{settings}';
+	$array["settings"]='{options}';
 	$array["rlogs"]='{rlogs}';
 	
-	$array["multiple-roundcube"]='{multiple_webmail}';
+	//$array["multiple-roundcube"]='{multiple_webmail}';
 	$tpl=new templates();
 	
-	if($_GET["newinterface"]<>null){ $style="style='font-size:14px'";$styleG="margin-top:8px;";}
+	$style="style='font-size:18px'";
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="mains"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"roundcube.params.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main=$num\"><span $style>$ligne</span></a></li>\n");
 		
 		}
@@ -423,7 +429,7 @@ function form_tabs(){
 	$tpl=new templates();
 	if($users->roundcube_intversion>29){
 		$main=base64_encode("MAIN_INSTANCE");
-		$plugins=Paragraphe("plugins-64.png",'{plugins}',"{roundcube_plugins_text}","javascript:Loadjs('$page?plugins=yes')");
+		
 		$sieve=Paragraphe("filter-64.png",'{plugin_sieve}',"{plugin_sieve_text}","javascript:Loadjs('$page?plugins-sieve=yes')");
 		$calendar=Paragraphe("calendar-64.png",'{plugin_calendar}',"{plugin_calendar_text}","javascript:Loadjs('$page?plugins-calendar=yes')");
 		$globaladdressBook=Paragraphe("addressbook-64.png","{global_addressbook}","{global_addressbook_explain}",
@@ -438,7 +444,6 @@ function form_tabs(){
 	$tr[]=$form1;
 	$tr[]=$form2;
 	$tr[]=$globaladdressBook;
-	$tr[]=$plugins;
 	$tr[]=$sieve;
 	$tr[]=$calendar;
 	$tr[]=$Hacks;
@@ -570,8 +575,14 @@ function mysql_status(){
 	$array[3]="{server}";
 	$array[4]="{client}";
 	
+	$RoundCubeDedicateMySQLServer=intval($sock->GET_INFO("RoundCubeDedicateMySQLServer"));
 	$RoundCubeMySQLServiceType=$sock->GET_INFO("RoundCubeMySQLServiceType");
-	if(!is_numeric($RoundCubeMySQLServiceType)){$RoundCubeMySQLServiceType=0;}
+	if(!is_numeric($RoundCubeMySQLServiceType)){
+		if($RoundCubeDedicateMySQLServer==1){
+		$RoundCubeMySQLServiceType=3;}else{
+			$RoundCubeMySQLServiceType=0;
+		}
+	}
 	$RoundCubeMySQLServiceType_status=$array[$RoundCubeMySQLServiceType];
 	
 	
@@ -757,7 +768,7 @@ function pluginsv3(){
 	
 	
 $html="$tab
-<div class=explain>{APP_ROUNDCUBE3_PLUGINS_EXPLAIN}</div>
+<div class=text-info>{APP_ROUNDCUBE3_PLUGINS_EXPLAIN}</div>
 $plugins
 ";	
 $tpl=new templates();
@@ -947,7 +958,7 @@ function main_settings(){
 	<tr>
 	<td valign='top'>
 		
-		<div class=explain style='font-size:14px'>{about_roundcube_engine}</div>".main_errors()."
+		<div class=text-info style='font-size:16px'>{about_roundcube_engine}</div>".main_errors()."
 				".form_tabs()."
 		</td>
 	</tr>
@@ -1029,15 +1040,19 @@ $page=CurrentPageName();
 	
 }
 
+
 function main_rlogs_parse(){
 	
 	$datas=explode("\n",@file_get_contents('/usr/share/roundcube/logs/errors'));
 	$datas=array_reverse($datas, TRUE);	
 	$html="<table style='width:99%'>";
 	while (list ($num, $line) = each ($datas)){
+		$line=trim($line);
+		if($line==null){continue;}
 		$c=$c+1;
-		if(preg_match("#^\[(.+?)\]:(.+?):(.+)#",$line,$re))
-		 if(preg_match("#(.+)\s+\+(.+)$#",$re[1],$ri)){$re[1]=$ri[1];}
+		if(!preg_match("#^\[(.+?)\]:(.+?):(.+)#",$line,$re)){continue;}
+		
+		if(preg_match("#(.+)\s+\+(.+)$#",$re[1],$ri)){$re[1]=$ri[1];}
 		 if(strlen($re[1])>20){$re[1]=substr($re[1],0,17).'...';}
 		 if(strlen($re[2])>15){$re[2]=substr($re[2],0,12).'...';}
 		$html=$html ."<tr " . CellRollOver().">

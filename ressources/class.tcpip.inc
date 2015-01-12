@@ -83,6 +83,17 @@ public static function IsvalidMAC($MAC){
 			If(strlen($Array[5]) != 2) return false;
 			return true;
     }
+    
+public static function ExtractPort($string=null){
+	$string=trim($string);
+	if($string==null){return false;}
+	if(strpos(" $string", ":")==0){return false;}
+	$extr=explode(":",$string);
+	$port=intval($extr[1]);
+	if($port==0){return false;}	
+	return $port;
+	
+}
 	
 	
 	/**
@@ -308,6 +319,17 @@ public static function ipv4ToIpv6Cdir( $original_ip_str ) {
 		if($ip==null){return false;}
 		return ( preg_match( '#^' . RE_IP_ADD . '$#', $ip) || preg_match( '#^' . RE_IPV6_ADD . '$#', $ip) );
 	}
+	
+	
+	public static function IsARange( $ip ) {
+		if(preg_match("#^([0-9\.]+)-([0-9\.]+)$#", trim($ip))){return true;}
+		return false;
+	}
+	public static function IsACDIR( $ip ) {
+		if(preg_match("#^([0-9\.]+)\/([0-9])([0-9])$#", trim($ip))){return true;}
+		return false;
+	}	
+	
 
 	/**
 	 * Validate an IP Block.

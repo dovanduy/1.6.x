@@ -157,8 +157,9 @@
 		}		
 		
 		function events($text,$function,$file,$line){
-			if(!$GLOBALS["AS_ROOT"]){return;}
+			$file=basename($file);
 			if($GLOBALS["VERBOSE"]){echo "$file::$function $text in line $line\n";}
+			if(!$GLOBALS["AS_ROOT"]){return;}
 			if(!isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
 			$logFile="/var/log/artica-smtp.log";
 			if(isset($GLOBALS["WRITETOFILE"])){$logFile=$GLOBALS["WRITETOFILE"];}
@@ -236,8 +237,8 @@
 				   if(!$this->connect_stream()){
 				   		$this->connection = @fsockopen($this->host, $this->port, $errno, $errstr, $this->timeout);
 				   		if(!$this->connection){
-				   			$this->errors[]="Failed to fsockopen to $this->host:$this->port Err.$errno $errstr";
-				   			$this->events("Failed to fsockopen to $this->host:$this->port Err.$errno $errstr", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
+				   			$this->errors[]="Failed to fsockopen to [$this->host]:($this->port) Err.$errno $errstr";
+				   			$this->events("Failed to fsockopen to [$this->host]:($this->port) Err.$errno $errstr", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
 				   			return false;
 				   		}
 				   		//$this->events("Success to fsockopen to $this->host", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
@@ -248,7 +249,9 @@
 				
 				if(!$this->connection){
 					$this->errors[]="Failed to connect {$errorplus}to $this->host:$this->port Err.$errno $errstr";
-					$this->events("Failed to connect {$errorplus}to $this->host:$this->port Err.$errno $errstr", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);}
+					$this->events("Failed to connect {$errorplus}to $this->host:$this->port Err.$errno $errstr", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
+				}
+				
 				if($this->connection){$this->status=SMTP_STATUS_CONNECTED;}
 
 				$greeting = $this->get_data();

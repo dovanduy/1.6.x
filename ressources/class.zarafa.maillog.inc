@@ -259,9 +259,9 @@ class zarafa_maillog_buffer{
 		$timefile=$this->file_time_min($file);
 		if($timefile>10){
 			$this->email_events("Zarafa server SQL issue database definitively crashed",
-			"zarafa-server claim \n$buffer\nThere is an SQL issue\nArtica will delete the entire Zarafa Database and rebuild a new one...","mailbox");
+			"zarafa-server claim \n$buffer\nThere is an SQL issue\n","mailbox");
 			@unlink($file);@file_put_contents($file,time());			
-			shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.zarafa.build.stores.php --remove-database >/dev/null 2>&1 &");
+			///shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.zarafa.build.stores.php --remove-database >/dev/null 2>&1 &");
 		}
 		return true;
 	}
@@ -356,7 +356,7 @@ class zarafa_maillog_buffer{
 		$curdate=date("YmdH");
 		$tablename="{$curdate}_hcnx";
 		$zDate=date("Y-m-d H:i:s");
-		$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();
+		$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections($curdate);
 		$domain=$fam->GetFamilySites($hostname);
 		$zmd5=md5("$time$hostname$ip");
 		$tablename="{$curdate}_hmbx";

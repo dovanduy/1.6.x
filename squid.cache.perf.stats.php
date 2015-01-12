@@ -73,7 +73,7 @@ $page=CurrentPageName();
  $html="
  <div id='title-caches-perf'></div>
  
- <div class=explain>{squidcacheperf_howto}</div>
+ <div class=text-info>{squidcacheperf_howto}</div>
  <table style='width:100%'>
  <tr>
  	<td width=1% valign='top'><img src='img/webpage-settings-32.png'></td>
@@ -83,7 +83,7 @@ $page=CurrentPageName();
 	 		<td class=legend valign='top' width=1% nowrap>{minimum_object_size} <br>and {maximum_object_size}:</td>
 	 		<td>
 	 			<strong style='font-size:14px'>{current}:{$squid->global_conf_array["minimum_object_size"]} {and} {$squid->global_conf_array["maximum_object_size"]}
-	 			</strong><div class=explain>{minimum_object_size_squid_howto}</div>
+	 			</strong><div class=text-info>{minimum_object_size_squid_howto}</div>
 	 			<div style='text-align:right;width:100%'>
 	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?parameters-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {minimum_object_size} and {maximum_object_size}</a>
 	 			</div>
@@ -101,7 +101,7 @@ $page=CurrentPageName();
 	 		<td class=legend valign='top' width=1% nowrap>{caches_storage_resources}:</td>
 	 		<td>
 	 			<strong style='font-size:14px'>
-	 			</strong><div class=explain>{caches_storage_resources_howto}</div>
+	 			</strong><div class=text-info>{caches_storage_resources_howto}</div>
 	 			<div style='text-align:right;width:100%'>
 	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?caches-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {caches_storage_resources}</a>
 	 			</div>
@@ -119,7 +119,7 @@ $page=CurrentPageName();
 	 		<td class=legend valign='top' width=1% nowrap>{cache_storage_rules}:</td>
 	 		<td>
 	 			<strong style='font-size:14px'>
-	 			</strong><div class=explain>{cache_storage_rules_explain}</div>
+	 			</strong><div class=text-info>{cache_storage_rules_explain}</div>
 	 			<div style='text-align:right;width:100%'>
 	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.cached.sitesinfos.php?js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {cache_storage_rules}</a>
 	 			</div>

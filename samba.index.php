@@ -551,7 +551,7 @@ function main_smb_config(){
 			$styleTD="font-size:16px";$styleFieldWith=290;
 			$explain="
 			<div style='font-size:22px'>{SAMBA_MAIN_PARAMS}</div>
-			<div style='font-size:16px' class=explain>{SAMBA_MAIN_PARAMS_TEXT}</div>";
+			<div style='font-size:16px' class=text-info>{SAMBA_MAIN_PARAMS_TEXT}</div>";
 				$global_parameters_icon=Paragraphe('parameters2-64.png',"{SAMBA_MAIN_PARAMS}",'{SAMBA_MAIN_PARAMS_TEXT}',
 				"javascript:Loadjs('samba.index.php?main-params-js=yes')");
 		$after_post="x_SaveSambaMainConfiguration$t";
@@ -2246,7 +2246,7 @@ function folder_greyhole(){
 	$copies=$ligne["num_copies"];
 	if(!is_numeric($copies)){$copies=2;}
 	$html="
-	<div class=explain>{greyhole_dirs_explain}</div>
+	<div class=text-info>{greyhole_dirs_explain}</div>
 	
 	<center id='greyholecopydiv'>
 		". Field_text("num_copies",$copies,"font-size:16px;padding:5px;width:90px").
@@ -3303,7 +3303,7 @@ function DomainAdmin_index(){
 	$password=$samba->GetAdminPassword("administrator");
 	
 	$html="
-	<div class=explain>{domain_admin_text}</div>
+	<div class=text-info>{domain_admin_text}</div>
 	
 	<strong style='font-size:14px'>&laquo;{$samba->main_array["global"]["workgroup"]}\administrator&raquo; {password}</strong>
 	<div id='DomainAdminSave'>

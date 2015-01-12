@@ -8,7 +8,7 @@
 <remote_server_name>Nom du serveur distant</remote_server_name>
 <remote_server_port>Port du serveur distant</remote_server_port>
 <RsyncClientSSL>Activer SSL</RsyncClientSSL>
-<RsyncUploadBwlimit>limite d'upload de bande passante</RsyncUploadBwlimit>
+<RsyncUploadBwlimit>limite de bande passante en sortie</RsyncUploadBwlimit>
 <sent>envoy&eacute;</sent>
 <sent_numfiles>Nombre de fichiers envoy&eacute;s</sent_numfiles>
 <UseOnlyRsync>Utilisez uniquement la synchronisation</UseOnlyRsync>

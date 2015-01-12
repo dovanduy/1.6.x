@@ -90,7 +90,7 @@ function parameters(){
 	}
 	
 	$html="
-	<div style='font-size:16px' class=explain id=$t >{SQUID_ISP_MODE_EXPLAIN}</div>
+	<div style='font-size:16px' class=text-info id=$t >{SQUID_ISP_MODE_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{enable_service}:</td>

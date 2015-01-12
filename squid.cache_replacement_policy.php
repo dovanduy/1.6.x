@@ -52,7 +52,9 @@ function popup(){
 	$refresh_pattern_def_max=$sock->GET_INFO("refresh_pattern_def_max");
 	$refresh_pattern_def_perc=$sock->GET_INFO("refresh_pattern_def_perc");
 	
-	if(!is_numeric($refresh_pattern_def_min)){$refresh_pattern_def_min=4320;}
+	if(!is_numeric($refresh_pattern_def_min)){$refresh_pattern_def_min=0;}
+	if(!is_numeric($refresh_pattern_def_max)){$refresh_pattern_def_max=43200;}
+	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=80;}
 	
 	
 	$squid=new squidbee();
