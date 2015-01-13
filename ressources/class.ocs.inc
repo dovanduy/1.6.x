@@ -86,7 +86,7 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			$HARDWARE_ID=$ligne["HARDWARE_ID"];
 			
 			if(intval($id_net)>0){
-				$q->QUERY_SQL("UPDATE networks SET `IPADDR`='$ipaddr' WHERE `ID`='$id_net'",'ocsweb');
+				$q->QUERY_SQL("UPDATE networks SET `IPADDRESS`='$ipaddr' WHERE `ID`='$id_net'",'ocsweb');
 				if(!$q->ok){return false;}
 				$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT `IPADDR`,`NAME` FROM hardware WHERE ID=$HARDWARE_ID LIMIT 0,1",'ocsweb'));
 				if($ligne["IPADDR"]==null){
@@ -110,7 +110,7 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			
 			
 			
-			$sql="INSERT IGNORE INTO networks(`IPADDR`,`MACADDR`,`HARDWARE_ID`) VALUES ('$ipaddr','$mac','$ID')";
+			$sql="INSERT IGNORE INTO networks(`IPADDRESS`,`MACADDR`,`HARDWARE_ID`) VALUES ('$ipaddr','$mac','$ID')";
 			$q->QUERY_SQL($sql,'ocsweb');
 			if(!$q->ok){return false;}
 			

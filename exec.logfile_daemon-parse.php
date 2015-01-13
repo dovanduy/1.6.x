@@ -15,30 +15,50 @@ include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
 include_once(dirname(__FILE__)."/ressources/class.realtime-buildsql.inc");
 include_once(dirname(__FILE__)."/ressources/class.ocs.inc");
+include_once(dirname(__FILE__)."/ressources/class.squidlogs.parser.inc");
 
 //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 
-
+$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 $unix=new unix();
+
+
+$pidfile="/etc/artica-postfix/pids/exec.logfile_daemon-parse.php.GLOBAL.pid";
+$unix=new unix();
+$pid=@file_get_contents($pidfile);
+
+if($unix->process_exists($pid,basename(__FILE__))){
+	$timepid=$unix->PROCCESS_TIME_MIN($pid);
+	events("$pid already executed since {$timepid}Mn");
+	die();
+}
+
+@file_put_contents($pidfile, getmypid());
 $pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+
+
 events("Running instances:".count($pids));
 
 
-if(count($pids)>3){
+if(count($pids)>1){
 	events("Too many instances ". count($pids));
 	$mypid=getmypid();
 	while (list ($pid, $ligne) = each ($pids) ){
-		if($pid==$mypid){continue;}
-		events("Killing $pid");
+		if($pid==$mypid){
+			events("SKIPPING ME $pid");
+			continue;
+		}
+		events("Killing $pid ". @file_get_contents("/proc/$pid/cmdline"));
 		unix_system_kill_force($pid);
 	}
 
 }
 
 $pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
-if(count($pids)>3){
+if(count($pids)>1){
 	events("Too many instances ". count($pids)." dying");
 	die();
 }
@@ -61,12 +81,14 @@ if(!is_file("/etc/cron.d/logfile-daemon")){
 
 if(count($argv)>0){
 	if(isset($argv[1])){
-		events("Execute {$argv[1]}...");
+		events("Execute {$argv[1]} - {$argv[2]}...");
 		if($argv[1]=="--tables-primaires"){parse_tables_primaires();die();}
 		if($argv[1]=="--wakeup"){Wakeup();die();}
 		if($argv[1]=="--caches"){parse_tables_cache_primaires();die();}
 		if($argv[1]=="--squid-queue"){parse_sql_commands();die();}
 		if($argv[1]=="--users"){UserAuthDB_in_mysql_queue();die();}
+		if($argv[1]=="--parse"){NewLogsParser();die();}
+		if($argv[1]=="--stats-uid"){Scanuuid($argv[2]);die();}
 		
 		
 	}
@@ -83,22 +105,41 @@ if(count($argv)>0){
 	$logFile="/var/log/squid/logfile_daemon.debug";
 
 	$unix=new unix();
-	@mkdir("/var/log/squid/mysql-rtterrors",0755,true);
-	@mkdir("/var/log/squid/mysql-squid-queue",0755,true);
-	$unix->chown_func("squid","squid","/var/log/squid/mysql-rtterrors");
-	$unix->chown_func("squid","squid","/var/log/squid/mysql-squid-queue");
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 	
+	@mkdir($GLOBALS["LogFileDeamonLogDir"],0755,true);
+	@chmod($GLOBALS["LogFileDeamonLogDir"], 0755);
+	@chown($GLOBALS["LogFileDeamonLogDir"],"squid");
+	@chgrp($GLOBALS["LogFileDeamonLogDir"], "squid");
+		
 	
-	@chmod($logFile, 0755);
-	@chown($logFile,"squid");
-	
-	
+	NewLogsParser();
 	parse_sql_commands(true);
 	parse_realtime_events(true);
 	parse_tables_primaires(true);
 	ParseUsersAgents();
 	UserAuthDB_in_mysql_queue();
+	events("***************** END ******************");
 	
+function NewLogsParser(){
+	$rrt=new squid_logs_parser();
+}
+
+function Scanuuid($uuid){
+	events("Scanuuid:: $uuid");
+	$unix=new unix();
+	$directory="/usr/share/artica-postfix/ressources/conf/upload/StatsApplianceLogs/$uuid";
+	$Files=$unix->DirFiles($directory);
+	while (list ($filename, $none) = each ($Files) ){
+		$SourcePath="$directory/$filename";
+		$TargetPath="{$GLOBALS["LogFileDeamonLogDir"]}/$filename";
+		if(is_file($TargetPath)){continue;}
+		if(!@copy($SourcePath,$TargetPath)){continue;}
+		events("Scanuuid:: removing $SourcePath");
+		@unlink($SourcePath);
+	}
+}
 	
 function ParseComputersOCS(){
 	
@@ -1072,8 +1113,6 @@ function x_GetFamilySites($sitename){
 }
 function x_MacToUid($mac=null){
 	if($mac==null){return;}
-	
-	
 	if(!isset($GLOBALS["USERSDB"])){$GLOBALS["USERSDB"]=unserialize(@file_get_contents("/etc/squid3/usersMacs.db"));}
 	if(!isset($GLOBALS["USERSDB"]["MACS"][$mac]["UID"])){return;}
 	if($GLOBALS["USERSDB"]["MACS"][$mac]["UID"]==null){return;}

@@ -53,9 +53,10 @@ $GLOBALS["DEBUG_CACHES"]=false;
 $GLOBALS["REFUSED_REQUESTS"]=0;
 $GLOBALS["COUNT_HASH_TABLE"]=0;
 $GLOBALS["KEYUSERS"]=array();
-$GLOBALS["RTTHASH"]=array();
 $GLOBALS["CACHE_SQL"]=array();
-$timezones=@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones"); 
+$timezones=@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones");
+$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="{$GLOBALS["ARTICALOGDIR"]}"; } }
 
 
@@ -120,9 +121,7 @@ while(!feof($pipe)){
 		if( $GLOBALS["WAKEUP_LOGS"]>50 ){
 			events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
 			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
-			"- {$GLOBALS["COUNT_RQS"]} connexions received ".
-			"- Hash Table = ".count($GLOBALS["RTTHASH"])." ".
-			"- Queued items = {$GLOBALS["COUNT_HASH_TABLE"]} element(s)"
+			"- {$GLOBALS["COUNT_RQS"]} connexions received "
 			);
 			$GLOBALS["WAKEUP_LOGS"]=0;
 		}		
@@ -155,8 +154,6 @@ while(!feof($pipe)){
 		break;
 	}
 	
-	if(count($GLOBALS["RTTHASH"])>2){empty_TableHash();}
-	if($GLOBALS["COUNT_HASH_TABLE"]>50){empty_TableHash();}
 	$buffer=null;
 }
 
@@ -206,9 +203,7 @@ function Wakeup(){
 	@touch("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.status");
 	events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
 			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
-			"- {$GLOBALS["COUNT_RQS"]} connexions received ".
-			"- Hash Table = ".count($GLOBALS["RTTHASH"])." ".
-			"- Queued items = {$GLOBALS["COUNT_HASH_TABLE"]} element(s)"
+			"- {$GLOBALS["COUNT_RQS"]} connexions received "
 	);
 	
 	empty_TableHash();
@@ -326,191 +321,6 @@ function UserAuthDB($mac,$ipaddr,$uid,$hostname,$UserAgent){
 	@dba_close($db_con);
 }
 
-function berekley_db_cached_www($familysite,$SIZE){
-	$DatabasePath="/var/log/squid/".date("YW")."_wwwcached.db";
-	
-	if(!is_file($DatabasePath)){
-		try {
-			events("berekley_db:: Creating $DatabasePath database");
-			$db_desttmp = @dba_open($DatabasePath, "c","db4");}
-			catch (Exception $e) {$error=$e->getMessage();events("berekley_db::FATAL ERROR $error on $DatabasePath");return;}
-			@dba_close($db_desttmp);
-	}
-	
-	$db_con = @dba_open($DatabasePath, "c","db4");
-	if(!$db_con){
-		events("berekley_db_cached_www:: FATAL!!!::$DatabasePath, unable to open");
-		return false;
-	}
-	
-	$CURRENT=intval(dba_fetch($familysite,$db_con));
-	$CURRENT=$CURRENT+$SIZE;
-	dba_replace($familysite,$CURRENT,$db_con);
-	@dba_close($db_con);
-	
-}
-
-
-function berekley_db_notcached_www($familysite,$SIZE){
-	$familysite=trim($familysite);
-	if($familysite==null){return;}
-	
-	$DatabasePath="/var/log/squid/".date("YW")."_NOTCACHED_WEEK.db";
-	berekley_db_create($DatabasePath);
-	
-	$db_con = @dba_open($DatabasePath, "c","db4");
-	if(!$db_con){
-		events("berekley_db_notcached_www:: FATAL!!!::$DatabasePath, unable to open");
-		return false;
-	}
-	
-	if(!@dba_exists($familysite,$db_con)){
-		$array["SIZE"]=$SIZE;
-		$array["HIT"]=1;
-		dba_replace($familysite,serialize($array),$db_con);
-		@dba_close($db_con);
-		return;
-	}
-	
-	$dba_fetch=dba_fetch($familysite,$db_con);
-	$array=unserialize($dba_fetch);
-	$array["SIZE"]=intval($array["SIZE"])+intval($SIZE);
-	$array["HIT"]=intval($array["HIT"])+1;
-	dba_replace($familysite,serialize($array),$db_con);
-	@dba_close($db_con);
-}
-
-
-
-
-function berekley_db_cached($familysite,$SIZE){
-	berekley_db_cached_www($familysite,$SIZE);
-	$date=date("Y-m-d H:00:00")."/cached";
-	if(!isset($GLOBALS["DBPATH"])){
-		$dateW=date("YW");
-		$GLOBALS["DBPATH"]="/var/log/squid/{$dateW}_QUOTASIZE.db";
-		$GLOBALS["DBSIZE"]="/var/log/squid/{$dateW}_size.db";
-	}
-	
-	$DatabasePath=$GLOBALS["DBSIZE"];
-	$db_con = @dba_open($DatabasePath, "c","db4");
-	if(!$db_con){
-		events("berekley_db_size:: FATAL!!!::$DatabasePath, unable to open");
-		return false;
-	}
-	
-	$array=array();
-	$CURRENT=intval(dba_fetch("TOTALS_CACHED",$db_con));
-	if($GLOBALS["VERBOSE"]){echo "*** CACHED: TOTALS_CACHED = $CURRENT\n";}
-	
-	$CURRENT=$CURRENT+$SIZE;
-	dba_replace("TOTALS_CACHED",$CURRENT,$db_con);
-	@dba_close($db_con);
-	
-
-	$db_con = @dba_open($DatabasePath, "c","db4");
-	
-	
-	if($GLOBALS["VERBOSE"]){echo "CACHED: FIND $date\n";}
-	$CURRENT=intval(dba_fetch($date,$db_con));
-	if($GLOBALS["VERBOSE"]){echo "CACHED: $CURRENT\n";}
-	
-	$NEXT=$CURRENT+$SIZE;
-	
-	if($GLOBALS["VERBOSE"]){echo "CACHED: Key: $date Add $NEXT\n";}
-	dba_delete($date, $db_con);
-	dba_replace($date,$NEXT,$db_con);
-	@dba_close($db_con);
-	
-}
-function berekley_db_notcached($SIZE){
-	
-	if(!isset($GLOBALS["DBPATH"])){
-		$dateW=date("YW");
-		$GLOBALS["DBPATH"]="/var/log/squid/{$dateW}_QUOTASIZE.db";
-		$GLOBALS["DBSIZE"]="/var/log/squid/{$dateW}_size.db";
-	}
-	
-	$date=date("Y-m-d H:00:00")."/not_cached";
-	$DatabasePath=$GLOBALS["DBSIZE"];
-
-	$db_con = @dba_open($DatabasePath, "c","db4");
-	if(!$db_con){
-		events("berekley_db_size:: FATAL!!!::{$GLOBALS["DBPATH"]}, unable to open");
-		return false;
-	}
-
-
-	$CURRENT=intval(dba_fetch("TOTALS_NOT_CACHED",$db_con));
-	$CURRENT=$CURRENT+$SIZE;
-	dba_replace("TOTALS_NOT_CACHED",$CURRENT,$db_con);
-
-	
-	if($GLOBALS["VERBOSE"]){echo "NOT CACHED: FIND $date\n";}
-	$CURRENT=intval(dba_fetch($date,$db_con));
-	if($GLOBALS["VERBOSE"]){echo "NOT CACHED: $CURRENT\n";}
-	
-	$NEXT=$CURRENT+$SIZE;
-	
-	if($GLOBALS["VERBOSE"]){echo "NOT CACHED: Key: $date Add $NEXT\n";}
-	dba_delete($date, $db_con);
-	dba_replace($date,$NEXT,$db_con);
-	@dba_close($db_con);
-	
-
-}
-
-function berekly_db_mime($mac,$ipaddr,$uid,$SIZE,$mime){
-	
-	$date=date("Ymd");
-	$database="/var/log/squid/{$date}_mime.db";
-	
-	
-	if(!is_file($database)){
-		try {
-			events("berekley_db:: Creating $database database");
-			$db_desttmp = @dba_open($database, "c","db4");
-		}
-		catch (Exception $e) {
-			$error=$e->getMessage();
-			events("berekley_db::FATAL ERROR $error on $database");
-	
-		}
-		@dba_close($db_con);
-	}
-	
-	$db_con = @dba_open($database, "c","db4");
-	if(!$db_con){
-		events("berekley_db_size:: FATAL!!!::{$GLOBALS["DBPATH"]}, unable to open");
-		return false;
-	}
-	
-	if($ipaddr<>null){$keymd5=md5("$ipaddr");}
-	if($mac<>null){$keymd5=md5("$mac"); }
-	if($uid<>null){$keymd5=md5("$uid"); }
-	
-	if(!@dba_exists($keymd5,$db_con)){
-		$array[$mime]["SIZE"]=$SIZE;
-		$array[$mime]["MAC"]=$mac;
-		$array[$mime]["UID"]=$uid;
-		$array[$mime]["IPADDR"]=$ipaddr;
-		dba_replace($keymd5,serialize($array),$db_con);
-		@dba_close($db_con);
-		return;
-	}
-	
-	
-	$array=unserialize(dba_fetch($keymd5,$db_con));
-	if(!isset($array[$mime]["SIZE"])){$array[$mime]["SIZE"]=0;}
-	$array[$mime]["SIZE"]=$array[$mime]["SIZE"]+$SIZE;
-	$array[$mime]["MAC"]=$mac;
-	$array[$mime]["UID"]=$uid;
-	$array[$mime]["IPADDR"]=$ipaddr;
-	dba_replace($keymd5,serialize($array),$db_con);
-	@dba_close($db_con);
-	
-}
-
 function clean_mac($MAC){
 	$f=explode(":",$MAC);
 	while (list ($index, $line) = each ($f) ){
@@ -550,167 +360,25 @@ function berekley_db_create($db_path){
 
 
 
-function berekley_db_access($familysite,$mac,$ipaddr,$uid,$SIZE,$category=null,$cached,$MimeType){
-	
-	$db_path="/var/log/squid/".date("YmdH")."_dbaccess.db";
 
-	if(!berekley_db_create($db_path)){return;}
-	
-	$db_con = @dba_open($db_path, "c","db4");
-	if(!$db_con){events("berekley_db_size:: FATAL!!!::$db_path, unable to open"); return false; }
-	
-	if($ipaddr<>null){$keymd5=md5("$familysite$ipaddr");}
-	if($mac<>null){$keymd5=md5("$familysite$mac"); }
-	if($uid<>null){$keymd5=md5("$familysite$uid"); }
-	
-	if(!@dba_exists($keymd5,$db_con)){
-		$array["IPADDR"]=$ipaddr;
-		$array["MAC"]=$mac;
-		$array["UID"]=$uid;
-		$array["WWW"]=$familysite;
-		$array["category"]=$category;
-		$array["HITS"]=1;
-		$array["SIZE"]=$SIZE;
-		events("berekley_db_access:: NEW $mac,$ipaddr,$uid $familysite hits:1 Size:$SIZE");
-		dba_replace($keymd5,serialize($array),$db_con);
-		@dba_close($db_con);
-		return;
-	}
-	
-	$dba_fetch=dba_fetch($keymd5,$db_con);
-	$array=unserialize($dba_fetch);
-	
-	$SIZEA=intval($array["SIZE"]);
-	$HITSA=intval($array["HITS"])+1;
-	
-	
-	
-	
-	$array["SIZE"]=$SIZEA+$SIZE;
-	$sizemb=$array["SIZE"];
-	$sizemb=$sizemb/1024;
-	$sizemb=round($sizemb/1024,2);
-	//events("berekley_db_access:: ADD $mac,$ipaddr,$uid $familysite hits:$HITSA Size:( $SIZEA + $SIZE) = {$array["SIZE"]} ($sizemb MB)");
-	
-	$array["HITS"]=$HITSA;
-	$array["IPADDR"]=$ipaddr;
-	$array["MAC"]=$mac;
-	$array["UID"]=$uid;
-	$array["WWW"]=$familysite;
-	$array["category"]=$category;
-	dba_replace($keymd5,serialize($array),$db_con);
-	@dba_close($db_con);
-	
-}
 
-function berekley_proto($proto,$familysite,$SIZE,$cached){
-	$db_path="/var/log/squid/".date("Ymd")."_proto.db";
+function berekley_add($key,$value){
+	if(!is_numeric($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
+	$db_path="{$GLOBALS["LogFileDeamonLogDir"]}/".date("YmdHi").".".$GLOBALS["MYPID"]."_realtime.db";
 	if(!berekley_db_create($db_path)){return;}
-	
 	$db_con = @dba_open($db_path, "c","db4");
 	if(!$db_con){
 		events("berekley_db_size:: FATAL!!!::$db_path, unable to open");
 		return false;
 	}
-	
-	$keymd5=$familysite;
-	
-	if(!@dba_exists($keymd5,$db_con)){
-		
-		$array[$proto]["SIZE"]=$SIZE;
-		$array[$proto]["HIT"]=1;
-		dba_replace($keymd5,serialize($array),$db_con);
-		@dba_close($db_con);
-		return;
-	}
-	
-	
-	$array=unserialize(dba_fetch($keymd5,$db_con));
-	$array[$proto]["SIZE"]=intval($array[$proto]["SIZE"])+$SIZE;
-	$array[$proto]["HIT"]=intval($array[$proto]["HIT"])+1;
-	dba_replace($keymd5,serialize($array),$db_con);
-	@dba_close($db_con);
+	dba_replace($key,$value,$db_con);
 	
 }
 
 
-function berekley_db_size($familysite,$mac,$ipaddr,$uid,$SIZE,$category=null,$cached,$MimeType){
-	if($SIZE==0){return;}
-	if(trim($familysite)==null){return;}
-	if($GLOBALS["DEBUG_CACHES"]){
-		events("$familysite: Mime: $MimeType cached=$cached");
-	}
-	
-	berekley_db();
-	berekley_db_access($familysite,$mac,$ipaddr,$uid,$SIZE,$category,$cached,$MimeType);
-	berekly_db_mime($mac,$ipaddr,$uid,$SIZE,$MimeType);
-	// Cached or not.
-	if($cached==1){
-		berekley_db_cached($familysite,$SIZE);
-		
-	}
-	
-	if($cached==0){
-		berekley_db_notcached($SIZE);
-		berekley_db_notcached_www($familysite,$SIZE);
-	}
 
-	$db_con = @dba_open($GLOBALS["DBPATH"], "c","db4");
-	if(!$db_con){
-		events("berekley_db_size:: FATAL!!!::{$GLOBALS["DBPATH"]}, unable to open");
-		return false;
-	}
-	
 
-	
-	$Fetched=true;
-	if($ipaddr<>null){$keymd5=md5("$familysite$ipaddr");}
-	if($mac<>null){$keymd5=md5("$familysite$mac"); }
-	if($uid<>null){$keymd5=md5("$familysite$uid"); }
-	
-	$array=array();
-	
-	if(!@dba_exists($keymd5,$db_con)){
-		$array["DAILY"][date("d")]=$SIZE;
-		$array["HOURLY"][date("d")][date("H")]=$SIZE;
-		$array["WEEKLY"]=$SIZE;
-		$array["IPADDR"]=$ipaddr;
-		$array["MAC"]=$mac;
-		$array["UID"]=$uid;
-		$array["WWW"]=$familysite;
-		$array["category"]=$category;
-		dba_replace($keymd5,serialize($array),$db_con);
-		@dba_close($db_con);
-		return;
-	}
-	
-	
-	$array=unserialize(dba_fetch($keymd5,$db_con));
-	
-	if(!isset($array["HOURLY"][date("d")][date("H")])){
-		$array["HOURLY"][date("d")][date("H")]=$SIZE;
-	}else{
-		$array["HOURLY"][date("d")][date("H")]=intval($array["HOURLY"][date("d")][date("H")])+$SIZE;
-	}
-	
-	
-	if(!isset($array["WEEKLY"])){
-		$array["WEEKLY"]=$array["DAILY"][date("d")];
-	}else{
-		$array["WEEKLY"]=intval($array["WEEKLY"])+$SIZE;
-	}	
-	
-	
-	if(!isset($array["DAILY"][date("d")])){
-		$array["DAILY"][date("d")]=$SIZE;
-	}else{
-		$array["DAILY"][date("d")]=intval($array["DAILY"][date("d")])+$SIZE;
-	}	
-	
-	$array["category"]=$category;
-	dba_replace($keymd5,serialize($array),$db_con);
-	@dba_close($db_con);
-}
+
 
 
 function ConfigUfdcat(){
@@ -941,14 +609,34 @@ function ParseSizeBuffer($buffer){
 	}
 	$logfile_daemon=new logfile_daemon();
 	$cached=$logfile_daemon->CACHEDORNOT($SquidCode);
+	$SearchWords=$logfile_daemon->SearchWords($uri);
+	$GLOBALS["ACCEPTED_REQUESTS"]=$GLOBALS["ACCEPTED_REQUESTS"]+1;
 	
+	$MAIN["TIMESTAMP"]=time();
+	$MAIN["URI"]=$uri;
+	$MAIN["sitename"]=$sitename;
+	$MAIN["SIZE"]=$SIZE;
+	$MAIN["CACHED"]=$cached;
+	$MAIN["IPADDR"]=$ipaddr;
+	$MAIN["CATEGORY"]=$category;
+	$MAIN["MIMETYPE"]=$MimeType;
+	$MAIN["FAMILYSITE"]=$GLOBALS["FAMLILYSITE"][$sitename];
+	$MAIN["MAC"]=$mac;
+	$MAIN["UID"]=$uid;
+	$MAIN["USERAGENT"]=$UserAgent;
+	$MAIN["SQUID_CODE"]=$SquidCode;
+	$MAIN["RESPONSE_TIME"]=$response_time;
+	$MAIN["PROTO"]=$proto;
+	$MAIN["HTTP_CODE"]=$code_error;
+	if($hostname<>null){$MAIN["HOSTNAME"]=$hostname;}
+	if(is_array($SearchWords)){
+		$MAIN["WORDS"]=$SearchWords["WORDS"];
+	}
 	
-	berekley_proto($proto,$GLOBALS["FAMLILYSITE"][$sitename],$SIZE,$cached);
-	berekley_db_size($GLOBALS["FAMLILYSITE"][$sitename],$mac,$ipaddr,$uid,$SIZE,$category,$cached,$MimeType);
-	FileSystemUserAgent($UserAgent);
-	NewComputer($mac,$ipaddr);
+	$md5=md5(serialize($MAIN));
+	berekley_add($md5,base64_encode(serialize($MAIN)));
 	
-	
+	return;
 	
 	if(!isset($GLOBALS["RTTCREATED"][$TimeCache])){
 		events("Creating RTTH_$TimeCache table...");
@@ -968,7 +656,7 @@ function ParseSizeBuffer($buffer){
 	
 	
 	
-	$SearchWords=$logfile_daemon->SearchWords($uri);
+	
 	$uri=xmysql_escape_string2($uri);
 		
 		
@@ -1020,7 +708,7 @@ function ParseSizeBuffer($buffer){
 		
 		
 		
-	$GLOBALS["ACCEPTED_REQUESTS"]=$GLOBALS["ACCEPTED_REQUESTS"]+1;
+	
 	
 	if(count($GLOBALS["CACHE_SQL"])>2){ 
 		events("CACHE_SQL = ".count($GLOBALS["CACHE_SQL"]." seems 2 minutes"));
@@ -1131,105 +819,18 @@ function empty_TableHash(){
 	}
 	
 	
-	FileSystemUserAgent_empty();
+	
 	
 	
 	$GLOBALS["CACHE_SQL"]=array();
 	$GLOBALS["RTTHASH"]=array();
-	$GLOBALS["COUNT_HASH_TABLE"]=0;
+	
 	
 }
 
-function FileSystemUserAgent_empty(){
-	if(count($GLOBALS["UserAgents"])==0){return;}
-	$Dir="/var/log/squid/mysql-UserAgents";
-	$rand=rand(5, 90000);
-	$filetemp="$Dir/UsersAgents.".microtime(true).".$rand.sql";
-	events("Purge $filetemp = ".count($GLOBALS["UserAgents"])." UserAgents");
-	@file_put_contents($filetemp,serialize($GLOBALS["UserAgents"]));
-	$GLOBALS["UserAgents"]=array();
-	
-}
-
-function FileSystemUserAgent($UserAgent){
-	if(trim($UserAgent)==null){return;}
-	$UserAgent_md=md5($UserAgent);
-	if(isset($GLOBALS[$UserAgent])){return;}
-	$GLOBALS["UserAgent"]=true;
-	if(count($GLOBALS["UserAgents"])<20){return;}
-	FileSystemUserAgent_empty();
-	
-}
-
-function NewComputer($mac,$ipaddr){
-	if($mac==null){return;}
-	if(isset($GLOBALS["COMPUTERS_MEM"][$mac])){return;}
-	$Dir="/var/log/squid/mysql-computers";
-	$rand=rand(5, 90000);
-	$filetemp="$Dir/Computers.$mac.sql";
-	if(is_file($filetemp)){$GLOBALS["COMPUTERS_MEM"][$mac]=true;return;}
-	$array["IP"]=$ipaddr;
-	$array["MAC"]=$mac;
-	@file_put_contents($filetemp,serialize($array));
-	$GLOBALS["COMPUTERS_MEM"][$mac]=true;
-}
 
 
-function SEND_MYSQL($sql){
-	$socket=null;
-	
-	if($GLOBALS["DisableLogFileDaemonMySQL"]==1){
-		$dd=date("Hi");
-		$GLOBALS["CACHE_SQL"][$dd][]=$sql;
-		return true;
-	}
-	
-	
-	if(!isset($GLOBALS["SEND_MYSQL"])){
-	
-		$GLOBALS["SEND_MYSQL"]["USER"]=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_admin"));
-		$GLOBALS["SEND_MYSQL"]["PASSWORD"]=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_password"));
-		$GLOBALS["SEND_MYSQL"]["SERVER"]=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/mysql_server"));
-		if($GLOBALS["SEND_MYSQL"]["USER"]==null){$GLOBALS["SEND_MYSQL"]["USER"]="root";}
-		if($GLOBALS["SEND_MYSQL"]["SERVER"]==null){$GLOBALS["SEND_MYSQL"]["SERVER"]="127.0.0.1";}
-		if($GLOBALS["SEND_MYSQL"]["SERVER"]=="localhost"){$GLOBALS["SEND_MYSQL"]["SERVER"]="127.0.0.1";}
-	}
-		
-	
-	if($GLOBALS["ProxyUseArticaDB"]==0){
-		if($GLOBALS["EnableSquidRemoteMySQL"]==1){
-			$bd=@mysql_connect("{$GLOBALS["squidRemostatisticsServer"]}:{$GLOBALS["squidRemostatisticsPort"]}",$GLOBALS["squidRemostatisticsUser"],$GLOBALS["squidRemostatisticsPassword"]);
-		}
-		
-	}else{
-		$bd=@mysql_connect(":/var/run/mysqld/squid-db.sock","root",null);
-	}
-	if(!$bd){
-		$des=@mysql_error(); 
-		$errnum=@mysql_errno();
-		events("MySQL error: $errnum $des");
-		return false;
-	}
-	$ok=@mysql_select_db("squidlogs",$bd);
-	if(!$ok){
-		$des=@mysql_error();
-		$errnum=@mysql_errno();
-		events("MySQL error: $errnum $des");
-		@mysql_close($bd);
-		return false;
-	}
-	$results=@mysql_query($sql,$bd);
-	if(!$results){
-		$des=@mysql_error();
-		$errnum=@mysql_errno();
-		events("MySQL error: $errnum $des");
-		events("MySQL error: $sql");
-		return false;
-	}
-	
-	@mysql_close($bd);
-	return true;
-}
+
 function xmysql_escape_string2($line){
 	
 	$search=array("\\","\0","\n","\r","\x1a","'",'"');
@@ -1438,7 +1039,7 @@ function tablename_tocat($tablename){
 }
 
 function create_tables($TimeCache){
-	
+
 	REALTIME_RTTH($TimeCache);
 	REALTIME_squidhour($TimeCache);
 	REALTIME_cachehour($TimeCache);

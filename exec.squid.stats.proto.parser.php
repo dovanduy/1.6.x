@@ -48,6 +48,9 @@ function tests($filepath){
 function parse(){
 	$TimeFile="/etc/artica-postfix/pids/exec.squid.stats.mime.proto.php.time";
 	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.mime.proto.php.pid";
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
+	
 	$unix=new unix();
 	
 	$pid=$unix->get_pid_from_file($pidfile);
@@ -70,8 +73,18 @@ function parse(){
 	
 	@unlink($TimeFile);
 	@file_put_contents($TimeFile, time());
+	parsedb("/var/log/squid");
+	parsedb($GLOBALS["LogFileDeamonLogDir"]);
+}
+
+function parsedb($mainpath){
+	$unix=new unix();
 	
-	$f=$unix->DirFiles("/var/log/squid","[0-9]+_proto\.db");
+
+	
+
+	
+	$f=$unix->DirFiles($mainpath,"[0-9]+_proto\.db");
 	$export_path="/home/artica/squid/dbExport";
 	@mkdir($export_path,0755,true);
 	$berekley=new parse_berekley_dbs();
@@ -89,7 +102,7 @@ function parse(){
 			
 			if(!$q->QUERY_SQL($berekley->PROTO_PARSE_TABLE_STRING("PROTO_RTT"))){continue;}
 			$q->QUERY_SQL("TRUNCATE TABLE PROTO_RTT");
-			$array=$berekley->PROTO_PARSE_DB("/var/log/squid/$filename", $xdate);
+			$array=$berekley->PROTO_PARSE_DB("$mainpath/$filename", $xdate);
 			$prefix=$berekley->PROTO_PARSE_TABLE_PREFIX("PROTO_RTT");
 			if(!$array){continue;}
 			$sql=$prefix." ".@implode(",", $array);
@@ -99,15 +112,15 @@ function parse(){
 		
 		$tablename=date("Ym",$xtime)."_proto";
 		if(!$q->QUERY_SQL($berekley->PROTO_PARSE_TABLE_STRING($tablename))){continue;}
-		$array=$berekley->PROTO_PARSE_DB("/var/log/squid/$filename", $xdate);
+		$array=$berekley->PROTO_PARSE_DB("$mainpath/$filename", $xdate);
 		$prefix=$berekley->PROTO_PARSE_TABLE_PREFIX($tablename);
 		if(!$array){continue;}
 		$sql=$prefix." ".@implode(",", $array);
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){continue;}
 		
-		if(!@copy("/var/log/squid/$filename", "$export_path/$filename")){continue;}
-		@unlink("/var/log/squid/$filename");
+		if(!@copy("$mainpath/$filename", "$export_path/$filename")){continue;}
+		@unlink("$mainpath/$filename");
 		
 	}
 	

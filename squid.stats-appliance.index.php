@@ -38,7 +38,7 @@ function status(){
 		if(!is_numeric($WizardStatsAppliance["SSL"])){$WizardStatsAppliance["SSL"]=1;}
 		if(!is_numeric($WizardStatsAppliance["PORT"])){$WizardStatsAppliance["PORT"]=9000;}
 		
-		if($WizardStatsAppliance["SSL"]){$WizardStatsAppliance["SSL"]="{yes}";}else{$WizardStatsAppliance["SSL"]="{no}";}
+		if($WizardStatsAppliance["SSL"]==1){$WizardStatsAppliance["SSL"]="{yes}";}else{$WizardStatsAppliance["SSL"]="{no}";}
 		if($EnableRemoteSyslogStatsAppliance==1){$EnableRemoteSyslogStatsAppliance="{yes}";}else{$EnableRemoteSyslogStatsAppliance="{no}";}
 		
 		$squidRemostatisticsServer=$sock->GET_INFO("squidRemostatisticsServer");

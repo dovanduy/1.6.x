@@ -10,7 +10,7 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
-
+if(isset($_GET["scan-proxy-logs"])){scan_proxy_logs();exit;}
 if(isset($_GET["internet-access"])){internet_access_progress();exit;}
 if(isset($_GET["redirectors-refresh"])){redirectors_refresh();exit;}
 if(isset($_GET["HyperCache-webevents"])){hypercache_webevents();exit;}
@@ -2792,6 +2792,15 @@ function internet_access_progress(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	
+	
+}
+function scan_proxy_logs(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.logfile_daemon-parse.php --stats-uid {$_GET["uuid"]} >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	
 }
 

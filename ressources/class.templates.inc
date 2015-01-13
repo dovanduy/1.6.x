@@ -4703,6 +4703,8 @@ function CheckSessions(){
 		$noback["import.squid.zip.php"]=true;
 		$noback["squid.access.webfilter.log.php"]=true;
 		$noback["artica.meta.listener.php"]=true;
+		
+		$noback["artica.stats.receiver.php"]=true;
 		$noback["smtp.autoconfig.php"]=true;
 		$noback["public.categories.personnal.php"]=true;
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}

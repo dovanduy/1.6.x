@@ -808,6 +808,13 @@ function CheckFilesAndSecurity(){
 	@chown("/usr/share/artica-postfix/ufdbgclient.php","squid");
 	@chgrp("/usr/share/artica-postfix/ufdbgclient.php","squid");
 	
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
+	@mkdir($GLOBALS["LogFileDeamonLogDir"],0755,true);
+	@chmod($GLOBALS["LogFileDeamonLogDir"], 0755);
+	@chown($GLOBALS["LogFileDeamonLogDir"],"squid");
+	@chgrp($GLOBALS["LogFileDeamonLogDir"], "squid");
+	
 	
 	
 	$items[]="/etc/squid3/SquidNudityScanParams";

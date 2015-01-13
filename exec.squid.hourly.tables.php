@@ -93,6 +93,8 @@ function current_access_db(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/exec.squid.hourly.tables.php.current_access_db.pid";
 	$pidTime="/etc/artica-postfix/pids/exec.squid.hourly.tables.php.current_access_db.time";
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 	
 	
 	if(!$GLOBALS["FORCE"]){
@@ -106,6 +108,11 @@ function current_access_db(){
 	@file_put_contents($pidfile, getmypid());
 	
 	$file="/var/log/squid/".date("YmdH")."_dbaccess.db";
+	if(!is_file($file)){
+		$file="{$GLOBALS["LogFileDeamonLogDir"]}/".date("YmdH")."_dbaccess.db";
+	}
+	
+	
 	$berekley=new parse_berekley_dbs();
 	$q=new mysql_squid_builder();
 	$sql=$berekley->ACCESS_PARSE_TABLE_STRING("HOUR_RTT");
@@ -117,14 +124,21 @@ function current_access_db(){
 	if(!$array){return;}
 	$q->QUERY_SQL($berekley->ACCESS_PARSE_TABLE_PREFIX("HOUR_RTT")." ".@implode(",", $array));
 }
-
-
 function access_db(){
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
+	
+	access_dbparse("/var/log/squid");
+	access_dbparse($GLOBALS["LogFileDeamonLogDir"]);
+	
+}
+
+function access_dbparse($path){
 	
 	$unix=new unix();
 	$Currentfile=date("YmdH")."_dbaccess.db";
 	
-	$f=$unix->DirFiles("/var/log/squid","[0-9]+_dbaccess\.db");
+	$f=$unix->DirFiles("$path","[0-9]+_dbaccess\.db");
 	$export_path="/home/artica/squid/dbExport";
 	@mkdir($export_path,0755,true);
 	$berekley=new parse_berekley_dbs();
@@ -133,7 +147,7 @@ function access_db(){
 	while (list ($filename, $none) = each ($f) ){
 		
 		preg_match("#([0-9]+)_#", $filename,$re);
-		$FullPath="/var/log/squid/$filename";
+		$FullPath="$path/$filename";
 		$xdate=$re[1];
 		$xtime=$berekley->TIME_FROM_HOUR_INT($xdate);
 		echo "$filename ( $xdate ) ".date("Y-m-d H:i:s",$xtime)."\n";
@@ -164,8 +178,8 @@ function access_db(){
 		if($filename==$Currentfile){continue;}
 		
 		
-		if(!@copy("/var/log/squid/$filename", "$export_path/$filename")){continue;}
-		@unlink("/var/log/squid/$filename");
+		if(!@copy("$path/$filename", "$export_path/$filename")){continue;}
+		@unlink("$path/$filename");
 	}
 	
 	access_dbmonth();

@@ -304,17 +304,12 @@ if($MySQLTMPDIR<>null){
 }
 
 if(is_file($squidbin)){
-	$fSquidDirs[]="/var/log/squid/mysql-queue";
-	$fSquidDirs[]="/var/log/squid/mysql-rttime";
-	$fSquidDirs[]="/var/log/squid/mysql-rthash";
-	$fSquidDirs[]="/var/log/squid/mysql-rtterrors";
-	$fSquidDirs[]="/var/log/squid/mysql-squid-queue";
-	$fSquidDirs[]="/var/log/squid/mysql-rtterrors";
-	$fSquidDirs[]="/var/log/squid/mysql-UserAgents";
-	$fSquidDirs[]="/var/log/squid/mysql-computers";
+	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 	$fSquidDirs[]="/var/log/squid/ufdbguard-blocks";
 	$fSquidDirs[]="/var/log/squid/squid_admin_mysql";
 	$fSquidDirs[]="/usr/share/squid3";
+	$fSquidDirs[]=$GLOBALS["LogFileDeamonLogDir"];
 
 	
 	while (list ($num, $directory) = each ($fSquidDirs)){

@@ -75,6 +75,7 @@ class logfile_daemon{
 	
 	
 	public function codeToString($code){
+		if($code==null){return "";}
 		$squid_error["000"]="None";
 		$squid_error["100"]="Continue";
 		$squid_error["101"]="Switching Protocols";
