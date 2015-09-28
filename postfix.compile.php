@@ -67,7 +67,7 @@ function popup(){
 	
 	$color="#5DD13D";
 	$html="
-	<div class=text-info style='font-size:16px'>{APPLY_SETTINGS_POSTFIX}</div>
+	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_POSTFIX}</div>
 		<div id='please-wait'></div>
 		<table style='width:100%'>
 		<tr>
@@ -136,7 +136,7 @@ function postfix_status_progress(){
 		$text=$array["TEXT"];
 		if(count($array["ERROR"])>0){
 			while (list ($a, $b) = each ($array["ERROR"]) ){
-				echo "<div style='color:red;font-size:14px'>$b</div>";
+				echo "<div style='color:#d32d2d;font-size:14px'>$b</div>";
 				
 			}
 		}

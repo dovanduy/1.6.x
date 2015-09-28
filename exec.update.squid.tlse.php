@@ -33,10 +33,16 @@ if($argv[1]=="--localcheck"){CoherenceOffiels();die();}
 if($argv[1]=="--compile"){compile();die();}
 if($argv[1]=="--status"){BuildDatabaseStatus();die();}
 if($argv[1]=="--refresh-index"){GET_MD5S_REMOTE();die();}
+if($argv[1]=="--ptime"){ptime();die();}
 
 
 
 Execute();
+
+function ptime(){
+	$unix=new unix();
+	echo $unix->IsProductionTime()."\n";
+}
 
 function build_progress($text,$pourc){
 	ufdbevents("{$pourc}% $text");
@@ -105,6 +111,7 @@ function Execute(){
 	
 	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}
+	$CategoriesDatabasesUpdatesAllTimes=intval($sock->GET_INFO("CategoriesDatabasesUpdatesAllTimes"));
 	
 	if(!$GLOBALS["FORCE"]){
 		if($CategoriesDatabasesByCron==1){
@@ -114,9 +121,7 @@ function Execute(){
 				return; 
 			}
 		}
-	}
-	
-	if(!$GLOBALS["FORCE"]){
+		
 		if(!$GLOBALS["BYCRON"]){
 			$timeFile=$unix->file_time_min($timeFile);
 			if($timeFile<$StandardTime){
@@ -125,8 +130,18 @@ function Execute(){
 				return;
 			}
 		}
+		
+		if($CategoriesDatabasesUpdatesAllTimes==0){
+			if($unix->IsProductionTime()){
+				webupdate_admin_mysql(2, "Update aborted, only allowed outside the production time", null,__FILE__,__LINE__);
+				build_progress("Error: Only outside production time",110);
+				return;
+			}
+		}
+		
+		
 	}
-	
+
 	
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
@@ -135,7 +150,7 @@ function Execute(){
 	$sock=new sockets();
 	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
 	if($EnableArticaMetaClient==1){
-		build_progress("Using Artica Meta server",10);
+		build_progress("Using Meta Server server",10);
 		return artica_meta_client();
 	}
 	
@@ -244,7 +259,7 @@ function Execute(){
 	if(count($GLOBALS["squid_admin_mysql"])){
 		$UFDB_SIZE=FormatBytes($GLOBALS["UFDB_SIZE"]/1024);
 		build_progress(count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE",80);
-		artica_update_event(2, count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE - Webfiltering Toulouse Databases updated",
+		webupdate_admin_mysql(2, count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE - Webfiltering Toulouse Databases updated",
 		@implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
 		unset($GLOBALS["squid_admin_mysql"]);
 	}
@@ -262,15 +277,22 @@ function Execute(){
 	remove_bad_files();
 	
 	build_progress("{finish}",100);
-	if($GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]>0){artica_meta_server(true);}else{artica_meta_server();}
+	if($GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]>0){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/ToulouseUniversityLastCheck", time());
+		@chmod("/etc/artica-postfix/settings/Daemons/ToulouseUniversityLastCheck",0755);
+		artica_meta_server(true);
+		system("/etc/init.d/ufdbcat restart --force");
+	
+	}
+	else{
+		artica_meta_server();
+	}
 	
 	
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$ufdbConvertDB=$unix->find_program("ufdbConvertDB");
-	if(is_file($ufdbConvertDB)){
-		shell_exec("$ufdbConvertDB /var/lib/ftpunivtlse1fr");
-	}
+	if(is_file($ufdbConvertDB)){shell_exec("$ufdbConvertDB /var/lib/ftpunivtlse1fr");}
 	
 	if(is_dir("/var/lib/ftpunivtlse1fr")){
 		$chown=$unix->find_program("chown");
@@ -353,7 +375,7 @@ function artica_meta_client($force=false){
 	artica_update_event(0, "Success update categories statistics v.$Remote_version", @implode("\n",$curl->errors),__FILE__,__LINE__);
 	meta_admin_mysql(0, "Success update categories statistics v.$Remote_version", @implode("\n",$curl->errors),__FILE__,__LINE__);	
 	@file_put_contents("/etc/artica-postfix/ftpunivtlse1fr.txt", $Remote_version);
-	build_progress("Using Artica Meta server {done}",100);
+	build_progress("Using Meta Server server {done}",100);
 	CoherenceOffiels();
 	CoherenceRepertoiresUfdb();
 	BuildDatabaseStatus();
@@ -382,7 +404,7 @@ function artica_meta_server($force=false){
 	shell_exec("$tar czf $destfile *");
 	@unlink("$ArticaMetaStorage/webfiltering/ftpunivtlse1fr.txt");
 	@file_put_contents("$ArticaMetaStorage/webfiltering/ftpunivtlse1fr.txt", time());
-	artica_update_event(2, "Toulouse University categories: Success update Artica Meta webfiltering repository", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
+	artica_update_event(2, "Toulouse University categories: Success update Meta Server webfiltering repository", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
 	meta_admin_mysql(2, "Success update Toulouse University categories webfiltering repository", null,__FILE__,__LINE__);
 }
 
@@ -532,7 +554,10 @@ function update_remote_file($BASE_URI,$filename,$md5,$prc){
 		build_progress("Fatal error downloading $indexuri $curl->error",$prc);
 		echo "Fatal error downloading $indexuri $curl->error\n";
 		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
+		
+		webupdate_admin_mysql(0, "Web filtering databases, unable to download $indexuri", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		artica_update_event(0, "Web filtering databases, unable to download $indexuri", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
+		webupdate_admin_mysql(1, "Unable to download $indexuri", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		return;
 	}
 	
@@ -570,6 +595,7 @@ function update_remote_file($BASE_URI,$filename,$md5,$prc){
 	shell_exec("$tar -xf $cache_temp -C /var/lib/ftpunivtlse1fr/");
 	if(!is_file("/var/lib/ftpunivtlse1fr/$categoryname/domains")){
 		build_progress("Fatal!!: $categoryname/domains no such file",$prc);
+		webupdate_admin_mysql(1, "$categoryname/domains no such file", null,__FILE__,__LINE__);
 		ufdbevents("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
@@ -577,6 +603,7 @@ function update_remote_file($BASE_URI,$filename,$md5,$prc){
 	if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname/domains -> $CountDeSitesFile websites\n";}
 	if($CountDeSitesFile==0){
 		build_progress("Fatal!!: $categoryname/domains corrupted, no website",$prc);
+		webupdate_admin_mysql(1, "$categoryname/domains corrupted, no website", null,__FILE__,__LINE__);
 		ufdbevents("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 		return;		
@@ -589,16 +616,25 @@ function update_remote_file($BASE_URI,$filename,$md5,$prc){
 	
 	
 	$q->QUERY_SQL("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'");
-	if(!$q->ok){ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){
+		webupdate_admin_mysql(1, "MySQL error", $q->mysql_error,__FILE__,__LINE__);
+		ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		return;
+	}
 	$q->QUERY_SQL("INSERT INTO ftpunivtlse1fr (`filename`,`zmd5`,`websitesnum`) VALUES ('$filename','$md5','$CountDeSitesFile')");
-	if(!$q->ok){ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){
+		ufdbevents("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		webupdate_admin_mysql(1, "MySQL error", $q->mysql_error,__FILE__,__LINE__);
+		return;
+	}
 	
 	
 	$GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]=$GLOBALS["UFDB_COUNT_OF_DOWNLOADED"]+1;
 	build_progress("$categoryname $CountDeSitesFile websites",$prc);
-	$GLOBALS["squid_admin_mysql"][]="Success updating category `$categoryname` with $CountDeSitesFile websites";
+	$filesizeK=FormatBytes($filesize/1024);
+	$GLOBALS["squid_admin_mysql"][]="Success updating category `$categoryname` with $CountDeSitesFile websites $filesizeK";
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
-	
+	webupdate_admin_mysql(2, "Success downloading $categoryname $CountDeSitesFile websites $filesizeK", null,__FILE__,__LINE__);
 
 	
 	
@@ -729,7 +765,7 @@ function CoherenceOffiels(){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Checking $targetdir/domains\n";}
 		if(!is_file("$targetdir/domains")){
 			ufdbguard_admin_events("$database is not in disk... download it..",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
-			update_remote_file($BASE_URI,"$database.tar.gz",$ARRAYSUM_REMOTE["$database.tar.gz"]);
+			update_remote_file($BASE_URI,"$database.tar.gz",$ARRAYSUM_REMOTE["$database.tar.gz"],0);
 		}
 	}
 	

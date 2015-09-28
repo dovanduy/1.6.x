@@ -20,7 +20,7 @@
   $max_execution_time=ini_get('max_execution_time'); 
  
   $GLOBALS["Q"]=new mysql_squid_builder();
-  $GLOBALS["Q"]->check_quota_hour();
+  
   $GLOBALS["TABLE_CHECKED"][date("YmdH")]=true;
   WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
  
@@ -105,7 +105,7 @@ function memory_trace($array){
 	
 	
 	if(!isset($GLOBALS["TABLE_CHECKED"][date("YmdH")])){
-		$GLOBALS["Q"]->check_quota_hour();
+		
 		$GLOBALS["TABLE_CHECKED"][date("YmdH")]=true;
 	}
 	

@@ -9,6 +9,7 @@ if(isset($_GET["version"])){version();exit;}
 if(isset($_GET["install"])){install();exit;}
 if(isset($_GET["export"])){export();exit;}
 if(isset($_GET["import"])){import();exit;}
+if(isset($_GET["backup-now"])){backup_now();exit;}
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -60,6 +61,27 @@ function export(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
+
+function backup_now(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/wordpress.fullbackup.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/wordpress.fullbackup.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.wordpress-backup.php --exec --output >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
 function import(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();

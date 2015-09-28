@@ -55,7 +55,7 @@ function js(){
 function help(){
 	
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=text-info>{postfix_regex_man5}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:30px'>{postfix_regex_man5}</div>");
 	
 }
 
@@ -79,30 +79,30 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="rule-reject"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.reject.php?hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.reject.php?hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 	
 		if($num=="SimpleWords"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.regex.php?SimpleWords=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.regex.php?SimpleWords=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="bodies"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=0&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=0&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="mimes"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=2&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?headers=yes&headers-query=2&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 	
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_multi_config_headersbody$t",1200);
+	echo build_artica_tabs($html, "main_multi_config_headersbody$t",1450);
 	
 }
 
@@ -558,11 +558,11 @@ function regex_rule_action(){
 	if($action=="DUNNO"){$fieldname="{event}:";}
 	if($action=="FILTER"){$fieldname="{service}:";}
 	if($action=="HOLD"){$fieldname="{event}:";}
-	if($action=="IGNORE"){echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div><input type='hidden' id='flags' value=''>");return;}
+	if($action=="IGNORE"){echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div><input type='hidden' id='flags' value=''>");return;}
 	if($action=="PREPEND"){$fieldname="{PREPEND}:";}
 	if($fieldname==null){$fieldname="{{$action}}:";}
 	
-	$html="<div class=text-info style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div>
+	$html="<div class=explain style='font-size:18px'>{POSTFIX_REGEX_".strtoupper($_GET["action"])."}</div>
 	<table style='width:100%'>
 	<tr>
 		<tr>

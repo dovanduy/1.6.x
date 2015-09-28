@@ -65,7 +65,7 @@ class httpd{
 	}
 	
 	
-	function SaveToServer(){
+	function SaveToServer($norestart=false){
 		$artica=new artica_general();
 		$artica->ApacheArticaEnabled=$this->ApacheArticaEnabled;
 		$artica->lighttpConfig=$this->Build_lighthttp();
@@ -84,12 +84,11 @@ class httpd{
 			$infos="Auth mode: PopUp\n";
 		}else{$infos="Auth mode: Form\n";}
 		
-		echo $tpl->javascript_parse_text("{success}\n$infos{interface_restarted}\n",1);
-		$sock=new sockets();
-		$sock->getFrameWork('services.php?restart-lighttpd=yes');
-		
-		
-		
+		if(!$norestart){
+			echo $tpl->javascript_parse_text("{success}\n$infos{interface_restarted}\n",1);
+			$sock=new sockets();
+			$sock->getFrameWork('services.php?restart-lighttpd=yes');
+		}
 	}
 	
 	

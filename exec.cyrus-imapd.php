@@ -1048,6 +1048,7 @@ if(CyrusEnableImapMurderedFrontEnd==1){
 if(EnableCyrusReplicaCluster==1){
 	$MAIN[]='     syncserver       cmd="'.CYRUS_SYNC_SERVER_BIN_PATH().'" listen="csync"';
 }
+
 $MAIN[]='}';
 $MAIN[]='';
 $MAIN[]='EVENTS {';

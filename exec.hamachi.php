@@ -571,7 +571,7 @@ function hamachi_etc_hosts(){
 		$users=new usersMenus();
 		if($users->dnsmasq_installed){
 			echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: reloading DNSMASQ...\n";
-			$cmd="$php5 ".dirname(__FILE__)."/exec.dnsmasq.php --reload";
+			$cmd="/etc/init.d/dnsmasq reload";
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: $cmd\n";}
 			system($cmd);
 		}

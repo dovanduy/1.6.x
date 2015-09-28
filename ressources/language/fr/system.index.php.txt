@@ -11,7 +11,7 @@
 <folders_monitor_text>Surveillez votre disque dur et suivez la taille des dossiers</folders_monitor_text>
 <mysql_database>Base de donn&eacute;es MySQL</mysql_database>
 <mysql_database_text>G&eacute;rer les r&eacute;glages MySQL et activer/d&eacute;sactiver le moteur MySQL</mysql_database_text>
-<network>R&eacute;seau &amp; cartes r&eacute;seau</network>
+<network>R&eacute;seau &amp; cartes r&eacute;seaux</network>
 <nic_dynamic_dns_text>met &agrave; jour l'adresse IP de votre serveur. V&eacute;rifier p&eacute;riodiquement si votre adresse IP enregistr&eacute; par le serveur DNS est la vraie adresse actuelle.</nic_dynamic_dns_text>
 <nic_static_dns_text>Contr&ocirc;ler les serveurs et les configurations minimales pour des r&eacute;solutions de noms d'h&ocirc;tes</nic_static_dns_text>
 <per_user_addressbook>Carnet d'adresses par utilisateur</per_user_addressbook>

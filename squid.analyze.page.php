@@ -3,7 +3,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);in
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.inc');
-	
+	include_once('ressources/class.analyze-page.inc');
 	
 	$users=new usersMenus();
 	if(!$users->AsDansGuardianAdministrator){die();}	
@@ -16,7 +16,7 @@ function popup() {
 	
 	$sock=new sockets();
 	$t=time();
-	$html="<div style='font-size:16px' class=text-info>{analyze_page_white_perform}</div>
+	$html="<div style='font-size:16px' class=explain>{analyze_page_white_perform}</div>
 	<div style='width:95%;padding:15px' class=form>
 	<center>
 	". Field_text("test-$t",null,"font-size:22px;letter-spacing:2px",null,null,null,false,"Run$t(event)",false)."

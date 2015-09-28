@@ -71,14 +71,14 @@ function step1(){
 	}
 	$t=time();
 	$html="
-<div style='font-size:22px;margin-bottom:20px'>{wizard_rule}</div>
-<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_1}</div>	
+<div style='font-size:30px;margin-bottom:20px'>{wizard_rule}</div>
+<div class=explain style='font-size:20px'>{wizard_rule_ufdb_1}</div>	
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
 	<td class=legend style='font-size:18px'>{source}:</td>
 	<td>&nbsp;</td>
-	<td>". Field_array_Hash($ARRAY,"SOURCE_TYPE-$t",$WizardUFDB["SOURCE_TYPE"],"style:font-size:18px")."</td>
+	<td>". Field_array_Hash($ARRAY,"SOURCE_TYPE-$t",$WizardUFDB["SOURCE_TYPE"],"style:font-size:22px")."</td>
 </tr>
 	<tr>
 		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
@@ -86,7 +86,7 @@ function step1(){
 	<tr>
 		<td align='left'>&nbsp;</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","24px")."</td>
+		<td align='right'>". button("{next}","Save$t()","28px")."</td>
 	</tr>			
 </table>			
 </div>			
@@ -126,8 +126,8 @@ function step2_IPADDR(){
 	$sock=new sockets();
 	$WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 	$html="
-<div style='font-size:22px;margin-bottom:20px'>{ipaddr}</div>
-<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_2}</div>
+<div style='font-size:30px;margin-bottom:20px'>{ipaddr}</div>
+<div class=explain style='font-size:20px'>{wizard_rule_ufdb_2}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -139,9 +139,9 @@ function step2_IPADDR(){
 		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 	</tr>
 	<tr>
-		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","24px")."</td>
+		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","28px")."</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","24px")."</td>
+		<td align='right'>". button("{next}","Save$t()","28px")."</td>
 	</tr>
 </table>
 </div>
@@ -176,8 +176,8 @@ function step2_AD(){
 	}
 		
 	$html="
-<div style='font-size:22px;margin-bottom:20px'>{ActiveDirectory}</div>
-<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_ad}</div>
+<div style='font-size:30px;margin-bottom:20px'>{ActiveDirectory}</div>
+<div class=explain style='font-size:20px'>{wizard_rule_ufdb_ad}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -189,9 +189,9 @@ function step2_AD(){
 		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 	</tr>
 	<tr>
-		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","24px")."</td>
+		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","28px")."</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","24px")."</td>
+		<td align='right'>". button("{next}","Save$t()","28px")."</td>
 	</tr>
 </table>
 </div>
@@ -234,8 +234,8 @@ $WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 if(!is_numeric($WizardUFDB["CATZ"])){$WizardUFDB["CATZ"]=0;}
 	
 	$html="
-<div style='font-size:22px;margin-bottom:20px'>{categories}</div>
-<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_3}</div>
+<div style='font-size:30px;margin-bottom:20px'>{categories}</div>
+<div class=explain style='font-size:20px'>{wizard_rule_ufdb_3}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -247,9 +247,9 @@ if(!is_numeric($WizardUFDB["CATZ"])){$WizardUFDB["CATZ"]=0;}
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 </tr>
 <tr>
-	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step2=yes&t={$_GET["t"]}',false);","24px")."</td>
+	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step2=yes&t={$_GET["t"]}',false);","28px")."</td>
 	<td>&nbsp;</td>
-	<td align='right'>". button("{next}","Save$t()","24px")."</td>
+	<td align='right'>". button("{next}","Save$t()","28px")."</td>
 </tr>
 </table>
 </div>
@@ -307,8 +307,8 @@ $ARRAY[3]="{block_multi_websites}";
 	}	
 	
 	$html="
-<div style='font-size:22px;margin-bottom:20px'>{build_the_rule}</div>
-<div class=text-info style='font-size:18px'>{wizard_rule_ufdb_4}</div>
+<div style='font-size:30px;margin-bottom:20px'>{build_the_rule}</div>
+<div class=explain style='font-size:20px'>{wizard_rule_ufdb_4}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -325,9 +325,9 @@ $ARRAY[3]="{block_multi_websites}";
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 </tr>
 <tr>
-	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step3=yes&t={$_GET["t"]}',false);","24px")."</td>
+	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step3=yes&t={$_GET["t"]}',false);","28px")."</td>
 	<td>&nbsp;</td>
-	<td align='right'>". button("{build_the_rule}","Save$t()","24px")."</td>
+	<td align='right'>". button("{build_the_rule}","Save$t()","28px")."</td>
 </tr>
 </table>
 </div>
@@ -568,5 +568,6 @@ function Save(){
 		
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($WizardUFDB)), "WizardUFDB");
+	$sock->SET_INFO("EnableUfdbGuard", 1);
 	
 }

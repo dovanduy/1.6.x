@@ -26,8 +26,9 @@
 	if(isset($_GET["rules"])){rules_popup();exit;}
 	if(isset($_GET["rules-add"])){rules_add();exit;}
 	if(isset($_GET["rules-del"])){rules_del();exit;}
-	if(isset($_GET["rule_name"])){rules_save();exit;}
+	if(isset($_POST["rule_name"])){rules_save();exit;}
 	if(isset($_GET["rule-id"])){rule_panel();exit;}
+	if(isset($_POST["rebuild_tables"])){rebuild_tables();exit;}
 	
 	
 	if(isset($_GET["bandwith-rules-list"])){bandwith_rules_list();exit;}
@@ -39,6 +40,9 @@
 	if(isset($_GET["bandwith-rule-websites"])){acl_www_popup();exit;}
 	if(isset($_GET["bandwith-rule-files"])){acl_file_popup();exit;}
 	if(isset($_GET["bandwith-rule-time"])){acl_time();exit;}
+	
+	if(isset($_GET["bandwith-rule-check-config"])){bandwith_check_config();exit;}
+	
 	
 	if(isset($_GET["bandwith-rule-pobjects"])){acl_net_pobjects();exit;}
 	if(isset($_GET["acl-group-add"])){acl_net_pobjects_add();exit;}
@@ -115,6 +119,13 @@ function browse_acl_rule_save(){
 	
 }
 
+function rebuild_tables(){
+	$q=new mysql();
+	$q->QUERY_SQL("DROP TABLE squid_pools","artica_backup");
+	$q->BuildTables();
+	
+}
+
 function bandwith_rule_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -134,7 +145,7 @@ function bandwith_rule_js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body(utf8_encode($title));
-	$html="YahooWin('750','$page?bandwith-rule-tabs=yes&ID=$ID&t=$t$byacl','$title');";
+	$html="YahooWin('890','$page?bandwith-rule-tabs=yes&ID=$ID&t=$t$byacl','$title');";
 	echo $html;		
 }
 function bandwith_rule_class_explain(){
@@ -146,7 +157,7 @@ function bandwith_rule_class_explain(){
 	$rules_class_explains[4]="{delay_class_4}";
 	$rules_class_explains[5]="{delay_class_5}";
 
-	$html="<div style='font-size:14px' class=text-info><strong>{class} $classid:</strong><br>".$rules_class_explains[$classid]."</div>";
+	$html="<div style='font-size:14px' class=explain><strong>{class} $classid:</strong><br>".$rules_class_explains[$classid]."</div>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -164,37 +175,19 @@ function bandwith_rule_tabs(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$ID=$_GET["ID"];
+	$ID=intval($_GET["ID"]);
 	$array["parameters"]="{parameters}";
-	$array["networks"]="{networks}";
-	$array["pobjects"]="{proxy_objects}";
-	
-	 
-	$array["websites"]="{websites}";
-	$array["files"]="{by_file_type}";
-	$array["time"]="{time_restriction}";
-	
-	if(isset($_GET["by-acls"])){
-		unset($array);
-		$array["parameters"]="{parameters}";
-		
+	if($ID>0){
+		$array["check-config"]="{config_file_tiny}";
 	}
 	
-	$fontsize=14;
+	$fontsize=22;
 	if(!is_numeric($t)){$t=time();}
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?bandwith-rule-$num=$t&ID=$ID&t=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 
-	echo "
-	<div id=main_bandwithrule_$ID style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_bandwithrule_$ID').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_bandwithrule_$ID");
 
 	
 }
@@ -250,10 +243,18 @@ function bandwith_rules_list(){
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
-	
-
+	$delico="delete-48.png";
+	$fontsize=18;
 	$byacl=false;
 	if(isset($_GET["by-acls"])){$byacl=true;$byaclToken="&by-acls=yes";}
+	
+	
+	if($byacl){
+		
+		$delico="delete-24.png";
+		$fontsize=14;}
+	
+	
 	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
@@ -263,7 +264,7 @@ function bandwith_rules_list(){
 		writelogs("{$ligne["ID"]} => {$ligne["rulename"]}",__FUNCTION__,__FILE__,__LINE__);
 		$js="Loadjs('$MyPage?bandwith-rule-js=yes&ID={$ligne["ID"]}&t=$t$byaclToken')";
 		
-		$delete=imgsimple("delete-24.png",$ligne["rulename"],"DeleteBandRule({$ligne['ID']})");
+		$delete=imgsimple($delico,$ligne["rulename"],"DeleteBandRule({$ligne['ID']})");
 		if(isset($_GET["choose"])){
 			$rulenameTT=$tpl->javascript_parse_text($ligne["rulename"]);
 			$delete=imgsimple("arrow-right-24.png",$ligne["rulename"],"ChooseBandwithAclRule({$ligne['ID']},{$_GET["aclruleid"]},'$rulenameTT')");
@@ -284,9 +285,9 @@ function bandwith_rules_list(){
 		$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline;color:$color'>{$ligne["ID"]}</span>",
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline;color:$color'>{$ligne["rulename"]}</span>",
-			"<span style='font-size:14px;color:$color'>$text</span>",$delete )
+			"<center><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:{$fontsize}px;text-decoration:underline;color:$color'>{$ligne["ID"]}</span></center>",
+			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:{$fontsize}px;text-decoration:underline;color:$color'>{$ligne["rulename"]}</span>",
+			"<span style='font-size:{$fontsize}px;color:$color'>$text</span>","<center>$delete</center>" )
 		);
 		
 		
@@ -305,29 +306,39 @@ function popup(){
 	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
 	$explain=$tpl->_ENGINE_parse_body("{explain}");
 	$new_rule=$tpl->_ENGINE_parse_body("{add_bandwith_rule}");
+	$rebuild_tables=$tpl->javascript_parse_text("{rebuild_tables}");
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
-	$squid_bandwith_rules_explain=$tpl->_ENGINE_parse_body("{squid_bandwith_rules_explain}");
+	$squid_bandwith_rules_explain=$tpl->javascript_parse_text("{squid_bandwith_rules_explain}");
 	$delete_rule=$tpl->javascript_parse_text("{delete_rule}");
+	$confirm_rebuild=$tpl->javascript_parse_text("{confirm_rebuild}");
 	
-	$explain_size=528;
-	$table_width=830;
-	$buttons="
-	buttons : [
-	{name: '$new_rule', bclass: 'add', onpress : AddBandRule},
-	],";		
+	$titlesize=22;
+	$objsize=20;
+	$rulename_size=329;
+	$explain_size=729;
+	$con_size=80;
+	$table_width="'99%'";
+	
 		
 if(isset($_GET["by-acls"])){
 	$byacl="&by-acls=yes";
+	$rulename_size=140;
 	$explain_size=339;
 	$table_width=630;
+	$con_size=32;
+	$titlesize=16;
+	$objsize=14;
 }
-
+$buttons="
+buttons : [
+{name: '<strong style=font-size:{$objsize}px>$new_rule</strong>', bclass: 'add', onpress : AddBandRule},
+{name: '<strong style=font-size:{$objsize}px>$rebuild_tables</strong>', bclass: 'Reload', onpress : rebuild_tables},
+],";
 if(isset($_GET["choose"])){
 	$choose="&choose=yes";
 }
 	
 $html="
-<div id='tableau-bandwith-regles' class=text-info style='font-size:14px'>$squid_bandwith_rules_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -337,10 +348,10 @@ $('#flexRT$t').flexigrid({
 	url: '$page?bandwith-rules-list=yes&t=$t$byacl$choose&aclruleid={$_GET["aclruleid"]}',
 	dataType: 'json',
 	colModel : [
-		{display: 'ID', name : 'ID', width : 32, sortable : true, align: 'center'},
-		{display: '$rulename', name : 'rulename', width : 140, sortable : true, align: 'left'},	
+		{display: 'ID', name : 'ID', width : $con_size, sortable : true, align: 'center'},
+		{display: '$rulename', name : 'rulename', width : $rulename_size, sortable : true, align: 'left'},	
 		{display: '$explain', name : 'ItemsNumber', width :$explain_size, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : $con_size, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -349,12 +360,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:{$titlesize}px>$squid_bandwith_rules_explain</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: $table_width,
-	height: 350,
+	height: '550',
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -362,7 +373,7 @@ $('#flexRT$t').flexigrid({
 });
 
 	function AddBandRule(){
-		YahooWin(650,'$page?rules-add=yes','$new_rule');
+		YahooWin(890,'$page?rules-add=yes&t=$t','$new_rule');
 	}
 	
 
@@ -382,6 +393,15 @@ $('#flexRT$t').flexigrid({
 			XHR.sendAndLoad('$page', 'GET',x_DeleteBandRule);	
 		}
 	}
+	
+function rebuild_tables(){
+		if(confirm('$confirm_rebuild ?')){
+			var XHR = new XHRConnection();
+			XHR.appendData('rebuild_tables','yes');
+			XHR.sendAndLoad('$page', 'POST',x_DeleteBandRule);	
+		}
+	
+}
 
 	
 	function x_DeleteBandRule(obj){
@@ -396,8 +416,6 @@ $('#flexRT$t').flexigrid({
 		document.getElementById('delay_access').checked=true;
 		YahooWinSHide();
 		limit_bandwidth_check();
-		
-		
 	}
 
 
@@ -537,7 +555,7 @@ $tables[]="</table>";
 	$s->compile();
 	$html=implode("\n",$tables)."
 	<hr>
-	<div class=text-info>".@implode("<br>",$s->rules_explain[$_GET["rule-id"]])." {then} $maintext</div>
+	<div class=explain>".@implode("<br>",$s->rules_explain[$_GET["rule-id"]])." {then} $maintext</div>
 	<input type='hidden' id='right-panel-id' value='{$_GET["rule-id"]}'>";
 	
 	
@@ -551,11 +569,6 @@ $tables[]="</table>";
 
 
 
-function rules_popup(){
-	
-	
-
-}
 
 function compile_acls_datas($array,$keyforlog){
 	if(!is_array($array)){writelogs("$keyforlog: Not an array....",__FUNCTION__,__FILE__,__LINE__); return false;}
@@ -592,61 +605,73 @@ function compile_acls_datas_groups($array,$keyforlog){
 }
 function rule_format_text($ruleid,$byacl=false){
 	
-	
+	$f=array();
 	$q=new mysql();
 	$sql="SELECT * FROM squid_pools WHERE ID='$ruleid'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	$total_net=$ligne["total_net"];
-	$total_users=$ligne["total_users"];
-	$t=explode("/",$total_net);
-	$delay_pool_net=$t[0];
-	$delay_pool_net=$delay_pool_net*8;
-	$delay_pool_net=$delay_pool_net/1000;
+
+	$total_net_max=intval($ligne["total_net_max"])/1024;
 	
-	$t=explode("/",$total_users);
-	$delay_pool_limit=$t[0];
-	$delay_pool_limit=$delay_pool_limit*8;
-	$delay_pool_limit=$delay_pool_limit/1000;	
+	$total_net_max=FormatBytes($total_net_max/1024);
 	
-	$delay_pool_max_file=$t[1];
-	$delay_pool_max_file=$delay_pool_max_file*8;
-	$delay_pool_max_file=$delay_pool_max_file/1000;		
 	
-	if(!$byacl){
-		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='SRC_RESTRICT' AND enabled=1";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> SRC_RESTRICT");
-		if($txt<>null){$aclInt1="<br><i>{and_only_on_specified_networks}:$txt</i>";}
+	$total_computer_max=intval($ligne["total_computer_max"])/1024;
+	$total_computer_max=FormatBytes($total_computer_max/1024);
+	
+	
+	$total_user_max=intval($ligne["total_user_max"])/1024;
+	$total_user_max=FormatBytes($total_user_max/1024);
+	
+	
+	$total_net_band=intval($ligne["total_net_band"]);
+	if($total_net_band>0){
+		$total_net_band=$total_net_band*8;
+		$total_net_band=$total_net_band/1000;
+		$total_net_band_kbs=" (".($total_net_band/8)."Ko/s )";
 		
-		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='DOMAIN_RESTRICT' AND enabled=1";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> DOMAIN_RESTRICT");
-		if($txt<>null){$aclInt2="<br><i>{and_only_to_these_websites}:$txt</i>";}	
-		
-		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='FILE_RESTRICT' AND enabled=1";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-		$txt=compile_acls_datas($ACL_DATAS,"$ruleid -> FILE_RESTRICT");
-		if($txt<>null){$aclInt3="<br><i>{and_only_when_downloading_files_with_extension}:$txt</i>";}	
-		
-		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='TIME_RESTRICT' AND enabled=1";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-		$txt=rule_format_time($ACL_DATAS,"$ruleid -> TIME_RESTRICT");
-		if($txt<>null){$aclInt4="<br><i>{time}: $txt</i>";}	
+	}	
 	
-		$sql="SELECT * FROM squid_pools_acls WHERE pool_id=$ruleid AND ACL_TYPE='GROUP_RESTRICT' AND enabled=1";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-		$ACL_DATAS=unserialize(base64_decode($ligne["ACL_DATAS"]));	
-		$txt=compile_acls_datas_groups($ACL_DATAS,"$ruleid -> GROUP_RESTRICT");
-		if($txt<>null){$aclInt5="<br><i>{proxy_objects}: $txt</i>";}	
+	$total_computer_band=intval($ligne["total_computer_band"]);
+	if($total_computer_band>0){
+		$total_computer_band=$total_computer_band*8;
+		$total_computer_band=$total_computer_band/1000;
+		$total_computer_band_kbs=" (".($total_computer_band/8)."Ko/s )";
 	}
 	
+	
+	$total_user_band=intval($ligne["total_user_band"]);
+	if($total_user_band>0){
+		$total_user_band=$total_user_band*8;
+		$total_user_band=$total_user_band/1000;
+		$total_user_band_kbs=" (".($total_user_band/8)."Ko/s )";
+	}
+	
+	$total_user_enabled=intval($ligne["total_user_enabled"]);
+	$total_net_enabled=intval($ligne["total_net_enabled"]);
+	$total_computer_enabled=intval($ligne["total_computer_enabled"]);
+	
+	
+	if($total_net_enabled==1){
+		if($total_net_band>0){
+			$f[]="{limit_the_whole_network} <strong>{$total_net_band}kbps{$total_net_band_kbs}</strong>";
+			$f[]="{delay_pool_max_field} <strong>{$total_net_max}</strong>";
+		}
+	}
+	if($total_computer_enabled==1){
+		if($total_computer_enabled>0){
+			$f[]="{limit_by_computer} <strong>{$total_computer_band}kbps{$total_computer_band_kbs}</strong>";
+			$f[]="{delay_pool_max_field} <strong>{$total_computer_max}</strong>";
+		}
+	}
+	if($total_user_enabled==1){
+		if($total_user_enabled>0){
+			$f[]="{limit_by_user} <strong>{$total_user_band}kbps{$total_user_band_kbs}</strong>";
+			$f[]="{delay_pool_max_field} <strong>{$total_user_max}</strong>";
+		}
+	}	
 		
-	return "{delay_pool_param_net} <strong>{$delay_pool_net}kb/s</strong>.<br>{delay_pool_param_user_max} {$delay_pool_max_file}kb/s<br> 
-	{delay_pool_param_user_limit} {$delay_pool_limit}kb/s$aclInt1$aclInt2$aclInt3$aclInt4$aclInt5";	
+	if(count($f)==0){return "Err!";}
+	return @implode("<br>", $f);
 	
 	}
 	
@@ -686,6 +711,70 @@ function rules_add(){
 		$sql="SELECT * FROM squid_pools WHERE ID=$ID";
 		$q=new mysql();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+		
+		
+		
+		$rule_format_text="<div class=explain style='font-size:18px;margin-bottom:20px'>".rule_format_text($ID)."</div>";
+		
+	
+		
+		$total_net_max=$ligne["total_net_max"];
+		$total_net_band=$ligne["total_net_band"];
+		$total_computer_max=$ligne["total_computer_max"];
+		$total_computer_band=$ligne["total_computer_band"];
+		
+		$total_user_max=$ligne["total_user_max"];
+		$total_user_band=$ligne["total_user_band"];
+		
+		$total_member_max=$ligne["total_member_max"];
+		$total_member_band=$ligne["total_member_band"];
+		
+		if($total_member_max>0){
+			$total_member_max=$total_member_max/1024;
+			$total_member_max=$total_member_max/1024;
+		}
+		
+		if($total_member_band>0){
+			$total_member_band=$total_member_band*8;
+			$total_member_band=$total_member_band/1000;
+			$total_member_band_kbs=" ".($total_member_band/8)."Ko/s";
+		}		
+		
+		
+		if($total_net_max>0){
+			$total_net_max=$total_net_max/1024;
+			$total_net_max=$total_net_max/1024;
+		}
+		
+		if($total_computer_max>0){
+			$total_computer_max=$total_computer_max/1024;
+			$total_computer_max=$total_computer_max/1024;
+		}		
+		
+		if($total_net_band>0){
+			$total_net_band=$total_net_band*8;
+			$total_net_band=$total_net_band/1000;
+			$total_net_band_kbs=" ".($total_net_band/8)."Ko/s";
+		}		
+		if($total_computer_band>0){
+			$total_computer_band=$total_computer_band*8;
+			$total_computer_band=$total_computer_band/1000;
+			$total_computer_band_kbs=" ".($total_computer_band/8)."Ko/s";
+		}		
+		
+		if($total_user_max>0){
+			$total_user_max=$total_user_max/1024;
+			$total_user_max=$total_user_max/1024;			
+			
+		}
+		
+		$total_user_band_kbs=null;
+		if($total_user_band>0){
+			$total_user_band=$total_user_band*8;
+			$total_user_band=$total_user_band/1000;
+			$total_user_band_kbs=" ".($total_user_band/8)."Ko/s";
+		}		
+		
 		$rule_name=$ligne["rulename"];
 		$t=explode("/",$ligne["total_net"]);
 		$delay_pool_net=$t[0];
@@ -717,43 +806,95 @@ function rules_add(){
 	$rule_name=utf8_encode($rule_name);
 	$page=CurrentPageName();
 	$html="
-	<div id='DelayPoolDiv'>
+	<div id='DelayPoolDiv' style='width:98%' class=form>
+	$rule_format_text
 	<input type='hidden' id='ID' value='$ID'>
-	<table style='width:99%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend nowrap style='font-size:14px'>{rule_name}:</td>
+		<td class=legend nowrap style='font-size:22px'>{rule_name}:</td>
 		<td style='font-size:14px'>". 
-		Field_text("rule_name",$rule_name,'width:230px;font-size:16px;padding:3px')."</td>
+		Field_text("rule_name",$rule_name,'width:350px;font-size:22px;padding:3px')."</td>
 	</tr>	
 	<tr>
-		<td class=legend nowrap style='font-size:14px' nowrap>{activate_rule}:</td>
-		<td style='font-size:13px'>". Field_checkbox("enable",1,$enable)."</td>
-	</tr>		
+		<td class=legend nowrap style='font-size:22px' nowrap>{activate_rule}:</td>
+		<td style='font-size:13px'>". Field_checkbox_design("enable",1,$enable,"BadwEnableCheck()")."</td>
+	</tr>
+
+				
+				
+	<tr><td colspan=2><hr></td></tr>			
 	<tr>
-		<td class=legend nowrap style='font-size:14px'>{delay_pool_param_net}:</td>
-		<td style='font-size:14px'>". 
-		Field_text("delay_pool_net",$delay_pool_net,'width:60px;font-size:14px;padding:3px')." KB/s</td>
+		<td class=legend nowrap style='font-size:22px' nowrap>{limit_the_whole_network}:</td>
+		<td style='font-size:13px'>". Field_checkbox_design("total_net_enabled",1,$ligne["total_net_enabled"],"total_net_enabled_check()")."</td>
+	</tr>	
+
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_max_field}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_net_max",$total_net_max,'width:150px;font-size:22px;padding:3px')." Kb</td>
 	</tr>
 	<tr>
-	<td class=legend nowrap style='font-size:14px'>{delay_pool_param_user_max}:</td>	
-	<td style='font-size:14px'>". 
-		Field_text("delay_pool_max_file",$delay_pool_max_file,'width:60px;font-size:14px;padding:3px')." KB/s</td>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_param_user_limit}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_net_band",$total_net_band,'width:150px;font-size:22px;padding:3px')." kbps{$total_net_band_kbs}</td>
+	</tr>
+	<tr><td colspan=2><hr></td></tr>			
+				
+				
+				
+	<tr>
+		<td class=legend nowrap style='font-size:22px' nowrap>{limit_by_subnet}:</td>
+		<td style='font-size:13px'>". Field_checkbox_design("total_computer_enabled",1,$ligne["total_computer_enabled"],"total_computer_enabled_check()")."</td>
+	</tr>	
+
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_max_field}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_computer_max",$total_computer_max,'width:150px;font-size:22px;padding:3px')." Kb</td>
+	</tr>
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_param_user_limit}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_computer_band",$total_computer_band,'width:150px;font-size:22px;padding:3px')." kbps{$total_computer_band_kbs}</td>
+	</tr>
+	<tr><td colspan=2><hr></td></tr>					
+				
+				
+				
+	<tr>
+		<td class=legend nowrap style='font-size:22px' nowrap>{limit_by_computer}:</td>
+		<td style='font-size:13px'>". Field_checkbox_design("total_user_enabled",1,$ligne["total_user_enabled"],"total_user_enabled_check()")."</td>
+	</tr>	
+
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_max_field}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_user_max",$total_user_max,'width:150px;font-size:22px;padding:3px')." Kb</td>
+	</tr>
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_param_user_limit}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_user_band",$total_user_band,'width:150px;font-size:22px;padding:3px')." kbps{$total_user_band_kbs}</td>
 	</tr>
 	
 	<tr>
-	<td class=legend nowrap style='font-size:14px'>{delay_pool_param_user_limit}:</td>	
-	<td style='font-size:14px'>". 
-		Field_text("delay_pool_limit",$delay_pool_limit,'width:60px;font-size:14px;padding:3px')." KB/s</td>
+		<td class=legend nowrap style='font-size:22px' nowrap>{limit_by_auth_member}:</td>
+		<td style='font-size:13px'>". Field_checkbox_design("total_member_enabled",1,$ligne["total_member_enabled"],"total_member_enabled_check()")."</td>
+	</tr>	
+
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_max_field}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_member_max",$total_member_max,'width:150px;font-size:22px;padding:3px')." Kb</td>
+	</tr>
+	<tr>
+		<td class=legend nowrap style='font-size:22px'>{delay_pool_param_user_limit}:</td>	
+		<td style='font-size:22px'>". 
+		Field_text("total_member_band",$total_member_band,'width:150px;font-size:22px;padding:3px')." kbps{$total_member_band_kbs}</td>
 	</tr>	
 	
 	<tr>
-	<td class=legend nowrap style='font-size:14px'>{class}:</td>	
-	<td style='font-size:14px'>". 
-		Field_array_Hash($rules_classes,"rule_class",$rule_class,"BandExplainRuleClass()",null,0,"font-size:14px")."</td>
-	</tr>		
-	
-	<tr>
-		<td colspan=2 align='right'><hr>". button($button_title,"SaveSquidBand()",16)."</td>
+		<td colspan=2 align='right' style='padding-top:20px'><hr>". button($button_title,"SaveSquidBand()",36)."</td>
 	</tr>		
 	</table>
 	</div>
@@ -762,11 +903,12 @@ function rules_add(){
 		function x_SaveSquidBand(obj){
 			var ID=$ID;
 			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue);}
+			if(tempvalue.length>3){alert(tempvalue);return;}
 			if(ID==0){YahooWinHide();}
 			if(document.getElementById('tableau-bandwith-regles')){FlexReloadRulesBandwith();}
 			if(document.getElementById('main_bandwithrule_$ID')){RefreshTab('main_bandwithrule_$ID');}
 			if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
+			$('#flexRT{$_GET["t"]}').flexReload();
 			
 		}			
 			
@@ -775,25 +917,114 @@ function rules_add(){
 			XHR.appendData('ID','$ID');
 			
 			if(document.getElementById('enable').checked){XHR.appendData('enable',1);}else{XHR.appendData('enable',0);}
-			XHR.appendData('rule_name',document.getElementById('rule_name').value);
-			XHR.appendData('delay_pool_net',document.getElementById('delay_pool_net').value);
-			XHR.appendData('delay_pool_max_file',document.getElementById('delay_pool_max_file').value);
-			XHR.appendData('delay_pool_limit',document.getElementById('delay_pool_limit').value);
-			XHR.appendData('rule_class',document.getElementById('rule_class').value);
+			XHR.appendData('rule_name',encodeURIComponent(document.getElementById('rule_name').value));
 			
 			
-			AnimateDiv('DelayPoolDiv');
-			XHR.sendAndLoad('$page', 'GET',x_SaveSquidBand);	
+			if(document.getElementById('total_net_enabled').checked){XHR.appendData('total_net_enabled',1);}else{XHR.appendData('total_net_enabled',0);}
+			XHR.appendData('total_net_max',document.getElementById('total_net_max').value);
+			XHR.appendData('total_net_band',document.getElementById('total_net_band').value);
+			
+			if(document.getElementById('total_computer_enabled').checked){
+				XHR.appendData('total_computer_enabled',1);}else{
+				XHR.appendData('total_computer_enabled',0);
+			}
+			XHR.appendData('total_computer_max',document.getElementById('total_computer_max').value);
+			XHR.appendData('total_computer_band',document.getElementById('total_computer_band').value);
+			
+			if(document.getElementById('total_user_enabled').checked){
+				XHR.appendData('totaluserenabled',1);}
+					else{XHR.appendData('totaluserenabled',0);
+			}
+			XHR.appendData('total_user_max',document.getElementById('total_user_max').value);
+			XHR.appendData('total_user_band',document.getElementById('total_user_band').value);	
+
+			if(document.getElementById('total_member_enabled').checked){XHR.appendData('total_member_enabled',1);}else{XHR.appendData('total_user_enabled',0);}
+			XHR.appendData('total_member_max',document.getElementById('total_member_max').value);
+			XHR.appendData('total_member_band',document.getElementById('total_member_band').value);				
+			XHR.sendAndLoad('$page', 'POST',x_SaveSquidBand);	
 			}
 			
-
-			
-		function BandExplainRuleClass(){
-			var BandExplainRuleClass=document.getElementById('rule_class').value;
-			LoadAjaxTiny('BandExplainRuleClassText','$page?BandExplainRuleClass='+BandExplainRuleClass);
+	 function total_net_enabled_check(){
+	 		document.getElementById('total_net_max').disabled=true;
+	 		document.getElementById('total_net_band').disabled=true;
+	 		
+	 		if(document.getElementById('total_net_enabled').checked){
+	 			document.getElementById('total_net_max').disabled=false;
+	 			document.getElementById('total_net_band').disabled=false;
+	 		}
+	}
+	
+	function total_computer_enabled_check(){
+		
+		document.getElementById('total_computer_max').disabled=true;
+		document.getElementById('total_computer_band').disabled=true;
+		
+		if(document.getElementById('total_computer_enabled').checked){
+			document.getElementById('total_computer_max').disabled=false;
+			document.getElementById('total_computer_band').disabled=false;
 		}
-			
-	BandExplainRuleClass();
+	}
+	
+	function total_member_enabled_check(){
+		document.getElementById('total_member_max').disabled=true;
+		document.getElementById('total_member_band').disabled=true;
+		
+		if(document.getElementById('total_member_enabled').checked){
+			document.getElementById('total_member_max').disabled=false;
+			document.getElementById('total_member_band').disabled=false;
+		}	
+	}
+	
+	function total_user_enabled_check(){
+		
+		document.getElementById('total_user_max').disabled=true;
+		document.getElementById('total_user_band').disabled=true;
+		
+		if(document.getElementById('total_user_enabled').checked){
+			document.getElementById('total_user_max').disabled=false;
+			document.getElementById('total_user_band').disabled=false;
+		}
+	}	 
+	 
+	 function BadwEnableCheck(){
+	 	document.getElementById('rule_name').disabled=true;
+	 	document.getElementById('total_net_enabled').disabled=true;
+	 	document.getElementById('total_net_max').disabled=true;
+	 	document.getElementById('total_net_band').disabled=true;
+	 	
+	 	document.getElementById('total_computer_enabled').disabled=true;
+	 	document.getElementById('total_computer_max').disabled=true;
+	 	document.getElementById('total_computer_band').disabled=true;
+	 	
+	 	document.getElementById('total_user_enabled').disabled=true;
+	 	document.getElementById('total_user_max').disabled=true;
+		document.getElementById('total_user_band').disabled=true;
+
+		
+	 	document.getElementById('total_member_enabled').disabled=true;
+	 	document.getElementById('total_member_max').disabled=true;
+		document.getElementById('total_member_band').disabled=true;		
+		
+		
+	 	
+	 	
+	 	if(document.getElementById('enable').checked){
+		 	document.getElementById('rule_name').disabled=false;
+		 	document.getElementById('total_net_enabled').disabled=false;
+		 	document.getElementById('total_computer_enabled').disabled=false;
+		 	document.getElementById('total_user_enabled').disabled=false;
+		 	
+			total_computer_enabled_check();
+			total_net_enabled_check();
+		 	total_computer_enabled_check();
+		 	total_user_enabled_check();
+		 	total_member_enabled_check();
+	 	}
+	 	
+	 }
+		
+
+	BadwEnableCheck();
 	</script>
 	";
 	
@@ -803,44 +1034,126 @@ function rules_add(){
 
 function rules_save(){
 	$q=new mysql();
-	$rulename=$q->mysql_real_escape_string2($_GET["rule_name"]);
-	if($rulename==null){$rulename=$_GET["rule_name"];}
-	$delay_pool_net=$_GET["delay_pool_net"];
-	$delay_pool_net=$delay_pool_net*1000;
-	$delay_pool_net=$delay_pool_net/8;
+	$q->CheckTablesSquid();
+	$rulename=$q->mysql_real_escape_string2(url_decode_special_tool($_POST["rule_name"]));
+	if($rulename==null){$rulename="New rule";}
+	$rule_class=2;
 	
-	$delay_pool_max_file=$_GET["delay_pool_max_file"];
-	$delay_pool_max_file=$delay_pool_max_file*1000;
-	$delay_pool_max_file=$delay_pool_max_file/8;
+	$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`squid_pools` (
+			`ID` INT(10) AUTO_INCREMENT PRIMARY KEY,
+			`rulename` VARCHAR( 255 ) NOT NULL ,
+			`rule_class` INT( 1 ) NOT NULL DEFAULT '2',
+			`total_net_enabled` smallint(1) NOT NULL DEFAULT 0,
+			`total_net_max` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			`total_net` VARCHAR( 90 ) NOT NULL ,
+			`total_net_band` BIGINT UNSIGNED NOT NULL,
+			`total_computer_enabled` smallint(1) NOT NULL DEFAULT 0,
+			`total_computer_max` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			`total_computer_band` BIGINT UNSIGNED NOT NULL ,
+			`total_member_enabled` smallint(1) NOT NULL DEFAULT 0,
+			`total_member_max` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			`total_member_band` BIGINT UNSIGNED NOT NULL ,			
+			`total_user_enabled` smallint(1) NOT NULL DEFAULT 0,
+			`total_user_max` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			`total_user_band` BIGINT UNSIGNED NOT NULL ,
+			`total_users` VARCHAR( 90 ) NOT NULL ,
+			INDEX ( `rulename` )) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,'artica_backup');
 	
-	$delay_pool_limit=$_GET["delay_pool_limit"];
-	$delay_pool_limit=$delay_pool_limit*1000;
-	$delay_pool_limit=$delay_pool_limit/8;	
+	if(!$q->FIELD_EXISTS("squid_pools","total_member_enabled","artica_backup")){
+		$sql="ALTER TABLE `squid_pools` ADD `total_member_enabled` smallint(1) NOT NULL DEFAULT '0',ADD INDEX ( `total_member_enabled` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+	}
+	if(!$q->FIELD_EXISTS("squid_pools","total_member_max","artica_backup")){
+		$sql="ALTER TABLE `squid_pools` ADD `total_member_max` BIGINT UNSIGNED NOT NULL DEFAULT '0',ADD INDEX ( `total_member_max` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+	}	
+	if(!$q->FIELD_EXISTS("squid_pools","total_member_band","artica_backup")){
+		$sql="ALTER TABLE `squid_pools` ADD `total_member_band` BIGINT UNSIGNED NOT NULL DEFAULT '0',ADD INDEX ( `total_member_band` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+	}	
+	
+	$total_net_max=intval($_POST["total_net_max"]);
+	$total_net_max=$total_net_max*1024;
+	$total_net_max=$total_net_max*1024;
 	
 	
-	$delay_pool_net="$delay_pool_net/$delay_pool_net";
-	$delay_pool_net2="$delay_pool_limit/$delay_pool_max_file";
 	
-	$rule_class=$_GET["rule_class"];
-	if(!is_numeric($rule_class)){$rule_class=2;}
+	$total_computer_max=intval($_POST["total_computer_max"]);
+	$total_computer_max=$total_computer_max*1024;
+	$total_computer_max=$total_computer_max*1024;	
 	
-	$sql="INSERT INTO squid_pools (rulename,total_net,total_users,rule_class)
-	VALUES('{$_GET["rule_name"]}','$delay_pool_net','$delay_pool_net2',$rule_class)";
+	$total_user_max=intval($_POST["total_user_max"]);
+	$total_user_max=$total_user_max*1024;
+	$total_user_max=$total_user_max*1024;
 	
-	if($_GET["ID"]>0){
+	$total_net_band=intval($_POST["total_net_band"]);
+	$total_net_band=$total_net_band*1000;
+	$total_net_band=$total_net_band/8;
+	
+	$total_computer_band=intval($_POST["total_computer_band"]);
+	$total_computer_band=$total_computer_band*1000;
+	$total_computer_band=$total_computer_band/8;	
+	
+	
+	$total_user_band=intval($_POST["total_user_band"]);
+	$total_user_band=$total_user_band*1000;
+	$total_user_band=$total_user_band/8;	
+	
+	$total_member_band=intval($_POST["total_member_band"]);
+	$total_member_band=$total_user_band*1000;
+	$total_member_band=$total_user_band/8;	
+	
+	
+	$total_member_max=intval($_POST["total_member_max"]);
+	$total_member_max=$total_member_max*1024;
+	$total_member_max=$total_member_max*1024;
+	
+	$total_user_enabled=intval($_POST["totaluserenabled"]);
+	$total_member_enabled=intval($_POST["total_member_enabled"]);
+	$total_net_enabled=intval($_POST["total_net_enabled"]);
+	$total_computer_enabled=intval($_POST["total_computer_enabled"]);
+	
+	
+	
+	
+	
+
+	
+	
+	$sql="INSERT INTO squid_pools (rulename,total_user_enabled,total_net_enabled,total_computer_enabled,total_member_enabled,
+	total_net_max,total_computer_max,total_user_max,total_net_band,total_computer_band,total_user_band
+	)
+	VALUES('$rulename','$total_user_enabled','$total_net_enabled','$total_computer_enabled','$total_member_enabled',
+	'$total_net_max','$total_computer_max','$total_user_max','$total_net_band','$total_computer_band','$total_user_band'
+	)";
+	
+	if($_POST["ID"]>0){
 		$sql="UPDATE squid_pools
 		SET rulename='$rulename',
-		total_net='$delay_pool_net',
-		total_users='$delay_pool_net2',
-		rule_class=$rule_class,
-		enable='{$_GET["enable"]}'
-		WHERE ID={$_GET["ID"]}
+		total_user_enabled='$total_user_enabled',
+		total_net_enabled='$total_net_enabled',
+		total_member_enabled='$total_member_enabled',
+		total_computer_enabled='$total_computer_enabled',
+		total_net_max='$total_net_max',
+		total_computer_max='$total_computer_max',
+		total_user_max='$total_user_max',
+		total_member_max='$total_member_max',
+		total_net_band='$total_net_band',
+		total_computer_band='$total_computer_band',
+		total_member_band='$total_member_band',
+		total_user_band='$total_user_band',
+		enable='{$_POST["enable"]}'
+		WHERE ID='{$_POST["ID"]}'
 		";
 	}
 	
 	$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}
+	
 }
 function rules_del(){
 	$ID=$_GET["ID"];
@@ -852,7 +1165,7 @@ function rules_del(){
 	$sql="DELETE FROM squid_pools_acls WHERE pool_id=$ID";	
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 function rule_name($ID){
@@ -980,7 +1293,7 @@ function acl_time_save(){
 		return;
 	}
 	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 function acl_net_popup(){echo bandwith_table("SRC_RESTRICT",$_GET["ID"]);}
@@ -989,7 +1302,7 @@ function acl_net_add_popup(){
 	$tpl=new templates();
 	$html="
 	<div id='BandAclNetDivAdd'>
-	<div class=text-info style='font-size:13px'>{SQUID_NETWORK_HELP}</div>
+	<div class=explain style='font-size:13px'>{SQUID_NETWORK_HELP}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td width=100%'>
@@ -1026,7 +1339,7 @@ function acl_net_pobjects_add(){
 		echo $q->mysql_error;
 		return;
 	}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");	
+		
 }
 
 function acl_net_add(){
@@ -1051,7 +1364,7 @@ function acl_net_add(){
 		echo $q->mysql_error;
 		return;
 	}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 function acl_net_enabled(){
@@ -1066,7 +1379,7 @@ function acl_net_enabled(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}		
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 
@@ -1128,7 +1441,7 @@ $mdACL_TYPE=md5($ACL_TYPE);
 $arrayEXP[$ACL_TYPE]=$tpl->_ENGINE_parse_body($arrayEXP[$ACL_TYPE]);
 $t=time();	
 $html="
-<div id='tableau-$mdACL_TYPE' class=text-info style='font-size:14px'>{$arrayEXP[$ACL_TYPE]}</div>
+<div id='tableau-$mdACL_TYPE' class=explain style='font-size:14px'>{$arrayEXP[$ACL_TYPE]}</div>
 <div style='text-align:right'><table style='width:5%'>
 <tbody>
 <tr>
@@ -1264,7 +1577,7 @@ function bandwith_table_enable_item(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 	
 }
 
@@ -1278,7 +1591,7 @@ function bandwith_table_delete_item(){
 	$sql="UPDATE squid_pools_acls SET ACL_DATAS='$ACL_DATAS_NEW' WHERE pool_id={$_POST["pool_id"]} AND ACL_TYPE='{$_POST["ACL_TYPE"]}'";
 	$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 
@@ -1386,7 +1699,7 @@ function acl_www_add(){
 		echo $q->mysql_error;
 		return;
 	}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 function acl_www_del(){
 	$pool_id=$_GET["pool_id"];
@@ -1402,7 +1715,7 @@ function acl_www_del(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}		
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 function acl_www_enabled(){
 	$pool_id=$_GET["pool_id"];
@@ -1415,7 +1728,7 @@ function acl_www_enabled(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}		
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 function acl_file_popup(){echo bandwith_table("FILE_RESTRICT",$_GET["ID"]);}	
@@ -1488,7 +1801,7 @@ function acl_file_add(){
 		echo $q->mysql_error;
 		return;
 	}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 }
 
 function acl_file_add_all(){
@@ -1529,7 +1842,7 @@ dvx|f4v|dv|bsf|rmvb|rv|aif|aifc|aiff|au|mid|midi|mp3|rmi|snd|wav|wma|vqf|aaf|ogg
 		echo $q->mysql_error;
 		return;
 	}
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");	
+		
 }
 
 
@@ -1547,7 +1860,7 @@ function acl_file_del(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");	
+		
 }
 function acl_file_del_all(){
 	$pool_id=$_GET["pool_id"];
@@ -1562,7 +1875,7 @@ function acl_file_del_all(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");
+	
 	
 }
 
@@ -1578,7 +1891,25 @@ function acl_file_enabled(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();$sock->getFrameWork("cmd.php?squid-reload=yes");		
+			
 }
+
+function bandwith_check_config(){
+	include_once(dirname(__FILE__)."/class.squid.bandwith.inc");
+	$ruleid=$_GET["ID"];
+	$sql="SELECT * FROM squid_pools WHERE ID=$ruleid";
+	$q=new mysql();
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
+	$band=new squid_bandwith_builder(true);
+	$delay_class=$band->get_delay_class($ligne);
+	$get_delay_parameters=$band->get_delay_parameters(1,$delay_class,$ligne);
+	
+	$content="\n\n# * * * * {$ligne["rulename"]} * * * *\ndelay_class 1 $delay_class\n$get_delay_parameters\n";
+	echo "<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:20px !important' id='textToParseCats$t'>$content</textarea>";
+	
+	
+}
+
+
 
 ?>

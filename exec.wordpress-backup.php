@@ -2,6 +2,7 @@
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["SCHEDULE_ID"]=0;if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -17,6 +18,8 @@ include_once(dirname(__FILE__).'/ressources/class.mount.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
+
+if($argv[1]=="--sizes-backup"){sizes_backup();die();}
 if($argv[1]=="--exec"){start();die();}
 if($argv[1]=="--dirs"){ScanDirs();die();}
 if($argv[1]=="--remove-dirs"){RemoveDirs();die();}
@@ -42,13 +45,19 @@ function start(){
 	
 	
 	$WordpressBackupParams=unserialize(base64_decode($sock->GET_INFO("WordpressBackupParams")));
+	if(!isset($WordpressBackupParams["FTP_ENABLE"])){$WordpressBackupParams["FTP_ENABLE"]=0;}
+	if(!isset($WordpressBackupParams["DEST"])){$WordpressBackupParams["DEST"]="/home/wordpress-backup";}
 	if($WordpressBackupParams["DEST"]==null){$WordpressBackupParams["DEST"]="/home/wordpress-backup";}
+	
 	
 	ScanFreeWebs($WordpressBackupParams);
 	$t=time();
+	build_progress_fullback("{backup} FTP ?",95);
 	ftp_backup($WordpressBackupParams);
-
+	sizes_backup();
+	build_progress_fullback("{done}",100);
 }
+
 
 function ScanFreeWebs($WordpressBackupParams){
 	
@@ -56,18 +65,43 @@ function ScanFreeWebs($WordpressBackupParams){
 	$sql="SELECT * FROM freeweb WHERE groupware='WORDPRESS'";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	
+	if(!$q->ok){
+		build_progress_fullback("MySQL Failed..",110);
+		return;
+	}
 	@mkdir($WordpressBackupParams["DEST"]);
-	
+	build_progress_fullback("{starting}..",10);
+	if($GLOBALS["OUTPUT"]){echo "Destination {$WordpressBackupParams["DEST"]}\n";}
+	$countMax=mysql_num_rows($results);
+	$i=1;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$servername=$ligne["servername"];
+		$perc=round($i/$countMax)*100;
+		$percT=10;
+		if($perc>10){
+			$percT=$perc;
+		}
+		if($perc>95){$percT=95;}
+		build_progress_fullback("$servername {backup} MySQL",$percT);
 		mysql_backup($WordpressBackupParams,$servername);
+		build_progress_fullback("$servername {backup} {directory}",$percT);
 		directory_backup($WordpressBackupParams,$servername);
 		$BaseWorkDir=$WordpressBackupParams["DEST"]."/$servername/".date("Y-m-d-H")."h";
 		@file_put_contents("$BaseWorkDir/config.serialize", base64_encode(serialize($ligne)));
+		build_progress_fullback("$servername {backup} {success}",$percT);
+		$i++;
 	}
+	build_progress_fullback("{backup} {success}",95);
 	
-	
+}
+
+function build_progress_fullback($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/wordpress.fullbackup.progress", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/wordpress.fullbackup.progress",0755);
+
 }
 
 function build_progress($text,$pourc){
@@ -333,6 +367,8 @@ function mysql_backup($WordpressBackupParams,$servername){
 	
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$size=FormatBytes(@filesize("$BaseWorkDir/database.gz")/1024);
+	if($GLOBALS["OUTPUT"]){echo "$database MySQL Took $took gz = $size\n";}
+	
 	apache_admin_mysql(2, "$servername database $database backuped $size (took $took)", null,__FILE__,__LINE__);
 	
 	
@@ -357,9 +393,11 @@ function directory_backup($WordpressBackupParams,$servername){
 	$nice=$unix->EXEC_NICE();
 	$t=time();
 	chdir($WORKDIR);
+	if($GLOBALS["OUTPUT"]){echo "Compressing $BaseWorkDir/wordpress.tar.gz\n";}
 	shell_exec("$nice $tar cfz $BaseWorkDir/wordpress.tar.gz *");
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$size=FormatBytes(@filesize("$BaseWorkDir/wordpress.tar.gz")/1024);
+	if($GLOBALS["OUTPUT"]){echo "Compressing wordpress.tar.gz took $took size= $size";}
 	apache_admin_mysql(2, "$servername directory backuped $size (took $took)", null,__FILE__,__LINE__);
 
 
@@ -462,5 +500,19 @@ function ftp_backup($WordpressBackupParams){
 	$mount->umount($mntDir);
 	@rmdir($mntDir);
 	return;		
+}
+
+function sizes_backup(){
+	$sock=new sockets();
+	$WordpressBackupParams=unserialize(base64_decode($sock->GET_INFO("WordpressBackupParams")));
+	if(!isset($WordpressBackupParams["FTP_ENABLE"])){$WordpressBackupParams["FTP_ENABLE"]=0;}
+	if(!isset($WordpressBackupParams["DEST"])){$WordpressBackupParams["DEST"]="/home/wordpress-backup";}
+	if($WordpressBackupParams["DEST"]==null){$WordpressBackupParams["DEST"]="/home/wordpress-backup";}
+	if(!is_dir($WordpressBackupParams["DEST"])){return;}
+	$unix=new unix();
+	$size=$unix->DIRSIZE_KO($WordpressBackupParams["DEST"]);
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WordpressBackupSize", $size);
+	@chmod("/etc/artica-postfix/settings/Daemons/WordpressBackupSize",0755);
+	
 }
 

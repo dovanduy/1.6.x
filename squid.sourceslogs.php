@@ -8,7 +8,7 @@ include_once('ressources/class.system.nics.inc');
 $users=new usersMenus();
 if(!$users->AsWebStatisticsAdministrator){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 
@@ -24,12 +24,14 @@ tabs();
 
 function tabs(){
 	$sock=new sockets();
-	$fontsize=16;
+	$fontsize=22;
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$array["popup"]='{sources_files}';
+	$array["popup"]='{legal_logs}';
 	$array["parameters"]='{log_retention}';
-	$array["schedule"]='{schedules}';
+	$array["NAS_storage"]='{NAS_storage}';
+	$array["log_location"]='{log_location}';
+	$array["rotate_events"]='{rotate_events}';
 
 	
 	
@@ -41,12 +43,23 @@ function tabs(){
 			continue;
 		
 		}
-
-		if($num=="schedule"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php?TaskType=54\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+		
+		if($num=="NAS_storage"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.nas.storage.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
+		
+		if($num=="log_location"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.varlog.php?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		
 		}
+		if($num=="rotate_events"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.rotate.events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}				
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 	}
@@ -108,7 +121,7 @@ function page(){
 	url: '$page?search=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$date', name : 'zDate', width : 330, sortable : true, align: 'left'},
+	{display: '$date', name : 'zDate', width : 317, sortable : true, align: 'left'},
 	{display: '$filename', name : 'path', width : 588, sortable : true, align: 'left'},
 	{display: '$size', name : 'size', width : 124, sortable : true, align: 'right'},
 	{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},

@@ -332,6 +332,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["sysalerts"]="{load_alerts}";
+	$array["boots"]="{boots}";
 	$array["syslog"]="{syslog}";
 	$array["rotate-tabs"]="{rotate}";
 	$array["syslog-engine-tabs"]="{syslog_engine2}";
@@ -339,11 +340,16 @@ function tabs(){
 
 
 	
-	$fontsize=18;
+	$fontsize=24;
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="sysalerts"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.sys_alert.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="boots"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.boots.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 
@@ -559,7 +565,7 @@ function settings_popup(){
 	
 	
 	
-	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	
 	$LogsRotateRemoveApacheMaxSize=$sock->GET_INFO("LogsRotateRemoveApacheMaxSize");
 	if(!is_numeric($LogsRotateRemoveApacheMaxSize)){$LogsRotateRemoveApacheMaxSize=50;}
 	
@@ -575,7 +581,6 @@ function settings_popup(){
 	
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
-	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
 	if(!is_numeric($BackupMaxDaysAccess)){$BackupMaxDaysAccess=365;}
 
 	
@@ -583,14 +588,6 @@ function settings_popup(){
 	$html="
 			
 	<table style='width:100%' class=form>
-		
-			
-			
-	<tr>
-		<td class=legend style='font-size:14px'>{delete_if_file_exceed}:</td>
-		<td style='font-size:14px'>". Field_text("LogsRotateDeleteSize",$LogsRotateDeleteSize,"font-size:14px;width:60px")."&nbsp;MB</td>
-		<td>&nbsp;</td>
-	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{clean_apache_logs}:</td>
 		<td style='font-size:14px'>". Field_text("LogsRotateRemoveApacheMaxSize",$LogsRotateRemoveApacheMaxSize,"font-size:14px;width:60px")."&nbsp;MB</td>
@@ -663,7 +660,7 @@ function settings_popup(){
 	  	XHR.appendData('SystemLogsPath',document.getElementById('SystemLogsPath').value);
 	  	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
 	  	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);
-	  	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize').value);
+	  	
 	  	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate);	
 	}	
 	
@@ -721,7 +718,7 @@ function storage(){
 	
 	if($q->MySQLSyslogType==3){
 		
-		$error=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>{syslog_used_nas_storage}</div>");
+		$error=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{syslog_used_nas_storage}</div>");
 	}
 	
 	$html="
@@ -1456,7 +1453,7 @@ function remote_nas_popup(){
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
-	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
@@ -1481,19 +1478,15 @@ function remote_nas_popup(){
 	
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
-	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+	
 	
 
 	
 	
-$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
+$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
-		<tr>
-			<td align='right' nowrap class=legend style='font-size:18px'>{delete_if_file_exceed}:</strong></td>
-			<td align='left' style='font-size:18px'>" . Field_text("LogsRotateDeleteSize-$tt",$LogsRotateDeleteSize,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;MB</td>
-			<td>&nbsp;</td>
-		</tr>		
+	
 		<tr>
 			<td align='right' nowrap class=legend style='font-size:18px'>{default_size_for_rotation}:</strong></td>
 			<td align='left' style='font-size:18px'>" . Field_text("LogsRotateDefaultSizeRotation-$tt",$LogsRotateDefaultSizeRotation,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;MB</td>
@@ -1559,7 +1552,7 @@ var xNext$tt= function (obj) {
 	function Next$tt(){
 	var XHR = new XHRConnection();
 	
-	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize-$tt').value);
+	
 	XHR.appendData('LogsRotateDefaultSizeRotation',document.getElementById('LogsRotateDefaultSizeRotation-$tt').value);
 	XHR.appendData('SystemLogsPath',encodeURIComponent(document.getElementById('SystemLogsPath-$tt').value));
 	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays-$tt').value);

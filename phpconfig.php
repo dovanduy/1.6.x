@@ -79,7 +79,7 @@ function save(){
 	$sock->SET_INFO("EnablePHPFPMFrameWork",$_POST["EnablePHPFPMFrameWork"]);
 	$sock->SET_INFO("EnableArticaApachePHPFPM",$_POST["EnableArticaApachePHPFPM"]);
 	$sock->SET_INFO("EnablePHPFPMFreeWeb",$_POST["EnablePHPFPMFreeWeb"]);
-	
+	$sock->SET_INFO("php5SessionGCMaxlifeTime", $_POST["php5SessionGCMaxlifeTime"]);
 
 	
 	$GLOBALS["TIMEZONES"]=$_POST["timezones"];
@@ -90,6 +90,7 @@ function save(){
 	sleep(1);
 	$sock->getFrameWork("cmd.php?php-rewrite=yes");
 	$sock->getFrameWork("cmd.php?restart-web-server=yes");
+	$sock->getFrameWork("artica.php?lighttpd-reload=yes");
 }
 
 function popup(){
@@ -132,7 +133,7 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'center'},
-		{display: 'Modules', name : 'Modules', width :$rowsize, sortable : true, align: 'left'},
+		{display: 'Modules', name : 'Modules', width :1354, sortable : true, align: 'left'},
 		
 	],
 	
@@ -150,7 +151,7 @@ $('#table-$t').flexigrid({
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: $tableheight,
+	height: 550,
 	singleSelect: true
 	
 	});   
@@ -199,7 +200,7 @@ function load_modules_list(){
 					}
 					
 				}else{
-					$html[]="<br><span style='font-size:11px'><strong>$a</strong>:$b</span>";
+					$html[]="<br><span style='font-size:14px'><strong>$a</strong>:$b</span>";
 				}
 			}
 		}
@@ -230,10 +231,10 @@ function load_module(){
 	while (list ($index, $data) = each ($module) ){
 		$html[]="<tr>";
 		$html[]="<td class=legend valign='top' style='font-size:14px'>$index:</td>";
-		$html[]="<td><strong style='font-size:12px'>";
+		$html[]="<td><strong style='font-size:14px'>";
 		if(is_array($data)){
 			while (list ($a, $b) = each ($data) ){
-				$html[]="<li style='font-size:12px'>$a:$b</li>";
+				$html[]="<li style='font-size:14px'>$a:$b</li>";
 			}
 		}else{
 			$html[]=$data;
@@ -385,6 +386,12 @@ function popup_options(){
 	$php5DefaultCharset=$sock->GET_INFO("php5DefaultCharset");
 	$php5UploadMaxFileSize=$sock->GET_INFO("php5UploadMaxFileSize");
 	$php5PostMaxSize=$sock->GET_INFO("php5PostMaxSize");
+	
+	$php5PostMaxSize=$sock->GET_INFO("php5PostMaxSize");
+	
+	$php5SessionGCMaxlifeTime=intval($sock->GET_INFO("php5SessionGCMaxlifeTime"));
+	
+	
 	$php5MemoryLimit=$sock->GET_INFO("php5MemoryLimit");
 	$SessionPathInMemory=trim($sock->GET_INFO("SessionPathInMemory"));
 	$php5FuncOverloadSeven=Field_checkbox("php5FuncOverloadSeven$t",1,$php5FuncOverloadSeven);
@@ -407,7 +414,7 @@ function popup_options(){
 	
 	$CleanPHPSessionTime=$sock->GET_INFO("CleanPHPSessionTime");
 	
-	if(!is_numeric($CleanPHPSessionTime)){$CleanPHPSessionTime=2880;}
+	if(!is_numeric($CleanPHPSessionTime)){$CleanPHPSessionTime=1440;}
 	
 	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
 	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
@@ -419,7 +426,7 @@ function popup_options(){
 	if(!is_numeric($php5PostMaxSize)){$php5PostMaxSize=128;}
 	if(!is_numeric($php5MemoryLimit)){$php5MemoryLimit=500;}
 	if(!is_numeric($SessionPathInMemory)){$SessionPathInMemory=0;}
-	
+	if($php5SessionGCMaxlifeTime==0){$php5SessionGCMaxlifeTime=3600;}
 	
 	
 	$timezone=timezonearray();
@@ -433,89 +440,95 @@ function popup_options(){
 	<div style='width=95%' class=form>
 	<table >
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{CleanPHPSessionTime}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_text("CleanPHPSessionTime$t",$CleanPHPSessionTime,"font-size:16px;padding:3px;width:110px")."&nbsp;{minutes}</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{CleanPHPSessionTime}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("CleanPHPSessionTime$t",$CleanPHPSessionTime,"font-size:22px;padding:3px;width:110px")."&nbsp;{minutes}</td>
 		<td width=1%>". help_icon("{CleanPHPSessionTime_text}")."</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5FuncOverloadSeven}:</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{php5SessionGCMaxlifeTime}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("php5SessionGCMaxlifeTime$t",$php5SessionGCMaxlifeTime,"font-size:22px;padding:3px;width:110px")."&nbsp;{seconds}</td>
+		<td width=1%><i style='font-size:18px'>{current}:". ini_get("session.gc_maxlifetime")." {seconds}</i></td>
+	</tr>		
+	
+	
+	<tr>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{php5FuncOverloadSeven}:</td>
 		<td valign='top'>$php5FuncOverloadSeven</td>
 		<td width=1%>". help_icon("{php5FuncOverloadSeven_text}")."</td>
 	</tr>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{DisableMagicQuotesGpc}:</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{DisableMagicQuotesGpc}:</td>
 		<td valign='top'>$DisableMagicQuotesGpc</td>
 		<td  width=1%>". help_icon("{DisableMagicQuotesGpc_text}")."</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{SSLStrictSNIVHostCheck}:</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{SSLStrictSNIVHostCheck}:</td>
 		<td valign='top'>$SSLStrictSNIVHostCheck</td>
 		<td  width=1%>". help_icon("{SSLStrictSNIVHostCheck_text}")."</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnableRRDGraphFunction}:</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{EnableRRDGraphFunction}:</td>
 		<td valign='top'>$EnableRRDGraphFunction</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>Default charset:</td>
-		<td valign='top'>".Field_array_Hash(Charsets(),"php5DefaultCharset$t",$php5DefaultCharset,null,null,"style:font-size:16px;padding:3px")."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>Default charset:</td>
+		<td valign='top'>".Field_array_Hash(Charsets(),"php5DefaultCharset$t",$php5DefaultCharset,null,null,"style:font-size:22px;padding:3px")."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{timezone}:</td>
-		<td valign='top'>".Field_array_Hash($array,"timezones$t",$timezone_def,null,null,"style:font-size:16px;padding:3px")."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{timezone}:</td>
+		<td valign='top'>".Field_array_Hash($array,"timezones$t",$timezone_def,null,null,"style:font-size:22px;padding:3px")."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>	
 	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5UploadMaxFileSize}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_text("php5UploadMaxFileSize$t",$php5UploadMaxFileSize,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
-		<td  width=1%>&nbsp;</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{php5UploadMaxFileSize}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("php5UploadMaxFileSize$t",$php5UploadMaxFileSize,"font-size:22px;padding:3px;width:120px")."&nbsp;MB</td>
+		<td  width=1%><i style='font-size:18px'>".ini_get('upload_max_filesize')."</i></td>
 	</tr>	
 	
 	
-	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5PostMaxSize}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_text("php5PostMaxSize$t",$php5PostMaxSize,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{php5PostMaxSize}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("php5PostMaxSize$t",$php5PostMaxSize,"font-size:22px;padding:3px;width:120px")."&nbsp;MB</td>
+		<td  width=1%><i style='font-size:18px'>{current}:".ini_get('post_max_size')."</i></td>
+	</tr>
+	<tr>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{php5MemoryLimit}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("php5MemoryLimit$t",$php5MemoryLimit,"font-size:22px;padding:3px;width:120px")."&nbsp;MB</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5MemoryLimit}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_text("php5MemoryLimit$t",$php5MemoryLimit,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
-		<td  width=1%>&nbsp;</td>
-	</tr>
-	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{SessionPathInMemory}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_text("SessionPathInMemory$t",$SessionPathInMemory,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{SessionPathInMemory}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_text("SessionPathInMemory$t",$SessionPathInMemory,"font-size:22px;padding:3px;width:120px")."&nbsp;MB</td>
 		<td  width=1%>". help_icon("{SessionPathInMemory_explain}")."</td>
 	</tr>
 
-		<tr><td colspan=3><span style='font-size:22px'>PHP-FPM</td></tr>
+		<tr><td colspan=3><span style='font-size:28px'>PHP-FPM</td></tr>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM}:</td>
-		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPM-$t",1,$EnablePHPFPM,"EnablePHPFPMCheck$t()")."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{EnablePHPFPM}:</td>
+		<td valign='top' style='font-size:22px;'>".Field_checkbox_design("EnablePHPFPM-$t",1,$EnablePHPFPM,"EnablePHPFPMCheck$t()")."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>				
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Framework ):</td>
-		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPMFrameWork-$t",1,$EnablePHPFPMFrameWork)."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Framework ):</td>
+		<td valign='top' style='font-size:22px;'>".Field_checkbox_design("EnablePHPFPMFrameWork-$t",1,$EnablePHPFPMFrameWork)."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>				
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Web console ):</td>
-		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnableArticaApachePHPFPM-$t",1,$EnableArticaApachePHPFPM)."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Web console ):</td>
+		<td valign='top' style='font-size:22px;'>".Field_checkbox_design("EnableArticaApachePHPFPM-$t",1,$EnableArticaApachePHPFPM)."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>					
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( FreeWeb ):</td>
-		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPMFreeWeb-$t",1,$EnablePHPFPMFreeWeb)."</td>
+		<td style='font-size:22px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( FreeWeb ):</td>
+		<td valign='top' style='font-size:22px;'>".Field_checkbox_design("EnablePHPFPMFreeWeb-$t",1,$EnablePHPFPMFreeWeb)."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>				
 	<tr>
 		<td colspan=3 align='right'>
-		<hr>". button('{apply}',"SavePHP5AdvancedSettings$t()",22)."
+		<hr>". button('{apply}',"SavePHP5AdvancedSettings$t()",42)."
 		
 		</td>
 	</tr> 
@@ -525,8 +538,8 @@ function popup_options(){
 	
 	var x_SavePHP5AdvancedSettings$t=function (obj) {
 		var results=obj.responseText;
-		if(results.length>2){alert(results);}
-		RefreshTab('main_config_jsweb');
+		if(results.length>2){alert(results);return;}
+		window.location.href ='logoff.php';
 		}	
 	
 	
@@ -555,6 +568,8 @@ function popup_options(){
 		XHR.appendData('EnablePHPFPMFreeWeb',EnablePHPFPMFreeWeb);
 		
 		
+		
+		XHR.appendData('php5SessionGCMaxlifeTime',document.getElementById('php5SessionGCMaxlifeTime$t').value);
 		XHR.appendData('CleanPHPSessionTime',document.getElementById('CleanPHPSessionTime$t').value);
 		XHR.appendData('php5DefaultCharset',document.getElementById('php5DefaultCharset$t').value);
 		XHR.appendData('php5UploadMaxFileSize',document.getElementById('php5UploadMaxFileSize$t').value);

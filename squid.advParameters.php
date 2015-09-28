@@ -298,7 +298,7 @@ $html="
 
 	<H3>{WCCP_NAME}</H3>
 	<input type='hidden' id='transparent_enabled' value='$squid->hasProxyTransparent'>
-	<div class=text-info>{WCCP_HOWTO}</div>
+	<div class=explain>{WCCP_HOWTO}</div>
 	<div id='SquidAVParamWCCP'></div>
 	<table style='width:100%'>
 	<tr>
@@ -499,7 +499,7 @@ function popup(){
 	if(isset($_GET["OnLyPorts"])){
 		unset($array["other"]);
 		unset($array["sizelimit"]);
-		unset($array["WCCP"]);
+		
 		$fontsize=18;
 	}
 
@@ -523,7 +523,7 @@ function http_safe_ports_popup(){
 	$new_port=$tpl->_ENGINE_parse_body("{new_port}");
 	$t=time();
 	$html="
-	<div class=text-info style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN}</div>
+	<div class=explain style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN}</div>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 	
 <script>
@@ -607,7 +607,7 @@ function http_safe_ports_ssl_popup(){
 	$new_port=$tpl->_ENGINE_parse_body("{new_port}");
 	$t=time();	
 	$html="
-	<div class=text-info style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN} <strong>SSL/HTTPS</strong></div>
+	<div class=explain style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN} <strong>SSL/HTTPS</strong></div>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 	
 	<script>

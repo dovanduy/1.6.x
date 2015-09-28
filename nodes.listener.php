@@ -1,5 +1,5 @@
 <?php
-
+ini_set('error_reporting', E_ALL);
 	
 	/*$GLOBALS["VERBOSE"]=true;
 	ini_set('html_errors',0);
@@ -11,11 +11,7 @@
 	if(  isset($_REQUEST["VERBOSE"])  OR (isset($_REQUEST["verbose"]))   ){
 		echo "STATISTICS APPLIANCE -> VERBOSE MODE\n";
 		$GLOBALS["VERBOSE"]=true;
-		ini_set('html_errors',0);
-		ini_set('display_errors', 1);
-		ini_set('error_reporting', E_ALL);
-		ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
-		ini_set('error_append_string',"");
+		SetDebug();
 	}
 	
 	if(isset($_GET["test-connection"])){echo "\n\nCONNECTIONOK\n\n";die();}
@@ -36,10 +32,10 @@
 	}
 	if(isset($_POST["SQUID_BEREKLEY"])){stats_berekley_upload();exit;}
 	
-	if(isset($_GET["ucarp"])){ucarp_step1();exit;}
-	if(isset($_GET["ucarp2"])){ucarp_step2();exit;}
-	if(isset($_GET["ucarp3"])){ucarp_step3();exit;}
-	if(isset($_GET["ucarp2-remove"])){UCARP_REMOVE();exit;}
+	if(isset($_GET["ucarp"])){SetDebug();ucarp_step1();exit;}
+	if(isset($_GET["ucarp2"])){SetDebug();ucarp_step2();exit;}
+	if(isset($_GET["ucarp3"])){SetDebug();ucarp_step3();exit;}
+	if(isset($_GET["ucarp2-remove"])){SetDebug();UCARP_REMOVE();exit;}
 	
 	if(isset($_POST["UCARP_DOWN"])){UCARP_DOWN();exit;}
 	
@@ -67,6 +63,13 @@
 	writelogs("Unable to understand ".@implode(",", $error),__FILE__,__FUNCTION__,__LINE__);
 	
 	
+function SetDebug(){
+	ini_set('html_errors',0);
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',$_SERVER["SERVER_ADDR"].":");
+	ini_set('error_append_string',"");
+}
 	
 function zWriteToSyslog($text){
 		if(!function_exists("syslog")){return;}
@@ -307,12 +310,8 @@ function SETTINGS_INC(){
 	
 	
  	if( !move_uploaded_file($tmp_file, $content_dir . "/" .$name_file) ){
- 		$sock=new sockets();
- 		$sock->getFrameWork("services.php?folders-security=yes&force=true");
- 		if( !move_uploaded_file($tmp_file, $content_dir . "/" .$name_file) ){
- 			writelogs("$hostname ($nodeid) Error Unable to Move File : ". $content_dir . "/" .$name_file,__FUNCTION__,__FILE__,__LINE__);
- 			return;
- 		}
+		writelogs("$hostname ($nodeid) Error Unable to Move File : ". $content_dir . "/" .$name_file,__FUNCTION__,__FILE__,__LINE__);
+		return;
  	}
     $moved_file=$content_dir . "/" .$name_file;	
     if(!is_file($moved_file)){
@@ -477,17 +476,13 @@ function stats_berekley_upload(){
 		$target_file="$UploadedDir/$UUID-$name_file";
 		if(file_exists( $target_file)){@unlink( $target_file);}
 		if( !move_uploaded_file($tmp_file, $target_file) ){
-			$sock=new sockets();
-			$sock->getFrameWork("services.php?folders-security=yes&force=true");
-			if( !move_uploaded_file($tmp_file, $target_file) ){
-				echo "$UUID: Error Unable to Move File : $target_file\n";
-				writelogs("$UUID: Error Unable to Move File : $target_file",__FUNCTION__,__FILE__,__LINE__);
-				return;
-			}
-			}
+			echo "$UUID: Error Unable to Move File : $target_file\n";
+			writelogs("$UUID: Error Unable to Move File : $target_file",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
 				
 		}
-		
+		$sock=new sockets();
 		$sock->getFrameWork("artica.php?stats-appliance-berekley=yes");
 	
 	
@@ -540,7 +535,7 @@ function stats_appliance_upload(){
 	}
 	
 
-	$sock->getFrameWork("services.php?folders-security=yes&force=true");
+	
 	@mkdir($content_dir,0755,true);
 	
 	writelogs("SQUID_STATS_CONTAINER = ".strlen($_REQUEST["SQUID_STATS_CONTAINER"])." bytes ",__FUNCTION__,__FILE__,__LINE__);
@@ -620,7 +615,7 @@ function SETTINGS_INC_2(){
 	
 	
 	
-	$sock->getFrameWork("services.php?folders-security=yes&force=true");
+	
 	
 	@mkdir($content_dir,0755,true);
 	$moved_file=$content_dir . "/settings.gz";

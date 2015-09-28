@@ -29,6 +29,32 @@ function table(){
 	$t=time();	
 	
 	
+	if(!$q->TABLE_EXISTS("ufdbunlock")){
+		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`ufdbunlock` (
+			`md5` VARCHAR( 90 ) NOT NULL ,
+			`logintime` BIGINT UNSIGNED ,
+			`finaltime` INT UNSIGNED ,
+			`uid` VARCHAR(128) NOT NULL,
+			`MAC` VARCHAR( 90 ) NULL,
+			`www` VARCHAR( 128 ) NOT NULL ,
+			`ipaddr` VARCHAR( 128 ) ,
+			PRIMARY KEY ( `md5` ) ,
+			KEY `MAC` (`MAC`),
+			KEY `logintime` (`logintime`),
+			KEY `finaltime` (`finaltime`),
+			KEY `uid` (`uid`),
+			KEY `www` (`www`),
+			KEY `ipaddr` (`ipaddr`)
+			)  ENGINE = MEMORY;";
+		
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			echo FATAL_ERROR_SHOW_128($q->mysql_error_html());
+			return;
+		}
+	}
+	
+	
 	//	
 
 	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");

@@ -110,7 +110,7 @@ function popup2(){
 if(isset($_GET["newinterface"])){$fontsize="font-size:14px";$linkadd="&newinterface=yes";}		
 $page=CurrentPageName();	
 $html="
-	<div class=text-info style='font-size:16px;width:945px;margin-left:-2px'>{network_about}</div>
+	<div class=explain style='font-size:16px;width:945px;margin-left:-2px'>{network_about}</div>
 	<div id='hostname_cf'></div>
 	<div id='nic_status'></div>
 	<div id='nic_tabs'></div>
@@ -361,7 +361,7 @@ var x_ChangeHostName= function (obj) {
 	if(document.getElementById('squidcklinks-host-infos')){LoadAjaxTiny('squidcklinks-host-infos','quicklinks.php?squidcklinks-host-infos=yes');}
 	if(document.getElementById('main_adker_tabs')){RefreshTab('main_adker_tabs');}
 	if(document.getElementById('template-top-menus')){ AjaxTopMenu('template-top-menus','admin.top.menus.php');}
-	
+	LoadAjaxSilent('chhostname-text','admin.dashboard.system.php?hostname-text=yes');
 	ChangeHTMLTitle();
 		
 }
@@ -651,7 +651,8 @@ if($t<2){
 			<table style='width:100%'>
 			<tr>
 				<td width=50% style='text-align:center'>". button($tpl->_ENGINE_parse_body("{network_status}"),"Loadjs('network.status.php')",22)."</td>
-				<td width=50% style='text-align:center'>". button("$apply_network_configuration","Loadjs('network.restart.php')",22)."</td>
+				<td width=50% style='text-align:center'>". 
+				button("$apply_network_configuration","Loadjs('network.restart.php')",22)."</td>
 				
 			</tr>
 		</table>
@@ -930,7 +931,8 @@ function listnicinfos($nicname,$js=null){
 	$GLOBALS[$nicname]["IP"]=$tbl[0];
 	
 	if($js<>null){$href="<a href=\"javascript:blur();\" 
-	OnClick=\"javascript:$js\" style='font-weight:bold;font-size:16px;text-decoration:underline;color:$textColor'>";}
+	OnClick=\"javascript:$js\" style='font-weight:bold;font-size:16px;text-decoration:underline;
+	color:$textColor'>";}
 	
 	$textColor="black";
 	
@@ -944,6 +946,8 @@ function listnicinfos($nicname,$js=null){
 		$SourceBasedRouting="<div style='font-size:11px;text-align:right;font-weight:bolder'>{default_based_routing}</div>";
 	}
 	
+	
+	
 	if($nicz->IPADDR<>$tbl[0]){
 		$MUST_CHANGE=true;
 	}
@@ -953,6 +957,13 @@ function listnicinfos($nicname,$js=null){
 	if($nicz->GATEWAY<>$gateway){
 		$MUST_CHANGE=true;
 	}	
+	
+	if($nicz->dhcp==1){
+		$ip=new IP();
+		if($ip->isValid($tbl[0])){$MUST_CHANGE=false;}
+	}
+	
+	
 	
 	if($MUST_CHANGE){
 		$MUST_CHANGE_TEXT2=$tpl->_ENGINE_parse_body("{need_to_apply_network_settings_interface}");
@@ -1052,7 +1063,7 @@ function netconfig_popup(){
 	
 	$text_ip
 	
-	<div class=text-info>
+	<div class=explain>
 	{network_style}:<strong>$type</strong>
 	</div>
 	<div class=form>
@@ -1253,7 +1264,7 @@ function Virtuals(){
 	$virtual_interfaces=$tpl->_ENGINE_parse_body('{virtual_interfaces}');
 	$nics=new system_nic();
 	if($nics->unconfigured){
-		$error="<div class=text-info style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
+		$error="<div class=explain style='color:#d32d2d'>{NIC_UNCONFIGURED_ERROR}</div>";
 	}
 	
 	
@@ -2077,7 +2088,7 @@ while (list ($num, $val) = each ($datas) ){
 	}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
 	$html="
-	<div class=text-info style='font-size:16px'>{VIRTUAL_BRIDGES_EXPLAIN}</div>
+	<div class=explain style='font-size:16px'>{VIRTUAL_BRIDGES_EXPLAIN}</div>
 	<center id='id-$t'></center>
 	<table style='width:99%' class=form>
 	<tr>
@@ -2396,7 +2407,7 @@ function NetworkManager_check(){
 	$nic=new system_nic();
 	if($nic->unconfigured){
 		$tpl=new templates();
-		$error="<div class=text-info style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
+		$error="<div class=explain style='color:#d32d2d'>{NIC_UNCONFIGURED_ERROR}</div>";
 		echo $tpl->_ENGINE_parse_body($error);
 	}
 	

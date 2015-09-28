@@ -110,6 +110,7 @@ $TIME1=0;
 
 function ParseEvents(){
 ParseReboot();
+$unix=new unix();
 $path="/var/log/artica-postfix/events";
 $f=new filesClasses();
 $hash=$f->DirListTable($path);
@@ -140,7 +141,10 @@ $mysql=new mysql();
 		$context=null;
 		$subject=null;
 		$recipient=null;
-		$bigtext=@file_get_contents($path.'/'.$file);
+		$FULL_PATH="$path/$file";
+		if($unix->file_time_min($FULL_PATH)>480){@unlink($FULL_PATH);continue; }
+		$bigtext=@file_get_contents($FULL_PATH);
+		
 		
 		echo date('Y-m-d h:i:s')." Parsing $file ". strlen($bigtext)." bytes text\n";
 		
@@ -264,7 +268,7 @@ $mysql=new mysql();
 				}
         	
 	        	$http=new httpget();
-	        	$meta->events("Send notification \"{$arrayToSend["subject"]}\" to Artica Meta",__FUNCTION__,__FILE__,__LINE__);
+	        	$meta->events("Send notification \"{$arrayToSend["subject"]}\" to Meta Server",__FUNCTION__,__FILE__,__LINE__);
 				$metaconsole=$http->send("$ArticaMetaHostname/lic.status.notifs.php","post",array(
 					"DATAS"=>$datasToSend,
 					"NOTIF"=>base64_encode(serialize($arrayToSend))

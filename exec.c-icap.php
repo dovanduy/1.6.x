@@ -70,6 +70,15 @@ function reload($aspid=false){
 	}
 	$PID=PID_NUM();
 	$PROCESS_TTL=$unix->PROCESS_TTL($PID);
+	
+	if(!$unix->is_socket("/var/run/clamav/clamav.sock")){
+		echo "Reloading.....: ".date("H:i:s")." [INIT]: c-icap Warning clamav.sock does not exists!\n";
+		shell_exec("/etc/init.d/clamav-daemon start");
+	
+	}
+		
+	@chmod("/var/run/clamav/clamav.sock", 0777);
+	
 	checkFilesAndSecurity();
 	echo "Reloading.....: ".date("H:i:s")." [INIT]: c-icap service running since {$PROCESS_TTL}Mn\n";
 	shell_exec("$echo -n \"reconfigure\" > /var/run/c-icap/c-icap.ctl");
@@ -84,6 +93,7 @@ function checkFilesAndSecurity(){
 	$owned[]="/usr/lib/c_icap";
 	$owned[]="/var/run/c-icap";
 	$owned[]="/var/lib/c_icap/temporary";
+	
 	
 	while (list ($num, $directory) = each ($owned) ){
 		if($GLOBALS["OUTPUT"]){echo "Preparing.....: ".date("H:i:s")." [INIT]: c-icap $directory\n";}
@@ -188,7 +198,7 @@ function dbMaintenance(){
 	$unix=new unix();
 	$users=new usersMenus();
 	$verbose=$GLOBALS["VERBOSE"];
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if(!$users->SQUIDGUARD_INSTALLED){
 		if(!$users->APP_UFDBGUARD_INSTALLED){
 			if($verbose){echo "SQUIDGUARD_INSTALLED  =  FALSE\n";}
@@ -539,6 +549,8 @@ function start($aspid=false){
 
 	$CicapEnabled=$sock->GET_INFO("CicapEnabled");
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
+	
 	if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service WebStats Appliance..\n";}	
 		$CicapEnabled=1;
@@ -549,7 +561,7 @@ function start($aspid=false){
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){$CicapEnabled=0;}
-	
+	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}
 	
 	
 	if($CicapEnabled==0){
@@ -570,6 +582,19 @@ function start($aspid=false){
 	$unix->chown_func("squid", "squid","/var/run/c-icap");
 	libicapapi();
 	$rm=$unix->find_program("rm");
+	
+	if($EnableClamavInCiCap==1){shell_exec("/etc/init.d/clamav-daemon start");}
+	
+	if(!$unix->is_socket("/var/run/clamav/clamav.sock")){
+		echo "Reloading.....: ".date("H:i:s")." [INIT]: c-icap Warning clamav.sock does not exists!\n";
+		system("/etc/init.d/clamav-daemon start");
+	
+	}
+	
+	@chmod("/var/run/clamav/clamav.sock", 0777);
+	
+	
+	
 
 	shell_exec("$rm -f /var/lib/c_icap/temporary/* >/dev/null 2>&1");
 	$debug=" -d 10";
@@ -617,6 +642,7 @@ function start($aspid=false){
 }
 //##############################################################################
 function purge($aspid=false){
+	if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 	$unix=new unix();
 	$sock=new sockets();
 	

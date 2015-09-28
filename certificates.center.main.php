@@ -59,6 +59,7 @@ function certificate_edit_js(){
 
 function certificate_edit_settings(){
 	$commonName=$_GET["CommonName"];
+	$commonNameADD=null;
 	$q=new mysql();
 	
 	
@@ -83,15 +84,18 @@ function certificate_edit_settings(){
 	$choose_UsePrivKeyCrt=$tpl->javascript_parse_text("{choose_UsePrivKeyCrt}");
 	$sql="SELECT * FROM sslcertificates WHERE CommonName='$commonName'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if($ligne["CountryName"]==null){$ligne["CountryName"]="UNITED STATES_US";}
-	if($ligne["stateOrProvinceName"]==null){$ligne["stateOrProvinceName"]="New York";}
-	if($ligne["localityName"]==null){$ligne["localityName"]="Brooklyn";}
-	if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
-	if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
-	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}
-	if(!is_numeric($ligne["CertificateMaxDays"])){$ligne["CertificateMaxDays"]=730;}
-	if(!is_numeric($ligne["levelenc"])){$ligne["levelenc"]=1024;}
-
+	if($ligne["UseGodaddy"]==1){$ligne["UsePrivKeyCrt"]=1;$commonNameADD=" (Godaddy)";}
+	
+	if($ligne["UsePrivKeyCrt"]==0){
+		if($ligne["CountryName"]==null){$ligne["CountryName"]="UNITED STATES_US";}
+		if($ligne["stateOrProvinceName"]==null){$ligne["stateOrProvinceName"]="New York";}
+		if($ligne["localityName"]==null){$ligne["localityName"]="Brooklyn";}
+		if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
+		if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
+		if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}
+		if(!is_numeric($ligne["CertificateMaxDays"])){$ligne["CertificateMaxDays"]=730;}
+		if(!is_numeric($ligne["levelenc"])){$ligne["levelenc"]=1024;}
+	}
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -103,7 +107,7 @@ function certificate_edit_settings(){
 	$ENC[2048]=2048;
 	$ENC[4096]=4096;
 	$commonNameEnc=urlencode($commonName);
-	
+	$bt_name="{apply}";
 	if(strlen($ligne["pkcs12"])>50){
 		
 		$cleint_certificate="<div style='float:right;width:30%;text-align:right;margin:5px'>
@@ -115,32 +119,69 @@ function certificate_edit_settings(){
 			</center>
 			</div>";
 	}
+	if($ligne["UsePrivKeyCrt"]==0){	$bt_name="{generate_x509}";}
 	
-	
-	$html[]="<div style='font-size:42px'>$commonName</div>";
+	$html[]="<div style='font-size:42px;margin-bottom:15px'>$commonName$commonNameADD</div>";
 	$html[]="<div style='width:98%' class=form>";
 	$html[]="<table style='width:100%'>";
-	$html[]="<tr><td colspan=2>$cleint_certificate".Paragraphe_switch_img("{UsePrivKeyCrt}", "{UsePrivKeyCrt_text}","UsePrivKeyCrt",$ligne["UsePrivKeyCrt"],null,820)."</td></tr>";
-	$html[]=Field_list_table("CountryName-$t","{countryName}",$ligne["CountryName"],22,$array_country_codes);
-	$html[]=Field_text_table("stateOrProvinceName","{stateOrProvinceName}",$ligne["stateOrProvinceName"],22,null,400);
-	$html[]=Field_text_table("localityName","{localityName}",$ligne["localityName"],22,null,400);
-	$html[]=Field_text_table("OrganizationName","{organizationName}",$ligne["OrganizationName"],22,null,400);
-	$html[]=Field_text_table("OrganizationalUnit","{organizationalUnitName}",$ligne["OrganizationalUnit"],22,null,400);
-	$html[]=Field_text_table("emailAddress","{emailAddress}",$ligne["emailAddress"],22,null,400);
-	$html[]=Field_text_table("CertificateMaxDays","{CertificateMaxDays} ({days})",$ligne["CertificateMaxDays"],22,null,150);
-	$html[]=Field_list_table("levelenc","{level_encryption}",$ligne["levelenc"],22,$ENC);
-	$html[]=Field_password_table("password-$t","{password}",$ligne["password"],22,null,300);
-	
-	$html[]=Field_button_table_autonome("{apply}","Submit$t",30);
+	if($ligne["UsePrivKeyCrt"]==0){
+		$html[]="<tr><td colspan=2>$cleint_certificate".Paragraphe_switch_img("{UsePrivKeyCrt}", "{UsePrivKeyCrt_text}","UsePrivKeyCrt",$ligne["UsePrivKeyCrt"],null,820)."</td></tr>";
+		$html[]=Field_list_table("CountryName-$t","{countryName}",$ligne["CountryName"],22,$array_country_codes);
+		$html[]=Field_text_table("stateOrProvinceName","{stateOrProvinceName}",$ligne["stateOrProvinceName"],22,null,400);
+		$html[]=Field_text_table("localityName","{localityName}",$ligne["localityName"],22,null,400);
+		$html[]=Field_text_table("OrganizationName","{organizationName}",$ligne["OrganizationName"],22,null,400);
+		$html[]=Field_text_table("OrganizationalUnit","{organizationalUnitName}",$ligne["OrganizationalUnit"],22,null,400);
+		$html[]=Field_text_table("emailAddress","{emailAddress}",$ligne["emailAddress"],22,null,400);
+		$html[]=Field_text_table("CertificateMaxDays","{CertificateMaxDays} ({days})",$ligne["CertificateMaxDays"],22,null,150);
+		$html[]=Field_list_table("levelenc","{level_encryption}",$ligne["levelenc"],22,$ENC);
+		$html[]=Field_password_table("password-$t","{password}",$ligne["password"],22,null,300);
+		$html[]=Field_button_table_autonome($bt_name,"Submit$t",30);
+	}else{
+		$html[]="<tr>
+		<td class=legend style='font-size:22px'>{countryName}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["CountryName"]}</td>
+		</tr>
+		<tr>
+		<td class=legend style='font-size:22px'>{stateOrProvinceName}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["stateOrProvinceName"]}</td>
+		</tr>		
+		<tr>
+		<td class=legend style='font-size:22px'>{localityName}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["localityName"]}</td>
+		</tr>			
+		<tr>
+		<td class=legend style='font-size:22px'>{organizationName}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["OrganizationName"]}</td>
+		</tr>	
+		<tr>
+		<td class=legend style='font-size:22px'>{organizationalUnitName}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["OrganizationalUnit"]}</td>
+		</tr>
+		<tr>
+		<td class=legend style='font-size:22px'>{emailAddress}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["emailAddress"]}</td>
+		</tr>
+		<tr>
+		<td class=legend style='font-size:22px'>{level_encryption}:</td>
+		<td style='font-size:22px;font-weight:bold'>{$ligne["levelenc"]}</td>
+		</tr>		";		
+		
+	}
 	$html[]="</table>";
-	$html[]="<center style='margin-top:55px'>".button("{generate_x509}","X509$t()",30)."</center>";
+	
 	$html[]="</div>
 	<script>
-	var xSubmit$t= function (obj) {
-	var results=obj.responseText;
-	if(results.length>3){alert(results);}
-	$('#flexRT{$_GET["t"]}').flexReload();
-	YahooWin6Hide();
+		var xSubmit$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);return;}
+		$('#TABLE_CERTIFICATE_CENTER_MAIN').flexReload();
+		var UsePrivKeyCrt=document.getElementById('UsePrivKeyCrt').value;
+		if(UsePrivKeyCrt==1){
+			Loadjs('openssl.x509.progress.php?generate-x509=$commonNameEnc');
+		}else{
+			Loadjs('openssl.CSR.progress.php?generate-csr=$commonNameEnc');
+		}
+		YahooWin6Hide();
 	}
 	
 	
@@ -151,6 +192,7 @@ function certificate_edit_settings(){
 	XHR.appendData('UsePrivKeyCrt',document.getElementById('UsePrivKeyCrt').value);
 	XHR.appendData('CountryName',document.getElementById('CountryName-$t').value);
 	
+	XHR.appendData('CertificateMaxDays',document.getElementById('CertificateMaxDays').value);
 	XHR.appendData('stateOrProvinceName',document.getElementById('stateOrProvinceName').value);
 	XHR.appendData('localityName',document.getElementById('localityName').value);
 	XHR.appendData('OrganizationName',document.getElementById('OrganizationName').value);
@@ -160,15 +202,7 @@ function certificate_edit_settings(){
 	XHR.appendData('password',encodeURIComponent(document.getElementById('password-$t').value));
 	XHR.sendAndLoad('$page', 'POST',xSubmit$t);
 	}
-	
-	function X509$t(){
-		var use=document.getElementById('UsePrivKeyCrt').value;
-		if(use==1){
-			alert('$choose_UsePrivKeyCrt');
-			return;
-		}
-		Loadjs('openssl.x509.progress.php?generate-x509=$commonNameEnc')
-	}
+
 
 	</script>
 	
@@ -183,7 +217,7 @@ function certificate_edit_settings_save(){
 
 	$CommonName=strtolower(trim(url_decode_special_tool($_POST["CommonName"])));
 	$_POST["password"]=url_decode_special_tool($_POST["password"]);
-	while (list ($num, $vl) = each ($_POST) ){$_POST[$num]=addslashes($vl);}
+	while (list ($num, $vl) = each ($_POST) ){$_POST[$num]=mysql_escape_string2($vl);}
 
 
 	$sql="SELECT CommonName,csr  FROM sslcertificates WHERE CommonName='$CommonName'";
@@ -196,12 +230,12 @@ function certificate_edit_settings_save(){
 	OrganizationName='{$_POST["OrganizationName"]}',
 	OrganizationalUnit='{$_POST["OrganizationalUnit"]}',
 	emailAddress='{$_POST["emailAddress"]}',
-			localityName='{$_POST["localityName"]}',
-			levelenc='{$_POST["levelenc"]}',
-			CertificateMaxDays='{$_POST["CertificateMaxDays"]}',
-			password='{$_POST["password"]}',
-			UsePrivKeyCrt='{$_POST["UsePrivKeyCrt"]}'
-			WHERE CommonName='$CommonName'";
+	localityName='{$_POST["localityName"]}',
+	levelenc='{$_POST["levelenc"]}',
+	CertificateMaxDays='{$_POST["CertificateMaxDays"]}',
+	password='{$_POST["password"]}',
+	UsePrivKeyCrt='{$_POST["UsePrivKeyCrt"]}'
+	WHERE CommonName='$CommonName'";
 
 
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
@@ -211,9 +245,7 @@ function certificate_edit_settings_save(){
 	$sock=new sockets();
 	$CommonName=str_replace('*', "_ALL_", $CommonName);
 	$CommonName=urlencode($CommonName);
-	if($_POST["UsePrivKeyCrt"]==0){
-		echo base64_decode($sock->getFrameWork("system.php?BuildCSR=$CommonName"));
-	}
+	
 
 
 }

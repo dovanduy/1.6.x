@@ -55,7 +55,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=text-info style='font-size:14px'>$veto_files_explain</div>
+	<div class=explain style='font-size:14px'>$veto_files_explain</div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 var mem$t='';

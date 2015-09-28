@@ -1,10 +1,13 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
+$GLOBALS["PROGRESS"]=false;
 if(is_array($argv)){
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	if(preg_match("#--no-reload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+	if(preg_match("#--progress#",implode(" ",$argv))){$GLOBALS["PROGRESS"]=true;$GLOBALS["OUTPUT"]=true;}
+	
 	
 }
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
@@ -22,6 +25,7 @@ if($argv[1]=='--bind'){compile_bind();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 	if($argv[1]=="--reload-if-run"){$GLOBALS["OUTPUT"]=true;reload_if_run();die();}
+	if($argv[1]=="--wizard"){$GLOBALS["OUTPUT"]=true;$GLOBALS["PROGRESS"]=true;wizard();die();}
 	
 
 
@@ -36,8 +40,54 @@ function build_progress($text,$pourc){
 	$array["TEXT"]=$text;
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
+	if($GLOBALS["PROGRESS"]){sleep(1);}
 
 }
+
+function wizard(){
+	
+	build_progress("{enable_service}",5);
+	$sock=new sockets();
+	$sock->SET_INFO("EnableDHCPServer", 1);
+	$DHCPWizard=unserialize($sock->GET_INFO("DHCPWizard"));
+	
+	$dhcp=new dhcpd(0,1);
+	
+	echo "Listen nic: {$DHCPWizard["NIC"]}\n";
+	echo "Network: {$DHCPWizard["SUBNET"]}/{$DHCPWizard["NETMASK"]} {$DHCPWizard["RANGE1"]}-{$DHCPWizard["RANGE2"]}\n";
+	
+	
+	
+	if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)\.#", $DHCPWizard["SUBNET"],$re)){
+		$DHCPWizard["SUBNET"]="{$re[1]}.{$re[2]}.{$re[3]}.0";
+		
+	}
+	
+	
+	$dhcp->listen_nic=$DHCPWizard["NIC"];
+	$dhcp->ddns_domainname=$DHCPWizard["DOMAINNAME"];
+	$dhcp->netmask=$DHCPWizard["NETMASK"];
+	$dhcp->range1=$DHCPWizard["RANGE1"];
+	$dhcp->range2=$DHCPWizard["RANGE2"];
+	$dhcp->subnet=$DHCPWizard["SUBNET"];
+	$dhcp->gateway=$DHCPWizard["GATEWAY"];
+	$dhcp->DNS_1=$DHCPWizard["DNS1"];
+	$dhcp->DNS_2=$DHCPWizard["DNS2"];
+	build_progress("{save_configuration}",10);
+	$dhcp->Save(true);
+
+	
+	build_progress("{stopping_service}",15);
+	stop(true);
+	build_progress("{starting_service}",60);
+	if(!start(true)){
+		build_progress("{starting_service}  {failed}",110);
+		$sock->SET_INFO("EnableDHCPServer", 0);
+		return;
+	}
+	build_progress("{starting_service}  {success}",100);
+}
+
 
 function BuildDHCP($nopid=false){
 
@@ -56,10 +106,6 @@ function BuildDHCP($nopid=false){
 	}
 	
 	build_progress("{starting_service}",65);
-	$ldap=new clladp();
-	if($ldap->ldapFailed){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN ldap connection failed,aborting\n";return;}
-	if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: ".date("H:i:s")." DHCP SERVER dc=organizations,$ldap->suffix no such branch, aborting\n";return;	}
-	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN ldap connection success\n";
 	$dhcpd=new dhcpd();
 	$conf=$dhcpd->BuildConf();
 	$confpath=dhcp3Config();
@@ -83,12 +129,13 @@ function BuildDHCP($nopid=false){
 	
 	@unlink($timefile);
 	@file_put_contents($timefile, time());
-	build_progress("{starting_service}",70);
-	$sock=new sockets();
-	$sock->getFrameWork("dnsmasq.php?restart=yes");
-	$sock->getFrameWork("services.php?restart-monit=yes");
-	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
-	
+	if($GLOBALS["PROGRESS"]){
+		build_progress("{starting_service}",70);
+		$sock=new sockets();
+		$sock->getFrameWork("dnsmasq.php?restart=yes");
+		$sock->getFrameWork("services.php?restart-monit=yes");
+		$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	}
 }
 
 function compile_bind(){
@@ -112,8 +159,8 @@ function start($aspid=false){
 		$pid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN, Already Artica task running PID $pid since {$time}mn\n";}
-			return;
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN, [START] Already Artica task running PID $pid since {$time}mn\n";}
+			return false;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -122,7 +169,7 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Service already started $pid since {$timepid}Mn...\n";}
-		return;
+		return true;
 	}
 	
 	$EnableDHCPServer=$sock->GET_INFO("EnableDHCPServer");
@@ -141,7 +188,7 @@ function start($aspid=false){
 	if($EnableDHCPServer==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service disabled\n";}
 		build_progress("{starting_service} {failed}",110);
-		return;
+		return false;
 	}	
 	
 	
@@ -187,11 +234,12 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service Success service started pid:$pid...\n";}
 		build_progress("{starting_service}  {success}",100);
-		return;
+		return true;
 	}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service failed...\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: `$cmd`\n";}
 	build_progress("{starting_service}  {failed}",110);
+	return false;
 	
 }
 //##############################################################################
@@ -200,16 +248,21 @@ function restart(){
 	$LOGBIN="DHCP Server";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
+	if(!$GLOBALS["FORCE"]){
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Already Artica task running PID $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN [RESTART] Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-	
+	}
 	
 	build_progress("{stopping_service}",10);
 	stop(true);
+	if($GLOBALS["PROGRESS"]){
+		build_progress("{reconfigure_service}",50);
+		BuildDHCP(true);
+	}
 	build_progress("{starting_service}",50);
 	start(true);
 
@@ -256,7 +309,7 @@ function stop($aspid=false){
 		$pid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service Already Artica task running PID $pid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN [STOP] Service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());

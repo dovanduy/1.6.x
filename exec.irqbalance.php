@@ -79,8 +79,8 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
-	$EnableIRQBalance=$sock->GET_INFO("EnableIRQBalance");
-	if(!is_numeric($EnableIRQBalance)){$EnableIRQBalance=1;}
+	$EnableIRQBalance=intval($sock->GET_INFO("EnableIRQBalance"));
+	if($sock->EnableIntelCeleron==1){$EnableIRQBalance=0;}
 	
 
 	if($EnableIRQBalance==0){

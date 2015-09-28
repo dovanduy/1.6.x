@@ -96,7 +96,7 @@ $form="
 		<td valign='top'>
 		</td>
 		<td valign='top'>
-			<div class=text-info>{relayhost_text}</div>
+			<div class=explain>{relayhost_text}</div>
 			<div id='relayhostdiv'>
 					<table style='width:100%'>
 					<tr>
@@ -125,7 +125,7 @@ $form="
 						<td align='right' colspan=2 align='right'>". button("{apply}","PostfixSaveRelayHost()")."</td>
 						</tr>		
 						<tr>
-						<td align='left' colspan=2><hr><div class=text-info>{MX_lookups}<br>{MX_lookups_text}</div></td>
+						<td align='left' colspan=2><hr><div class=explain>{MX_lookups}<br>{MX_lookups_text}</div></td>
 						</tr>					
 						</form>
 						</td>

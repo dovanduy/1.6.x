@@ -449,7 +449,7 @@ function main_denyext_list(){
 		$table=$table . "
 		<tr $st>
 		<td with=1% ><img src='img/fw_bold.gif'></td>
-		<td><strong><span style='color:red'>$line</span></strong></td>
+		<td><strong><span style='color:#d32d2d'>$line</span></strong></td>
 		<td>" . imgtootltip('x.gif','{delete}',"SquidSimpleDelDenyExt('$hostname','$num')"). "</td>
 		</tr>
 		";		
@@ -479,7 +479,7 @@ if(is_array($local_list)){
 		$table=$table . "
 		<tr $st>
 		<td with=1% ><img src='img/fw_bold.gif'></td>
-		<td><strong>Port <span style='color:red'>$line</span> {acl_is_allowed}</strong></td>
+		<td><strong>Port <span style='color:#d32d2d'>$line</span> {acl_is_allowed}</strong></td>
 		<td>" . imgtootltip('x.gif','{delete}',"SquidSimpleDelSafePort('$hostname','$num')"). "</td>
 		</tr>
 		";
@@ -617,7 +617,7 @@ function main_infos(){
 		}else{
 		if(preg_match('#\s+[A-Za-z]#',$val)){
 			if(preg_match('#(.+?):(.+)#',$val,$re)){
-				$val="<strong>{$re[1]}:</strong>&nbsp;<strong style='color:red'>{$re[2]}</strong>";
+				$val="<strong>{$re[1]}:</strong>&nbsp;<strong style='color:#d32d2d'>{$re[2]}</strong>";
 			}
 			$val="<div style='margin-left:40px;padding-left:10px'>$val</div>";
 		}

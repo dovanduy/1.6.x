@@ -708,7 +708,7 @@ $physCardTable
 
 <hr>
 <div style='font-size:16px'>{start_options}</div>
-<div class=text-info>{lxc_start_options_text}</div>
+<div class=explain>{lxc_start_options_text}</div>
 <table style='width:99%' class=form>
 <tr>
 	<td class=legend>{autostart}:</td>
@@ -981,7 +981,7 @@ function status(){
 	$UPDATE_DEBIAN_TEMPLATE_TEXT=$tpl->javascript_parse_text("{UPDATE_DEBIAN_TEMPLATE_TEXT}");
 	$UPDATE_FEDORA_TEMPLATE_TEXT=$tpl->javascript_parse_text("{UPDATE_FEDORA_TEMPLATE_TEXT}");
 	$mysql=new mysql();
-	$error="<div style='color:red'>".$mysql->check_vps_tables()."</div>";
+	$error="<div style='color:#d32d2d'>".$mysql->check_vps_tables()."</div>";
 	$EnableLXCINLeftMenus=$sock->GET_INFO("EnableLXCINLeftMenus");
 	if(!is_numeric($EnableLXCINLeftMenus)){$EnableLXCINLeftMenus=1;}
 	
@@ -992,7 +992,7 @@ function status(){
 	<td width=1% valign='top'><div id='lxc-checkconfig'></div></td>
 	<td width=99% valign='top'>
 	
-		<div class=text-info>{LXC_ABOUT}</div>
+		<div class=explain>{LXC_ABOUT}</div>
 		<table style='width:100%'>
 		<tr>
 			<td class=legend>{enable_in_left_menus}:</td>
@@ -1143,7 +1143,7 @@ function Parameters(){
 	$nicClass=new system_nic();
 	if($nicClass->unconfigured){
 		$lock_install=1;
-		$error="<div class=text-info style='color:red'>{NIC_UNCONFIGURED_ERROR}</div>";
+		$error="<div class=explain style='color:#d32d2d'>{NIC_UNCONFIGURED_ERROR}</div>";
 		
 	}	
 	
@@ -1152,7 +1152,7 @@ $html="
 $error
 <div style='text-align:right;width:100%'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_config_vpssrv')")."</div>
 <div style='font-size:16px'>{bridge_setup}</div>
-<div class=text-info>{bridge_setup_lxc_explain}</div>
+<div class=explain>{bridge_setup_lxc_explain}</div>
 <div id='lxcnets'>
 <table style='width:99%' class=form>
 	<tr>
@@ -1531,7 +1531,7 @@ function vps_performances(){
 	
 	
 	$html="
-	<div class=text-info>{lxc_performances_explain}</div>
+	<div class=explain>{lxc_performances_explain}</div>
 	
 	<div style='font-size:16px'><strong>{memory}</strong></div>
 	<table class=form width=99%>

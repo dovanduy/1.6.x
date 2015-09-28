@@ -662,7 +662,7 @@ function quota_rule_save(){
 
 function explain_ident(){
 	$tpl=new templates();
-	echo "<div class=text-info style='font-size:14px'>".$tpl->_ENGINE_parse_body("{squidqota_{$_GET["explain-ident"]}}")."</div>";
+	echo "<div class=explain style='font-size:14px'>".$tpl->_ENGINE_parse_body("{squidqota_{$_GET["explain-ident"]}}")."</div>";
 	
 }
 

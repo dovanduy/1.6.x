@@ -52,7 +52,7 @@ function tabs(){
 	
 	
 	
-	echo build_artica_tabs($html, "squid_booster_tab",990)."
+	echo build_artica_tabs($html, "squid_booster_tab",1490)."
 	<script>LeftDesign('speed-256.png');</script>";
 }
 
@@ -95,7 +95,8 @@ function popup(){
 		
 	
 	
-	$html=Paragraphe_switch_img("{activate_the_booster_cache}", "{squid_booster_text}","SquidBoosterEnable",$SquidBoosterEnable,null,850)."
+	$html=Paragraphe_switch_img("{activate_the_booster_cache}", 
+			"{squid_booster_text}","SquidBoosterEnable",$SquidBoosterEnable,null,1400)."
 	
 	
 	

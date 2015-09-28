@@ -71,7 +71,7 @@ function page(){
 
 	],";
 	$html="
-<div style='font-size:14px' class=text-info>$vde_switch_explain</div>
+<div style='font-size:14px' class=explain>$vde_switch_explain</div>
 <table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>			
 <script>
 VirtualIPMem$t='';

@@ -35,7 +35,7 @@ function manual_update(){
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
 	<H2>{manual_update}</H2>
-	<div class=text-info style='font-size:16px'>{artica_manual_update_text}</div>
+	<div class=explain style='font-size:16px'>{artica_manual_update_text}</div>
 	<center>
 	<table style='width:80%'>
 	<tr>
@@ -159,13 +159,12 @@ function upload_artica_final(){
 	$page=CurrentPageName();
 	$t=time();
 	$fileNameEnc=urlencode($fileName);
-	$sock=new sockets();
-	$sock->getFrameWork("artica.php?meta-scan-update=yes&filename=$fileNameEnc");
-	sleep(5);
+	
+	
 	echo "
 	<script>
-		$('#ARTICA_META_UPDATEART_TABLE').flexReload();
 		YahooWinBrowseHide();
+		Loadjs('artica-meta.update.artica.upload.progress.php?filename=$fileNameEnc');
 	</script>
 	
 	";

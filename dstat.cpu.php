@@ -183,7 +183,7 @@ function top_ressources_cpu_generate(){
 }
 function dstat_gnuplot_png(){
 $html="<H1>{GNUPLOT_NOT_PNG}</H1><br>
-	<div style='font-size:15px;background-color:white;color:red;padding:10px;margin:5px;border:1px solid red'>{GNUPLOT_NOT_PNG_EXPLAIN}</div>";
+	<div style='font-size:15px;background-color:white;color:#d32d2d;padding:10px;margin:5px;border:1px solid red'>{GNUPLOT_NOT_PNG_EXPLAIN}</div>";
 		
 	
 	$tpl=new templates();

@@ -50,7 +50,7 @@ function DeleteFixed(){
 	$tpl=new templates();
 	
 	include_once(dirname(__FILE__)."/class.mysql.inc");
-	$sql="DELETE FROM dhcpd_fixed WHERE mac='$this->IP'";
+	$sql="DELETE FROM dhcpd_fixed WHERE mac='$this->MAC'";
 	
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
@@ -61,8 +61,7 @@ function DeleteFixed(){
 		echo $ldap->ldap_last_error;
 		return false;
 	}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
+
 	
 	return true;
 	
@@ -101,10 +100,6 @@ function AddFixed(){
 	$cmp->ComputerMacAddress=$this->MAC;
 	$cmp->ComputerRealName=$this->hostname;
 	$cmp->Add();
-	
-	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?apply-dhcpd=yes");
 	return true;	
 	
 }
@@ -225,7 +220,7 @@ class dhcpd{
 		if($this->pxe_file==null){$this->pxe_file="/tftpboot/pxelinux.0";}
 		if($this->max_lease_time==null){$this->max_lease_time=3600;}
 		if($this->netmask==null){$this->netmask="255.255.255.0";}
-		writelogs("LOADING ROUTES ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		
 		$this->LoadRoutes();
 		writelogs("LOADING RemoteVPN ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		$this->RemoteVPN();
@@ -347,15 +342,25 @@ function DelRoute($ip){
 }
 
 private function LoadRoutes(){
+	
+	if(isset($GLOBALS["DHCPD_ROUTES"])){
+		while (list ($num, $ligne) = each ($GLOBALS["DHCPD_ROUTES"]) ){
+			$this->routes[$num]=$ligne;
+		}
+		return;
+	}
+	$GLOBALS["DHCPD_ROUTES"]=array();
 	$sock=new sockets();
 	$datas=explode("\n",$sock->GET_INFO("DHCPDRoutesInfos"));
 	while (list ($num, $ligne) = each ($datas) ){
 		$tbl=explode(";",$ligne);
 		if(count($tbl)>1){
 			$this->routes[$tbl[0]]=array($tbl[1],$tbl[2]);
+			$GLOBALS["DHCPD_ROUTES"][$tbl[0]]=array($tbl[1],$tbl[2]);
 		}
 		
 	}
+	
 }
 
 private function SaveRoutes(){
@@ -707,7 +712,9 @@ private function DomainNameServers(){
 							if($m_gw=="0.0.0.0"){continue;}
 							$k[]=$m_gw;
 						}
-						$conf=$conf."\toption routers ". implode(",",$k). ";\n";
+						if(count($k)>0){
+							$conf=$conf."\toption routers ". implode(",",$k). ";\n";
+						}
 				}
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server OnlySetGateway = 1 adding only $this->gateway as gateway\n";}
@@ -768,10 +775,23 @@ private function DomainNameServers(){
 		if(!$q->ok){	$conf=$conf."# dhcpd_nics = $q->mysql_error\n";}
 		$conf=$conf."# dhcpd_nics = ".mysql_num_rows($results)."\n";
 		
+		if(class_exists("unix")){
+			$unix=new unix();
+			$INTERFACES_AVAI=$unix->NETWORK_ALL_INTERFACES();
+		}
+		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["nic"]==$this->listen_nic){
 				$conf=$conf."# dhcpd_nics: {$ligne["nic"]} = $this->listen_nic SKIP\n";
-				continue;}
+				continue;
+			}
+			
+			if(is_array($INTERFACES_AVAI)){
+				if(!isset($INTERFACES_AVAI[$ligne["nic"]])){
+					$conf=$conf."# dhcpd_nics: {$ligne["nic"]} => NO INTERFACE\n";
+					continue;
+				}
+			}
 			$conf=$conf."# dhcpd_nics: {$ligne["nic"]} => Build\n";
 			$xdhcpSub=new dhcpd_sub($ligne["nic"]);
 			$conf=$conf.$xdhcpSub->build()."\n\n";
@@ -983,6 +1003,9 @@ private function DomainNameServers(){
 	}
 	
 	private function RemoteVPN(){
+			if(isset($GLOBALS["DHCPD_RemoteVPN"])){return;}
+			$GLOBALS["DHCPD_RemoteVPN"]=true;
+			
 			if($this->listen_nic==null){$this->GetDefaultNic();}
 			$ip=new networking();
 			$array=$ip->array_TCP;

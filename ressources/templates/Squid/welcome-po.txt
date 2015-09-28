@@ -12,4 +12,4 @@
 <p>É importante não esqueceres que um proxy é um intermediário.</p> 
 <p> Vocês sabem que quando acedem  a uma página web por intermedio de um browser, este último conecta-se diretamente ao servidor para  aceder à página requisitada. Se vocês adicionarem um máquina (o proxy) entre o vosso computador e a internet, esta máquina vai registar as paginas web localmente e vai entregá-las ao seu computador sem que este aceda à internet.</p> 
 <p>Em poucas palavras, isto vai permitir-lhes acelerar o acesso a web, controlar o acesso à web(por filtragem) e estar em conformidade com a legislação, conservando os logs durante o tempo legalmente exigido(que varia segundo o país).</p> 
-<p> para requisição de uma licença por trinta dias contactar (valerie@articatech.com).</p>
+

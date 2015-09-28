@@ -32,7 +32,7 @@ $downloadapple=Paragraphe("apple-logo-64.png",
 
 
 	$html="
-	<div class=text-info>{OPENVPN_ADMIN_HELP_TEXT}</div>
+	<div class=explain>{OPENVPN_ADMIN_HELP_TEXT}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
@@ -112,7 +112,7 @@ function popup(){
 	
 	$os=Field_array_Hash($os,"ComputerOS",null,"style:font-size:32px;padding:3px");
 	
-	$html="<div class=text-info id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
+	$html="<div class=explain id='buildclientconfigdiv'>{BUILD_OPENVPN_CLIENT_CONFIG_TEXT}</div>
 	
 	<center style='width:98%' class=form>
 		<table style='width:100%'>

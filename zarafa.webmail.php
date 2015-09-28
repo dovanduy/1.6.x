@@ -40,13 +40,13 @@ popup();
 		$array["perfs"]="{performance}";
 			
 			
-		$fontsize="font-size:16px;";
+		$fontsize="font-size:24px;";
 		while (list ($num, $ligne) = each ($array) ){
 			$html[]="<li><a href=\"$page?$num=yes\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 		}
 		$tabwidth=759;
 	
-		$html=build_artica_tabs($html,'main_zarafaweb',975)."
+		$html=build_artica_tabs($html,'main_zarafaweb',1490)."
 		<script>LeftDesign('webmail-256-white-opac20.png');</script>";
 	
 	echo $html;	
@@ -131,7 +131,7 @@ if(!$users->APACHE_INSTALLED){
 			<table style='width:100%'>
 			<tr>
 				<td colspan=2>
-				<p style='font-size:18px;color:#C61010'>{ZARAFA_ERROR_NO_APACHE}</p>
+				<p style='font-size:24px;color:#C61010'>{ZARAFA_ERROR_NO_APACHE}</p>
 				
 				</td>
 			</tr>
@@ -148,7 +148,8 @@ if($users->PHPFPM_INSTALLED){
 $phpfpm="	<tr>
 		<td colspan=2>
 		". Paragraphe_switch_img("{enable_phpfpm_service}", 
-				"{enable_phpfpm_service_explain}","ZarafaApachePHPFPMEnable",$ZarafaApachePHPFPMEnable,null,550)."</td>
+				"{enable_phpfpm_service_explain}","ZarafaApachePHPFPMEnable",
+				$ZarafaApachePHPFPMEnable,null,1130)."</td>
 		</td>
 	</tr>";
 	
@@ -160,7 +161,7 @@ if($ZarafaApacheWebMailType==null){$ZarafaApacheWebMailType="APP_ZARAFA";}
 	
 $t=time();	
 $html="
-<div class=text-info style='font-size:18px' id='anim-$t'>{zarafa_settings_webmail}</div>
+<div class=explain style='font-size:24px' id='anim-$t'>{zarafa_settings_webmail}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -173,46 +174,46 @@ $html="
 	<tr>
 		<td colspan=2>
 		". Paragraphe_switch_img("{enable_http_service}", 
-				"{enable_http_service_zarafa_explain}","ZarafaApacheEnable",$ZarafaApacheEnable,null,550)."</td>
+				"{enable_http_service_zarafa_explain}","ZarafaApacheEnable",$ZarafaApacheEnable,null,1130)."</td>
 		</td>
 	</tr>
 						$phpfpm
 	<tr>
-		<td class=legend style='font-size:18px'>{webmail_type}:</td>
-		<td>". Field_array_Hash($ZarafaApacheWebMailTypeA, "ZarafaApacheWebMailType-$t",$ZarafaApacheWebMailType,null,null,0,"font-size:18px")."</td>
+		<td class=legend style='font-size:24px'>{webmail_type}:</td>
+		<td>". Field_array_Hash($ZarafaApacheWebMailTypeA, "ZarafaApacheWebMailType-$t",$ZarafaApacheWebMailType,null,null,0,"font-size:24px")."</td>
 	</tr>		
 	
 	<tr>
-		<td class=legend style='font-size:18px'>{hostname}:</td>
-		<td>". Field_text("ZarafaApacheServerName",$ZarafaApacheServerName,"font-size:18px;padding:3px;width:280px")."</td>
+		<td class=legend style='font-size:24px'>{hostname}:</td>
+		<td>". Field_text("ZarafaApacheServerName",$ZarafaApacheServerName,"font-size:24px;padding:3px;width:450px")."</td>
 	</tr>		
 		<tr>
-		<td class=legend style='font-size:18px'>{listen_port}:</td>
-		<td>". Field_text("ZarafaApachePort",$ZarafaApachePort,"font-size:18px;padding:3px;width:120px")."</td>
+		<td class=legend style='font-size:24px'>{listen_port}:</td>
+		<td>". Field_text("ZarafaApachePort",$ZarafaApachePort,"font-size:24px;padding:3px;width:120px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{enable_ssl}:</td>
-		<td>". Field_checkbox("ZarafaApacheSSL",1,$enable_ssl)."</td>
+		<td class=legend style='font-size:24px'>{enable_ssl}:</td>
+		<td>". Field_checkbox_design("ZarafaApacheSSL",1,$enable_ssl)."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{SessionTime}:</td>
-		<td style='font-size:18px;padding:3px;'>". Field_text("ZarafaSessionTime",$ZarafaSessionTime_field,"font-size:18px;padding:3px;width:60px")."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:24px'>{SessionTime}:</td>
+		<td style='font-size:24px;padding:3px;'>". Field_text("ZarafaSessionTime",$ZarafaSessionTime_field,"font-size:24px;padding:3px;width:60px")."&nbsp;{minutes}</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:18px'>{ZarafaWebNTLM}:</td>
-		<td>". Field_checkbox("ZarafaWebNTLM",1,$ZarafaWebNTLM)."</td>
+		<td class=legend style='font-size:24px'>{ZarafaWebNTLM}:</td>
+		<td>". Field_checkbox_design("ZarafaWebNTLM",1,$ZarafaWebNTLM)."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:18px'>{spell_checker}&nbsp;$ZarafaAspellInstalled_text&nbsp;:</td>
-		<td>". Field_checkbox("ZarafaAspellEnabled",1,$ZarafaAspellEnabled)."</td>
+		<td class=legend style='font-size:24px'>{spell_checker}&nbsp;$ZarafaAspellInstalled_text&nbsp;:</td>
+		<td>". Field_checkbox_design("ZarafaAspellEnabled",1,$ZarafaAspellEnabled)."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{ZarafaEnablePlugins}:</td>
-		<td>". Field_checkbox("ZarafaEnablePlugins",1,$ZarafaEnablePlugins)."</td>
+		<td class=legend style='font-size:24px'>{ZarafaEnablePlugins}:</td>
+		<td>". Field_checkbox_design("ZarafaEnablePlugins",1,$ZarafaEnablePlugins)."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:18px'>{ZarafaImportContactsInLDAPEnable}&nbsp;:</td>
-		<td>". Field_checkbox("ZarafaImportContactsInLDAPEnable",1,$ZarafaImportContactsInLDAPEnable)."</td>
+		<td class=legend style='font-size:24px'>{ZarafaImportContactsInLDAPEnable}&nbsp;:</td>
+		<td>". Field_checkbox_design("ZarafaImportContactsInLDAPEnable",1,$ZarafaImportContactsInLDAPEnable)."</td>
 	</tr>			
 		<tr><td colspan=2 align='right'><hr>". button("{apply}","APP_ZARAFA_WEB_SAVE$t()","26")."</td></tr>							
 	</table>
@@ -334,83 +335,83 @@ function zarafa_settings_performances(){
 			
 <table style='width:99%'>
 	<tr>
-		<td colspan=3 style='font-size:26px'>PHP {performances}</td></tr>
+		<td colspan=3 style='font-size:42px'>PHP {performances}</td></tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{post_max_size}:</td>
-		<td style='font-size:18px'>". Field_text("post_max_size-$t",$FreeWebPerformances["post_max_size"],"font-size:18px;width:110px")."&nbsp;M</td>
+		<td class=legend style='font-size:24px'>{post_max_size}:</td>
+		<td style='font-size:24px'>". Field_text("post_max_size-$t",$FreeWebPerformances["post_max_size"],"font-size:24px;width:110px")."&nbsp;M</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{upload_max_filesize}:</td>
-		<td style='font-size:18px'>". Field_text("upload_max_filesize-$t",$FreeWebPerformances["upload_max_filesize"],"font-size:18px;width:110px")."&nbsp;M</td>
+		<td class=legend style='font-size:24px'>{upload_max_filesize}:</td>
+		<td style='font-size:24px'>". Field_text("upload_max_filesize-$t",$FreeWebPerformances["upload_max_filesize"],"font-size:24px;width:110px")."&nbsp;M</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{StartServers}:</td>
-		<td style='font-size:18px'>". Field_text("PhpStartServers-$t",$FreeWebPerformances["PhpStartServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{StartServers}:</td>
+		<td style='font-size:24px'>". Field_text("PhpStartServers-$t",$FreeWebPerformances["PhpStartServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheStartServers}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{MinSpareServers}:</td>
-		<td style='font-size:18px'>". Field_text("PhpMinSpareServers-$t",$FreeWebPerformances["PhpMinSpareServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MinSpareServers}:</td>
+		<td style='font-size:24px'>". Field_text("PhpMinSpareServers-$t",$FreeWebPerformances["PhpMinSpareServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMinSpareServers}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxSpareServers}:</td>
-		<td style='font-size:18px'>". Field_text("PhpMaxSpareServers-$t",$FreeWebPerformances["PhpMaxSpareServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MaxSpareServers}:</td>
+		<td style='font-size:24px'>". Field_text("PhpMaxSpareServers-$t",$FreeWebPerformances["PhpMaxSpareServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMinSpareServers}")."</td>
 	</tr>								
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxClients}:</td>
-		<td style='font-size:18px'>". Field_text("PhpMaxClients-$t",$FreeWebPerformances["PhpMaxClients"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MaxClients}:</td>
+		<td style='font-size:24px'>". Field_text("PhpMaxClients-$t",$FreeWebPerformances["PhpMaxClients"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMaxClients}")."</td>
 	</tr>					
 	<tr>			
 	<tr>
-		<td colspan=3 style='font-size:26px'>HTTP {performances}</td></tr>
+		<td colspan=3 style='font-size:42px'>HTTP {performances}</td></tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{Timeout}:</td>
-		<td style='font-size:18px'>". Field_text("Timeout-$t",$FreeWebPerformances["Timeout"],"font-size:18px;width:120px;padding:3px")."&nbsp;{seconds}</td>
+		<td class=legend style='font-size:24px'>{Timeout}:</td>
+		<td style='font-size:24px'>". Field_text("Timeout-$t",$FreeWebPerformances["Timeout"],"font-size:24px;width:120px;padding:3px")."&nbsp;{seconds}</td>
 		<td>". help_icon("{ApacheTimeout}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{KeepAlive}:</td>
-		<td style='font-size:18px'>". Field_checkbox("KeepAlive-$t",1,$FreeWebPerformances["KeepAlive"])."</td>
+		<td class=legend style='font-size:24px'>{KeepAlive}:</td>
+		<td style='font-size:24px'>". Field_checkbox_design("KeepAlive-$t",1,$FreeWebPerformances["KeepAlive"])."</td>
 		<td>". help_icon("{ApacheKeepAlive}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxKeepAliveRequests}:</td>
-		<td style='font-size:18px'>". Field_text("MaxKeepAliveRequests-$t",$FreeWebPerformances["MaxKeepAliveRequests"],"font-size:18px;width:120px;padding:3px")."&nbsp;{requests}</td>
+		<td class=legend style='font-size:24px'>{MaxKeepAliveRequests}:</td>
+		<td style='font-size:24px'>". Field_text("MaxKeepAliveRequests-$t",$FreeWebPerformances["MaxKeepAliveRequests"],"font-size:24px;width:120px;padding:3px")."&nbsp;{requests}</td>
 		<td>". help_icon("{ApacheMaxKeepAliveRequests}")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:18px'>{KeepAliveTimeout}:</td>
-		<td style='font-size:18px'>". Field_text("KeepAliveTimeout-$t",$FreeWebPerformances["KeepAliveTimeout"],"font-size:18px;width:120px;padding:3px")."&nbsp;{seconds}</td>
+		<td class=legend style='font-size:24px'>{KeepAliveTimeout}:</td>
+		<td style='font-size:24px'>". Field_text("KeepAliveTimeout-$t",$FreeWebPerformances["KeepAliveTimeout"],"font-size:24px;width:120px;padding:3px")."&nbsp;{seconds}</td>
 		<td>". help_icon("{ApacheKeepAliveTimeout}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{StartServers}:</td>
-		<td style='font-size:18px'>". Field_text("StartServers-$t",$FreeWebPerformances["StartServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{StartServers}:</td>
+		<td style='font-size:24px'>". Field_text("StartServers-$t",$FreeWebPerformances["StartServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheStartServers}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{MinSpareServers}:</td>
-		<td style='font-size:18px'>". Field_text("MinSpareServers-$t",$FreeWebPerformances["MinSpareServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MinSpareServers}:</td>
+		<td style='font-size:24px'>". Field_text("MinSpareServers-$t",$FreeWebPerformances["MinSpareServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMinSpareServers}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxSpareServers}:</td>
-		<td style='font-size:18px'>". Field_text("MaxSpareServers-$t",$FreeWebPerformances["MaxSpareServers"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MaxSpareServers}:</td>
+		<td style='font-size:24px'>". Field_text("MaxSpareServers-$t",$FreeWebPerformances["MaxSpareServers"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMinSpareServers}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxClients}:</td>
-		<td style='font-size:18px'>". Field_text("MaxClients-$t",$FreeWebPerformances["MaxClients"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MaxClients}:</td>
+		<td style='font-size:24px'>". Field_text("MaxClients-$t",$FreeWebPerformances["MaxClients"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMaxClients}")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:18px'>{MaxRequestsPerChild}:</td>
-		<td style='font-size:18px'>". Field_text("MaxRequestsPerChild-$t",$FreeWebPerformances["MaxRequestsPerChild"],"font-size:18px;width:120px;padding:3px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{MaxRequestsPerChild}:</td>
+		<td style='font-size:24px'>". Field_text("MaxRequestsPerChild-$t",$FreeWebPerformances["MaxRequestsPerChild"],"font-size:24px;width:120px;padding:3px")."&nbsp;</td>
 		<td>". help_icon("{ApacheMaxRequestsPerChild}")."</td>
 	</tr>	
 	<tr>

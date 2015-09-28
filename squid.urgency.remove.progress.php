@@ -144,6 +144,7 @@ if($prc==100){
 		$('#progress-$t').progressbar({ value: $prc });
 		LayersTabsAllAfter();
 		RTMMailHide();
+		
 		if(document.getElementById('SQUID_URGENCY_FORM_ADM')){ YahooWin3Hide(); }
 		}
 	setTimeout(\"Start$time()\",1000);

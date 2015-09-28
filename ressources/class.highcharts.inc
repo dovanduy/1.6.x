@@ -20,8 +20,10 @@ class highcharts{
 	public $subtitle=null;
 	public $OnErrorEvent=null;
 	public $SetRefreshCallBack=null;
+	public $PieDataLabels=true;
+	public $PieRedGreen=false;
 	public $RemoveLock=false;
-
+	public $SQL_QUERY=null;
 	public function highcharts($params=array()){
 		
 		while (list ($key, $value) = each ($params) ){
@@ -115,8 +117,12 @@ class highcharts{
 			
 			if(count($this->xAxis)>0){
 				while (list ($a, $b) = each ($this->xAxis) ){
+					
 					if(strpos(" $b", "\"")>0){continue;}
-					if(!is_numeric($b)){$b="\"$b\"";$this->xAxis[$a]=$b;}
+					if(!is_numeric($b)){$b="\"$b\"";
+					
+					$this->xAxis[$a]=$b;
+					}
 				}
 				reset($this->xAxis);
 				
@@ -124,7 +130,7 @@ class highcharts{
 			
 			
 			$xlabels=true;
-			if(!$this->xAxis_labels){$xlabels="false";}
+			if(!$this->xAxis_labels){$xlabels="false";}else{$xlabels="true";}
 			
 			$f[]="\t\t\txAxis: {";
 			$f[]="\t\t\t\tcategories: [". @implode(",", $this->xAxis)."],";
@@ -154,8 +160,26 @@ class highcharts{
 			},";
 		}
 		
+		if($this->ChartType=="pie"){
+			$Pie_dataLabels_enabled="true";
 		
-
+			if(!$this->PieDataLabels){$Pie_dataLabels_enabled="false";}
+			
+			$f[]="\t\t\tplotOptions: {";
+			$f[]="\t\t\t\tpie: {";
+			if($this->PieRedGreen){
+				$f[]="\t\t\t\t\tcolors:['#46a346','#d32d2d'],";
+				
+			}
+			$f[]="\t\t\t\t\tdataLabels: {";
+			$f[]="\t\t\t\t\tenabled: $Pie_dataLabels_enabled";
+			$f[]="\t\t\t\t}";
+			$f[]="\t\t\t}";
+			$f[]="\t},";
+		}
+		
+			
+		
 		
 		
 		if($this->ChartType=="areaspline"){
@@ -299,11 +323,13 @@ class highcharts{
 		$tpl=new templates();
 		$onlionetext=$tpl->javascript_parse_text("{no_value_cannot_generate_graph}<br>".$this->OnErrorEvent);
 		$onlionetext=str_replace("'", "`", $onlionetext);
+		$this->SQL_QUERY=str_replace("\n", " ", $this->SQL_QUERY);
+		$this->SQL_QUERY=str_replace("'", "`", $this->SQL_QUERY);
 		
 		return "
 		document.getElementById('$this->container').style.height='auto';
 		document.getElementById('$this->container').style.width='auto';		
-		document.getElementById('$this->container').innerHTML='<p class=text-warning><strong>$this->Title</strong><br>$onlionetext<br>$called</p>';
+		document.getElementById('$this->container').innerHTML='<p class=text-warning><strong>$this->Title</strong><br>$onlionetext<br>$this->SQL_QUERY<br>$called</p>';
 		
 		";
 				

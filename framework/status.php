@@ -19,6 +19,7 @@ function force_frontend(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	
 	shell_exec(trim("$nohup $php5 /usr/share/artica-postfix/exec.admin.status.postfix.flow.php --force >/dev/null 2>&1 &"));
 }
 

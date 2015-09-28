@@ -18,41 +18,64 @@
 		die();exit();
 	}	
 	
-	js();
-	if(isset($_POST["debug"])){debug();exit;}
 	
-function js(){
-	$sock=new sockets();
-	$page=CurrentPageName();
+	if(isset($_GET["popup"])){popup();exit;}
+	
+	if(isset($_POST["debug"])){debug();exit;}
+	js();
+	
+	
+function js() {
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->_ENGINE_parse_body("{debug}");
+	echo "YahooWin6('900','$page?popup=yes','$title')";
+	
+	
+}	
+
+function popup(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=time();
 	$datasUFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}
 	$watn=$tpl->javascript_parse_text("{ufdbguard_debug_off}");
+	$button_name="{debug} OFF";
 	if($datasUFDB["DebugAll"]==0){
 		$watn=$tpl->javascript_parse_text("{ufdbguard_debug_on}");
-		
-		
-	}
-	$t=time();
-	$html="
-			
-	var xttask$t=function (obj) {
-		if(document.getElementById('rules-toolbox-left')){
-			RefreshTab('main_dansguardian_mainrules');
-		}
+		$button_name="{debug} ON";
+	
 	}
 	
-		function ttask$t(){
+	$html="<center style='margin:30px'>".button($button_name,"Save$t()",35)."</center>
+	<script>
+	var xttask$t=function (obj) {
+		LoadAjaxRound('main-ufdb-frontend','ufdbguard.status.php');
+		YahooWin6Hide();
+		Loadjs('dansguardian2.compile.php');
+	}
+	
+		function Save$t(){
 			if(!confirm('$watn')){return;}
 			var XHR = new XHRConnection();
 			XHR.appendData('debug','yes');
 			XHR.sendAndLoad('$page', 'POST',xttask$t);
 		}
-			
-ttask$t();	";
 	
-	echo $html;
+			
+			
+			
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
 }
+	
+	
+
 function debug(){
 	
 	$sock=new sockets();
@@ -62,6 +85,6 @@ function debug(){
 	if(!is_numeric($datas["DebugAll"])){$datas["DebugAll"]=0;}
 	if($datas["DebugAll"]==1){$datas["DebugAll"]=0;}else{$datas["DebugAll"]=1;}
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
-	$sock->getFrameWork("cmd.php?reload-squidguard=yes");		
+		
 	
 }

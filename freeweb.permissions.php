@@ -81,7 +81,7 @@ function popup(){
 	if(!is_numeric($FDPermissions["SCHEDULE"])){$FDPermissions["SCHEDULE"]=60;}
 	
 	$html="
-	<div class=text-info>{freeweb_files_perms_explain}</div>
+	<div class=explain>{freeweb_files_perms_explain}</div>
 	<table style='width:99%;' class=form>
 	<tr>
 		<td class=legend>{enable}:</td>
@@ -222,7 +222,7 @@ function popup_rule(){
 	if(!is_numeric($ruleAR["chmodfile"])){$ruleAR["chmodfile"]="0460";}
 
 	$html="
-	<div class=text-info>{freeweb_perms_add_explain}</div>
+	<div class=explain>{freeweb_perms_add_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{directory}:</td>

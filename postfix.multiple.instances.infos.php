@@ -139,7 +139,7 @@ function popup_start(){
 		<tbody>
 		<tr>
 		<td width=1%><img src='img/warning-panneau-32.png'></td>
-		<td><strong style='color:red'>{mysql_error}:$q->mysql_error</strong></td>
+		<td><strong style='color:#d32d2d'>{mysql_error}:$q->mysql_error</strong></td>
 		</tr>
 		</tbody>
 		</table>

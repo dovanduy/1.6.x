@@ -520,7 +520,7 @@ function template_tinymce(){
 		$sql="UPDATE emailing_templates SET template_datas='$template_content' WHERE ID=$ID";
 		$q=new mysql();		
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){$error="<center><H1 style='color:red'>$q->mysql_error</H1></center>";}
+		if(!$q->ok){$error="<center><H1 style='color:#d32d2d'>$q->mysql_error</H1></center>";}
 		
 	}
 	
@@ -814,7 +814,7 @@ function template_attach_iframe($error=null){
 	<tr>
 		<td valign='top'>
 			<h3>{upload_your_file_here}</h3>
-			<div style='font-size:11px'><code style='font-size:13px;font-weight:bold;color:red;margin:4px'>$error</code></div>
+			<div style='font-size:11px'><code style='font-size:13px;font-weight:bold;color:#d32d2d;margin:4px'>$error</code></div>
 			<form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 			<input type='hidden' name='upload' value='yes'>
 			<input type='hidden' name='ou' value='$ou'>

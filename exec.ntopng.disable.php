@@ -50,7 +50,7 @@ function xstart(){
 	$sock->SET_INFO("Enablentopng", 0);
 	build_progress("Stopping service..",15);
 	system("/etc/init.d/ntopng stop");
-	build_progress("Restarting Artica-Status..",20);
+	build_progress("{restarting_status_daemon}..",20);
 	system("/etc/init.d/artica-status restart --force");
 	build_progress("Remove history..",50);
 	$rm=$unix->find_program("rm");

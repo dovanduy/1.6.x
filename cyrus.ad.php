@@ -80,7 +80,7 @@ function popup(){
 	$html="
 	$enable
 	<hr>
-	<div class=text-info>{ActiveDirectorySettings_text}</div>
+	<div class=explain>{ActiveDirectorySettings_text}</div>
 	<div id='CyrusToAdDiv'>
 	<table style='width:100%'>
 	<tr>

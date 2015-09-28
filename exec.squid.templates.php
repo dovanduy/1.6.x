@@ -1,4 +1,5 @@
 <?php
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 $GLOBALS["SCHEDULE_ID"]=0;
 $GLOBALS["AD_PROGRESS"]=0;
 $GLOBALS["DEBUG_INCLUDES"]=false;
@@ -42,6 +43,8 @@ if(preg_match("#--initd#",implode(" ",$argv))){$GLOBALS["BYINITD"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--FUNC-(.+?)-L-([0-9]+)#", implode(" ",$argv),$re)){$GLOBALS["BY"]=" By {$re[1]} Line {$re[2]}";}
 
+if($argv[1]=="--dump"){DUMP_TEMPLATES();exit;}
+if($argv[1]=="--single"){TEMPLATE_SINGLE($argv[2]);exit;}
 
 
 sexec();
@@ -60,6 +63,48 @@ function build_progress($text,$pourc){
 
 }
 
+function TEMPLATE_SINGLE($ERR_TPL){
+	$sock=new sockets();
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){die();}
+	
+
+	
+	$SquidHTTPTemplateLanguage=$sock->GET_INFO("SquidHTTPTemplateLanguage");
+	if($SquidHTTPTemplateLanguage==null){$SquidHTTPTemplateLanguage="en-us";}
+	
+	@mkdir("/usr/share/squid-langpack/$SquidHTTPTemplateLanguage",0755,true);
+	@chown("/usr/share/squid-langpack/$SquidHTTPTemplateLanguage","squid");
+	@chgrp("/usr/share/squid-langpack/$SquidHTTPTemplateLanguage", "squid");
+	
+	
+	$templateDestination="/usr/share/squid-langpack/templates/$ERR_TPL";
+	$templateLangDestination="/usr/share/squid-langpack/templates/$SquidHTTPTemplateLanguage/$ERR_TPL";
+	$xtpl=new template_simple("$ERR_TPL",$SquidHTTPTemplateLanguage);
+	$design=$xtpl->TemplatesDesign();
+	@file_put_contents($templateDestination, $design);
+	@file_put_contents($templateLangDestination, $design);
+	$xtpl=new template_simple("$ERR_TPL",$SquidHTTPTemplateLanguage);
+	@chown($templateLangDestination,"squid");
+	@chgrp($templateLangDestination, "squid");
+	
+	@chown($templateDestination,"squid");
+	@chgrp($templateDestination, "squid");
+	
+}
+
+function DUMP_TEMPLATES(){
+	$sock=new sockets();
+	print_r(unserialize($sock->GET_INFO("TemplateConfig")));
+
+
+	
+	$GLOBALS["XTPL_SQUID_DEFAULT"]=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db"));
+	
+}
+
+
 function sexec(){
 	$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".sexec.pid";
 	$TILE_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".sexec.pid";
@@ -70,9 +115,13 @@ function sexec(){
 	if($SQUIDEnable==0){die();}
 	$pid=@file_get_contents($EXEC_PID_FILE);
 	if($unix->process_exists($pid,basename(__FILE__))){	
-		
 		build_progress("Already running",110);
-		return false;}
+		return false;
+	}
+	
+	$pids=$unix->PIDOF_PATTERN_ALL(__FILE__);
+	if(count($pids)>0){return;}
+	
 	
 	$TILE_PID_TIME=$unix->file_time_min($TILE_PID_FILE);
 	$SquidHTTPTemplateLanguage=$sock->GET_INFO("SquidHTTPTemplateLanguage");
@@ -81,6 +130,9 @@ function sexec(){
 	
 	$GLOBALS["XTPL_SQUID_DEFAULT"]=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db"));
 	$xtpl=new template_simple();
+	
+	
+	
 	
 	$MAIN=$GLOBALS["XTPL_SQUID_DEFAULT"][$SquidHTTPTemplateLanguage];
 	
@@ -143,30 +195,18 @@ function sexec(){
 	
 	if($GLOBALS["PROGRESS"]){
 		build_progress("{reloading} Proxy service",70);
-		$squidbin=$unix->LOCATE_SQUID_BIN();
-		squid_admin_mysql(2, "Restarting proxy service in order to refresh templates ($addon)", null,__FILE__,__LINE__);
-		system("/etc/init.d/squid restart --force");
+		squid_admin_mysql(2, "Reloading proxy service in order to refresh templates ($addon)", null,__FILE__,__LINE__);
+		$SQUID_BIN=$unix->LOCATE_SQUID_BIN();
+		system("$SQUID_BIN -f /etc/squid3/squid.conf -k reconfigure");
 		build_progress("{done}",100);
 		$TILE_PID_TIME=0;
 		return;
 	}
 	
-	if(!$GLOBALS["NORELOAD"]){
-		if($TILE_PID_TIME>30){
-			
-			
-			build_progress("{reloading} Proxy service",70);
-			squid_admin_mysql(2, "Reloading proxy service in order to refresh templates ($addon)", null,__FILE__,__LINE__);
-			$squidbin=$unix->LOCATE_SQUID_BIN();
-			system("/etc/init.d/squid reload --script=exec.squid.templates.php/".__LINE__);
-			
-			@unlink($TILE_PID_FILE);
-			@file_put_contents($TILE_PID_FILE, time());
-		}else{
-			squid_admin_mysql(2, "Reloading proxy service ($addon) skipped (timed out - {$TILE_PID_TIME}Mn )", null,__FILE__,__LINE__);
-		}
-	}
 	build_progress("{done}",100);
 	
 }
+
+
+
 ?>

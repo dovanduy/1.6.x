@@ -327,7 +327,7 @@ Unlike other systems for load balancing IMAP mailboxes, the aggregator allows us
 <APP_JOOMLA>Joomla web service</APP_JOOMLA>
 <APP_KAS3>Kaspersky Anti-spam Gateway</APP_KAS3>
 <APP_KAS3_MILTER>Kaspersky Anti-spam Milter listener</APP_KAS3_MILTER>
-<APP_KAV4PROXY>Kaspersky For Squid</APP_KAV4PROXY>
+<APP_KAV4PROXY>Kaspersky For Proxy</APP_KAV4PROXY>
 <APP_KAV4PROXY_TEXT>Kaspersky For SQUID provides secure Internet access for all employees in the organization,
 automatically removing malicious and potentially hostile programs from incoming HTTP/FTP traffic.</APP_KAV4PROXY_TEXT>
 <APP_KAV4SAMBA>Kaspersky For Samba</APP_KAV4SAMBA>
@@ -431,7 +431,7 @@ Policyd-weight caches the most frequent client/sender combinations (SPAM as well
 <APP_SPAMASS_MILTER>Spamassassin-Milter daemon</APP_SPAMASS_MILTER>
 <APP_SPFMILTER>SPF mail filter module</APP_SPFMILTER>
 <APP_SQLGREY>SqlGrey Policy server</APP_SQLGREY>
-<APP_SQUID>Squid cache proxy</APP_SQUID>
+<APP_SQUID>Proxy service</APP_SQUID>
 <APP_SQUID_TEXT>Squid is a caching proxy for the Web supporting HTTP, HTTPS, FTP, and more.[br]
  It reduces bandwidth and improves response times by caching and reusing frequently-requested web pages.[br]
   Squid has extensive access controls and makes a great server accelerator.[br]
@@ -1140,7 +1140,7 @@ If devices or this server is stolen, nobody can use it except your users compute
 <error_no_global_status>Error, unbable to stat global_status.ini file</error_no_global_status>
 <error_no_ipaddr>Please, set the network address</error_no_ipaddr>
 <ERROR_NO_LAST_NAME>Please, set the last name</ERROR_NO_LAST_NAME>
-<error_no_licence>Error no licence</error_no_licence>
+<error_no_licence>Error no license</error_no_licence>
 <error_no_localization>Please, set the localization of your object</error_no_localization>
 <error_no_ou>Error no organization specified</error_no_ou>
 <error_no_ou_saved>This setting as no Organization selected/saved</error_no_ou_saved>
@@ -1584,7 +1584,7 @@ With the default 100 SMTP server process limit, "in flow delay as 1s" limits the
 <js_delete_alias_text>Are you sure to delete this alias ?</js_delete_alias_text>
 <js_del_domain>Delete this domain and all aliases</js_del_domain>
 <js_expand_domain>Manage aliases and relays</js_expand_domain>
-<js_kav_delete_licence>Remove this domain from licence</js_kav_delete_licence>
+<js_kav_delete_licence>Remove this domain from license</js_kav_delete_licence>
 <july>July</july>
 <june>June</june>
 <kas settings>Kaspersky Anti-Spam</kas settings>
@@ -1594,7 +1594,7 @@ With the default 100 SMTP server process limit, "in flow delay as 1s" limits the
 <kaspersky>Kaspersky Lab Inc</kaspersky>
 <kasreject>Reject this message</kasreject>
 <kassendcopy>Send a copy of this message to other recipient(s)</kassendcopy>
-<kas_licence_text>Upload the *.key file about Kaspersky Anti-Spam gateway in order to update the licence.</kas_licence_text>
+<kas_licence_text>Upload the *.key file about Kaspersky Anti-Spam gateway in order to update the license.</kas_licence_text>
 <kas_main_settings>Kaspersky Anti-Spam settings</kas_main_settings>
 <kas_status>Anti-spam status</kas_status>
 <kav4proxy_status>Kaspersky For squid status</kav4proxy_status>
@@ -1628,8 +1628,8 @@ With the default 100 SMTP server process limit, "in flow delay as 1s" limits the
 <LDAP_ERROR_TEXT>Error, no LDAP connection !</LDAP_ERROR_TEXT>
 <Leave messages on server>Leave messages on server</Leave messages on server>
 <level>level</level>
-<licence operations>licence operations</licence operations>
-<licence status>licence status</licence status>
+<licence operations>license operations</licence operations>
+<licence status>license status</licence status>
 <license>license</license>
 <license_error>License error</license_error>
 <license_expired>The license is expired</license_expired>
@@ -2165,7 +2165,7 @@ This is because Postfix needs to open lookup tables ahead of time, but the reade
 <proc_stat>Process number statistics</proc_stat>
 <product>Product</product>
 <product_licence>Licence</product_licence>
-<product_licence_text>Get the licence info and update your licence definition</product_licence_text>
+<product_licence_text>Get the license info and update your license definition</product_licence_text>
 <product_update_settings>Updates settings</product_update_settings>
 <product_update_settings_text>Settings for download updates in order to maintain the security service</product_update_settings_text>
 <professional_email>Professional eMail</professional_email>
@@ -2889,7 +2889,7 @@ If you want to activate share access, click on the button bellow.</this_not_a_sa
 <title>Artica events</title>
 <TITLE_DOMAINS>Global settings</TITLE_DOMAINS>
 <title_infos>Statics informations</title_infos>
-<title_licence_infos>Licence informations</title_licence_infos>
+<title_licence_infos>License informations</title_licence_infos>
 <title_logs>Kaspersky Events</title_logs>
 <title_main_hash>main.cf: Hash files</title_main_hash>
 <title_main_transport>main.cf: Emails transport settings</title_main_transport>
@@ -3898,7 +3898,7 @@ If needed to force all requests to parent cache(s), use the never_direct option<
 Fill username:password in the field.</parent_options_proxy_login>
 <parent_options_proxy_connect_timeout>Specify a peer specific connect timeout.</parent_options_proxy_connect_timeout>
 <parent_options_proxy_digest_url>To tell Squid to fetch the cache digest (if digests are enabled) for this host from the specified URL rather than the Squid default location.</parent_options_proxy_digest_url>
-<enable_squid_parent>Activate using parent proxy feature</enable_squid_parent>
+<enable_squid_parent>Use parent proxy</enable_squid_parent>
 <APP_ZARAFA_TEXT>Nowadays, e-mail is one of the mission critical applications of a company.[br]
 Zarafa combines the usabillity of Outlook with the stability and flexibility of a Linux server.[br]
 Not only Outlook is supported natively, but users can use also the web 2.0 Outlook "Look & Feel" webaccess, 
@@ -3924,13 +3924,13 @@ A good use of a reverse proxy is to ease the burden on a web server that provide
 The static content can be cached on the reverse proxy while the web server will be freed up to better handle the dynamic content</enable_squid_reverse_text>
 <squid_accel_websites>Web servers</squid_accel_websites>
 <squid_accel_websites_text>Define the web servers that will be cached and protected by your proxy server</squid_accel_websites_text>
-<proxy_pac>Autoconfiguration File</proxy_pac>
-<proxy_pac_text>Use a client autoconfiguration file to configure all of your Navigator clients</proxy_pac_text>
-<enable_squid_proxy_pac>Activate the Autoconfiguration file service</enable_squid_proxy_pac>
+<proxy_pac>Auto-configuration File</proxy_pac>
+<proxy_pac_text>Use a client auto-configuration file to configure all of your Navigator clients</proxy_pac_text>
+<enable_squid_proxy_pac>Activate the Auto-configuration file service</enable_squid_proxy_pac>
 <enable_squid_proxy_pac_text>If you activate this feature, Artica will run a web server on the defined port in order to provide the pac file.[br]
 You will be able to enter the uri to the pac file into browsers in order to set default proxy settings</enable_squid_proxy_pac_text>
-<proxy_pac_rules>Autoconfiguration file rules</proxy_pac_rules>
-<proxy_pac_rules_text>Define the Autoconfiguration file settings for your users</proxy_pac_rules_text>
+<proxy_pac_rules>Auto-configuration file rules</proxy_pac_rules>
+<proxy_pac_rules_text>Define the Auto-configuration file settings for your users</proxy_pac_rules_text>
 <add_a_proxy>Add a proxy</add_a_proxy>
 <proxy_addr>Proxy address</proxy_addr>
 <proxys_list>Proxy(s) list</proxys_list>
@@ -4272,7 +4272,7 @@ Below, you can view that last system events.</services_status_text_explain>
 [li]This refers to the whole Network with address 172.16.1.0: [b]172.16.1.0/24[/b][/li]
 [li]This refers specific single IP Address 172.16.1.25: [b]172.16.1.25/32[/b][/li]
 [li]This refers specific single IP Address 172.16.1.25: [b]172.16.1.25[/b][/li]
-[li]This refers range of IP Addresses from 172.16.1.25-172.16.1.35 :[b]172.16.1.25-172.16.1.35/32[/b][/li]
+
 [/ul]
 </SQUID_NETWORK_HELP>
 <APP_ARTICA_NOTIFIER>Artica SMTP Notifier</APP_ARTICA_NOTIFIER>
@@ -4453,7 +4453,7 @@ user in any domain, depending on how the cache is used.[br] Some ftp servers als
 <remote_database>Remote database</remote_database>
 <SQUID_DISABLED>Squid is disabled</SQUID_DISABLED>
 <SQUID_DISABLED_TEXT>Squid is currently disabled, click here if you want to re-enable it</SQUID_DISABLED_TEXT>
-<restarting>restarting</restarting>
+<restarting>Restarting</restarting>
 <COMPUTER_NETWORK>Network and DNS</COMPUTER_NETWORK>
 <COMPUTER_NETWORK_TEXT>Modify network informations and DNS settings for this computer</COMPUTER_NETWORK_TEXT>
 <COMPUTER_INFOS_SERVICES>Services & informations</COMPUTER_INFOS_SERVICES>
@@ -4836,7 +4836,7 @@ If you are agree with the proposal, click on apply</tune_squid_performances_expl
 <DecodeShortURLs>Short URLs checking</DecodeShortURLs> 
 <DecodeShortURLs_explain>Many social networks and even some email programs do not allow long website addresses. So, spammers have turned to using URL shortening services to get around the social net and email rules.</DecodeShortURLs_explain>
 <enable_DecodeShortURLs>Activate Short URLs checking</enable_DecodeShortURLs>
-<rebuild_squid_caches>Rebuild Squid caches</rebuild_squid_caches>
+<rebuild_squid_caches>Rebuild Proxy caches</rebuild_squid_caches>
 <rebuild_caches>Rebuild caches</rebuild_caches>
 <smtp_virtual_hostname>Virtual hostname</smtp_virtual_hostname>
 <smtp_virtual_hostname_text>Define the hostname that this server will provide in SMTP messages transactions</smtp_virtual_hostname_text>

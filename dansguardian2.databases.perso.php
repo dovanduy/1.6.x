@@ -15,9 +15,20 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);in
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
 	
-	if(!IsDansGuardianrights()){
+	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$WEBFILTERING_TOP_MENU=WEBFILTERING_TOP_MENU();
 		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+		echo $tpl->_ENGINE_parse_body("<div style='font-size:30px;margin-bottom:20px'>$WEBFILTERING_TOP_MENU</div>");
+		echo FATAL_ERROR_SHOW_128("{this_feature_is_disabled_corp_license}");
+		die();
+	}
+	
+	
+	if(!IsPersonalCategoriesRights()){
+		$tpl=new templates();
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
 		exit;
 	}
 	
@@ -189,7 +200,7 @@ function add_category_popup(){
 
 	if(isset($blacklists[$_GET["cat"]])){
 		$description="<input type='hidden' id='category_text-$t' value=''>
-		<div class=text-info style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
+		<div class=explain style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
 	}
 	
 	$html="
@@ -328,7 +339,7 @@ function tabs(){
 function categories(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-
+	$users=new usersMenus();
 	$q=new mysql_squid_builder();
 	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){$q->CheckTables();}else{
 		$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
@@ -339,6 +350,8 @@ function categories(){
 	$dans=new dansguardian_rules();
 	$dans->LoadBlackListes();
 
+	
+	
 
 	$purge_catagories_database_explain=$tpl->javascript_parse_text("{purge_catagories_database_explain}");
 	$purge_catagories_table_explain=$tpl->javascript_parse_text("{purge_catagories_table_explain}");
@@ -354,13 +367,21 @@ function categories(){
 	$size_size=58;
 	$title=$tpl->javascript_parse_text("{your_categories}");
 	$deletetext=$tpl->javascript_parse_text("{purge}");
-	$delete="{display: '$deletetext', name : 'icon3', width : 90, sortable : false, align: 'center'},";
-
-
+	$test_categories=$tpl->javascript_parse_text("{test_categories}");
+	$delete="{display: '<strong style=font-size:18px>$deletetext</strong>', name : 'icon3', width : 90, sortable : false, align: 'center'},";
+	$add=$tpl->javascript_parse_text("{add}");
+	$WEBFILTERING_TOP_MENU=WEBFILTERING_TOP_MENU();
+	if(!$users->CORP_LICENSE){
+		$error="
+				
+				<p class=text-error style='font-size:18px'>" .$tpl->_ENGINE_parse_body("{this_feature_is_disabled_corp_license}")."</p>";
+		
+	}
 	
-
+	
 	$t=time();
-	$html="
+	$html="<div style='font-size:30px;margin-bottom:20px'>$WEBFILTERING_TOP_MENU</div>
+			$error
 <table class='PERSONAL_CATEGORIES_TABLE' style='display: none' id='PERSONAL_CATEGORIES_TABLE' style='width:99%'></table>
 <script>
 $(document).ready(function(){
@@ -368,16 +389,21 @@ $(document).ready(function(){
 	url: '$page?category-search=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$category', name : 'category', width : 416, sortable : false, align: 'left'},
-	{display: '$size', name : 'category', width : 121, sortable : false, align: 'right'},
-	{display: '$items', name : 'TABLE_ROWS', width : 121, sortable : true, align: 'right'},
-	{display: 'compile', name : 'icon2', width : 121, sortable : false, align: 'center'},
+	{display: '<strong style=font-size:18px>$category</strong>', name : 'category', width : 825, sortable : false, align: 'left'},
+	{display: '<strong style=font-size:18px>$add</strong>', name : 'add', width : 121, sortable : false, align: 'center'},
+	{display: '<strong style=font-size:18px>$size</strong>', name : 'category', width : 121, sortable : false, align: 'right'},
+	{display: '<strong style=font-size:18px>$items</strong>', name : 'TABLE_ROWS', width : 121, sortable : true, align: 'right'},
+	{display: '<strong style=font-size:18px>compile</strong>', name : 'icon2', width : 121, sortable : false, align: 'center'},
 	$delete
 
 	],
 	buttons : [
-		{name: '$addCat', bclass: 'add', onpress : AddNewCategory},
-		{name: '$size', bclass: 'Search', onpress : LoadCategoriesSize},
+		{name: '<strong style=font-size:18px>$addCat</strong>', bclass: 'add', onpress : AddNewCategory},
+		{name: '<strong style=font-size:18px>$size</strong>', bclass: 'Search', onpress : LoadCategoriesSize},
+		{name: '<strong style=font-size:18px>$test_categories</strong>', bclass: 'Search', onpress : LoadTestCategories},
+		
+		
+		
 	],
 	searchitems : [
 	{display: '$category', name : 'category'},
@@ -385,13 +411,13 @@ $(document).ready(function(){
 	sortname: 'table_name',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span style=font-size:18px>$title</span>',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rpOptions: [10, 20, 30, 50,100,200],
 	rp:50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 350,
+	height: 550,
 	singleSelect: true
 
 });
@@ -411,8 +437,12 @@ Loadjs('$page?compile-all-dbs-js=yes')
 
 }
 
+function LoadTestCategories(){
+	Loadjs('squid.category.tests.php');
+}
+
 function LoadCategoriesSize(){
-Loadjs('dansguardian2.compilesize.php')
+	Loadjs('dansguardian2.compilesize.php')
 }
 
 function CategoryDansSearchCheck(e){
@@ -485,7 +515,12 @@ function categories_search(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$t=$_GET["t"];
 	$OnlyPersonal=0;
-	$artica=$forceArtica;
+	$error_license=null;
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$error_license="<br><i style='font-size:16px;font-weight:bold'>".$tpl->_ENGINE_parse_body("{perso_category_no_license}")."</i>";
+	}
+	
 	if(isset($_GET["OnlyPersonal"])){$OnlyPersonal=1;}
 	$rp=200;
 	if(isset($_GET["artica"])){$artica=true;}
@@ -528,7 +563,7 @@ function categories_search(){
 		$pageStart = ($page-1)*$rp;
 		$limitSql = "LIMIT $pageStart, $rp";
 	
-	
+		
 	
 		$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql ";
 	
@@ -564,6 +599,7 @@ function categories_search(){
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$color="black";
 			$categorykey=$ligne["category"];
+			$Meta=intval($ligne["Meta"]);
 			if($categorykey==null){$categorykey="UnkNown";}
 			//Array ( [category] => [category_description] => Ma catégorie [master_category] => [sended] => 1 )
 			if($GLOBALS["VERBOSE"]){echo "Found  $field:{$categorykey}<br>\n";}
@@ -589,13 +625,13 @@ function categories_search(){
 	
 	
 			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t',true)\"
-			style='font-size:18px;font-weight:bold;color:$color;text-decoration:underline'>";
+			style='font-size:20px;font-weight:bold;color:$color;text-decoration:underline'>";
 	
 			$text_category=$tpl->_ENGINE_parse_body(utf8_decode($ligne[$field_description]));
 			$text_category=trim($text_category);
 	
 			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t',true)\"
-			style='font-size:18px;font-weight:bold;color:$color;text-decoration:underline'>";
+			style='font-size:20px;font-weight:bold;color:$color;text-decoration:underline'>";
 
 	
 			
@@ -604,28 +640,41 @@ function categories_search(){
 	
 			$text_category=utf8_encode($text_category);
 			$categoryname_text=utf8_encode($categoryname);
-			$categoryText=$tpl->_ENGINE_parse_body("<span style='font-size:18px';font-weight:bold'>$linkcat$categoryname_text</span>
-					</a><br><span style='font-size:16px;width:100%;font-weight:normal'><i>{$text_category}</i></span>");
+			$categoryText=$tpl->_ENGINE_parse_body("<span style='font-size:20px';font-weight:bold'>$categoryname_text</span>
+					</a><br><span style='font-size:18px;width:100%;font-weight:normal'><i>{$text_category}</i></span>$error_license");
 			
 			$itemsEncTxt="<span style='font-size:18px;font-weight:bold'>".numberFormat($items,0,""," ");"</span>";
 		
 	
 			$compile=imgsimple("compile-distri-48.png",null,"DansGuardianCompileDB('$categoryname')");
 			$delete=imgsimple("dustbin-48.png",null,"TableCategoryPurge('$table')");
+			$add=imgsimple("add-48.png",null,"Loadjs('squid.visited.php?add-www=yes&category=$categorykey&t=$t');");
 			
-
 	
 			if($categoryname=="UnkNown"){
 				$linkcat=null;
 				$delete=imgsimple("delete-48.png",null,"TableCategoryPurge('')");
 			}
+			
+			
+			if($Meta==1){
+				$linkcat="<strong>";
+				$compile=null;
+				$sizedb="-";
+				$delete="&nbsp;";
+				$sql="SELECT COUNT( * ) AS tcount FROM webfiltering_meta_items WHERE category='$categorykey'";
+				$ligne2=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+				$items=$ligne2["tcount"];
+				$itemsEncTxt="<span style='font-size:18px;font-weight:bold'>".numberFormat($items,0,""," ");"</span>";
+			}
 	
 		$cell=array();
-		$cell[]=$categoryText;
+		$cell[]=$linkcat.$categoryText;
+		$cell[]="<center>$add</center>";
 		$cell[]="<span style='font-size:18px;padding-top:15px;font-weight:bold'>$sizedb</div>";
 		$cell[]=$itemsEncTxt;
-		$cell[]=$compile;
-		$cell[]=$delete;
+		$cell[]="<center>$compile</center>";
+		$cell[]="<center>$delete</center>";
 	
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],

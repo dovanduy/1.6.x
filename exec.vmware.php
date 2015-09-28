@@ -155,10 +155,13 @@ if(is_file("/etc/default/grub")){
 	if($GLOBALS["UPDATE_GRUB"]){$update=true;}
 	
 	if($update){
+		$tmp=$unix->FILE_TEMP();
 		build_progress("Update GRUB....",30);
 		echo "Starting......: ".date("H:i:s")." Optimize, Grub N2\n";
 		@file_put_contents("/etc/default/grub", @implode("\n", $grb));
-		system("/usr/sbin/update-grub");
+		shell_exec("/usr/sbin/update-grub >$tmp 2>&1");
+		$f=explode("\n",@file_get_contents("$tmp"));
+		while (list ($num, $line) = each ($f) ){echo "Starting......: ".date("H:i:s")." $line\n";}
 	
 	}
 	

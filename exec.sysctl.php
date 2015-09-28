@@ -67,6 +67,7 @@ function build(){
 	$unix=new unix();
 	$sock=new sockets();
 	$Isagetway=false;
+	$INSTALL_SERVICE=false;
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
 	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
 	$conntrack=$unix->find_program("conntrack");
@@ -89,13 +90,18 @@ function build(){
 	
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
 	
-	$swappiness=$ARRAY["swappiness"];
-	if(!is_numeric($swappiness)){$swappiness=60;}
+	$swappiness=intval($ARRAY["swappiness"]);
+	if($swappiness==0){$swappiness=10;}
 	$tcp_max_syn_backlog=$ARRAY["tcp_max_syn_backlog"];
 	if(!is_numeric($tcp_max_syn_backlog)){$tcp_max_syn_backlog=1024;}
 	$EnableTCPOptimize=$sock->GET_INFO("EnableTCPOptimize");
 	$DisableConntrack=intval($sock->GET_INFO("DisableConntrack"));
-	if(!is_numeric($EnableTCPOptimize)){$EnableTCPOptimize=0;}
+	if(!is_numeric($EnableTCPOptimize)){$EnableTCPOptimize=1;}
+	
+	$DisableTCPOptimizations=$sock->GET_INFO("DisableTCPOptimizations");
+	if($DisableTCPOptimizations==1){$EnableTCPOptimize=0;}
+	
+	
 	$echo=$unix->find_program("echo");
 	$modprobe=$unix->find_program("modprobe");
 	
@@ -109,6 +115,7 @@ function build(){
 	$tcp_window_scaling=1;
 	if($DisableTCPWindowScaling==1){$tcp_window_scaling=0;}
 	if($DisableTCPEn==1){$tcp_ecn=0;}
+	$sysctl=$unix->find_program("sysctl");
 	
 	
 	$f[]="#";
@@ -224,24 +231,6 @@ function build(){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} conntrack MAX....: $nf_conntrack_max\n";}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} conntrack Timeout: $ip_conntrack_tcp_timeout_established\n";}
 		
-			/*net.netfilter.nf_conntrack_generic_timeout = 600 
-			net.netfilter.nf_conntrack_tcp_timeout_syn_sent = 120 
-			net.netfilter.nf_conntrack_tcp_timeout_syn_recv = 60 
-			net.netfilter.nf_conntrack_tcp_timeout_established = 432000 
-			net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 120 
-			net.netfilter.nf_conntrack_tcp_timeout_close_wait = 60 
-			net.netfilter.nf_conntrack_tcp_timeout_last_ack = 30 
-			net.netfilter.nf_conntrack_tcp_timeout_time_wait = 120 
-			net.netfilter.nf_conntrack_tcp_timeout_close = 10 
-			net.netfilter.nf_conntrack_tcp_timeout_max_retrans = 300 
-			net.netfilter.nf_conntrack_tcp_timeout_unacknowledged = 300 
-			net.netfilter.nf_conntrack_udp_timeout = 30 
-			net.netfilter.nf_conntrack_udp_timeout_stream = 180 
-			net.netfilter.nf_conntrack_icmp_timeout = 30 
-			net.netfilter.nf_conntrack_events_retry_timeout = 15
-			*/
-			
-			
 			
 			if(is_file("/proc/sys/net/netfilter/nf_conntrack_acct")){
 				$f[]="net.netfilter.nf_conntrack_acct = 1";
@@ -283,6 +272,7 @@ function build(){
 		$f[]="net.ipv4.tcp_syn_retries = 3";
 		$f[]="net.ipv4.tcp_synack_retries = 2";
 		if($tcp_max_syn_backlog<1025){$tcp_max_syn_backlog=10240;}
+		$wmem_max=trim(intval(@file_get_contents("/proc/sys/net/core/wmem_max")));
 		
 		$f[]="net.ipv4.tcp_max_syn_backlog = $tcp_max_syn_backlog";
 		$f[]="net.ipv4.tcp_timestamps = 0";
@@ -295,20 +285,18 @@ function build(){
 		$f[]="net.core.rmem_default = 262144";
 		$f[]="net.core.rmem_max = 262144";
 		$f[]="net.core.wmem_max = 262144";
-		$f[]="net.ipv4.tcp_rmem=10240 87380 12582912";
-		$f[]="net.ipv4.tcp_wmem=10240 87380 12582912";
-		$f[]="net.ipv4.tcp_mem = 12582912 12582912 12582912";
+		$f[]="net.ipv4.tcp_rmem=10240 87380 $wmem_max";
+		$f[]="net.ipv4.tcp_wmem=10240 87380 $wmem_max";
+		$f[]="net.ipv4.tcp_mem = $wmem_max $wmem_max $wmem_max";
 		$f[]="net.ipv4.conf.all.log_martians=0";
 		$f[]="net.ipv4.ip_local_port_range = 1024 65000";
-		
-		
 		$f[]="net.ipv4.tcp_window_scaling = $tcp_window_scaling";
 		$f[]="net.ipv4.tcp_ecn = $tcp_ecn";
 		$f[]="net.ipv4.tcp_low_latency =1 ";
 		$f[]="net.ipv4.tcp_timestamps=1";
 		$f[]="net.ipv4.tcp_sack=1";
 		$f[]="net.ipv4.tcp_no_metrics_save=1";
-		$f[]="net.core.netdev_max_backlog=5000";
+		$f[]="net.core.netdev_max_backlog=16384";
 		$f[]="net.core.rmem_max=12582912";
 		$f[]="net.core.wmem_max = 12582912";
 		$f[]="net.core.wmem_default = 65535";
@@ -377,16 +365,12 @@ function build(){
 			$f[]="net.ipv6.conf.all.arp_filter=1";
 			$f[]="net.ipv6.conf.all.arp_notify=1";
 		}
-	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Set as normal server...\n";}
-		$f[]="net.ipv4.ip_forward=0";
-		
 		
 	}
 	
 	
 	
-	if($EnableipV6==0){
+	if($EnableipV6==1){
 		$f[]="net.ipv6.conf.all.disable_ipv6 = 0";
 		$f[]="net.ipv6.conf.default.disable_ipv6 = 0";
 		$f[]="net.ipv6.conf.lo.disable_ipv6 = 0";
@@ -395,8 +379,63 @@ function build(){
 		$f[]="net.ipv6.conf.default.disable_ipv6 = 1";
 		$f[]="net.ipv6.conf.lo.disable_ipv6 = 1";	
 	}
+	
+	
+	$SCRIPT[]="#!/bin/sh";
+	$SCRIPT[]="### BEGIN INIT INFO";
+	$SCRIPT[]="# Provides:         artica-optimize";
+	$SCRIPT[]="# Required-Start:    \$local_fs";
+	$SCRIPT[]="# Required-Stop:     \$local_fs";
+	$SCRIPT[]="# Should-Start:";
+	$SCRIPT[]="# Should-Stop:";
+	$SCRIPT[]="# Default-Start:     2 3 4 5";
+	$SCRIPT[]="# Default-Stop:      0 1 6";
+	$SCRIPT[]="# Short-Description: artica-optimize";
+	$SCRIPT[]="# chkconfig: - 80 75";
+	$SCRIPT[]="# description: artica-optimize";
+	$SCRIPT[]="### END INIT INFO";
+	$SCRIPT[]="case \"\$1\" in";
+	$SCRIPT[]=" start)";
+	
+	$SCRIPT[]="echo \"Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}\"";
+	$echo=$unix->find_program("echo");
+	while (list ($index, $line) = each ($f)){
+		if(!preg_match("#(.+?)=(.+)#", $line,$re)){continue;}
+		$SCRIPT[]="$sysctl -w \"".trim($re[1])."=".trim($re[2])."\" >/dev/null 2>&1 || true";
+	}
+	$SCRIPT[]="echo \"Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}\" done.";
+	$SCRIPT[]=";;";
+	$SCRIPT[]="*)";
+    $SCRIPT[]="echo \"Usage: $0 start\"";
+    $SCRIPT[]="exit 1";
+    $SCRIPT[]=";;";
+	$SCRIPT[]="esac";
+	$SCRIPT[]="exit 0";
+	$SCRIPT[]="";
+
+	if(!is_file("/etc/init.d/artica-optimize")){$INSTALL_SERVICE=true;}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/init.d/artica-optimize done\n";}
+	@file_put_contents("/etc/init.d/artica-optimize",@implode("\n", $SCRIPT));
+	@chmod("/etc/init.d/artica-optimize",0755);
+	
 	$f[]="";
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Installing init service\n";}
 	@file_put_contents("/etc/sysctl.conf", @implode("\n", $f));
+		
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f artica-optimize defaults >/dev/null 2>&1");
+	}
+		
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add artica-optimize >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 artica-optimize on >/dev/null 2>&1");
+	}
+		
+	shell_exec("/etc/init.d/artica-optimize start");
+	
+	
+	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/sysctl.conf done\n";}
 	if($GLOBALS["REBOOT"]){$reboot=$unix->find_program("reboot");shell_exec("$reboot");}
 	start(true);

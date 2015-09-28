@@ -380,7 +380,7 @@ function members(){
 		}
 	}
 	$html="
-	<div class=text-info>{SARG_MEMBERS_EXPLAIN}</div>
+	<div class=explain>{SARG_MEMBERS_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=50%>

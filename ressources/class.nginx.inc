@@ -60,6 +60,8 @@ class nginx{
 	public $proxy_buffering=1;
 	public $proxy_cache_min_uses=1;
 	public $proxy_buffer_size=8;
+	public $proxy_max_temp_file_size=1024;
+	public $proxy_temp_file_write_size="64k";
 	public $proxy_buffers="16 32k";
 	public $file_settings_path;
 	public $BackupBefore=false;
@@ -171,6 +173,10 @@ class nginx{
 			$this->ssl_client_certificate=intval($ligne["ssl_client_certificate"]);
 			$this->servername_pattern=$ligne["servername_pattern"];
 			if($ligne["certificate"]<>null){$this->set_ssl_certificate($ligne["certificate"]);}
+			$this->proxy_max_temp_file_size=intval($ligne["proxy_max_temp_file_size"]);
+			$this->proxy_temp_file_write_size=intval($ligne["proxy_temp_file_write_size"]);
+			
+			
 			
 			
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [OPT] proxy_buffering...........: \"{$ligne["proxy_buffering"]}\"\n";}
@@ -739,27 +745,30 @@ class nginx{
 		if(!preg_match("#([0-9\.]+)\s+([0-9\.]+)#", $buffers,$re)){
 			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_buffers.............: 128 16k\n";}
 			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size...: 64k\n";}
-			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: 64k\n";}
+			
+			if(intval($this->proxy_temp_file_write_size)==0){$this->proxy_temp_file_write_size=64;}
+			if($this->proxy_temp_file_write_size<$this->proxy_buffer_size){$this->proxy_temp_file_write_size=$this->proxy_buffer_size;}
+				
+			
+			
+			
+			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: {$this->proxy_temp_file_write_size}k\n";}
 			$f[]="\t\tproxy_buffers      128 16k;";
 			$f[]="\t\tproxy_busy_buffers_size 64k;";
-			$f[]="\t\tproxy_temp_file_write_size 64k;";
+			$f[]="\t\tproxy_temp_file_write_size {$this->proxy_temp_file_write_size}k;";
 			return @implode("\n", $f);
 		}
 		$f[]="\t\tproxy_buffers      {$re[1]} {$re[2]}k;";
 		$buffers=($re[1]-1)*$re[2];
 		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size {$buffers}k;\n";}
 		$f[]="\t\tproxy_busy_buffers_size {$buffers}k;";
-		$f[]="\t\tproxy_temp_file_write_size {$buffers}k;";
+		$f[]="\t\tproxy_temp_file_write_size {$this->proxy_temp_file_write_size}k;";
 		
 		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_buffers.............: {$re[1]} {$re[2]}\n";}
 		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size...: {$buffers}k\n";}
-		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: {$buffers}k\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: {$this->proxy_temp_file_write_size}k\n";}
 		
-		/*Directive proxy_temp_file_write_size basically tells nginx how 
-many data it can flush to disk at once when writing temporary 
-file. It may be used to prevent nginx worker process from blocking 
-for too long in io path.
-*/
+		return @implode("\n",$f);
 		
 	}
 	
@@ -785,6 +794,16 @@ for too long in io path.
 		if($this->proxy_buffering==1){
 			$f[]="\t\tproxy_buffering       on;";
 			$f[]="\t\tproxy_cache_min_uses $this->proxy_cache_min_uses;";
+			
+			
+			if($this->proxy_max_temp_file_size>0){
+				$f[]="\t\tproxy_max_temp_file_size {$this->proxy_max_temp_file_size}m;";
+			}
+			
+
+		
+			
+			
 			if($this->proxy_buffer_size>0){
 				$f[]="\t\tproxy_buffer_size       {$this->proxy_buffer_size}k;";
 			}else{
@@ -885,6 +904,7 @@ for too long in io path.
 		$start_directory=trim($ligne["remote_path"]);
 		$ssl=$ligne["ssl"];
 		$port=$ligne["port"];
+		$this->events("reverse_sources/$cache_peer_id ipaddr=$ipaddr port=$port / remote_path = $start_directory",__FUNCTION__,__LINE__);
 		$forceddomain=$ligne["forceddomain"];
 		$proxy_cookie_domain=intval($ligne["proxy_cookie_domain"]);
 		
@@ -901,12 +921,29 @@ for too long in io path.
 
 		
 		$f[]="# SSL:{$ligne["ssl"]} Port:{$ligne["port"]} http prefix:{$http_prefix} [".__LINE__."]";
-		if(!is_numeric($port)){$port=80;}
+		if(!is_numeric($port)){
+			if($ligne["ssl"]==0){
+				$this->events("reverse_sources/$cache_peer_id $port is not numeric -> 80",__FUNCTION__,__LINE__);
+				$port=80;
+			}else{
+				$this->events("reverse_sources/$cache_peer_id $port is not numeric -> 443",__FUNCTION__,__LINE__);
+				$port=443;
+			}
+		}
+		
+		
+		
+		
 		$port_suffix=":$port";
+		$this->events("reverse_sources/$cache_peer_id http_prefix = '$http_prefix'",__FUNCTION__,__LINE__);
+		$this->events("reverse_sources/$cache_peer_id port_suffix = '$port_suffix'",__FUNCTION__,__LINE__);
 		if($http_prefix==null){
 			$http_prefix="https";
 			if($port==80){$http_prefix="http";$port_suffix=null;}
-			if($ssl==0){$http_prefix="http";$port_suffix=null;}
+			if($ssl==0){
+				$http_prefix="http";
+				if($port==80){$port_suffix=null;}
+			}
 			
 			if($port==443){
 				if($ssl==0){
@@ -953,17 +990,36 @@ for too long in io path.
 		}
 		
 		
+		$proxy_pass_separator="/";
+		$this->events("Suffix=$suffix",__FUNCTION__,__LINE__);
+		$this->events("start_directory=$start_directory",__FUNCTION__,__LINE__);
+		$this->events("start_directory Start='".substr($start_directory, 0,1)."'",__FUNCTION__,__LINE__);
+		$this->events("start_directory End='".substr($start_directory, strlen($start_directory)-1,1)."'",__FUNCTION__,__LINE__);
 		
-		$proxy_pass_suffix=$suffix.$start_directory."/";
+		if($suffix<>null){
+			if(substr($suffix, strlen($suffix)-1,1)=="/"){$proxy_pass_separator=null;}
+		}
+		
+		if($start_directory<>null){
+			if(substr($start_directory, 0,1)=="/"){$proxy_pass_separator=null;}
+			if(substr($start_directory, strlen($start_directory)-1,1)<>"/"){$start_directory=$start_directory."/";}
+		}
+		
+		
+		$proxy_pass_suffix=$suffix.$proxy_pass_separator.$start_directory;
 		$proxy_pass_suffix=str_replace("//", "/", $proxy_pass_suffix);
+		$this->events("proxy_pass_suffix=$proxy_pass_suffix",__FUNCTION__,__LINE__);
 		if($GLOBALS["OUTPUT"]){echo "$logprefix Suffix = `$proxy_pass_suffix`\n";}
 		
 		$f[]="# --- forceddomain        = $forceddomain [".__LINE__."]";
 		$f[]="# --- start_directory     = $start_directory [".__LINE__."]";
 		$f[]="# --- proxy_cookie_domain = $proxy_cookie_domain [".__LINE__."]";
 		$f[]="# --- ForceRedirect 		= {$ligne["ForceRedirect"]} [".__LINE__."]";
+		$f[]="# --- Suffix			 	= {$suffix} [".__LINE__."]";
 		$f[]="# --- proxy_pass_suffix 	= {$proxy_pass_suffix} [".__LINE__."]";
+		$f[]="# --- proxy_pass_separator= {$proxy_pass_separator} [".__LINE__."]";
 		
+		$this->events("proxy_pass=[$http_prefix]://[$ipaddr][$port_suffix][$proxy_pass_suffix]",__FUNCTION__,__LINE__);
 		$f[]="\t\tproxy_pass {$http_prefix}://$ipaddr$port_suffix$proxy_pass_suffix;";
 		
 		if($forceddomain<>null){
@@ -990,6 +1046,20 @@ for too long in io path.
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT forceddomain FROM reverse_sources WHERE ID='$cache_peer_id'"));
 		return trim($ligne["forceddomain"]);
+	}
+	
+	function events($text,$function=null,$line=0){
+		if($GLOBALS["VERBOSE"]){echo $text."\n";}
+		$common="/var/log/nginx.builder.log";
+		$size=@filesize($common);
+		if($size>100000){@unlink($common);}
+		$pid=getmypid();
+		$date=date("Y-m-d H:i:s");
+		$h = @fopen($common, 'a');
+		$sline="[$pid] $text";
+		$line="$date [$pid] ($function/$line) $text\n";
+		@fwrite($h,$line);
+		@fclose($h);
 	}
 	
 	private function ParseHostHeader($HostHeader){
@@ -1836,7 +1906,7 @@ private function http_location_cache_params($ligne){
 		
 		if($this->mixed_ssl==1){
 			$IsSSL=false;
-			$f[]="\tlisten {$HostIPADDR}443 ssl;";
+			$f[]="\tlisten {$HostIPADDR}443 ssl{$default_server};";
 			$f[]=$this->ssl_directives();
 			
 		}
@@ -1871,10 +1941,9 @@ private function http_location_cache_params($ligne){
 			$access_log="/dev/null";
 			$ErrorLogLevel="crit";
 		}
-			
+
 		$f[]="\taccess_log  /var/log/apache2/access-common.log awc_log;";
-		$f[]="\taccess_log  $access_log aws_log;";
-		$f[]="\terror_log  /var/log/apache2/$Logsuffix/nginx.error.log $ErrorLogLevel;";
+		$f[]="\terror_log  /var/log/apache2/nginx.error.log $ErrorLogLevel;";
 		
 		
 		if($this->OWA){
@@ -1934,6 +2003,7 @@ private function http_location_cache_params($ligne){
 	
 	
 	private function ssl_directives(){
+		$GLOBALS["SSL_RETURNED"]=true;
 		$nginx_certificate=new nginx_certificate($this->sslcertificate,$this->ssl_client_certificate);
 		if($this->ssl_protocols==null){$this->ssl_protocols="TLSv1 TLSv1.1 TLSv1.2";}
 		if($this->ssl_ciphers==null){$this->ssl_ciphers="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";}
@@ -1941,10 +2011,11 @@ private function http_location_cache_params($ligne){
 		$f[]="# SSL ---------------------------------- [".__LINE__."]";
 		$f[]="# cache_peer_id = $this->cache_peer_id";
 		$f[]="# sslcertificate = $this->sslcertificate";
-		$f[]="# ssl_client_certificate = $this->ssl_client_certificate";
+		$f[]="# ssl_client_certificate = $this->ssl_client_certificate [".__LINE__."]";
 		
 		
 		$f[]=$nginx_certificate->GetConf();
+		
 		
 		$f[]="\tssl_session_cache shared:SSL:50m;";
 		$f[]="\tssl_session_timeout  5m;";
@@ -2368,20 +2439,29 @@ private function http_location_cache_params($ligne){
 	}	
 	
 	private function ROOT_WEBSERVER_SSL(){
+		$sslconf=null;
 		if($this->ssl==0){return "# SSL disabled [".__LINE__."]";}
 		if($this->ssl_protocols==null){$this->ssl_protocols="TLSv1 TLSv1.1 TLSv1.2";}
 		if($this->ssl_ciphers==null){$this->ssl_ciphers="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";}
-		$nginx_certificate=new nginx_certificate($this->sslcertificate,$this->ssl_client_certificate);
 		
 		$f[]="# SSL ---------------------------------- [".__LINE__."]";
 		$f[]="# ssl_client_certificate=$this->ssl_client_certificate [".__LINE__."]";
 		$f[]="\tproxy_set_header X-Forwarded-Ssl on;";
 		$f[]="\tssl on;";
-		$f[]=$nginx_certificate->GetConf();
-		$f[]="\tssl_session_timeout  5m;";
-		$f[]="\tssl_protocols  $this->ssl_protocols;";
-		$f[]="\tssl_ciphers '$this->ssl_ciphers';";
-		$f[]="\tssl_prefer_server_ciphers   on;";
+		
+		if(!isset($GLOBALS["SSL_RETURNED"])){
+			$f[]="\tssl_session_timeout  5m;";
+			$nginx_certificate=new nginx_certificate($this->sslcertificate,$this->ssl_client_certificate);
+			$f[]=$nginx_certificate->GetConf();
+			$f[]="\tssl_ciphers '$this->ssl_ciphers';";
+			$f[]="\tssl_prefer_server_ciphers   on;";
+			$f[]="\tssl_protocols  $this->ssl_protocols;";
+		}
+
+		
+		
+		
+	
 		return @implode("\n", $f);
 	}
 	
@@ -2589,7 +2669,8 @@ private function http_location_cache_params($ligne){
 				$f[]="# -- IsSubstitutions $subsfilter_proxy_to_host -> $ToReplacewww [".__LINE__."]";
 				
 				
-				$f[]="\t\tsubs_filter \$scheme:\/\/".$this->PatternToRegex($subsfilter_proxy_to_host)." \$scheme://$ToReplacewww gir;";
+				$f[]="\t\tsubs_filter http:\/\/".$this->PatternToRegex($subsfilter_proxy_to_host)." \$scheme://$ToReplacewww gir;";
+				$f[]="\t\tsubs_filter https:\/\/".$this->PatternToRegex($subsfilter_proxy_to_host)." \$scheme://$ToReplacewww gir;";
 				$f[]="\t\tsubs_filter ".$this->PatternToRegex($subsfilter_proxy_to_host)." $ToReplacewww gir;";
 				if(preg_match("#^www\.(.+)#", $this->proxy_to_host,$re)){
 					$f[]="\t\tsubs_filter ".$this->PatternToRegex($re[1])." $ToReplacewww gir;";

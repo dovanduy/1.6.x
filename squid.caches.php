@@ -197,11 +197,7 @@ $cache_settings="
 		<td>" . Field_text('minimum_object_size',$squid->global_conf_array["minimum_object_size"],'width:70px;font-size:14px')."</td>
 		<td>" . help_icon('{minimum_object_size_text}',false,'squid.index.php')."</td>
 		</tr>
-<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{maximum_object_size_in_memory}:</strong></td>
-		<td>" . Field_text('maximum_object_size_in_memory',$squid->global_conf_array["maximum_object_size_in_memory"],'width:70px;font-size:14px')."</td>
-		<td>" . help_icon('{maximum_object_size_in_memory_text}',false,'squid.index.php')."</td>
-		</tr>			
+		
 <tr>
 		<td align='right' class=legend nowrap style='font-size:14px'>{ipcache_size}:</strong></td>
 		<td>" . Field_text('ipcache_size',$squid->global_conf_array["ipcache_size"],'width:70px;font-size:14px')."</td>
@@ -248,7 +244,6 @@ $cache_settings="
 		XHR.appendData('cache_swap_low',document.getElementById('cache_swap_low').value);
 		XHR.appendData('cache_swap_high',document.getElementById('cache_swap_high').value);
 		XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size').value);
-		XHR.appendData('maximum_object_size_in_memory',document.getElementById('maximum_object_size_in_memory').value);
 		XHR.appendData('ipcache_size',document.getElementById('ipcache_size').value);
 		XHR.appendData('ipcache_low',document.getElementById('ipcache_low').value);
 		XHR.appendData('ipcache_high',document.getElementById('ipcache_high').value);

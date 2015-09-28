@@ -17,7 +17,7 @@ For example if you define domain.tld as the domain suffix and you enable WebDav 
 <streamGetService>Streaming cache parameters</streamGetService>
 <streamGetService_text>Define parameters of the Streaming cache Web servive and daemon parameters</streamGetService_text>
 <ufdbclient_parms_explain>Define parameters of the UfdbGuard redirectors hooks.[br]UfdbGuard client is the process that create a link between the UfdbGuard service and the proxy</ufdbclient_parms_explain>
-<UseRemoteUfdbguardService>Use a remote Ufdbguard server</UseRemoteUfdbguardService>
+<UseRemoteUfdbguardService>Use a remote Artica server</UseRemoteUfdbguardService>
 <client_parameters>Client parameters</client_parameters>
 <remote_server>Remote server</remote_server>
 <streamcache_status>StreamCache status</streamcache_status>
@@ -66,7 +66,7 @@ To confirm this operation, press next button</welcome_php_failoverunlink_explain
 <max_processes>MAX Processes</max_processes>
 <max_msg_per_connection>MAX Messages per connection</max_msg_per_connection>
 <change_timecode>Change original TimeCode</change_timecode>
-<messages>messages</messages>
+<messages>Messages</messages>
 <max_cnt_hour>MAX connections per hour</max_cnt_hour>
 <ban_addresses_for_interfaces>Ban addresses from the Interface</ban_addresses_for_interfaces>
 <ban_addresses_for_interfaces_text>This section hide the possibility to use some IP addresses of your server.[br]
@@ -493,11 +493,11 @@ If not, it is in charge to continue injecting datas inside databases.
 <build_month_tables>Build month tables</build_month_tables>
 <build_month_tables_explain>This task calculate datas for the month table</build_month_tables_explain>  
 <APP_ECAPAV>eCAP antivirus adapter</APP_ECAPAV>
-<white_mime_type>Whitelist content by Mime Type</white_mime_type>
+<white_mime_type>White-list content by Mime Type</white_mime_type>
 <exlude_mimetype_explain>This section will exclude content filtering such as antivirus from elements by mime type.[br]
 These items will not be excluded from the URLs filtering engine</exlude_mimetype_explain>
 <new_mime_type>New MIME type</new_mime_type>
-<add_mime_type_white_explain>Give here the Mime type you want to be whitelisted.
+<add_mime_type_white_explain>Give here the Mime type you want to be white-listed.
 You can add a mime type by using family slash type
 example :
 audio/mpeg or image/jpeg or application/x-mms-framed
@@ -652,7 +652,7 @@ If you using this application with Artica, you should enable this feature in ord
 <categorized_in_articadb>enabled inside the Artica Database</categorized_in_articadb>
 <articaitems>Artica items</articaitems>
 <youritems>Your items</youritems>
-<whitelist_this_website>Whitelist this website</whitelist_this_website>
+<whitelist_this_website>White-list this website</whitelist_this_website>
 <howto_www_white>It turned to green, this website will be allowed to pass to any filter on your proxy.[br]
 It will be not filtered by the antivirus and the Webfiltering engine.
 </howto_www_white>
@@ -706,7 +706,8 @@ Intended use is for displaying "terms of use" pages, ad popups etc</APP_SQUID_SE
 <external_webpage>External Web Page</external_webpage>
 <importadmembers>Import Active Directory members</importadmembers>
 <importadmembers_explain>Parse the Active Directory in order to fill the local groups/users table.[br]After importing task, the web filter engine will be rebuilded</importadmembers_explain>
-<warn_ufdbguard_not_activated_explain>The Webfilter Engine is not activated in your configuration.[br]Some rules will be not applied on your proxy.[br]Go into services status section in order to enable it</warn_ufdbguard_not_activated_explain>
+<warn_ufdbguard_not_activated_explain>The Webfilter Engine is not activated in your configuration.
+[br]Some rules will be not applied on your proxy.</warn_ufdbguard_not_activated_explain>
 <squid_ext_session_acl_not_found_explain>The session helper binary was not found on this server, this feature will not works has expected</squid_ext_session_acl_not_found_explain>
 <backto31xsquid_explain>This operation will turn your proxy version to the 3.1x branch.
 This operation will remove the current version and will compile the old one.
@@ -842,8 +843,8 @@ The object will not be deleted but all datas will be erased</perform_empty_ask>
 <whitelist_categories_explain>All websites stored in these categories will be allways allowed</whitelist_categories_explain>
 <webfiltering_service>Web Filtering service</webfiltering_service>
 <your_settings>Your settings</your_settings>
-<blacklist_categories>Blacklist categories</blacklist_categories>
-<whitelist_categories>Whitelist categories</whitelist_categories>
+<blacklist_categories>Black-list categories</blacklist_categories>
+<whitelist_categories>White-list categories</whitelist_categories>
 <failed_login>Login failed</failed_login>
 <lost_password>Lost password</lost_password>
 <lost_password_explain>[b]Lost your Password?[/b][br]
@@ -853,9 +854,9 @@ You will receive a new password shortly.[br]
 Use this new password to access the site.
 </lost_password_explain>
 <send_password>Send Password</send_password>
-<global_whitelists>Global whitelists</global_whitelists>
-<global_blacklists_explain>These categories will be locked has blacklisted categories</global_blacklists_explain>
-<global_whitelists_explain>These categories will be locked has whitelisted categories</global_whitelists>
+<global_whitelists>Global white-lists</global_whitelists>
+<global_blacklists_explain>These categories will be locked has black-listed categories</global_blacklists_explain>
+<global_whitelists_explain>These categories will be locked has white-listed categories</global_whitelists>
 <recovery_password_message>Recovery password message</recovery_password_message>
 <recovery_password_message_text>Dear member, 
 Your password has been successfully changed.
@@ -877,7 +878,7 @@ a PAC defines how web browsers can automatically choose the appropriate proxy se
 <username2>User name</username2>
 <ssl_port>SSL port</ssl_port>
 <new_website>New website</new_website>
-<whitelist_all_domains>Whitelist all domains</whitelist_all_domains>
+<whitelist_all_domains>White-list all domains</whitelist_all_domains>
 <internet_browsing>Internet Browsing</internet_browsing>
 <invalid>invalid</invalid>
 <already_affected>Already affected</already_affected>
@@ -889,7 +890,7 @@ Perform this operation ?</clean_memory_ask>
 <proxy_objects>Proxy objects</proxy_objects>
 <new_proxy_object>New proxy object</new_proxy_object>
 <webfilter>Web Filter</webfilter>
-<pass_trough_thewebfilter_engine>Pass trough the web filter engine</pass_trough_thewebfilter_engine>
+<pass_trough_thewebfilter_engine>Do not use the web filter engine</pass_trough_thewebfilter_engine>
 <pass_trough_antivirus_engine>Pass trough antivirus engine</pass_trough_antivirus_engine>
 <deny_access>Deny access</deny_access>
 <smtp_events_database_explain>Counters and SMTP events are stored in a MySQL Table.[br]In this section you can backup the events log table to the local disk and/or reset the table in order to reset counters too.</smtp_events_database_explain>
@@ -899,7 +900,7 @@ Perform this operation ?</clean_memory_ask>
 <reset_smtp_logs_ask>Empty the SMTP events table ?
 All datas according SMTP events will be removed</reset_smtp_logs_ask>
 <softwares_clients>Clients softwares</softwares_clients> 
-<pass_trough_thewebfilter_engine>Pass trough the web filter engine</pass_trough_thewebfilter_engine>
+<pass_trough_thewebfilter_engine>Do not use the web filter engine</pass_trough_thewebfilter_engine>
 <pass_trough_antivirus_engine>Pass trough the antivirus engine</pass_trough_antivirus_engine>
 <delete_rule_ask>Delete this rule ?</delete_rule_ask>
 <link_item>Link item</link_item>
@@ -1408,7 +1409,7 @@ Use these format for the email address:
 </transport_email_explain>
 <recipient_relay_table_text>Create SMTP forward rules per recipient email address or SMTP domain</recipient_relay_table_text>
 <already_used_byinstance>Already used by the instance</already_used_byinstance>
-<malware_uri>Update malwares URI blacklist</malware_uri>
+<malware_uri>Update malwares URI black-list</malware_uri>
 <malware_uri_explain>This task will get new uris that point to viruses or malwares in order to block internet users</malware_uri_explain>
 <ZARAFA_WEB_NOT_USEFUL>FreeWebs is able to provide Zarafa Web interface.[br]It seems that the Web service dedicated to Zarafa is enabled in the Zarafa section.[br]
 You will safe memory by disable the dedicated web server for Zarafa.</ZARAFA_WEB_NOT_USEFUL>
@@ -1582,7 +1583,7 @@ All defined Internet sites will be copied to the server directories</WebCopy_tas
 <your_home_dir_seems_not_indexed>Your Home directory seems to not be indexed...</your_home_dir_seems_not_indexed>
 <logged_as>Logged as</logged_as>
 <your_home_dir_seems_not_indexed>Your home directory seems to not be indexed</your_home_dir_seems_not_indexed>
-<AUTOFS_ERROR_NO_CONNECTION>Currently, no connection as been added on the Database.[br]In this case, it is normal that the service is stopped or down</AUTOFS_ERROR_NO_CONNECTION>
+<AUTOFS_ERROR_NO_CONNECTION>No connection as been added in the database.[br]In this case, it is normal that the service is stopped or down</AUTOFS_ERROR_NO_CONNECTION>
 <remove_connection_ask>Remove this connection ?</remove_connection_ask>
 <APP_XAPIAN_FREEWEB_TEXT>Xapian Desktop is a meta-search engine portal that indexing resources specified in the Xapian Desktop area.</APP_XAPIAN_FREEWEB_TEXT>
 <xapian_db_size_explain>This is the size of the Xapian index database</xapian_db_size_explain>
@@ -1985,8 +1986,8 @@ Example:*.bat,*.cmd,*.com,*.exe,*.vbs,*.msi,*.pif,*.reg
 </veto_files_add_explain>
 <samba_watchdog>Samba service Watchdog</samba_watchdog>
 <samba_watchdog_text>Ensure that Samba services are up and notify if CPU/memory exceed limits</samba_watchdog_text>
-<addressbooks_whitelisting>Addressbooks Whitelisting</addressbooks_whitelisting>
-<addressbooks_whitelisting_explain>Automatically whitelist email addresses stored on members addressbooks</addressbooks_whitelisting_explain>
+<addressbooks_whitelisting>Addressbooks White-listing</addressbooks_whitelisting>
+<addressbooks_whitelisting_explain>Automatically white-list email addresses stored on members addressbooks</addressbooks_whitelisting_explain>
 <addressbooks_whitelisting_zarafa>This feature will parse all members addressbooks and Whitelist each contact email address from the Anti-Spam filters</addressbooks_whitelisting_zarafa> 
 <whitelist_zarafa_contacts>Export Zarafa contacts to whitelist database</whitelist_zarafa_contacts>
 <whitelist_zarafa_contacts_explain>This task will export all zarafa contacts to the central whitelist database.[br]
@@ -2197,7 +2198,6 @@ If after enable it your users complain about a low bandwidth, disable this featu
 <acl_squid_dst_explain>Request for IPv4/IPv6 destination (server) IP addresse(s)[br]
 1.This refers to the whole Network with address 172.16.1.0: "172.16.1.0/24" [br]
 2.This refers specific single IP Address: "172.16.1.25/32" or "172.16.1.0"[br]
-3.This refers range of IP Addresses from  172.16.1.25 to 172.16.1.35: "172.16.1.25-172.16.1.35/32"[br]
 </acl_squid_dst_explain>
 <change_template>Change template</change_template>
 <reverse>reverse</reverse>
@@ -2687,7 +2687,7 @@ A corporate Edition will allow you to enable this feature.
 <enable_activedirectory_stats>If turn to green, the remote node will use the same Active Directory credentials of this server in order to authenticate members</enable_activedirectory_stats>
 <enable_activedirectory>Activate Active Directory connection</enable_activedirectory>
 <enable_mac_squid_filters>Activate MAC filtering</enable_mac_squid_filters>
-<enable_mac_squid_filters_explain>if turn to green, the Proxy will be able to log MAC addresses and you will be able to create ACLs using MAC addresses for whitelisting or blacklisting.
+<enable_mac_squid_filters_explain>if turn to green, the Proxy will be able to log MAC addresses and you will be able to create ACLs using MAC addresses for whitelisting or black-listing.
 MAC addresses filtering is available only if the proxy is on the same LAN, if it is not the case.[br]
 Each connection to the proxy will force it to resolve the MAC address.[br]
  turn to green this feature will safe some response time.
@@ -2850,7 +2850,7 @@ This doesn't "remove" the software but just hide the feature.[br]
 Your will be able to enable it trough the service parameters section.
 </hide_webfiltering_section_explain>
 <x-Forwarded-For_explain>Modify the behavior about the x-Forwarded-For header sent by the proxy to upstream servers</x-Forwarded-For_explain>
-<ufdbguard_options_explain>This section is about the Web filtering engine parameters when using white/Blacklists categories.</ufdbguard_options_explain>
+<ufdbguard_options_explain>This section is about the Web filtering engine parameters when using white/Black-lists categories.</ufdbguard_options_explain>
 <SMTP_BANNER>SMTP Banner</SMTP_BANNER>
 <SMTP_BANNER_TEXT>SMTP greeting banner text displayed when connecting to the SMTP port</SMTP_BANNER_TEXT>
 <category_no_license_explain>Not used for webfiltering, license is required</category_no_license_explain> 
@@ -3278,7 +3278,7 @@ In this case you can analyze service events in order to understand rules process
 If you answer to yes, the Web filtering engine will be restarted.
 Continue ?
 </ufdbguard_debug_on>
-<ufdbguard_debug_off>This will turn off the Web Filtering serive debug mode.
+<ufdbguard_debug_off>This will turn off the debug mode on the Web Filtering service .
 If you answer to yes, the Web filtering engine will be restarted.
 </ufdbguard_debug_off>
 <APP_SQUID_DB>Statistics MySQL Engine</APP_SQUID_DB>
@@ -4001,7 +4001,7 @@ example:[br]
 cnn.com/video[br]
 edition.cnn.com/video[br]
 </webfiltering_add_uris_explain>
-<behavior>behavior</behavior>
+<behavior>Behavior</behavior>
 <you_need_to_define_sources_first>There no source defined, you need to define sources before apply these parameters</you_need_to_define_sources_first>
 <nginx_servername2>This is the name of your source, it is an ergonomic name in order to easily retreive it</nginx_servername2>
 <nginx_destination>Where requests must be forwarded ?.[br]
@@ -4394,7 +4394,7 @@ In this case, the remote Artica proxy server will be in charge of all related st
 This will increase performances on this server because it will act only as proxy server and no "cosmetics" tasks will be executed.[br]
 [b]Verify that this server is able to connect to the remote server with UDP on port 514 and TCP on the 9000 port (as the default Artica Web console port).[/b]
 </STATISTICS_SYSLOGAPPLIANCE_EXPLAIN>
-<squid_parents_proxy>Caches Proxy parents</squid_parents_proxy>
+<squid_parents_proxy>Caches parents Proxies </squid_parents_proxy>
 <parents_squid_import_explain>This option allows you to bulk import a list of parents proxy.[br]
 Set here the list with server:port separated by a carriage return.[br]
 In the options field, separate each options by a comma.[br]
@@ -4554,7 +4554,7 @@ Do you want to carry out this operation ?
 <reseller_company>Your reseller company Name</reseller_company>
 <buy_a_license>Buy a license</buy_a_license>
 <NoMalwareUris>No Malware URIs database</NoMalwareUris>
-<NoMalwareUris_explain>If you using the malware database as blacklist and you encounter false alarms, you can enable this checkbox to not include Malware URLs database.[br]
+<NoMalwareUris_explain>If you using the malware database as black-list and you encounter false alarms, you can enable this checkbox to not include Malware URLs database.[br]
 The Malware domains database will be used but not the URLs database that use regular expressions on URLs</NoMalwareUris_explain>
 <php_values>PHP values</php_values>
 <new_php_value>New PHP value</new_php_value>
@@ -4852,7 +4852,6 @@ Example: .company.com .localdomain.local for the whole domain or host1.company.c
 [ul]
 [li]172.16.1.0/24 - refers to the whole Network with address 172.16.1.0[/li]
 [li]172.16.1.25/32 - refers to a single source[/li]
-[li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
 [/ul]</acl_dst_text>
 <upload_certificate>Upload certificate</upload_certificate>
 <privkey_ssl_explain>A private key is created during asymmetric-key encryption, 
@@ -5140,7 +5139,7 @@ advanced find search tool[br]
 <shorwallnic_routefilter>Act as gateway</shorwallnic_routefilter>
 <shorwallnic_dropunclean>Logs and drops mangled/invalid packets</shorwallnic_dropunclean>
 <shorwallnic_logunclean>Logs mangled/invalid packets but does not drop them</shorwallnic_logunclean>
-<shorwallnic_blacklist>Activate blacklists on this interface</shorwallnic_blacklist>
+<shorwallnic_blacklist>Activate black-lists on this interface</shorwallnic_blacklist>
 <shorwallnic_proxyarp>Act as Proxy ARP</shorwallnic_proxyarp>
 <shorwallnic_dhcp>A DHCP service using this interface</shorwallnic_dhcp>
 <shorwallnic_routeback>Route back out same interface</shorwallnic_routeback>
@@ -5166,19 +5165,22 @@ advanced find search tool[br]
 <shorwallnic_tcpflags>Illegal combinations of TCP flags</shorwallnic_tcpflags>
 <shorwallnic_upnp>remap via UPNP</shorwallnic_upnp>
 <comment>Comment</comment>
-<squid_urgency_explain>The Proxy emmergency mode is a special feature that turn the proxy to a minimal configuration in order to let your users surfing trough Internet.[br]
+<squid_urgency_explain>The Proxy emergency mode is a special feature that turn the proxy to a minimal configuration in order to let your users surfing trough Internet.[br]
 Enable this feature will turn the proxy to this behavior:[br]
 [li]No cache: the proxy did not use any system cache.[/li]
 [li]No rule: The proxy allow everybody everywhere[/li]
 [li]No external service: The proxy did not use any plugins or addons[/li]
 [br]
 </squid_urgency_explain>
-<activate_squid_urgency>Activate the Proxy emmergency behavior</activate_squid_urgency>
-<enable_squid_urgency_access>Activate Proxy emmergency access</enable_squid_urgency_access>
-<enable_squid_urgency_access_explain>This feature will add a link on the logon page in order to let your colleagues to turn the proxy to emmergency mode if you are not able to perform this operation</enable_squid_urgency_access_explain>
-<SquidUrgency_save_explain>The Proxy emmergency parameter as been saved, the proxy will be restarted in few seconds...</SquidUrgency_save_explain>
-<urgency_mode>Emmergency mode</urgency_mode>
-<SquidUrgency_nosave_explain>The Proxy emmergency as been disabled, the proxy will be restarted in few seconds</SquidUrgency_nosave_explain>
+<activate_squid_urgency>Activate the Proxy emergency behavior</activate_squid_urgency>
+<enable_squid_urgency_access>Activate Proxy emergency access</enable_squid_urgency_access>
+<enable_squid_urgency_access_explain>This feature will add a link on the logon page in order to let your colleagues to turn the proxy to emergency mode if you are not able to perform this operation</enable_squid_urgency_access_explain>
+<SquidUrgency_save_explain>The Proxy emergency parameter as been saved, the proxy will be restarted in few seconds...</SquidUrgency_save_explain>
+<urgency_mode>Emergency mode</urgency_mode>
+<global_urgency_mode>Global emergency mode</global_urgency_mode>
+<SquidSSLUrgency_explain>This option will turn OFF all SSL features if you have enabled the SSL decryption method</SquidSSLUrgency_explain>
+<StoreIDUrgency_explain>This option will remove temporary HyperCache feature</StoreIDUrgency_explain>
+<SquidUrgency_nosave_explain>The Proxy emergency as been disabled, the proxy will be restarted in few seconds</SquidUrgency_nosave_explain>
 <FW_ACCEPT>Accept the connection</FW_ACCEPT>
 <FW_DROP>Ignore - drop</FW_DROP>
 <FW_REJECT>Reject with RST</FW_REJECT>
@@ -5507,7 +5509,7 @@ By default, your did not have to add something here.
 <retry_authentication>Retry authentication</retry_authentication>
 <hostpot_blackports_explain>Here it is a list of denied outgoing Internet port when enable the restricted option in Networks</hostpot_blackports_explain>
 <add_ports_explain>Set the port number eg: 5469 or sperate multiple ports with a comma eg: 56,45,87,963</add_ports_explain>
-<web_filtering_explain_choose>Choose categories you want to build "Blacklists" categories.[br]
+<web_filtering_explain_choose>Choose categories you want to build "Black-lists" categories.[br]
 These categories will be added in the default rule.[br]
 </web_filtering_explain_choose>
 <macro_remove_disk>Remove disk from the system</macro_remove_disk>
@@ -5670,7 +5672,7 @@ This section allows you to save specific informations on the auto-signed certifi
 </squid_ssl_certificate_explain>
 <use_certificate_from_certificate_center>Use a certificate from certificate center</use_certificate_from_certificate_center>
 <separate_comma>You can separate multiple values with a comma ","</separate_comma>
-<blacklist_this_website>Blacklist this website</blacklist_this_website>
+<blacklist_this_website>Black-list this website</blacklist_this_website>
 <blocked_sites_acl_explain>This is global blacklists that deny surfing to websites for all users</blocked_sites_acl_explain>
 <dashboard_stats>Dashboard Statistics</dashboard_stats>
 <dashboard_stats_explain>Prepare statistics data in order to build graphs/charts in the front panel</dashboard_stats_explain>
@@ -5775,7 +5777,7 @@ A compressed file will be generated in order to helps our support team to unders
 <local_proxy_service_not_linked>Your proxy service is not linked</local_proxy_service_not_linked>
 <local_proxy_service_not_linked_explain>If you want to link your local proxy service to this ICAP service, you need to activate it inside the ICAP center area</local_proxy_service_not_linked_explain>
 <reset_ask>Do you want to reset the configuration file and return back to default values ?</reset_ask>
-<proxy_parents>Proxy Parents</proxy_parents>
+<proxy_parents>Parents Proxies</proxy_parents>
 <reset>Reset</reset>
 <mysql_repair>Repair MySQL tables</mysql_repair>
 <mysql_repair_task_explain>This task is able to scan main MySQL databases and try to repair corrupted tables</mysql_repair_task_explain>
@@ -5783,7 +5785,7 @@ A compressed file will be generated in order to helps our support team to unders
 <enable_as_master_proxy_explain>If turn to green, this proxy is able to accept connections from child proxys and set specific features according this architecture</enable_as_master_proxy_explain>
 <logging_childs_connections>Log backend proxys connections</logging_childs_connections>
 <logging_childs_connections_explain>If turn to green, connections from backends Proxys will be logged and added to the local statistics</logging_childs_connections_explain>
-<proxy_parents>Proxy Parents</proxy_parents>
+<proxy_parents>Parents Proxies</proxy_parents>
 <BACKUPARTICA_TYPE_NAS_EXPLAIN>Artica is able to backup it's configuration file to a remote NAS file system.[br]
 This task will export to a compressed file the whole server configuration in order to restore it or duplicate it.
 </BACKUPARTICA_TYPE_NAS_EXPLAIN>
@@ -6162,7 +6164,7 @@ You will be able to enable messaging section in the "server section" on the top 
 Artica will scan each 4 hours statistics and enforce the TOP downloaded websites into system cache with the level 5.[br]
 If you using default parameters, the top 100 websites that are "not already cached" will be enforced.[br]
 The level 5 defines caching data for a minimal of 3 days and for a maximal of 1 week with a minimal refresh interval.[br]
-To not encounter issues on some websites that require to not be freshed, you can use the blacklist in order to ban Artica enforcing the cache system. 
+To not encounter issues on some websites that require to not be freshed, you can use the black-list in order to ban Artica enforcing the cache system. 
 </squid_dynamic_cache_rules_explain> 
 <dynamic_enforce_rules>Dynamic enforce rules</dynamic_enforce_rules>
 <enforce_level>Enforce level</enforce_level>
@@ -6356,13 +6358,13 @@ If enabled, then the local Postfix system will use this port in order to forward
 If no interface specified, then the 127.0.0.1 will be used.
 </howto_service_lmtp>
 <blackandwhite_list>Black and Whitelist</blackandwhite_list>
-<postfix_automation_about>Artica White and Blacklist Automation is a process that able to parse 
+<postfix_automation_about>Artica White and Black-list Automation is a process that able to parse 
 your mailboxes automatically ( according defined schedules ).[br]
-It is designed to read the Junk E-Mail mailbox and add all senders to the user's blacklist database and purge the mailbox.[br]
+It is designed to read the Junk E-Mail mailbox and add all senders to the user's black-list database and purge the mailbox.[br]
 It parse the Sent Items too in order to put all recipients to the user's whitelist database.[br]
 [b]Whith this process, you just have to explain to users to put non-wanted emails to the Junk mailbox.[/b][br]
 </postfix_automation_about>
-<blackwhite_automation>Blacklist and Whitelist Automation</blackwhite_automation>
+<blackwhite_automation>Black-list and Whitelist Automation</blackwhite_automation>
 <APP_IREDMAIL>iRedMail Daemon</APP_IREDMAIL>
 <wbl_howto>Add the full address eg: user@domain.tld or the domain "@domain.tld" for the entire domain</wbl_howto>
 <blackandwhite_list_members>Manage your black and white list items</blackandwhite_list_members>
@@ -6937,7 +6939,7 @@ Click on this warning in order to reduce features and safe memory on your proxy 
 A new feature "Performance" allows you to tune Artica features according your server performance.[br]
 Click on this message to display the feature
 </SquidAsSeenPerformanceFeature>
-<no_categories>No categories</no_categories>
+<no_categories>No category</no_categories>
 <no_statistics>No statistics</no_statistics>
 <global_performance>Global performance</global_performance>
 <performance_level>Performance level</performance_level>
@@ -7217,8 +7219,8 @@ Use tabs in order to save your certificate content and private key content.
 <remote_webpages_are_cached>Remote content is cached</remote_webpages_are_cached>
 <RedirectQueries_explain>If defined then the reverse will not use the destination<br>but send a redirect to the browser to be connected to the defined URL<br>
 In this case the reverse proxy will not a reverse but just a redirector</RedirectQueries_explain>
-<autoconfiguration_wizard>proxy.pac autoconfiguration wizard</autoconfiguration_wizard>
-<autoconfiguration_wizard1>Welcome to the proxy.pac/WPAD autoconfiguration wizard.[br]
+<autoconfiguration_wizard>proxy.pac auto-configuration wizard</autoconfiguration_wizard>
+<autoconfiguration_wizard1>Welcome to the proxy.pac/WPAD auto-configuration wizard.[br]
 This wizard will help you to create on your server a service that will help all your browsers to get parameters in order to connect to the proxy.[br]
 First set here the domain of your network usually sent by your dhcp server.[br]
 You can see this domain with the command [b]ipconfig /all[/b] on your workstation.[br]
@@ -7618,7 +7620,7 @@ of the request (even though really they aren't).</use_tproxy_mode_text>
 <parent_options_no_tproxy>Do not use the client-spoof TPROXY support when forwarding requests to this parent.[br]
 Use normal address selection instead</parent_options_no_tproxy>
 <proxy_in_emergency_mode>The Proxy is in Emergency mode !</proxy_in_emergency_mode>
-<proxy_in_emergency_mode_explain>Artica as dedected a fatal issue on your proxy service.[br]
+<proxy_in_emergency_mode_explain>Artica has dedected a fatal issue on your proxy service.[br]
 In this case, the emergency was turned to ON and all features was disabled in order to make the service running.[br]
 Check Watchdog events in order to see why the emergency mode has been enabled.
 You can disable the emergency mode by clicking on this warning</proxy_in_emergency_mode_explain>
@@ -7880,3 +7882,1510 @@ If you want to add it, click on Apply button</this_computers_database_explain>
 <for_all_days>For all days</for_all_days>
 <internet_activity>Internet activity</internet_activity>
 <dns_settings>DNS settings</dns_settings>
+<by_hour>By hour</by_hour>
+<by_week>By week</by_week>
+<by_day>By day</by_day>
+<UseExternalWebPage>Use external Web blocking page</UseExternalWebPage>
+<ExternalWebPage>External link</ExternalWebPage>
+<quota_rules_by_categories_members>Quota rules by categories and members</quota_rules_by_categories_members>
+<local_categories_services_activated>Local categories services is activated</local_categories_services_activated>
+<use_local_categories_services_perf>Performances as been set to all features, in this case the local categories service is already activated.[br]
+If you want to share this service for others Artica servers, turn to green the Activate the local categories service feature</use_local_categories_services_perf>
+<qualcomm_atheros>Qualcomm Atheros Ethernet controllers support</qualcomm_atheros>
+<qualcomm_atheros_explain>If turned to green, the your Artica server will be able to support the Qualcomm Atheros AR8161 and QCA8171 Gigabit Ethernet controllers, 
+and the AR8162 and QCA8172 Fast Ethernet controllers</qualcomm_atheros_explain>
+<squid_log_location_explain>This form allows your to change the directory of the access events logs</squid_log_location_explain>
+<creating_directory>Creating new directory</creating_directory>
+<apply_permissions>Apply permissions</apply_permissions>
+<linking>Linking</linking>
+<edit_location>Edit location</edit_location>
+<free_update_during_the_day>Perform update (even in production period)</free_update_during_the_day>
+<free_update_during_the_day_explain>If turned to green then Artica is allowed to update Web filtering databases when available.[br]
+If turned to red then Artica is only allowed to retreive updates only from 22H to 06h00</free_update_during_the_day_explain>
+<active_requests_no_categories>No category has been detected in statistics.[br]
+This means you have defined your proxy feature to not use categories or the realtime statistics was not executed</active_requests_no_categories>
+<scan_date>Scan date</scan_date>
+<whitelist_ntlm>NON-NTLM Aware</whitelist_ntlm>
+<whitelist_ntlm_explain>This rule will allow the clients to pass trough the proxy without any authentication requested.[br]
+It can be used for clients that are not NTLM aware and cannot use silent Windows authentication method such as java applications or web/clients services non NTLM designed.[br]
+Item added here cannot be logged with the username, so only IP address and MAC address can be used for statistics purpose.
+</whitelist_ntlm_explain>
+<cache_rate_by_hour>Cache rate by hour</cache_rate_by_hour>
+<cache_rate_by_day>Cache rate by day</cache_rate_by_day>
+<UFDBGUARD_UNLOCK_LINK>Unlock text link</UFDBGUARD_UNLOCK_LINK>
+<HYPERCACHE_STOREID>HyperCache Dedup</HYPERCACHE_STOREID>
+<HYPERCACHE_STOREID_EXPLAIN>
+Hypercache Dedup feature will increase the % HIT ratio with your Internet regarding web video, music, images and 
+library files that were already viewed by users.[br]
+Next time if a same object is requested again, the Hypercache dedup feature will retrieve it from the cache system 
+without having to redownload it again.[br]
+This significantly decreases the time access to the selected object, it also improves your Internet performances and saves your bandwidth for other users.
+</HYPERCACHE_STOREID_EXPLAIN>
+<APP_SS5>Socket Secure Proxy</APP_SS5>
+<APP_SS5_ABOUT>Socket Secure (SOCKS) is an Internet protocol that routes network packets 
+between a client and server through a proxy server.[br]
+SOCKS5 additionally provides authentication so only authorized users may access a server.[br]
+Practically, a SOCKS server proxies TCP connections to an arbitrary IP address, and provides a means for UDP packets to be forwarded.[br]
+SOCKS performs at Layer 5 of the OSI model (the session layer, an intermediate layer between the presentation layer and the transport layer).</APP_SS5_ABOUT>
+<EnableSS5>Enable Socket Secure Proxy service</EnableSS5>
+<hypercache_license>HyperCache License</hypercache_license>
+<HYPERCACHE_EVAL>You are using the HyperCache dedup feature in evaluation mode, feature will be automatically removed in %s day(s)</HYPERCACHE_EVAL>
+<evaluation_mode>Evaluation mode</evaluation_mode>
+<view_feature>Display feature</view_feature>
+<proxys_clients_and_uploaded_files>Proxys clients and uploaded files</proxys_clients_and_uploaded_files>
+<checking_license_status>Checking license status</checking_license_status>
+<update_websites_list>Updating websites list</update_websites_list>
+<verify_the_license>Verify the license</verify_the_license>
+<supported_websites>Supported websites</supported_websites>
+<restarting_services>Restarting services</restarting_services>
+<restarting_zarafa_services>Restarting Zarafa services</restarting_zarafa_services>
+<verify_proxy_configuration>Verify proxy configuration</verify_proxy_configuration>
+<create_a_sef_signed_certificate>Create a self-signed certificate</create_a_sef_signed_certificate>
+<upload_an_official_certificate>Upload an official certificate</upload_an_official_certificate>
+<start_proxy_service>Start proxy service</start_proxy_service>
+<uploads>Uploads</uploads>
+<disable_tlse_explain>This feature will disable the Toulouse University free Web filtering database.
+Do you want to carry out this operation ?</disable_tlse_explain>
+<enable_tlse_explain>This feature will enable the Toulouse University free Web filtering database.
+Do you want to carry out this operation ?</enable_tlse_explain>
+<disable_articadb_explain>This feature will disable the Artica Web filtering database.
+Do you want to carry out this operation ?</disable_articadb_explain>
+<enable_articadb_explain>This feature will enable the Artica Web filtering database.
+Do you want to carry out this operation ?</enable_articadb_explain>
+<boots>Boots</boots>
+<UFDBGUARD_TICKET_LINK>Text for ticket link</UFDBGUARD_TICKET_LINK>
+<submit_a_ticket>Submit a ticket</submit_a_ticket>
+<ufdb_ticket_text>Click on the link bellow in order to send to the company support team a request to unlock this Website</TICKET_TEXT>
+<realtime_monitor>Realtime monitor</realtime_monitor>
+<ufdb_ticket_text_success>The support team has been notified and will approve or not approve your request in few times</ufdb_ticket_text_success>
+<simplified_parameters>Simplified parameters</simplified_parameters>
+<squid_network_switch_explain>This feature allow you to redirect all Web traffic to a specific Network card in order to use a specific Internet router</squid_network_switch_explain>
+<outgoing_interface>Outgoing Interface</outgoing_interface>
+<network_switch>Network switch</network_switch>
+<csr_godaddy_explain>Open the Godaddy compressed file and put the content of the file that should named CSRXX.XX.XX.txt
+</csr_godaddy_explain>
+<unable_to_find_commonname_incsr>Unable to find Common Name in the Certificate Signing Request</unable_to_find_commonname_incsr>
+<save_certificate>Save certificate</save_certificate>
+<upload_a_GoDaddy_certificate>Upload a GoDaddy certificate</upload_a_GoDaddy_certificate>
+<cache_rock_explain>The Rock store system is designed to put and serves small files ( under 128KB ) in a stressed mode.[br]
+It use more memory that others system cache type and is limited according your server memory.[br]
+It is being developed for high-performance disk caching environments.[br]
+In multiple CPU mode, It is used to centralize cached objects in order to not duplicate cached entries between each defined CPU.[br]
+It servers objects in fast because it use system memory.
+</cache_rock_explain>
+<max_allowed_size_of_rock_store>Max allowed size of rock store</max_allowed_size_of_rock_store>
+<your_cache_size_exceed_max_allowed_value>Your cache size exceed the maximal allowed value</your_cache_size_exceed_max_allowed_value>
+<squid_cache_rock_warning>This operation will rebuild the current cache system and reload the proxy service.
+Do you want to carry out this operation ?</squid_cache_rock_warning>
+<checking_current_configuration>Checking current configuration</checking_current_configuration>
+<nothing_to_do>Nothing to do</nothing_to_do>
+<removing_old_cache>Removing old cache</removing_old_cache>
+<hypercache_in_emergency_mode>The HyperCache is in Emergency mode</hypercache_in_emergency_mode>
+<hypercache_in_emergency_mode_explain>Proxy service as detected a crash of the HyperCache plugin helper.[br]
+In this case, Artica have disabled temporary the HyperCache feature.[br]
+Click on this error to disable it</hypercache_in_emergency_mode_explain>
+<godaddy_explain_1>Please fill this form bellow.[br]
+the Common Name is the most important field, 
+that should be the exact domain name for which you are requesting SSL, 
+in most cases, it should be www.mysite.com.[br]
+If you are buying for a subdomain, then it should be something like secured.mysite.com.[br]
+If for wildcard, it should be *.mysite.com.
+</godaddy_explain_1>
+<certificate_details>Certificate details</certificate_details>
+<bundle_godaddy_ssl_explain>Put here the bundle certificates (gd_bundle-g2..) sent by email in this form</bundle_godaddy_ssl_explain>
+<certificate_bundle>Certificate bundle</certificate_bundle> //chaine
+<disable_emergency>Disable Emergency</disable_emergency>
+<send_snapshot_to_meta>Send Snapshot to Meta</send_snapshot_to_meta>
+<send_snapshot_to_meta_explain>If the server is connected to a Meta server, this task is able to upload a snaphost to the global management Meta server</send_snapshot_to_meta_explain>
+<cloning>Cloning</cloning>
+<artica_meta_cloning_explain>Cloning feature allows this node to automatically retreive latest snapshot sent from a specific Artica node.[br]
+Choose the source Artica client in the drop-down list.
+</artica_meta_cloning_explain>
+<source_server>Source server</source_server>
+<clone_of>Clone of</clone_of>
+<generate_csr>Generate the Certificate Request</generate_csr>
+<submit_ticket>Submit a ticket</submit_ticket>
+<ticket>Ticket</ticket>
+<available_memory>Available Memory</available_memory>
+<rock_store>Rock store</rock_store>
+<autoconnection>Auto connection</autoconnection>
+<max_errors_before_restart_service>Max errors before restarting service</max_errors_before_restart_service>
+<socket_timeout>Socket timeout</socket_timeout>
+<SquidSimpleConfig_explain>It turn to green all tweaks features (time outs,keep alive...) are set in default mode[br]
+This default mode should be the best way but if you want to tweak yourself settings, turn to red this option in order to unlock some fields
+</SquidSimpleConfig_explain>
+<enable_emergency_mode>Activate the emergency mode</enable_emergency_mode>
+<MaxPackages>Max. packages</MaxPackages>
+<MaxSnapshots>Max Snapshots per client</MaxSnapshots>
+<delete_databases>Delete databases</delete_databases>
+<LogFileDaemonMaxEvents_explain>Artica Logger is a process that able to receive events directly from the Proxy service.[br]
+In order to reduce I/O disk it keep events in memory and write then to disk after x requests saved in memory.[br]
+In all cases, the logger process will write events file each minute.[br]
+This parameter will define how many requests the logger will keep event during 1 minute.
+</LogFileDaemonMaxEvents_explain>
+<submit_ticket_text>Text for the submit ticket</submit_ticket_text>
+<server_watchdog_load_explain>The watchdog is able to check the system load.[br]
+In most case, a loaded server should have impact on the Internet access speed.[br]
+This feature allows you to define 2 numbers, the [b]if overloaded[b] number just create a warning event with processes report.[br]
+The [b]if overloaded (Max)[b] allows you to define action that watchdog can perform if the server load reach the value.[br]
+Actions are:[br]
+[b]None[b]: Do nothing[br]
+[b]fail-over[b]: switch to backup server (if fail-over is set)[br]
+[b]Restart[b]: Restart the proxy service.[br]
+[b]Reboot[b]: Reboot the server[br]
+[br]
+</server_watchdog_load_explain>
+<always_send_tnef>Send TNEF (winmail.dat)</always_send_tnef>
+<max_events_in_memory>MAX events in memory</max_events_in_memory>
+<isFWAcceptArtica>Allow access to Artica Web interface</isFWAcceptArtica>
+<isFWAcceptArtica_explain>If turned to green then all computers will be allowed to open the Artica Web frontend Interface</isFWAcceptArtica_explain>
+<firewall_wizard>FireWall wizard</firewall_wizard>
+<router_mode_require_2nics>Router mode (require 2 network cards)</router_mode_require_2nics>
+<single_mode>Single mode 1 network card ( protect the server )</single_mode>
+<select_wan_interface_explain>Select in the dropdown list the WAN interface.[br]The interface connected to your Internet connection.
+</select_wan_interface_explain>
+<select_lan_interface_explain>Select in the dropdown list the LAN interface.[br]The interface used to communicate with your computers.</select_lan_interface_explain>
+<delay_pool_param_net2>Global Bandwith limitation</delay_pool_param_net2> 
+<limit_the_whole_network>Limit the whole network</limit_the_whole_network>
+<limit_by_computer>Limit by computer</limit_by_computer>
+<limit_by_user>Limit by user</limit_by_user>
+<delay_pool_max_field>When consume bandwidth over</delay_pool_max_field>
+<scanning>Scanning</scanning>
+<reconfiguring_firewall>Reconfiguring your firewall</reconfiguring_firewall>
+<building_init_script>Building startup scripts</building_init_script>
+<empty_leases>Empty DHCP leases</empty_leases>
+<empty_leases_ask>This operation will empty DHCP leases cache.
+Do you wan to carry out this operation ?
+</empty_leases_ask>
+<removing_caches>Removing caches</removing_caches>
+<disconnect_from_activedirectory>Disconnecting from Active Directory</disconnect_from_activedirectory>
+<disconnect_from_activedirectory_explain>This operation will disconnect your server from your Active Directory.
+Do you want to carry out this operation ?
+</disconnect_from_activedirectory_explain>
+<DisableAnyCache_enabled_warning>The proxy is defined to [b]Not cache and not using hard drive caches[/b]. In this case, this feature is disabled</DisableAnyCache_enabled_warning>
+<squid_siege_explain>This section allows you to stress the proxy in order to see if it can handle your network.[br]
+The best way is to use a second proxy server that act as a stress client but you can use the local system to perform this operation
+</squid_siege_explain>
+<simulate>Simulate</simulate>
+<get_url_from_lastlogs>Get urls from proxy last events</get_url_from_lastlogs>
+<launch_test>Launch test</launch_test>
+<wordpress_form_explain_add>The first field is the first part of your domain.[br]
+The second field is your main domain.[br]
+If your server is www.domain.tld, put the www in the first field and the domain.tld in the second field.[br]
+If your server is just domain.tld without any sub domain, put the domain.tld in the first field.
+</wordpress_form_explain_add>
+<activedirectory_emergency_mode>Active Directory Emergency</activedirectory_emergency_mode>
+<activedirectory_emergency_mode_explain>Your proxy server have encountered issues with your Active Directory server.[br]
+The Active Directory Emergency mode allow members to use the proxy without any identification method in order to let members to surf trough the proxy.[br]
+Click on this message to disable the Active Directory Emergency mode</activedirectory_emergency_mode_explain>
+<repair_table>Repair MySQL Table</repair_table>
+<activedirectory_checking>Active Directory Checking</activedirectory_checking>
+<activedirectory_checking_watchdog>If turned to green and if your proxy server is connected to your Active Directory server, the Watchdog is able to react if the link between Proxy service and your Active Directory
+</activedirectory_checking_watchdog>
+<ifconnection_broken>If connection is broken</ifconnection_broken>
+<emergency_mode>Emergency mode</emergency_mode>
+<controllers>Controllers</controllers>
+<controllers_in_the_same_domain>Controllers in the same domain</controllers_in_the_same_domain>
+<new_controller>New controller</new_controller>
+<use_ipaddr>Use IP address</use_ipaddr>
+<restart_mysql_service>Restart MySQL service</restart_mysql_service>
+<sending_message>Sending message</sending_message>
+<warning_events>Warning events</warning_events>
+<lock_script_with_this_script>Lock with this script</lock_script>
+<last_report>Last report</last_report>
+<execution>Execution</execution>
+<removing>Removing</removing>
+<firewall_wizard_install>Firewall Install wizard</firewall_wizard_install>
+<firewall_wizard_install_explain>Currently your Artica proxy server is not protected and is not able to play with networks features such as transparent proxy, NAT, bridges.[br]
+If you plan to use these features click on the Install button here in order to install the FireWall service.
+</firewall_wizard_install_explain>
+<install_firewall>Firewall installation</install_firewall>
+<installing_firewall_service>Installing Firewall service</installing_firewall_service>
+<source_package_not_found>Source package not found</source_package_not_found>
+<installing_service>Installing service</installing_service>
+<rebuild_ssl_cache>Rebuild SSL cache</rebuild_ssl_cache>
+<certificate_chain_explain2>If you did not have a chain certificate, leave the field empty</certificate_chain_explain2>
+<dns_server_local_explain>If empty then the DNS service will send address from it's database.[br]
+If a server is defined (hostname or Ip address) then the service will query the remote DNS service for the specified domain</dns_server_local_explain>
+<log_hostnames>Log hostnames</log_hostnames>
+<log_hostnames_text>Add hostnames into events instead IP adresses</log_hostnames_text>
+<log_hostnames_explain>For performance topic logging hostnames are disabled by default.[br]If turned to green, then the proxy will try to resolve hostname for each client and put FQDN ( full hostname in logs).[br]
+Before enabling this feature, make sure that your DNS server have good performances. 
+</log_hostnames_explain>
+<check_memory_use>Check Memory usage</check_memory_use>
+<server_watchdog_memory_explain>If turn to green, the watchdog is able to check the current memory usage.[br]
+If memory usage exceed defined values then you can allow Artica to restart some services in order to release memory.
+</server_watchdog_memory_explain>
+<alert_on_memory>Alert when memory exceed</alert_on_memory>
+<restart_webfiltering_service>Restart Web filtering service</restart_webfiltering_service>
+<restart_web_services>Restart Web services</restart_web_services>
+<restart_databases>Restart databases</restart_databases>
+<if_memory_exceed>If memory exceed</if_memory_exceed>
+<upload_snapshot>Upload a snapshot</upload_snapshot>
+<strict_mode>Strict mode</strict_mode>
+<trusted_mode>Trusted mode</trusted_mode>
+<stopping_firewall>Stopping Firewall</stopping_firewall>
+<starting_firewall>Starting Firewall</starting_firewall>
+<client_ports>Client ports</client_ports>
+<remove_configuration>Remove settings</remove_configuration>
+<proxy_in_ssl_emergency_mode>Proxy is in SSL emergency</proxy_in_ssl_emergency_mode>
+<proxy_in_ssl_emergency_mode_explain>It seems that the proxy was crashed according your SSL settings.[br]
+In this case, SSL configuration was turned to OFF[br]
+Click on this warning in order to turn off the emergency mode</proxy_in_ssl_emergency_mode_explain>
+<unable_to_retreive_network_information_refresh>Unable to retreive network information.[br]
+Be sure that the framework is running or try to refresh this web page</unable_to_retreive_network_information_refresh>
+<refresh_settings>Refresh settings</refresh_settings>
+<restart_status_service>Restart Status service</restart_status_service>
+<reconfigure_service>Reconfigure service</reconfigure_service>
+<APP_INFLUXDB>Influx Database</APP_INFLUXDB>
+<server_memory_consumption>Server memory consumption</server_memory_consumption>
+<took>Took</took>
+<max_lines>Max lines</max_lines>
+<building_query>Building query</building_query>
+<generating_statistics>Generating statistics</generating_statistics>
+<dns_used_by_the_proxy_service>DNS servers used by the proxy service</dns_used_by_the_proxy_service>
+<WinBindMaxClients>Max System NTLM processes</WinBindMaxClients>
+<users_and_system>Users and system</users_and_system>
+<nsswitchEnableLdap>Link the system with the LDAP database</nsswitchEnableLdap>
+<nsswitchEnableLdap_explain>If turn to green, the database system will be linked with the local LDAP database.[br]
+In this case, you will be able to be to login trough SSH or the linux console using the LDAP account created trough Artica.[br]
+Each service running on the system will be authenticated trough the LDAP database too.
+</nsswitchEnableLdap_explain>
+<nsswitchEnableWinbind>Link the system with the Active Directory database</nsswitchEnableWinbind>
+<nsswitchEnableWinbind_explain>If turn to green and if the server is linked with a domain controller, in this case, you will be able to be to login trough SSH or the linux console using the Active Directory account.[br]
+This can be turned to green if you use your Artica server as a File Sharing service.[br]
+</nsswitchEnableWinbind_explain>
+<waiting_data>Waiting data</waiting_data>
+<browse_cache>Browse Cache</browse_cache>
+<load2>Load</load2>
+<size_on_disk>Size on disk</size_on_disk>
+<verify_caches>Verify caches</verify_caches>
+<check_caches_warning2>This operation will check caches and reload the proxy service.
+Do you want to carry out this operation ?</check_caches_warning2>
+<Defined_size>Defined size</Defined_size>
+<build_the_query>Build the query</build_the_query>
+<generate_statistics>Generate statistics</generate_statistics>
+<user_report>User report</user_report>
+<need_to_upgrade_to_v10>Congratulation! Your Artica server has been upgraded to v2.x version.[br]
+In order to perform the full update, you need to click on the next button in order to fully upgrade your version.
+</need_to_upgrade_to_v10>
+<perform_upgrade>Perform upgrade</perform_upgrade>
+<stopped_services>Stopped service(s)</stopped_services>
+<issues>Issue(s)</issues>
+<disable_logs_emergency>Disable Logs emergency</disable_logs_emergency> 
+<less_than_50>Less than 50</less_than_50>
+<between_100_to_500>Between 100 to 500</between_100_to_500>
+<between_500_to_1000>Between 500 to 1000</between_500_to_1000>
+<up_to_1000>Up to 1000</up_to_1000>
+<not_defined>Not defined</not_defined>
+<SquidUsersNumber_explain>The users number is important because it let Artica to increase processes according the number of users that should be connected to the proxy service.</SquidUsersNumber_explain>
+<APP_UFDBCAT_EXPLAIN>The categories service is not a part of the Web filtering service.[br]
+It is used to provide category for each website for statistics purpose.[br]
+It allows you to create specific objetcs in the proxy [b]Access control list[/b] section.
+</APP_UFDBCAT_EXPLAIN>
+<downloaded_flow_this_day>HTTP Bandwidth used this day</downloaded_flow_this_day>
+<blocked_webistes_this_day>Blocked websites this day</blocked_webistes_this_day>
+<missing_javascript_function_refresh>A javascript function is not loaded.
+We suggest to refresh the Web Administration console ( using CTRL+F5 keys).
+</missing_javascript_function_refresh>
+<unlimited_statistics_retention>Unlimited statistics retention</unlimited_statistics_retention>
+<unlimited_caches>Unlimited caches</unlimited_caches>
+<multiple_cpus>Multiple CPUs</multiple_cpus>
+<active_directory_connection>Active Directory connection</active_directory_connection>
+<extended_webfiltering_database>Extended Web filtering databases</extended_webfiltering_database>
+<open_source_webfiltering_database>Open Source Web filtering database</open_source_webfiltering_database>
+<skin_error_pages>Skin error pages</skin_error_pages>
+<enterprise_support>Entreprise support</enterprise_support>
+<NTLM_PERFORMANCES_NOT_DEFINED>Active Directory performance has not been set</NTLM_PERFORMANCES_NOT_DEFINED>
+<proxy_is_not_configured_ad>The proxy is not configured to query the Active Directory</proxy_is_not_configured_ad>
+<QUERY_GROUP_TTL_CACHE>Search groups cache time</QUERY_GROUP_TTL_CACHE>
+<warn_squid_reload>The proxy will be reconfigured and reloaded... Continue ?</warn_squid_reload>
+<authenticate_cache_garbage_interval>Cache garbage interval</authenticate_cache_garbage_interval>
+<authenticate_ip_ttl_title>Authentication cache time by IP address</authenticate_ip_ttl_title>
+<authenticate_ttl_title>Authentication cache time</authenticate_ttl_title>
+<credentialsttl>Credentials cache time</credentialsttl>
+<last_date>Last date</last_date>
+<active_directory_authentication>Active Directory Authentication</active_directory_authentication>
+<sessions_cache>Sessions caches</sessions_cache>
+<basic_authentication>Basic authentication</basic_authentication>
+<per_defined_processor>Per defined processor</per_defined_processor>
+<query_interface>Query Interface</query_interface>
+<requests_this_day>Requests number this day</requests_this_day>
+<members_this_day>Members this day</members_this_day>
+<report_member>Report member</report_member>
+<not_configured>Not configured</not_configured>
+<filter2>Filter</filter2>
+<control>Control</control>
+<cacheinfra>Cache & Infrastructure</cacheinfra>
+<dashboard_webfiltering_explain>Enable or disable the Web filtering Engine.[br]
+Web Filtering engine allows you to deny or allow websites categorized by topic.
+</dashboard_webfiltering_explain>
+<webfiltering_is_disabled>The web filtering feature is disabled</webfiltering_is_disabled>
+<webfiltering_cache_page>Cache generated webpages</webfiltering_cache_page>
+<webfiltering_cache_page_explain>Generate a deny web page should consume performance.[br]
+By default when a deny web page is generated, Artica save it to cache during 10 minutes.[br]
+This to prevent blocked malwares that post many informations trough Internet.
+</webfiltering_cache_page_explain>
+<your_proxy>Your proxy</your_proxy>
+<dashboard_listen_ports_explain>Modify and create listen Proxy ports</dashboard_listen_ports_explain>
+<dashboard_activedirectory_explain>Connect your server to your Active Directory server in order to authenticate silently your users</dashboard_activedirectory_explain>
+<statistics_engine>Statistics engine</statistics_engine>
+<dashboard_statistics_options_explain>Define parameters of your statistics storage system like retention time, backup...</dashboard_statistics_options_explain>
+<limit_by_auth_member>Limit by authenticated member</limit_by_auth_member>
+<retention_time_limited_license>When using the community version, the statistics retention time is limited to 5 days</retention_time_limited_license>
+<dashboard_statistics_import_logs_explain>Import your old Squid Cache proxy events into the statistics engine in order to build graphs and charts and retreive history</dashboard_statistics_import_logs_explain>
+<import_logs>Import events</import_logs>
+<IsPortsConverted_requested>Listen ports conversion requested</IsPortsConverted_requested>
+<squid_IsPortsConverted_explain>You need to upgrade your settings in order to translate old configuration settings to the new one[br]
+Click on this message to reconfigure your proxy service</squid_IsPortsConverted_explain>
+<squid_transparent_no_firewall>You have defined to use the transparent mode but the firewall is not configured.[br]
+Please configure your Firewall first.</squid_transparent_no_firewall>
+<transparent_mode_issue>Transparent mode issue</squid_transparent_no_firewall>
+<service_name2>Service name</service_name2>
+<administrate_your_firewall>Administrate your Firewall</administrate_your_firewall>
+<your_firewall>Your Firewall</your_firewall>
+<new_bridge>New bridge</new_bridge>
+<new_router>New router</new_router>
+<routers>Routers</routers>
+<dashboard_router_explain>A router link 2 networks Interfaces in order to make a 
+communication bridge between 2 networks.</dashboard_router_explain>
+<masquerading>Masquerading</Masquerading>
+<masquerading_explain>Masquerading allows you to set up the routeur that connects your local network to the remote network.
+Your local network will not be visible and the hosts appear as a single address on the target network.</masquerading_explain>
+<link_interface>Link interface</link_interface>
+<masquerading_invert>Opposite masquerading</masquerading_invert>
+<nat_title>Network adress translation</nat_title> 
+<new_nat>New NAT rule</new_nat>
+<redirect_nat>Redirect to the node</redirect_nat>
+<destination_address>Destination address</destination_address>
+<requested_port>Requested port</requested_port>
+<NAT_TYPE_0_EXP>When computers %c request to access to the %P port (%T) trough the interface %i, then forward TCP packets to %s on %p port</NAT_TYPE_0_EXP>
+<stop_firewall>Stop the firewall</stop_firewall>
+<start_firewall>Start the firewall</start_firewall>
+<reconfigure_firewall>Reconfigure the firewall</reconfigure_firewall>
+<restarting_firewall>Restarting the firewall</restarting_firewall>
+<listen_interface>Listen interface</listen_interface>
+<forward_interface>Forward interface</forward_interface>
+<ssl_whitelist>SSL whitelist</ssl_whitelist>
+<ssl_options>SSL options</ssl_options>
+<traffic_analysis_explain>Manage the service that allows you to display statistics and charts of all connections passed trough your Appliance</traffic_analysis_explain>
+<web_antivirus>Web antivirus</web_antivirus>
+<web_antivirus_explain>Activate the Web antivirus filter in order to ensure that downloaded content was not infected by a malware.</web_antivirus_explain>
+<dashboard_listen_ports_explain2>Using this section, you can create transparent ports[br]
+Or SSL ports.</dashboard_listen_ports_explain2>
+<dashboard_webfilteringstats_explain>Display statistics of blocked access according your rules</dashboard_webfilteringstats_explain>
+<url_filtering>URL filtering</url_filtering>
+<webfiltering_rules>Webfiltering rules</webfiltering_rules>
+<webfiltering_rules_text>Create rules according Web categories and members</webfiltering_rules_text>
+<cvs_export>CSV export</cvs_export>
+<dashboard_browse_members_explain>Display members that using your proxy</dashboard_browse_members_explain>
+<useragents_statistics>Add UserAgents in statistics</useragents_statistics>
+<current_members>Current members</current_members>
+<firewall_disabled>Firewall disabled</firewall_disabled>
+<act_as_lan>Act as LAN</act_as_lan>
+<act_as_wan>Act as WAN</act_as_wan>
+<modify>Modify</modify>
+<autoconfiguration_explain>This section allows you to build proxy.pac configuration file in order to centralize browsers settings.</autoconfiguration_explain>
+<squid_backuped_logs_explain>Define the log rotation task and the rotated retention logs time according your country law</squid_backuped_logs_explain>
+<update_artica_official>Update official releases</update_artica_official>
+<update_artica_official_explain>If turn to green then your server will be automatically upgraded with the official releases when available.</update_artica_official_explain>
+<update_artica_nightly>Update Nightly releases</update_artica_nightly>
+<update_artica_nightly_explain>a Nightly release is like a beta releases, it is designed to fix some issues or get new features that are not tested by the Artica community.[br]
+These releases are not fully tested so please take care with this feature.
+</update_artica_nightly_explain>
+<free_update_during_the_day_explain2>If turned to green then Artica will be updated when a new release is available.[br]
+If red, then Artica will be upated only outside the production time ( from 22:00 to 06:00 ).
+</free_update_during_the_day_explain2>
+<update_use_meta_text>Your server is currently linked to an Artica Meta server.[br]
+In this case only the Meta server repository will be used.[br]
+Ensure that your Meta server is updated.
+</update_use_meta_text>
+<firewall_policy>Firewall default policy</firewall_policy>
+<your_categories_explain>Improve the web filtering engine by adding your own black and white lists categories in order to block or allow some websites.</your_categories_explain>
+<important_events_48h>Important events since 48 hours</important_events_48h>
+<reinstall_firewall>Reinstall the firewall</reinstall_firewall>
+<squid_tasks_explain>Schedule specific processes according the HTTP proxy service</squid_tasks_explain>
+<rules_and_services>Rules and services</rules_and_services>
+<services_firewall_explain>A service define an object that stores a port or multiple ports.[br]
+These object can be used in rules and Network interfaces</services_firewall_explain>
+<nightly>Nightly</nightly>
+<caches_center_explain>Manage your cache storage system.[br]
+Create new caches in order to increase Internet performance
+</caches_center_explain> 
+<HyperCache_explain>HyperCache is a plugin that learn the proxy how to increase detection rate.[br]
+With HyperCache, your proxy is able to enforce videos caching like youtube and more than 700 webistes
+</HyperCache_explain>
+<HyperCache_mirror_explain>
+HyperCache Mirror allows you to duplicate Internet sites locally on this server
+and redirect all connections to the local storage system. 
+</HyperCache_mirror_explain>
+<firewalls_link>Firewall links</firewalls_link>
+<deny_web_page_text>Deny Web page service allows you to define the behavior when a website is banned.[br]
+You can temporary allow users, skin the web page error...
+</deny_web_page_text>
+<reception_flow_this_day>Reception flow today</reception_flow_this_day>
+<transmission_flow_this_day>Transmission flow today</transmission_flow_this_day>
+<display_details>Display details</display_details>
+<warn_evaluation_period_end>Evaluation period is finish...</warn_evaluation_period_end>
+<error_firwall_not_configuredisquid>Error to make transparent/Tproxy works, you need to install/Configure your firewall</error_firwall_not_configuredisquid>
+<activate_the_webfiltering_engine_wizard>Web filtering activation Wizard</activate_the_webfiltering_engine_wizard>
+<servername_squidguard_explain>
+This is the default Web page error address [b]that will be used to reach Artica web page error service.[/b] when not address has been defined in your rules.[br]
+You can give here an IP address or an hostname.[br]
+In rules, you cannot define an SSL redirect page.[br]So this address will be the main address used for all banned SSL websites.[br]
+Do not define here http:// prefix.[br]
+Pay attention of the SSL denied web sites.[br]
+It will generate an SSL certificate error.[br]
+[b]Note:[/b] If you did not want to use the local web page error service, use the dedicated section for that.[br]
+</servername_squidguard_explain>
+<redirect_connexion>Redirect connection</redirect_connexion>
+<rewrite_url>Rewrite the URL</rewrite_url>
+<ufdbguard_redirect_ssl_explain>[b]Notice[/b]: Blocked HTTPs Web sites:[/b][br]
+In standard mode, the proxy is not able to redirect connection trough SSL tunnels.[br]
+In this case, when SSL websites must be blocked, browsers will display errors and are not able to display the web error page.
+[b]If you want to display correctly Web pages errors, you need to enable the SSL decryption in the proxy.[/b]
+</ufdbguard_redirect_ssl_explain>
+<perso_category_no_license>In community Edition, personal categories will be not used by the web filtering engine</perso_category_no_license>
+<watchdog_parameters_explain>The watchdog is able to react/perform operations if the proxy encounter issues.[br]
+This section allows to be notified by email when something is wrong (high load/bandwidth)
+</watchdog_parameters_explain>
+<bandwidth_alert>Bandwidth alert</bandwidth_alert>
+<bandwidth_alert_explain>Bandwidth alert allows Artica to add in events ( critical ) when 
+bandwidth exceed a specific size during the specified interval.[br]
+Artica will generate a report in order to let administrators understand the badwidth consumption
+</bandwidth_alert_explain>
+<UserAgentsStatistics_disabled_error>Adding UserAgents in statistics feature is disabled, 
+this option cannot be displayed</UserAgentsStatistics_disabled_error>
+<last_requests>Last requests</last_requests>
+<statistics_nowebfiltering_data>This report contains no data according the webfiltering.[br]
+Perhaps you need to rebuild the report or the Web filtering is not enabled on your proxy service or 
+this member was not blocked.
+</statistics_nowebfiltering_data>
+<limit_by_subnet>Limit by subnet</limit_by_subnet>
+<like>Like</like>
+<squid_node_alias_explain>This feature allows to create an alias for this IP/MAC address.[br]
+In this case the MAC/IP will be associated to a virtual user and this alias will be added in statistics.[br]
+It should be a way to recognize a node without be connected to any authentication method</squid_node_alias_explain>
+<support_and_debug>Support & debug</support_and_debug>
+<emergency_modes_explain>Turn OFF quickly some features in order to let your users surfing trough Internet</emergency_modes_explain>
+<emergency_modes>Emergency modes</emergency_modes>
+<activedirectory_emergency_mode_explain2>If your proxy is linked to an Active Directory server, Active Directory Emergency remove authentication method</activedirectory_emergency_mode_explain2>
+<ssl_methods>SSL Methods</ssl_methods>
+<debug_tools>Debug tools</debug_tools>
+<firewall_is_disabled>Firewall is disabled</firewall_is_disabled>
+<enable_ask_firewall>Do you want to enable the firewall service ?</enable_ask_firewall>
+<squid_quota_member>Members quotas</squid_quota_member>
+<squid_quota_member_explain>Define Quota size by member and/or categories</squid_quota_member_explain>
+<quota_statistics>Build hourly statistics for Quotas</quota_statistics>
+<quota_statistics_explain>When using quotas, Artica build hourly statistics each hour.[br]
+If you need to Artica detects exceed quota more quickly, you can turn on this feature and define the schedule.[br]
+But it should increase performance needs.
+</quota_statistics>
+<dashboard_webfiltering_service_explain>Set the Web filtering service behavior and performances tweaks.</dashboard_webfiltering_service_explain>
+<GLOBAL_ACCESS_CENTER>Global Access Center</GLOBAL_ACCESS_CENTER>
+<GLOBAL_ACCESS_CENTER_EXPLAIN>Global Access Center allows to simply allow or deny access from or to different objetcs</GLOBAL_ACCESS_CENTER_EXPLAIN>
+<deny_dangerous_extentions>Deny dangerous extensions</deny_dangerous_extentions>
+<pass_trough_authentication>Pass trough authentication methods</pass_trough_authentication>
+<dangerous_extensions>Dangerous extensions</dangerous_extensions>
+<squid_templates_error_explain>Change the design and informations of the error pages generated by the proxy service ( like Access denied, or any others errors )</squid_templates_error_explain>
+<recompiling_personal_databases>Recompiling personal databases</recompiling_personal_databases>
+<build_status>Building status</build_status>
+<proxy_in_webfiltering_emergency_mode>Proxy was turned on Webfiltering emergency mode</proxy_in_webfiltering_emergency_mode>
+<proxy_in_webfiltering_emergency_mode_explain>Artica has detected fatal errors on the Web filtering engine.[br]
+In this case the proxy will be deconnected from the Web filtering engine to let your users surf trough Internet.
+</proxy_in_webfiltering_emergency_mode_explain>
+<squid_parent_proxy_explain>Options to use a remote proxy or to enable this proxy as parent proxy</squid_parent_proxy_explain>
+<performance_squid_explain>Adapt features and services according your server performance</performance_squid_explain>
+<old_status_19_squid>Old interface status from 1.9x versions</old_status_19_squid>
+<old_status>Old status</old_status>
+<authenticate_users_ldap_text>Activate the authentication using the Local or a remote database.</authenticate_users_ldap_text>
+<authenticate_users_local_db>Authenticate users trough the local database</authenticate_users_local_db>
+<authenticate_users_remote_db> Authenticate users trough the remote database</authenticate_users_remote_db>
+<system_and_network>System and networks</system_and_network>
+<performance_monitor>Monitor performance</performance_monitor>
+<disable_firewall>Disable the FireWall</disable_firewall>
+<redirect_ssl>Redirect SSL</redirect_ssl>
+<ufdb_redirect_ssl_explain>If turn on then when it is possible the proxy will redirect blocked HTTPS websites to the SSL Web page error service.[br]
+This should cause certificate error in browsers.[br]
+If turned OFF then the redirect will be sended to the non-encrypted error page.[br]
+This behavior will cause a blanck error page on browsers.
+</ufdb_redirect_ssl_explain>
+<redirect_code>Redirect code</redirect_code>
+<your_hardware>Your hardware</your_hardware>
+<your_hard_disks>Your hard disks</your_hard_disks>
+<your_hard_disks_explain>Format, add, display,edit your hard disks</your_hard_disks_explain>
+<please_wait_waiting_services_status>Please wait... waiting services status...</please_wait_waiting_services_status>
+<filesharing>File Sharing</filesharing>
+<maintain>Maintain</maintain>
+<etc_hosts>Hosts file</etc_hosts>
+<tcpip_settings>TCP/IP settings</tcpip_settings>
+<crypt_and_vpn>Crypt and VPN</crypt_and_vpn>
+<web_services>Web services</web_services>
+<webproxy_statistics>Web Proxy statistics</webproxy_statistics>
+<overloaded_memory>Overloaded memory</overloaded_memory>
+<enable_intel_celeron>Enable Intel Celeron support</enable_intel_celeron>
+<enable_intel_celeron_text>If turned to green, this means your computer handle a small CPU ( Like Intel Celeron N2807 or other small processor).[br]
+In this case, Artica will down all necessaries services that should handle performance and limit some features in order to safe CPU consumption.
+</enable_intel_celeron_text>
+<remove_dedicated_database>Remove dedicated database</remove_dedicated_database>
+<stopping_mysql_service>Stopping MySQL service</stopping_mysql_service>
+<reconfiguring_web_interface>Reconfiguring Web interface parameters</reconfiguring_web_interface>
+<others_services>Others services</others_services> 
+<InstallingBigDataEngine>Installing BigData Engine</InstallingBigDataEngine>
+<refresh_ctrlf5>You need to force refresh your browser by using CTRL + F5 keys</refresh_ctrlf5>
+<APP_LDAP_DB>LDAP database server</APP_LDAP_DB>
+<APP_LDAP_DB_EXPLAIN>Artica use an LDAP database in order to let you manage users and computers.[br]
+This section allows you to manage the LDAP service managed by Artica or let you using a remote LDAP server</APP_LDAP_DB_EXPLAIN>
+<ERROR_FEATURE_CELERON>This feature is disabled by the Intel Celeron support</ERROR_FEATURE_CELERON>
+<ERROR_FEATURE_MINIMAL_PERFORMANCES>This feature is disabled because the server has been set to minimal performance</ERROR_FEATURE_MINIMAL_PERFORMANCES>
+<ERROR_SQUID_MUST_35>This feature is disabled, you need a proxy engine 3.5x or above</ERROR_SQUID_MUST_35>
+<legal_logs>Legal logs</legal_logs>
+<export_logs_each>Export logs each</export_logs_each>
+<export_log_if_size_exceed>Export log if size exceed</export_log_if_size_exceed>
+<starting_web_filtering>Starting Web Filtering service</starting_web_filtering>
+<export_logs_now>Export logs now</export_logs_now>
+<webservers_section_explain>Create/edit/remove web sites.[br]
+This section allows you to manage the Web server engine in order to provide Web services</webservers_section_explain>
+<influx_not_installed>BigData database engine is not installed</influx_not_installed>
+<click_to_install>Click to install</click_to_install>
+<install_influxdb>Install BigData database engine</install_influxdb>
+<update_webfiltering_artica_databases>Update Web filtering Artica databases</update_webfiltering_artica_databases>
+<update_webfiltering_artica_databases_not_updated>Your current Web filtering databases are not synchronized whith Artica update server.[br]
+To fix it, Launch update now</update_webfiltering_artica_databases_not_updated>
+<update_failed>Update Failed</update_failed>
+<updating>Updating</updating>
+<checking>Checking</checking>
+<webfiltering_artica_databases_available>New Webfiltering Artica databases available</webfiltering_artica_databases_available>
+<webfiltering_artica_databases_available_explain>There are new Web filtering databases available on update server, click here to update them</webfiltering_artica_databases_available_explain>
+<proxy_engine>Proxy engine</proxy_engine>
+<manual_update_proxy_explain>Click here if you want to update the proxy engine yourself by manually upload the package trough the Web interface</manual_update_proxy_explain>
+<proxy_engine_available_explain>This section allows you to update your proxy engine supported by Artica</proxy_engine_available_explain>
+<webfilter_databases_update_explain>This section display status of the supported web filtering databases and allows to define update settings</webfilter_databases_update_explain>
+<must_be_updated>Must be updated</must_be_updated>
+<can_be_updated>Can be updated</can_be_updated>
+<update_error>Update error</update_error>
+<update_webfiltering_toulouse_databases>Update Web filtering Free databases</update_webfiltering_toulouse_databases>
+<update_webfiltering_toulouse_databases_not_updated>Your Free Web filtering databases from the French Toulouse Unversity community are not synchronized, click here to update them</update_webfiltering_toulouse_databases_not_updated>
+<webfiltering_toulouse_databases_available>New Web filtering Free databases available</webfiltering_toulouse_databases_available>
+<free_databases>Free databases</free_databases>
+<PLEASE_WAIT_UPDATING_DATABASES>Please wait, updating databases</PLEASE_WAIT_UPDATING_DATABASES>
+<click_to_install>Click to install</click_to_install>
+<cgroups_not_installed>Control Groups software is not installed</cgroups_not_installed>
+<install_cgroups>Installing Control Groups</install_cgroups>
+<installing>Installing</installing>
+<updating_repository>Updating repository</updating_repository>
+<learning_artica>Learning Artica...</learning_artica>
+<removing_caches>Removing cached informations</removing_caches>
+<failed_to_install>Failed to install</failed_to_install>
+<low_performance>Low system performance</low_performance>
+<low_performance_link_explain>It seems your server did not handle required performance.[br]
+Click here to optimize Artica in order to be compatible with your processor performance
+</low_performance_link_explain> 
+<low_performance_text_explain>Your processor %p handle %m MIPS ( number of million times per second ).[br]
+We estimate running in correct system with more than an Intel(R) Core(TM) i3 CPUM 330 ( 4256.47 MIPS).[br]
+In this case we suggest to enable the optimization that will safe some performance in order to increase your system availability.
+</low_performance_text_explain>
+<limit_artica_processes>Limit Artica processes</limit_artica_processes>
+<optimize>Optimize</optimize>
+<browse_active_directory_groups>Browse ActiveDirectory groups</browse_active_directory_groups>
+<ldap_filter_search_users>Members search filter</ldap_filter_search_users>
+<ldap_filter_search_groups>Groups search filter</ldap_filter_search_groups>
+<dynamic_ldap_group>Dynamic LDAP Group</dynamic_ldap_group>
+<browse_remote_ldap_server>Browse remote LDAP server</browse_remote_ldap_server>
+<search_users_in_groups>Search members in groups</search_users_in_groups>
+<remote_ladp_group>Remote LDAP group</remote_ladp_group>
+<group_explain_proxy_acls_type_3>Use the remote LDAP server defined in the global configuration</group_explain_proxy_acls_type_3>
+<dashboard_activedirectory_disabled_explain>Active Directory section is disabled because you using other authentication system.</dashboard_activedirectory_disabled_explain>
+<remote_ldap_database>Remote LDAP database</remote_ldap_database>
+<please_choose_only_one_method>Please choose only one method</please_choose_only_one_method>
+<STATS_CATEGORIES_LICENSE>Statistics with categories need a valid corporate license.</STATS_CATEGORIES_LICENSE>
+<statistics_categories_explain>You can specify all categories using the wildcard [b]*[/b].[br]
+To set a list of categories, separate each category by a comma in this field.[br]
+Example: porn,mixed_adult,dating will provide extraction/statistics only on these categories.
+</statistics_categories_explain>
+<query_data>Query data</query_data>
+<injecting_data>Injecting data</injecting_data>
+<uncrypt_ssl_explain>If turn to on then the proxy will establish a secure connection with the server and, using a mimicked server certificate, with the client.[br]
+If turned to off then the proxy will create a TCP tunnel without decoding the connection.
+</uncrypt_ssl_explain>
+<ssl_rules>SSL rules</ssl_rules>
+<uncrypt_ssl>Uncrypt SSL</uncrypt_ssl>
+<pass_connect_ssl>Transfert crypted SSL connection</pass_connect_ssl>
+<ResolvIPStatistics>Resolve destination servers IPs</ResolvIPStatistics>
+<ResolvIPStatistics_explain>When using transparent method or if user type and IP address in browser, artica will write in traces the IP address of the remote web server.[br]
+This feature force Artica logger to resolve the hostname.[br]
+Depends on your DNS performance, enable this feature could slower the Artica logger.
+</ResolvIPStatistics_explain>  
+<ssl_conf>SSL</ssl_conf>
+<no_data>No data</no_data>
+<also_see_webfstatistics>Also see Webfiltering statistics</also_see_webfstatistics>
+<is>Is</is>
+<import_logs2>Import logs</import_logs2>
+<acl_ssl_sni>SSL SNI domains</acl_ssl_sni>
+<acl_ssl_sni_text>Verify domain string in SSL certificates before switch to MAN-IN-THE-MIDDLE.[br]
+Must be used in SSL rules only.[br]
+Used to decide to perform or to not perform MAN-IN-THE-MIDDLE according domain in certificates.[br]
+Add here domain name such as youtube.com or ibm.com.[br]
+You can also add regular expressions like [b]youtube\.[a-z]+[/b] or [b]youtube\..*?$[/b][br]
+</acl_ssl_sni_text>
+<global_access>Global access</global_access>
+<group_properties>Group properties</group_properties>
+<certificate_center_explain>Certificate Center is the SSL certificate bank used by all services that require to use TLS/SSL</certificate_center_explain>
+<trust_ssl>Trust remote certificates</trust_ssl>
+<trust_ssl_explain>If the remote certificate is not an official certificate or if the proxy service is not able to validate the remote certificate, enable this option will force the proxy to trust websites and perform MAN-IN-THE-MIDDLE task</trust_ssl_explain>
+<zfs_not_installed>Zettabyte File System is not installed</zfs_not_installed>
+<install_zfs>Install Zettabyte File System</install_zfs>
+<compiling_kernel>Compiling Kernel</compiling_kernel>
+<EnableGoogleSafeBrowsing_popupon>This will enable Centralized Google SafeBrowsing.
+Continue ?
+</EnableGoogleSafeBrowsing_popupon>
+<EnableGoogleSafeBrowsing_popupoff>This will remove Centralized Google SafeBrowsing feature.
+Continue ?
+</EnableGoogleSafeBrowsing_popupoff>
+<building_init_scripts>Building init scripts</building_init_scripts>
+<restarting_status_daemon>Restarting Status Daemon</restarting_status_daemon>
+<enable_processes_limitation>Limit Artica and MySQL processes</enable_processes_limitation>
+<enable_processes_limitation_explain>If turned to on then the system will reduce CPU and Hard disk I/O for Artica processes and MySQL in order to safe performance for main services.[br]
+You can define which limit you want to set in the configuration bellow.[br]
+[b]Note that turn to ON Intel celeron support turn ON automatically this feature[/b]
+</enable_processes_limitation_explain>
+<artica_processes>Artica Processes</artica_processes>
+<MySQL_performance>MySQL services</MySQL_performance>
+<your_proxy_caches>Your proxy caches</your_proxy_caches>
+<your_proxy_caches_explain>Create new caches in order to accelerate Internet access et display your cache storage status</your_proxy_caches_explain>
+<cpu_performance>CPU performance</cpu_performance>
+<disk_performance>Disk performance</disk_performance> 
+<system_pcaches>Proxy cache systems</system_pcaches>
+<new_cache_wizard>New proxy cache wizard</new_cache_wizard>
+<welcome_new_cache_wizard>Welcome to the new proxy cache wizard</welcome_new_cache_wizard>
+<welcome_new_cache_wizard_text>
+This wizard will help you to create a new Proxy cache in order to store Internet objects and provide them locally in order to safe bandwidth.[br]
+Choose here how you want to create your storage system.
+</welcome_new_cache_wizard_text>
+<welcome_new_cache_wizard_license>In community edition, your are limited to a single CPU and the default cache that is able to store 2GB of Internet objects.[br]
+This configuration is designed to less than 15 Internet users.[br]
+Your are not allowed to use this wizard.
+</welcome_new_cache_wizard_license>  
+<wizard_cache_disk>Create a cache based on a new hard disk</wizard_cache_disk>
+<wizard_cache_folder>Create a cache based on an existing directory</wizard_cache_folder>
+<wizard_cache_free>Create a cache yourself without the wizard</wizard_cache_free>
+<scanning_your_hardware>Scanning Your Hardware</scanning_your_hardware>
+<no_free_disk_found>No free hard drive can be found on your system.</no_free_disk_found>
+<select_your_free_disk>Select your free hard disk</select_your_free_disk>
+<hosttime_label>Host Time</hosttime_label>
+<speed_label>CPU Speed</speed_label>
+<sessionid_label>Current session ID</sessionid_label>
+<balloon_label>Memory ballooning</balloon_label>
+<swap_label>Memory swapping</swap_label>
+<memlimit_label>Memory limit</memlimit_label>
+<memres_label>Memory reservation</memres_label>
+<cpures_label>CPU reservation</cpures_label>
+<cpulimit_label>CPU Limit</cpulimit_label>
+<status_label>Status</status_label>
+<apply_permissions>Apply permissions</apply_permissions>
+<updating_network>Updating Networks</updating_network>
+<creating_new_cache>Creating New cache</creating_new_cache>
+<building_partition>Building partition</building_partition>
+<this_format_data_lost>This operation will format this hard drive. All datas will be lost!</this_format_data_lost>
+<affect_cache_to>Affect cache to</affect_cache_to>
+<building_caches>Building caches...</building_caches>
+<select_your_disk>Select your hard drive</select_your_disk>
+<select_your_partition>Select Your partition</select_your_partition>
+<select_your_directory>Select your directory</select_your_directory>
+<pay_attention_to_size>Be carrefull to the storage size, it must not exceed the free space available.</pay_attention_to_size>
+<create_cache>Create cache</create_cache>
+<active_directory_importation>Active Directory Importation</active_directory_importation>
+<active_directory_importation_contacts_explain>This section allows you to import Active Directory users ( Microsoft Exchange Users) to the Local LDAP database as contacts</active_directory_importation_contacts_explain>
+<import_contacts>Import contacts</import_contacts>
+<search_users>Search users</search_users>
+<purge_cache_explain>Remove content of this cache storage and reconstruct a freshed one</purge_cache_explain>
+<udate_clamav_databases>Update ClamAV Databases</udate_clamav_databases>
+<missing_clamav_pattern_databases>Missing ClamAV Pattern databases</missing_clamav_pattern_databases>
+<signatures>Signatures</signatures>
+<http_antivirus_for_proxy>HTTP Antivirus for Proxy</http_antivirus_for_proxy>
+<checking_transparent_mode>Checking Transparent modes</checking_transparent_mode>
+<APP_TRANSPARENT_ROUTING>Proxy Transparent method</APP_TRANSPARENT_ROUTING>
+<WHY_SSL_RULES_DISABLED>[b]SSL rules are disabled because no port has been defined to handle HTTPS port in proxy[/b]</WHY_SSL_RULES_DISABLED>
+<clamav_antivirus_patterns_status>ClamAV Antivirus databases status</clamav_antivirus_patterns_status>
+<disabled_feature>Disable the feature</disabled_feature>
+<clamav_antivirus_databases>ClamAV Antivirus databases</clamav_antivirus_databases>
+<clamav_antivirus_databases_explain>Display status of your current ClamAV databases and enable non-officials ClamAV Databases</clamav_antivirus_databases>
+<securiteinfo_code>SecuriteInfo.com MD5 main directory</securiteinfo_code>
+<securiteinfo_code_explain>
+SecuriteInfo.com provides additional signatures for Clamav.[br]
+Here are the features :[br]
+[br]0-day malware signatures, based on real malwares on the wild.
+[br]More than 500.000 signatures !
+[br]Detection rate increase up to 80% on 0-day malwares.
+[br]We detect any kind of malwares : exe, html, android, mac, and even spam !
+[br]Daily updated
+[br]The signatures are quite generic and each signature can detect several malwares
+[br]Very few false positives.
+[br]Create a free account on https://www.securiteinfo.com/clients/customers/signup[br]
+[br]Set here the main MD5 folder generated for your Account
+</securiteinfo_code_explain>
+<FreshClamCheckDay>Check for new database x times a day</FreshClamCheckDay>
+<check_times>Check times</check_times>
+<clamav_unofficial>Unofficials ClamAV</clamav_unofficial>
+<also_see_update_databases>Also see ClamAV Databases update</also_see_update_databases>
+<building_configuration>Building settings</building_configuration>
+<backup_each>Backup each</backup_each>
+<max_backup_containers>Max containers</max_backup_containers>
+<backup_each>Backup each</backup_each>
+<also_see_backup_to_nas>Also, see backup to N.A.S</also_see_backup_to_nas>
+<building_resolv_configuration>Building resolution DNS paramaters</building_resolv_configuration>
+<checking_hypercache_feature>Checking HyperCache feature</checking_hypercache_feature>
+<installing_default_script>Installing default script</installing_default_script>
+<default_script>Default script</default_script>
+<welcome_to_dhcp_wizard>Welcome to the DHCP service activation Wizard</welcome_to_dhcp_wizard>
+<welcome_to_dhcp_wizard_1>Select here the network interface that will be used by your DHCP service</welcome_to_dhcp_wizard_1>
+<welcome_to_dhcp_wizard_2>Define the network subnet you want to provide, it should be for example 192.168.1.0 with 255.255.255.0 mask or 10.10.1.0 with 255.255.255.0 mask.</welcome_to_dhcp_wizard_2>
+<dhcp_wizard_2>DHCP service will listen %i interface</dhcp_wizard_2>
+<dhcp_wizard_3>DHCP service will listen %i interface for the subnet %n</dhcp_wizard_3>
+<dhcp_wizard_4>DHCP service will listen %i interface for the subnet %n and will provide IP %t</dhcp_wizard_4>
+<welcome_to_dhcp_wizard_3>Under the defined subnet, choose here the adresses range that the DHCP service will provide.[br]
+For example if your subnet is 192.168.1.0/255.255.255.0, you should use from 192.168.1.50 to 192.168.1.254</welcome_to_dhcp_wizard_3>
+<welcome_to_dhcp_wizard_4>In order to finish the activation wizard, you have to provide the main gateway used, the local domain and the DNS servers that will serve the DHCP service.</welcome_to_dhcp_wizard_4>
+<DNS_SERVER_EXPLAIN_TINY>Create/Manage a DNS service in order to help your workstations to resolv hostnames and domains</DNS_SERVER_EXPLAIN_TINY>
+<artica_license_explain>This form allows you to ask an evaluation license or to obtain a corporate Licence.
+[br]This will transform your server from a Community Edition to a Corporate Edition.[br]
+Verify your eMail address and the number of users that should use this server.
+</artica_license_explain>
+<request_an_evaluation_license>I need an evaluation license</request_an_evaluation_license>
+<request_an_corporate_license>I would like to have a quote</request_an_corporate_license>
+<license_request>Licence request</license_request>
+<LICENCE_REQUEST_ERROR>Please select what license you want to request</LICENCE_REQUEST_ERROR>
+<generic_http_error>Generic HTTP error</generic_http_error>
+<checkiccloud1>Checking license on the cloud server done.</checkiccloud1>
+<trial_mode>Trial mode</trial_mode>
+<corporate_licence_will_expire>Your Coporate license will expire soon</corporate_licence_will_expire>
+<corporate_licence_will_expire_explain>Your coporate license will expire in %d day(s).[br]
+After, Artica will be back to Community Edition</corporate_licence_will_expire_explain>
+<undersized_proxy_caches>Undersized caches storage system</undersized_proxy_caches>
+<undersized_proxy_caches_explain>Your proxy handle only %S of system cache for %U users.
+[br]In order to accelerate Internet access we recommend at least 20GB of caches.</undersized_proxy_caches_explain>
+<articaboxxcom>You want to [b]obtain an appliance[/b] with the hardware or to obtain a professional support service.[br]
+Please visit articabox.com in order to purchase a support contract or an Artica appliance.</articaboxxcom> 
+<proxy_alias>Proxy alias</proxy_alias>
+<computer_popup_import_explain_csv>This section allow you to import computers in Artica database.[br]
+copy and past a list with computers separated by a comma and a carriage.[br]
+each line should be:[br]
+computername,ip address,mac adress,proxy alias[br]
+(proxy alias is optional).[br]
+Example:[br]
+pc001,192.168.1.5,d8:9e:3f:34:2d:8d,jhon_pc[br]
+pc002,192.168.1.6,b0:05:94:36:c8:6b,shara_pc[br]
+pc003,192.168.1.7,,mary_pc[br]
+pc004,,c8:bc:c8:47:59:14,mike_pc[br]
+pc005,192.168.1.8,,[br]
+</computer_popup_import_explain_csv>
+<import_computers>Import computers</import_computers>
+<added_computers>Added computers</added_computers>
+<invalid_mac_address>Invalid MAC address</invalid_mac_address>
+<caches_are_full>Proxy Caches are full!</caches_are_full>
+<caches_are_full_explain>Your caches are more than 80%, this means proxy will start to remove old objects in order to store new objects.[br]
+You should increase your cache storage.</caches_are_full_explain>
+<skipping>Skipping</skipping>
+<dashboard_hotspot_nonic>[b]Error[/b][br]To use the HotSpot feature, you need at least 2 network cards !!.[br]
+This section cannot be used</dashboard_hotspot_nonic>
+<dashboard_hotspot>The HotSpot can authenticate Internet sessions trough a Web authentication page.[br]
+It can be used in order to allow guests to access to Internet.[br]
+[b]Take care to this feature because it transform your server has a real barrier[/b] and cannot be compatible
+if you using this server as a standard proxy for your officials members</dashboard_hotspot>
+<fast_scan>Fast scan (ARP scanner)</fast_scan>
+<please_wait_building_network>PLease wait, Building Networks</please_wait_building_network>
+<hotspot_interface>HotSpot Interface</hotspot_interface>
+<hotspot_interface_explain>Select in the list the Network interface card that will handle the 
+guest network where are stored computers that should use the network.[br]
+[b]Warning[/b] The network used by this Interface [b]must be different[/b] that the Interface that provides Internet access.[br]
+For example if the Internet Network is 10.1.1.0/24, your guest network should be 192.168.1.0/24.[br]
+[b]Note that the Hotspot did not provide DHCP service and DNS service.[br]
+You can use the local DHCP/DNS service provided by Artica.</hotspot_interface_explain>
+<hotspot_wan_network>Internet Network</hotspot_wan_network>
+<hotspot_wan_network_explain>Select in the list the Network Interface that will be used to access to Internet.</hotspot_wan_network_explain>
+<hotspot_wizard_final>Artica is now ready to build the hotspot with defaults settings.[br]
+The entire server will be tuned to handle the HotSpot service.[br]
+After clicking to Run the HotSpot system, you will be able to tune all features around the HotSpot
+</hotspot_wizard_final>
+<run_hotspot>Run the HotSpot system</run_hotspot>
+<activate_the_service>Activate the service</activate_the_service>
+<section_disabled_hotsport>This section is disabled because the HotSpot feature is enabled</section_disabled_hotsport>
+<sync_time_ad>Synchronize clock with the Active Directory</sync_time_ad>
+<error_ad_ldap>Connection to Active Directory (LDAP) failed</error_ad_ldap>
+<ldap_paremeters>LDAP Parameters</ldap_paremeters>
+<no_listening_port_proxydefined>No listening port defined in proxy</no_listening_port_proxydefined>
+<no_listening_port_proxydefined_explain>It seems the Proxy table was not filled with listen ports.[br]
+In this case, your proxy will not accept any connection</no_listening_port_proxydefined_explain>
+<webfiltering_groups>Webfiltering groups</webfiltering_groups>
+<webfiltering_groups_text>Manager groups that should be used with the Web filtering service.</webfiltering_groups_text>
+<waiting_listen_port>Waiting port to listen</waiting_listen_port>
+<bigdata_listen_port_issue>BigData listen port issue</bigdata_listen_port_issue>
+<bigdata_listen_port_issue_explain>It seems the Bigdata engine did not listen the required port ( 8086 ).[br]
+Click here to restart the service</bigdata_listen_port_issue_explain> 
+<failed_to_start_service>Failed to start the service</failed_to_start_service>
+<incompatible_bigdata_engine>Incompatible BigData engine version.</incompatible_bigdata_engine>
+<incompatible_bigdata_engine_explain1>During tests we have encountered issues on the 0.8x BigData engine version.[br]
+Click here to fix it and to know why</incompatible_bigdata_engine_explain1>
+<incompatible_bigdata_engine_explain2>If you see this message, it seems you have installed our next Artica version [b]2.0 RC1 or 2.0 RC2[/b].[br]
+During our latest tests and with our customers, we have encountered some fatal issues on the InfluxDB engine version 0.8x.[br]
+This issue make the listen port unavailable and cannot be reopen after several retsarts.[br]
+To fix this major issue, you need to reconstruct a freshed database but you loose datas.[br]
+In order to fix this issue you need to upgrade the engine to the 0.9x version.[br]
+This main engine version will be included in our next official Artica [b]Release[/b] 
+This upgrade will re-create a new freshed database. This means datas will be removed.[br]
+To upgrade, just click on the upgrade button.
+</incompatible_bigdata_engine_explain2>
+<already_running>Already running</already_running>
+<last_4_hours>Last 4 hours</last_4_hours>
+<unable_to_query_to_bigdata>Unable to get data from bigData engine</unable_to_query_to_bigdata>
+<last_entry_on>Last entry on</last_entry_on>
+<wifidog_transparent_ssl_explain>If turn ON then authenticated SSL connections will be redirected to the local proxy service</wifidog_transparent_ssl_explain>
+<wifidog_transparent_http_explain>If turn ON then authenticated HTTP connections will be redirected to the local proxy service</wifidog_transparent_http_explain>
+<listen_proxy_http_port>Listen Proxy HTTP port</listen_proxy_http_port>
+<listen_proxy_https_port>Listen proxy HTTPS port</listen_proxy_https_port>
+<listen_authentication_http_port>Listen HTTP port used to authenticate users</listen_authentication_http_port>
+<listen_authentication_https_port>Listen SSL port used to authenticate users</listen_authentication_https_port>
+<HotSpot_infra_text>To use correctly this service, the Artica server must be the main gateway of guest computers.[br]
+Also the HotSpot service must resolve MAC addresses of guest computers.
+</HotSpot_infra_text>
+<already_process_exists_try_later>Task process already executed, try later</already_process_exists_try_later>
+<squid_binary_not_found>Squid binary not found</squid_binary_not_found>
+<my_proxy_aliases>My Proxy aliases</my_proxy_aliases>
+<my_proxy_aliases_text>Proxy aliases allows you to link a tag to a MAC address or an IP address.[br]
+It is used in statistics in order to build charts,graphs with a name instead of an IP address or a MAC address if you did not use any authentication method.[br]
+If you using an authentication method (LDAP,Active Directory or HotSpot), this feature is not necessary.
+</my_proxy_aliases_text>
+<new_proxy_alias>New Proxy alias</new_proxy_alias>
+<by_mac>By MAC address</by_mac>
+<by_ip>By IP address</by_ip>
+<incorrect_email_address>Incorrect eMail address</incorrect_email_address>
+<incorrect_email_address_cloud>We have tried to contact you by eMail but it seems that your eMail address is invalid</incorrect_email_address_cloud>
+<autorefresh>Auto Refresh</autorefresh>
+<UNIFI_CONTROLLER>UniFi controller</UNIFI_CONTROLLER>
+<installing_package>Installing package</installing_package>
+<UNIFI_MONGODB>UniFi Database Engine</UNIFI_MONGODB>
+<UNIFI_CONTROLLER_EXPLAIN>
+The UniFi Controller is a wireless network management software solution from Ubiquiti Networks
+It allows you to manage multiple wireless networks using a web browser.[br]
+You can download documentation here:[url]http://dl.ubnt.com/guides/UniFi/UniFi_Controller_UG.pdf[/url].
+</UNIFI_CONTROLLER_EXPLAIN>
+<INSTALL_UNIFI_CONTROLLER>Install UniFi Controller</INSTALL_UNIFI_CONTROLLER>
+<UnifiHTTPPort>Port for UAP to inform controller</UnifiHTTPPort>
+<UnifiHTTPSPort>SSL Web Management</UnifiHTTPSPort>
+<UnifiPortalPort>HTTP Portal redirect port</UnifiPortalPort>
+<UnifiPortalSSLPort>HTTPS portal redirect port</UnifiPortalSSLPort>
+<UnifiUDPPort>STUN UDP port</UnifiUDPPort>
+<ENABLE_UNIFI_CONTROLLER>Activate uniFi controller</ENABLE_UNIFI_CONTROLLER>
+<NEW_INFLUX_VERSION_NOT>A new %v BigData Engine version available</NEW_INFLUX_VERSION_NOT> 
+<refresh_dashboard_values>Refresh dashboard status</refresh_dashboard_values>
+<simple_acls>Simple ACLs</simple_acls>
+<complete_acls>Complete ACLs</complete_acls>
+<permanent_authorizations>Permanent authorizations</permanent_authorizations>
+<refresh_dashboard_values>Refresh dashboard values</refresh_dashboard_values>
+<APP_HYPERCACHE_TAIL>HyperCache stats Daemon</APP_HYPERCACHE_TAIL>
+<all_rules_lost>All rules will be lost</all_rules_lost>
+<cached_data_explain>This is the sum of data sent directly by the proxy service wihout need to fetch content trough your Internet bandwidth</cached_data_explain>
+<did_not_talk_with_meta>Did not talk[br]with meta server</did_not_talk_with_meta>
+<build_webfiltering_rules>Build Web filtering rules</build_webfiltering_rules>
+<unlock_rules_explain_text>Create rules in order to allows your users to unlock blocked pages trough an authorization form or to create tickets to your Helpdesk</unlock_rules_explain_text>
+<ufdb_explain_any>Unkown black-listed websites are allowed</ufdb_explain_any>
+<ufdb_explain_none>Unknown whitelisted websites are banned</ufdb_explain_none>
+<all_websites_are_banned>All websites are banned</all_websites_are_banned>
+<everything_is_allowed>Everything is allowed</everything_is_allowed>
+<ufdb_explain_default_rule>Default rule is used when no group matches others rules</ufdb_explain_default_rule>
+<in_statistics_database>In statistics database</in_statistics_database>
+<restoring>Restoring</restoring>
+<please_wait_importing_snapshot>Please Wait, importing your snapshot</please_wait_importing_snapshot>
+<click_to_fix>Click to fix it</click_to_fix>
+<quick_connect>Quick connect</quick_connect>
+<ad_quick_1>Give here your full Active Directory hostname like myadserv.domain.ltd</ad_quick_1>
+<ad_full_hostname>Active Directory full hostname</ad_full_hostname>
+<adfullhostname_error_resolv>Error, unable to resolve your Active Directory server %s, please check DNS settings
+usually your Active Directory server should be the main DNS server for you proxy service.
+</adfullhostname_error_resolv>
+<ad_quick_2>Give here account credentials that have privileges to join the Active Directory domain</ad_quick_2>
+<ad_quick_3>Verify your connections settings.[br]If your are agree with these parameters, click on connect button in order to join your Proxy to your Active Directory server</ad_quick_3>
+<clean_old_files>Clean old files</clean_old_files>
+<clean_old_files_accesslog_explain>If turned to ON then artica will remove old files defined by the Max storage days value.</clean_old_files_accesslog_explain>
+<automount_ressource_explain>Use a resource defined in the auto-mount center</automount_ressource_explain>
+<SquidRotateAutomountFolder>Set here the directory where to store logs on the Auto-mount ressource</SquidRotateAutomountFolder>
+<CnTLMPORT_localport_explain2>Where to forward connection ?[br]Choose the local main proxy port that will handle connections.</CnTLMPORT_localport_explain2>
+<apply_restart>Apply & restart</apply_restart>
+<ufdb_apply_restart>This operation will reconfigure your rules, restart Webfiltering service and reload the proxy.[br]
+Do you want ot carry out this operation ?
+</ufdb_apply_restart>
+<hooked_networks>Hooked networks</hooked_networks>
+<whitelisted_destination>Excluded destinations</whitelisted_destination>
+<enable_firewall>Enable the Firewall</enable_firewall>
+<subnet_simple_explain>Give here (multiple entries separated by a carriage return ) IP adresses eg 192.168.1.53 or subnet eg 192.168.1.0/24</subnet_simple_explain>
+<whitelisted_destination_networks>Exclude destinations</whitelisted_destination_networks>
+<whitelisted_src_networks>Exclude sources</whitelisted_src_networks>
+<local_ports>Local ports</local_ports>
+<link_service>Link service</link_service>
+<EnableIRQBalance>Activate IrqBalance</EnableIRQBalance>
+<EnableIRQBalance_text>
+This service distribute hardware interrupts across processors on a multiprocessor system.[br]
+The purpose of irqbalance is distribute hardware interrupts across processors on a multiprocessor system 
+in order to increase performance. 
+</EnableIRQBalance_text>
+<error_need_to_apply_or_restart_squid>You need to apply configuration or to restart proxy service</error_need_to_apply_or_restart_squid>
+<rewrite_objects>Rewrite objects</rewrite_objects>
+<SquidTemplatesMicrosoft>Use Microsoft design</SquidTemplatesMicrosoft>
+<SquidTemplatesMicrosoft_explain>If turn on the proxy templates will use the same Internet Explorer template error.[br]
+A kind of fake that let user think the error is generated by the browser, not the proxy.</SquidTemplatesMicrosoft_explain>
+<clean_cache>Clean cache</clean_cache>
+<text_button>Button text</text_button>
+<charter_pdf_explain>If turned on, the web page display the PDF content instead of the HTML content.</charter_pdf_explain>
+<upload_a_pdf_file>Upload a PDF file</upload_a_pdf_file>
+<create_cache_on>Create cache on</create_cache_on>
+<waiting_proxy_status>Waiting proxy status</waiting_proxy_status>
+<allow_browse_directory>Allow browse directory</allow_browse_directory>
+<allow_browse_directory_web_explain>IF turned ON the you allow to browse the defined directory trough the Web interface</allow_browse_directory_web_explain>
+<your_database>Your database</your_database>
+<listen>Listen</listen>
+<HTTP_ENGINE>HTTP Engine</HTTP_ENGINE>
+<influxdb_restore_snap_explain>Upload here the backuped databases files (*.db,*.db.1,*.db.2)</influxdb_restore_snap_explain>
+<nat_method>NAT Method</nat_method>
+<proxy_nat_method_explain>If turned on this port will wait connections that are forwarded trough a NAT rule on an external Firewall</proxy_nat_method_explain>
+<update_proxy_engine>Update proxy engine</update_proxy_engine>
+<no_category_has_been_added>No category has been added</no_category_has_been_added>
+<mysql_hotspot_members_import_explain>Copy and paste members separated by a carriage return into this field, the format must be like this[br]
+[b]username,password,validperiod[/b][br]
+or separated by a space[br]
+username password validperiod
+If you did not set password then the importation task will assurme that the password will be the username.[br]
+if maximal valid period (in minutes) is not set (or 0) then the importation task will use the unlimited time.[br]
+Example:[br]
+user1,P155wor1,2880[br]
+user2[br]
+user3,,3600[br]
+</mysql_hotspot_members_import_explain>
+<delete_old_items>Delete old items</delete_old_items>
+<delete_old_items_table_explain>If turned to ON then the table content will be removed before importation task.</delete_old_items_table_explain>
+<failed_connect_ldap>Failed to connect to LDAP service</failed_connect_ldap>
+<INSTALL_PHPLDAPADMIN>Install PHPLdapAdmin</INSTALL_PHPLDAPADMIN>
+<redirecting>Redirecting</redirecting>
+<active_clients>Active clients</active_clients>
+<remote_server_address>Remote server address</remote_server_address>
+<remove_password_field>Remove password field</remove_password_field>
+<influx_to_release_explain>The InfluxDB (BigData engine) is now turned to an official release.[br]
+This new version fix many bugs and improve dramatically performances.[br]
+There are so many changes between your current database engine and the new released engine.[br]
+In this case you must upgrade your database engine but you [b]will loose all saved statistics.[br]
+Artica must destroy your old database, old backups in order to upgrade to start a new freshed database.[br]
+You can recover old datas by ask to artica to inject requests saved into your proxy logs.[br]
+See the link bellow in order to see how to import events from your proxy logs.
+</influx_to_release_explain>
+<install_new_database_engine>Install new database engine</install_new_database_engine>
+<cleaning_backup>Cleaning backups</cleaning_backup>
+<removing_databases>Removing databases</removing_databases>
+<import_local_files>Import local files</import_local_files>
+<squid_import_old_logs_warn>This operation will inject old saved logs files to the importation task.
+Do you want to carry out this operation ?
+</squid_import_old_logs_warn>
+<scanning>Scanning</scanning>
+<restart_webconsole>Restart Web Console</restart_webconsole>
+<parsing>Parsing</parsing>
+<change_caches_type>Change caches formats</change_caches_type>
+<allow_80443_port>Allow 80/443 ports</allow_80443_port>
+<allow_80443_port_explain>By default the 80 and 443 are used by the Web service and the reverse proxy service.[br]
+In this case, your are not allowed to use the 80 and the 443 port in this section.[br]
+If you turn to green this option, Artica will shutdown the Web service and the reverse proxy service in order to let you using these ports.
+</allow_80443_port_explain>
+<wccp_options>WCCP Options</wccp_options>
+<service_id>Service ID</service_id>
+<wccp_error_interface>You must define an interface for the WCCP option</wccp_error_interface>
+<checking_wccp_mode>Checking WCCP method</checking_wccp_mode>
+<calculate_cache_rate>Calculate cache rate</calculate_cache_rate>
+<calculate_dates>Calculate dates</calculate_dates>
+<configure_your_database>Configure your database</configure_your_database>
+<notify_statistics_server>Notify statistics server</notify_statistics_server>
+<artica_username>Artica SuperAdmin account</artica_username>
+<artica_password>Artica SuperAdmin password</artica_password>
+<configuration_done>Configuration done</configuration_done>
+<statistics_database_clients>Statistics Database clients</statistics_database_clients>
+<new_client>New client</new_client>
+<suggest_remote_statistics_appliance>Suggest to use a remote statistics Appliance</suggest_remote_statistics_appliance>
+<suggest_remote_statistics_appliance_explain>
+You can increase your server performance if you use a remote server dedicated to statistics tasks.[br]
+We offer a statistics appliance ISO in order to create your statistics server and link this server to your new[br]
+Statistics server.[br]
+Click on the link bellow in order to see how to install/use a statistics Appliance.
+</suggest_remote_statistics_appliance_explain>
+<download_the_iso>Download the CD-ROM</download_the_iso>
+<incompatible_proxy_version>Proxy version %s incompatible!! click to upgrade</incompatible_proxy_version>
+<hide_info_def>Hide this information definitely</hide_info_def>
+<multiple_active_directory_groups>Active Directory Groups (multiple)</multiple_active_directory_groups>
+<multiple_active_directory_groups_text>This object can store Active Directory groups (more than one ) for a single ACL.[br]
+Add here Active Directory groups using the browse button.</multiple_active_directory_groups>
+<enable_confirmation_establish_session>Confirm account establish a session</enable_confirmation_establish_session>
+<enable_confirmation_establish_session_explain>By default, after confirming account, the guest user must establish a session to the HotSpot using it's eMail address and password.[br]
+If turn to green, the link sent by mail will automatically establish a session without need to pass trough the login form.[br]
+If the user is disconnected, it must regsiter again to the system.
+</enable_confirmation_establish_session_explain>
+<send_syslog_logs>Send events by syslog</send_syslog_logs>
+<send_syslog_explain>By default statistics events logs are generated locally.[br]
+If turned to off, this server use an Artica local daemon to parse events and send only statistics events to the remote statistics appliance.[br]
+If turned to ON, realtime events will be sent directly to the statistics server and the statistics appliance is in charge to build statistics events.[br]
+If ON then you will increase performance of your server but you will increase data sent by your server to the statistics appliance.[br]
+</send_syslog_explain>
+<no_hourly_compression>No hourly compression</no_hourly_compression>
+<no_hourly_compression_explain>If turned to ON then statistics will be not compressed hourly.[br]
+Turned to OFF this feature reduce the database size and increase performance.[br]
+If turned to ON, Artica will inject events each minute.
+</no_hourly_compression_explain>
+<webfiltering_tasks_explain>Click on this domain in order to allow this web site or add it to a specific category.</webfiltering_tasks_explain>
+<whitelist_this_website_explain>Save this Website in the global White-list section.[br]This website will be available for everyone.</whitelist_this_website_explain>
+<save_into_a_whitelisted_category>Save into a white-listed category</save_into_a_whitelisted_category>
+<browse_ad_groups_explain>By default, only the 15 first groups is displayed.[br]
+Search your desired group in the Search field in the table ( * character is allowed )</browse_ad_groups_explain>
+<wanproxy_not_installed>WAN optimization module is not installed</wanproxy_not_installed>
+<WAN_PARENT>Wan compressor parent</WAN_PARENT>
+<WAN_PARENT_EXPLAIN>If turned to ON then you have to use an Artica client act as WAN client.[br]
+This feature is a portable TCP proxy which makes TCP connections send less data, 
+which improves TCP performance and throughput over lossy links, slow links and long links.[br]
+This is just what you need to improve performance over satellite, wireless and WAN links
+</WAN_PARENT_EXPLAIN>
+<back_to_list>Back to list</back_to_list>
+<ssl-options>SSL options</ssl-options>
+<influxdb_is_disabled>The Statistics engine is currently disabled, in order to retreive statistics you need to use the Enable This Service button in order to activate the database service.</influxdb_is_disabled>
+<proxy_port_must_be_higher_1024>The listen proxy port must be higuer than 1024</proxy_port_must_be_higher_1024>
+<forward_to_port>Forward to port</forward_to_port>
+<APP_WANPROXY>Wan Proxy compressor</APP_WANPROXY>
+<do_not_cache_this_web_site_explain>Force proxy to not save in cache content from this domain</do_not_cache_this_web_site_explain>
+<global_deny_cache_list>Deny from Cache domains list</global_deny_cache_list>
+<do_not_authenticate_this_website>Do not authenticate</do_not_authenticate_this_website>
+<do_not_authenticate_this_website_explain>Force the proxy to not ask any authentication method for all requests to this domain</do_not_authenticate_this_website_explain>
+<authentication_whitelist>Authentication white-list</authentication_whitelist>
+<check_repository>Check repository</check_repository>
+<disk_benchmark_executed>Hard drives benchmark running</disk_benchmark_executed>
+<during_this_task_load>During this execution task, the system can be loaded</during_this_task_load>
+<service_disabled_because_external_webpage>This service is disabled because you using an external web URL to provide error pages</service_disabled_because_external_webpage>
+<hardware_error>Hardware issue</hardware_error>
+<see_how_to_receive_smtp_notifications>Click here to see how to receive SMTP notifications</see_how_to_receive_smtp_notifications>
+<sending>Sending</sending>
+<failed2>Failed</failed2>
+<transparent_whitelist>Transparent white-list</transparent_whitelist>
+<memory_exceed_80>Physical Memory exceed 80%</memory_exceed_80>
+<memory_exceed_90>Physical Memory exceed 90%</memory_exceed_90>
+<MySQLStatisticsRetentionDays>Retention time in MySQL</MySQLStatisticsRetentionDays>
+<MySQLStatisticsRetentionDays_explain>To provide real-time statistics and TOP graphs, Artica use the MySQL database.[br]
+For the long term storage, and for generates reports, Artica use the InfluxDB database.[br]
+Define here how many day you want data to be stored in MySQL database.[br]
+If you have many data, you should reduce the retention time in order to safe performance
+</MySQLStatisticsRetentionDays_explain>
+<search_members>Search members</search_members>
+<nginx_error_no_cache_defined>Error, your reversed web site did not use a system cache</nginx_error_no_cache_defined>
+<caching>Caching</caching>
+<proxy_max_temp_file_size>Max temporary file size</proxy_max_temp_file_size>
+<proxy_max_temp_file_size_text>
+When buffering of responses from the proxied server is enabled, and the whole response does not fit into the buffers set by the proxy buffer size and proxy buffers directives, 
+a part of the response can be saved to a temporary file.[br]
+This directive sets the maximum size of the temporary file.[br]
+The size of data written to the temporary file at a time is set by the Temporay file limit directive.</proxy_max_temp_file_size_text>
+<proxy_temp_file_write_size>Temporay file limit</proxy_temp_file_write_size>
+<proxy_temp_file_write_size_text>
+Limits the size of data written to a temporary file at a time, when buffering of responses from the proxied server to temporary files is enabled.[br]
+By default, size is limited by two buffers set by the proxy buffer size and proxy buffers directives.[br]
+The maximum size of a temporary file is set by the Max temporary file size directive. 
+</proxy_temp_file_write_size_text>
+<Contact_Information>Contact Information</Contact_Information>
+<proxy_rules>Proxy rules</proxy_rules>
+<send_accounts_to_meta_server>Send accounts informations to Meta server</send_accounts_to_meta_server>
+<send_accounts_to_meta_server_explain>If turned on then this server sends confirmed email addresses to the meta server for an unlimited time.</send_accounts_to_meta_server_explain>
+<hotspot_members>HotSpot Members</hotspot_members>
+<debug_acls_explain>The ACL processing is on debug mode, this means that the proxy write many logs on your system and it's affect proxy performances.[br]
+Click here to disable it</debug_acls_explain>
+<blacklist_this_website_explain>Save this website into the [b]Web filtering service[/b] deny websites area.[br]All users will be denied to this website</blacklist_this_website_explain>
+<proxy_gen_certificate_explain>This generates a certificate dedicated for the proxy MAN-IN-THE-MIDDLE SSL</proxy_gen_certificate_explain>
+<proxy_certificate>Proxy certificate</proxy_certificate>
+<empty_watchdog_events>Empty watchdog events</empty_watchdog_events>
+<enforce_partial_content>Enforce partial content caching</enforce_partial_content>
+<enforce_partial_content_explain>
+Partial Content code (206) may be sent from the server when the client has asked for a range.[br]
+It is vital for downloading data in chunks which avoids fetching unused resources like videos, updates...[br]
+As the object is not fully downloaded in one request, the proxy is not able to correctly cache it.[br]
+This operation force the proxy to save the entire file into it's cache.
+</enforce_partial_content_explain>
+<partial_content_list>Partial content sites list</partial_content_list>
+<local_members>Local Members</local_members>
+<members_settings>Members Options</members_settings>
+<error_select_ou_first>Error, please select an organization first</error_select_ou_first>
+<add_group_ou_text>Give then new group to add in the organization %OU</add_group_ou_text>
+<incorrect_meta_server_address>Incorrect Meta server address</incorrect_meta_server_address>
+<graph>Graph</graph>
+<balance_on_multiple_ip>Round robin DNS</balance_on_multiple_ip>
+<balance_on_multiple_ip_text>The proxy IP resolvers lookup results by preferred access.[br]
+By default Proxy DNS in order and only rotates to the next listed when 
+the most preffered fails.[br]
+Some load balancing servers based on round robin DNS have been found not to preserve user session 
+state across requests to different IP addresses.[br]
+Enabling this directive force the proxy to rotates DNS per request.
+</balance_on_multiple_ip_text>
+<meta_clients>Meta Clients</meta_clients>
+<reload_in_public_mode>Reload Proxy services in public mode</reload_in_public_mode>
+<request_on_artica_www>Request made on Artica Web console</request_on_artica_www>
+<PLEASE_WAIT_RELOADING_SERVICES>Please wait, reloading services</PLEASE_WAIT_RELOADING_SERVICES>
+<reloading_webfilter_service>Reloading Web filter service</reloading_webfilter_service>
+<add_websites_meta>Give here Internet site ( without the www ). If you have several websites, separate them with a comma</add_websites_meta>
+<remove2>Remove</remove2>
+<Webfiltering_categories>Web filtering categories</Webfiltering_categories>
+<postfixinfra>Messaging & Infrastructure</postfixinfra>
+<AllowSquidOtherProtocols>Allow Alternate-Protocol headers</AllowSquidOtherProtocols>
+<AllowSquidOtherProtocols_explain>
+Certain servers emit the non-standard Alternate-Protocol header without listing it as 
+Connection header and popular client software will attempt to follow its instructions regardless of the presence of
+a proxy.[br]This may result in loss of administrative information about
+client traffic, increased network bandwidth, unpredictable client
+failures, loss of connectivity for the client, information leakage
+and/or other security vulnerabilities in experimental protocols.[br]
+By default, Artica block these headers.[br]
+Turn ON this feature allow the use of Alternate-Protocol header</AllowSquidOtherProtocols_explain>
+<AllowSquidHSTS>Allow Strict-Transport-Security header</AllowSquidHSTS>
+<AllowSquidHSTS_explain>HTTP Strict Transport Security (HSTS) is a web security policy 
+mechanism which is necessary to protect secure HTTPS websites against downgrade attacks, 
+and which greatly simplifies protection against cookie hijacking.[br]
+It allows web servers to declare that web browsers (or other complying user agents) 
+should only interact with it using secure HTTPS connections
+</AllowSquidHSTS_explain>
+<do_not_resolv_ipaddr_wpad>Do not resolve IP addresses</do_not_resolv_ipaddr_wpad>
+<do_not_resolv_ipaddr_wpad_ex>By default, browsers try to resolve the IP address of each requested  Web server hostname.[br]
+This to allow or deny using proxy by destination IP range.[br]
+Sometimes some web servers take times to be resolved.[br]
+If you enable this option, browsers will not try to resolve the IP address of each  web servers hostname and some rules should report a false result because hostname destination servers will be not resolved</do_not_resolv_ipaddr_wpad_ex>
+<your_server_performance>Your server performance</your_server_performance>
+<cpu_average_last7days>%CPU average for the last 7 days</cpu_average_last7days>
+<load_average_last7days>Server load average for the last 7 days</load_average_last7days>
+<memory_average_last7days>Memory average for the last 7 days</memory_average_last7days>
+<cpu_average_last24h>%CPU average for the last 24 hours</cpu_average_last24h>
+<load_average_last24h>Load average for the last 24 hours</load_average_last24h>
+<memory_average_last24h>Memory average for the last 24 hours</memory_average_last24h>
+<upload_your_certificate>Upload your certificate</upload_your_certificate>
+<CA_CERTIFICATE>Certificate authority (CA)</CA_CERTIFICATE>
+<CA_CERTIFICATE_EXPLAIN>A certificate authority or certification authority (CA) is an entity 
+that issues digital certificates.[br]
+A digital certificate certifies the ownership of a public key by the named subject of the certificate.[br]
+This allows others (relying parties) to rely upon signatures or on assertions made by the private key that corresponds 
+to the certified public key.
+</CA_CERTIFICATE_EXPLAIN>
+<CERTIFICATE_EXPLAIN>Certificate servers validate, or certify, keys as part of a Public key infrastructure.[br]
+Keys are strings of text generated from a series of encryption algorithms that allow you to secure communication for a group of users. 
+</CERTIFICATE_EXPLAIN>
+<CERTIFICATE_REQUEST>Certificate Request</CERTIFICATE_REQUEST>
+<CERTIFICATE_REQUEST_EXPLAIN>A certificate signing request (also CSR or certification request) is a message 
+sent from an applicant to a certificate authority in order to apply for a digital identity certificate.[br]
+The most common format for CSRs is the PKCS</CERTIFICATE_REQUEST_EXPLAIN>
+<CountryName>Country name</CountryName>
+<testing_ssl_certificate>Testing SSL certificate</testing_ssl_certificate>
+<testing_ssl_certificate_failed>Failed to test SSL certificate</testing_ssl_certificate_failed>
+<hostpot_rules>Hotspot rules</hostpot_rules>
+<EnableSquidGuardSearchCategoryNone>Search the category for [b]None[/b] result</EnableSquidGuardSearchCategoryNone>
+<EnableSquidGuardSearchCategoryNone_explain>If you define some rules as [b]Nothing Else[/b], the web error page display [b]None[/b] as category.[br]
+Turn on this option force the web error page to search the category of the blocked web site
+</EnableSquidGuardSearchCategoryNone_explain>
+<button>Button</button>
+<margin>Margin</margin>
+<font_size>Font size</font_size>
+<spacer>Spacer</spacer>
+<page_size>Page size</page_size>
+<forms_design>Form design</forms_design>
+<FieldsStyle>Fields style</FieldsStyle>
+<LegendsStyle>Legends style</LegendsStyle>
+<register_explain>Register explain message</register_explain>
+<lost_password_text>Lost password text</lost_password_text>
+<links_color>Links font color</links_color>
+<TextErrorStyle>Error informations style</TextErrorStyle>
+<wrong_unername_or_password>Wrong user name or password</wrong_unername_or_password>
+<session_memory>Session memory</session_memory>
+<ArticaSplashHotSpotRedirectText>Redirection text</ArticaSplashHotSpotRedirectText>
+<ArticaSplashHotSpotEndTime_explain>This is the default maximal time (if not defined in local members) of an active Session.</ArticaSplashHotSpotEndTime_explain>
+<disable_account_in>Disable account after</disable_account_in>
+<session_expired>Session is expired</session_expired>
+<HOTSPOT_ENABLED_AUTO_LOGIN_SMTP_DISABLED>You have activated the Self-register but the use of SMTP is not enabled.[br]
+Currently this configuration make no sense.
+</HOTSPOT_ENABLED_AUTO_LOGIN_SMTP_DISABLED>
+<HOTSPOT_ENABLED_AUTO_LOGIN_SMTP_SETTINGS>You have activated the Self-register and the SMTP engine but it seems you r SMTP settings are not correctly defined.[br]
+Please fill the SMTP parameters correctly</HOTSPOT_ENABLED_AUTO_LOGIN_SMTP_SETTINGS>
+<hotspot_use_local_database>If turned to ON, then the HotSpot use the local members saved in local database in order to check credentials[br]
+If no authentication is set, even is turned to OFF, the Hotspot system will use the local database
+</hotspot_use_local_database>
+<hotspot_use_active_directory>If turned to ON, then the HotSpot verify credentials against severals Active Directory servers and a defined groups.</hotspot_use_active_directory>
+<hotspot_ad_title>Authenticate guest accounts with several Active Directory servers</hotspot_ad_title>
+<allow_recover_password>Allow recover password</allow_recover_password>
+<allow_recover_password_explain_hotspot>If turned to ON and if the SMTP feature is enabled, users will be able to perform a recover password operation.</allow_recover_password_explain_hotspot>
+<use_local_database>Use local database</use_local_database>
+<DO_NOT_AUTENTICATE>Do not authenticate</DO_NOT_AUTENTICATE>
+<DO_NOT_AUTENTICATE_HOTSPOT_EXPLAIN>If turned to on, then only a member is asked to user without any authentication.</DO_NOT_AUTENTICATE_HOTSPOT_EXPLAIN>
+<no_network_defined>No network set</no_network_defined>
+<when_a_guest_computer_is_a_part_of_nets>When a guest computer is a part of network</when_a_guest_computer_is_a_part_of_nets>
+<send_first_the_itcharter>Send first the IT charter</send_first_the_itcharter>
+<authenticate_trough_activedirectory>Authenticate trough an Active Directory server</authenticate_trough_activedirectory>
+<authenticate_trough_local_database>Authenticate trough the local database</authenticate_trough_local_database>
+<allow_user_to_be_selfregistred>Allow user to be self-registered</allow_user_to_be_selfregistred>
+<force_user_to_register_again_after_expired_session>Force user to be self-registered again when a session is expired</force_user_to_register_again_after_expired_session>
+<without_need_to_set_password>Without need to post the password</without_need_to_set_password>
+<just_ask_an_username_hotspot>Just ask an username and establish a session</just_ask_an_username_hotspot>
+<close_session_each>Close the session each</close_session_each>
+<never_close_session>Never close the session</never_close_session>
+<delete_the_account_after>Delete the account after</delete_the_account_after>
+<andor>And/Or</andor>
+<never_delete_the_account>Never delete the account</never_delete_the_account>
+<re_authenticate_each_hotspot_size>If more than 0, when the session exceed a downloaded defined size it will be deleted and user must restart a new session.</re_authenticate_each_hotspot_size>
+<background_picture>Background picture</background_picture>
+<left_position>Left position</left_position>
+<bottom_position>Bottom position</bottom_position>
+<footer_text>Footer message</footer_text>
+<repeat>Repeat</repeat>
+<landing_page>Landing page</landing_page>
+<landing_page_hotspot_explain>By default, after validating account/credentials, guest are redirected to the original requested page.[br]
+If this field is not empty, guest users will be redirected to the defined url ( eg http://maylanding.page.com )
+</landing_page_hotspot_explain>
+<lost_landing_page>HTTP Lost landing page</lost_landing_page>
+<lost_landing_page_explain>When session is off and if user request to an SSL web page, the HotSpot is not able to get guest computer information.[br]
+In this case, the HotSpot need to perform a redirection to an [b]HTTP[/b] (not https) URI to recover the session.[br]
+We call it lost page...[br]
+If guest account reach this lost landing page, this will be the redirected final URL after a success login if no landing page has been specified.</lost_landing_page_explain>
+<after_login_redirect_user_to>After login, redirect guest user to</after_login_redirect_user_to> 
+<remove_account_in>Remove account after</remove_account_in>
+<ArticaSplashHotSpotRemoveAccount_explain>Remove the Account from the database.[br]Caclultation is made from the creation date time</ArticaSplashHotSpotRemoveAccount_explain>
+<paranoid_squid_mode_explain>The paranoid mode is designed to reduce web error page processing caused by flooder clients.[br]
+If a computer is infected by a Malware that want to access to Internet or if a client use an application denied by a policy, background generated requests should consume proxy  performance ( requests processing, web page error generation).[br]
+The paranoid mode is designed to deny client access to Internet or deny web sites using a static web error page 
+without any processing.
+</paranoid_squid_mode_explain>
+<paranoid_mode>Paranoid mode</paranoid_mode> 
+<events_number_to_deny_a_website>Events number to deny a website</events_number_to_deny_a_website>
+<events_number_to_deny_a_computer>Events number to deny a computer</events_number_to_deny_a_computer>
+<src>Source IP address</src>
+<generated_rules>Generated rules</generated_rules>
+<remove_rules_after>Remove rules after</remove_rules_after>
+<disable_account>Disable account</disable_account>
+<remove_account>Remove account</remove_account>
+<artica_categories_bulk_import>This feature allows to import a list of Active Directory groups associated to categories in order to bypass the webfiltering engine.[br]
+Put here values separated by a carriage return with this format:[br]
+ADGroup1;category1,category2,category3[br]
+ADGroup2;category1,category4,category3[br]
+</artica_categories_bulk_import>
+<artica_categories_gpid>Import Active Directory group and categories</artica_categories_gpid>
+<bandwidth_last24h>Your bandwidth ( last 24 hours )</bandwidth_last24h>
+<bandwidth_lastweek>Your bandwidth this week</bandwidth_lastweek>
+<your_bandwidth>Your Bandwidth</your_bandwidth>
+<bandwidth_this_month>Your bandwidth this month</bandwidth_this_month>
+<CELERON_METHOD>Intel Celeron level</CELERON_METHOD>
+<CELERON_METHOD_EXPLAIN>Your server is turned to Intel Celeron method.[br]
+This means Artica have disabled features in order to safe your server performance</CELERON_METHOD_EXPLAIN>
+<listen_port_ssl_explain>If turned to on, SSL protocol will be handled by the proxy but no SSL website will be decrypted.[br]
+You need to create SSL rules in order to specify which SSL Internet sites you want to decrypt</listen_port_ssl_explain>
+<do_want_to_perform_connection_to_ad>Do you want to join your Active directory ?
+Just check if you have correctly defined if your Active Directory server is a Windows 2003 or an Windows 2008/2012.
+You have selected to connect to an %s Active Directory server.
+You will find a server name %h on your Active Directory server, this is normal don't remove it !
+</do_want_to_perform_connection_to_ad>
+<only_Kerberos>Only Kerberos authentication</only_Kerberos>
+<cached_Kerberos_tickets>Cached Kerberos Tickets</cached_Kerberos_tickets>
+<cpu_affinity>CPU Affinity</cpu_affinity>
+<authentication_via_activedirectory_is_disabled>Authentication via MS Active Directory is disabled</authentication_via_activedirectory_is_disabled>
+<no_sense_kerb_KerbAuthMethod>There is no sense to specify using only kerberos method when Kerberos authentication feature is not enabled</no_sense_kerb_KerbAuthMethod>
+<php5SessionGCMaxlifeTime>Max Session life time</php5SessionGCMaxlifeTime>
+<EnableMilterGreylistExternalDB>Enable Milter-greylist rules update</EnableMilterGreylistExternalDB>
+<EnableMilterGreylistExternalDB_explain>If turn to green, Artica will be able to download more than 1500 rules in order to deny/allow SMTP senders in order to reduce SPAM</EnableMilterGreylistExternalDB_explain>
+<safety_standards>Safety standards</safety_standards>
+<simple>Simple</simple>
+<rules_update>Rules update</rules_update>
+<reloading_smtp_service>Reloading SMTP service</reloading_smtp_service>
+<NIC_TX>Interface transmitted</NIC_TX>
+<NIC_RX>Interface received</NIC_RX>
+<edit_member>Edit Member</edit_member>
+<delivered>Delivered</delivered>
+<put_in_active_queue>In Active queue</put_in_active_queue>
+<forward_to_postfix>Forward to postfix</forward_to_postfix>
+<top_domains>TOP Domains</top_domains>
+<top_recipients>TOP recipients</top_recipients>
+<top_reject_rules>TOP reject rules</top_reject_rules>
+<blacklisted>Black-listed</blacklisted>
+<construct_settings>Construct settings</construct_settings>
+<need_to_restart_webconsole>Need to restart the Web console</need_to_restart_webconsole>
+<need_to_restart_webconsole_snmp>In order to make the SNMP support available, you need to restart the Artica Web console service</need_to_restart_webconsole>
+<cpu_use>Used CPU</cpu_use>
+<bittorrent_service>BitTorrent Service</bittorrent_service>
+<bittorrent_service_explain>
+Transmission is a set of lightweight BitTorrent clients (in GUI, CLI and daemon form).[br]
+All its incarnations feature a very simple, intuitive interface on top on an efficient.
+</bittorrent_service_explain>
+<gateway_services>Gateway services</gateway_services>
+<monitor_proxy_service>Monitor Proxy service</monitor_proxy_service>
+<monitor_your_system>Monitor your system</monitor_your_system>
+<stored_objects>Stored objects</stored_objects>
+<monitor_disk_space>Monitor disk space</monitor_disk_space>
+<monitor_disk_space_explain>If turned to green then Artica will notify administrators if partitions of this hard drive become to full</monitor_disk_space_explain>
+<milter_regex>Milter REGEX</milter_regex>
+<envfrom>MAIL FROM (SMTP)</envfrom>
+<envrcpt>RCPT TO (SMTP)</envrcpt>
+<cnx_addr>Connection address</cnx_addr>
+<helo>HELO</helo>
+<extended_regex>Extended regex</extended_regex>
+<milter_regex_explain>Milter-regex is a light daemon that is able to parse SMTP messages in order to discard, reject messages according regular expressions.[br]
+It is a strong service that permit to create complex patterns in order to detect SPAM in subjects, headers and bodies.[br]
+Artica is able to update dedicated pattern from Artica cloud services in order to help you about fighting spam.
+</milter_regex_explain>
+<all_rules>All rules</all_rules>
+<all_categories>All categories</all_categories>
+<domains_found_in_smtp_connections>Domains found in SMTP connections</domains_found_in_smtp_connections>
+<networks_found_in_smtp_connections>Networks found in SMTP connections</networks_found_in_smtp_connections>
+<new_quota_object>New quota object</new_quota_object>
+<identifier>Identifier</identifier>
+<quota_objects>Quota objects</quota_objects>
+<time_quota>Time quota</time_quota>
+<ext_time_quota_acl_explain>
+Every entry must start with a user/ip/MAC (debends of the Quota object type ) followed by a time budget and 
+a corresponding time period separated by a slash [b]/[/b]. Here is an example:[br]
+john 8h / 1d[br]
+melissa 24h / 1w[br]
+192.168.1.1 1h / 1d[br]
+00:0c:29:4d:89:ad 30m / 1w[br]
+You can use [b]s[/b] for seconds, [b]m[/b] for minutes, [b]h[/b] for hours, [b]d[/b] for days 
+and [b]w[/b] for weeks.[br]
+Numerical values can be given as integer values or with a fraction. E.g. [b]0.5h[/b] means 30 minutes.[br]
+[b]Notice[/b]: If Quota is not exceed then the object result is [b]TRUE[/b], If you using a deny rule with this object, use the reverse checkbox.[br] 
+</ext_time_quota_acl_explain>
+<quota_object_delete_confirm>This operation will remove all objects that using this quota object. Do you want to carry out this operation ?</quota_object_delete_confirm>
+<object_name>Object name</object_name>
+<pauselen>Pause period</pauselen>
+<pauselen_explain>Pause period is given in seconds and defines 
+the period between two requests to be treated as part of the same session.[br]
+Pauses shorter than this value will be counted against the quota, longer ones ignored.[br]
+Default is 300 seconds (5 minutes ).</pau>selen_explain>
+<squid_ttl_explain>Proxy service TTL in seconds for cached results.[br]
+The proxy will not query the object for the same request in the TTL period</squid_ttl_explain>
+<indentifier>Identifier</indentifier>
+<RHSBL_EXPLAIN>An RHSBL lists the domain names used in the from or reply-to e-mail address.[br]
+RHSBLs are of debatable effectiveness since many spams either use forged from addresses or use from addresses containing popular freemail domain names, 
+such as @gmail.com, @yahoo.com, or @hotmail.com</RHSBL_EXPLAIN>
+<RHSBL>Right Hand Side BLs</RHSBL>
+<welcome_to_squid_bandwidth_wizard>Welcome to the Website Bandwidth wizard</welcome_to_squid_bandwidth_wizard>
+<welcome_to_squid_bandwidth_wizard_1>This wizard will help you to create rules in order to limit bandwidth for some websites.[br]
+This wizard will limit to 30% of the defined bandwidth.[br]
+Set here your bandwidth in Mbps.
+</welcome_to_squid_bandwidth_wizard_1>
+<welcome_to_squid_bandwidth_wizard_2>It add some webistes limited to %sMbps, click on the Apply button to create rules and apply them to the proxy service.
+</welcome_to_squid_bandwidth_wizard_2>
+<bandwidth_wizard>Bandwidth wizard</bandwidth_wizard>
+<unmodified>Unmodified</unmodified>
+<traffic_report>Traffic report</traffic_report>
+<memory_warning>Memory warning</memory_warning>
+<memory_alert>Memory Alert</memory_alert>
+<swap_warning>SWAP Warning</swap_warning>
+<swap_alert>SWAP Alert</swap_alert>
+<session_memory_warning>Session memory warning</session_memory_warning>
+<partition_warning>Partition warning</partition_warning>
+<INFLUX_DISABLED_PROXY_PERFORMANCE>The statistics database is currently disabled because Proxy performance is defined to minimal features.[br]
+If you want to enable statistics, you have to increase the performance level in the proxy section.[br]
+See performance button.</INFLUX_DISABLED_PROXY_PERFORMANCE>
+<proxy_performance_is_set_to_lowlevel>Proxy performance is set to low level, in this case this service is disabled</proxy_performance_is_set_to_lowlevel>
+<waiting>Waiting</waiting>
+<checking_php_snmp>Checking PHP SNMP Module</checking_php_snmp>
+<no_listening_port_defined>No listening port defined</no_listening_port_defined>
+<disconnect_time>Disconnect time</disconnect_time>
+<wifidog_disconnect_time>This is the global maximal time an user can use its HotSpot session.[br]
+This time must be higuer than the maximal session time you have defined in the Hostspot network rules
+</wifidog_disconnect_time>
+<session_time>Session time</session_time>
+<use_licensed_plugin>Use the licensed mode</use_licensed_plugin>
+<HYPERCACHE_LICENSED_EXPLAIN>If turned to green the Artica use a strong plugin that able to increase more the caching level rate.[br]
+This plugin require an additional license</HYPERCACHE_LICENSED_EXPLAIN>
+<last_15_minutes>Last 15 minutes</last_15_minutes>
+<APP_FAIL2BAN>Fail2Ban service</APP_FAIL2BAN>
+<warning_bigdata_v3>Be carrefull on the Next Big data engine 0.9.3!</warning_bigdata_v3>
+<refresh_system_information>Refresh system information</refresh_system_information>
+<warning_bigdata_v3_explain>If you read this message, this mean your Big Database service is on 0.9.1,0.9.2 version.[br]
+We have released a new 0.9.3 version that improve Database service engine performance.[br]
+This new version have a new compress engine in order to reduce data size and memory usage on the system disk.[br]
+To use this new version you must [b]destroy[/b] the current database built in 0.9.2 or 0.9.1 version.[br]
+If you upgrade to the 0.9.3 or above version without removing the database, you will be able to extract statistics but Artica will [b]be not able to inject new data[/b].[br]
+We will develop a new feature to inject old logs to the BigData database.[br]
+So if you need to keep history and continue to add data, do not upgrade to 0.9.3 Database Engine or above.[br]
+If you want to have better performances and upgrade with a freshed database, upgrade to the new engine and remove the database in the statistics engine section.
+</warning_bigdata_v3_explain>
+<wccp_interface_error>WCCP tunnel interface error</wccp_interface_error>
+<main_interface_not_selected>Main Network Interface not defined</main_interface_not_selected>
+<HospotHTTPServerName>Web server virtual name</HospotHTTPServerName>
+<HospotHTTPServerName_explain>Especially used when you need to use your own certificate in order to avoid SSL certificate issue on the splash screen.[br]
+If empty, Artica will use the guests Network Interface IP address</HospotHTTPServerName_explain>
+<see>See</see>
+<from_guest_network_to_internet>From Guest Network to Internet</from_guest_network_to_internet>
+<from_internet_to_guest_network>From Internet Network to guest network</from_internet_to_guest_network>
+<save_and_connect>Save & Connect</save_and_connect>
+<groups_retreiver_explain>For statistics purpose and for specifics ACLs Artica need to retrieve only one group from an user.[br]
+Active Directory allows you to link multiple groups for an user but Artica needs to retreive only one.[br]
+By default, Artica use the first group found in the group list.[br]
+You can define a regular expression if you need to retrieve a specific group.[br]
+For example: [b]^INTERNET_[/b] will find the first group started by INTERNET_ keywords like ( INTERNET_FULL, INTERNET_MEDIUM...).[br]
+Or you can choose an Active Directory attribute in the drop-down list that allows Artica to set it as group.
+</groups_retreiver_explain>
+<use_first_group_found>Use first group found</use_first_group_found>
+<find_a_group_regex>Find the group according a regular expression</find_a_group_regex>
+<use_active_directory_attribute>Use an Active Directory Attribute</use_active_directory_attribute>
+<statistics_virtual_group>Statistics virtual group</statistics_virtual_group>
+<groups_retreiver>Groups retreiver</groups_retreiver>
+<test_categories_rate>Web Classification testing</test_categories_rate>
+<test_categories_rate_explain>This section allows you to verify the Artica Web classification rate.[br]
+It use the native Squid-Cache log format.[br]
+[b]Note[/b]: We calculate fully domains, Public IP addresses are not calculated in the classification rate.[br]
+Upload your Squid-Cache log ( access.log file ) trough the Interface and Artica give to you a report of the Web classification.
+</test_categories_rate_explain>
+<ipaddresses>IP addresses</ipaddresses>
+<sessions_tracking_objects>Sessions tracking objects</sessions_tracking_objects>
+<integrated_antivirus>Integrated Antivirus</integrated_antivirus>
+<integrated_antivirus_explain>Integrated Antivirus act as an Antivirus plugin ( using eCAP library ), difference is the proxy not sends content to a ClamAV engine service, the Antivirus analysis is a part of the Proxy process.[br]
+This reduce used resources by an additional service but increase memory used by the proxy itself.[br]
+With this plugin, the Antivirus send directly an [b]Access Denied[/b] to the proxy, in this case no statistics and information are sent to the system.
+</integrated_antivirus_explain>
+<upload2>Upload</upload2>
+<ERROR_MISSING_MODULE_UPDATE_PROXY>Required module is missing, we suggest to upgrade the proxy version to display this section.</ERROR_MISSING_MODULE_UPDATE_PROXY>
+<or_above>Or above</or_above>
+<ecap_plugins>eCAP Plugins</ecap_plugins>
+<filters_are_disabled>Filters are disabled!</filters_are_disabled>
+<emergency2>Emergency</emergency2>
+<http_compression_explain>HTTP compression allows you to compress HTTP content into gzip format.[br]
+All browsers supports gzip format and are able to uncompress content ( using the [b]Accept-Encoding	gzip, deflate[/b] HTTP header).[br]
+It designed to save bandwidth and compress content from 40 to 95%.[br]
+In most cases the GZIP compress operation is executed on Web servers but many web servers did not have HTTP compression feature enabled.[br]
+This feature is interesting if your proxy is located on the main office and serves browsers or remote proxies that are located oustide your local infrastructure.[br]
+Using HTTP compression inside a LAN did not make sense...
+</http_compression_explain>
+<kerberos_proxy_hostname_explain>This is the hostname that will be used inside the Active Directory database.[br]
+By default, it use the local hostname defined in the system.[br]
+You can modify it especially if you using a Load Balancer.
+</kerberos_proxy_hostname_explain>
+<proxy_hostname>Proxy service name</proxy_hostname>
+<service_will_globally_force_users_to_reauth_each>The service will globally force to re-authenticate each</service_will_globally_force_users_to_reauth_each>
+<squid_ttl_session_explain>Fixed timeout for any session.[br]
+This will end the session after the timeout regardless of a user's activity</squid_ttl_session_explain>
+<session_object_delete_confirm>This operation will remove all objects that using this session object. Do you want to carry out this operation ?</session_object_delete_confirm>
+<session_tracking>Session tracking</session_tracking>
+<ErrorVirtualhostnameHostname>You cannot use the System hostname for the Virtual server hostname, %a will is not accepted in the configuration</ErrorVirtualhostnameHostname>
+<disable_authentication>Disable authentication</disable_authentication>
+<POSITIVE_CACHE_TTL>Positive cache TTL</POSITIVE_CACHE_TTL>
+<NEGATIVE_CACHE_TTL>Negative cache TTL</NEGATIVE_CACHE_TTL>
+<categories_helper_performance>Artica Categories helper performances</categories_helper_performance>
+<ads_and_trackers>Ads and Trackers</ads_and_trackers>
+<system_health_checking>System health monitor</system_health_checking>
+<system_health_checking_explain>Monitor the system performance and create reports/notifications when reach limits</system_health_checking_explain>
+<no_monitoring>No monitoring</no_monitoring>
+<if_system_load_exceed>If system load exceed</if_system_load_exceed>
+<if_system_cpu_exceed>If system CPU exceed</if_system_cpu_exceed>
+<if_system_memory_exceed>If system memory exceed</if_system_memory_exceed>
+<dashboard_perfs_queue>%s performance issues/reports was detected</dashboard_perfs_queue>
+<mikrotik_error_interface>Specify the listen interface is mandatory</mikrotik_error_interface>
+<mikrotik_cmd_line_explain>Here some Mikrotik rules examples, run the console, copy/paste these command-lines</mikrotik_cmd_line_explain>
+<no_mikrotik_port_saved>To see this section, you need to add MikroTik port before.</no_mikrotik_port_saved>
+<checking_mikrotik_mode>Check MikrotiK method</checking_mikrotik_mode>
+<ads_object>Advertisements/Analytics object</ads_object>
+<clean_log_directory>Clean logs directory</clean_log_directory>
+<performance_level_nostats>Performance level is defined to not use statistics engine[br]Graphs and charts will be not generated.</performance_level_nostats>
+<secure_gateway>Secure gateway</secure_gateway>
+<secure_gateway_explain>This feature restrict forwarding connections to the listed protocols and defined ports.[br]
+It is used when you using Artica as gateway such as transparent proxy.</secure_gateway_explain>
+<new_whitelist_port>New white-listed port</new_whitelist_port>
+<whitelisted_ports>White-listed ports</whitelisted_ports>
+<PortName>Port name</PortName>

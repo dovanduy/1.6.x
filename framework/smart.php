@@ -16,7 +16,14 @@ die();
 function smartctl_i(){
 	$unix=new unix();
 	$smartctl=$unix->find_program("smartctl");
-	$cmd="$smartctl -i {$_GET["status"]} 2>&1";
+	
+	$dev=$_GET["status"];
+	
+	if(preg_match("#\/cciss\/#", $dev)){
+		$option_to_add=" -d cciss,0";
+	}
+	
+	$cmd="$smartctl -i {$dev}{$option_to_add} 2>&1";
 	exec("$cmd",$results);
 	writelogs_framework("$cmd ". count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
 	$array["{disk}"]=$_GET["status"];
@@ -31,7 +38,16 @@ function smartctl_i(){
 function smartctl_A(){
 	$unix=new unix();
 	$smartctl=$unix->find_program("smartctl");
-	$cmd="$smartctl -A {$_GET["health"]} 2>&1";
+	if(preg_match("#\/cciss\/#", $_GET["health"])){
+		$option_to_add=" -d cciss,0";
+	}
+	
+	
+	
+	$cmd="$smartctl -A {$_GET["health"]}{$option_to_add} 2>&1";
+	
+	
+	
 	exec("$cmd",$results);
 	writelogs_framework("$cmd ". count($results)." rows",__FUNCTION__,__FILE__,__LINE__);	
 	while (list ($num, $line) = each ($results)){

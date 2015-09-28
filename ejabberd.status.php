@@ -98,7 +98,7 @@ if($t<2){
 $tables[]="</table>
 <div style='text-align:right'>". imgtootltip("64-refresh.png","{refresh}","RefreshTab('main_ejabberd_tabs')")."</div>";
 
-$html="<H3 style='font-size:18px;margin-bottom:10px'>{APP_EJABBERD}:{services_status}:</H3><div style='font-size:14px' class=text-info>{APP_EJABBERD_ABOUT}</div>".implode("\n",$tables);	
+$html="<H3 style='font-size:18px;margin-bottom:10px'>{APP_EJABBERD}:{services_status}:</H3><div style='font-size:14px' class=explain>{APP_EJABBERD_ABOUT}</div>".implode("\n",$tables);	
 echo $tpl->_ENGINE_parse_body($html);	
 	
 }

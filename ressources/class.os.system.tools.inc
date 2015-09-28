@@ -254,9 +254,25 @@ public function cpu_info() {
 function html_load_usage($loadc=0,$tiny=0){
 	include_once(dirname(__FILE__).'/class.users.menus.inc');
 	$users=new usersMenus();
-	$cpunum=intval($users->CPU_NUMBER);
+	$cpunum=0;
+	if($GLOBALS["AS_ROOT"]){
+		if(class_exists("unix")){
+			$unix=new unix();
+			$cpunum=$unix->CPU_NUMBER();
+		}
+	}
+		
+	if($cpunum==0){	
+		if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+			$sock=new sockets();
+			$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+		}else{
+			$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+		}
+	}
+	
 	$array_load=sys_getloadavg();
-	$org_load=$array_load[2];
+	$org_load=$array_load[1];
 	$load=intval($org_load);
 	//middle =$cpunum on va dire que 100% ($cpunum*2) + orange =0,75*$cpunum
 	$max_vert_fonce=$cpunum;
@@ -282,7 +298,7 @@ function html_load_usage($loadc=0,$tiny=0){
 	
 	if($load>=$max_over){
 		$color="#640000";
-		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:red");
+		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:#d32d2d");
 	}
 
 	$this->meta_array["LOAD"]["CPU_NUMBER"]=$cpunum;
@@ -418,6 +434,16 @@ private function uptime_installed() {
     return ("$days {days}, $hours {hours}, $minutes {minutes}");
   }
 }
+
+
+public function uptime_int(){
+	$e=file('/proc/uptime');
+	preg_match('#(.*) (.*)#', $e[0], $e);
+	$t=time();
+	$Since=$t-intval($e[1]);
+	return $Since;
+}
+
 function uptime(){
 
      $e=file('/proc/uptime');
@@ -552,25 +578,14 @@ function html_Memory_usage(){
 	}
 	
 	$hdparms=unserialize(base64_decode($sock->GET_INFO("HdparmInfos")));
-	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
-	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}
+
 	$users=new usersMenus();
 	
+	$Disks=$this->DISK_LIST();
+	$inodes=$this->DISK_INODES();
+
 	
 	
-	if($GLOBALS["AS_ROOT"]){
-		$unix=new unix();
-		$Disks=$unix->DISK_LIST();
-	}else{
-		$Disks=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-list=yes")));
-	}
-	
-	if($GLOBALS["AS_ROOT"]){
-		$unix=new unix();
-		$inodes=$unix->DISK_INODES();
-	}else{
-		$inodes=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-inodes=yes")));
-	}	
 	
 	
 	
@@ -621,7 +636,7 @@ function html_Memory_usage(){
 	}
 	
 	if(!is_array($Disks)){
-		if($GLOBALS["VERBOSE"]){echo "<H2 style=color:red'>\$Disks == null !!</H2><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<H2 style=color:#d32d2d'>\$Disks == null !!</H2><br>\n";}
 		
 	}
 	
@@ -674,9 +689,13 @@ function html_Memory_usage(){
 						}else{
 							$label=$this->disks_get_label_asroot("/dev/$disk_name");
 						}
+						
+						$this->events("Label:$label ",__LINE__);
 					
 					}else{
+						
 						$label=$LABELZ["/dev/$disk_name"];
+						$this->events("Label:$label ",__LINE__);
 					}
 									
 					if(strpos($label,"e2label")>0){$label=null;}
@@ -773,12 +792,20 @@ function html_Memory_usage(){
 					
 					if($label==null){
 						if(isset($BLKID_ARRAY[$diskPath]["LABEL"])){
-							$label=$BLKID_ARRAY[$diskPath];
+							if(is_array($BLKID_ARRAY[$diskPath])){
+								if(isset($BLKID_ARRAY[$diskPath]["LABEL"])){
+									$label=$BLKID_ARRAY[$diskPath]["LABEL"];
+								}
+							}else{
+								$label=$BLKID_ARRAY[$diskPath];
+							}
+								
 						}
 					}
 					
 					
 					if($label<>null){$disk_text="$label (". basename($diskPath).")";}
+					$this->events("Disk text:$disk_text - $diskPath",__LINE__);
 					$this->meta_array["DISKS"]["$disk_name"]["COLOR"]=$color;
 					$jsview="Loadjs('system.internal.disks.php?partinfos-js=". urlencode($diskPath)."')";
 					$length=strlen($disk_text);
@@ -921,14 +948,31 @@ function html_Memory_usage(){
 		</div>";
 						
 		
-	}	
-	
-	if(!$GLOBALS['AS_ROOT']){
-		$sock=new sockets();
-		$FilesDesc=unserialize(base64_decode($sock->getFrameWork("services.php?files-descriptors=yes")));
-	}else{
-		$FilesDesc=$this->file_descriptors_get();
 	}
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+	
+		if(isset($trace[0])){
+			$file=basename($trace[0]["file"]);
+			$function=$trace[0]["function"];
+			$line=$trace[0]["line"];
+			writelogs("Loaded by $file $function in line $line",__FUNCTION__,__FILE__,__LINE__);
+		}
+	
+		if(isset($trace[1])){
+			$file=basename($trace[1]["file"]);
+			$function=$trace[1]["function"];
+			$line=$trace[1]["line"];
+			writelogs("Loaded by $file $function in line $line",__FUNCTION__,__FILE__,__LINE__);
+		}
+	
+	
+	
+	}
+	
+	$FilesDesc=$this->file_descriptors();
+
 	if(is_array($FilesDesc)){
 		$MINI=$FilesDesc["MINI"];
 		$MAXI=$FilesDesc["MAXI"];
@@ -946,42 +990,7 @@ function html_Memory_usage(){
 	}
 	
 	$bb=null;
-	if($EnableBandwithCalculation==1){
-		$bandwithArray=unserialize(@file_get_contents(dirname(__FILE__)."/web/cache1/bandwith.stats"));
-		
-		if(is_array($bandwithArray)){
-			$ISP=$bandwithArray["ISP"];
-			$IP=$bandwithArray["PUBLIC_IP"];
-			$bandwith=$bandwithArray["DOWNLOAD"];
-			$upload=$bandwithArray["UPLOAD"];	
-			$this->meta_array["BANDWITH"]=$bandwith;
-			$convert=FormatBytes($bandwith);
-			$convert_upload=FormatBytes($upload);
-			if($bandwith>10000){$bandwith=10000;}
-			$bandwith_color="#5DD13D";
-			if(($convert>0) && ($convert_upload>0)){
-				if($bandwith<5000){$bandwith_color="#F59C44";}
-				if($bandwith<2000){$bandwith_color="#D32D2D";}
-				$pourc=$bandwith/100;
-				$this->meta_array["BANDWITH_POURC"]=$pourc;
-				$this->meta_array["BANDWITH_COLOR"]=$bandwith_color;
-				
-				$bandwith_js="Loadjs('bandwith.stats.php')";
-				
-				$bb="<tr ". CellRollOver($bandwith_js).">
-						<td width=1% nowrap class=legend nowrap><strong style='font-size:10px'>{bandwith}:</strong></strong></td>
-						<td align='left'>
-							<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $bandwith_color'>
-								<div style='width:{$pourc}px;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$bandwith_color'><strong>$convert/s</strong></div>
-							</div>
-						</td>
-						<td width=1% nowrap>
-							<span style='color:black;font-weight:bold'>D:$convert/s U: $convert_upload<br>$ISP/$IP</span>
-						</td>
-						</tr>";
-			}
-		}
-	}
+
 	
 	$ttimeid=rand(time(), time()*time());
 	
@@ -1046,8 +1055,101 @@ function html_Memory_usage(){
 	return $tpl->_ENGINE_parse_body($html);
 	
 }
+private function file_time_min($path){
+	$last_modified=0;
+
+	if(is_dir($path)){return 10000;}
+	if(!is_file($path)){return 100000;}
+		
+	$data1 = filemtime($path);
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
+}
+
+private function DISK_LIST(){
+	$fileCache="/usr/share/artica-postfix/ressources/logs/web/disks-list";
+	
+	if(is_file($fileCache)){
+		$TimeMin=$this->file_time_min($fileCache);
+		if($TimeMin<15){return @file_get_contents($fileCache);}
+	}
+	
+	@unlink($fileCache);
+	
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$Disks=$unix->DISK_LIST();
+		@file_put_contents($fileCache, serialize($Disks));
+		@chmod($fileCache, 0777);
+		return $Disks;
+	}
+	$sock=new sockets();
+	$Disks=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-list=yes")));
+	@file_put_contents($fileCache, serialize($Disks));
+	@chmod($fileCache, 0777);
+	return $Disks;
+}
+
+
+private function DISK_INODES(){
+	$fileCache="/usr/share/artica-postfix/ressources/logs/web/disks-inodes";
+	
+	if(is_file($fileCache)){
+		$TimeMin=$this->file_time_min($fileCache);
+		if($TimeMin<15){return @file_get_contents($fileCache);}
+	}
+	
+	@unlink($fileCache);
+	
+	
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$inodes=$unix->DISK_INODES();
+		@file_put_contents($fileCache, serialize($inodes));
+		@chmod($fileCache, 0777);
+		return $inodes;
+	}
+	
+	$sock=new sockets();
+	$inodes=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-inodes=yes")));
+	@file_put_contents($fileCache, serialize($inodes));
+	@chmod($fileCache, 0777);
+	return $inodes;
+	
+}
+
+private function file_descriptors(){
+	$fileCache="/usr/share/artica-postfix/ressources/logs/web/files-descriptors";
+	
+	if(is_file($fileCache)){
+		$TimeMin=$this->file_time_min($fileCache);
+		if($TimeMin<60){return @file_get_contents($fileCache);}
+	}
+	
+	@unlink($fileCache);
+	if(!$GLOBALS['AS_ROOT']){
+		$sock=new sockets();
+		$FilesDesc=unserialize(base64_decode($sock->getFrameWork("services.php?files-descriptors=yes")));
+		return $FilesDesc;
+	}
+	
+	
+	$FilesDesc=$this->file_descriptors_get();
+	@file_put_contents($fileCache, serialize($FilesDesc));
+	@chmod($fileCache, 0777);
+	return $FilesDesc;
+	
+	
+}
+
+
+
 private function file_descriptors_get(){
 	$unix=new unix();
+	
 	$sysctl=$unix->find_program("sysctl");
 	$cmd="$sysctl fs.file-nr 2>&1";
 	exec("$cmd",$results);
@@ -1126,7 +1228,7 @@ if($vendor<>null){
  	if(($mounted==null) && ($size==null)){
 		$error=true;
 		if($TYPE==null){$TYPE=$array["ID_FS_TYPE"];}	
-		$title_mounted="<span style='color:red;font-size:9px'>{error_not_mounted}</span>";
+		$title_mounted="<span style='color:#d32d2d;font-size:9px'>{error_not_mounted}</span>";
 			$umount="
 				<tr>
 				<td align='right' >" . imgtootltip('fw_bold.gif','{mount}',"Loadjs('usb.index.php?mount=yes&uuid=$UUID&mounted=$path&type=$TYPE')")."</td>
@@ -1168,6 +1270,20 @@ if($vendor<>null){
  	return $html;
 			
 
+ }
+ 
+ private function events($text,$line){
+ 	$GLOBALS["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/class.status.debug";
+ 	$pid=@getmypid();
+ 	$date=@date("H:i:s");
+ 	
+ 	
+ 	$size=@filesize($GLOBALS["LOGFILE"]);
+ 	if($size>1000000){@unlink($GLOBALS["LOGFILE"]);}
+ 	$f = @fopen($GLOBALS["LOGFILE"], 'a');
+ 	@fwrite($f, "$date [$pid]:".basename(__FILE__).":$line: $text\n");
+ 	@fclose($f);
+ 	@chmod($GLOBALS["LOGFILE"], 0777);
  }
 
 

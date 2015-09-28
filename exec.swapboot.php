@@ -24,9 +24,9 @@ include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 include_once(dirname(__FILE__)."/ressources/class.main_cf.inc");
 
 
-SwapWatchdog();
+SwapBoot();
 
-function SwapWatchdog(){
+function SwapBoot(){
 	$reboot=false;
 	$unix=new unix();
 	$GLOBALS["CLASS_SOCKETS"]=new sockets();
@@ -65,7 +65,6 @@ function SwapWatchdog(){
 	if(!$reboot){return;}
 	exec("$ps -aux 2>&1",$results_ps);
 	system_admin_events("Swap exceed rules: $execeed_text reboot operation will be executed in 30s\n".@implode("\n", $results_ps), __FUNCTION__, __FILE__, __LINE__, "system");
-	$GLOBALS["CLASS_UNIX"]->send_email_events("Memory swap purge $execeed_text ($time_duration)","System will be rebooted in 30s".@implode("\n", $results_ps),"system");
 	sleep(30);
 	
 	$reboot=$unix->find_program("reboot");

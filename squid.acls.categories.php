@@ -203,7 +203,11 @@ function blacklist_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
+	if(!is_numeric($_POST['rp'])){$_POST['rp']=50;}
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	$searchstring=string_to_flexquery();
@@ -225,9 +229,9 @@ function blacklist_list(){
 
 	if($OnlyEnabled){$limitSql=null;}
 	$sql="SELECT *  FROM `webfilters_categories_caches` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($q->mysql_error,"", "",""));json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}
 
 
 
@@ -250,36 +254,7 @@ function blacklist_list(){
 		$category_table_elements=$q->COUNT_ROWS($category_table);
 		$DBTXT=array();
 		$database_items=null;
-		if($category_table_elements>0){
-			$category_table_elements=FormatNumber($category_table_elements);
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."',true)\"
-			style='font-size:11px;font-weight:bold;text-decoration:underline'>$category_table_elements</a> $items";
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."',true)\"
-			style='font-size:11px;font-weight:bold;text-decoration:underline'>$compile</a>";
-				
-		}
-
-
-		$ligneTLS=mysql_fetch_array($q->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='{$ligne['categorykey']}'"));
-		$category_table_elements_tlse=$ligneTLS["websitesnum"];
-		if($category_table_elements_tlse>0){
-			$category_table_elements_tlse=FormatNumber($category_table_elements_tlse);
-			$DBTXT[]="$category_table_elements_tlse Toulouse University $items";
-		}
-
-		$catz=new mysql_catz();
-		$category_table_elements_artica=$catz->COUNT_ROWS($category_table);
-		if($category_table_elements_artica>0){
-			$category_table_elements_artica=FormatNumber($category_table_elements_artica);
-			$DBTXT[]="$category_table_elements_artica Artica $items <i style='font-size:10px;font-weight:normal'>$text_license</i>";
-		}
-
-
-
-		if(count($DBTXT)>0){
-			$database_items="<span style='font-size:11px;font-weight:bold'>".@implode("&nbsp;|&nbsp;", $DBTXT)."</span>";
-		}
-
+		
 		$img="img/{$ligne["picture"]}";
 		$val=0;
 		if(!isset($cats[$ligne['categorykey']])){$cats[$ligne['categorykey']]=false;}

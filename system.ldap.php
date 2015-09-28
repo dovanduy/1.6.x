@@ -406,7 +406,8 @@ function LDAP_CONFIG_SAVE(){
 }
 
 function LDAP_SAVE(){
-
+	if($this->SquidPerformance>2){return;}
+	if($this->EnableIntelCeleron==1){return;}
 
 
 	if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){

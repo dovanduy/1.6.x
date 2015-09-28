@@ -143,7 +143,8 @@ function parameters(){
 	$NmapScanEnabled=$sock->GET_INFO("NmapScanEnabled");
 	
 	$NmapTimeOutPing=intval($sock->GET_INFO("NmapTimeOutPing"));
-	if($NmapTimeOutPing==0){$NmapTimeOutPing=15;}
+	if($NmapTimeOutPing==0){$NmapTimeOutPing=30;}
+	$NmapFastScan=intval($sock->GET_INFO("NmapFastScan"));
 	
 	if(!is_numeric($NmapScanEnabled)){$NmapScanEnabled=1;}
 	if(!is_numeric($NmapRotateMinutes)){$NmapRotateMinutes=60;}
@@ -160,19 +161,26 @@ function parameters(){
 	<tbody>
 	<tr>
 		<td colspan=2>
-			". Paragraphe_switch_img("{NmapScanEnabled}", "{about_nmap}","NmapScanEnabled",$NmapScanEnabled,null,750)."		
+			". Paragraphe_switch_img("{NmapScanEnabled}", "{about_nmap}",
+					"NmapScanEnabled",$NmapScanEnabled,null,1390)."		
 		</td>
 
 	<tr>
-		<td class=legend style='font-size:18px'>{NmapRotateMinutes}:</td>
-		<td valign='top' nowrap style='font-size:18px'>" . Field_text('NmapRotateMinutes',$NmapRotateMinutes,'font-size:18px;width:90px')."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:26px'>{NmapRotateMinutes}:</td>
+		<td valign='top' nowrap style='font-size:26px'>" . Field_text('NmapRotateMinutes',
+				$NmapRotateMinutes,'font-size:26px;width:90px')."&nbsp;{minutes}</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{timeout_ping_networks}:</td>
-		<td valign='top' nowrap style='font-size:18px'>" . Field_text('NmapTimeOutPing',$NmapTimeOutPing,'font-size:18px;width:90px')."&nbsp;{seconds}</td>
-	</tr>					
+		<td class=legend style='font-size:26px'>{timeout_ping_networks}:</td>
+		<td valign='top' nowrap style='font-size:26px'>" . Field_text('NmapTimeOutPing',$NmapTimeOutPing,
+				'font-size:26px;width:90px')."&nbsp;{seconds}</td>
+	</tr>
 	<tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()",32)."</td>
+		<td class=legend style='font-size:26px'>{fast_scan}:</td>
+		<td valign='middle' nowrap style='font-size:1px'>" . Field_checkbox_design('NmapFastScan',1,$NmapFastScan)."&nbsp;</td>
+	</tr>									
+	<tr>
+	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()",46)."</td>
 	
 
 	</tr>
@@ -196,6 +204,12 @@ function parameters(){
 		XHR.appendData('NmapRotateMinutes',document.getElementById('NmapRotateMinutes').value);
 		XHR.appendData('NmapScanEnabled',document.getElementById('NmapScanEnabled').value);
 		XHR.appendData('NmapTimeOutPing',document.getElementById('NmapTimeOutPing').value);
+		if(document.getElementById('NmapFastScan').checked){
+			XHR.appendData('NmapFastScan',1);
+		}else{
+			XHR.appendData('NmapFastScan',0);
+			}
+		
 		XHR.sendAndLoad('$page', 'POST',x_SaveNMAPSettings);
 	}
 </script>	
@@ -210,7 +224,7 @@ function main_settings_edit(){
 	$sock->SET_INFO("NmapRotateMinutes", $_POST["NmapRotateMinutes"]);
 	$sock->SET_INFO("NmapScanEnabled", $_POST["NmapScanEnabled"]);
 	$sock->SET_INFO("NmapTimeOutPing", $_POST["NmapTimeOutPing"]);
-	
+	$sock->SET_INFO("NmapFastScan", $_POST["NmapFastScan"]);
 	
 	
 }

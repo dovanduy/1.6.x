@@ -28,7 +28,8 @@ function ScanFoldders(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
-	$pid=file_get_contents("$pidfile");
+	
+	$pid=$unix->get_pid_from_file($pidfile);
 	if($GLOBALS["VERBOSE"]){echo "$timefile\n";}
 	
 	if(system_is_overloaded(basename(__FILE__))){die();}

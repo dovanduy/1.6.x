@@ -41,7 +41,7 @@ function tabs(){
 	$status=trim($sock->getFrameWork("squid.php?videocache-streamsquidcache=yes"));
 	
 	if($status<>"TRUE"){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{module_in_squid_not_installed}<hr>{EnableStreamCache_text}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{module_in_squid_not_installed}<hr>{EnableStreamCache_text}"));
 		return;
 	}
 	
@@ -131,7 +131,7 @@ function status(){
 		$error_license=$error_license.
 		"<table style='margin-top:10px'>
 		<tr>
-			<td valign='top' nowrap><img src=img/warning-panneau-64.png'></td>
+			<td valign='top' nowrap><img src='img/warning-panneau-64.png'></td>
 			<td style='padding-left:15px' style='font-size:18px'>{warn_videocache_nossl}</td>
 		</tr>
 		</table>";

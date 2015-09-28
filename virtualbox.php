@@ -114,7 +114,7 @@ function status(){
 	
 	$html="<table style='width:100%'>
 	<tr>
-	<td valign='top' width=1%><img src='img/virtualbox-256.png'><div class=text-info>{VIRTUALBOX_ABOUT}</div>
+	<td valign='top' width=1%><img src='img/virtualbox-256.png'><div class=explain>{VIRTUALBOX_ABOUT}</div>
 	<td valign='top'>
 		<div id='virtualbox-status'></div>
 		

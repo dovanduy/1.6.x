@@ -95,7 +95,7 @@ function popup(){
 	<tr>
 	<td valign='top' width=1%><img src='img/storage-128.png'>
 	<td valign='top'>
-	<div class=text-info>{CLONE_HD_TEXT}</div>
+	<div class=explain>{CLONE_HD_TEXT}</div>
 	
 	<table style='width:100%'>
 	<tr>

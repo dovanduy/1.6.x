@@ -24,7 +24,7 @@ function page(){
 	$sock=new sockets();
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if($SquidPerformance>1){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{artica_statistics_disabled}"));
 		return;
 	}
 	$t=time();

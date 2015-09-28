@@ -70,7 +70,7 @@ function popup(){
 	
 	$html="
 	<div id='chhostdiv'>
-	<div class=text-info>$explain</div>
+	<div class=explain>$explain</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{netbiosname}:</td>

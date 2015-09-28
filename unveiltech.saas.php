@@ -170,7 +170,7 @@ function popup(){
 	}else{
 		
 		$bas="
-		<div class=text-info style='font-size:16px'>
+		<div class=explain style='font-size:16px'>
 			{WebFilter_SaaS_AS_EVAL}
 		</div>
 		<center style='margin:30px'>
@@ -188,7 +188,7 @@ function popup(){
 		
 	}
 
-	$html="<div class=text-info style='font-size:16px'>{WebFilter_SaaS_Explain}</div>$bas";
+	$html="<div class=explain style='font-size:16px'>{WebFilter_SaaS_Explain}</div>$bas";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	

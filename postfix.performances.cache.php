@@ -251,7 +251,7 @@ function PostFixAddServerCache(){
 	<td colspan=2 align='right'><hr>". button("{add}","PostFixSaveServerCache()")."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=text-info>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=explain>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>

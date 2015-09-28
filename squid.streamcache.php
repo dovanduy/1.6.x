@@ -211,7 +211,7 @@ function AddWCatz(){
 	$b[2]="{blacklist}";
 	$b[3]="{whitelist}";
 	
-	$html="<div class=text-info>{dansguardian_weighted_explain}</div>
+	$html="<div class=explain>{dansguardian_weighted_explain}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

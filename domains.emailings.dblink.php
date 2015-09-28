@@ -33,7 +33,7 @@ function popup(){
 	
 	$html="
 	<div id='link_databases_emailing_div'>
-	<div class=text-info>{link_databases_emailing_text}<br>{merged_database_explain}</div>
+	<div class=explain>{link_databases_emailing_text}<br>{merged_database_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{database_name}:</td>

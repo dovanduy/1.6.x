@@ -50,7 +50,7 @@ function page(){
 		</td>
 		<td valign='top'>
 		
-			<div class=text-info>{SAMBA_LDAP_EXTERN_TEXT}</div>
+			<div class=explain>{SAMBA_LDAP_EXTERN_TEXT}</div>
 			<div id='MainSambaLDAPConfigDiv'>
 			<table style='width:100%'>
 			<tr>

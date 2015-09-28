@@ -88,13 +88,13 @@ function wizard3(){
 	
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
-	 	echo FATAL_WARNING_SHOW_128($curl->error."<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>$deb<hr>".wizard_restart());
+	 	echo FATAL_ERROR_SHOW_128($curl->error."<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>$deb<hr>".wizard_restart());
 	 	return;
 	}
 	
 	if(strpos($curl->data, "CONNECTIONOK")==0){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
-		echo FATAL_WARNING_SHOW_128("<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>{protocol_error}$deb".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>{protocol_error}$deb".wizard_restart());
 		return;
 	}
 	
@@ -137,21 +137,21 @@ function wizard4(){
 	$curl->x_www_form_urlencoded=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
-		echo FATAL_WARNING_SHOW_128($curl->error."<hr>$cnxlog$deb<hr>".wizard_restart());
+		echo FATAL_ERROR_SHOW_128($curl->error."<hr>$cnxlog$deb<hr>".wizard_restart());
 		return;
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "<hr>$curl->data</hr>\n";}
 	
 	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){
-		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());
 		return;
 	}
 
 	$array=unserialize(base64_decode($re[1]));
 	
 	if(!is_array($array)){
-		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());
 		return;
 	}
 
@@ -169,7 +169,7 @@ function wizard4(){
 	
 	if(isset($array["APP_CREDS"])){
 		if($array["APP_CREDS"]==false){
-			echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error_wrong_credentials}$details".wizard_restart());
+			echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{error_wrong_credentials}$details".wizard_restart());
 			return;
 			
 		}
@@ -188,14 +188,14 @@ function wizard4(){
 	
 	
 	if($array["APP_SYSLOG_DB"]==false){
-		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error_syslogdb_not_installed}$details".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{error_syslogdb_not_installed}$details".wizard_restart());
 		return;
 	}
 	
 	
 	
 	if($array["APP_SQUID_DB"]==false){
-		echo FATAL_WARNING_SHOW_128("{error_squiddb_not_installed}$details".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("{error_squiddb_not_installed}$details".wizard_restart());
 		return;
 	}
 	
@@ -228,19 +228,19 @@ function wizard5(){
 	$curl->NoHTTP_POST=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
-		echo FATAL_WARNING_SHOW_128($curl->error."<hr>$cnxlog$deb<hr>".wizard_restart());
+		echo FATAL_ERROR_SHOW_128($curl->error."<hr>$cnxlog$deb<hr>".wizard_restart());
 		return;
 	}
 
-	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
+	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
 	$array=unserialize(base64_decode($re[1]));
-	if(!is_array($array)){echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
+	if(!is_array($array)){echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
 
 	
 	$html="
 	<div id='$tt'>
 	<div style='width:98%' class=form>
-	<div class=text-info style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_2}</div>
+	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_2}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{APP_SYSLOG_DB} {listen_port}:</td>
@@ -312,28 +312,28 @@ function wizard7(){
 	$curl->NoHTTP_POST=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
-		echo FATAL_WARNING_SHOW_128($curl->error."<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>$deb<hr>".wizard_restart());
+		echo FATAL_ERROR_SHOW_128($curl->error."<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>$deb<hr>".wizard_restart());
 		return;
 	}
 
-	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
+	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
 	$array=unserialize(base64_decode($re[1]));
-	if(!is_array($array)){echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
+	if(!is_array($array)){echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());return;}
 
 	
 	
 	if(isset($array["ERROR"])){
-		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error}<hr>{$array["ERROR"]}<hr>$deb".wizard_restart());
+		echo FATAL_ERROR_SHOW_128("<hr>$cnxlog{error}<hr>{$array["ERROR"]}<hr>$deb".wizard_restart());
 		return;
 		
 	}
 	
 	if(!isset($array["mysql"]["username"])){
-		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>username not retreived<hr>$deb".wizard_restart());return;
+		echo FATAL_ERROR_SHOW_128("<hr>{error}<hr>username not retreived<hr>$deb".wizard_restart());return;
 	
 	}
 	if(!isset($array["mysql"]["password"])){
-		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>Password not retreived<hr>$deb".wizard_restart());return;
+		echo FATAL_ERROR_SHOW_128("<hr>{error}<hr>Password not retreived<hr>$deb".wizard_restart());return;
 	
 	}	
 	
@@ -476,12 +476,12 @@ function wizard10(){
 	$t=$_GET["t"];
 	$tt=time()+rand(0,time());
 	if(!$q->BD_CONNECT()){
-		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>{statistics_database}<hr>$q->mysql_error".wizard_restart());return;
+		echo FATAL_ERROR_SHOW_128("<hr>{error}<hr>{statistics_database}<hr>$q->mysql_error".wizard_restart());return;
 	}
 	
 	$q=new mysql_storelogs();
 	if(!$q->BD_CONNECT()){
-		echo FATAL_WARNING_SHOW_128("<hr>{error}<hr>{logs_database}<hr>$q->mysql_error".wizard_restart());return;
+		echo FATAL_ERROR_SHOW_128("<hr>{error}<hr>{logs_database}<hr>$q->mysql_error".wizard_restart());return;
 	}
 	
 	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px'>{statistics_database}:OK</center>
@@ -504,7 +504,7 @@ function wizard11(){
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
 	$t=$_GET["t"];
 	$tt=time()+rand(0,time());
-	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=text-info>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>")."
+	echo $tpl->_ENGINE_parse_body("<center style='font-size:18px' class=explain>{STATISTICS_APPLIANCEV2_EXPLAIN_3}</center>")."
 
 	<script>
 		Loadjs('squid.compile.progress.php');
@@ -583,7 +583,7 @@ function wizard1(){
 		
 	$html="
 	<div id='$t'>		
-	<div class=text-info style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_1}</div>
+	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_1}</div>
 	<div class=form style='width:95%'>
 	<table style='width:100%'>	
 	<tr>
@@ -732,7 +732,7 @@ function popup(){
 	</tr>
 	</tbody>
 	</table>
-		<div class=text-info style='font-size:13px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
+		<div class=explain style='font-size:13px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
 	<script>
 		var x_SaveStatsApp=function (obj) {
 			var results=obj.responseText;

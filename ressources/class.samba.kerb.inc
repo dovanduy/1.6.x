@@ -26,6 +26,8 @@ class samba_kerb{
 		if($user->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 		if($EnableWebProxyStatsAppliance==1){$IsAppliance=true;}
 		$SambaBindInterface=$sock->GET_INFO("SambaBindInterface");
+		$WinBindMaxClients=intval($sock->GET_INFO("WinBindMaxClients"));
+		if($WinBindMaxClients==0){$WinBindMaxClients=500;}
 		
 		
 		$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
@@ -156,6 +158,7 @@ class samba_kerb{
 		$f[]="\twinbind offline logon = true";
 		$f[]="\twinbind cache time = 1800";
 		$f[]="\twinbind refresh tickets = true";
+		$f[]="\twinbind max clients = $WinBindMaxClients";
 		
 		if($KerbAuthTrusted==1){
 			$f[]="\tallow trusted domains = Yes";

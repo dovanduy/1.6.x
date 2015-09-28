@@ -20,17 +20,21 @@ include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.settings.inc');
+include_once(dirname(__FILE__).'/ressources/class.apache.certificate.php');
+include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
 
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
+	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 	if($argv[1]=="--phpmyadmin"){$GLOBALS["OUTPUT"]=true;PHP_MYADMIN();die();}
 	if($argv[1]=="--error500"){$GLOBALS["OUTPUT"]=true;islighttpd_error_500();die();}
 	if($argv[1]=="--phpcgi"){$GLOBALS["OUTPUT"]=true;phpcgi();die();}
 	if($argv[1]=="--tests"){$GLOBALS["OUTPUT"]=true;TESTS_SETTINGS();die();}
-	
+	if($argv[1]=="--apache-build"){$GLOBALS["OUTPUT"]=true;apache_config();die();}
+	if($argv[1]=="--php-snmp"){$GLOBALS["OUTPUT"]=true;php_snmp();die();}
 
 
 function restart($nopid=false){
@@ -52,6 +56,29 @@ function restart($nopid=false){
 	
 	start(true);	
 }	
+
+function reload(){
+	$unix=new unix();
+	$sock=new sockets();
+	$EnableArticaFrontEndToNGninx=$sock->GET_INFO("EnableArticaFrontEndToNGninx");
+	$EnableArticaFrontEndToApache=$sock->GET_INFO("EnableArticaFrontEndToApache");
+	if(!is_numeric($EnableArticaFrontEndToNGninx)){$EnableArticaFrontEndToNGninx=0;}
+	if(!is_numeric($EnableArticaFrontEndToApache)){$EnableArticaFrontEndToApache=0;}
+	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
+	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+	if($EnableNginx==0){$EnableArticaFrontEndToNGninx=0;}
+	
+	if($EnableArticaFrontEndToApache==1){
+		$apache2ctl=$unix->LOCATE_APACHE_CTL();
+		apache_config();
+		$cmd="$apache2ctl -f /etc/artica-postfix/httpd.conf -k restart";
+		shell_exec($cmd);
+	}
+	
+}
+
 
 function TESTS_SETTINGS(){
 	require("/usr/share/artica-postfix/ressources/settings.inc");
@@ -475,6 +502,8 @@ function start($aspid=false){
 	}
 
 }
+
+
 //##############################################################################
 function LIGHTTPD_PID(){
 	$unix=new unix();
@@ -635,6 +664,7 @@ function apache_start(){
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initslapd.php --phppfm-restart-back >/dev/null 2>&1 &");
 		shell_exec("$nohup /etc/init.d/artica-memcached start >/dev/null 2>&1 &");
 		shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
+		shell_exec("$nohup $php5  /usr/share/artica-postfix/exec.usb.scan.write.php >/dev/null 2>&1 &");
 	
 	
 	}else{
@@ -685,6 +715,7 @@ function apache_config(){
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
 	$APACHE_MODULES_PATH=$unix->APACHE_MODULES_PATH();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	$pydio_installed=false;
 	if(is_file(" /etc/php5/cli/conf.d/ming.ini")){@unlink(" /etc/php5/cli/conf.d/ming.ini");}
 	@unlink("/var/log/lighttpd/apache-error.log");
@@ -698,24 +729,39 @@ function apache_config(){
 	$ArticaHttpsPort=9000;
 	$NoLDAPInLighttpdd=0;
 	$ArticaHttpUseSSL=1;
-	
+	$EnableSquidGuardHTTPToArtica=intval($sock->GET_INFO("EnableSquidGuardHTTPToArtica"));
 	$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
 	$ArticaHttpUseSSL=$sock->GET_INFO("ArticaHttpUseSSL");
 	if(!is_numeric($ArticaHttpUseSSL)){$ArticaHttpUseSSL=1;}
 	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort="9000";}
 	$LighttpdArticaListenIP=$sock->GET_INFO("LighttpdArticaListenIP");
+	$InfluxDBAllowBrowse=intval($sock->GET_INFO("InfluxDBAllowBrowse"));
+	$php5UploadMaxFileSize=intval($sock->GET_INFO("php5UploadMaxFileSize"));
+	$php5PostMaxSize=intval($sock->GET_INFO("php5PostMaxSize"));
+	if($php5UploadMaxFileSize==0){$php5UploadMaxFileSize=256;}
+	if($php5PostMaxSize==0){$php5PostMaxSize=128;}
+	$ArticaWebDAVHTTPPort=intval($sock->GET_INFO("ArticaWebDAVHTTPPort"));
+	if($ArticaWebDAVHTTPPort==0){$ArticaWebDAVHTTPPort=9005;}
+	$SquidReloadInpublic=intval($sock->GET_INFO("SquidReloadInpublic"));
+	$php5SessionGCMaxlifeTime=intval($sock->GET_INFO("php5SessionGCMaxlifeTime"));
 	
 	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
 	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
-	if(!is_file($phpfpm)){$EnableArticaApachePHPFPM=0;}	
+	if($php5SessionGCMaxlifeTime==0){$php5SessionGCMaxlifeTime=3600;}
+	
 	
 	$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
-	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
-
-	if($EnablePHPFPM==0){$EnableArticaApachePHPFPM=0;}
+	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+	$SquidGuardApacheSSLPort=intval($sock->GET_INFO("SquidGuardApacheSSLPort"));
+	$SquidGuardWebSSLCertificate=$sock->GET_INFO("SquidGuardWebSSLCertificate");
+	$LighttpdArticaCertificateName=trim($sock->GET_INFO("LighttpdArticaCertificateName"));
 	
+	if(!is_file($phpfpm)){$EnableArticaApachePHPFPM=0;}
+	if($EnablePHPFPM==0){$EnableArticaApachePHPFPM=0;}
+	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+	if($SquidGuardApacheSSLPort==0){$SquidGuardApacheSSLPort=9025;}
 	
 	$unix->chown_func($APACHE_SRC_ACCOUNT, $APACHE_SRC_GROUP,"/var/run/artica-apache");
 	$apache_LOCATE_MIME_TYPES=$unix->apache_LOCATE_MIME_TYPES();
@@ -759,6 +805,8 @@ function apache_config(){
 	$open_basedir[]="/usr/sbin";
 	$open_basedir[]="/home";
 
+	$artica_webdav=apache_webdav();
+	$apache_firewall=apache_firewall();
 	
 	//$f[]="php_value open_basedir \"".@implode(":", $open_basedir)."\"";
 	//$f[]="php_value output_buffering Off";
@@ -787,13 +835,37 @@ function apache_config(){
 	}
 	
 	$f[]="Listen $ArticaHttpsPort";
+	if($EnableSquidGuardHTTPToArtica==1){
+		$f[]="Listen $SquidGuardApachePort";
+		$f[]="Listen $SquidGuardApacheSSLPort";
+	}
+	if($artica_webdav<>null){
+		$f[]="Listen *:$ArticaWebDAVHTTPPort";
+		
+	}
+	
 	
 	$MaxClients=20;
+	$MinSpareServers=2;
+	$MaxSpareServers=3;
+	
+	
+	if($SquidPerformance>2){
+		$MinSpareServers=1;
+		$MaxSpareServers=2;
+		$MaxClients=10;
+	}
+	
+	
+	if(is_file("/etc/cron.d/artica-caches-pages")){
+		@unlink("/etc/cron.d/artica-caches-pages");
+		system("/etc/init.d/cron reload");
+	}
 		
 	$f[]="<IfModule mpm_prefork_module>";
 	$f[]="\tStartServers 1";
-	$f[]="\tMinSpareServers 2";
-	$f[]="\tMaxSpareServers 3";
+	$f[]="\tMinSpareServers $MinSpareServers";
+	$f[]="\tMaxSpareServers $MaxSpareServers";
 	$f[]="\tMaxClients $MaxClients";
 	$f[]="\tServerLimit $MaxClients";
 	$f[]="\tMaxRequestsPerChild 100";
@@ -831,73 +903,23 @@ function apache_config(){
 	$f[]="MaxKeepAliveRequests 100";
 	$ServerName=$unix->hostname_g();
 	if($ServerName==null){$ServerName="localhost.localdomain";}
-	
-	$f[]="ServerName $ServerName";
-	
-	
-	if($ArticaHttpUseSSL==1){
-		$mknod=$unix->find_program("mknod");
-		shell_exec("$mknod /dev/random c 1 9 >/dev/null 2>&1");
-		$f[]="<IfModule mod_ssl.c>";
-		$f[]="\tListen $ArticaHttpsPort";
-		$f[]="\tSSLRandomSeed connect builtin";
-		$f[]="\tSSLRandomSeed connect file:/dev/urandom 256";
-		
-		$f[]="\tAddType application/x-x509-ca-cert .crt";
-		$f[]="\tAddType application/x-pkcs7-crl    .crl";
-		$f[]="\tSSLPassPhraseDialog  builtin";
-		$f[]="\tSSLSessionCache        shmcb:/var/run/apache2/ssl_scache-artica(512000)";
-		$f[]="\tSSLSessionCacheTimeout  300";
-		$f[]="\tSSLSessionCacheTimeout  300";
-		
-		$f[]="\tSSLCipherSuite HIGH:MEDIUM:!ADH";
-		$f[]="\tSSLProtocol all -SSLv2";
-		$f[]="</IfModule>";		
-		$f[]="";
-		$f[]="<IfModule mod_gnutls.c>";
-		$f[]="\tListen $ArticaHttpsPort";
-		$f[]="</IfModule>";
-	}
-	
-	if(!is_file("/etc/ssl/certs/apache/server.crt")){shell_exec("/usr/share/artica-postfix/bin/artica-install --apache-ssl-cert");}
-	
-	if($ArticaHttpUseSSL==1){
-		$f[]="SSLEngine on";
-		$f[]="AcceptMutex flock";
-		$f[]="SSLCertificateFile \"/etc/ssl/certs/apache/server.crt\"";
-		$f[]="SSLCertificateKeyFile \"/etc/ssl/certs/apache/server.key\"";
-		$f[]="SSLVerifyClient none";
-		$f[]="ServerSignature Off";	
-		$f[]="SSLRandomSeed startup file:/dev/urandom  256";
-		$f[]="SSLRandomSeed connect builtin";
-	}	
-	
-
-	
-	$f[]="AddType application/x-httpd-php .php";
-	if($EnableArticaApachePHPFPM==0){
-		$f[]="php_value error_log \"/var/log/php.log\"";
-	}
-	
-	@chown("/var/log/php.log", $APACHE_SRC_ACCOUNT);
-	
-	$f[]="<IfModule mod_fcgid.c>";
-	$f[]="	PHP_Fix_Pathinfo_Enable 1";
+	$f[]="AcceptMutex flock";
+	$f[]="";
+	$f[]="<IfModule mod_ssl.c>";
+	$f[]="\tSSLRandomSeed connect builtin";
+	$f[]="\tSSLRandomSeed connect file:/dev/urandom 256";
+	$f[]="\tSSLRandomSeed startup file:/dev/urandom  256";
+	$f[]="\tSSLPassPhraseDialog  builtin";
+	$f[]="\tSSLSessionCache        shmcb:/var/run/apache2/ssl_scache-artica(512000)";
+	$f[]="\tSSLSessionCacheTimeout  300";
+	$f[]="\tSSLSessionCacheTimeout  300";
+	$f[]="\tSSLCipherSuite HIGH:MEDIUM:!ADH";
+	$f[]="\tSSLProtocol all -SSLv2";
 	$f[]="</IfModule>";
+	$f[]="";
+	$f[]="\tAddType application/x-x509-ca-cert .crt";
+	$f[]="\tAddType application/x-pkcs7-crl    .crl";
 	
-	$f[]="<IfModule mod_php5.c>";
-	$f[]="    <FilesMatch \"\.ph(p3?|tml)$\">";
-	$f[]="	SetHandler application/x-httpd-php";
-	$f[]="    </FilesMatch>";
-	$f[]="    <FilesMatch \"\.phps$\">";
-	$f[]="	SetHandler application/x-httpd-php-source";
-	$f[]="    </FilesMatch>";
-	$f[]="    <IfModule mod_userdir.c>";
-	$f[]="        <Directory /home/*/public_html>";
-	$f[]="            php_admin_value engine Off";
-	$f[]="        </Directory>";
-	$f[]="    </IfModule>";
-	$f[]="</IfModule>";	
 
 	$f[]="<IfModule mod_mime.c>";
 	$f[]="\tTypesConfig /etc/mime.types";
@@ -987,9 +1009,76 @@ function apache_config(){
 	$f[]="\tAddOutputFilter INCLUDES .shtml";
 	$f[]="</IfModule>";
 	
+	$f[]="";
+	$f[]="<VirtualHost $ArticaHttpsPort>";	
+	$f[]="\tServerName $ServerName";
+	$f[]="\tAddType application/x-httpd-php .php";
+	if($EnablePHPFPM==0){
+		$f[]="\tphp_value post_max_size {$php5PostMaxSize}M";
+		$f[]="\tphp_value upload_max_filesize {$php5UploadMaxFileSize}M";
+		$f[]="\tphp_value session.gc_maxlifetime {$php5SessionGCMaxlifeTime}";
+		$f[]="\tphp_value session.gc_divisor 1";
+		$f[]="\tphp_value session.gc_probabilit 1";
+		$f[]="\tphp_value session.cookie_lifetime 0";
+		
+	}
+	
+	
+	if($ArticaHttpUseSSL==1){
+		$mknod=$unix->find_program("mknod");
+		$f[]="\tSSLEngine on";
+		if($LighttpdArticaCertificateName==null){
+			$f[]="\tSSLCertificateFile \"/etc/ssl/certs/apache/server.crt\"";
+			$f[]="\tSSLCertificateKeyFile \"/etc/ssl/certs/apache/server.key\"";
+
+			if(!is_file("/etc/ssl/certs/apache/server.crt")){shell_exec("/usr/share/artica-postfix/bin/artica-install --apache-ssl-cert");}
+		}else{
+			$cert=new apache_certificate($LighttpdArticaCertificateName);
+			$f[]=$cert->build();
+			
+		}
+		$f[]="\tSSLVerifyClient none";
+		$f[]="\tServerSignature Off";
+		shell_exec("$mknod /dev/random c 1 9 >/dev/null 2>&1");
+	}
+	
+	
+	
+
+	
+	
+	if($EnableArticaApachePHPFPM==0){
+		$f[]="\tphp_value error_log \"/var/log/php.log\"";
+	}
+	
+	@chown("/var/log/php.log", $APACHE_SRC_ACCOUNT);
+	
+	$f[]="<IfModule mod_fcgid.c>";
+	$f[]="	PHP_Fix_Pathinfo_Enable 1";
+	$f[]="</IfModule>";
+	
+	$f[]="<IfModule mod_php5.c>";
+	$f[]="    <FilesMatch \"\.ph(p3?|tml)$\">";
+	$f[]="	SetHandler application/x-httpd-php";
+	$f[]="    </FilesMatch>";
+	$f[]="    <FilesMatch \"\.phps$\">";
+	$f[]="	SetHandler application/x-httpd-php-source";
+	$f[]="    </FilesMatch>";
+	$f[]="    <IfModule mod_userdir.c>";
+	$f[]="        <Directory /home/*/public_html>";
+	$f[]="            php_admin_value engine Off";
+	$f[]="        </Directory>";
+	$f[]="    </IfModule>";
+	$f[]="</IfModule>";	
+
+
+	
 	
 	$f[]=apache_nagios_config();
 	$f[]=apache_phpldapadmin();
+	
+	
+	
 	$squid=$unix->LOCATE_SQUID_BIN();
 	if(is_file($squid)){
 		$f[]="Alias /proxy /usr/share/artica-postfix/squid.access.log.php";
@@ -997,7 +1086,17 @@ function apache_config(){
 		$f[]="Alias /webfilter /usr/share/artica-postfix/squid.access.webfilter.log.php";
 		$f[]="Alias /meta-updates /home/artica-meta";
 		$f[]="Alias /categories /usr/share/artica-postfix/public.categories.personnal.php";
+		if($SquidReloadInpublic==1){
+			$SquidReloadInpublicAlias=$sock->GET_INFO("SquidReloadInpublicAlias");
+			if($SquidReloadInpublicAlias<>null){
+				$f[]="Alias /$SquidReloadInpublicAlias /usr/share/artica-postfix/SquidReloadInpublicAlias.php";
+			}
+		}
 	}
+	
+	
+	$f[]="Alias /pfx  \"/usr/share/artica-postfix/pfx.php\"";
+	
 	
 	
 	$f[]="<Directory \"/home/artica-meta\">";
@@ -1008,7 +1107,11 @@ function apache_config(){
 	$f[]="\tDirectoryIndex logon.php";
 	$f[]="\tSSLOptions +StdEnvVars";
 	$f[]="\tOptions Indexes FollowSymLinks";
-	$f[]="\tAllowOverride None";
+	$f[]="\tAllowOverride Options";
+	if($apache_firewall<>null){
+		$f[]=$apache_firewall;	
+		
+	}
 	//$f[]="\tOrder allow,deny";
 	//$f[]="\tAllow from all";
 	$f[]="</Directory>";	
@@ -1061,6 +1164,21 @@ function apache_config(){
 		$f[]="</Directory>";
 	}
 	
+	if($InfluxDBAllowBrowse==1){
+		$InFluxBackupDatabaseDir=$sock->GET_INFO("InFluxBackupDatabaseDir");
+		if($InFluxBackupDatabaseDir==null){$InFluxBackupDatabaseDir="/home/artica/influx/backup";}
+		$f[]="Alias /backup-influx  \"$InFluxBackupDatabaseDir\"";
+		$f[]="<Directory \"$InFluxBackupDatabaseDir\">";
+		$f[]="\tSSLOptions +StdEnvVars";
+		$f[]="\tOptions Indexes FollowSymLinks";
+		$f[]="\tAllowOverride All";
+		//$f[]="\tOrder allow,deny";
+		//$f[]="\tAllow from all";
+		$f[]="</Directory>";
+	}
+	
+	
+	
 	if($EnableArticaApachePHPFPM==1){	
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Activate PHP5-FPM\n";}
 		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --phppfm");
@@ -1079,6 +1197,41 @@ function apache_config(){
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP5-FPM is disabled\n";}
 	}	
+	
+	
+	
+	
+	$f[]="</VirtualHost>";
+	
+	
+	if($artica_webdav<>null){
+		$f[]="<VirtualHost *:$ArticaWebDAVHTTPPort>";
+		$f[]="\tServerName $ServerName";
+		//$f[]="\tEnabledSendfile Off";
+		$f[]="\tDavLockDB \"/var/db/apache/DavLock\"";
+		$f[]="\tBrowserMatch \"Microsoft Data Access Internet Publishing Provider\" redirect-carefully";
+		$f[]="\tBrowserMatch \"^WebDrive\" redirect-carefully";
+		$f[]="\tBrowserMatch \"^gnome-vfs\" redirect-carefully";
+		$f[]="\tBrowserMatch \"^WebDAVFS/1.[012]\" redirect-carefully";
+		$f[]=$artica_webdav;
+		$f[]="</VirtualHost>";
+		@mkdir("/var/db/apache",0755,true);
+		@chown("/var/db/apache", $APACHE_SRC_ACCOUNT);
+		@chgrp("/var/db/apache", $APACHE_SRC_GROUP);
+		
+		
+	}else{
+		$f[]="# WebDAV OFF...";
+	}
+	
+
+	
+	
+	
+	if($EnableSquidGuardHTTPToArtica==1){
+		$f[]=apache_squidguard_config();
+		
+	}
 	
 	
 	$f[]="Loglevel info";
@@ -1103,6 +1256,10 @@ function apache_config(){
 	$array["ssl_module"]="mod_ssl.so";
 	$array["headers_module"]="mod_headers.so";
 	$array["ldap_module"]="mod_ldap.so";
+	
+	if($artica_webdav<>null){
+		$array["setenvif_module"]="mod_setenvif.so";
+	}
 	
 	if($EnableArticaApachePHPFPM==1){$array["fastcgi_module"]="mod_fastcgi.so";}
 	
@@ -1132,6 +1289,17 @@ function apache_config(){
 	
 	}
 	
+	if($apache_firewall<>null){
+		if(is_file("$APACHE_MODULES_PATH/mod_authz_host.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_module' enabled\n";$f[]="LoadModule authz_host_module $APACHE_MODULES_PATH/mod_authz_host.so";}
+	}
+	
+	if($artica_webdav<>null){
+		if(is_file("$APACHE_MODULES_PATH/mod_dav.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_module' enabled\n";$f[]="LoadModule dav_module $APACHE_MODULES_PATH/mod_dav.so";}
+		if(is_file("$APACHE_MODULES_PATH/mod_dav_lock.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_lock_module' enabled\n";$f[]="LoadModule dav_lock_module $APACHE_MODULES_PATH/mod_dav_lock.so";}
+		if(is_file("$APACHE_MODULES_PATH/mod_dav_fs.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_fs_module' enabled\n";$f[]="LoadModule dav_fs_module $APACHE_MODULES_PATH/mod_dav_fs.so";}
+		if(is_file("$APACHE_MODULES_PATH/mod_authz_user.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_fs_module' enabled\n";$f[]="LoadModule authz_user_module $APACHE_MODULES_PATH/mod_authz_user.so";}
+	}
+	
 	$f[]=apache_phpmyadmin();
 	
 	@file_put_contents("/etc/artica-postfix/httpd.conf", @implode("\n", $f));
@@ -1139,6 +1307,7 @@ function apache_config(){
 	
 }
 function apache_phpmyadmin(){
+	$sock=new sockets();$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
 	if(!is_dir("/usr/share/phpmyadmin/libraries")){return;}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHPMyAdmin is installed\n";}
 	$f[]="Alias /mysql /usr/share/phpmyadmin";
@@ -1153,11 +1322,13 @@ function apache_phpmyadmin(){
 	$f[]="      <IfModule mod_php5.c>";
 	$f[]="        AddType application/x-httpd-php .php";
 	$f[]=" ";
-	$f[]="        php_flag magic_quotes_gpc Off";
-	$f[]="        php_flag track_vars On";
-	$f[]="        php_flag register_globals Off";
-	$f[]="        php_value include_path .";
-	$f[]="        php_value memory_limit 32M";
+	if($EnablePHPFPM==0){
+		$f[]="        php_flag magic_quotes_gpc Off";
+		$f[]="        php_flag track_vars On";
+		$f[]="        php_flag register_globals Off";
+		$f[]="        php_value include_path .";
+		$f[]="        php_value memory_limit 32M";
+	}
 	$f[]="      </IfModule>";
 	$f[]=" ";
 	$f[]="      <IfModule !mod_php5.c>";
@@ -1185,6 +1356,7 @@ function apache_phpmyadmin(){
 }
 
 function apache_phpldapadmin(){
+	$sock=new sockets();$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
 	if(!is_dir("/usr/share/phpldapadmin/htdocs")){return;}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHPLDAPAdmin is installed\n";}
 	$f[]="Alias /ldap /usr/share/phpldapadmin/htdocs";
@@ -1198,12 +1370,14 @@ function apache_phpldapadmin(){
 	$f[]=" ";
 	$f[]="      <IfModule mod_php5.c>";
 	$f[]="        AddType application/x-httpd-php .php";
+	if($EnablePHPFPM==0){
 	$f[]=" ";
 	$f[]="        php_flag magic_quotes_gpc Off";
 	$f[]="        php_flag track_vars On";
 	$f[]="        php_flag register_globals Off";
 	$f[]="        php_value include_path .";
 	$f[]="        php_value memory_limit 32M";
+	}
 	$f[]="      </IfModule>";
 	$f[]=" ";
 	$f[]="      <IfModule !mod_php5.c>";
@@ -1229,6 +1403,153 @@ function apache_phpldapadmin(){
 	
 	
 }
+
+function apache_htpassword($clearTextPassword){
+	$password = crypt($clearTextPassword, base64_encode($clearTextPassword));
+	return $password;
+}
+
+
+function apache_webdav(){
+	$q=new mysql();
+	$unix=new unix();
+	
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	
+	if($q->COUNT_ROWS("artica_webdav","artica_backup")==0){return null;}
+	$ldap=new clladp();
+	$password=apache_htpassword($ldap->ldap_password);
+	$username=$ldap->ldap_admin;
+	@file_put_contents("/etc/artica-postfix/webdav.passwd", "$username:$password\n");
+	
+	
+	
+	$results=$q->QUERY_SQL("SELECT * FROM artica_webdav","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$directory=$ligne["directory"];
+		@mkdir($directory,0755,true);
+		
+		if($ligne["write"]==1){
+			@chown($directory, $APACHE_SRC_ACCOUNT);
+			@chgrp($directory, $APACHE_SRC_GROUP);
+			
+		}
+		
+		$basename=basename($directory);
+		$f[]="";
+		$f[]="\tAlias /$basename $directory";
+		$f[]="";
+		$f[]="\t<Location /$basename>";
+		$f[]="\t\tOptions Indexes";
+		$f[]="\t\tDAV On";
+		$f[]="\t\tAuthType Basic";
+		$f[]="\t\tAuthName \"$basename\"";
+		$f[]="\t\tAuthUserFile /etc/artica-postfix/webdav.passwd";
+		$f[]="\t\tRequire valid-user";
+		$f[]="\t</Location>";
+		
+		
+	}
+	if(count($f)>0){
+		return @implode("\n", $f);
+	}
+	
+	
+	
+}
+function apache_firewall(){
+	$q=new mysql();
+	$unix=new unix();
+
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+
+	if($q->COUNT_ROWS("iptables_webint","artica_backup")==0){return null;}
+	$f[]="Order Allow,Deny";
+	$ipClass=new IP();
+
+	$c=0;
+	$results=$q->QUERY_SQL("SELECT * FROM iptables_webint","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$pattern=$ligne["pattern"];
+		if(!$ipClass->isIPAddressOrRange($pattern)){continue;}
+		$f[]="\tAllow from $pattern";
+		$c++;
+
+	}
+	if(count($c)>0){
+		$f[]="\tAllow from 127.0.0.1";
+		return @implode("\n", $f);
+	}
+
+
+
+}
+
+function apache_squidguard_config(){
+	$unix=new unix();
+	$sock=new sockets();
+	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+	$SquidGuardApacheSSLPort=intval($sock->GET_INFO("SquidGuardApacheSSLPort"));
+	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+	if($SquidGuardApacheSSLPort==0){$SquidGuardApacheSSLPort=9025;}
+	$SquidGuardWebSSLCertificate=$sock->GET_INFO("SquidGuardWebSSLCertificate");
+	
+	$f[]="";
+	$f[]="";
+	$f[]="<VirtualHost *:$SquidGuardApachePort>";
+	$f[]="	AddType application/x-gtar-compressed .tgz";
+	$f[]="	AddType application/x-gzip 	.gz";
+	$f[]="  AddType application/x-httpd-php .php";
+	$f[]="	ServerName ".$unix->hostname_g();
+	$f[]="	ServerSignature Off";
+	$f[]="	DocumentRoot /usr/share/artica-postfix";
+	$f[]="	php_value include_path \".:/usr/share/php:/usr/share/artica-postfix:/usr/share/php5:/usr/local/share/php:/usr/share/php5/PEAR:/usr/share/pear:/tmp\"";
+	$f[]="	php_value error_log \"/var/log/php.log\"";
+	$f[]="	php_value log_errors \"On\"";
+	$f[]="	php_value open_basedir \"/usr/share/artica-postfix:/var/log/apache2:/home/artica:/var/log:/var/run/mysqld:/tmp:/usr/share/php:/usr/share/php5:/var/lighttpd/upload:/var/lib/php5:/usr/share/artica-postfix/ressources:/usr/share/artica-postfix/framework:/usr/share/artica-postfix/user-backup:/usr/share/artica-postfix/user-backup/ressources:/etc/ssl/certs/mysql-client-download:/usr/share/artica-postfix/LocalDatabases:/var/run:/bin:/usr/sbin:/etc/artica-postfix/settings\"";
+	$f[]="";
+	$f[]="	<Directory \"/usr/share/artica-postfix/\">";
+	$f[]="		DirectoryIndex exec.squidguard.php";
+	$f[]="		Options Indexes +FollowSymLinks +SymLinksIfOwnerMatch MultiViews";
+	$f[]="		IndexIgnore *";
+	$f[]="		AllowOverride All";
+	$f[]="	</Directory>";
+	$f[]="";
+	$f[]="";
+	$f[]="</VirtualHost>";
+	$f[]="";
+	
+	$cert=new apache_certificate($SquidGuardWebSSLCertificate);
+	$f[]="<VirtualHost *:$SquidGuardApacheSSLPort>";
+	$f[]="  SSLEngine on";
+	$f[]=$cert->build();
+	$f[]="	AddType application/x-gtar-compressed .tgz";
+	$f[]="	AddType application/x-gzip 	.gz";
+	$f[]="  AddType application/x-httpd-php .php";
+	$f[]="	ServerName ".$unix->hostname_g();
+	$f[]="	ServerSignature Off";
+	$f[]="	DocumentRoot /usr/share/artica-postfix";
+	$f[]="	php_value include_path \".:/usr/share/php:/usr/share/artica-postfix:/usr/share/php5:/usr/local/share/php:/usr/share/php5/PEAR:/usr/share/pear:/tmp\"";
+	$f[]="	php_value error_log \"/var/log/php.log\"";
+	$f[]="	php_value log_errors \"On\"";
+	$f[]="	php_value open_basedir \"/usr/share/artica-postfix:/var/log/apache2:/home/artica:/var/log:/var/run/mysqld:/tmp:/usr/share/php:/usr/share/php5:/var/lighttpd/upload:/var/lib/php5:/usr/share/artica-postfix/ressources:/usr/share/artica-postfix/framework:/usr/share/artica-postfix/user-backup:/usr/share/artica-postfix/user-backup/ressources:/etc/ssl/certs/mysql-client-download:/usr/share/artica-postfix/LocalDatabases:/var/run:/bin:/usr/sbin:/etc/artica-postfix/settings\"";
+	$f[]="";
+	$f[]="	<Directory \"/usr/share/artica-postfix/\">";
+	$f[]="		DirectoryIndex exec.squidguard.php";
+	$f[]="		Options Indexes +FollowSymLinks +SymLinksIfOwnerMatch MultiViews";
+	$f[]="		IndexIgnore *";
+	$f[]="		AllowOverride All";
+	$f[]="	</Directory>";
+	$f[]="";
+	$f[]="";
+	$f[]="</VirtualHost>";	
+	
+	return @implode("\n", $f);
+	
+}
+
 
 function apache_nagios_config(){
 	return;
@@ -1368,7 +1689,7 @@ function buildConfig(){
 
 	
 	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
-	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
 	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
 	if(!is_file($phpfpm)){$EnablePHPFPM=0;}
 	if($EnablePHPFPM==0){$EnableArticaApachePHPFPM=0;}
@@ -2031,10 +2352,43 @@ function phpcgi(){
 			$unix->KILL_PROCESS($pid,9);
 		}
 	}
+}
+function php_snmp_progress($text,$pourc){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	echo $text."\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/php-snmp.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	sleep(1);
+}
+function php_snmp(){
+	$unix=new unix();
+	php_snmp_progress("{checking_php_snmp}",20);
+	$unix->DEBIAN_INSTALL_PACKAGE("php5-snmp");
+	$nohup=$unix->find_program("nohup");
 	
-
-		
+	if(is_file("/usr/lib/php5/20090626/snmp.so")){
+		php_snmp_progress("{checking_php_snmp} {success}",100);
+		sleep(5);
+		system("$nohup /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &");
+		system("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	}
+	
+	
+	if(is_file("/usr/lib/php5/20100525/snmp.so")){
+		php_snmp_progress("{checking_php_snmp} {success}",100);
+		sleep(5);
+		system("$nohup /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &");
+		system("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	}
+	
+	php_snmp_progress("{checking_php_snmp} {failed}",110);
+	
+	
+	//php5-snmp
+	
 	
 }
-
 

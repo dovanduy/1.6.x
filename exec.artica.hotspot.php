@@ -229,6 +229,7 @@ function build(){
 	$ArticaHotSpotInterface=$sock->GET_INFO("ArticaHotSpotInterface");
 	$EnableArticaHotSpotCAS=$sock->GET_INFO("EnableArticaHotSpotCAS");
 	if(!is_numeric($EnableArticaHotSpotCAS)){$EnableArticaHotSpotCAS=0;}
+	$HospotHTTPServerName=trim($sock->GET_INFO("HospotHTTPServerName"));
 	if($ArticaHotSpotPort==0){
 		$ArticaHotSpotPort=rand(38000, 64000);
 		$sock->SET_INFO("ArticaHotSpotPort", $ArticaHotSpotPort);

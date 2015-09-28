@@ -544,9 +544,16 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('policyd-spf')) then list.Add('$_GLOBAL["POLICYD_SPF"]=True;') else list.Add('$_GLOBAL["POLICYD_SPF"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('sensors-detect')) then list.Add('$_GLOBAL["SENSORS_INSTALLED"]=True;') else list.Add('$_GLOBAL["SENSORS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('ss5')) then list.Add('$_GLOBAL["SS5_INSTALLED"]=True;') else list.Add('$_GLOBAL["SS5_INSTALLED"]=False;');
+   if FileExists('/lib/squid3/hypercache-plugin') then list.Add('$_GLOBAL["HYPERCACHE_STOREID"]=True;') else list.Add('$_GLOBAL["HYPERCACHE_STOREID"]=False;');
+   if FileExists('/usr/local/sbin/firehol') then list.Add('$_GLOBAL["FIREHOL"]=True;') else list.Add('$_GLOBAL["FIREHOL"]=False;');
+   if FileExists('/opt/influxdb/influxd') then list.Add('$_GLOBAL["INFLUXDB"]=True;') else list.Add('$_GLOBAL["INFLUXDB"]=False;');
 
    if FileExists('/etc/artica-postfix/WEBSECURIZE') then list.Add('$_GLOBAL["WEBSECURIZE"]=True;') else list.Add('$_GLOBAL["WEBSECURIZE"]=False;');
    if FileExists('/etc/artica-postfix/LANWANSAT') then list.Add('$_GLOBAL["LANWANSAT"]=True;') else list.Add('$_GLOBAL["LANWANSAT"]=False;');
+   if FileExists('/etc/artica-postfix/BAMSIGHT') then list.Add('$_GLOBAL["BAMSIGHT"]=True;') else list.Add('$_GLOBAL["BAMSIGHT"]=False;');
+   if FileExists('/etc/artica-postfix/STATS_APPLIANCE') then list.Add('$_GLOBAL["STATS_APPLIANCE"]=True;') else list.Add('$_GLOBAL["STATS_APPLIANCE"]=False;');
+   if FileExists('/usr/bin/wanproxy') then list.Add('$_GLOBAL["WANPROXY"]=True;') else list.Add('$_GLOBAL["WANPROXY"]=False;');
+   if FileExists('/usr/local/bin/krake') then list.Add('$_GLOBAL["WANPROXY"]=True;') else list.Add('$_GLOBAL["KRAKE"]=False;');
 
 
    phpfpm:=SYS.LOCATE_GENERIC_BIN('php5-fpm')  ;
@@ -994,6 +1001,20 @@ begin
          list.Add('$_GLOBAL["VIRTUALBOX_HOST"]=False;');
          list.Add('$_GLOBAL["APP_VBOXADDINTION_INSTALLED"]=False;');
     end;
+
+     if SYS.XenServer() then begin
+        list.Add('$_GLOBAL["XEN_HOST"]=True;');
+      end else begin
+         list.Add('$_GLOBAL["XEN_HOST"]=False;');
+    end;
+
+     if SYS.HyperV() then begin
+        list.Add('$_GLOBAL["HYPERV_HOST"]=True;');
+      end else begin
+         list.Add('$_GLOBAL["HYPERV_HOST"]=False;');
+    end;
+
+
 
     //nfs
     nfs:=tnfs.Create(SYS);
@@ -1835,26 +1856,23 @@ logs.Debuglogs('web_settings() -> 75%');
     forcedirectories(php_path + '/ressources');
     LOGS.Debuglogs('web_settings() Terminate save file settings.new.inc');
      try
-         list.SaveToFile(php_path + '/ressources/settings.new.inc');
+         list.SaveToFile('/usr/share/artica-postfix/ressources/settings.new.inc');
     except
-        LOGS.Debuglogs('web_settings() !!! FATAL ERROR !!!');
+        LOGS.Debuglogs('web_settings() !!! FATAL ERROR !!! unable to save /usr/share/artica-postfix/ressources/settings.new.inc');
         exit;
    end;
     LOGS.Debuglogs('web_settings() verify file...');
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php');
+    LOGS.Debuglogs(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php');
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php >/tmp/exec.tests-settings.txt 2>&1');
+    LOGS.Debuglogs('web_settings() ' + logs.ReadFromFile('/tmp/exec.tests-settings.txt'));
     if not FileExists(php_path + '/ressources/settings.inc') then begin
-       LOGS.Debuglogs('web_settings() verify file failed..');
+       LOGS.Debuglogs('web_settings() verify file failed ( exec.tests-settings.php return null)..');
     end;
     if not FileExists(php_path + '/ressources/settings.new.inc') then begin
-        LOGS.Debuglogs('web_settings() verify file success..');
+        LOGS.Debuglogs('web_settings() verify file success.. ( settings.new.inc still exists)');
     end else begin
-        LOGS.Debuglogs('web_settings() !!!! verify file failed !!!!..');
+        LOGS.Debuglogs('web_settings() !!!! verify file failed !!!! ressources/settings.new.inc still exists..');
     end;
-    if DirectoryExists('/opt/artica-agent/usr/share/artica-agent/ressources') then begin
-       if verbosed then writeln('web_settings:: 100% -> /opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
-       logs.WriteToFile(list.Text,'/opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
-    end;
-
 
     fpchmod(php_path + '/ressources/settings.inc',&755);
     logs.Debuglogs('thProcThread.web_settings('+ php_path + ') -> TERM');

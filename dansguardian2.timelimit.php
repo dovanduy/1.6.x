@@ -263,7 +263,7 @@ function page(){
 	$new_time_rule=$tpl->_ENGINE_parse_body("{new_time_rule}");
 	$t=time();		
 	$RULEID=$ID;
-	$html=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:13px'>{dansguardian_timelimit_explain}</div>")."
+	$html=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:13px'>{dansguardian_timelimit_explain}</div>")."
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var TimeRuleIDTemp=0;

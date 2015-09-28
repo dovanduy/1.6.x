@@ -106,7 +106,7 @@ function domain_amavis_front(){
 	$page=CurrentPageName();
 	
 	if(!$users->AMAVIS_INSTALLED){
-		echo $tpl->_ENGINE_parse_body("<div class=text-info>{NO_FEATURE_AMAVIS_NOT_INSTALLED}</div>");	
+		echo $tpl->_ENGINE_parse_body("<div class=explain>{NO_FEATURE_AMAVIS_NOT_INSTALLED}</div>");	
 		return;
 	}
 	$EnableAmavisDaemon=$sock->GET_INFO("EnableAmavisDaemon");
@@ -115,7 +115,7 @@ function domain_amavis_front(){
 	if(!is_numeric($EnableAmavisDaemon)){$EnableAmavisDaemon=0;}		
 	
 	if($EnableAmavisDaemon==0){
-		echo $tpl->_ENGINE_parse_body("<div class=text-info>{NO_FEATURE_AMAVIS_NOT_ENABLED}</div>");	
+		echo $tpl->_ENGINE_parse_body("<div class=explain>{NO_FEATURE_AMAVIS_NOT_ENABLED}</div>");	
 		return;		
 	}
 	
@@ -154,7 +154,7 @@ function domain_amavis_front(){
 echo $tpl->_ENGINE_parse_body($amavis_bypass_rcpt_html);	
 
 if($EnableLDAPAmavis==0){
-	echo $tpl->_ENGINE_parse_body("<div class=text-info>{EnableLDAPAmavis_is_disabled_explain}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain>{EnableLDAPAmavis_is_disabled_explain}</div>");
 	return;
 	
 }
@@ -270,7 +270,7 @@ $form3="
 
 
 $html="
-<div class=text-info>{amavis_domain_text}</div>
+<div class=explain>{amavis_domain_text}</div>
 <div id='domain-amavis'>$form1<br>$form2<br>$form3</div>$button_save
 <div style='text-align:right;width:100%'>$button_admin</div>
 

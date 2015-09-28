@@ -163,7 +163,7 @@ if(file_exists( $content_dir . "/" .$name_file)){@unlink( $content_dir . "/" .$n
     $socket=new sockets();
  	$res=$socket->getfile("kavmilter_licencemanager:$content_dir/$name_file");
 	 $res=str_replace("\r","",$res);
-	 $res=str_replace("Error registering keyfile","<strong style='color:red'>Error registering keyfile</strong>",$res);
+	 $res=str_replace("Error registering keyfile","<strong style='color:#d32d2d'>Error registering keyfile</strong>",$res);
 	 
  	 $res=wordwrap($res,40,"\n",true);
  	 $res=nl2br($res);
@@ -241,7 +241,7 @@ function kavmilter_license(){
 	$license_data=str_replace("<br />\n<br />","<br />",$license_data);
 	$license_data=str_replace("License info:","<strong style='font-size:12px'>License info:</strong>",$license_data);
 	$license_data=str_replace("Active key info:","<strong style='font-size:12px'>Active key info:</strong>",$license_data);
-	$license_data=str_replace("Expiration date","<strong style='color:red'>Expiration date</strong>",$license_data);
+	$license_data=str_replace("Expiration date","<strong style='color:#d32d2d'>Expiration date</strong>",$license_data);
 	$license_data=str_replace("Kaspersky license manager for Linux","<H6 style='margin-top:0px'>Kaspersky license manager for Linux</H6>",$license_data);
 	
 	

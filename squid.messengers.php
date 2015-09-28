@@ -42,7 +42,7 @@ function popup(){
 	
 	$html="
 	<div id='messengers-div'>
-	<div class=text-info>{squid_instant_messengers_explain}</div>
+	<div class=explain>{squid_instant_messengers_explain}</div>
 	<table class=form>
 	<tr>
 		<td class=legend>AOL Instant Messenger:</td>

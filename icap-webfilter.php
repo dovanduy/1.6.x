@@ -30,7 +30,7 @@ function tabs(){
 	$array["clamav"]='ClamAV Antivirus';
 	$array["events"]='{events}';
 	
-	$fontsize="18";
+	$fontsize="22";
 		
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -46,7 +46,7 @@ function tabs(){
 
 
 
-	$html=build_artica_tabs($html,'main_icapwebfilter_tabs',975)."<script>LeftDesign('webfiltering-white-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'main_icapwebfilter_tabs',1490)."<script>LeftDesign('webfiltering-white-256-opac20.png');</script>";
 	
 	echo $html;
 

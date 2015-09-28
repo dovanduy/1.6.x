@@ -114,10 +114,8 @@ function js(){
 	$normal_start_js="YahooWin2(923,'$page?popup=yes','$title');";
 	$PostfixAutoBlockParameters=$tpl->_ENGINE_parse_body("{PostfixAutoBlockParameters}");
 	
-	if(isset($_GET["in-front-ajax"])){$normal_start_js="
-		document.getElementById('BodyContent').innerHTML='<center style=\"width:100%\"><img src=img/wait_verybig.gif></center>';
-		$('#BodyContent').load('$page?popup=yes');
-	";}
+	if(isset($_GET["in-front-ajax"])){$normal_start_js="LoadAjaxRound('postfix-instant-iptables','$page?popup=yes');";}
+	
 	
 	
 if(isset($_GET["white-js"])){
@@ -298,14 +296,14 @@ function popup(){
 	}
 $array["tab-iptables-events"]='{events}';
 	
-
+	$fontsize=22;
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="tab-iptables-whlhosts"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"whitelists.admin.php?popup-hosts=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"whitelists.admin.php?popup-hosts=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -329,11 +327,11 @@ function status_mysql(){
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend width=99%>{updated_from_community}:</td>
-		<td width=1% nowrap><strong style='font-size:14px'>$count_artica {rules}</td>
+		<td width=1% nowrap><strong style='font-size:22px'>$count_artica {rules}</td>
 	</tr>
 	<tr>
 		<td class=legend width=99%>{local}:</td>
-		<td width=1% nowrap><strong style='font-size:14px'>$count_local {rules}</td>
+		<td width=1% nowrap><strong style='font-size:22px'>$count_local {rules}</td>
 	</tr>	
 	</table>
 	";
@@ -375,27 +373,23 @@ $EnablePostfixAutoBlockWhiteListed=$sock->GET_INFO("EnablePostfixAutoBlockWhiteL
 	if(!is_numeric($EnablePostfixAutoBlockWhiteListed)){$EnablePostfixAutoBlockWhiteListed=0;}	
 			
 	$form=Paragraphe_switch_img("{enable_postfix_autoblock}",
-	"{enable_postfix_autoblock_text}",'EnablePostfixAutoBlock',$EnablePostfixAutoBlock,"{enable_disable}",330);
+	"{enable_postfix_autoblock_text}",'EnablePostfixAutoBlock',$EnablePostfixAutoBlock,
+			"{enable_disable}",1060);
 	
     $form="
-    <div id='EnablePostfixAutoBlockDiv'>
+    <div id='EnablePostfixAutoBlockDiv' class=form style='width:98%'>
 			
 			
-		<table style='width:99%' class=form>
+		<table style='width:100%' >
 		<tr>
 			<td colspan=2>$form</td>
 		</tr>
-		
 		<tr>
-			<td class=legend>{enable_in_left_menus}:</td>
-			<td>". Field_checkbox("InstantIpTablesInLeftMenu",1,$InstantIpTablesInLeftMenu,"InstantIpTablesInLeftMenuSave()")."</td>
-		</tr>
-		<tr>
-			<td class=legend>{log_all_events}:</td>
-			<td>". Field_checkbox("InstantIptablesEventAll",1,$InstantIptablesEventAll,"InstantIptablesEventAllSave()")."</td>
+			<td class=legend style=font-size:22px>{log_all_events}:</td>
+			<td>". Field_checkbox_design("InstantIptablesEventAll",1,$InstantIptablesEventAll,"InstantIptablesEventAllSave()")."</td>
 		</tr>	
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","javascript:EnablePostfixAutoBlockDeny()",16)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","javascript:EnablePostfixAutoBlockDeny()",40)."</td>
 		</tr>			
 		</table>
 	</div>";
@@ -455,7 +449,7 @@ $EnablePostfixAutoBlockWhiteListed=$sock->GET_INFO("EnablePostfixAutoBlockWhiteL
 	</tr>
 	<tr>
 	<td valign='top'>
-		<div class=text-info style='font-size:14px'>{postfix_autoblock_explain}</div>
+		<div class=explain style='font-size:22px'>{postfix_autoblock_explain}</div>
 		<div id='instantIptables-status'></div>
 	</td>
 	</table>
@@ -528,57 +522,57 @@ if($array["SMTPHACK_TOO_MANY_ERRORS"]==null){$array["SMTPHACK_TOO_MANY_ERRORS"]=
 	if(!is_numeric($PostfixInstantIptablesMaxEvents)){$PostfixInstantIptablesMaxEvents=50;}
 
 $html="
-<div class=text-info style='font-size:16px'>{PostfixAutoBlockParameters_text}<br>{SMTP_HACK_HOWTO}</div>
+<div class=explain style='font-size:16px'>{PostfixAutoBlockParameters_text}<br>{SMTP_HACK_HOWTO}</div>
 
 <div id='PostfixAutoBlockParameters_id'>
 <table style='width:99%' class=form>
 <tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_NAME_SERVICE_NOT_KNOWN}:</td>
-	<td>". Field_text("NAME_SERVICE_NOT_KNOWN",$array["NAME_SERVICE_NOT_KNOWN"],"font-size:14px;padding:3px;width:45px")."</td>
+	<td class=legend style='font-size:22px'>{SMTPHACK_NAME_SERVICE_NOT_KNOWN}:</td>
+	<td>". Field_text("NAME_SERVICE_NOT_KNOWN",$array["NAME_SERVICE_NOT_KNOWN"],"font-size:22px;padding:3px;width:110px")."</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_RESOLUTION_FAILURE}:</td>
-	<td>". Field_text("SMTPHACK_RESOLUTION_FAILURE",$array["SMTPHACK_RESOLUTION_FAILURE"],"font-size:14px;padding:3px;width:45px")."</td>
+	<td class=legend style='font-size:22px'>{SMTPHACK_RESOLUTION_FAILURE}:</td>
+	<td>". Field_text("SMTPHACK_RESOLUTION_FAILURE",$array["SMTPHACK_RESOLUTION_FAILURE"],"font-size:22px;padding:3px;width:110px")."</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_TIMEOUTS}:</td>
-	<td>". Field_text("SMTPHACK_TIMEOUT",$array["SMTPHACK_TIMEOUT"],"font-size:14px;padding:3px;width:45px")."</td>
+	<td class=legend style='font-size:22px'>{SMTPHACK_TIMEOUTS}:</td>
+	<td>". Field_text("SMTPHACK_TIMEOUT",$array["SMTPHACK_TIMEOUT"],"font-size:22px;padding:3px;width:110px")."</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_TOO_MANY_ERRORS}:</td>
-	<td>". Field_text("SMTPHACK_TOO_MANY_ERRORS",$array["SMTPHACK_TOO_MANY_ERRORS"],"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-
-<tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_SASL_LOGIN}:</td>
-	<td>". Field_text("SASL_LOGIN",$array["SASL_LOGIN"],"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_RBL}:</td>
-	<td>". Field_text("RBL",$array["RBL"],"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_USER_UNKNOWN}:</td>
-	<td>". Field_text("USER_UNKNOWN",$array["USER_UNKNOWN"],"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:14px'>{SMTPHACK_BLOCKED_SPAM}:</td>
-	<td>". Field_text("BLOCKED_SPAM",$array["BLOCKED_SPAM"],"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-<tr>
-	<td colspan=2 style='font-size:14px' align='right'><br><strong>{synthesis}:</strong><hr></td>
-</tr>
-<tr>
-	<td class=legend style='font-size:14px'>{days}:</td>
-	<td>". Field_text("PostfixInstantIptablesLastDays",$PostfixInstantIptablesLastDays,"font-size:14px;padding:3px;width:45px")."</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:14px'>{events}:</td>
-	<td>". Field_text("PostfixInstantIptablesMaxEvents",$PostfixInstantIptablesMaxEvents,"font-size:14px;padding:3px;width:45px")."</td>
+	<td class=legend style='font-size:22px'>{SMTPHACK_TOO_MANY_ERRORS}:</td>
+	<td>". Field_text("SMTPHACK_TOO_MANY_ERRORS",$array["SMTPHACK_TOO_MANY_ERRORS"],"font-size:22px;padding:3px;width:110px")."</td>
 </tr>
 
 <tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","PostfixAutoBlockParametersSave()",16)."</td>
+	<td class=legend style='font-size:22px'>{SMTPHACK_SASL_LOGIN}:</td>
+	<td>". Field_text("SASL_LOGIN",$array["SASL_LOGIN"],"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:22px'>{SMTPHACK_RBL}:</td>
+	<td>". Field_text("RBL",$array["RBL"],"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:22px'>{SMTPHACK_USER_UNKNOWN}:</td>
+	<td>". Field_text("USER_UNKNOWN",$array["USER_UNKNOWN"],"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:22px'>{SMTPHACK_BLOCKED_SPAM}:</td>
+	<td>". Field_text("BLOCKED_SPAM",$array["BLOCKED_SPAM"],"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+<tr>
+	<td colspan=2 style='font-size:22px' align='right'><br><strong>{synthesis}:</strong><hr></td>
+</tr>
+<tr>
+	<td class=legend style='font-size:22px'>{days}:</td>
+	<td>". Field_text("PostfixInstantIptablesLastDays",$PostfixInstantIptablesLastDays,"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:22px'>{events}:</td>
+	<td>". Field_text("PostfixInstantIptablesMaxEvents",$PostfixInstantIptablesMaxEvents,"font-size:22px;padding:3px;width:110px")."</td>
+</tr>
+
+<tr>
+	<td colspan=2 align='right'><hr>". button("{apply}","PostfixAutoBlockParametersSave()",40)."</td>
 </tr>
 </table>
 </div>
@@ -906,7 +900,7 @@ function firewall_rules_search(){
 		'id' => $ligne['ID'],
 		'cell' => array(
 		"<img src='img/$icon'>",
-		"<strong style='font-size:14px'><code>{$ligne["servername"]}</code></strong>
+		"<strong style='font-size:22px'><code>{$ligne["servername"]}</code></strong>
 		<div style='font-size:10px;;margin:0px;padding:0px;'>$tooltip_add{$ligne["serverip"]}<div style='font-size:10px;;margin:0px;padding:0px;'>{$ligne["events_block"]}</div></div>$subtext",
 		$disable,$log,
 		$delete)
@@ -977,7 +971,7 @@ function firewall_rules_pold(){
 		$html=$html . "
 		<tr  class=$classtr>
 		<td width=1%><img src='img/$icon'></td>
-		<td><strong style='font-size:14px'><code>". texttooltip("{$ligne["servername"]}","$tooltip_add{$ligne["serverip"]}<hr>{$ligne["events_block"]}",null,null,0,"font-size:14px")."</strong></code>$subtext</td>
+		<td><strong style='font-size:22px'><code>". texttooltip("{$ligne["servername"]}","$tooltip_add{$ligne["serverip"]}<hr>{$ligne["events_block"]}",null,null,0,"font-size:14px")."</strong></code>$subtext</td>
 		<td width=1%>$disable</td>
 		<td width=1%>$log</td>
 		<td width=1%>$delete</td>
@@ -1157,7 +1151,7 @@ function ban_servers_popup(){
 
 	$html="
 	<div id='ban-smtp-div'>
-	<div class=text-info>{bann_smtp_servers_explain}</div>
+	<div class=explain>{bann_smtp_servers_explain}</div>
 	<textarea id='ban-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","BannSmtpAdd()")."</div>
 	</div>
@@ -1288,7 +1282,7 @@ function firewall_events(){
 
 function ipName($ip){
 	if(isset($GLOBALS["IPMEM"][$ip])){return $GLOBALS["IPMEM"][$ip];}
-	$sql="SELECT servername FROM iptables WHERE ip='$ip'";
+	$sql="SELECT servername FROM iptables WHERE serverip='$ip'";
 	$q=new mysql();
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if($ligne["servername"]==null){

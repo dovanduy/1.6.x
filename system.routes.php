@@ -68,7 +68,7 @@ function route_delete(){
 }
 
 function  route_delete_js(){
-	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -223,7 +223,7 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$fontsize=16;
+	$fontsize=26;
 	
 	$array["table"]="{routes}";
 	
@@ -241,7 +241,7 @@ function tabs(){
 	
 	
 	
-	$html=build_artica_tabs($html,'main_routes_center',1020)."<script>LeftDesign('routes-opac20.png');</script>";
+	$html=build_artica_tabs($html,'main_routes_center',1490)."<script>LeftDesign('routes-opac20.png');</script>";
 	
 	echo $html;	
 	
@@ -411,9 +411,9 @@ function table(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_route', bclass: 'add', onpress : Add$t},
-	{name: '$test_a_route', bclass: 'Search', onpress : TestRoute$t},
-	{name: '$apply', bclass: 'apply', onpress : Apply$t},
+	{name: '<strong style=font-size:20px>$new_route</strong>', bclass: 'add', onpress : Add$t},
+	{name: '<strong style=font-size:20px>$test_a_route</strong>', bclass: 'Search', onpress : TestRoute$t},
+	{name: '<strong style=font-size:20px>$apply</strong>', bclass: 'apply', onpress : Apply$t},
 	
 	
 	],";
@@ -429,14 +429,14 @@ function table(){
 	url: '$page?icap-search=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-	{display: '$order', name : 'zOrder', width : 50, sortable : true, align: 'center'},
-	{display: '$nic', name : 'nic', width : 50, sortable : true, align: 'center'},
-	{display: '$items', name : 'pattern', width : 255, sortable : true, align: 'left'},
-	{display: '$type', name : 'type', width : 151, sortable : true, align: 'left'},
-	{display: '$gateway', name : 'gateway', width :255, sortable : false, align: 'left'},
-	{display: '&nbsp;', name : 'up', width : 35, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'down', width : 35, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'del', width : 35, sortable : false, align: 'center'},
+	{display: '<span style=font-size:18px>$order</span>', name : 'zOrder', width : 80, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$nic</span>', name : 'nic', width : 90, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$items</span>', name : 'pattern', width : 343, sortable : true, align: 'left'},
+	{display: '<span style=font-size:18px>$type</span>', name : 'type', width : 250, sortable : true, align: 'left'},
+	{display: '<span style=font-size:18px>$gateway</span>', name : 'gateway', width :255, sortable : false, align: 'left'},
+	{display: '&nbsp;', name : 'up', width : 80, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'down', width : 80, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'del', width : 80, sortable : false, align: 'center'},
 	],
 	$buttons
 	searchitems : [
@@ -446,12 +446,12 @@ function table(){
 	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span style=font-size:18px>$explain_section</span>',
+	title: '<span style=font-size:30px>$explain_section</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 450,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -568,7 +568,7 @@ function search(){
 		$data['rows']=$array[1]["rows"];
 	}
 	
-	$fontsize=18;
+	$fontsize=26;
 	
 	$types[1]=$tpl->_ENGINE_parse_body("{network_nic}");
 	$types[2]=$tpl->_ENGINE_parse_body("{host}");
@@ -596,9 +596,9 @@ function search(){
 						"<span $style>{$js}{$ligne["pattern"]}</a></span>",
 						"<span $style>$js". $types[$ligne["type"]]."</a></span>",
 						"<span $style>$js{$ligne["gateway"]}</span>",
-						"<span $style>$up</span>",
-						"<span $style>$down</span>",
-						"<span $style>$delete</span>",
+						"<center $style>$up</center>",
+						"<center $style>$down</center>",
+						"<center $style>$delete</center>",
 				)
 		);
 
@@ -611,7 +611,7 @@ function search(){
 
 function routes_default(){
 	$tpl=new templates();
-	$fontsize=18;
+	$fontsize=26;
 	$color="black";
 	$delete="&nbsp;";
 	$js=null;

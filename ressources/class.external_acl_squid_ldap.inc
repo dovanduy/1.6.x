@@ -19,19 +19,46 @@ class external_acl_squid_ldap{
 		return $results;
 	}
 	
+	public function GetUserOU($member){
+		if(isset($GLOBALS["GetUserOU"][$member])){return $GLOBALS["GetUserOU"][$member];}
+		$infos=$this->ADLdap_userinfos($member);
+		if(!isset($infos[0]["dn"])){return null;}
+		$DNs=explode(",",$infos[0]["dn"]);
+		while (list ($a, $part) = each ($DNs) ){
+			$part=trim(strtolower($part));
+			if(preg_match("#ou=(.+)#", $part,$re)){
+				$GLOBALS["GetUserOU"][$member]=$re[1];
+				return $GLOBALS["GetUserOU"][$member];
+			}
+		}
+		
+		$GLOBALS["GetUserOU"][$member]="users";
+		return "users";
+		
+	}
+	
 	
 	public function GetGroupsFromMember($member){
+		if($GLOBALS["DEBUG_GROUPS"]){$this->WLOG("[QUERY]:[".__FUNCTION__."/".__LINE__."] Query Time:{$GLOBALS["QUERYTIME"]}");}
 		$GLOBALS["TIMELOG"]++;
+		
+		
 		if(isset($GLOBALS["QUERYTIME"])){
 			$timeEx=$this->diff_time_min($GLOBALS["QUERYTIME"]);
+			if($GLOBALS["DEBUG_GROUPS"] >0){  $this->WLOG("[GetGroupsFromMember]: QUERYTIME = {$timeEx}Mn/15mn");}
 			if($timeEx>15){
 				$this->WLOG("[PURGE]: ".count($GLOBALS["MEMBERS_GROUPS"])." item(s) are purged from Cache array after {$timeEx}mn");
-				unset($GLOBALS["QUERYTIME"]);unset($GLOBALS["MEMBERS_GROUPS"]);}
+				unset($GLOBALS["QUERYTIME"]);unset($GLOBALS["MEMBERS_GROUPS"]);unset($GLOBALS["GetUserOU"]);
+				$GLOBALS["QUERYTIME"]=time();
+			}
+		}else{
+			$GLOBALS["QUERYTIME"]=time();
 		}
 		
 		if(isset($GLOBALS["MEMBERS_GROUPS"][$member])){
 			if(is_array($GLOBALS["MEMBERS_GROUPS"][$member])){
 				if(count($GLOBALS["MEMBERS_GROUPS"][$member])>0){
+					if($GLOBALS["DEBUG_GROUPS"] >0){  $this->WLOG("[GetGroupsFromMember]: $member -> Return from memory");}
 					return $GLOBALS["MEMBERS_GROUPS"][$member];
 				}
 			}
@@ -40,6 +67,7 @@ class external_acl_squid_ldap{
 		
 		$this->BuildDefault();
 		if($GLOBALS["KerbAuthInfos"]["RECURSIVE_GROUPS"]==1){
+			if($GLOBALS["DEBUG_GROUPS"] >0){  $this->WLOG("[GetGroupsFromMember]: RECURSIVE_GROUPS = 1");}
 			$GLOBALS["MEMBERS_GROUPS"][$member]=$this->ADLdap_getgroups($member);
 			return $GLOBALS["MEMBERS_GROUPS"][$member];
 		}
@@ -51,24 +79,22 @@ class external_acl_squid_ldap{
 		
 	
 		if(!$GLOBALS["BIND"]){
-			$this->WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+			$this->WLOG("[QUERY]: Error: BIND is broken -> reconnect");
 			$this->ConnectToLDAP();
-			if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+			if(!$GLOBALS["BIND"]){WLOG("[QUERY]: Error: BIND pointer is false");return false;}
 		}
 	
 		if(!$GLOBALS["CONNECTION"]){
-			$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect twice</strong>");
+			$this->WLOG("[QUERY]: Error: CONNECTION is broken -> reconnect twice");
 			$this->ConnectToLDAP();
 		}
 	
 		if(!$GLOBALS["CONNECTION"]){
-			$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+			$this->WLOG("[QUERY]: Error: CONNECTION is definitively broken aborting !!!...");
 			return false;
 		}
 	
 		$array=array();
-		//$link_identifier, $base_dn, $filter, array $attributes = null, $attrsonly = null, $sizelimit = null, $timelimit = null, $deref = null
-		$filter=array("memberOf");
 		@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
 		$filter="(&(objectCategory=Person)(objectClass=user)(sAMAccountName=$member))";
 	
@@ -77,14 +103,14 @@ class external_acl_squid_ldap{
 		$GLOBALS["QUERIES_NUMBER"]++;
 		$link_identifier=$GLOBALS["CONNECTION"];
 		$base_dn=$GLOBALS["SUFFIX"];
-		$attributes=array();
+		$attributes=array("memberOf","dn");
 		$attrsonly=null;
 		$sizelimit=null;
 		$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
 		if($GLOBALS["VERBOSE"]){$this->WLOG("[QUERY]::$filter -> $filter in $base_dn");}
 	
 	
-	
+		if($GLOBALS["DEBUG_GROUPS"]){$this->WLOG("[QUERY]:[".__FUNCTION__."/".__LINE__."] Query $filter -> $filter in $base_dn");}
 		$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
 		if (!$sr) {
 			if(is_numeric(ldap_errno($GLOBALS["CONNECTION"]))){
@@ -93,20 +119,20 @@ class external_acl_squid_ldap{
 					
 				if($error==-1){
 					if(!isset($GLOBALS["RETRY_AFTER_ERROR"])){
-						$this->WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> re-connect and retry query...");
+						$this->WLOG("[QUERY]: Error:`$error` ($errstr) re-connect and retry query...");
 						$GLOBALS["RETRY_AFTER_ERROR"]=true;
 						return GetGroupsFromMember($member);
 					}else{
-						$this->WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> Connection lost definitively");
+						$this->WLOG("[QUERY]: Error:`$error` ($errstr) Connection lost definitively");
 						return false;
 					}
 	
 				}
 					
-				$this->WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
+				$this->WLOG("[QUERY]: Error:`$error` ($errstr) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 				return false;
 			}else{
-				$this->WLOG("[QUERY]: <strong style='color:red'>Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
+				$this->WLOG("[QUERY]: Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 			}
 		}
 	
@@ -115,10 +141,10 @@ class external_acl_squid_ldap{
 	
 		$hash=ldap_get_entries($GLOBALS["CONNECTION"],$sr);
 		if(!is_array($hash)){
-			$this->WLOG("[QUERY]: <strong style='color:red'>Error: undefined, hash is not an array or did not find user</strong>...");
+			$this->WLOG("[QUERY]: Error: undefined, hash is not an array or did not find user...");
 			return false;
 		}
-	
+
 	
 		unset($GLOBALS["RETRY_AFTER_ERROR"]);
 		if(isset($hash[0]["memberof"])){
@@ -237,25 +263,21 @@ private function BuildDefault_ldap_server(){
 
 private function WLOG($text=null){
 	if(count($this->Errors)>500){$this->Errors=array();}
-	if(!isset($GLOBALS["F"])){$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');}
 	$trace=@debug_backtrace();
 	if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	$date=@date("Y-m-d H:i:s");
 	if (is_file("/var/log/squid/external-acl.log")) {
 		$size=@filesize("/var/log/squid/external-acl.log");
-		if($size>1000000){
-			@fclose($GLOBALS["F"]);
-			unlink("/var/log/squid/external-acl.log");
-			$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
+		if($size>1000000){unlink("/var/log/squid/external-acl.log");
+			
 		}
-		 
-		 
 	}
-
+	$F = @fopen("/var/log/squid/external-acl.log", 'a');
 	if(!isset($GLOBALS["PID"])){ if(function_exists("getmypid")){ $GLOBALS["PID"]=getmypid(); }else{$GLOBALS["PID"]=0;}}
 	$FinalText="$date ".basename(__FILE__)."[{$GLOBALS["PID"]}]: $text $called";
 	$this->Errors[]=$FinalText;
-	@fwrite($GLOBALS["F"], $FinalText);
+	@fwrite($F, $FinalText."\n");
+	@fclose($F);
 }
 
 public function ADLdap_getgroups($username){
@@ -357,18 +379,18 @@ private function ObjectProperty($dn){
 	if(!isset($GLOBALS["QUERYTIME"])){$GLOBALS["QUERYTIME"]=time();}
 	
 	if(!$GLOBALS["BIND"]){
-		$this->WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+		$this->WLOG("[QUERY]: Error: BIND is broken -> reconnect");
 		$this->ConnectToLDAP();
-		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: Error: BIND pointer is false");return false;}
 	}
 	
 	if(!$GLOBALS["CONNECTION"]){
-		$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect twice</strong>");
+		$this->WLOG("[QUERY]: Error: CONNECTION is broken -> reconnect twice");
 		$this->ConnectToLDAP();
 	}
 	
 	if(!$GLOBALS["CONNECTION"]){
-		$this->WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+		$this->WLOG("[QUERY]: Error: CONNECTION is definitively broken aborting !!!...");
 		return array();
 	}
 	
@@ -386,7 +408,7 @@ private function ObjectProperty($dn){
 	
 	$res=@ldap_read($link_identifier,$dn,"(objectClass=*)",array(),null,null,20);
 	if(!$res){
-		$this->WLOG("[QUERY]: <strong style='color:red'>Error: LDAP search number " . ldap_errno($link_identifier) . "\nAction:LDAP search\ndn:$dn\n");
+		$this->WLOG("[QUERY]: Error: LDAP search number " . ldap_errno($link_identifier) . "\nAction:LDAP search\ndn:$dn\n");
 		ldap_err2str(ldap_errno($link_identifier));
 		return array();
 	}
@@ -478,7 +500,7 @@ private function ConnectToLDAP(){
 	$GLOBALS["CONNECTION"]=@ldap_connect($array["LDAP_SERVER"],$array["LDAP_PORT"]);
 	//WLOG("[LDAP]: Connecting to LDAP server `{$array["LDAP_SERVER"]}:{$array["LDAP_PORT"]}`");
 	if(!$GLOBALS["CONNECTION"]){
-		$this->WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
+		$this->WLOG("[LDAP]: Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
 		@ldap_close();
 		return false;
 	}	
@@ -496,27 +518,27 @@ private function ConnectToLDAP(){
 	if(!$GLOBALS["BIND"]){
 		
 		if (@ldap_get_option($GLOBALS["CONNECTION"], LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {
-			$error=$error."<br>$extended_error";
+			$error=$error."$extended_error";
 		}
 		
 		switch (ldap_errno($GLOBALS["CONNECTION"])) {
 			case 0x31:
-				$error=$error . "<br>Bad username or password. Please try again.";
+				$error=$error . "Bad username or password. Please try again.";
 				break;
 			case 0x32:
-				$error=$error . "<br>Insufficient access rights.";
+				$error=$error . "Insufficient access rights.";
 				break;
 			case 81:
-				$error=$error . "<br>Unable to connect to the LDAP server<br>
-				{$array["LDAP_SERVER"]}<br>please,<br>verify if ldap daemon is running<br> or the ldap server address";
+				$error=$error . "Unable to connect to the LDAP server
+				{$array["LDAP_SERVER"]}please,verify if ldap daemon is running or the ldap server address";
 				break;
 			case -1:
 					
 				break;
 			default:
-				$error=$error . "<br>Could not bind to the LDAP server." ."<br>". @ldap_err2str($GLOBALS["CONNECTION"]);
+				$error=$error . "Could not bind to the LDAP server." ."". @ldap_err2str($GLOBALS["CONNECTION"]);
 		}
-		$this->WLOG("[LDAP]:".__LINE__." Connecting to LDAP server {$array["LDAP_SERVER"]} failed<br>$error");
+		$this->WLOG("[LDAP]:".__LINE__." Connecting to LDAP server {$array["LDAP_SERVER"]} failed $error");
 		return false;
 	}
 	//WLOG("[LDAP]: Binding to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span>.");

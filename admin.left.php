@@ -7,6 +7,9 @@ if(isset($_GET["partall"])){left_infos_1();left_infos_2();exit;}
 if(isset($_GET["old-menu"])){old_menus_js();exit;}
 if(isset($_GET["old-menu-popup"])){old_menu_popup();exit;}
 if(isset($_GET["unity-fill"])){FillUnity();exit;}
+
+
+
 function left_infos_1(){
 	$newfrontend=false;
 	$users=new usersMenus();
@@ -21,9 +24,7 @@ function left_infos_1(){
 	if($SquidPerformance>2){$EnableMonit=0;}
 	if(!is_numeric($EnableMonit)){$EnableMonit=1;}
 	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
-	
-	
-	
+	$NoKaspersky=false;
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	if($AsCategoriesAppliance==1){$SambaEnabled=0;}
 	$DisablePurchaseInfo=$sock->GET_INFO("DisablePurchaseInfo");
@@ -82,6 +83,8 @@ function left_infos_1(){
 		}
 	}
 	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
+	
+	
 	if($users->VIRTUALBOX_HOST){
 		if(!$users->APP_VBOXADDINTION_INSTALLED){
 			echo ParagrapheTEXT("virtualbox-48.png",'{INSTALL_VBOX_TOOLS}','{INSTALL_VBOX_TOOLS_TEXT}',
@@ -98,31 +101,21 @@ function left_infos_1(){
 			}
 	}
 	
-	if(!$users->KASPERSKY_WEB_APPLIANCE){
-		if(!$users->SQUID_APPLIANCE){
-			if($users->SAMBA_INSTALLED){
-				if($SambaEnabled==1){
-					if(!$users->OCSI_INSTALLED){
-						if($sock->GET_INFO("DisableOCSPub")<>1){echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);	}
-					}
-				}
-			}
-		}
-	}
 	
-	if($users->SQUID_INSTALLED){
-		if(!$users->KAV4PROXY_INSTALLED){
-			if($AsCategoriesAppliance==0){
-				echo ParagrapheTEXT("bigkav-48.png","Kaspersky For Artica",'{kaspersky_pub1}',"javascript:Loadjs('artica.pubs.php?KasperskyPromo-022014-show=yes');",null,330);
-			}
-		}
-	}
 	
-	if(!$users->OCS_LNX_AGENT_INSTALLED){
-		if($sock->GET_INFO("DisableOCSClientPub")<>1){
-			echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);	
-		}
-	}
+
+	
+$NoOCS=false;
+if($users->WEBSECURIZE){$NoKaspersky=true;$NoOCS=true;}
+if($AsCategoriesAppliance==1){$NoKaspersky=true;}
+if(!$users->OCS_LNX_AGENT_INSTALLED){$NoOCS=true;}
+if(intval($sock->GET_INFO("DisableOCSClientPub"))==1){$NoOCS=true;}
+if(!$users->SQUID_INSTALLED){$NoKaspersky=true;}
+if(!$users->KAV4PROXY_INSTALLED){$NoKaspersky=true;}
+
+if(!$NoKaspersky){echo ParagrapheTEXT("bigkav-48.png","Kaspersky For Artica",'{kaspersky_pub1}',"javascript:Loadjs('artica.pubs.php?KasperskyPromo-022014-show=yes');",null,330);}
+if(!$NoOCS){echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);	 }
+	
 	
 	$t=time();
 	echo "
@@ -209,7 +202,7 @@ function FillUnity(){
 	Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}","javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
 	Paragraphe("superuser-64.png","{account}","{accounts_text}","javascript:Loadjs('artica.settings.php?js=yes&func-AccountsInterface=yes');");
 	Paragraphe("scan-64.png","{logs_cleaning}","{logs_cleaning_text}","javascript:Loadjs('artica.settings.php?js=yes&func-LogsInterface=yes');");
-	Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
+	
 	//Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");	
 	
 }

@@ -34,7 +34,7 @@ function page(){
 	$d=time();
 	
 	$html="
-	<div class=text-info style='font-size:14px'>$explain</div>
+	<div class=explain style='font-size:14px'>$explain</div>
 	<table class='blacklist-table-$t-$d' style='display: none' id='blacklist-table-$t-$d' style='width:99%;margin-left:-10px'></table>
 <script>
 

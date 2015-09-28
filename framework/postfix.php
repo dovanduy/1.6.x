@@ -3,6 +3,12 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
+
+
+if(isset($_GET["milters-progress"])){milters_progress();exit;}
+if(isset($_GET["myhostname"])){myhostname();exit;}
+if(isset($_GET["maillog-postfix"])){maillog_postfix();exit;}
+if(isset($_GET["postcat-q"])){postfix_postcat_q();exit;}
 if(isset($_GET["postfix-mime-header-checks"])){postfix_mime_header_checks();exit;}
 if(isset($_GET["postfix-hash-smtp-generic"])){postfix_hash_smtp_generic_maps();exit;}
 if(isset($_GET["apply_sender_routing_rule"])){apply_sender_routing_rule();exit;}
@@ -47,7 +53,14 @@ if(isset($_GET["happroxy"])){happroxy();exit;}
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 
+function postfix_postcat_q(){
+	$msg_id=$_GET["postcat-q"];
+	writelogs("/usr/sbin/postcat -q $msg_id >/usr/share/artica-postfix/ressources/logs/web/postcat-$msg_id.txt",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("/usr/sbin/postcat -q $msg_id >/usr/share/artica-postfix/ressources/logs/web/postcat-$msg_id.txt 2>&1");
+	
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/postcat-$msg_id.txt",0777);
 
+}
 function master_cf(){
 	$servername=$_GET["instance"];
 	if($servername=="master"){$path="/etc/postfix/master.cf";}else{$path="/etc/postfix-$servername/master.cf";}
@@ -300,6 +313,34 @@ function postfix_remove_all_queues(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.watchdog.postfix.queue.php >/dev/null 2>&1 &");
 	
+}
+
+function maillog_postfix(){
+	$unix=new unix();
+	$maillog=$_GET["maillog"];
+	if($maillog==null){echo "<articadatascgi>". base64_encode(serialize(array()))."</articadatascgi>";return;}
+	$maillogSecond=$maillog;
+	$grep=$unix->find_program("grep");
+	$tail=$unix->find_program("tail");
+	$search=trim(base64_decode($_GET["filter"]));
+	
+	$sequence=trim($_GET["sequence"]);
+	if($sequence<>null){$search="$sequence:.*?$search";}
+	if($_GET["failed"]=="yes"){
+		$search=$search.".*?status=defer";
+	}
+	
+	$filename="/usr/share/artica-postfix/ressources/logs/web/postlogs$sequence";
+	$max=500;
+	if(isset($_GET["rp"])){$max=$_GET["rp"];}
+
+	$maincommand="$grep -i -E '\s+postfix\/(smtp|cleanup|qmgr|lmtp|postscreen|dnsblog|pickup|maildrop)' $maillog|$tail -n $max >$filename";
+	if($search<>null){
+		$maincommand="$grep -i -E '\s+postfix\/(smtp|cleanup|qmgr|lmtp|postscreen|dnsblog|pickup|maildrop).*?$search' $maillog|$tail -n $max >$filename 2>&1";
+	}
+	writelogs_framework("$maincommand",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($maincommand);
+	@chmod($filename, 0777);
 }
 
 function query_maillog(){
@@ -599,12 +640,43 @@ function smtpd_client_restrictions(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --smtpd-client-restrictions >/dev/null 2>&1 &";
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/smtpd_client_restrictions_progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/smtpd_client_restrictions_progress.log";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	
+	
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --smtpd-client-restrictions >{$GLOBALS["LOG_FILE"]} 2>&1 &";
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	
 }
+function milters_progress(){
+	$hostname=$_GET["hostname"];
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
 
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/smtpd_milters";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/smtpd_milters.log";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+
+
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --milters-progress >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+
+}
 function test_smtp_watchdog(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
@@ -660,5 +732,14 @@ function apply_sender_routing_rule(){
 		
 	}
 }
+function myhostname(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --myhostname >/dev/null 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+}
+
 
 die();

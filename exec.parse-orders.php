@@ -23,7 +23,7 @@ if($unix->process_exists($pid)){
 
 if($argv[1]=="--manual"){
 	
-	FillMemory();ParseLocalQueue();die();}
+	FillMemory();die();}
 
 $sock=new sockets();
 $EnableArticaBackground=$sock->GET_INFO("EnableArticaBackground");
@@ -44,7 +44,7 @@ if($GLOBALS["TOTAL_MEMORY_MB"]<400){
 	shell_exec('export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11 &');
 	shell_exec("$renice_bin 19 $childpid &");
 	events("Started pid $childpid",__FUNCTION__,__LINE__);	
-	ParseLocalQueue();
+	
 	if($GLOBALS["EXECUTOR_DAEMON_ENABLED"]==1){
 		$nohup=$unix->find_program("nohup");
 		shell_exec(trim($nohup." ".$unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.executor.php --all >/dev/null 2>&1"));
@@ -95,7 +95,7 @@ $pid=pcntl_fork();
 	
 	while ($stop_server==false) {
 		sleep(10);
-		ParseLocalQueue();
+		
 		if($reload){
 			$reload=false;
 			events("reload daemon",__FUNCTION__,__LINE__);

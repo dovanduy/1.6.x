@@ -6,7 +6,7 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.archive.builder.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
-
+include_once(dirname(__FILE__)."/ressources/class.wifidog.settings.inc");
 
 $users=new usersMenus();
 if(!$users->AsHotSpotManager){die();}
@@ -134,7 +134,7 @@ function members(){
 	$ttl=$tpl->javascript_parse_text("{ttl}");
 	$finaltime=$tpl->javascript_parse_text("{re_authenticate_each}");
 	$endtime=$tpl->javascript_parse_text("{endtime}");
-	$title=$tpl->javascript_parse_text("{sessions} ".date("{l} d {F}"));
+	$title=$tpl->javascript_parse_text("{members}");
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE `md5`=''");
 	$hostname=$tpl->javascript_parse_text("{hostname}");
@@ -144,12 +144,14 @@ function members(){
 	$delete=$tpl->javascript_parse_text("{delete}");
 	$created=$tpl->javascript_parse_text("{created}");
 	$smtp=$tpl->_ENGINE_parse_body("{self_register}");
-	$button_parameters="{name: '$parameters', bclass: 'Settings', onpress : Settings$t},";
+	$import=$tpl->javascript_parse_text("{import}");
+	$disable_account_in=$tpl->javascript_parse_text("{disable_account_in}");
+	$button_parameters="{name: '<strong style=font-size:18px>$parameters</strong>', bclass: 'Settings', onpress : Settings$t},";
 	$button_parameters=null;
 	$buttons="
 	buttons : [
-	{name: '$new_account', bclass: 'Add', onpress : NewAccount$t},
-	{name: '$smtp', bclass: 'Settings', onpress : AutoLogin$t},
+	{name: '<strong style=font-size:18px>$new_account</strong>', bclass: 'Add', onpress : NewAccount$t},
+	{name: '<strong style=font-size:18px;>$import</strong>', bclass: 'Settings', onpress : Import$t},
 	$button_parameters
 	],";	
 	
@@ -163,12 +165,12 @@ $('#flexRT$t').flexigrid({
 	url: '$page?members-items=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$created', name : 'creationtime', width :190, sortable : true, align: 'left'},	
-		{display: '$members', name : 'uid', width :405, sortable : true, align: 'left'},	
-		{display: '$ttl', name : 'ttl', width :190, sortable : true, align: 'left'},
-		{display: '$endtime', name : 'sessiontime', width :190, sortable : false, align: 'left'},
-		{display: '$enabled', name : 'enabled', width :60, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'none', width :35, sortable : true, align: 'center'},
+		{display: '<span style=font-size:22px>$created</span>', name : 'creationtime', width :306, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:22px>$members</span>', name : 'uid', width :405, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:22px>$ttl</span>', name : 'ttl', width :190, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$disable_account_in</span>', name : 'sessiontime', width :190, sortable : false, align: 'left'},
+		{display: '<span style=font-size:22px>$enabled</span>', name : 'enabled', width :60, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'none', width :80, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -180,7 +182,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'uid',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span id=\"title-$t\">$title</span>',
+	title: '<span id=\"title-$t\" style=\"font-size:30px\">$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -224,6 +226,11 @@ var x_MemberEnable$t= function (obj) {
 	if(results.length>3){alert(results);return;}
 	$('#flexRT$t').flexReload();
 	ExecuteByClassName('SearchFunction');
+}
+
+function Import$t(){
+	Loadjs('squid.webauth.members.import.php?t=$t');
+
 }
 
 function MemberEnable$t(uid){
@@ -276,7 +283,9 @@ function members_ttl(){
 	$Timez[10080]="1 {week}";
 	$Timez[20160]="2 {weeks}";
 	$Timez[40320]="1 {month}";		
-	
+	$Timez[80640]="2 {months}";	
+	$Timez[161280]="4 {months}";
+	$Timez[241920]="6 {months}";
 	
 	$bttext="{extend_account}";
 	$q=new mysql_squid_builder();
@@ -287,7 +296,7 @@ function members_ttl(){
 	<div id='$t-animate' style='width:98%' class=form>
 	<table style='width:99%'>
 		<tr>
-		<td class=legend style='font-size:24px'>{ttl}:</td>
+		<td class=legend style='font-size:24px'>{disable_account_in}:</td>
 		<td style='font-size:16px'>". Field_array_Hash($Timez,"ttl-$t",$ligne["ttl"],null,null,0,"font-size:24px")."</td>	</tr>			
 	</tr>
 	
@@ -456,11 +465,10 @@ function members_save(){
 	}
 	$sql="UPDATE hotspot_members 
 		SET uid='$uid',
-		sessiontime={$_POST["maxtime"]},
 		ttl={$_POST["ttl"]}
 		$password WHERE uid='$uid'";
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}	
+	if(!$q->ok){echo $q->mysql_error."\n$sql";}	
 }
 
 function members_ttl_save(){
@@ -528,13 +536,13 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		
-		{display: '$members', name : 'uid', width :279, sortable : true, align: 'left'},	
-		{display: '$MAC', name : 'MAC', width :125, sortable : true, align: 'left'},
-		{display: '$logintime', name : 'logintime', width :152, sortable : true, align: 'left'},
-		{display: '$finaltime', name : 'finaltime', width :142, sortable : true, align: 'left'},
-		{display: '$incoming', name : 'incoming', width :152, sortable : false, align: 'left'},
-		{display: '$outgoing', name : 'outgoing', width :152, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'none', width :32, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>$members</span>', name : 'uid', width :477, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:18px>$MAC</span>', name : 'MAC', width :140, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$logintime</span>', name : 'logintime', width :233, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$finaltime</span>', name : 'finaltime', width :233, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$incoming</span>', name : 'incoming', width :96, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$outgoing</span>', name : 'outgoing', width :96, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'none', width :80, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -546,7 +554,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'logintime',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<span id=\"title-$t\">$title</span>',
+	title: '<span id=\"title-$t\" style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -661,16 +669,59 @@ function sessions_items(){
 		$color="black";
 		$finaltime=$ligne["finaltime"];
 		$logintime=intval($ligne["logintime"]);
+		$nextcheck=$ligne["nextcheck"];
+		$ArticaSplashHotSpotEndTime_text=null;
+		$ArticaSplashHotSpotRemoveAccount_text=null;
+		
 		$Start=$tpl->_ENGINE_parse_body(date("{l} d H:i",$logintime));
-		$delete=imgsimple("delete-24.png",null,"Loadjs('$myPage?delete-session-js={$ligne["md5"]}&t=$t')");
-		$End=$tpl->_ENGINE_parse_body(date("Y {l} d H:i",$finaltime));
+		$delete=imgsimple("delete-42.png",null,"Loadjs('$myPage?delete-session-js={$ligne["md5"]}&t=$t')");
+		$End=$tpl->_ENGINE_parse_body(date("Y {l} d H:i",$nextcheck));
 		$incoming=FormatBytes($ligne["incoming"]);
 		$outgoing=FormatBytes($ligne["outgoing"]);
-		
-		if($ligne["finaltime"]<time()){
+		$ipaddr=$ligne["ipaddr"];
+		if($ligne["nextcheck"]<time()){
 			$color="#CD0D0D";
 			
 		}
+		
+		$ruleid=$ligne["ruleid"];
+		if($ruleid>0){
+			$sql="SELECT rulename FROM webauth_rules WHERE ID='{$ruleid}'";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$rulename=$tpl->_ENGINE_parse_body("{rule}:$ruleid &laquo;".utf8_encode($ligne2["rulename"])."&raquo;");
+			$sock=new wifidog_settings($ruleid);
+			$ArticaSplashHotSpotCacheAuth=intval($sock->GET_INFO("ArticaSplashHotSpotCacheAuth"));
+			if($ArticaSplashHotSpotCacheAuth==0){
+					
+				$color="black";
+			}
+			if($ArticaSplashHotSpotCacheAuth>0){
+				$nextcheck = strtotime("+30 minutes", time());
+				$End=$tpl->_ENGINE_parse_body(date("Y {l} d H:i",$nextcheck));
+			}
+			
+			$ArticaSplashHotSpotEndTime=$sock->GET_INFO("ArticaSplashHotSpotEndTime");
+			$ArticaSplashHotSpotRemoveAccount=intval($sock->GET_INFO("ArticaSplashHotSpotRemoveAccount"));
+			if($ArticaSplashHotSpotEndTime==0){$ArticaSplashHotSpotEndTime_text=$tpl->_ENGINE_parse_body("{never}");}
+			if($ArticaSplashHotSpotEndTime>0){
+				$endlife = strtotime("+{$ArticaSplashHotSpotEndTime} minutes", time());
+				$ArticaSplashHotSpotEndTime_text=$tpl->_ENGINE_parse_body(date("{l} d H:i",$endlife));
+				
+			}
+			if($ArticaSplashHotSpotRemoveAccount==0){$ArticaSplashHotSpotRemoveAccount_text=$tpl->_ENGINE_parse_body("{never}");}
+			if($ArticaSplashHotSpotRemoveAccount>0){
+				$endlife = strtotime("+{$ArticaSplashHotSpotRemoveAccount} minutes", time());
+				$ArticaSplashHotSpotRemoveAccount_text=$tpl->_ENGINE_parse_body(date("{l} d H:i",$endlife));
+				
+			}
+			
+			
+		}else{
+			$rulename=$tpl->_ENGINE_parse_body("{rule}: &laquo;{default}&raquo;");
+		}
+		
+		
+		if($ArticaSplashHotSpotCacheAuth==0){$End=$tpl->_ENGINE_parse_body("{never}");}
 		
 		$hostname=$ligne["hostname"];
 		$nextcheck=$ligne["nextcheck"];
@@ -680,14 +731,17 @@ function sessions_items(){
 		$data['rows'][] = array(
 				'id' => $ligne["md5"],
 				'cell' => array(
-					"<span style='font-size:14px;color:$color'>{$ligne["uid"]}<br><i style='font-size:12px'>$hostname</i></a></span>",
-					"<span style='font-size:14px;color:$color'>{$ligne["MAC"]}</a></span>",
-					"<span style='font-size:14px;color:$color'>$Start</a></span>",
+					"<span style='font-size:18px;color:$color'>{$ligne["uid"]}<br>$rulename<br><i style='font-size:16px'>".
+					$tpl->javascript_parse_text("{disable_account}").":$ArticaSplashHotSpotEndTime_text<br>".
+					$tpl->javascript_parse_text("{remove_account}").":$ArticaSplashHotSpotRemoveAccount_text</i><br>".
+					"<i style='font-size:18px'>$hostname</i></a></span>",
+					"<span style='font-size:18px;color:$color'>{$ligne["MAC"]}</a><br><i style='font-size:18px'>$ipaddr</i></span>",
+					"<span style='font-size:18px;color:$color'>$Start</a></span>",
 					
-					"<span style='font-size:14px;color:$color'>$End</a></span>",
-					"<span style='font-size:14px;color:$color'>$incoming</a></span>",
-					"<span style='font-size:14px;color:$color'>$outgoing</a></span>",
-					"<span style='font-size:14px;color:$color'>$delete</a></span>",
+					"<span style='font-size:18px;color:$color'>$End</a></span>",
+					"<span style='font-size:18px;color:$color'>$incoming</a></span>",
+					"<span style='font-size:18px;color:$color'>$outgoing</a></span>",
+					"<center style='font-size:18px;color:$color'>$delete</a></center>",
 					
 					)
 				);
@@ -767,7 +821,7 @@ function members_items(){
 		$uid_url=urlencode($uid);
 		$ttl=intval($ligne["ttl"]);
 		$EnOfLife = strtotime("+{$ttl} minutes", $ligne["creationtime"]);
-		$delete=imgsimple("delete-24.png",null,"DeleteMember$t('{$ligne["uid"]}','$md5')");
+		$delete=imgsimple("delete-42.png",null,"DeleteMember$t('{$ligne["uid"]}','$md5')");
 		
 		$creationtime=$q->time_to_date($ligne["creationtime"],true);
 		$End=$q->time_to_date($EnOfLife,true);
@@ -782,7 +836,7 @@ function members_items(){
 		
 		$urlend="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('$myPage?ttl-js=$uid_url&t=$t');\"
-		style='font-size:14px;text-decoration:underline;color:$color'>";		
+		style='font-size:22px;text-decoration:underline;color:$color'>";		
 		
 		
 		if($ttl==0){$ttl=$unlimited;$End=$unlimited;}else{
@@ -795,22 +849,22 @@ function members_items(){
 		$uid_url=urlencode($ligne["uid"]);
 		$urljs="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:YahooWin4('750','$myPage?uid=$uid_url&t=$t','{$ligne["uid"]}');\"
-		style='font-size:14px;text-decoration:underline;color:$color'>";	
+		style='font-size:22px;text-decoration:underline;color:$color'>";	
 
 		$urlttl="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:YahooWin4('500','$myPage?ttl=$uid_url&t=$t','$ttl:{$ligne["uid"]}');\"
-		style='font-size:14px;text-decoration:underline;color:$color'>";
+		style='font-size:22px;text-decoration:underline;color:$color'>";
 
 		if($ligne["activedirectory"]==1){
-			$activedirectory_text="<br><span style='font-style:italic;font-size:12px'>Active Directory: ".ActiveDirectoryCnx($ligne["activedirectorycnx"])."</span>";
+			$activedirectory_text="<br><span style='font-style:italic;font-size:18px'>Active Directory: ".ActiveDirectoryCnx($ligne["activedirectorycnx"])."</span>";
 		}
 		
 		if($ligne["autocreate"]==1){
 			if($ligne["autocreate_confirmed"]==1){
-				$activedirectory_text="<br><span style='font-style:italic;font-size:12px'>$confirmed</span>";
+				$activedirectory_text="<br><span style='font-style:italic;font-size:18px'>$confirmed</span>";
 				
 			}else{
-				$activedirectory_text="<br><span style='font-style:italic;font-size:12px'>{$waiting_confirmation}</span>";
+				$activedirectory_text="<br><span style='font-style:italic;font-size:18px'>{$waiting_confirmation}</span>";
 			}
 		}
 		
@@ -820,12 +874,12 @@ function members_items(){
 		$data['rows'][] = array(
 				'id' => $md5,
 				'cell' => array(
-					"<span style='font-size:14px;color:$color'>{$creationtime}</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs{$ligne["uid"]}</a></span>$activedirectory_text",
-					"<span style='font-size:14px;color:$color'>$ttl</a></span>",
-					"<span style='font-size:14px;color:$color'>$urlend$End</a></span>",
-					"<span style='font-size:14px;color:$color'>$enabled</a></span>",
-					"<span style='font-size:14px;color:$color'>$delete</a></span>",
+					"<span style='font-size:22px;color:$color'>{$creationtime}</a></span>",
+					"<span style='font-size:22px;color:$color'>$urljs{$ligne["uid"]}</a></span>$activedirectory_text",
+					"<span style='font-size:22px;color:$color'>$ttl</a></span>",
+					"<span style='font-size:22px;color:$color'>$urlend$End</a></span>",
+					"<span style='font-size:22px;color:$color'>$enabled</a></span>",
+					"<center style='font-size:22px;color:$color'>$delete</a></center>",
 					
 					)
 				);

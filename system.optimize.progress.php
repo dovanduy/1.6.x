@@ -140,6 +140,7 @@ if($prc==100){
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
 			RTMMailHide();
+			RefreshTab('main_system_optimize');
 			Loadjs('system.optimize.restart.php');
 		}
 	setTimeout(\"Start$time()\",1000);

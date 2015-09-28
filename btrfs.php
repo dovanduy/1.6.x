@@ -20,6 +20,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 
 function tabs(){
 	$sock=new sockets();
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
@@ -29,7 +30,7 @@ function tabs(){
 		
 		
 		$array["folders-monitor"]='{directories_monitor}';
-		$array["seeker"]='{performance}';
+		if($EnableIntelCeleron==0){$array["seeker"]='{performance}';}
 		//$array["disks"]='{disks} BtrFS';
 		
 		

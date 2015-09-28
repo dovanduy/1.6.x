@@ -19,7 +19,7 @@
 	header("Cache-Control: no-cache, must-revalidate");
 	
 	
-	if(!function_exists("session_start")){echo "<div style='margin:200px;padding:10px;border:2px solid red'><center><H1><error>session module is not properly loaded<BR>please restart artica-postfix web daemon using <br> <code>/etc/init.d/artica-postfix restart apache</code></error><div style='color:red;font-size:13px'>Unable to stat session_start function</div></H1></div>";exit;}
+	if(!function_exists("session_start")){echo "<div style='margin:200px;padding:10px;border:2px solid red'><center><H1><error>session module is not properly loaded<BR>please restart artica-postfix web daemon using <br> <code>/etc/init.d/artica-postfix restart apache</code></error><div style='color:#d32d2d;font-size:13px'>Unable to stat session_start function</div></H1></div>";exit;}
 	
 	if(function_exists("session_start")){
 		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
@@ -83,7 +83,7 @@ $page=CurrentPageName();
 if(!is_file("ressources/settings.inc")){echo "
 <div style='margin:200px;padding:10px;border:2px solid red'><center><H1>
 <error>Artica-postfix daemon is not running... <BR>please start artica-postfix daemon</error>
-<div style='color:red;font-size:13px'>Unable to stat ressources/settings.inc</div>
+<div style='color:#d32d2d;font-size:13px'>Unable to stat ressources/settings.inc</div>
 </H1></div>";exit;}
 
 
@@ -424,7 +424,7 @@ if($AllowInternetUsersCreateOrg==1){
 
 if(!function_exists('ldap_connect')){
 	$ldap_error= "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:0;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:0;top:0;background-color:white'>
 		<center>Error ldap_connect() try to restart the web service<br><br>or check if php5-ldap is installed
 		<br>And restart web server</center>
 		<center>
@@ -440,7 +440,7 @@ if(!function_exists('ldap_connect')){
 
 if(!function_exists("posix_getuid")){
 	$ldap_error=$ldap_error. "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:250px;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:250px;top:0;background-color:white'>
 	Artica-postfix need <strong>posix &laquo;posix_getuid()&raquo;</strong>  function <BR>... please try to install php-posix
 	</div>";
 	
@@ -448,7 +448,7 @@ if(!function_exists("posix_getuid")){
 
 if(!function_exists('mysql_connect')){
 	$ldap_error=$ldap_error. "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:500px;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:500px;top:0;background-color:white'>
 	Artica-postfix need  <strong> &laquo;mysql_connect()&raquo;</strong>  function <BR>... please try to install php-mysql
 	</div>";	
 	
@@ -457,7 +457,7 @@ if(!function_exists('mysql_connect')){
 	
 	if($browser=="ie"){
 		$ldap_error=$ldap_error. "
-		<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:200px;top:50;background-color:white'>
+		<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:200px;top:50;background-color:white'>
 		{NOIEPLEASE_TEXT}<br>
 		<p style='font-size:12px;text-align:left'>
 		<i>{error_no_ie_text}</i></p></div><br>";
@@ -466,7 +466,7 @@ if(!function_exists('mysql_connect')){
 	
 $html="<div id='loginform'>
 <center>
-<div style='color:red;font-size:13px;font-weight:bold;width:70%;
+<div style='color:#d32d2d;font-size:13px;font-weight:bold;width:70%;
 font-family:Helvetica,Tahoma,Verdana,sans-serif'>{$_GET["ERROR"]}</div>
 </center>
 <H1 style='text-align:left'>{logon}</h1>
@@ -566,7 +566,7 @@ if($error==null){
 			<center>
 				<form>
 				<div style='width:667px;height:395px;background-image:url(img/nologon.jpg);background-repeat:no-repeat;border:1px solid #FFFFFF'>
-					<div style='float:right;margin-right:35px;margin-top:0px;background-color:#FFFFFF;border:1px solid black;padding:5px;font-size:11px;font-weight:bold;color:red;text-align:left'>
+					<div style='float:right;margin-right:35px;margin-top:0px;background-color:#FFFFFF;border:1px solid black;padding:5px;font-size:11px;font-weight:bold;color:#d32d2d;text-align:left'>
 						LDAP error with the following informations : <br>
 						<ul>
 						<li>$ldap_host:$port</li>
@@ -868,7 +868,7 @@ return false;
 }
 function autoaccount_form2(){
 	$tpl=new templates();
-	$html="<H3 style='color:red'>{you_can_close_this_form}</h3>";
+	$html="<H3 style='color:#d32d2d'>{you_can_close_this_form}</h3>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 function restart_phpldap(){
@@ -1333,7 +1333,7 @@ function lost_password_popup(){
 	$page=CurrentPageName();
 	$html="
 	<div id='$t'></div>
-	<div class=text-info style='font-size:16px;padding-bottom:10px'>{lost_password_explain}</div>
+	<div class=explain style='font-size:16px;padding-bottom:10px'>{lost_password_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:18px'>{email}:</td>

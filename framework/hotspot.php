@@ -18,7 +18,7 @@ if(isset($_GET["remove-session"])){remove_session();exit;}
 if(isset($_GET["ArticaHotSpotInterface"])){ArticaHotSpotInterface();exit;}
 if(isset($_GET["force-restart-progress"])){restart_progress();exit;}
 if(isset($_GET["reconfigure-progress"])){reconfigure_progress();exit;}
-
+if(isset($_GET["wizard-progress"])){wizard_progress();exit;}
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -305,10 +305,31 @@ function restart_progress(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup /etc/init.d/dnsmasq restart >/dev/null 2>&1 &");
+	
 	$cmd="$php /usr/share/artica-postfix/exec.wifidog.php --restart --force >{$GLOBALS["LOGSFILES"]} 2>&1 &";
 	shell_exec($cmd);	
 	
 }
+
+function wizard_progress(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.webauth.restart.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/squid.webauth.restart.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.wifidog.php --wizard --force >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	shell_exec($cmd);	
+	
+}
+
+
 function reconfigure_progress(){
 	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.progress";
 	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/hostpot.reconfigure.logs";

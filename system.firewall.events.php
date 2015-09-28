@@ -162,7 +162,7 @@ XHR.sendAndLoad('$page', 'POST',xRuleGroupUpDown$t);
 }
 
 function Apply$t(){
-Loadjs('firewall.restart.php');
+Loadjs('firehol.progress.php');
 }
 
 function ChangEnabled$t(ID){

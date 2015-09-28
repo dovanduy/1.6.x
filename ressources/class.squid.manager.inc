@@ -6,7 +6,8 @@ class cache_manager{
 	public $errno;
 	public $errstr;
 	public $ok=false;
-	
+	public $TimeOutsec=3;
+	public $errstr_plus=null;
 	function cache_manager(){
 		
 		
@@ -16,14 +17,25 @@ class cache_manager{
 	private function connect(){
 		$this->fp = false;
 		$this->ok=true;
+		$this->errstr_plus=null;
 		$AP=$this->squid_get_internal_addrport();
 		if($GLOBALS["VERBOSE"]){echo "Connect {$AP[0]}:{$AP[1]}\n";}
-		$this->fp = @fsockopen($AP[0], $AP[1], $this->errno, $this->errstr, 10);
-		if (!$this->fp) {
-			if($GLOBALS["VERBOSE"]){echo "failed to connect {$AP[0]}:{$AP[1]} $this->errno \"$this->errstr\"\n";}
+		
+		
+		$this->fp = @stream_socket_client("tcp://{$AP[0]}:{$AP[1]}",$this->errno, $this->errstr,$this->TimeOutsec, STREAM_CLIENT_CONNECT);
+		
+		
+		if(!$this->fp){
 			$this->ok=false;
 			return false;
 		}
+		
+		if (!is_resource($this->fp)) {
+			$this->ok=false;
+			return false;
+		
+		}
+		
 		if($GLOBALS["VERBOSE"]){echo "success to connect {$AP[0]}:{$AP[1]}\n";}
 		return true;
 	}
@@ -51,20 +63,78 @@ class cache_manager{
 		if(!$this->fp){if(!$this->connect()){return null;}}
 		$this->errno=0;
 		
-		$out = "GET cache_object://localhost/$query HTTP/1.0\r\n";
+		$out = "GET cache_object://localhost/$query HTTP/1.0\r\n\r\n";
 		if($GLOBALS["VERBOSE"]){echo "Send $out\n";}
-		$out.="\r\n";
+	
+		stream_set_timeout($this->fp,$this->TimeOutsec);
 		fwrite($this->fp, $out);
+		$info = stream_get_meta_data($this->fp);
 		
-		while (!feof($this->fp)) {
-			$raw[]=trim(fgets($this->fp, 2048));
+		if ($info['timed_out']) {
+			$this->errno=1000;
+			$this->errstr="Timed Out";
+			@socket_close($this->fp);
+			@fclose($this->fp);
+			return false;
 		}
-		fclose($this->fp);
+		
+		stream_set_blocking($this->fp, TRUE);
+		stream_set_timeout($this->fp,$this->TimeOutsec);
+		
+		 while ((!feof($this->fp)) && (!$info['timed_out'])) { 
+		 	$lineZ=trim(fgets($this->fp, 2048));
+		 	if($GLOBALS["VERBOSE"]){echo "--> \"$lineZ\"\n";}
+		 	if(preg_match("#X-Squid-Error:\s+ERR_ICAP_FAILURE#", $lineZ)){
+		 		$this->errno=3;
+		 		$this->errstr="ERR_ICAP_FAILURE";
+		 		$this->ok=false;
+		 		@socket_close($this->fp);
+		 		@fclose($this->fp);
+		 		return false;
+		 	}
+		 	if(preg_match("#ACCESS_DENIED#", $lineZ)){
+		 		$this->errno=4;
+		 		$this->errstr="Access denied";
+		 		$this->ok=false;
+		 		@socket_close($this->fp);
+		 		@fclose($this->fp);
+		 		return false;
+		 	}
+		 	
+		 	if(preg_match("#X-Squid-Error:\s+ERR_([A-Z\_]+)#", $lineZ,$re)){
+		 		if($re[1]=="CACHE_ACCESS_DENIED"){
+		 			$this->errno=4;
+		 			$this->errstr="Access denied";
+		 			$this->ok=false;
+		 			@socket_close($this->fp);
+		 			@fclose($this->fp);
+		 			return false;
+		 		}
+		 		
+		 		$this->errstr_plus="ERR_".$re[1];
+		 		
+		 	}
+		 	
+			$raw[]=$lineZ;
+			$info = stream_get_meta_data($this->fp);
+		}
+		if ($info['timed_out']) {
+			$this->errno=1000;
+			$this->errstr="Timed Out";
+			$this->ok=false;
+			@socket_close($this->fp);
+			@fclose($this->fp);
+			return false;
+		}
+		
+		
+		@socket_close($this->fp);
+		@fclose($this->fp);
 		
 		if(!preg_match("#HTTP.*?200\s+OK#i", $raw[0])){
 			if($GLOBALS["VERBOSE"]){echo "Failed \"{$raw[0]}\"\n";}
 			$this->errno=1;
-			$this->errstr="Cannot get data. Server answered: $raw[0]";
+			$this->errstr="Cannot get data. Server answered: $raw[0] {$this->errstr_plus}";
 			$this->ok=false;
 			return false;
 		}

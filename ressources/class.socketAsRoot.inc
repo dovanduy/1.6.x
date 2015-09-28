@@ -3,18 +3,31 @@
 class SocketsAsRoot{
 	public $Runned=false;
 	private $uri=null;
+	
+	
+	
+	
 	public function SocketsAsRoot($uri){
+		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
 		$this->uri=$uri;
+		$this->SquidPerformance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
+		$this->EnableIntelCeleron=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+		
+		
 	}
 	
 	public function SocketsAsRoot_perform(){
 		$uri=$this->uri;
 		$this->Runned=false;
+		
 		$unix=new unix();
 		
 // *************************************************************************************************************************		
 		
 		if($uri=="cmd.php?ldap-restart=yes"){
+			$this->Runned=true;
+			if($this->SquidPerformance>2){return;}
+			if($this->EnableIntelCeleron==1){return;}
 			shell_exec("/etc/init.d/slapd restart --framework=". basename(__FILE__)." &");
 			$this->Runned=true;return;
 		}

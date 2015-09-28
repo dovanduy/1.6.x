@@ -24,9 +24,27 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->javascript_parse_text("{installing} {$_GET["filename"]}");
+	$t=time();
+	$ask=null;
+	if($_GET["key"]<>null){
+		$sock=new sockets();
+		$ArticaTechNetSquidRepo=unserialize(base64_decode($sock->GET_INFO("ArticaTechNetSquidRepo")));
+		$version=$ArticaTechNetSquidRepo[$_GET["key"]]["VERSION"];
+		$askt=$tpl->javascript_parse_text("{update2} $version ?");
+		$ask="if(!confirm('$askt')){return;}";
+		
+	}
+	
 	echo "
-	YahooWinBrowseHide();		
-	RTMMail('800','$page?popup=yes&filename=".urlencode($_GET["filename"])."','$title');";
+	
+	function Start$t(){
+		$ask	
+		YahooWinBrowseHide();		
+		RTMMail('800','$page?popup=yes&key={$_GET["key"]}&filename=".urlencode($_GET["filename"])."','$title');
+	
+	}
+	Start$t();";
+
 	
 	
 }
@@ -49,7 +67,7 @@ if($prc==0){
 echo "
 function Start$time(){
 		if(!RTMMailOpen()){return;}
-		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&filename=".urlencode($_GET["filename"])."');
+		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&key={$_GET["key"]}&filename=".urlencode($_GET["filename"])."');
 }
 setTimeout(\"Start$time()\",1000);";
 return;
@@ -64,7 +82,7 @@ if($md5file<>$_GET["md5file"]){
 		if (res.length>3){
 			document.getElementById('text-$t').value=res;
 		}		
-		Loadjs('$page?build-js=yes&t=$t&md5file=$md5file&filename=".urlencode($_GET["filename"])."');
+		Loadjs('$page?build-js=yes&t=$t&md5file=$md5file&key={$_GET["key"]}&filename=".urlencode($_GET["filename"])."');
 	}		
 	
 	function Start$time(){
@@ -74,6 +92,7 @@ if($md5file<>$_GET["md5file"]){
 		var XHR = new XHRConnection();
 		XHR.appendData('Filllogs', 'yes');
 		XHR.appendData('filename','".urlencode($_GET["filename"])."');
+		XHR.appendData('key','".urlencode($_GET["key"])."');
 		XHR.appendData('t', '$t');
 		XHR.setLockOff();
 		XHR.sendAndLoad('$page', 'POST',xStart$time,false); 
@@ -117,7 +136,7 @@ function Start$time(){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&filename=".urlencode($_GET["filename"])."');
+		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&key={$_GET["key"]}&filename=".urlencode($_GET["filename"])."');
 	}
 	setTimeout(\"Start$time()\",1500);
 ";
@@ -138,10 +157,10 @@ function popup(){
 	$sock=new sockets();
 	$restart=null;
 	
-	$sock->getFrameWork("squid.php?install-squid-tgz=".urlencode($_GET["filename"])."");
+	$sock->getFrameWork("squid.php?install-squid-tgz=".urlencode($_GET["filename"])."&key={$_GET["key"]}");
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
-	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...");
+	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...<br>{$_GET["filename"]}");
 	
 $html="
 <center id='title-$t' style='font-size:18px;margin-bottom:20px'>$text</center>
@@ -154,7 +173,7 @@ overflow:auto;font-size:11px' id='text-$t'></textarea>
 <script>
 function Step1$t(){
 	$('#progress-$t').progressbar({ value: 1 });
-	Loadjs('$page?build-js=yes&t=$t&md5file=0&filename=".urlencode($_GET["filename"])."');
+	Loadjs('$page?build-js=yes&t=$t&md5file=0&key={$_GET["key"]}&filename=".urlencode($_GET["filename"])."');
 }
 $('#progress-$t').progressbar({ value: 1 });
 setTimeout(\"Step1$t()\",1000);

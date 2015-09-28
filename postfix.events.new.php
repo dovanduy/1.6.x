@@ -212,21 +212,20 @@ $('#flexRT$t').flexigrid({
 	url: '$page?table-list=yes&hostname=$hostname&t=$t&zarafa-filter={$_GET["zarafa-filter"]}&miltergrey-filter={$_GET["miltergrey-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$zDate', name : 'zDate', width : 58, sortable : true, align: 'left'},
-		{display: '$host', name : 'host', width : 71, sortable : true, align: 'left'},
-		{display: '$service', name : 'host', width : 58, sortable : true, align: 'left'},
-		{display: 'PID', name : 'host', width : 43, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'left'},
-		{display: '$events', name : 'events', width :$events_wdht, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$zDate</span>', name : 'zDate', width : 113, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$service</span>', name : 'host', width : 148, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>PID</span>', name : 'host', width : 50, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>&nbsp;</span>', name : 'none', width : 46, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$events</span>', name : 'events', width :1064, sortable : true, align: 'left'},
 		],
 	$buttons
 	searchitems : [
 		{display: '$events', name : 'zDate'},
 		],
 	sortname: 'events',
-	sortorder: 'asc',
+	sortorder: 'desc',
 	usepager: true,
-	title: '$title ($maillog_path)',
+	title: '<span style=font-size:30px>$title ($maillog_path)</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -252,7 +251,7 @@ function ZoomEvents(content){
 }
 
 function events_list(){
-	
+	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();
 	$maillog_path=$users->maillog_path;
@@ -283,21 +282,142 @@ function events_list(){
 			
 		}
 		
+		if(trim($line)==null){continue;}
+		
 		$img=statusLogs($line);
 		
 		$loupejs="ZoomEvents('$lineenc')";
+		$color="black";
+		
+		if(preg_match("#([A-Z0-9]+): message-id=<(.+?)>#",$line,$re)){
+			$line="{new_message} ID:{$re[1]} ({$re[2]})";
+		}
+		
+		
+		
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\s+from <(.*?)> rcpt <(.*?)>:\s+autowhitelisted#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+		}
+		
+		if(preg_match("#skipping greylist because address (.*?)\s+is whitelisted,.*?from=<(.*?)>,\s+rcpt=<(.*?)>, addr=#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+		}
+		
+		if(preg_match("#skipping greylist because sender <(.*?)>\s+is whitelisted,.*?from=<(.*?)>,\s+rcpt=<(.*?)>, addr=#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+		}
+		
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\s+from =@(.*?)> rcpt <(.*?)>:\s+autowhitelisted#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+		}	
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\s+from =(.*?)> rcpt <(.*?)>:\s+autowhitelisted#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+		}			
+		
+		if(preg_match("#NOQUEUE: milter-reject: RCPT from (.*?)\[(.+?)\].*?Greylisting in action.*?from=<(.*?)>\s+to=<(.*?)>#",$line,$re)){
+			$line="{delayed}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#777676";
+		}
 		
 
+		
+		
+		
+		
+		if(preg_match("#NOQUEUE: reject: RCPT from (.*?)\[(.+?)\]: .*?Client host \[(.+?)\] blocked using (.+?)\s+#",$line,$re)){
+			$line="{dnsbl_service}: {$re[3]} blocked using <strong>{$re[4]}</strong> ({$re[1]})";
+			$color="#d32d2d";
+		}
+		
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\[(.+?)\]\s+from =@(.*?)> to <(.*?)>\s+blacklisted#",$line,$re)){
+			$line="{blacklisted}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#d32d2d";
+		}
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\[(.+?)\]\s+from\s+<(.*?)> to <(.*?)>\s+blacklisted#",$line,$re)){
+			$line="{blacklisted}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#d32d2d";
+		}		
+		
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+\[(.+?)\]\[(.+?)\]\s+from <(.*?)> to <(.*?)>\s+delayed#",$line,$re)){
+			$line="{delayed}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#777676";
+		}
+		if(preg_match("#milter-greylist:\s+\(.*:\s+addr\s+(.+?)\[(.+?)\]\s+from <(.*?)> to <(.*?)>\s+delayed#",$line,$re)){
+			$line="{delayed}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#777676";
+		}
+		
+		if(preg_match("#\(.*\):\s+addr\s+(.+?)\s+from <(.*?)> rcpt <(.*?)>:\s+autowhitelisted#",$line,$re)){
+			$line="{whitelisted}: {$re[1]} {sender}:{$re[2]}  {to}: <strong>{$re[3]}</strong>";
+			
+		}
+		
+		if(preg_match("#NOQUEUE: milter-reject: RCPT from (.*?)\[(.+?)\].*?from=<(.*?)>\s+to=<(.*?)>#",$line,$re)){
+			$line="{rejected}: {$re[2]} ({$re[2]}) {sender}:{$re[3]}  {to}: <strong>{$re[4]}</strong>";
+			$color="#d32d2d";
+		}
+		
+		if(preg_match("#ESMTP::10024 \/.*?:\s+<(.+?)>\s+->\s+<(.+?)>\s+SIZE=([0-9]+)#",$line,$re)){
+			$line="Amavis {sender}: {$re[1]} {to}: <strong>{$re[2]}</strong> ".FormatBytes($re[3]/1024);
+		}
+		
+		if(preg_match("#FWD from.*?<(.+?)>\s+->\s+<(.+?)>#",$line,$re)){
+			$line="Amavis {forward_to_postfix} {sender}: {$re[2]} {to}: <strong>{$re[3]}</strong>";
+		}
+		
+		if(preg_match("#\([0-9A-Z\-]+\)\s+Checking:.*?\[(.+?)\]\s+<(.+?)>\s+->\s+<(.+?)>#",$line,$re)){
+			$line="Amavis {checking} Client:{$re[1]} {sender}: {$re[2]} {to}: <strong>{$re[3]}</strong>";
+		}
+		
+		if(preg_match("#Passed CLEAN.*?<(.+?)>\s+->\s+<(.+?)>, Queue-ID: ([0-9A-Z]+)#",$line,$re)){
+			$line="ID:{$re[3]} Amavis {pass} {sender}: {$re[1]} {to}: <strong>{$re[2]}</strong>";
+		}
+		
+		if(preg_match("#([0-9A-Z]+):\s+to=<(.+?)>,\s+orig_to=<(.+?)>,\s+relay=(.+?)\[(.+?)\].*?status=sent#", $line,$re)){
+			$line="ID:{$re[1]} {transfered} to <strong>{$re[2]}</strong> ({$re[3]}) SMTP:{$re[5]} ({$re[4]})";
+			
+		}
+		
+		if(preg_match("#([0-9A-Z\-]+): redirect: header Subject:.*?from=<(.*?)> to=<(.+?)>.*?:\s+(.+)#", $line,$re)){
+			$line="ID:{$re[1]} {smtp_rule} {transfered} to <strong>{$re[4]}</strong> ({$re[3]}) {sender}:{$re[2]}";
+			$color="#d32d2d";
+			
+		}
+		
+		
+		
+		if(preg_match("#([A-Z0-9]+):\s+from=<(.+?)>,\s+size=([0-9]+), nrcpt=([0-9]+).*?queue active#", $line,$re)){
+			$line="ID:{$re[1]} {put_in_active_queue} {sender}: $re[2] ".FormatBytes($re[3]/1024)." {$re[4]} {recipients}";
+			
+		}
+		
+		
+		
+		
+		if(preg_match("#([A-Z0-9]+):\s+to=<(.+?)>,\srelay=(.+?)\[(.+?)\]:([0-9]+).*?, status=sent#", $line,$re)){
+			$line="ID:{$re[1]} {sended} {to}: <strong>{$re[2]}</strong> SMTP:{$re[4]}:{$re[5]} ({$re[3]})";
+			
+			
+		}
+		
+		if(preg_match("#([0-9A-Z\-]+): to=<(.*?)>,.*?status=deferred\s+\((.+?)\)#",$line,$re)){
+			$line="ID:{$re[1]} {to}: <strong>{$re[2]}</strong> ERROR {$re[3]}";
+			$color="#d32d2d";
+		}
+		
+		$line=str_replace("removed","{removed}",$line);
+		$line=str_replace("SMTP:127.0.0.1:10024", "Amavis", $line);
+		
+		$line=$tpl->_ENGINE_parse_body($line);
 	
 	$data['rows'][] = array(
 				'id' => "dom$m5",
 				'cell' => array("
-				<span style='font-size:12px'>$date</span>",
-				"<span style='font-size:12px'>$host</span>",
-				"<span style='font-size:12px'>$service</span>",
-				"<span style='font-size:12px'>$pid</span>",
-				"<img src='$img'>",
-				"<span style='font-size:12px'>$line</span>")
+				<span style='font-size:16px;color:$color;'>$date</span>",
+				"<span style='font-size:16px;color:$color'>$service</span>",
+				"<span style='font-size:16px;color:$color'>$pid</span>",
+				"<center><img src='$img'></center>",
+				"<span style='font-size:14px;color:$color'>$line</span>")
 				);	
 
 				

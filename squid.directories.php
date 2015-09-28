@@ -45,7 +45,7 @@ function popup(){
 	
 $html="
 <div id='id-final-$t'>
-<div id='text-$t' style='font-size:18px' class=text-info>{change_directories_paths_text}</div>
+<div id='text-$t' style='font-size:18px' class=explain>{change_directories_paths_text}</div>
 <div style='width:98%' class=form>
 	<table>
 	<tr>

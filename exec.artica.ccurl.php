@@ -56,8 +56,52 @@ function hourly(){
 		CompressTableDay($tablenameH,$timex);
 	}
 	
+	$DayTable=date("Ymd");
+	$currenttable="{$DayTable}_curl";
+	$LIST_TABLES_CURL_DAY=$q->LIST_TABLES_CURL_DAY();
+	while (list ($tablenameH,$timex) = each ($LIST_TABLES_CURL_HOUR) ){
+		if($tablenameH==$currenttable){continue;}
+		CompressTableMonth($tablenameH,$timex);
+	}
 	
 	
+}
+
+function CompressTableMonth($tablenameH,$timex){
+	$MonthTable=date("Ym",$timex);
+	$NextTable="{$MonthTable}_mcurl";
+	$q=new mysql();
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as xDate, www,SUM(size_download) as size_download FROM `$tablenameH` GROUP BY xDate,www";
+	$results=$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){return false;}
+	
+	$prefix="INSERT IGNORE INTO  `$NextTable` (`zDate`,`www`,`size_download`) VALUES ";
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(intval($ligne["size_download"])==0){continue;}
+		$f[]="('{$ligne["xDate"]}','{$ligne["www"]}','{$ligne["size_download"]}')";
+	
+	}
+	
+	if(count($f)==0){
+		$q->QUERY_SQL("DROP TABLE `$tablenameH`","artica_events");
+		return;
+	}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `$NextTable` (
+	`zDate` DATE NOT NULL ,
+	`www` VARCHAR(128) ,
+	`size_download` INT UNSIGNED ,
+	KEY `zDate` (`zDate`),
+	KEY `www` (`www`),
+	KEY `size_download` (`size_download`)
+	)  ENGINE = MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){return false;}
+	
+	$q->QUERY_SQL($prefix.@implode(",", $f),"artica_events");
+	if(!$q->ok){return false;}
+	$q->QUERY_SQL("DROP TABLE `$tablenameH`","artica_events");	
 	
 }
 

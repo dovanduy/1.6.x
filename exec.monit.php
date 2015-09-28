@@ -22,6 +22,9 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__).'/ressources/class.monit.inc');
 
+
+if(system_is_overloaded(basename(__FILE__))){echo "Overloaded system, die();";die();}
+
 $GLOBALS["MONIT_CLASS"]=new monit_unix();
 
 $GLOBALS["ARGVS"]=implode(" ",$argv);
@@ -68,9 +71,12 @@ function restart() {
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
-	stop(true);
+	build_progress_restart("{stopping_service}",15);
+	if(!stop(true)){return;}
+	build_progress_restart("{reconfiguring}",21);
 	build();
 	sleep(1);
+	build_progress_restart("{starting_service}",46);
 	start(true);
 	
 }
@@ -95,7 +101,8 @@ function start($aspid=false){
 
 	if(!is_file($Masterbin)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, arpd not installed\n";}
-		return;
+		build_progress_restart("{starting_service} {failed}",110);
+		return false;
 	}
 
 	if(!$aspid){
@@ -104,7 +111,8 @@ function start($aspid=false){
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
-			return;
+			build_progress_restart("{starting_service} {failed}",110);
+			return false;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -114,7 +122,8 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
-		return;
+		build_progress_restart("{starting_service} {success}",100);
+		return true;
 	}
 	$EnableMonit=$sock->GET_INFO("EnableMonit");
 	if(!is_numeric($EnableMonit)){$EnableMonit=1;}
@@ -124,7 +133,8 @@ function start($aspid=false){
 
 	if($EnableMonit==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableArpDaemon)\n";}
-		return;
+		build_progress_restart("{starting_service} {failed}",110);
+		return false;
 	}
 
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -146,6 +156,7 @@ function start($aspid=false){
 	for($i=1;$i<5;$i++){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
+		build_progress_restart("{starting_service} {waiting} $i/5",47);
 		$pid=$GLOBALS["MONIT_CLASS"]->PID_NUM();
 		if($unix->process_exists($pid)){break;}
 	}
@@ -156,15 +167,16 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Force to monitor all daemons..\n";}
 		shell_exec("$nohup $php5 --monitor-wait >/dev/null 2>&1 &");
 		shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
-		
-	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
-		while (list ($index, $line) = each ($results) ){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $line\n";}
-		}
-		
+		build_progress_restart("{starting_service} {success}",100);
+		return true;
 	}
+	build_progress_restart("{starting_service} {failed}",110);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+	while (list ($index, $line) = each ($results) ){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $line\n";}
+	}
+		
 }
 
 function stop($aspid=false){
@@ -175,6 +187,7 @@ function stop($aspid=false){
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $pid since {$time}mn\n";}
+			build_progress_restart("{stopping_service} {failed}",110);
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -185,7 +198,8 @@ function stop($aspid=false){
 
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
-		return;
+		build_progress_restart("{stopping_service} {success}",20);
+		return true;
 	}
 	$pid=$GLOBALS["MONIT_CLASS"]->PID_NUM();
 	$nohup=$unix->find_program("nohup");
@@ -193,10 +207,12 @@ function stop($aspid=false){
 	$kill=$unix->find_program("kill");
 	
 	
+	build_progress_restart("{stopping_service}",16);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} unmonitor all processes\n";}
 	exec($GLOBALS["MONIT_CLASS"]->stop_cmdline." 2>&1",$results);
 	sleep(1);
 
+	build_progress_restart("{stopping_service}",17);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
@@ -206,12 +222,15 @@ function stop($aspid=false){
 		sleep(1);
 	}
 
+	build_progress_restart("{stopping_service}",18);
 	$pid=$GLOBALS["MONIT_CLASS"]->PID_NUM();
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
-		return;
+		build_progress_restart("{stopping_service} {success}",20);
+		return true;
 	}
-
+	
+	build_progress_restart("{stopping_service}",19);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
@@ -220,11 +239,25 @@ function stop($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
-
+	
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
-		return;
+		build_progress_restart("{stopping_service} {failed}",110);
+		return false;
 	}
+	build_progress_restart("{stopping_service} {success}",20);
+	return true;
+
+}
+function build_progress_restart($text,$pourc){
+	
+	if($GLOBALS["OUTPUT"]){echo "Progress......: ".date("H:i:s")." [{$pourc}%]: {$GLOBALS["TITLENAME"]} $text..\n";}
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/exec.monit.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
+	@chmod($GLOBALS["CACHEFILE"],0755);
+	if($GLOBALS["PROGRESS"]){sleep(1);}
 
 }
 
@@ -238,10 +271,21 @@ function build(){
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+	$python=$unix->find_program("python");
+	$nice=$unix->EXEC_NICE();
+	$ps=$unix->find_program("ps");
+	$sort=$unix->find_program("sort");
+	$head=$unix->find_program("head");
+	$echo=$unix->find_program("echo");
+	$date=$unix->find_program("date");
+	$mkdir=$unix->find_program("mkdir");
+	
 	
 	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
 	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
-	
+	build_progress_restart("{reconfiguring}",22);
 	
 	$ini=new Bs_IniHandler();
 	$ini->loadFile('/etc/artica-postfix/smtpnotif.conf');
@@ -284,74 +328,54 @@ function build(){
 	$normal=($cpunum*2)+1;
 	$normal2=$cpunum*2;
 	$busy=$cpunum*4;
+	build_progress_restart("{reconfiguring}",23);
 	
 	$EnableMONITSmtpNotif=$sock->GET_INFO("EnableMONITSmtpNotif");
 	if(!is_numeric($EnableMONITSmtpNotif)){$EnableMONITSmtpNotif=1;}
 	
-	
-	$EnableWatchMemoryUsage=$sock->GET_INFO("EnableWatchMemoryUsage");
-	if(!is_numeric($EnableWatchMemoryUsage)){$EnableWatchMemoryUsage=1;}
-	
-	$EnableWatchCPUsage=$sock->GET_INFO("EnableWatchCPUsage");
-	if(!is_numeric($EnableWatchCPUsage)){$EnableWatchCPUsage=1;}
-	
-	$SystemWatchMemoryUsage=$sock->GET_INFO("SystemWatchMemoryUsage");
-	if(!is_numeric($SystemWatchMemoryUsage)){$SystemWatchMemoryUsage=75;}
-	
-	$EnableWatchCPUsage=$sock->GET_INFO("EnableWatchCPUsage");
-	if(!is_numeric($EnableWatchCPUsage)){$EnableWatchCPUsage=1;}
-	
-	
-	$SystemWatchCPUUser=$sock->GET_INFO("SystemWatchCPUUser");
-	if(!is_numeric($SystemWatchCPUUser)){$SystemWatchCPUUser=80;}
-
-	$SystemWatchCPUSystem=$sock->GET_INFO("SystemWatchCPUSystem");
-	if(!is_numeric($SystemWatchCPUSystem)){$SystemWatchCPUSystem=80;}
-
-	$EnableLoadAvg1mnUser=$sock->GET_INFO("EnableLoadAvg1mnUser");
-	if(!is_numeric($EnableLoadAvg1mnUser)){$EnableLoadAvg1mnUser=1;}	
-	
-	$EnableLoadAvg5mnUser=$sock->GET_INFO("EnableLoadAvg5mnUser");
-	if(!is_numeric($EnableLoadAvg5mnUser)){$EnableLoadAvg5mnUser=1;}
-	
-	$EnableLoadAvg15mnUser=$sock->GET_INFO("EnableLoadAvg15mnUser");
-	if(!is_numeric($EnableLoadAvg15mnUser)){$EnableLoadAvg15mnUser=1;}
 
 	
-	$Load1mn=$sock->GET_INFO("Load1mn");
-	if(!is_numeric($Load1mn)){$Load1mn=$busy;}
-	$Load15mn=$sock->GET_INFO("Load15mn");
-	if(!is_numeric($Load15mn)){$Load15mn=$normal2;}
-	$Load5mn=$sock->GET_INFO("Load5mn");
-	if(!is_numeric($Load5mn)){$Load5mn=$normal;}
-
-	$DoNotCheckSystem=0;
-
+	$MonitCPUUsage=intval($sock->GET_INFO("MonitCPUUsage"));
+	$MonitCPUUsageCycles=intval($sock->GET_INFO("MonitCPUUsageCycles"));
 	
+	$MonitMemUsage=intval($sock->GET_INFO("MonitMemUsage"));
+	$MonitMemUsageCycles=intval($sock->GET_INFO("MonitMemUsageCycles"));
 	
-	if($EnableLoadAvg1mnUser==0){
-		if($EnableLoadAvg5mnUser==0){
-			if($EnableLoadAvg15mnUser==0){
-				if($EnableWatchMemoryUsage==0){
-					if($SystemLoadNotif==0){
-						if($EnableWatchCPUsage==0){$DoNotCheckSystem=1;}
-					}
-				}
-			}
+	$MonitReportLoadVG1mn=intval($sock->GET_INFO("MonitReportLoadVG1mn"));
+	$MonitReportLoadVG1mnCycles=intval($sock->GET_INFO("MonitReportLoadVG1mnCycles"));
+	
+	if($MonitReportLoadVG1mnCycles==0){$MonitReportLoadVG1mnCycles=5;}
+	
+	$MonitReportLoadVG5mn=intval($sock->GET_INFO("MonitReportLoadVG5mn"));
+	$MonitReportLoadVG5mnCycles=intval($sock->GET_INFO("MonitReportLoadVG5mnCycles"));
+	
+	if($MonitReportLoadVG5mnCycles==0){$MonitReportLoadVG5mnCycles=15;}
+	
+	$MonitReportLoadVG15mn=intval($sock->GET_INFO("MonitReportLoadVG15mn"));
+	$MonitReportLoadVG15mnCycles=intval($sock->GET_INFO("MonitReportLoadVG15mnCycles"));
+	
+	if($MonitReportLoadVG15mnCycles==0){$MonitReportLoadVG15mnCycles=60;}
+	
+
+	if($MonitCPUUsageCycles==0){$MonitCPUUsageCycles=15;}
+	
+	if($MonitCPUUsage>0){
+		if($MonitCPUUsage<50){
+			$MonitCPUUsage=90;
+		}
+	}
+	
+	if($MonitMemUsage>0){
+		if($MonitMemUsage<50){
+			$MonitMemUsage=90;
 		}
 	}
 
+	
+	build_progress_restart("{reconfiguring}",24);
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$rmbin=$unix->find_program("rm");
 	$echo=$unix->find_program("echo");
-	if($SystemWatchCPUSystem>100){$SystemWatchCPUSystem=99;}
-	if($SystemWatchCPUUser>100){$SystemWatchCPUUser=99;}
-	if($SystemWatchMemoryUsage>10){$SystemWatchMemoryUsage=99;}
-	
-	if($SystemWatchCPUSystem<5){$SystemWatchCPUSystem=99;}
-	if($SystemWatchCPUUser<5){$SystemWatchCPUUser=99;}
-	if($SystemWatchMemoryUsage<5){$SystemWatchMemoryUsage=99;}
-	
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
@@ -383,6 +407,7 @@ function build(){
 		}
 	}
 	
+	build_progress_restart("{reconfiguring}",25);
 	$allips=$unix->NETWORK_ALL_INTERFACES(true);
 	
 	$f[]="set httpd port 2874 and use address 127.0.0.1";
@@ -394,20 +419,44 @@ function build(){
 	$top=$unix->find_program("top");
 	$hostname=$unix->hostname_g();
 	
-	if($DoNotCheckSystem==0){
-		$f[]="check system ".$unix->hostname_g();
-		if($SystemLoadNotif>0){$f[]="\tif loadavg (1min) > $SystemLoadNotif then exec \"$php5 /usr/share/artica-postfix/exec.watchdog.php --loadavg-notif\"";}
-		if($EnableLoadAvg1mnUser==1){$f[]="\tif loadavg (1min) > $Load1mn for 5 cycles then alert";}
-		if($EnableLoadAvg5mnUser==1){$f[]="\tif loadavg (5min) > $Load5mn for 5 cycles then alert";}
-		if($EnableLoadAvg15mnUser==1){$f[]="\tif loadavg (15min) > $Load15mn for 5 cycles then alert";}
-		if($EnableWatchMemoryUsage==1){$f[]="\tif memory usage > $SystemWatchMemoryUsage% for 5 cycles then alert";}
-		if($EnableWatchCPUsage==1){
-			//$f[]="if cpu usage (user) > $SystemWatchCPUUser% for 5 cycles then exec \"/bin/bash -c '$top -b -n 1 >> /var/log/ArticaProc.log;/bin/date >> /var/log/ArticaProc.log'\"";
-			//$f[]="if cpu usage (system) > $SystemWatchCPUSystem% for 5 cycles then exec \"/bin/bash -c '$top -b -n 1 >> /var/log/ArticaProc.log;/bin/date >> /var/log/ArticaProc.log'\"";
+		$TSCR=array();
+		
+		if($MonitReportLoadVG1mn>0){$TSCR[]="\tif loadavg (1min) > $MonitReportLoadVG1mn for $MonitReportLoadVG1mnCycles cycles then exec \"/bin/artica-system-alert.sh LOAD_1\"";}
+		if($MonitReportLoadVG5mn>0){$TSCR[]="\tif loadavg (5min) > $MonitReportLoadVG5mn for $MonitReportLoadVG5mnCycles cycles then exec \"/bin/artica-system-alert.sh LOAD_5\"";}
+		if($MonitReportLoadVG15mn>0){$TSCR[]="\tif loadavg (15min) > $MonitReportLoadVG15mn for $MonitReportLoadVG15mnCycles cycles then exec \"/bin/artica-system-alert.sh LOAD_15\"";}
+		
+		if($MonitCPUUsage>0){
+			$TSCR[]="\tif cpu usage(system) > {$MonitCPUUsage}% for $MonitCPUUsageCycles cycles then exec \"/bin/artica-system-alert.sh CPU_SYSTEM\"";
+			$TSCR[]="\tif cpu usage(user) > {$MonitCPUUsage}% for $MonitCPUUsageCycles cycles then exec \"/bin/artica-system-alert.sh CPU_USER\"";
+			$TSCR[]="\tif cpu usage(wait) > {$MonitCPUUsage}% for $MonitCPUUsageCycles cycles then exec \"/bin/artica-system-alert.sh CPU_WAIT\"";
+			
 		}
-	
-	}
-	
+		if($MonitMemUsage>0){
+			$TSCR[]="\tif memory > {$MonitMemUsage}% for $MonitMemUsageCycles cycles then exec \"/bin/artica-system-alert.sh MEM\"";
+		}
+		
+		if(count($TSCR)>1){
+			$f[]="check system ".$unix->hostname_g();
+			$f[]=@implode("\n", $TSCR);
+		}
+		$TSCR=array();
+		$SCRIPT=array();
+		$SCRIPT[]="#!/bin/sh";
+		$SCRIPT[]="CURRENT=`$date +%s`";
+		$SCRIPT[]="DIR=\"/home/artica/system/perf-queue/\$CURRENT\"";
+		$SCRIPT[]="$mkdir -p \"\$DIR\"";
+		$SCRIPT[]="$echo \$CURRENT >\$DIR/time.txt";
+		$SCRIPT[]="$echo \$1 >\$DIR/why.txt";
+		$SCRIPT[]="$nice $python /usr/share/artica-postfix/bin/ps_mem.py >\$DIR/psmem.txt 2>&1";
+		$SCRIPT[]="$ps --no-heading -eo user,pid,pcpu,args|$sort -grbk 3|$head -50 >\$DIR/TOP50-CPU.txt 2>&1";
+		$SCRIPT[]="$ps --no-heading -eo user,pid,pmem,args|$sort -grbk 3|$head -50 >\$DIR/TOP50-MEM.txt 2>&1";
+		$SCRIPT[]="$ps auxww  >\$DIR/ALLPS.txt 2>&1";
+		$SCRIPT[]="";
+		@file_put_contents("/bin/artica-system-alert.sh", @implode("\n", $SCRIPT));
+		@chmod("/bin/artica-system-alert.sh",0755);
+		$SCRIPT=array();
+		
+	$f[]="";
 	$f[]="check host loopback with address 127.0.0.1";
 	$f[]="\tif failed icmp type echo with timeout 1 seconds then exec \"/bin/loopbackfailed.sh\"";
 	$f[]="";
@@ -418,6 +467,7 @@ function build(){
 	@file_put_contents("/bin/loopbackfailed.sh", @implode("\n", $loopbackfailed));
 	@chmod("/bin/loopbackfailed.sh",0755);
 	$loopbackfailed=array();
+	build_progress_restart("{reconfiguring}",25);
 
 //********************************************************************************************************************	
 	$f[]="check file php.log with path /var/log/php.log";
@@ -428,10 +478,27 @@ function build(){
 	$f[]="      if size > 100 MB then";
 	$f[]="\t\texec \"/bin/clean-phplog.sh\"";
 	$f[]="";
+	
+	$f[]="check file squid-logger-start.log with path /var/log/artica-postfix/squid-logger-start.log";
+	$f[]="\tif size > 100 MB then";
+	$f[]="\t\texec \"/bin/squid-logger-start.sh\"";
+	$f[]="";
+
+	
+	
+	build_progress_restart("{reconfiguring}",26);
 	$f[]="include /etc/monit/conf.d/*";
 	@file_put_contents("/etc/monit/monitrc", @implode("\n", $f));
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/monit/monitrc done...\n";}
+	$AA[]="#!/bin/sh";
+	$AA[]="$echo \"\" >/var/log/artica-postfix/squid-logger-start.log";
+	$AA[]="";
+	@file_put_contents("/bin/squid-logger-start.sh", @implode("\n", $AA));
+	@chmod("/bin/squid-logger-start.sh",0755);
 	
+	
+	
+	$AA=array();
 	$AA[]="#!/bin/sh";
 	$AA[]="$echo \"\" >/var/log/php.log";
 	$AA[]="";
@@ -449,6 +516,7 @@ function build(){
 
 
 //********************************************************************************************************************	
+	build_progress_restart("{reconfiguring}",27);
 	$f=array();
 	$f[]="check process APP_FRAMEWORK";
 	$f[]="with pidfile /var/run/lighttpd/framework.pid";
@@ -464,6 +532,7 @@ function build(){
 	
 //********************************************************************************************************************	
 	$f=array();
+	build_progress_restart("{reconfiguring}",28);
 	$f[]="check process APP_ARTICA_STATUS with pidfile /etc/artica-postfix/exec.status.php.pid";
 	$f[]="\tstart program = \"/etc/init.d/artica-status start --monit\"";
 	$f[]="\tstop program = \"/etc/init.d/artica-status stop --monit\"";
@@ -472,37 +541,39 @@ function build(){
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring Artica Status...\n";}
 	@file_put_contents("/etc/monit/conf.d/APP_ARTICASTATUS.monitrc", @implode("\n", $f));	
 //********************************************************************************************************************	
+	$f=array();
+	$EnableInflux=1;
+	if($SquidPerformance>2){$EnableInflux=0;}
+	$InfluxUseRemote=intval($sock->GET_INFO("InfluxUseRemote"));
+	$EnableInfluxDB=intval($sock->GET_INFO("EnableInfluxDB"));
+	
+	if($InfluxUseRemote==1){$EnableInfluxDB=0;}
+	if($EnableIntelCeleron==1){$EnableInflux=0;}
+	if($EnableInfluxDB==0){$EnableInflux=0;}
+	
+	if(is_file("/etc/artica-postfix/STATS_APPLIANCE")){$EnableInflux=1;}
+	build_progress_restart("{reconfiguring}",29);
+	if($EnableInflux==1){
+		$f[]="check process APP_INFLUXDB with pidfile /var/run/influxdb.pid";
+		$f[]="\tstart program = \"/etc/init.d/influx-db start --monit\"";
+		$f[]="\tstop program = \"/etc/init.d/influx-db stop --monit\"";
+		$f[]="\tif 5 restarts within 5 cycles then timeout";
+		$f[]="";
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring Artica Status...\n";}
+		@file_put_contents("/etc/monit/conf.d/APP_INFLUXDB.monitrc", @implode("\n", $f));
+		//********************************************************************************************************************
+	}else{
+		@unlink("/etc/monit/conf.d/APP_INFLUXDB.monitrc");
+	}
 	
 	$f=array();
 	@unlink("/etc/monit/conf.d/squid.monitrc");
 	@unlink("/etc/monit/conf.d/APP_SQUIDMAIN.monitrc");
-	if(is_file($squidbin)){
-			if($SQUIDEnable==1){
-				$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
-				$SquidMgrListenPort=trim($sock->GET_INFO("SquidMgrListenPort"));
-				if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-				if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-				if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-				if($MonitConfig["watchdog"]==1){
-					if($MonitConfig["watchdogMEM"]>500){$AVAILABLE_MEM=$unix->MEM_TOTAL_INSTALLEE();$AVAILABLE_MEM=$AVAILABLE_MEM/1024;$prc=$MonitConfig["watchdogMEM"]/$AVAILABLE_MEM;$prc=round($prc*100);}
-					$f=array();
-					$f[]="check process APP_SQUID with pidfile /var/run/squid/squid.pid";
-					$f[]="\tstart program = \"/etc/init.d/squid start --monit\"";
-					$f[]="\tstop program = \"/etc/init.d/squid stop --monit\"";
-					if($SquidMgrListenPort>0){$f[]="\tif failed host 127.0.0.1 port $SquidMgrListenPort  then restart";}
-					if($MonitConfig["watchdogCPU"]>60){$f[]="\tif cpu usage > {$MonitConfig["watchdogCPU"]}% for 5 cycles then restart";}
-					if($prc>10){$f[]="\tif mem usage > {$prc}% for 5 cycles then restart";}
-					$f[]="\tif 5 restarts within 5 cycles then timeout";
-					$f[]="";
-					if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring Squid-Cache...\n";}
-					@file_put_contents("/etc/monit/conf.d/APP_SQUIDMAIN.monitrc", @implode("\n", $f));
-				}
-			}
-		}
 		
 // ********************************************************************************************************************	
 	$f=array();
 	@unlink("/etc/monit/conf.d/APP_SQUIDDB.monitrc");
+	build_progress_restart("{reconfiguring} Proxy service",30);
 	if(is_dir("/opt/squidsql/data")){
 		if($SQUIDEnable==1){
 			$f=array();
@@ -519,6 +590,7 @@ function build(){
 	
 // ********************************************************************************************************************
 	$f=array();
+	build_progress_restart("{reconfiguring} Dnsmasq",31);
 	@unlink("/etc/monit/conf.d/APP_DNSMASQ.monitrc");
 	if($users->dnsmasq_installed){
 			$enabled=$sock->dnsmasq_enabled();
@@ -534,10 +606,42 @@ function build(){
 	}
 // ********************************************************************************************************************
 		
+	build_progress_restart("{reconfiguring} rsyslog",32);
+	$rsyslogd=$unix->find_program("rsyslogd");
+	@unlink("/etc/monit/conf.d/APP_RSYSLOG.monitrc");
+	$f=array();
+	if(is_file($rsyslogd)){
+		$f[]="check process APP_RSYSLOG with pidfile /var/run/rsyslogd.pid";
+		$f[]="\tstart program = \"/usr/share/artica-postfix/exec.watchdog.rsyslogd.php --start\"";
+		$f[]="\tstop program = \"/usr/share/artica-postfix/exec.watchdog.rsyslogd.php --stop\"";
+		$f[]="\tif 5 restarts within 5 cycles then timeout";
+		$f[]="";
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring rsyslogd...\n";}
+		@file_put_contents("/etc/monit/conf.d/APP_RSYSLOG.monitrc", @implode("\n", $f));
+	}
 	
 	
 // ********************************************************************************************************************	
+
+	build_progress_restart("{reconfiguring}",32);
+	$winbind=$unix->find_program("winbindd");
+	@unlink("/etc/monit/conf.d/winbind.monitrc");
+	$EnableKerbAuth=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableKerbAuth"));
 	$f=array();
+	if(is_file($winbind)){
+		if($EnableKerbAuth==1){
+			$f[]="check process winbindd with pidfile /var/run/samba/winbindd.pid";
+			$f[]="\tstart program = \"/etc/init.d/winbind start\"";
+			$f[]="\tstop program = \"/etc/init.d/winbind stop\"";
+			$f[]="\tif 5 restarts within 5 cycles then timeout";
+			$f[]="";
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring winbindd...\n";}
+			@file_put_contents("/etc/monit/conf.d/winbind.monitrc", @implode("\n", $f));
+		}
+	}
+// ********************************************************************************************************************
+	$f=array();
+	build_progress_restart("{reconfiguring}",33);
 	@unlink("/etc/monit/conf.d/APP_CICAP.monitrc");
 	if($users->C_ICAP_INSTALLED){
 		if($SQUIDEnable==1){
@@ -556,6 +660,7 @@ function build(){
 		}
 	}
 // ********************************************************************************************************************	
+	build_progress_restart("{reconfiguring}",34);
 	@unlink("/etc/monit/conf.d/APP_SYSLOGDB.monitrc");
 	if($EnableSyslogDB==1){
 		if($MySQLSyslogType==1){
@@ -568,18 +673,49 @@ function build(){
 			$f[]="";
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring syslogd...\n";}
 			@file_put_contents("/etc/monit/conf.d/APP_SYSLOGDB.monitrc", @implode("\n", $f));			
-			
+			$f=array();
 		}
 		
 	}
-//********************************************************************************************************************	
+//********************************************************************************************************************
+	$f=array();
+	@unlink("/etc/monit/conf.d/cron.monitrc");
+	if(is_file("/etc/monit/templates/rootbin")){
+		$f[]="check process crond with pidfile /var/run/crond.pid";
+		$f[]="   group system";
+		$f[]="   group crond";
+		$f[]="   start program = \"/etc/init.d/cron start\"";
+		$f[]="   stop  program = \"/etc/init.d/cron stop\"";
+		$f[]="   if 5 restarts with 5 cycles then timeout";
+		$f[]="   depend cron_bin";
+		$f[]="   depend cron_rc";
+		$f[]="   depend cron_spool";
+		$f[]="";
+		$f[]=" check file cron_bin with path /usr/sbin/cron";
+		$f[]="   group crond";
+		$f[]="   include /etc/monit/templates/rootbin";
+		$f[]="";
+		$f[]=" check file cron_rc with path \"/etc/init.d/cron\"";
+		$f[]="   group crond";
+		$f[]="   include /etc/monit/templates/rootbin";
+		$f[]="";
+		$f[]=" check directory cron_spool with path /var/spool/cron/crontabs";
+		$f[]="   group crond";
+		$f[]="   if failed permission 1730 then unmonitor";
+		$f[]="   if failed uid root        then unmonitor";
+		$f[]="   if failed gid crontab     then unmonitor";	
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring cron...\n";}
+		@file_put_contents("/etc/monit/conf.d/cron.monitrc", @implode("\n", $f));
+		$f=array();
+	}
+	
 	@unlink("/etc/monit/conf.d/APP_ZARAFASERVER.monitrc");
 	@unlink("/etc/monit/conf.d/APP_ZARAFAGATEWAY.monitrc");
 	@unlink("/etc/monit/conf.d/APP_ZARAFAAPACHE.monitrc");
 	@unlink("/etc/monit/conf.d/APP_ZARAFAWEB.monitrc");
 	@unlink("/etc/monit/conf.d/APP_ZARAFASPOOLER.monitrc");	
 	@unlink("/etc/monit/conf.d/APP_ZARAFADB.monitrc");
-
+	build_progress_restart("{reconfiguring}",35);
 	
 
 	if(is_file($unix->find_program("zarafa-server"))){
@@ -636,6 +772,7 @@ function build(){
 	}
 
 //********************************************************************************************************************
+	build_progress_restart("{reconfiguring}",36);
 	$EnableClamavDaemon=$sock->GET_INFO("EnableClamavDaemon");
 	$EnableClamavDaemonForced=$sock->GET_INFO("EnableClamavDaemonForced");
 	$CicapEnabled=$sock->GET_INFO("CicapEnabled");
@@ -648,7 +785,7 @@ function build(){
 	if($SQUIDEnable==1){if($CicapEnabled==1){$EnableClamavDaemon=1;}}
 	if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}
 //********************************************************************************************************************
-	
+	build_progress_restart("{reconfiguring}",37);
 	@unlink("/etc/monit/conf.d/APP_CLAMAV.monitrc");
 	$MasterBin=$unix->find_program("clamd");
 	if(is_file($MasterBin)){
@@ -671,8 +808,9 @@ function build(){
 	@unlink("/etc/monit/conf.d/ufdb.monitrc");
 	@unlink("/etc/monit/conf.d/ufdbweb.monitrc");
 	$ufdbbin=$unix->find_program("ufdbguardd");
+	build_progress_restart("{reconfiguring}",38);
 	if(is_file($ufdbbin)){
-		$EnableUfdbGuard=$sock->EnableUfdbGuard();
+		$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 		
 		$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 		$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
@@ -691,22 +829,6 @@ function build(){
 		if($SquidPerformance>2){$EnableSquidGuardHTTPService=0;}
 		
 		if($SQUIDEnable==1){	
-			if($UseRemoteUfdbguardService==0){
-			if($EnableUfdbGuard==1){
-				$f=array();
-				$f[]="check process APP_UFDBGUARD";
-				$f[]="with pidfile /var/run/urlfilterdb/ufdbguardd.pid";
-				$f[]="start program = \"/etc/init.d/ufdb start --monit\"";
-			   	$f[]="stop program =  \"/etc/init.d/ufdb stop --monit\"";
-				$f[]="if totalmem > 700 MB for 5 cycles then alert";
-			   	$f[]="if cpu > 95% for 5 cycles then alert";
-			   	$f[]="if 5 restarts within 5 cycles then timeout";
-			   	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring Web filtering service...\n";}
-			 	@file_put_contents("/etc/monit/conf.d/ufdb.monitrc", @implode("\n", $f));	
-				}
-			}
-			
-			
 			
 			if($EnableSquidGuardHTTPService==1){
 				$f=array();
@@ -736,7 +858,7 @@ function build(){
 	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 	if($EnableNginx==0){$EnableArticaFrontEndToNGninx=0;}
 	$pid=null;
-	
+	build_progress_restart("{reconfiguring}",39);
 	@unlink("/etc/monit/conf.d/APP_LIGHTTPD.monitrc");
 	if($EnableArticaFrontEndToNGninx==0){
 		$pid="/var/run/lighttpd/lighttpd.pid";
@@ -770,7 +892,7 @@ function build(){
 	}
 	//********************************************************************************************************************	
 	
-	
+	build_progress_restart("{reconfiguring}",40);
 	$f=array();
 	if(is_file("/etc/init.d/sysklogd")){
 		$f[]="check process APP_SYSLOGD with pidfile /var/run/syslogd.pid";
@@ -785,6 +907,7 @@ function build(){
 	}
 	
 //********************************************************************************************************************	
+	build_progress_restart("{reconfiguring}",41);
 	$binpath=$unix->DHCPD_BIN_PATH();
 	@unlink("/etc/monit/conf.d/APP_DHCPD.monitrc");
 	$f=array();
@@ -803,6 +926,7 @@ function build(){
 	}
 //********************************************************************************************************************	
 $binpath=$unix->find_program("rdpproxy");
+build_progress_restart("{reconfiguring}",42);
 @unlink("/etc/monit/conf.d/APP_RDPPROXY.monitrc");
 $f=array();
 if(is_file($binpath)){
@@ -819,6 +943,7 @@ if(is_file($binpath)){
 	}
 }
 //********************************************************************************************************************
+build_progress_restart("{reconfiguring}",43);
 @unlink("/etc/monit/conf.d/APP_DNSMASQ.monitrc");
 $f=array();
 $binpath=$unix->find_program("dnsmasq");
@@ -839,7 +964,7 @@ if(is_file($binpath)){
 	if(is_file("/etc/init.d/syslog")){checkDebSyslog();}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} configuration done\n";}
 	shell_exec($GLOBALS["MONIT_CLASS"]->monitor_all_cmdline." 2>&1");
-	
+	build_progress_restart("{reconfiguring}",45);
 }
 function checkDebSyslog(){
 	if(!is_file("/etc/rsyslog.conf")){return;}

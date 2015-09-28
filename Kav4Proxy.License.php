@@ -63,12 +63,12 @@ function kav4proxy_license_popup(){
 	
 	
 	$html="
-	<table style='width:99%' class=form>
+	<table style='width:99%'>
 	<tr>
 	<td width=1%>".imgtootltip("delete-32.png","{delete}","Kav4ProxyDeleteKey()")."</td>
 	<td align='center' width=100%><a href=\"javascript:blur();\" 
-	OnClick=\"javascript:s_PopUp('http://proxy-appliance.org/index.php/about/kaspersky-trial/',1024,900,true);\"
-	style=\"font-size:16px;font-weight:bold;text-decoration:underline\">
+	OnClick=\"javascript:s_PopUp('http://www.kaspersky.com/downloads/free-trials/business-security/internet-gateway/',1024,900,true);\"
+	style=\"font-size:22px;font-weight:bold;text-decoration:underline\">
 	{get_free_license_trial}</a>
 	<td width=1%>".imgtootltip("refresh-32.png","{refresh}","LicenseInfos()")."</td>
 	
@@ -122,35 +122,38 @@ function license_info(){
 	$sock=new sockets();
 	$datas=base64_decode($sock->getFrameWork('kav4proxy.php?license-infos&type='.$_GET["license-type"]));	
 	$tp=explode("\n",$datas);
-	$html="<center style='width:97%' class=form><table style='width:100%' >
+	$html="<center style='width:98%'>
+	<div class=explain>		
+	<table style='width:100%' >
 	<tbody>";
 	while (list ($num, $val) = each ($tp)){
 			if(trim($val)==null){continue;}
 			$val=htmlspecialchars($val);
 			if(strlen($val)>89){$val=texttooltip(substr($val,0,86).'...',$val,null,null,1);}
-			if(preg_match("#Error checking#", $val)){$val="<strong style='color:red'>$val</strong>";}
+			if(preg_match("#Error checking#", $val)){$val="<strong style='color:#d32d2d'>$val</strong>";}
+			if(preg_match("#No installed keys found#", $val)){$val="<strong style='color:#d32d2d'>$val</strong>";}
 			if(preg_match("#Expiration date#", $val)){$val="<strong style='color:blue'>$val</strong>";}
 			if(preg_match("#Count:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
 			if(preg_match("#Lifespan:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
 			if(preg_match("#Objs:#", $val)){$val="<strong style='color:blue'>$val</strong>";}
 			$html=$html . "
 			<tr>
-				<td style='font-size:12px'>
-					<code>$val</code>
+				<td style='font-size:16px'>
+					<code style='font-size:16px'>$val</code>
 				</td>
 			</tr>";
 				
 	}
 	
 	$html=$html . "</tbody>
-	</table></center>";
+	</table></div></center>";
 	
 	echo $html;
 }
 function kav4proxy_license_iframe($error=null){
 	$page=CurrentPageName();
 	$html="
-	<span style='color:red;font-weight:bold;font-size:12px;padding-left:5px'>$error</span>
+	<span style='color:#d32d2d;font-weight:bold;font-size:12px;padding-left:5px'>$error</span>
 	<input type=\"hidden\" name=\"upload\" value=\"1\">
 	<form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 	<table style='width:99%' class=form align='center'>

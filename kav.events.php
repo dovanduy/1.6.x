@@ -77,8 +77,8 @@ if(is_array($daemon_errors)){
 					$count=$count+1;
 				$html=$html . "<tr>
 				<td width=1% class='bottom'><img src='img/status_warning.png'></td>
-				<td class='bottom' nowrap><div style='color:red;font-size:10px;padding:3px;'>{$reg[1]}</div></td>
-				<td class='bottom'><div style='color:red;font-size:11px;padding:3px;'>$val</div></td>
+				<td class='bottom' nowrap><div style='color:#d32d2d;font-size:10px;padding:3px;'>{$reg[1]}</div></td>
+				<td class='bottom'><div style='color:#d32d2d;font-size:11px;padding:3px;'>$val</div></td>
 				</tR>";
 				}
 				

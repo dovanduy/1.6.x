@@ -69,7 +69,7 @@ function root_account_popup(){
 		<td valign='top'>
 			<img src='img/change-mysql-128.png'>
 		</td>
-		<td valign='top'><div class=text-info>{MYSQL_PASSWORD_USER_TEXT}</div>
+		<td valign='top'><div class=explain>{MYSQL_PASSWORD_USER_TEXT}</div>
 			<table style='width:99.5%' class=form>
 				<tr>
 					<td valign='top' class=legend nowrap>{username}:</td>
@@ -560,7 +560,7 @@ function page(){
 
 $html="
 <span id='mysql-instances-table'></span>
-<div class=text-info style='font-size:14px'>$mysql_multi_explain</div>
+<div class=explain style='font-size:14px'>$mysql_multi_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	

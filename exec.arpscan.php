@@ -1,4 +1,6 @@
 <?php
+$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+if($EnableIntelCeleron==1){die("EnableIntelCeleron==1\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["FLUSH"]=false;
@@ -160,7 +162,7 @@ function scanarp_mysql(){
 	}
 	
 	$sock=new sockets();
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	$ArpdKernelLevel=$sock->GET_INFO("ArpdKernelLevel");
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 	

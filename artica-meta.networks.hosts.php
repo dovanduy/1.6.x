@@ -43,7 +43,7 @@ function js_in_front_popup(){
 	$page=CurrentPageName();
 	
 	
-$html="<div class=text-info>{OCS_SEARCH_EXPLAIN}</div>
+$html="<div class=explain>{OCS_SEARCH_EXPLAIN}</div>
 <span id='ocs-search-div'></span>
 <script>
 	LoadAjax('ocs-search-div','$page?def={$_GET["search"]}');

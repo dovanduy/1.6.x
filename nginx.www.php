@@ -168,10 +168,10 @@ function table(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_server', bclass: 'add', onpress : New$t},
-	{name: '$apply_parameters', bclass: 'apply', onpress :  apply_parameters$t},
-	{name: '$purge_caches', bclass: 'Delz', onpress :  purge_caches$t},
-	{name: '$import_export', bclass: 'Down', onpress :  import_export$t},
+	{name: '<strong style=font-size:18px>$new_server</strong>', bclass: 'add', onpress : New$t},
+	{name: '<strong style=font-size:18px>$apply_parameters</strong>', bclass: 'apply', onpress :  apply_parameters$t},
+	{name: '<strong style=font-size:18px>$purge_caches</strong>', bclass: 'Delz', onpress :  purge_caches$t},
+	{name: '<strong style=font-size:18px>$import_export</strong>', bclass: 'Down', onpress :  import_export$t},
 	
 	
 	
@@ -186,12 +186,12 @@ function BuildTable$t(){
 		dataType: 'json',
 			colModel : [
 			{display: '&nbsp;', name : 'severity', width :70, sortable : false, align: 'center'},
-			{display: '$website', name : 'servername', width :447, sortable : true, align: 'left'},
-			{display: '$destination', name : 'icon2', width :334, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'up', width :35, sortable : false, align: 'center'},
-			{display: '&nbsp;', name : 'down', width :35, sortable : false, align: 'center'},
-			{display: '&nbsp;', name : 'compile', width :60, sortable : false, align: 'center'},
-			{display: '&nbsp;', name : 'delete', width :60, sortable : false, align: 'center'},
+			{display: '<span style=font-size:22px>$website</span>', name : 'servername', width :595, sortable : true, align: 'left'},
+			{display: '<span style=font-size:22px>$destination</span>', name : 'icon2', width :425, sortable : false, align: 'left'},
+			{display: '&nbsp;', name : 'up', width :65, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'down', width :65, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'compile', width :65, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'delete', width :65, sortable : false, align: 'center'},
 			],
 			$buttons
 
@@ -404,12 +404,13 @@ function list_items(){
 				$limit_rate_after_caption=$tpl->_ENGINE_parse_body("{limit_rate_after_caption}");
 				$limit_rate_after_caption=str_replace("%s", "{$limit_rate}MB/s", $limit_rate_after_caption);
 				$limit_rate_after_caption=str_replace("%f", "{$limit_rate_after}MB", $limit_rate_after_caption);
-				$status[]="<br><span style='font-size:12px;font-weight:bold;color:#EEB853'>$limit_rate_after_caption</span>";
+				$status[]="<br><span style='font-size:18px;font-weight:bold;color:#EEB853'>$limit_rate_after_caption</span>";
 		}
 	
 	
 		if(count($status)>0){
-			$status_text=$tpl->_ENGINE_parse_body("<br><span style='font-size:12px;color:$color'>".@implode("", $status)."</span>");
+			$status_text=$tpl->_ENGINE_parse_body("<br><span style='font-size:18px;color:$color'>".
+					@implode("", $status)."</span>");
 		}
 	
 		$FreeWebText=null;
@@ -494,17 +495,17 @@ function list_items(){
 			$data['rows'][] = array(
 					'id' => $ligne['categorykey'],
 					'cell' => array(
-							"$jseditC",
+							"<center>$jseditC</center>",
 							"<a href=\"javascript:blur();\"
-							style='font-size:18px;font-weight:bold;text-decoration:underline;color:$color'
-							OnClick=\"javascript:Loadjs('nginx.site.php?servername=$servername_enc')\">$servername$portText</a>
+							style='font-size:26px;font-weight:bold;text-decoration:underline;color:$color'
+							OnClick=\"javascript:GoToNginxOption('$servername_enc')\">$servername$portText</a>
 							$certificate_text$ssl_client_certificate_text$status_text
 							$explain_text",
 							"<span style='font-size:18px;font-weight:bold;color:$color'>$NGINX_DESTINATION_EXPLAIN</span>",
 							"<center style='margin-top:10px'>$up</center>",
 							"<center style='margin-top:10px'>$down</center>",
-							$Compile,
-							$delete
+							"<center>$Compile</center>",
+							"<center>$delete</center>"
 							)
 			);			
 	}

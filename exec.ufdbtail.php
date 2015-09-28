@@ -72,7 +72,7 @@ function start($aspid=false){
 	$pid=PID_NUM();
 
 
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
@@ -106,6 +106,10 @@ function start($aspid=false){
 	$echo=$unix->find_program("echo");
 	$nohup=$unix->find_program("nohup");
 	$tail=$unix->find_program("tail");
+	$chown=$unix->find_program("chown");
+	@mkdir("/home/ufdb/relatime-events",0755,true);
+	shell_exec("$chown -R squid:squid /home/ufdb/relatime-events");
+	
 	
 	if(!is_file("/var/log/squid/ufdbguardd.log")){
 		for($i=1;$i<5;$i++){
@@ -115,7 +119,7 @@ function start($aspid=false){
 		}
 	}
 	STOP_TAIL_INSTANCES();
-	$cmd="$tail -f -n 0 /var/log/squid/ufdbguardd.log|$php5 /usr/share/artica-postfix/exec.ufdbguard-tail.php >/dev/null 2>&1 &";
+	$cmd="$tail -F -n 0 /var/log/squid/ufdbguardd.log|$php5 /usr/share/artica-postfix/exec.ufdbguard-tail.php >/dev/null 2>&1 &";
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	
 	shell_exec($cmd);

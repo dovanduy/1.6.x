@@ -68,7 +68,7 @@ function connection_id(){
 			"blur()",null,0,"font-size:16px");
 	
 	$html="<div id='anim-$t'></div>
-	<div style='font-size:14px' class=text-info>{freeradius_addrexpl}</div>		
+	<div style='font-size:14px' class=explain>{freeradius_addrexpl}</div>		
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{name}:</td>

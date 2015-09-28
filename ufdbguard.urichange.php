@@ -18,9 +18,8 @@ function js(){
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{webpage_deny_url}");
 	header("content-type: application/x-javascript");
-	$html="YahooWin5('650','$page?popup=yes','$title');";
+	$html="YahooWin5('990','$page?popup=yes','$title');";
 	echo $html;	
-	
 	
 	
 }	
@@ -42,9 +41,14 @@ function popup(){
 	}
 	
 	if($SquidGuardServerName=="/"){$SquidGuardServerName=null;}
+	if(preg_match("#(.+?)\/#", $SquidGuardServerName)){$SquidGuardServerName=$re[1];}
+	if(preg_match("#^\/(.+)#", $SquidGuardServerName)){$SquidGuardServerName=$re[1];}
+	$SquidGuardServerName=str_replace("/", "", $SquidGuardServerName);
+	
 	$html="<div style='width:98%' class=form>
+	<div class=explain style='font-size:18px'>{servername_squidguard_explain}</div>
 	<table style='width:100%'>
-	". Field_ipv4_table("servername_squidguard-$t", "{ipaddr}",$SquidGuardServerName,35).
+	". Field_text_table("servername_squidguard-$t", "{hostname}",$SquidGuardServerName,35,null,450).
 	Field_button_table_autonome("{apply}", "Save$t()",35)."</table>	
 	</div>
 <script>
@@ -74,6 +78,15 @@ function Save(){
 	$sock=new sockets();
 	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
 	$SquidGuardApacheSSLPort=intval($sock->GET_INFO("SquidGuardApacheSSLPort"));
+	
+	$_POST["servername_squidguard"]=str_replace("http://", "", $_POST["servername_squidguard"]);
+	$_POST["servername_squidguard"]=str_replace("https://", "", $_POST["servername_squidguard"]);
+	if(preg_match("#^(.+?)\/#",$_POST["servername_squidguard"],$re)){$_POST["servername_squidguard"]="{$re[1]}";}
+	
+	if(preg_match("#(.+?):([0-9]+)#",$_POST["servername_squidguard"],$re)){
+		$_POST["servername_squidguard"]="{$re[1]}";
+	}
+	
 	
 	if($SquidGuardApacheSSLPort==0){$SquidGuardApacheSSLPort=9025;}
 	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}

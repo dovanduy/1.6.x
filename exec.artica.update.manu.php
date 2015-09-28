@@ -19,7 +19,7 @@ function ArticaMeta_release($source_package){
 		return;
 	}
 
-	echo "Starting......: ".date("H:i:s")." Checking Artica-meta repository - ENABLED -\n";
+	echo "Starting......: ".date("H:i:s")." Checking META repository - ENABLED -\n";
 	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
 	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
 	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
@@ -35,7 +35,9 @@ function ArticaMeta_release($source_package){
 	
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
+	echo "Starting......: ".date("H:i:s")." Prepare New META package for clients...\n";
 	shell_exec("$php ".dirname(__FILE__)."/exec.artica-meta-server.php --force");
+	echo "Starting......: ".date("H:i:s")." Prepare New META package for clients done...\n";
 }
 
 
@@ -80,7 +82,7 @@ function install($filename){
 	echo "Size....................: ".FormatBytes($size/1024)."\n";
 	echo "Current version.........: $ORGV\n";
 		
-	build_progress("Analyze...",10);
+	build_progress("{analyze}...",10);
 		
 	echo "Current system..........: $LINUX_CODE_NAME $LINUX_DISTRIBUTION {$LINUX_VERS[0]}/{$LINUX_VERS[1]} $LINUX_ARCHITECTURE\n";
 	echo "Package.................: $filename\n";
@@ -111,7 +113,7 @@ function install($filename){
 	echo "Removing $tarballs_file...\n";
 	@unlink($tarballs_file);
 	shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/upload/*");
-	build_progress("Apply permissions...",55);
+	build_progress("{apply_permissions}...",55);
 	
 	echo "$APACHEUSER -> /usr/share/artica-postfix\n";
 	shell_exec("$chown -R $APACHEUSER /usr/share/artica-postfix");
@@ -130,9 +132,9 @@ function install($filename){
 	build_progress("{restarting} Artica...",60);
 	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.web-community-filter.php --register");
 	build_progress("{restarting} Artica...",65);
-	build_progress("Building init scripts...",70);
+	build_progress("{building_init_scripts}...",70);
 	system("$php /usr/share/artica-postfix/exec.initslapd.php");
-	build_progress("Updating network...",75);
+	build_progress("{updating_network}...",75);
 	system("$php /usr/share/artica-postfix/exec.virtuals-ip.php");
 	system("$php /usr/share/artica-postfix/exec.monit.php --build");
 	echo "Starting......: ".date("H:i:s")." Purge and clean....\n";

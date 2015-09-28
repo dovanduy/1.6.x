@@ -23,13 +23,22 @@ $usersprivs = new usersMenus ( );
 $change_aliases = GetRights_aliases();
 $modify_user = 1;
 if ($_SESSION ["uid"] != $_GET["userid"]) {$modify_user = 0;}
-
+if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["apply-js"])){apply_js();exit;}
 if(isset($_POST["MailBoxMaxSize"])){Save();exit;}
 
 
 
 page();
+
+function js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{mailbox}:{$_GET["uid"]}");
+	echo "YahooWin6Hide();YahooWin6('995','$page?popup=yes&uid={$_GET["uid"]}','$title')";
+
+}
 
 
 function apply_js(){
@@ -66,11 +75,12 @@ if (! $RealMailBox) {
 	}
 	
 	echo USER_MAILBOX_NONEXISTENT ( $uid,nl2br($cyr->cyrus_infos));
-	$no_mailbox = "<p class=caption style='color:red'>{user_no_mailbox} !!</p>";
+	$no_mailbox = "<p class=caption style='color:#d32d2d'>{user_no_mailbox} !!</p>";
 	return;
 }
 
 if ($user->MailboxActive == 'TRUE') {
+	$MailboxActive=1;
 	$cyrus = new cyrus ( );
 	$res = $cyrus->get_quota_array ( $uid );
 	$size = $cyrus->MailboxInfosSize ( $uid );
@@ -98,15 +108,23 @@ if (strlen ( $import_mailbox ) > strlen ( $export_mailbox )) {
 
 //sudo -u cyrusimap /usr/bin/cyrus/bin/reconstruct -r -f user/shortname
 
-$tr[]=button("{repair_mailbox}","Loadjs('domains.edit.user.php?script=repair_mailbox&uid=$uidenc');");
-$tr[]=button("{export_mailbox}","Loadjs('domains.edit.user.php?script=export_script&uid=$uidenc');");
-$tr[]=button("{empty_this_mailbox}","Loadjs('domains.edit.user.empty.mailbox.php?&userid=$uidenc');");
-$tr[]=button("{delete_this_mailbox}","Loadjs('domains.edit.user.php?script=delete_mailbox&uid=$uidenc');");
+$tr[]=button("{repair_mailbox}","Loadjs('domains.edit.user.php?script=repair_mailbox&uid=$uidenc');",18,286);
+$tr[]=button("{export_mailbox}","Loadjs('domains.edit.user.php?script=export_script&uid=$uidenc');",18,286);
+$tr[]=button("{empty_this_mailbox}","Loadjs('domains.edit.user.empty.mailbox.php?&userid=$uidenc');",18,286);
+$tr[]=button("{delete_this_mailbox}","Loadjs('domains.edit.user.php?script=delete_mailbox&uid=$uidenc');",18,286);
+
+while (list ($key, $line) = each ($tr) ){
+	$buttons=$buttons."
+	<tr>
+		<td><center style='margin-bottom:15px'>$line</center></td>
+	</tr>		
+			
+	";
+	
+}
 
 
-
-$repair =CompileTr3($tr);
-if (! $RealMailBox) {$repair = null;}
+if (! $RealMailBox) {$buttons = null;}
 
 $priv = new usersMenus();
 $ini = new Bs_IniHandler();
@@ -146,7 +164,9 @@ if($priv->EnableManageUsersTroughActiveDirectory){
 	$button=null;
 }
 
-if($subtitle<>null){$subtitle="<p class=text-info style='font-size:16px'>$subtitle</p>";}
+if($subtitle<>null){$subtitle="<p class=explain style='font-size:16px'>$subtitle</p>";}
+
+
 
 $html = "
 <div id='usermailboxformdiv'>
@@ -154,13 +174,17 @@ $html = "
 <form name='FFUserMailBox'>
 <input type='hidden' name='UserMailBoxEdit' value='$uid'>
 <table style='width:100%'>
+<tr>	
+	<td valign='top' style='width:288px'><table style='width:100%'>$buttons</table></td>
+	<td valign='top'>
+<table style='width:100%'>
 	<tr>
 		<td colspan=3>
 			<div style='font-size:30px;margin-bottom:20px'>{mailbox} {mailbox account}: $uid</div>$mailboxInfo
 		</td>
 	</tr>
 		<td class=legend style='font-size:18px' class=legend>{MailboxActive}</td>
-		<td  align='right'>" . Field_TRUEFALSE_checkbox_img ( 'MailboxActive', $user->MailboxActive ) . "</td>
+		<td>" . Field_checkbox_design("MailboxActive-$t", 1, $MailboxActive) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
@@ -177,55 +201,58 @@ $html = "
 	</tr>
 	<tr>
 		<td class=legend style='text-align:rigth;font-size:18px'>{mplt}:</td>
-		<td>" . Field_checkbox ( 'mp_l', 1, $ini->_params["mailbox"] ["l"], null, '{mpl}' ) . "</td>
+		<td>" . Field_checkbox_design( "mp_l-$t", 1, $ini->_params["mailbox"] ["l"], null, '{mpl}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mprt}:</td>
-		<td>" . Field_checkbox ( 'mp_r', 1, $ini->_params["mailbox"] ["r"], null, '{mpr}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_r-$t", 1, $ini->_params["mailbox"] ["r"], null, '{mpr}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mpst}:</td>
-		<td>" . Field_checkbox ( 'mp_s', 1, $ini->_params["mailbox"] ["s"], null, '{mps}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_s-$t", 1, $ini->_params["mailbox"] ["s"], null, '{mps}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mpwt}:</td>
-		<td>" . Field_checkbox ( 'mp_w', 1, $ini->_params["mailbox"] ["w"], null, '{mpw}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_w-$t", 1, $ini->_params["mailbox"] ["w"], null, '{mpw}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mpit}:</td>
-		<td>" . Field_checkbox ( 'mp_i', 1, $ini->_params["mailbox"] ["i"], null, '{mpi}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_i-$t", 1, $ini->_params["mailbox"] ["i"], null, '{mpi}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mppt}:</td>
-		<td>" . Field_checkbox ( 'mp_p', 1, $ini->_params["mailbox"] ["p"], null, '{mpp}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_p-$t", 1, $ini->_params["mailbox"] ["p"], null, '{mpp}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mpct}:</td>
-		<td>" . Field_checkbox ( 'mp_c', 1, $ini->_params["mailbox"] ["c"], null, '{mpc}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_c-$t", 1, $ini->_params["mailbox"] ["c"], null, '{mpc}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend nowrap style='text-align:rigth;font-size:18px'>{mpdt}:</td>
-		<td>" . Field_checkbox ( 'mp_d', 1, $ini->_params["mailbox"] ["d"], null, '{mpd}' ) . "</td>
+		<td>" . Field_checkbox_design ( "mp_d-$t", 1, $ini->_params["mailbox"] ["d"], null, '{mpd}' ) . "</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
 	<td class=legend nowrap style='text-align:rigth;font-size:18px'><strong>{mpat}</strong>:</td>
-	<td>" . Field_checkbox ( 'mp_a', 1, $ini->_params["mailbox"] ["a"], null, '{mpa}' ) . "</td>
+	<td>" . Field_checkbox_design ( "mp_a-$t", 1, $ini->_params["mailbox"] ["a"], null, '{mpa}' ) . "</td>
 	<td>&nbsp;</td>
 	</tr>
 	<tr>
 		<td colspan=3 align='right'>$button</td>
 	</tr>
 	</table>
+</td>
+</tr>
+</table>
 <p>&nbsp;</p>
-$repair
+
 $main_graph
 
 <script>
@@ -255,17 +282,17 @@ $main_graph
 		var mp_a=1;
 		var XHR = new XHRConnection();
 		XHR.appendData('Save','$uid');
-		XHR.appendData('MailboxActive',document.getElementById('MailboxActive').value);
+		if(document.getElementById('MailboxActive-$t').checked){XHR.appendData('MailboxActive','TRUE');}else{XHR.appendData('MailboxActive','FALSE');}
 		XHR.appendData('MailBoxMaxSize',document.getElementById('MailBoxMaxSize').value);
-		if(document.getElementById('mp_l').checked){mp_l=1;}else{mp_l=0;}
-		if(document.getElementById('mp_r').checked){mp_r=1;}else{mp_r=0;}
-		if(document.getElementById('mp_s').checked){mp_s=1;}else{mp_s=0;}
-		if(document.getElementById('mp_w').checked){mp_w=1;}else{mp_w=0;}
-		if(document.getElementById('mp_i').checked){mp_i=1;}else{mp_i=0;}
-		if(document.getElementById('mp_p').checked){mp_p=1;}else{mp_p=0;}
-		if(document.getElementById('mp_c').checked){mp_c=1;}else{mp_c=0;}
-		if(document.getElementById('mp_d').checked){mp_d=1;}else{mp_d=0;}
-		if(document.getElementById('mp_a').checked){mp_a=1;}else{mp_a=0;}	
+		if(document.getElementById('mp_l-$t').checked){mp_l=1;}else{mp_l=0;}
+		if(document.getElementById('mp_r-$t').checked){mp_r=1;}else{mp_r=0;}
+		if(document.getElementById('mp_s-$t').checked){mp_s=1;}else{mp_s=0;}
+		if(document.getElementById('mp_w-$t').checked){mp_w=1;}else{mp_w=0;}
+		if(document.getElementById('mp_i-$t').checked){mp_i=1;}else{mp_i=0;}
+		if(document.getElementById('mp_p-$t').checked){mp_p=1;}else{mp_p=0;}
+		if(document.getElementById('mp_c-$t').checked){mp_c=1;}else{mp_c=0;}
+		if(document.getElementById('mp_d-$t').checked){mp_d=1;}else{mp_d=0;}
+		if(document.getElementById('mp_a-$t').checked){mp_a=1;}else{mp_a=0;}	
 		
 		XHR.appendData('mp_l',mp_l);
 		XHR.appendData('mp_r',mp_r);
@@ -333,6 +360,7 @@ function Save(){
 	$uid=$_POST["Save"];
 	$user=new user($uid);
 	
+	
 	$acls="[mailbox]\n";
 	
 	while (list ($num, $val) = each ($_POST) ){
@@ -346,6 +374,7 @@ function Save(){
 	$user->MailBoxMaxSize=$_POST["MailBoxMaxSize"];
 	$user->MailboxActive=strtoupper($_POST["MailboxActive"]);
 	$user->MailboxSecurityParameters=$acls;
+	
 	
 	if(!$user->SaveCyrusMailboxesParameters()){echo $user->ldap_error;}
 	

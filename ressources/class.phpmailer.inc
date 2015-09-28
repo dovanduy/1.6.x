@@ -547,6 +547,10 @@ class PHPMailer {
       if ((count($this->to) + count($this->cc) + count($this->bcc)) < 1) {
         throw new phpmailerException($this->Lang('provide_address'), self::STOP_CRITICAL);
       }
+      
+      $this->Body=str_replace("\r", "",  $this->Body);
+      $this->Body=str_replace("\n", "\r\n",  $this->Body);
+      
 
       // Set whether the message is multipart/alternative
       if(!empty($this->AltBody)) {

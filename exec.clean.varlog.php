@@ -55,7 +55,9 @@ function varlog(){
 	$syslog[]="/var/log/auth.log";
 	$syslog[]="/var/log/kern.log";
 	$syslog[]="/var/log/user.log";
-	
+	$syslog[]="/var/log/mail.err";  
+	$syslog[]="/var/log/mail.info";  
+	$syslog[]="/var/log/mail.warn";
 	
 	
 	$other[]="/var/log/php.log";
@@ -65,15 +67,33 @@ function varlog(){
 	$other[]="/var/log/squid/ufdbgclient.debug";
 	$other[]="/var/log/squid/HyperCache-access.log";
 	$other[]="/var/log/squid/HyperCache-error.log";
+	$other[]="/var/log/squid/ext_time_quota_acl.log";
+	$other[]="/var/log/squid/cache-nat.log";
+	$other[]="/var/log/influxdb/influxd.log";
+	$other[]="/var/log/wanproxy/wanproxy.log";
+	$other[]="/var/log/lighttpd/access.log";
+	$other[]="/var/log/lighttpd/squidguard-lighttpd-error.log";
+	$other[]="/var/log/lighttpd/squidguard-lighttpd.log";
+	$other[]="/var/log/lighttpd/squidguard-lighttpd.start";
+	$other[]="/var/log/lighttpd/apache-access.log";
+	$other[]="/var/log/lighttpd/apache-error.log";
+	
 
 	$checks=array();
+	$RESTART_SYSLOG=false;
 	while (list ($index,$filepath) = each ($syslog)){
 		if(!is_file("$filepath")){continue;}
 		$size=(@filesize($filepath)/1024)/1000;
 		if($GLOBALS["VERBOSE"]){echo "$filepath {$size}MB <> {$LogsRotateDefaultSizeRotation}M\n";}
 		if($size>$LogsRotateDefaultSizeRotation){
 			shell_exec("$echo \"\" >$filepath");
+			$RESTART_SYSLOG=true;
 		}
+	}
+	
+	if($RESTART_SYSLOG){
+		squid_admin_mysql(1, "Restarting Syslog after a rotation", null,__FILE__,__LINE__);
+		$unix->RESTART_SYSLOG();
 	}
 
 

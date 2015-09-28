@@ -27,6 +27,7 @@ include_once('ressources/charts.php');
 include_once('ressources/class.syslogs.inc');
 include_once('ressources/class.system.network.inc');
 include_once('ressources/class.os.system.inc');
+include_once('ressources/class.stats-appliance.inc');
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
 
 
@@ -51,8 +52,8 @@ if(!$users->AsAnAdministratorGeneric){
 	writelogs("[{$_SESSION["uid"]}]:: privs = {$_SESSION["privileges"]}",__FUNCTION__,__FILE__,__LINE__);
 	error_log("[{$_SESSION["uid"]}]::AsAnAdministratorGeneric =false in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 	writelogs("[{$_SESSION["uid"]}]::AsAnAdministratorGeneric =false in ",__FUNCTION__,__FILE__,__LINE__);
-	header('location:miniadm.php');
-	exit;
+//	header('location:miniadm.php');
+//	exit;
 }
 
 if(isset($_GET["CurrentTime"])){
@@ -325,6 +326,22 @@ function _milter_greylist_enabled(){
 	return $enabled;
 }
 
+function OnlyWebstats($users){
+	
+	if($users->AsSystemAdministrator){return false;}
+	if($users->AsDansGuardianAdministrator){return false;}
+	if($users->AsSquidAdministrator){return false;}
+	if($users->ASDCHPAdmin){return false;}
+	if($users->AsDnsAdministrator){return false;}
+	if($users->AsArticaMetaAdmin){return false;}
+	if($users->AsHotSpotManager){return false;}
+	if($users->AsInventoryAdmin){return false;}
+	if($users->AsProxyMonitor){return false;}
+	if($users->AsSystemAdministrator){return false;}
+	if($users->AsWebStatisticsAdministrator){return true;}
+	
+}
+
 function main_admin_tabs(){
 	if(!$GLOBALS["AS_ROOT"]){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}}
 	$ldap=new clladp();
@@ -335,21 +352,36 @@ function main_admin_tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	if($GLOBALS["VERBOSE"]){echo "<li>".__FUNCTION__." line:".__LINE__."</li>";}
+	$OnlyWebstats=OnlyWebstats($users);
+	$page=CurrentPageName();
+	
 	$array["t:frontend"]="{status}";
 	
 	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
+	
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){$users->SQUID_INSTALLED=false;}
 	
-	if(!$ldap->IsKerbAuth()){$array["t:orgs"]="{organizations}";}
+	// 2 = Not statistics, 
 	
 	if($SquidPerformance<3){
-		$array["t:BANDWITH-STATS"]="{bandwith}";
+		if(!$ldap->IsKerbAuth()){$array["t:orgs"]="{organizations}";}
 	}
+	
+	
+	
+	$StatsApplianceReceivers=intval($sock->GET_INFO("StatsApplianceReceivers"));
+	if($StatsApplianceReceivers>0){
+		$array["t:STAS_APP"]="$StatsApplianceReceivers Proxy(s)";
+		
+	}
+	
+	if($users->SAMBA_APPLIANCE){$array["t:smbshares"]='{shared_folders}';}
+	
 	
 	if($users->VPS_OPENVZ){$array["t:openvz"]='OpenVZ';}
 	
@@ -364,6 +396,7 @@ function main_admin_tabs(){
 			$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 			if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}		
 			if($EnableArticaSMTPStatistics==1){	
+				$array["t:realtime-smtp"]="{realtime_monitor}";
 				$array["t:emails_received"]="{emails_received}";
 				$array["t:connections"]="{connections}";
 				if(_milter_greylist_enabled()==1){
@@ -380,16 +413,6 @@ function main_admin_tabs(){
 
 	
 	
-	if($users->SQUID_INSTALLED){
-		$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
-		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-		if($SQUIDEnable==1){
-			if($SquidPerformance<2){$array["t:TOP-WEB"]="{top_web}"; }
-
-		}
-	}
-	
-
 	
 
 if($users->KASPERSKY_SMTP_APPLIANCE){
@@ -406,33 +429,73 @@ if(count($array)<8){
 	}
 }
 
+$build_artica_tabs_size=0;
+
+
 $count=count($array);
 //if($count<7){$array["add-tab"]="{add}&nbsp;&raquo;";}
 
 
-$width="800px";
+
 		
-$page=CurrentPageName();	
-if($GLOBALS["AS_ROOT"]){$_GET["tab-font-size"]="14px";}
-	$t=time();
+
+
+$t=time();
 if(isset($_GET["tab-font-size"])){
 	if($_GET["tab-font-size"]=="14px"){$_GET["tab-font-size"]="12px";}
 	$style="style=font-size:{$_GET["tab-font-size"]}";
 }
 if(isset($_GET["tab-width"])){$width=$_GET["tab-width"];}
 if(isset($_GET["newfrontend"])){$newfrontend="&newfrontend=yes";}
+
+if(count($array)>0){$style="style=font-size:22px";}
+if(count($array)>4){$style="style=font-size:18px";}
+if(count($array)>6){$style="style=font-size:16px";}
 if(count($array)>7){$style="style=font-size:11px";}
 
 
-$style="style=font-size:16px";
+//$style="style=font-size:18px";
 
 	while (list ($num, $ligne) = each ($array) ){
 		if(preg_match("#t:(.+)#",$num,$re)){
 			$ligne=$tpl->javascript_parse_text($ligne);
 			
+			
+	
+			
+			if($re[1]=="prxystatsimport"){
+				$html[]= "<li ><a href=\"squid.statistics.import.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
+			
+			
+			if($re[1]=="system"){
+				$html[]= "<li ><a href=\"artica.webconsole.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}
+			if($re[1]=="smbshares"){
+				$html[]= "<li ><a href=\"samba.index.php?main=shared_folders\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
+			
+			
+			
 			if($re[1]=="TOP-WEB"){
 				$html[]= "<li ><a href=\"admin.index.load.top-web.php\"><span $style>$ligne</span></a></li>\n";
 				continue;
+			}
+			
+			if($re[1]=="realtime-smtp"){
+				$html[]= "<li ><a href=\"postfix.realtime.monitor.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}
+			
+			if($re[1]=="STAS_APP"){
+				$html[]= "<li ><a href=\"stats-appliance.proxys.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+				
 			}
 			
 			if($re[1]=="BANDWITH-STATS"){
@@ -498,7 +561,7 @@ $style="style=font-size:16px";
 	
 $t=time();	
 
-return build_artica_tabs($html, "admin_perso_tabs-$t")."
+return build_artica_tabs($html, "admin_perso_tabs-$t",$build_artica_tabs_size)."
 		<input type=hidden id='admin_perso_tabs-ID' value='admin_perso_tabs-$t'>
 		<script>LeftDesign('dashboard-256-opac20.png');</script>";
 
@@ -689,10 +752,11 @@ function status_computer(){
 	if($GLOBALS["VERBOSE"]){echo "os->html_Memory_usage()<br>\n";}
 	$html=$html.RoundedLightGrey($os->html_Memory_usage())."<br>
 	<script>
-	
-	var content=document.getElementById('left_status').innerHTML;
-	if(content.length<5){
-		LoadAjax('left_status','$page?status=left$ajaxadd',true);
+	if(document.getElementById('left_status')){
+		var content=document.getElementById('left_status').innerHTML;
+		if(content.length<5){
+			LoadAjax('left_status','$page?status=left$ajaxadd',true);
+		}
 	}
 	</script>
 	
@@ -730,25 +794,7 @@ function status_mysql(){
 		if($status_computer_mysql_memory_check<>null){$status_computer_mysql_memory_check=$status_computer_mysql_memory_check."<br>";}
 	}
 	
-	OutputDebugVerbose("Init");
-	if($MySQLSyslogType<>3){
-		if($MySQLSyslogType<>4){
-			if($EnableSyslogDB==1){
-				$syslog=new mysql_storelogs();
-				OutputDebugVerbose("mysql_storelogs() initlized");
-				if($syslog->EnableSyslogDB==1){
-					OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
-					if(!$syslog->THIS_BD_CONNECT()){
-						OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
-						echo "<center>".$tpl->_ENGINE_parse_body(
-								Paragraphe('danger64.png',"Syslog:{mysql_error}", $syslog->mysql_error,"javascript:Loadjs('MySQLSyslog.wizard.php')",null,420,80))."</center>";
-					}
-					
-				}
-			
-			}
-		}
-	}
+
 	
 	if(is_file("ressources/logs/zarafa.notify.MySQLIssue")){
 		echo "<center>".$tpl->_ENGINE_parse_body(
@@ -795,7 +841,7 @@ function status_mysql(){
 				$error=urlencode(base64_encode($q->mysql_error));
 				return $status_computer_mysql_memory_check."<center>".$tpl->_ENGINE_parse_body(
 				Paragraphe('danger64.png',"{mysql_error} [".__LINE__."]",
-				"$q->mysql_error","javascript:Loadjs('admin.mysql.error.php?error=$error',true);","$q->mysql_error",420,80))."</center>
+				"$q->mysql_error","javascript:Loadjs('admin.mysql.restart.progress.php');","$q->mysql_error",420,80))."</center>
 				<br>
 				<script>
 					function RefreshMySQL$t2(){ LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes'); }
@@ -815,7 +861,7 @@ function status_mysql(){
 			if(!$q->ok){
 				return $status_computer_mysql_memory_check."<center>".
 				$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error} [".__LINE__."]",
-						"$q->mysql_error","Loadjs('StartStopServices.php?APP=APP_MYSQL_ARTICA&cmd=". urlencode("/etc/init.d/mysql")."&action=start&CacheOff=yes',true)","$q->mysql_error",420,80)).
+						"$q->mysql_error","javascript:Loadjs('admin.mysql.restart.progress.php')","$q->mysql_error",420,80)).
 				"</center><br>";
 				return;
 			}
@@ -834,7 +880,7 @@ function status_mysql(){
 			return $status_computer_mysql_memory_check."
 				<center>".
 				RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"nowrap:{mysql_error} [".__LINE__."]","
-						$q->mysql_error<br>{please_wait}...","javascript:Loadjs('admin.mysql.error.php?error=$error',true);","$q->mysql_error",330,80)))."
+						$q->mysql_error<br>{please_wait}...","javascript:Loadjs('admin.mysql.restart.progress.php');","$q->mysql_error",330,80)))."
 				</center>
 				<script>
 					function RefreshMySQL$t2(){

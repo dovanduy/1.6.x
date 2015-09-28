@@ -52,7 +52,7 @@ function form(){
 	$t=time();
 	$html="
 	<table style='width:100%'>
-	<tr><td width=99% valign='top'><div class=text-info>{freeweb_reverse_proxy_explain}</div></td>
+	<tr><td width=99% valign='top'><div class=explain>{freeweb_reverse_proxy_explain}</div></td>
 	<td valign='top'>". imgtootltip("parameters2-64.png","{advanced_settings}","Loadjs('$page?adv-js=yes&servername={$_GET["servername"]}')")."</td>
 	</tr>
 	</table>

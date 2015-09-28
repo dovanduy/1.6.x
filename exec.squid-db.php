@@ -16,6 +16,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.services.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 
 $unix=new unix();
 $pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
@@ -173,68 +174,7 @@ function ToCopy($WORKDIR){
 }
 
 function statistics(){
-	$pidfile="/etc/artica-postfix/pids/squiddbstats.pid";
-	$unix=new unix();
-	$pid=$unix->get_pid_from_file($pidfile);
-	$sock=new sockets();
-	if($unix->process_exists($pid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($pid);
-		return;
-	}	
-	
-	
-	$Socket="/var/run/mysqld/squid-db.sock";
-	$mysqladmin=$unix->find_program("mysqladmin");
-	$cmdline="$mysqladmin -S $Socket -u root status 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
-	exec($cmdline,$results);
-	$date=date("Y-m-d H:i:s");
-	if(!preg_match("#Uptime:\s+([0-9]+)\s+Threads:\s+([0-9]+)\s+Questions:\s+([0-9]+)\s+Slow queries:\s+([0-9]+)\s+Opens:\s+([0-9]+)\s+Flush tables:\s+([0-9]+)\s+Open tables:\s+([0-9]+)\s+ Queries per second avg:\s+([0-9]+)#",@implode("", $results),$re)){
-		if($GLOBALS["VERBOSE"]){echo @implode("", $results)." no match..\n";}
-		return;
-	}
-	
-	$sql="CREATE TABLE IF NOT EXISTS `MySQLStats` (
-	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`uptime` BIGINT UNSIGNED NOT NULL,
-	`threads` BIGINT(10) NOT NULL,
-	`questions` BIGINT UNSIGNED NOT NULL,
-	`squeries` BIGINT(10) NOT NULL,
-	`opens` BIGINT UNSIGNED NOT NULL,
-	`ftables` BIGINT(20) NOT NULL,
-	`open` BIGINT(10) NOT NULL,
-	`queriesavg` BIGINT UNSIGNED NOT NULL,
-	 UNIQUE KEY `zDate` (`zDate`),
-	 KEY `uptime` (`uptime`),
-	 KEY `threads` (`threads`),
-	 KEY `questions` (`questions`),
-	 KEY `squeries` (`squeries`),
-	 KEY `opens` (`opens`),
-	 KEY `ftables` (`ftables`),
-	 KEY `open` (`open`),											
-	 KEY `queriesavg` (`queriesavg`)
-	)";	
-	
-	$q=new mysql_squid_builder();
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){
-	if($GLOBALS["VERBOSE"]){echo $sql."\n$q->mysql_error\n";}
-	return;}
-	
-	
-	$sql="INSERT IGNORE INTO MySQLStats (zDate,uptime,threads,questions,squeries,opens,ftables,open,queriesavg)
-	VALUES('$date','{$re[1]}','{$re[2]}','{$re[3]}','{$re[4]}','{$re[5]}','{$re[6]}','{$re[7]}','{$re[8]}')";
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){
-			echo $sql."\n$q->mysql_error\n";}
-	}
-	if($GLOBALS["VERBOSE"]){echo $sql."\nOK\n";}
-	
-	
-	
-	
-	
+
 	
 }
 function squid_watchdog_events($text){
@@ -273,14 +213,14 @@ function start($skipGrant=false){
 	$GetStartedValues=GetStartedValues();
 	$sock=new sockets();
 	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
-	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME ProxyUseArticaDB=$ProxyUseArticaDB\n";}
+	
 	if(!is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
-	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if(!is_dir($WORKDIR)){@mkdir($WORKDIR,0755,true);}
 
 	
 	if($ProxyUseArticaDB==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME is disabled...\n";}
 		stop();
 		return;		
 		
@@ -765,10 +705,13 @@ function databasesize($force=false){
 	
 	$sock=new sockets();
 	$WORKDIR=$sock->GET_INFO("SquidStatsDatabasePath");
-	if($WORKDIR==null){$WORKDIR="/opt/squidsql";}
-	if(!is_dir($WORKDIR)){@mkdir($WORKDIR,0755,true);}
+	if($WORKDIR==null){$WORKDIR="/opt/squidsql/data";}
+	$WORKDIR="$WORKDIR/data";
+	if(!is_link($WORKDIR)){
+		if(!is_dir($WORKDIR)){@mkdir($WORKDIR,0755,true);}
+	}
 	$dir=$WORKDIR;
-	
+	if($GLOBALS["VERBOSE"]){echo "DIR:$dir\n";}
 	if(is_link($dir)){$dir=readlink($dir);}
 	$unix=new unix();
 	$sizbytes=$unix->DIRSIZE_BYTES($dir);

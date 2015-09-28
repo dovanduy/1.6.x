@@ -70,7 +70,7 @@ function route_add_popup(){
 	$tpl=new templates();
 	$t=time();
 	$html="
-	<div class=text-info>{routes_explain}</div>
+	<div class=explain>{routes_explain}</div>
 	<div style='font-size:98%' class=form>
 	<table style='width:99%'>
 	 <tr>

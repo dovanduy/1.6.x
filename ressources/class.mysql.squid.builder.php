@@ -18,6 +18,8 @@ include_once(dirname(__FILE__)."/class.highcharts.inc");
 include_once(dirname(__FILE__)."/class.tcpip.inc");
 include_once(dirname(__FILE__)."/class.squid.stats.tools.inc");
 include_once(dirname(__FILE__)."/class.analyze-page.inc");
+include_once(dirname(__FILE__)."/class.stats-appliance.inc");
+include_once(dirname(__FILE__)."/class.mysql-dump.inc");
 ini_set("mysql.connect_timeout",60);
 
 class mysql_squid_builder{
@@ -55,6 +57,7 @@ class mysql_squid_builder{
 	public $acl_GroupType_Firewall_in=array();
 	public $acl_GroupType_Firewall_out=array();
 	public $acl_GroupType_Firewall_port=array();
+	public $acl_NTLM=array();
 	public $acl_ARRAY_NO_ITEM=array();
 	public $SquidActHasReverse=0;
 	public $AVAILABLE_METHOD=array();
@@ -66,7 +69,7 @@ class mysql_squid_builder{
 	public $DisableLocalStatisticsTasks=0;
 	private $NOCHDB=array("mysql"=>true);
 	private $EnableKerbAuth=0;
-	private $UseDynamicGroupsAcls=0;
+	private $UseDynamicGroupsAcls=1;
 	public $MYSQL_CMDLINES=null;
 	public $MYSQL_DATA_DIR="/var/lib/mysql";
 	public $mysql_affected_rows;
@@ -80,6 +83,22 @@ class mysql_squid_builder{
 			@date_default_timezone_set(getLocalTimezone());
 		}
 		
+		if(!class_exists("Bs_IniHandler")){include_once(dirname(__FILE__)."/class.ini.inc");}
+		if(!class_exists("sockets")){include_once(dirname(__FILE__)."/class.sockets.inc");}
+		
+		
+		$ini=new Bs_IniHandler();
+		if(!isset($GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"])){
+			$sock=new sockets();
+			$ini->loadString($sock->GET_INFO('ArticaSquidParameters'));
+			if(isset($ini->_params)){$GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"]=$ini->_params;}
+		}else{
+			$ini->_params=$GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"];
+		}
+		
+		
+		$LDAP_EXTERNAL_AUTH=intval($ini->_params["NETWORK"]["LDAP_EXTERNAL_AUTH"]);
+		
 		
 
 		if(!isset($GLOBALS["DEBUG_SQL"])){$GLOBALS["DEBUG_SQL"]=false;}
@@ -87,6 +106,12 @@ class mysql_squid_builder{
 		
 		$this->report_types[1]="{by_categories}";
 		$this->report_types[2]="{by_websites}";
+		
+		$this->acl_NTLM["src"]="{src_addr}";
+		$this->acl_NTLM["arp"]="{ComputerMacAddress}";
+		$this->acl_NTLM["dstdomain"]="{dstdomain}";
+		$this->acl_NTLM["dst"]="{dst_addr}";
+		$this->acl_NTLM["port"]="{destination_port}";
 		
 		$this->acl_GroupType["all"]="{all}";
 		$this->acl_GroupType["src"]="{src_addr}";
@@ -101,8 +126,15 @@ class mysql_squid_builder{
 		$this->acl_GroupType["proxy_auth"]="{members}";
 		$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";
 		$this->acl_GroupType["proxy_auth_statad"]="{static_activedirectory_group}";
+		$this->acl_GroupType["proxy_auth_multiad"]="{multiple_active_directory_groups}";
+		if($LDAP_EXTERNAL_AUTH==1){
+			$this->acl_GroupType["proxy_auth_ldap"]="{dynamic_ldap_group}";
+		}
+		
+		$this->acl_GroupType["Smartphones"]="{smartphones}";
 		$this->acl_GroupType["browser"]="{browser}";
 		$this->acl_GroupType["NudityScan"]="{nudityScan}";
+		$this->acl_GroupType["ssl_sni"]="{acl_ssl_sni}";
 		$this->acl_GroupType["time"]="{DateTime}";
 		$this->acl_GroupType["ext_user"]="{ext_user}";
 		$this->acl_GroupType["method"]="{connection_method}";
@@ -117,13 +149,17 @@ class mysql_squid_builder{
 		$this->acl_GroupType["ldap_auth"]="{basic_ldap_auth}";
 		$this->acl_GroupType["hotspot_auth"]="{hotspot_auth}";
 		$this->acl_GroupType["port"]="{destination_port}";
+		$this->acl_GroupType["clt_conn_tag"]="{statistics_virtual_group}";
 		$this->acl_GroupType["categories"]="{artica_categories}";
 		$this->acl_GroupType["teamviewer"]="{macro}: TeamViewer";
+		$this->acl_GroupType["skype"]="{macro}: Skype";
 		$this->acl_GroupType["quota_time"]="{quota_time}";
 		$this->acl_GroupType["quota_size"]="{quota_size}";
 		$this->acl_GroupType["google"]="{macro}: Google {websites}";
 		$this->acl_GroupType["google_ssl"]="{macro}: Google SSL {websites}";
+		$this->acl_GroupType["AntiTrack"]="{macro}: {ads_and_trackers}";
 		
+		$this->acl_ARRAY_NO_ITEM["clt_conn_tag"]=true;
 		$this->acl_ARRAY_NO_ITEM["proxy_auth_ads"]=true;
 		$this->acl_ARRAY_NO_ITEM["proxy_auth_statad"]=true;
 		$this->acl_ARRAY_NO_ITEM["NudityScan"]=true;
@@ -134,10 +170,13 @@ class mysql_squid_builder{
 		$this->acl_ARRAY_NO_ITEM["ad_auth"]=true;
 		$this->acl_ARRAY_NO_ITEM["ldap_auth"]=true;
 		$this->acl_ARRAY_NO_ITEM["hotspot_auth"]=true;
+		$this->acl_ARRAY_NO_ITEM["AntiTrack"]=true;
 		$this->acl_ARRAY_NO_ITEM["teamviewer"]=true;
+		$this->acl_ARRAY_NO_ITEM["skype"]=true;
 		$this->acl_ARRAY_NO_ITEM["google"]=true;
 		$this->acl_ARRAY_NO_ITEM["google_ssl"]=true;
-		
+		$this->acl_ARRAY_NO_ITEM["proxy_auth_ldap"]=true;
+		$this->acl_ARRAY_NO_ITEM["Smartphones"]=true;
 		
 		$this->acl_GroupType_WPAD["all"]="{all}";
 		$this->acl_GroupType_WPAD["src"]="{ipsrc}";
@@ -158,6 +197,7 @@ class mysql_squid_builder{
 		
 		$this->acl_GroupType_Firewall_out["dst"]="{dst}";
 		$this->acl_GroupType_Firewall_out["teamviewer"]="TeamViewer - {macro}";
+		$this->acl_GroupType_Firewall_out["skype"]="Skype - {macro}";
 		$this->acl_GroupType_Firewall_out["google"]="Google - {macro}";
 		
 		$this->acl_GroupType_Firewall_port["port"]="{destination_port}";
@@ -187,6 +227,32 @@ class mysql_squid_builder{
 		$this->AVAILABLE_METHOD["BMOVE"]=true;
 		$this->AVAILABLE_METHOD["BDELETE"]=true;
 		$this->AVAILABLE_METHOD["BPROFIND"]=true;
+		$this->AVAILABLE_METHOD["PUT"]=true;
+		$this->AVAILABLE_METHOD["REPORT"]=true;
+		$this->AVAILABLE_METHOD["OPTIONS"]=true;
+		$this->AVAILABLE_METHOD["PROPFIND"]=true;
+		$this->AVAILABLE_METHOD["TUNNEL"]=true;
+		$this->AVAILABLE_METHOD["PROPFIND"]=true;
+		$this->AVAILABLE_METHOD["PROPPATCH"]=true;
+		$this->AVAILABLE_METHOD["MKCOL"]=true;
+		$this->AVAILABLE_METHOD["COPY"]=true;
+		$this->AVAILABLE_METHOD["MOVE"]=true;
+		$this->AVAILABLE_METHOD["LOCK"]=true;
+		$this->AVAILABLE_METHOD["UNLOCK"]=true;
+		$this->AVAILABLE_METHOD["MKDIR"]=true;
+		$this->AVAILABLE_METHOD["INDEX"]=true;
+		$this->AVAILABLE_METHOD["RMDIR"]=true;
+		$this->AVAILABLE_METHOD["LINK"]=true;
+		$this->AVAILABLE_METHOD["UNLINK"]=true;
+		$this->AVAILABLE_METHOD["PATCH"]=true;
+		$this->AVAILABLE_METHOD["BCOPY"]=true;
+		$this->AVAILABLE_METHOD["BDELETE"]=true;
+		$this->AVAILABLE_METHOD["BMOVE"]=true;
+		$this->AVAILABLE_METHOD["BPROPPATCH"]=true;
+		$this->AVAILABLE_METHOD["MKCO"]=true;
+		$this->AVAILABLE_METHOD["POLL"]=true;
+		$this->AVAILABLE_METHOD["SEARCH"]=true;
+		$this->AVAILABLE_METHOD["SUBSCRIBE"]=true;
 
 		$this->PROXY_PAC_TYPES[null]="{select}";
 		$this->PROXY_PAC_TYPES["shExpMatch"]="{shExpMatch2}";
@@ -257,6 +323,27 @@ class mysql_squid_builder{
 		
 	}
 	
+	public function mysql_error_jsdiv($id){
+		$html=$this->mysql_error_html();
+		$html=str_replace("'", "\'", $html);
+		$html=str_replace("\n", "<br>", $html);
+		header("content-type: application/x-javascript");
+		echo "document.getElementById('$id').innerHTML='$html';";
+		
+	}
+	
+	
+	
+	
+	public function dump_table_to_file($tablename,$filename,$field_to_add=null,$field_type=null,$field_data=null){
+		$dump=new class_mysql_dump($this->database,$this->mysql_connection,$filename);
+		if($field_to_add<>null){
+			$dump->add_fields_values($field_to_add,$field_data,$field_type);
+		}
+		$dump->set_OnlyTableName($tablename);
+		$dump->doDump();
+	}
+	
 	
 	
 	public function GRANT_PRIVS($hostname,$username,$password){
@@ -318,7 +405,7 @@ class mysql_squid_builder{
 			$GLOBALS["PrepareMySQLClassMemory"]["DisableLocalStatisticsTasks"]=$sock->GET_INFO("DisableLocalStatisticsTasks");
 			$GLOBALS["PrepareMySQLClassMemory"]["EnableSargGenerator"]=$sock->GET_INFO("EnableSargGenerator");
 			$GLOBALS["PrepareMySQLClassMemory"]["EnableKerbAuth"]=$sock->GET_INFO("EnableKerbAuth");
-			$GLOBALS["PrepareMySQLClassMemory"]["UseDynamicGroupsAcls"]=$sock->GET_INFO("UseDynamicGroupsAcls");
+			$GLOBALS["PrepareMySQLClassMemory"]["UseDynamicGroupsAcls"]=1;
 			
 			
 		}
@@ -339,6 +426,7 @@ class mysql_squid_builder{
 		$this->EnableKerbAuth=$GLOBALS["PrepareMySQLClassMemory"]["EnableKerbAuth"];
 		$this->UseDynamicGroupsAcls=$GLOBALS["PrepareMySQLClassMemory"]["UseDynamicGroupsAcls"];
 		
+		
 		if(!is_numeric($this->EnableSquidRemoteMySQL)){$this->EnableSquidRemoteMySQL=0;}
 		if(!is_numeric($this->squidEnableRemoteStatistics)){$this->squidEnableRemoteStatistics=0;}
 		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
@@ -350,8 +438,9 @@ class mysql_squid_builder{
 		if(!is_numeric($this->EnableSargGenerator)){$this->EnableSargGenerator=0;}
 		if(!is_numeric($this->SquidActHasReverse)){$this->SquidActHasReverse=0;}
 		
+		
 		if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
-		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
+		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=1;}
 		
 		if($GLOBALS["DEBUG"]){
 			echo "squidEnableRemoteStatistics=$this->squidEnableRemoteStatistics\n";
@@ -668,17 +757,38 @@ class mysql_squid_builder{
 			$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 			$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
 			$RemoteUfdbCat=intval($sock->GET_INFO("RemoteUfdbCat"));
-			if($SquidPerformance>0){
-				if($RemoteUfdbCat==0){
-					unset($this->acl_GroupType["categories"]);
-				}
-			}
+			$EnableLocalUfdbCatService=intval($sock->GET_INFO("EnableLocalUfdbCatService"));
 			
+			$this->tasks_disabled[7]=true;
+			$this->tasks_disabled[8]=true;
+			$this->tasks_disabled[14]=true;
+			$this->tasks_disabled[37]=true;
+			$this->tasks_disabled[38]=true;
+			$this->tasks_disabled[41]=true;
+			$this->tasks_disabled[42]=true;
+			$this->tasks_disabled[47]=true;
+			$this->tasks_disabled[53]=true;
+			$this->tasks_disabled[21]=true;
+			
+			$CATEGORY_UNSET=false;
+			if($SquidPerformance>0){$CATEGORY_UNSET=true;}
+			if($EnableLocalUfdbCatService==1){$CATEGORY_UNSET=false;}
+			if($RemoteUfdbCat==1){$CATEGORY_UNSET=false;}
+
+					if($CATEGORY_UNSET){
+						unset($this->acl_GroupType["categories"]);
+					}
+			
+			if($SquidPerformance>1){$this->DisableArticaProxyStatistics=1;}
 			
 			if($SquidPerformance>2){
 				$this->tasks_disabled[41]=true;
 				$this->tasks_disabled[37]=true;
 				$this->tasks_disabled[46]=true;
+			}
+			
+			if($SquidPerformance>1){
+				$this->tasks_disabled[17]=true;
 			}
 			
 			$MEMORY=$users->MEM_TOTAL_INSTALLEE;
@@ -796,6 +906,7 @@ class mysql_squid_builder{
 			}
 			
 			$this->tasks_disabled[6]=true;
+
 			$this->tasks_disabled[2]=true;
 			$this->tasks_disabled[9]=true;
 			$this->tasks_disabled[10]=true;
@@ -877,7 +988,6 @@ class mysql_squid_builder{
 			$this->tasks_array[52]="{proxy_status}";
 			$this->tasks_array[53]="{build_proxy_statistics}";
 			$this->tasks_array[54]="{perfom_proxy_log_rotation}";
-			$this->tasks_array[55]="{perfom_websites_optimization}";
 			$this->tasks_array[56]="{sarg_daily}";
 			$this->tasks_array[57]="{reload_webfiltering_service}";
 			$this->tasks_array[58]="{proxy_performances}";
@@ -939,7 +1049,6 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[52]="{proxy_status_explain}";
 			$this->tasks_explain_array[53]="{build_proxy_statistics_explain}";
 			$this->tasks_explain_array[54]="{perfom_proxy_log_rotation_explain}";
-			$this->tasks_explain_array[55]="{perfom_websites_optimization_explain}";
 			$this->tasks_explain_array[56]="{sarg_daily_explain}";
 			$this->tasks_explain_array[57]="{reload_webfiltering_service}";
 			$this->tasks_explain_array[58]="{proxy_performances_task_explain}";
@@ -967,8 +1076,6 @@ class mysql_squid_builder{
 			$this->tasks_processes[21]="exec.adusers.php";
 			$this->tasks_processes[22]="exec.squidguard.php --build --force";	
 			$this->tasks_processes[24]="exec.cleancloudcatz.php --all";		
-			$this->tasks_processes[26]="exec.sarg.php --exec-daily";
-			$this->tasks_processes[27]="exec.sarg.php --exec-hourly";
 			$this->tasks_processes[29]="exec.squid.updateuris.malware.php --www";
 			$this->tasks_processes[30]="exec.squid.blacklists.php --ufdb --bycron";
 			$this->tasks_processes[31]="exec.dansguardian.injector.php";
@@ -989,8 +1096,6 @@ class mysql_squid_builder{
 			$this->tasks_processes[52]="exec.status.php --all-squid";
 			$this->tasks_processes[53]="exec.squid.stats.central.php";
 			$this->tasks_processes[54]="exec.squid.php --rotate --byschedule";
-			$this->tasks_processes[55]="exec.squid.cache.optimize.php --gencaches --byschedule";
-			$this->tasks_processes[56]="exec.sarg.php --exec-daily --from-schedule";
 			$this->tasks_processes[57]="exec.ufdb.php --reload --from-schedule";
 			$this->tasks_processes[58]="exec.squid.squeezer.php";
 			$this->tasks_processes[59]="exec.squid.static.ad.groups.php";
@@ -1140,7 +1245,7 @@ class mysql_squid_builder{
 			$array[1]=array("TimeText"=>"0 0,3,5,7,9,11,13,15,17,19,23 * * *","TimeDescription"=>"Check update each 3H");
 			
 			$array[6]=array("TimeText"=>"20,40,59 * * * *","TimeDescription"=>"each 20mn");
-			$array[7]=array("TimeText"=>"5 * * * *","TimeDescription"=>"each Hour / 5mn");
+			
 			$array[8]=array("TimeText"=>"30 5,10,15,20 * * *","TimeDescription"=>"each 5 hours");
 			$array[9]=array("TimeText"=>"0 3 * * *","TimeDescription"=>"each day at 03:00");
 			$array[10]=array("TimeText"=>"0 5 * * *","TimeDescription"=>"each day at 05:00");
@@ -1149,7 +1254,7 @@ class mysql_squid_builder{
 			$array[4]=array("TimeText"=>"0 7 * * *","TimeDescription"=>"each day at 07:00");
 			$array[2]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Each hour");
 			$array[3]=array("TimeText"=>"0 3 * * *","TimeDescription"=>"each day at 03:00");	
-			$array[14]=array("TimeText"=>"30 6 * * *","TimeDescription"=>"Optimize all tables  each day at 06h30");
+			
 			$array[15]=array("TimeText"=>"0 * * * *","TimeDescription"=>"Calculate cache performance each hour");
 			$array[16]=array("TimeText"=>"30 5,10,15,20 * * *","TimeDescription"=>"each 5 hours");
 			$array[17]=array("TimeText"=>"30 * * * *","TimeDescription"=>"each 1h30");
@@ -1193,7 +1298,7 @@ class mysql_squid_builder{
 			$this->tasks_disabled[44]=true;
 			$this->tasks_disabled[49]=true;
 			$this->tasks_disabled[50]=true;	
-
+			$this->tasks_disabled[55]=true;
 			
 
 			
@@ -1205,7 +1310,7 @@ class mysql_squid_builder{
 					
 				if(isset($this->tasks_disabled[$TaskType])){
 						if($this->tasks_disabled[$TaskType]){
-						if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$TaskType tasks_disabled</strong>\n";}
+						if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>$TaskType tasks_disabled</strong>\n";}
 						continue;
 					}
 				}
@@ -1213,7 +1318,7 @@ class mysql_squid_builder{
 				
 				$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT ID FROM webfilters_schedules WHERE TaskType=$TaskType"));
 				if($ligne["ID"]>0){
-					if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$TaskType Already saved as {$ligne["ID"]}</strong>\n";}
+					if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>$TaskType Already saved as {$ligne["ID"]}</strong>\n";}
 					continue;
 				}
 				
@@ -1297,7 +1402,8 @@ class mysql_squid_builder{
 	}
 	
 	public function TABLE_EXISTS($table,$database=null){
-		$keyCache=__FUNCTION__;
+		$keyCache=md5(__CLASS__.__FUNCTION__.$table.__LINE__);
+		if(isset($GLOBALS[$keyCache])){return $GLOBALS[$keyCache];}
 		$database=trim($database);
 		if($database=="artica_backup"){$database=$this->database;}
 		if($database=="artica_events"){$database=$this->database;}
@@ -1320,6 +1426,7 @@ class mysql_squid_builder{
 		
 		
 		if(!$this->DATABASE_EXISTS($database)){
+			
 			$this->writeLogs("Database $database does not exists...create it",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			if(!$this->CREATE_DATABASE($database)){
 				$this->writeLogs("Unable to create $database database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -1333,9 +1440,12 @@ class mysql_squid_builder{
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$GLOBALS[$keyCache][$database][$ligne["Tables_in_$database"]]=true;
 			if(!$GLOBALS["AS_ROOT"]){$_SESSION[$keyCache][$database][$ligne["Tables_in_$database"]]=true;}
-			if(strtolower($table)==strtolower($ligne["Tables_in_$database"])){$result=true;}
+			if(strtolower($table)==strtolower($ligne["Tables_in_$database"])){
+				$GLOBALS[$keyCache]=true;
+				return true;
+			}
 		}
-		
+		$GLOBALS[$keyCache]=false;
 		return $result;
 		
 	}
@@ -1377,8 +1487,8 @@ class mysql_squid_builder{
 		if(!$this->ok){echo $this->mysql_error."\nline:".__LINE__."\n";return;}
 		$this->QUERY_SQL("DELETE FROM webfilter_catprivs WHERE categorykey='$category'");
 		if(!$this->ok){echo $this->mysql_error."\nline:".__LINE__."\n";return;}
-		$this->QUERY_SQL("DELETE FORM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($category)."'");
-		if(!$this->ok){echo $this->mysql_error."\nline:".__LINE__."\n";return;}
+		$this->QUERY_SQL("DELETE FROM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($category)."'");
+		if(!$this->ok){echo $this->mysql_error."\nline:".__LINE__."\n$sql\n";return;}
 		$this->QUERY_SQL("DROP TABLE category_$category");
 		if(!$this->ok){echo $this->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
 		if($this->TABLE_EXISTS("$tableURI")){$this->QUERY_SQL("DROP TABLE $tableURI");}
@@ -1489,6 +1599,9 @@ class mysql_squid_builder{
 	public function BD_CONNECT($noretry=false,$called=null){
 			if(isset($GLOBALS["SQUID_BD_STOP_PROCESSSING"])){if($GLOBALS["SQUID_BD_STOP_PROCESSSING"]){return false;}}
 			if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
+			
+			
+			
 			if($this->SERVER_CONNECT($noretry,$called)){
 				unset($GLOBALS["SQUID_BD_STOP_PROCESSSING"]);
 				return true;
@@ -1764,12 +1877,18 @@ class mysql_squid_builder{
 		$FILENAME=basename(__FILE__);
 		$LOGPRF="$FILENAME::$CLASS/$FUNCTION";
 		$this->ok=false;
-		if(isset($GLOBALS["SQUID_BD_STOP_PROCESSSING"])){if($GLOBALS["SQUID_BD_STOP_PROCESSSING"]){
-			$this->mysql_error="Mysql queries stopped due to SQUID_BD_STOP_PROCESSSING";
-			return false;}}
+		
 		$sql=trim($sql);
 		
 		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
+		
+		
+		if(preg_match("#delete.*?webfilter_members#i", $sql)){
+			$this->ToSyslog("FATAL!! CHATEAU-THIERRY $sql $called");
+			
+		}
+		
+		
 		if($GLOBALS["DEBUG_SQL"]){echo "this->BD_CONNECT\n";}
 		@mysql_close($this->mysql_connection);
 		if(!$this->BD_CONNECT(false,$called)){
@@ -1809,6 +1928,8 @@ class mysql_squid_builder{
 				$ok=@mysql_select_db($this->database,$this->mysql_connection);
 				if (!$ok){
 					if($GLOBALS["VERBOSE"]){echo "$LOGPRF mysql_select_db/$this->database/".__LINE__." [FAILED] -> SECOND TIME !!\n";};
+					
+					if(function_exists("mysql_admin_mysql")){mysql_admin_mysql(0,"FATAL MySQL error Connection failed to MySQL database",$sql."\n$this->mysql_error",__FILE__,__LINE__);}
 					$this->ok=false;
 					return false;
 				}
@@ -1831,6 +1952,7 @@ class mysql_squid_builder{
 			$this->ToSyslog($sql);
 			@mysql_close($this->mysql_connection);
 			$this->mysql_connection=false;
+			if(function_exists("mysql_admin_mysql")){mysql_admin_mysql(0,"FATAL MySQL error Error Number ($errnum) ($des)",$sql."\n$this->mysql_error",__FILE__,__LINE__);}
 			return null;
 		}
 	
@@ -1875,8 +1997,20 @@ class mysql_squid_builder{
 			$sql=str_replace("\t", " ", $sql);
 			$sql=str_replace("  ", " ", $sql);
 			$this->ToSyslog($sql);
+			if(preg_match("#Table\s+'(.+?)'.*?is marked as crashed#", $des,$re)){
+				if(class_exists("sockets")){
+						$sock=new sockets();
+						$ARRAY["DB"]=$database;
+						$ARRAY["TABLE"]=$re[1];
+						$data=urlencode(base64_encode(serialize($ARRAY)));
+						$sock->getFrameWork("squid.php?mysql-crash=$data");
+				}
+			}
+			
+			
 			if($GLOBALS["VERBOSE"]){echo "$LOGPRF $mysql_unbuffered_query_log/".__LINE__." [FAILED] N.$errnum DESC:$des $called\n";}
 			if($GLOBALS["VERBOSE"]){echo "$LOGPRF $mysql_unbuffered_query_log".__LINE__." [FAILED] $sql\n";}
+			if(function_exists("mysql_admin_mysql")){mysql_admin_mysql(0,"FATAL MySQL error Error Number ($errnum) ($des)",$sql."\n$this->mysql_error",__FILE__,__LINE__);}
 			@mysql_free_result($this->mysql_connection);
 			@mysql_close($this->mysql_connection);
 			$this->mysql_connection=false;
@@ -1990,22 +2124,7 @@ class mysql_squid_builder{
 		
 	}
 	
-	public function LIST_TABLES_QUERIES(){
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'dansguardian_events_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#dansguardian_events_([0-9]{1,4})([0-9]{1,2})([0-9]{1,2})#", $ligne["c"],$re))
-			$array[$ligne["c"]]=$re[1]."-".$re[2]."-".$re[3];
-		}
-		return $array;
-		
-	}
-	
-	
+
 	
 
 	public function CategoryShellEscape($category){
@@ -2138,80 +2257,15 @@ class mysql_squid_builder{
 		return $array;
 	}	
 	
-	public function LIST_TABLES_QUOTA_HOURS(){
-		if(isset($GLOBALS["LIST_TABLES_QUOTA_HOURS"])){return $GLOBALS["LIST_TABLES_QUOTA_HOURS"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
-				AND table_name LIKE 'quotahours_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-	
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#quotahours_[0-9]+#", $ligne["c"])){
-				if($GLOBALS["VERBOSE"]){echo "LIST_TABLES_QUOTA_HOURS:{$ligne["c"]}\n";}
-				$GLOBALS["LIST_TABLES_QUOTA_HOURS"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;
-	}	
 	
 	
 	
-	public function LIST_TABLES_HOURS_TEMP(){
-		if(isset($GLOBALS["LIST_TABLES_HOURS_TEMP"])){return $GLOBALS["LIST_TABLES_HOURS_TEMP"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
-				AND table_name LIKE 'squidhour_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#squidhour_[0-9]+$#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_HOURS_TEMP"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;		
-	}	
 	
 	
-	public function LIST_TABLES_dansguardian_events(){
-		if(isset($GLOBALS["LIST_TABLES_dansguardian_events"])){return $GLOBALS["LIST_TABLES_dansguardian_events"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'dansguardian_events_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#dansguardian_events_[0-9]+#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_dansguardian_events"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;			
-		
-	}
-	public function LIST_TABLES_BLOCKED_WEEK(){
-		if(isset($GLOBALS["LIST_TABLES_BLOCKED_WEEK"])){return $GLOBALS["LIST_TABLES_BLOCKED_WEEK"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE '%_blocked_week'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#[0-9]+_blocked_week#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_BLOCKED_WEEK"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;		
-		
-	}
+	
+	
+
+
 	
 	public function LIST_TABLES_NGINX_BLOCKED_RT(){
 		if(isset($GLOBALS["LIST_TABLES_BLOCKED"])){return $GLOBALS["LIST_TABLES_BLOCKED"];}
@@ -2250,45 +2304,12 @@ class mysql_squid_builder{
 		
 	}
 	
-	public function LIST_TABLES_SQUID_MEMORY(){
-		if(isset($GLOBALS["LIST_TABLES_SQUID_MEMORY"])){return $GLOBALS["LIST_TABLES_SQUID_MEMORY"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
-				AND table_name LIKE 'squidmemory_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-	
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#squidmemory_[0-9]+$#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_BLOCKED"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;
-	
-	}
+
 
 	
 	
 	
-	public function LIST_TABLES_BLOCKED_DAY(){
-		if(isset($GLOBALS["LIST_TABLES_BLOCKED_DAY"])){return $GLOBALS["LIST_TABLES_BLOCKED_DAY"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE '%_blocked_days'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#[0-9]+_blocked_days#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_BLOCKED_DAY"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;		
-		
-	}	
+
 	
 	public function LIST_TABLES_YOUTUBE_HOURS(){
 		if(isset($GLOBALS["LIST_TABLES_YOUTUBE_HOURS"])){return $GLOBALS["LIST_TABLES_YOUTUBE_HOURS"];}
@@ -2389,25 +2410,7 @@ class mysql_squid_builder{
 	
 	}	
 	
-	
-	
-	public function LIST_TABLES_VISITED(){
-		if(isset($GLOBALS["LIST_TABLES_VISITED"])){return $GLOBALS["LIST_TABLES_VISITED"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE '%_visited'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#[0-9]+_visited#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_VISITED"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;		
-		
-	}	
+
 	
 	
 	public function move_category($orginal_md5,$category,$nextCategory){
@@ -2471,39 +2474,10 @@ class mysql_squid_builder{
 	
 	
 	
-	public function LIST_TABLES_WORKSHOURS(){
-		if(isset($GLOBALS["LIST_TABLES_WORKSHOURS"])){return $GLOBALS["LIST_TABLES_WORKSHOURS"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'squidhour_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
-		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#squidhour_[0-9]+#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_WORKSHOURS"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;		
-	}
+
 	
-	public function LIST_TABLES_RTTZ_WORKSHOURS(){
-		if(isset($GLOBALS["LIST_TABLES_RTTZ_WORKSHOURS"])){return $GLOBALS["LIST_TABLES_RTTZ_WORKSHOURS"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'RTTH_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 	
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#RTTH_[0-9]+#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_RTTZ_WORKSHOURS"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;
-	}	
+	
 	
 	public function LIST_TABLES_CACHEHOURS(){
 		if(isset($GLOBALS["LIST_TABLES_CACHEHOURS"])){return $GLOBALS["LIST_TABLES_CACHEHOURS"];}
@@ -2520,24 +2494,27 @@ class mysql_squid_builder{
 			}
 		}
 		return $array;
-	}	
-	
-	public function LIST_TABLES_SIZEHOURS(){
-		if(isset($GLOBALS["LIST_TABLES_SIZEHOURS"])){return $GLOBALS["LIST_TABLES_SIZEHOURS"];}
+	}
+
+	public function LIST_TABLES_STATS_UAPP(){
+		if(isset($GLOBALS["LIST_TABLES_STATS_UAPP"])){return $GLOBALS["LIST_TABLES_STATS_UAPP"];}
 		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'sizehour_%'";
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
+				AND table_name LIKE '%_statsuapp'";
 		$results=$this->QUERY_SQL($sql);
 		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 	
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#sizehour_[0-9]+#", $ligne["c"])){
-				$GLOBALS["LIST_TABLES_SIZEHOURS"][$ligne["c"]]=$ligne["c"];
+			if(preg_match("#[0-9]+_statsuapp#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_STATS_UAPP"][$ligne["c"]]=$ligne["c"];
 				$array[$ligne["c"]]=$ligne["c"];
 			}
 		}
 		return $array;
 	}	
+	
+	
 	
 	// UserSizeD_20130212
 	public function LIST_TABLES_USERSIZED(){
@@ -2628,7 +2605,8 @@ class mysql_squid_builder{
 			$f["radio"]="webradio";
 			$f["translation"]="translators";
 			$f["bitcoin"]="paytosurf";
-			
+			$f["violence"]="violence";
+			$f["drugs"]="drugs";
 			$f["redirector"]="proxy";
 			$f["sexual_education"]="sexual_education";
 			$f["sports"]="recreation/sports";
@@ -2647,7 +2625,7 @@ class mysql_squid_builder{
 			$f["phishing"]="phishing";
 			$f["remote-control"]="remote-control";
 			$f["shopping"]="shopping";
-			$f["strict_redirector"]="redirector";
+			$f["strict_redirector"]="strict_redirector";
 			$f["astrology"]="astrology";
 			$f["blog"]="blog";
 			$f["child"]="children";
@@ -2660,7 +2638,7 @@ class mysql_squid_builder{
 			$f["reaffected"]="reaffected";
 			$f["sect"]="sect";
 			$f["social_networks"]="socialnet";
-			$f["strong_redirector"]="redirector";
+			$f["strong_redirector"]="strong_redirector";
 			$f["warez"]="warez";
 			$f["verisign"]="sslsites";
 			
@@ -2866,6 +2844,22 @@ class mysql_squid_builder{
 		}
 		return $array;
 	}	
+	
+	public function LIST_TABLES_CACHED_RATED(){
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs'
+				AND table_name LIKE '%_cacherated' ORDER BY table_name";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#[0-9]+_cacherated#", $ligne["c"])){$array[$ligne["c"]]=$ligne["c"];}
+		}
+		return $array;
+	}
+	
+	
 
 	
 	public function LIST_TABLES_WWWUID(){
@@ -2947,11 +2941,9 @@ class mysql_squid_builder{
 		$ctz=new mysql_catz(true);
 		$TransArray=$ctz->TransArray();
 		while (list ($tablename,$categoryname ) = each ($TransArray) ){
+			if($this->COUNT_ROWS($tablename)==0){continue;}
 			$array[$tablename]=$tablename;
 		}
-			
-		
-		
 		$GLOBALS["LIST_TABLES_CATEGORIES"]=$array;
 		return $array;
 		
@@ -3106,7 +3098,7 @@ class mysql_squid_builder{
 		
 		if($ligne["zmd5"]==null){
 			$this->QUERY_SQL($sql_add2);
-			$this->QUERY_SQL($sql_add);
+			
 		}
 		
 		if($GLOBALS["VERBOSE"]){echo "Adding new website $www in category_$category_table ($category)\n";}
@@ -3197,7 +3189,7 @@ class mysql_squid_builder{
 		  KEY `uid` (`uid`),
 		  KEY `country` (`country`),
 		  KEY `MAC` (`MAC`)
-		) ENGINE=MEMORY;";
+		) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,$this->database); 
 		
 		
@@ -3211,14 +3203,14 @@ class mysql_squid_builder{
 		}
 		
 		$table="sizehour_$prefix";
-		$this->check_sizehour($table);
+		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `macscan` (
 		`MAC` varchar(20) NOT NULL,
 		`ipaddr` VARCHAR(60),
 		PRIMARY KEY (`MAC`),
 		KEY `ipaddr` (`ipaddr`)
-		) ENGINE=MEMORY;";		
+		) ENGINE=MYISAM;";		
 		$this->QUERY_SQL($sql,$this->database);
 		
 		if(!$this->ok){
@@ -3232,25 +3224,71 @@ class mysql_squid_builder{
 		
 	}
 	
-	public function check_sizehour($table=null){
-		if($table==null){
-			$prefix=date("YmdH");
-			$table="sizehour_$prefix";
-		}
-		
-		$sql="CREATE TABLE IF NOT EXISTS `$table` (
+	public function CheckReportTable(){
+		$sql="CREATE TABLE IF NOT EXISTS `reports_cache` (
+		`ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+		`zmd5` VARCHAR(90),
+		`title` VARCHAR(128),
+		`report_type` VARCHAR(40),
+		`builded` smallint(1) NOT NULL DEFAULT 0,
 		`zDate` datetime NOT NULL,
-		`size` BIGINT UNSIGNED,
-		cached smallint(1),
+		`params` TEXT,
+		`values` LONGBLOB,
+		`values_size` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+		UNIQUE KEY `zmd5`  (`zmd5`),
 		KEY `zDate` (`zDate`),
-		KEY `cached` (`cached`),
-		KEY `size` (`size`)
-		) ENGINE=MEMORY;";
+		KEY `report_type` (`report_type`),
+		KEY `title` (`title`)
+		) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);
 		
-		if(!$this->ok){ return false; }
 		
+		$sql="CREATE TABLE IF NOT EXISTS `mgr_client_list` (
+		`zmd5` VARCHAR(90) NOT NULL PRIMARY KEY,
+		`ipaddr` VARCHAR(90),
+		`uid` VARCHAR(90),
+		`CUR_CNX` BIGINT UNSIGNED,
+		`RQS` BIGINT UNSIGNED,
+		`TAG_NONE` BIGINT UNSIGNED,
+		`TCP_HIT` BIGINT UNSIGNED,
+		`TCP_MISS` BIGINT UNSIGNED,
+		`TCP_REDIRECT`BIGINT UNSIGNED,
+		`TCP_TUNNEL` BIGINT UNSIGNED,
+		KEY `ipaddr` (`ipaddr`),
+		KEY `uid` (`uid`),
+		KEY `RQS` (`RQS`),
+		KEY `TAG_NONE` (`TAG_NONE`),
+		KEY `TCP_HIT` (`TCP_HIT`),
+		KEY `TCP_REDIRECT` (`TCP_REDIRECT`),
+		KEY `TCP_MISS` (`TCP_MISS`),
+		KEY `CUR_CNX` (`CUR_CNX`)
+		) ENGINE=MYISAM;";		
+		$this->QUERY_SQL($sql,$this->database);
 	}
+	
+
+	
+	public function check_hypercacheHour($table=null){
+		if($table==null){
+			$prefix=date("YmdH");
+			$table="hypercache_$prefix";
+		}
+	
+		$sql="CREATE TABLE IF NOT EXISTS `$table` (
+		`zmd5` VARCHAR(128) PRIMARY KEY,
+		`zDate` datetime NOT NULL,
+		`hits` BIGINT UNSIGNED,
+		`category` VARCHAR(60),
+		`ipaddr` VARCHAR(90),
+		KEY `zDate` (`zDate`),
+		KEY `category` (`category`),
+		KEY `ipaddr` (`ipaddr`)
+		) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+	
+		if(!$this->ok){ return false; }
+			return true;
+		}	
 	
 	public function TablePrimaireCacheHour($prefix=null,$nomem=false,$table=null){
 		
@@ -3263,12 +3301,12 @@ class mysql_squid_builder{
 			$table="cachehour_$prefix";
 		}
 		
-		$MEM="ENGINE=MEMORY";
-		if($nomem){$MEM="ENGINE=MYISAM";}
+		$MEM="ENGINE=MYISAM";
 		
 		if($GLOBALS["VERBOSE"]){echo "CREATE TABLE $table...\n";}
 	
 		$sql="CREATE TABLE IF NOT EXISTS `$table` (
+		
 		`zDate` datetime NOT NULL,
 		`size` BIGINT UNSIGNED,
 		cached smallint(1),
@@ -3422,49 +3460,9 @@ class mysql_squid_builder{
 	}	
 	
 	
-	public function check_quota_hour($timekey=null){
-		if($timekey==null){$timekey=date('YmdH');}
 	
-		$table="quotahours_$timekey";
-		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`$table` (
-		`hour` smallint(2) NOT NULL,
-		`keyr` VARCHAR(90) NOT NULL,
-		`ipaddr` VARCHAR(40),
-		`familysite` VARCHAR(128),
-		`servername` VARCHAR(255),
-		`uid` VARCHAR(40) NOT NULL,
-		`MAC` VARCHAR(20) NOT NULL,
-		`size` BIGINT UNSIGNED NOT NULL,
-		KEY `ipaddr`(`ipaddr`),
-		KEY `familysite`(`familysite`),
-		KEY `keyr`(`keyr`),
-		KEY `hour`(`hour`),
-		KEY `servername`(`servername`),
-		KEY `uid`(`uid`),
-		KEY `MAC`(`MAC`)
-		) ENGINE=MEMORY;";
-		$this->QUERY_SQL($sql,$this->database);
-		if(!$this->ok){return false;}
-		return true;
-	}	
 	
-	public function check_squid_memory_day($timekey=null){
-		if($timekey==null){$timekey=date('Ymd');}
-	
-		$table="squidmemory_$timekey";
-		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`$table` (
-		`zDate` DATETIME NOT NULL,
-		`memoryuse` INT UNSIGNED NOT NULL,
-		`percent` FLOAT NOT NULL,
-		PRIMARY KEY `zDate`(`zDate`),
-		KEY `memoryuse`(`memoryuse`),
-		KEY `percent`(`percent`)
-	
-		) ENGINE=MYISAM;";
-		$this->QUERY_SQL($sql,$this->database);
-		if(!$this->ok){return false;}
-		return true;
-	}	
+
 	
 	
 	
@@ -3783,6 +3781,15 @@ function ifStatisticsMustBeExecuted(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	
+	if(isset($WizardStatsAppliance["AS_DISCONNECTED"])){
+		if($WizardStatsAppliance["AS_DISCONNECTED"]==1){
+			return true;
+		}
+	}
+	
+	
 	if($EnableRemoteStatisticsAppliance==1){
 		if($GLOBALS["VERBOSE"]){echo "EnableRemoteStatisticsAppliance = 1 -> FALSE\n";}
 		return false;}
@@ -3826,58 +3833,7 @@ function ifSquidUpdatesMustBeExecuted(){
 }
 
 
-public function Check_dansguardian_events_table($table=null){
-	
-	
-	if($table==null){$table="dansguardian_events_".date('Ymd');}
-	
-	$sql="CREATE TABLE IF NOT EXISTS `$table` (
-	`sitename` varchar(90) NOT NULL,
-	`ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-	`uri` varchar(255) NOT NULL,
-	`TYPE` varchar(50) NOT NULL,
-	`REASON` varchar(255) NOT NULL,
-	`CLIENT` varchar(50) NOT NULL DEFAULT '',
-	`hostname` varchar(120) NOT NULL DEFAULT '',
-	`account` INT UNSIGNED NOT NULL,
-	`zDate` datetime NOT NULL,
-	`zMD5` CHAR(32) NOT NULL,
-	`uid` varchar(128) NOT NULL,
-	`remote_ip` varchar(20) NOT NULL,
-	`country` varchar(20) NOT NULL,
-	`QuerySize` BIGINT UNSIGNED NOT NULL,
-	`hits` INT UNSIGNED NOT NULL,
-    `category` VARCHAR(60) NULL,
-	`cached` smallint(1) NOT NULL DEFAULT '0',
-	`MAC` varchar(20) NOT NULL,
-	PRIMARY KEY (`ID`),
-	UNIQUE KEY `zMD5` (`zMD5`),
-	KEY `sitename` (`sitename`,`TYPE`,`CLIENT`,`uri`),
-	KEY `zDate` (`zDate`),
-	KEY `category` (`category`),
-	KEY `hostname` (`hostname`),KEY `account` (`account`),
-	KEY `cached` (`cached`),
-	KEY `uri` (`uri`),
-	KEY `hits` (`hits`),
-	KEY `remote_ip` (`remote_ip`),
-	KEY `uid` (`uid`),
-	KEY `country` (`country`),
-	KEY `MAC` (`MAC`)
-	)  ENGINE = MYISAM;";
-	$this->QUERY_SQL($sql,$this->database);
-	if(!$this->ok){
-	if(function_exists("events_repair")){events_repair("$this->mysql_error in ".__CLASS__.'/'.__FUNCTION__." line:".__LINE__);}
-	writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-	$this->mysql_error=$this->mysql_error."\n$sql";
-	return false;
-	}
-	if(!$this->FIELD_EXISTS("$table", "category")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `category` VARCHAR( 60 ) NOT NULL ,ADD INDEX ( `category` )");}
-	if(!$this->FIELD_EXISTS("$table", "hostname")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
-	if(!$this->FIELD_EXISTS("$table", "hits")){$this->QUERY_SQL("ALTER TABLE `$table` ADD `hits` INT UNSIGNED NOT NULL,ADD KEY `hits` (`hits`)");}
-	
-	return true;	
-	
-}
+
 private function  Hotspot_debug($text){
 	if(!$GLOBALS["SPLASH_DEBUG"]){return;}
 	if(function_exists("WLOG")){
@@ -4125,6 +4081,24 @@ public	function check_hotspot_session(){
 	if(!$this->FIELD_EXISTS("hotspot_sessions", "autocreate")){$this->QUERY_SQL("ALTER TABLE `hotspot_sessions` ADD `autocreate` smallint(1) NOT NULL DEFAULT 1  ,ADD INDEX ( `autocreate` )");}
 
 }
+
+
+public function LINK_RTTH_CURRENT($field,$value,$textInside,$fontsize=14,$color="black"){
+	
+	
+	$currentHour=date("H");
+	$current_tablename="RTTH_".date("YmdH");
+	
+	if($this->TABLE_EXISTS($current_tablename)){
+		return "<a href='javascript:blur();' 
+		OnClick=\"javascript:Loadjs('squid.member.RTTH.current.php?js=yes&field=$field&value=$value');\"
+		style='font-size:$fontsize;text-decoration:underline;color:$color'>$textInside<a>";
+	}
+	
+	return $textInside;
+	
+}
+
 public function check_hotspot_tables(){
 
 	if($this->FIELD_EXISTS("hotspot_networks", "restrict_web")){
@@ -4157,6 +4131,44 @@ public function check_hotspot_tables(){
 				KEY `action` (`action`)
 			 )  ENGINE = MYISAM;";
 	$this->QUERY_SQL($sql,$this->database);
+	
+	$sql="CREATE TABLE IF NOT EXISTS `webfilters_paranoid` (
+				`pattern` VARCHAR( 90 ) NOT NULL,
+				`object` VARCHAR( 20 ) NOT NULL DEFAULT 'dstdomain',
+				`zDate` datetime NOT NULL,
+				PRIMARY KEY (`pattern`),
+				KEY `object` (`object`),
+				KEY `pattern` (`pattern`)
+			 )  ENGINE = MYISAM;";
+	$this->QUERY_SQL($sql,$this->database);
+	
+	
+	
+	
+	
+	
+	$sql="CREATE TABLE IF NOT EXISTS `global_whitelist` (
+				`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				`pattern` VARCHAR( 90 ) NOT NULL,
+				`description` VARCHAR( 128 ) NOT NULL,
+				`zDate` datetime NOT NULL,
+				`type` smallint( 1 ) NOT NULL DEFAULT '0',
+				`enabled` smallint(1) NULL,
+				`ruletype` smallint(1) NULL,
+				`deny_cache` smallint(1) NULL DEFAULT 0,
+				`deny_auth` smallint(1) NULL DEFAULT 0,
+				`deny_ufdb` smallint(1) NULL DEFAULT 0,
+				`deny_icap` smallint(1) NULL DEFAULT 0,
+				`deny_ext` smallint(1) NULL DEFAULT 0,
+				`deny_global` smallint(1) NULL DEFAULT 0,
+				`frommeta` smallint(1) NULL,
+				 KEY `pattern` (`pattern`),
+				 KEY `zDate` (`zDate`),
+				 KEY `type` (`type`),
+				 KEY `enabled` (`enabled`),
+				 KEY `frommeta` (`frommeta`)
+			 )  ENGINE = MYISAM;";
+	$this->QUERY_SQL($sql,$this->database);	
 	
 	
 	
@@ -4225,7 +4237,9 @@ public function check_hotspot_tables(){
 	$this->QUERY_SQL($sql,$this->database);
 	if(!$this->ok){echo "CREATE TABLE hotspot_members Failed $this->mysql_error\n";}
 	
-	
+	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`hotspot_members_meta` ( `uid` VARCHAR( 128 ) NOT NULL , `creationtime` INT UNSIGNED NOT NULL, PRIMARY KEY ( `uid` ) , INDEX ( `creationtime`) )  ENGINE = MYISAM;";
+	$this->QUERY_SQL($sql,$this->database);
+	if(!$this->ok){echo "CREATE TABLE hotspot_members hotspot_members_meta $this->mysql_error\n";}
 	
 	
 
@@ -4233,18 +4247,25 @@ public function check_hotspot_tables(){
 	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`hotspot_activedirectory` (
 				`zmd5` VARCHAR( 90 ),
 				`hostname` VARCHAR( 128 ) NOT NULL ,
+				`ruleid` BIGINT(10) NOT NULL ,
 				`enabled` smallint(1) NOT NULL ,
 				`groups` TEXT NULL ,
 				`ttl` INT UNSIGNED,
 				 PRIMARY KEY ( `zmd5` ) ,
 				 KEY `hostname` (`hostname`),
 				 KEY `enabled` (`enabled`),
+				 KEY `ruleid` (`ruleid`),
 				 KEY `ttl` (`ttl`)
 		
 				)  ENGINE = MYISAM;";
 	$this->QUERY_SQL($sql,$this->database);
 	if(!$this->ok){echo "CREATE TABLE hotspot_activedirectory Failed $this->mysql_error\n";}
 		
+	
+	if(!$this->FIELD_EXISTS("hotspot_activedirectory", "ruleid")){$this->QUERY_SQL("ALTER TABLE `hotspot_activedirectory` ADD `ruleid` BIGINT(10) NOT NULL DEFAULT 0 ,ADD INDEX ( `ruleid` )");}
+	if(!$this->FIELD_EXISTS("hotspot_members", "ruleid")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `ruleid` BIGINT(10) NOT NULL DEFAULT 0 ,ADD INDEX ( `ruleid` )");}
+	if(!$this->FIELD_EXISTS("hotspot_members", "token")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `token` VARCHAR( 128 ) NOT NULL DEFAULT 0,ADD INDEX ( `token` )");}
+	if(!$this->FIELD_EXISTS("hotspot_members", "username")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `username` VARCHAR( 128 ) NOT NULL DEFAULT 0,ADD INDEX ( `username` )");}
 	if(!$this->FIELD_EXISTS("hotspot_members", "activedirectory")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `activedirectory` smallint( 1 ) NOT NULL DEFAULT 0,ADD INDEX ( `activedirectory` )");}
 	if(!$this->FIELD_EXISTS("hotspot_members", "activedirectorycnx")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `activedirectorycnx` VARCHAR( 90 ) ,ADD INDEX ( `activedirectorycnx` )");}		
 	if(!$this->FIELD_EXISTS("hotspot_members", "sessionkey")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `sessionkey` VARCHAR( 90 ) ,ADD INDEX ( `sessionkey` )");}
@@ -4254,7 +4275,64 @@ public function check_hotspot_tables(){
 	if(!$this->FIELD_EXISTS("hotspot_members", "autocreate")){$this->QUERY_SQL("ALTER TABLE `hotspot_members` ADD `autocreate` smallint(1) NOT NULL DEFAULT 0 ,ADD INDEX ( `autocreate` )");}
 		
 }	
+
+
+public function Check_tables_statsapps(){
 	
+	$sql="CREATE TABLE IF NOT EXISTS `StatsApplianceReceiver` (
+	`uuid` VARCHAR(90) NOT NULL,
+	`created` DATETIME NOT NULL,
+	`updated` DATETIME NOT NULL,
+	`ipaddr` VARCHAR(90) NOT NULL,
+	`hostname` VARCHAR(128) NOT NULL,
+	 PRIMARY KEY (`uuid`),
+	 KEY `ipaddr` (`ipaddr`),
+	 KEY `created` (`created`),
+	 KEY `updated` (`updated`),
+	 KEY `hostname` (`hostname`)
+	) ENGINE=MYISAM;";
+	
+	$this->QUERY_SQL($sql);
+
+	
+}
+
+
+public function check_stats_appliance_hourly_uploaded($time=0){
+	if($time==0){$time=date("YmdH");}
+	
+	$sql="CREATE TABLE IF NOT EXISTS `{$time}_statsuapp` (
+	`zDate` DATETIME NOT NULL,
+	`filename` VARCHAR(90) NOT NULL,
+	`filesize` INT UNSIGNED,
+	`uuid` VARCHAR(90) NOT NULL,
+	 KEY `uuid` (`uuid`),
+	 KEY `zDate` (`zDate`),
+	 KEY `filesize` (`filesize`)
+	) ENGINE=MYISAM;";
+	
+	$this->QUERY_SQL($sql);
+	if(!$this->ok){return;}
+	return true;
+	
+}
+public function check_stats_appliance_monthly_uploaded(){
+	$time=date("Ym");
+
+	$sql="CREATE TABLE IF NOT EXISTS `{$time}_Mstatsuapp` (
+	`zDate` DATETIME NOT NULL,
+	`hits` VARCHAR(90) NOT NULL,
+	`size` INT UNSIGNED,
+	`uuid` VARCHAR(90) NOT NULL,
+	KEY `uuid` (`uuid`),
+	KEY `zDate` (`zDate`),
+	KEY `hits` (`size`)
+	) ENGINE=MYISAM;";
+
+	$this->QUERY_SQL($sql);
+
+
+}	
 public function CheckTables($table=null,$force=false){
 		if(isset($GLOBALS[__CLASS__]["FAILED"])){
 			writelogs("Global connection is failed, aborting",__FUNCTION__,__FILE__,__LINE__);
@@ -4299,7 +4377,7 @@ public function CheckTables($table=null,$force=false){
 	$this->TablePrimaireHour();
 	$this->CreateWeekTable();
 	$this->create_webfilters_categories_caches();
-	$this->Check_dansguardian_events_table($table);
+	
 	
 	if($this->TABLE_EXISTS("category_teans")){
 		if(!$this->TABLE_EXISTS("category_teens")){
@@ -4309,59 +4387,11 @@ public function CheckTables($table=null,$force=false){
 	
 	
 
-		
-		
-		$tableblockMonth=date('Ym')."_blocked_days";
-		if(!$this->TABLE_EXISTS($tableblockMonth,'artica_events')){		
-			$sql="CREATE TABLE IF NOT EXISTS `$tableblockMonth` (
-			`zmd5` VARCHAR( 100 ) NOT NULL PRIMARY KEY ,
-			`hits` BIGINT( 100 ),
-			`zDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
-			`client` VARCHAR( 90 ) NOT NULL ,
-			`uid` VARCHAR( 90 ) NOT NULL ,
-			`hostname` VARCHAR( 120 ) NOT NULL ,
-			`MAC` VARCHAR( 20 ) NOT NULL ,
-			`account` INT UNSIGNED NOT NULL ,
-			`website` VARCHAR( 125 ) NOT NULL ,
-			`category` VARCHAR( 50 ) NOT NULL ,
-			`rulename` VARCHAR( 50 ) NOT NULL ,
-			`public_ip` VARCHAR( 40 ) NOT NULL ,
-			KEY `zDate` (`zDate`),
-			KEY `hits` (`hits`),
-			KEY `uid` (`uid`),
-			KEY `client` (`client`),
-			KEY `hostname` (`hostname`),
-			KEY `account` (`account`),
-			KEY `website` (`website`),
-			KEY `category` (`category`),
-			KEY `rulename` (`rulename`),
-			KEY `MAC` (`MAC`),
-			KEY `public_ip` (`public_ip`)
-			
-			)  ENGINE = MYISAM;"; 
-		$this->QUERY_SQL($sql); 
-		
-			if(!$this->ok){
-					writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					$this->mysql_error=$this->mysql_error."\n$sql";
-					return false;
-				}else{
-					writelogs("Checking $table SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
-			}
-
+	if($this->TABLE_EXISTS("webfilters_schedules",$this->database)){
+		if(!$this->FIELD_EXISTS("webfilters_schedules","Params",$this->database)){
+			$this->QUERY_SQL("ALTER TABLE `webfilters_schedules` ADD `Params` TEXT NOT NULL");
 		}
-
-		if(!$this->FIELD_EXISTS("$tableblockMonth", "hostname")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( `hostname` )");}
-		if(!$this->FIELD_EXISTS("$tableblockMonth", "MAC")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( `MAC` )");}
-		if(!$this->FIELD_EXISTS("$tableblockMonth", "account")){$this->QUERY_SQL("ALTER TABLE `$tableblockMonth` ADD `account` INT UNSIGNED NOT NULL ,ADD INDEX ( `account` )");}
-		
-		
-			
-		if($this->TABLE_EXISTS("webfilters_schedules",$this->database)){
-			if(!$this->FIELD_EXISTS("webfilters_schedules","Params",$this->database)){
-				$this->QUERY_SQL("ALTER TABLE `webfilters_schedules` ADD `Params` TEXT NOT NULL");
-			}
-		}
+	}
 
 		
 		
@@ -4441,7 +4471,7 @@ public function CheckTables($table=null,$force=false){
 			";
 		$this->QUERY_SQL($sql,$this->database);	
 
-		
+	
 		
 		$sql="CREATE TABLE IF NOT EXISTS `ufdb_page_rules` (
 			`zmd5` varchar(90) NOT NULL,
@@ -4454,18 +4484,24 @@ public function CheckTables($table=null,$force=false){
 			`infinite` smallint(1) NOT NULL,
 			`addTocat` varchar(255) NOT NULL,
 			`username` varchar(255) NOT NULL,
+			`webruleid` INT(10) NOT NULL,
 			PRIMARY KEY (`zmd5`),
 			KEY `category` (`category`),
 			KEY `deny` (`deny`),
 			KEY `allow` (`allow`),
+			KEY `webruleid` (`webruleid`),
 			KEY `infinite` (`infinite`)
 			) ENGINE=MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);	
 		if(!$this->FIELD_EXISTS("ufdb_page_rules", "maxtime")){
 			$this->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `maxtime` smallint(3) NOT NULL DEFAULT 0, ADD INDEX ( `maxtime` )");
 		}
-		
-
+		if(!$this->FIELD_EXISTS("ufdb_page_rules", "ticket")){
+			$this->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `ticket` smallint(1) NOT NULL DEFAULT 0, ADD INDEX ( `ticket` )");
+		}		
+		if(!$this->FIELD_EXISTS("ufdb_page_rules", "webruleid")){
+			$this->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `webruleid` INT(10) NOT NULL NOT NULL DEFAULT 0, ADD INDEX ( `webruleid` )");
+		}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `UsersAgentsDB` (
@@ -4550,7 +4586,45 @@ public function CheckTables($table=null,$force=false){
 				)  ENGINE = MYISAM;
 			";			
 			$this->QUERY_SQL($sql,$this->database);
+			
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `squid_balancers` (
+			`ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`ipsrc` VARCHAR( 255 ) NOT NULL ,
+			`enabled` INT( 1 ) NOT NULL DEFAULT '1',
+			INDEX ( `enabled`,`ipsrc` )) ENGINE=MYISAM;";
+			$this->QUERY_SQL($sql,$this->database);
+			
 		
+			
+			$sql="CREATE TABLE IF NOT EXISTS `webfilter_quotas` (
+			`ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			enabled smallint(1) NOT NULL,
+			groupname VARCHAR(90) NOT NULL,
+			quotasize INT(10) NOT NULL,
+			quotaPeriod SMALLINT(1) NOT NULL,				
+			UseExternalWebPage smallint(1) NOT NULL DEFAULT '0' ,
+			ExternalWebPage VARCHAR(255) NOT NULL,
+			zOrder SMALLINT(2) NOT NULL,
+			AllSystems smallint(1) NOT NULL,
+			KEY `groupname` (`groupname`),
+			KEY `enabled` (`enabled`),
+			KEY `zOrder` (`zOrder`),
+			KEY `AllSystems` (`AllSystems`))  ENGINE = MYISAM;";
+			$this->QUERY_SQL($sql,$this->database);
+			
+			$sql="CREATE TABLE IF NOT EXISTS `acls_ntlm` (
+			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			enabled smallint(1) NOT NULL,
+			item VARCHAR(256) NOT NULL,
+			Type VARCHAR(20) NOT NULL,
+			KEY `item` (`Type`),
+			KEY `enabled` (`enabled`),
+			KEY `Type` (`Type`))  ENGINE = MYISAM;";
+			$this->QUERY_SQL($sql,$this->database);			
+			
+			
 
 		if(!$this->TABLE_EXISTS('webfilter_rules',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `webfilter_rules` (
@@ -4669,16 +4743,53 @@ public function CheckTables($table=null,$force=false){
 				  KEY `finished` (`finished`)
 				)  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);	
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `proxy_ports_wbl` (
+		`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+		`portid` INT NOT NULL,
+		`pattern` VARCHAR(128) NOT NULL,
+		`include`  smallint(1) NOT NULL DEFAULT '0' ,
+		KEY `pattern` (`pattern`),
+		KEY `include` (`include`),
+		KEY `portid` (`portid`)
+		)  ENGINE = MYISAM;";
+		
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `ssl_rules` (
+				`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				`description` VARCHAR( 128 ) NOT NULL,
+				`zDate` datetime NOT NULL,
+				`crypt` smallint( 1 ) NOT NULL DEFAULT '0',
+				`trust` smallint( 1 ) NOT NULL DEFAULT '0',
+				`enabled` smallint(1) NULL,
+				`ruletype` smallint(1) NULL,
+				`frommeta` smallint(1) NULL,
+				`zOrder` smallint(5) NULL,
+				 KEY `zDate` (`zDate`),
+				 KEY `crypt` (`crypt`),
+				 KEY `trust` (`trust`),
+				 KEY `enabled` (`enabled`),
+			 	 KEY `zOrder` (`zOrder`),
+				 KEY `frommeta` (`frommeta`)
+			 )  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql);
+		
+		
 
 		
 		$sql="CREATE TABLE IF NOT EXISTS `proxy_ports` (
 			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`PortName` VARCHAR(128) NULL,
 			`zMD5` VARCHAR(90) NOT NULL,
 			`xnote` TEXT NULL ,
 			`Params` TEXT NULL ,
 			`ipaddr` VARCHAR(128) NOT NULL,
 			`port` INT NOT NULL,
 			`transparent` smallint(1) NOT NULL DEFAULT '0' ,
+			`is_nat` smallint(1) NOT NULL DEFAULT '0' ,
 			`enabled` smallint(1) NOT NULL DEFAULT '1' ,
 			 KEY `ipaddr` (`ipaddr`),
 			 KEY `enabled` (`enabled`),
@@ -4690,22 +4801,52 @@ public function CheckTables($table=null,$force=false){
 			$this->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `transparent` smallint(1) NOT NULL DEFAULT '0'");
 			if(!$this->ok){echo $this->mysql_error."\n";}
 		}
-		
+		if(!$this->FIELD_EXISTS("proxy_ports", "PortName")){
+			$this->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `PortName` VARCHAR(128) NULL");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}
+
+		if(!$this->FIELD_EXISTS("proxy_ports", "TProxy")){
+			$this->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `TProxy` smallint(1) NOT NULL DEFAULT '0'");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}	
+
+		if(!$this->FIELD_EXISTS("proxy_ports", "is_nat")){
+			$this->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `is_nat` smallint(1) NOT NULL DEFAULT '0'");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}		
 
 		$sql="CREATE TABLE IF NOT EXISTS `itcharters` (
 			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
 			`ChartContent` TEXT NULL,
 			`ChartHeaders` TEXT NOT NULL,
+			`PdfContent` LONGBLOB NULL,
 			`TextIntro` TEXT NOT NULL,
 			`TextButton` VARCHAR(128) NOT NULL,
+			`PdfFileName` VARCHAR(128) NULL,
 			`Params` TEXT NULL ,
 			`title` VARCHAR(255) NOT NULL,
 			`explain` TEXT NOT NULL,
 			`enabled` smallint(1) NOT NULL DEFAULT '1' ,
+			`enablepdf` smallint(1) NOT NULL DEFAULT '0' ,
 			 KEY `title` (`title`),
+			 KEY `enablepdf` (`enablepdf`),
 			 KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);	
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `influxIPClients` (
+			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			 `ipaddr` VARCHAR(128),
+			`hostname` VARCHAR(128),
+			`isServ` smallint(1) NOT NULL DEFAULT '1' ,
+			UNIQUE KEY `ipaddr` (`ipaddr`),
+			KEY `hostname` (`hostname`),  
+			KEY `isServ` (`isServ`)
+			)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);		
+		
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `sarg_performed` (
@@ -4715,12 +4856,30 @@ public function CheckTables($table=null,$force=false){
 			)  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);		
 		
-		
-		
-		if(!$this->FIELD_EXISTS("itcharters", "ChartHeaders")){
-			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `ChartHeaders` TEXT NULL");
+		if(!$this->FIELD_EXISTS("itcharters", "PdfContent")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `PdfContent` LONGBLOB NULL");
 			if(!$this->ok){echo $this->mysql_error."\n";}
 		}
+
+		if(!$this->FIELD_EXISTS("itcharters", "PdfContent")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `PdfContent` LONGBLOB NULL");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}		
+		
+		if(!$this->FIELD_EXISTS("itcharters", "enablepdf")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `enablepdf` smallint(1) NOT NULL DEFAULT '0',ADD INDEX ( `enablepdf` )");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}
+		
+		if(!$this->FIELD_EXISTS("itcharters", "PdfFileName")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `PdfFileName` VARCHAR(128) NULL");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}
+
+		if(!$this->FIELD_EXISTS("itcharters", "PdfFileSize")){
+			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `PdfFileSize` INT UNSIGNED NULL");
+			if(!$this->ok){echo $this->mysql_error."\n";}
+		}		
 		
 		if(!$this->FIELD_EXISTS("itcharters", "TextIntro")){
 			$this->QUERY_SQL("ALTER TABLE `itcharters` ADD `TextIntro` TEXT NULL");
@@ -4883,6 +5042,27 @@ public function CheckTables($table=null,$force=false){
 				KEY `hostname` (`hostname`)
 			 )  ENGINE = MYISAM;";
 		$this->QUERY_SQL($sql,$this->database);		
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `webfiltering_meta_items` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`zmd5` VARCHAR(90) NOT NULL,
+				`pattern` VARCHAR(128) NOT NULL,
+				PRIMARY KEY (`zmd5`),
+				INDEX ( `pattern`) 
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `webfiltering_meta_urls` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`zmd5` VARCHAR(90) NOT NULL,
+				`pattern` VARCHAR(128) NOT NULL,
+				PRIMARY KEY (`zmd5`),
+				INDEX ( `pattern`) 
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+		
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `hotspot_ident` (
@@ -5179,6 +5359,36 @@ public function CheckTables($table=null,$force=false){
 		$this->QUERY_SQL($sql,$this->database);		
 		
 		
+		$sql="CREATE TABLE IF NOT EXISTS `webauth_rules` (
+			`ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			`rulename` varchar(128) NOT NULL,
+			`enabled` smallint(1) NOT NULL,
+			 PRIMARY KEY (`ID`),
+			 KEY `rulename` (`rulename`),
+			 KEY `enabled` (`enabled`)
+			) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql);
+		
+		$sql="CREATE TABLE IF NOT EXISTS `webauth_rules_nets` (
+			`ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			`ruleid` BIGINT UNSIGNED NOT NULL,
+			`pattern` VARCHAR(128) NOT NULL,
+			 PRIMARY KEY (`ID`),
+			 KEY `ruleid` (`ruleid`)	
+		)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql);
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `webauth_settings` (
+			`ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			`ruleid` BIGINT UNSIGNED NOT NULL,
+			`MasterKey` VARCHAR(128) NOT NULL,
+			`MasterValue` TEXT NULL,
+			 PRIMARY KEY (`ID`),
+			 KEY `ruleid` (`ruleid`),
+			 KEY `MasterKey` (`MasterKey`)
+		)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql);		
 		
 		
 			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`UserAuthDays` (
@@ -5523,6 +5733,9 @@ public function CheckTables($table=null,$force=false){
 		}
 		
 		
+	
+		
+		
 			$sql="CREATE TABLE IF NOT EXISTS `webfilters_sqaclsports` (
 			`aclport` SMALLINT( 5 ) PRIMARY KEY,
 			`portname` VARCHAR( 128 ) NOT NULL,
@@ -5597,6 +5810,22 @@ public function CheckTables($table=null,$force=false){
 		}
 		
 		
+		if(!$this->TABLE_EXISTS('sslrules_sqacllinks',$this->database)){
+			$sql="CREATE TABLE `squidlogs`.`sslrules_sqacllinks` (
+			`zmd5` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
+			`aclid` BIGINT UNSIGNED ,
+			`negation` smallint(1) NOT NULL ,
+			`gpid` INT UNSIGNED ,
+			`zOrder` INT( 10 ) NOT NULL ,
+			INDEX ( `aclid` , `gpid`,`negation`),
+			KEY `zOrder`(`zOrder`)
+			)  ENGINE = MYISAM;";
+		
+			$this->QUERY_SQL($sql,$this->database);
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+		}		
+		
+		
 		
 		if(!$this->TABLE_EXISTS('webfilters_sqacllinks',$this->database)){	
 			$sql="CREATE TABLE `squidlogs`.`webfilters_sqacllinks` (
@@ -5668,12 +5897,14 @@ public function CheckTables($table=null,$force=false){
 		
 		
 			
-		$sql="CREATE TABLE `squidlogs`.`webfilters_nodes` (
+		$sql="CREATE TABLE IF NOT EXISTS `webfilters_nodes` (
 		`MAC` VARCHAR( 90 ) NOT NULL PRIMARY KEY ,
 		`uid` VARCHAR( 128 ) NOT NULL ,
 		`hostname` VARCHAR( 128 ),
+		`group` VARCHAR( 128 ),
 		`nmap` smallint(1) NOT NULL ,
 		`nmapreport` TEXT,
+		 KEY `group` (`group`),
 		 INDEX ( `uid`,`nmap`)
 		)  ENGINE = MYISAM;";	
 
@@ -5687,7 +5918,9 @@ public function CheckTables($table=null,$force=false){
 			 `ip` int(10) unsigned NOT NULL default '0',
 			`uid` VARCHAR( 128 ) NOT NULL ,
 			`hostname` VARCHAR( 128 ),
+			`group` VARCHAR( 128 ),
 			 INDEX ( `uid`,`hostname`),
+			 KEY `group` (`group`),
 			 KEY `ip` (`ip`)
 			)  ENGINE = MYISAM;";
 		
@@ -5705,7 +5938,8 @@ public function CheckTables($table=null,$force=false){
 
 			$this->QUERY_SQL($sql,$this->database);
 		}		
-
+		if(!$this->FIELD_EXISTS("webfilters_nodes", "group")){$this->QUERY_SQL("ALTER TABLE `webfilters_nodes` ADD `group` VARCHAR( 128 ),ADD INDEX ( `group` ) ");}
+		if(!$this->FIELD_EXISTS("webfilters_ipaddr", "group")){$this->QUERY_SQL("ALTER TABLE `webfilters_ipaddr` ADD `group` VARCHAR( 128 ),ADD INDEX ( `group` ) ");}
 		if(!$this->FIELD_EXISTS("webfilters_nodes", "nmap")){$this->QUERY_SQL("ALTER TABLE `webfilters_nodes` ADD `nmap` SMALLINT( 1 ) NOT NULL ,ADD INDEX ( `nmap` ) ");}
 		if(!$this->FIELD_EXISTS("webfilters_nodes", "nmapreport")){$this->QUERY_SQL("ALTER TABLE `webfilters_nodes` ADD `nmapreport` TEXT NOT NULL");}		
 		if(!$this->FIELD_EXISTS("webfilters_usersasks", "uid")){$this->QUERY_SQL("ALTER TABLE `webfilters_usersasks` ADD `uid` VARCHAR( 128 ) NOT NULL ,ADD INDEX ( `uid` ) ");}
@@ -5841,6 +6075,14 @@ public function CheckTables($table=null,$force=false){
 			$this->QUERY_SQL($sql,$this->database);
 		}	
 
+		$this->QUERY_SQL("CREATE TABLE IF NOT EXISTS `dashboard_notcached` (
+			`TIME` DATETIME,
+			`PROXYNAME` VARCHAR(128),
+			`SIZE` BIGINT UNSIGNED,
+			KEY `PROXYNAME` (`PROXYNAME`),
+			KEY `TIME` (`TIME`)
+			) ENGINE=MYISAM;"
+		);
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`hotspot_blckports` (
@@ -5908,7 +6150,9 @@ public function CheckTables($table=null,$force=false){
 			  `enabled` smallint(1) NOT NULL,
 			  `PatternType` smallint(1) NOT NULL,
 			  `blockType` smallint(1) NOT NULL,
-			  PRIMARY KEY (`pattern`),
+			  `zmd5` VARCHAR( 90 ) NOT NULL,
+			  PRIMARY KEY (`zmd5`),
+			  KEY `pattern` (`pattern`),
 			  KEY `enabled` (`enabled`),
 			  KEY `blockType` (`blockType`),
 			  FULLTEXT KEY `description` (`description`)
@@ -5916,8 +6160,7 @@ public function CheckTables($table=null,$force=false){
 			$this->QUERY_SQL($sql,$this->database);
 		}	
 		
-		if(!$this->FIELD_EXISTS("webfilters_blkwhlts", "zmd5")){
-			$this->QUERY_SQL("ALTER TABLE `webfilters_blkwhlts` ADD `zmd5` VARCHAR( 90 ) NOT NULL ,ADD INDEX ( `zmd5` )");} 
+
 
 		if(!$this->TABLE_EXISTS('UserAutDB',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `UserAutDB` (
@@ -6001,6 +6244,17 @@ public function CheckTables($table=null,$force=false){
 			$this->QUERY_SQL($sql,$this->database);
 		}
 		
+		$sql="CREATE TABLE IF NOT EXISTS `dashboard_cached` (
+			`TIME` DATETIME,
+			`PROXYNAME` VARCHAR(128),
+			`SIZE` BIGINT UNSIGNED,
+			KEY `PROXYNAME` (`PROXYNAME`),
+			KEY `TIME` (`TIME`)
+			) ENGINE=MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
+		
 	if(!$this->FIELD_EXISTS("webfilter_terms", "xregex")){$this->QUERY_SQL("ALTER TABLE `webfilter_terms` ADD `xregex` smallint( 1 ) NOT NULL ,ADD INDEX ( `xregex` )");}
 
 		if(!$this->TABLE_EXISTS('webfilter_termsassoc',$this->database)){	
@@ -6055,6 +6309,19 @@ public function CheckTables($table=null,$force=false){
 				)  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
 		}	
+		
+		$sql="CREATE TABLE IF NOT EXISTS `webfilters_quotas_blks` (
+				  `ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+				    webfilter_id INT(2) NOT NULL,
+				  	modeblk smallint(1) NOT NULL,
+				  	category VARCHAR(128) NOT NULL,
+				  KEY `webfilter_id` (`webfilter_id`),
+				  KEY `category` (`category`),
+				  KEY `modeblk` (`modeblk`)
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
 
 		if(!$this->TABLE_EXISTS('webfilters_rewriterules',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `webfilters_rewriterules` (
@@ -6115,7 +6382,20 @@ public function CheckTables($table=null,$force=false){
 				  UNIQUE KEY `zMD5` (`zMD5`)
 				)  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}			
+		}		
+		$sql="CREATE TABLE IF NOT EXISTS `webfilter_assoc_quota_groups` (
+				  `ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+				    webfilter_id INT(2) NOT NULL,
+				  	group_id INT(2) NOT NULL,
+				  	zMD5 VARCHAR(90) NOT NULL,
+				  KEY `webfilter_id` (`webfilter_id`),
+				  KEY `group_id` (`group_id`),
+				  UNIQUE KEY `zMD5` (`zMD5`)
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);
+		
+		
+		
 		if(!$this->FIELD_EXISTS("webfilter_assoc_groups", "zMD5")){$this->QUERY_SQL("ALTER TABLE `webfilter_assoc_groups` ADD `zMD5` VARCHAR( 90 ) NOT NULL ,ADD UNIQUE KEY `zMD5` (`zMD5`)");}		
 		
 		if(!$this->TABLE_EXISTS('instant_updates',$this->database)){	
@@ -6608,6 +6888,7 @@ public function CheckTables($table=null,$force=false){
 				`master_category` VARCHAR( 50 ) NOT NULL ,
 				`sended` INT( 1 ) NOT NULL DEFAULT '0',
 				`PublicMode` smallint( 1 ) NOT NULL DEFAULT '0',
+				`Meta` smallint( 1 ) NOT NULL DEFAULT '0',
 				INDEX ( `category_description` , `sended` ) ,
 				KEY `master_category` (`master_category`),
 				KEY `PublicMode` (`PublicMode`),
@@ -6620,6 +6901,12 @@ public function CheckTables($table=null,$force=false){
 				ADD `PublicMode` smallint( 1 ) NOT NULL ,
 				ADD INDEX ( `PublicMode` )");
 		}
+		if(!$this->FIELD_EXISTS("personal_categories", "Meta")){
+			$this->QUERY_SQL("ALTER TABLE `personal_categories`
+				ADD `Meta` smallint( 1 ) NOT NULL ,
+				ADD INDEX ( `Meta` )");
+		}
+
 	
 		
 		
@@ -6875,6 +7162,7 @@ public function CheckTables($table=null,$force=false){
 		
 	}
 	
+
 	
 	FUNCTION UID_FROM_MAC($mac=null){
 		if(trim($mac)==null){return ;}
@@ -6999,18 +7287,27 @@ public function CheckTables($table=null,$force=false){
 	
 	function LIST_ALL_CATEGORIES(){
 		$array=$this->LIST_TABLES_CATEGORIES();
-		$f[]=null;
+		$f=array();
+		$f[null]="----------------------------";
 		$ctz=new mysql_catz();
 		$TransArray=$ctz->TransArray();
 		while (list ($index, $cat) = each ($array) ){
 			if(isset($TransArray[$cat])){$f[$TransArray[$cat]]=$TransArray[$cat];continue;}
-			if(preg_match("#category_(.+)#",$cat,$re)){$f[$re[1]]=$re[1];}
+			if(preg_match("#category_(.+)#",$cat,$re)){
+				$category=trim($re[1]);
+				if(is_numeric($category)){continue;}
+				if($category==null){continue;}
+				$f[$category]=$category;
+			}
 		}
 		
 		$sql="SELECT * FROM personal_categories";
 		$results=$this->QUERY_SQL($sql);
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			$f[$ligne["category"]]=$ligne["category"];
+			$category=trim($ligne["category"]);
+			if(is_numeric($category)){continue;}
+			if($category==null){continue;}
+			$f[$category]=$category;
 		}
 		
 		ksort($f);
@@ -7303,6 +7600,7 @@ public function isCrashedRootRepair($table){
 // ***********************************************************************************************************************************************
 	public function GetFamilySites($sitename){
 		if(isset($GLOBALS["GetFamilySites"][$sitename])){return $GLOBALS["GetFamilySites"][$sitename];}
+		if(!class_exists("squid_familysite")){include_once(dirname(__FILE__)."/class.squid.familysites.inc");}
 		$fam=new squid_familysite();
 		$GLOBALS["GetFamilySites"][$sitename]=$fam->GetFamilySites($sitename);
 		return $GLOBALS["GetFamilySites"][$sitename];
@@ -7687,15 +7985,17 @@ private function CategoriesFamily($www){
 			if(isset($GLOBALS["tablename_tocat"][$tablename])){return $GLOBALS["tablename_tocat"][$tablename];}
 			$trans=$this->TransArray();
 			if(!isset($trans[$tablename])){
-				$ligne2=mysql_fetch_array($this->QUERY_SQL("SELECT category FROM $tablename LIMIT 0,1"));
-				if(trim($ligne2["category"])<>null){
-					$GLOBALS["tablename_tocat"][$tablename]=trim($ligne2["category"]);
-					return trim($ligne2["category"]);
-				}
-				
-				if(preg_match("#category_(.+)#", $tablename,$re)){
-					$GLOBALS["tablename_tocat"][$tablename]=trim(strtolower($re[1]));
-					return trim(strtolower($re[1]));
+				if($this->TABLE_EXISTS("$tablename")){
+					$ligne2=mysql_fetch_array($this->QUERY_SQL("SELECT category FROM $tablename LIMIT 0,1"));
+					if(trim($ligne2["category"])<>null){
+						$GLOBALS["tablename_tocat"][$tablename]=trim($ligne2["category"]);
+						return trim($ligne2["category"]);
+					}
+					
+					if(preg_match("#category_(.+)#", $tablename,$re)){
+						$GLOBALS["tablename_tocat"][$tablename]=trim(strtolower($re[1]));
+						return trim(strtolower($re[1]));
+					}
 				}
 					
 					
@@ -7730,6 +8030,7 @@ private function CategoriesFamily($www){
 		$array["sports"]="recreation/sports";
 		$array["verisign"]="sslsites";
 		$array["associations"]="associations";
+		$array["translation"]="translators";
 		
 		$array["arjel"]="arjel";
 		if(isset($array["$filename"])){return $array["$filename"];}
@@ -8670,30 +8971,7 @@ private function CategoriesFamily($www){
 			}
 	
 
-	function FixTables(){
-		$array=$this->LIST_TABLES_QUERIES();
-		while (list ($tablename, $line) = each ($array)){
-			if(!$this->FIELD_EXISTS($tablename, "MAC")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( MAC )");}
-			if(!$this->FIELD_EXISTS($tablename, "hostname")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( hostname )");}
-			if(!$this->FIELD_EXISTS($tablename, "account")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `account` INT UNSIGNED NOT NULL ,ADD INDEX ( `account` )");}
-		}
-		
-		$array=$this->LIST_TABLES_HOURS();
-		while (list ($tablename, $line) = each ($array)){
-			if(!$this->FIELD_EXISTS($tablename, "MAC")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( MAC )");}
-			if(!$this->FIELD_EXISTS($tablename, "hostname")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( hostname )");}
-			if(!$this->FIELD_EXISTS($tablename, "account")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `account` INT UNSIGNED NOT NULL ,ADD INDEX ( `account` )");}
-		}		
-		
-		$array=$this->LIST_TABLES_MEMBERS();
-		while (list ($tablename, $line) = each ($array)){
-			if(!$this->FIELD_EXISTS($tablename, "MAC")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `MAC` VARCHAR( 20 ) NOT NULL ,ADD INDEX ( MAC )");}
-			if(!$this->FIELD_EXISTS($tablename, "hostname")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `hostname` VARCHAR( 120 ) NOT NULL ,ADD INDEX ( hostname )");}
-			if(!$this->FIELD_EXISTS($tablename, "account")){$this->QUERY_SQL("ALTER TABLE `$tablename` ADD `account` INT UNSIGNED NOT NULL ,ADD INDEX ( `account` )");}
-		}		
-		
-		
-	}
+
 	
 	public function GET_THUMBNAIL($sitename,$width){
 		$sitename=trim(strtolower($sitename));
@@ -8948,7 +9226,15 @@ public function IpToHost($ipaddr=null){
 		$CDay=str_replace("_", "", $CDay);
 		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
 	}	
-	
+	public function TIME_FROM_PREFIX_GENERIC($tablename){
+		preg_match("#([0-9]+)_[a-z]+$#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CDay=substr($intval,6,2);
+		$CDay=str_replace("_", "", $CDay);
+		return strtotime("$Cyear-$CMonth-$CDay 00:00:00");
+	}	
 	
 	public function WEEK_TABLE_TO_MONTH($tablename){
 			$Cyear=substr($tablename, 0,4);
@@ -9246,15 +9532,15 @@ class webfilter_rules{
 	
 			$href="<a href=\"javascript:blur()\"
 			OnClick=\"javascript:YahooWin5(550,'dansguardian2.edit.php?rule-time-ID=yes&TIMEID=$TIMEID&ID=$ID&t=$t','$rule_text:$TIMEID');\"
-			style='font-size:11px;text-decoration:underline'>";
+			style='font-size:14px;text-decoration:underline'>";
 	
 	
 			$textfinal=$tpl->javascript_parse_text("{each} $daysText");
 	
 	
-			$FINAL[]="<div>$href<i>$textfinal</i></a></div>";
+			$FINAL[]="<span style='font-size:14px'>$href<i>$textfinal</i></a></span>";
 		}
-		if(count($FINAL)>0){return @implode("\n", $FINAL);}
+		if(count($FINAL)>0){return @implode("<br>", $FINAL);}
 		//rule_time_list_explain($ligne["TimeSpace"]);
 	
 	}	

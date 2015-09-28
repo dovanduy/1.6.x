@@ -37,7 +37,7 @@ $tpl=new templates();
 	<tr>
 		<td width=1%><img src='img/databases-search-net-128.png' id='databases-search-net-128'></td>
 		<td valign='top'>
-			<div class=text-info>{adSearchPopupHowto}</div>
+			<div class=explain>{adSearchPopupHowto}</div>
 			<table style='width:100%'>
 				<tr>
 					<td class=legend>{server_host}:</td>
@@ -82,7 +82,7 @@ function QueryLDAPDBBrowse(){
 	if(!$con){
 			$errornumber=ldap_errno($con);
 			$error_text=ldap_err2str($con);
-			echo $tpl->_ENGINE_parse_body("<H3 style='color:red'>{failed}: $ldap_host:389 ($error_text)</H3>");
+			echo $tpl->_ENGINE_parse_body("<H3 style='color:#d32d2d'>{failed}: $ldap_host:389 ($error_text)</H3>");
 			return;
 	}
 	
@@ -113,7 +113,7 @@ if(!$ldapbind){
 						$error=$error . "Could not bind to the LDAP server $error_text";
  				}			
 
-		echo $tpl->_ENGINE_parse_body("<H3 style='color:red'>{failed} Error number $errornumber,$error_text<br>$error</H3>");
+		echo $tpl->_ENGINE_parse_body("<H3 style='color:#d32d2d'>{failed} Error number $errornumber,$error_text<br>$error</H3>");
 		return;
 	}
 
@@ -127,7 +127,7 @@ if(!$ldapbind){
 		if(!$sr){
 			$errornumber=ldap_errno($con);
 			$error_text=ldap_err2str($errornumber);	
-			echo $tpl->_ENGINE_parse_body("<H3 style='color:red'>{failed} Error number $errornumber,$error_text</H3>");
+			echo $tpl->_ENGINE_parse_body("<H3 style='color:#d32d2d'>{failed} Error number $errornumber,$error_text</H3>");
 			ldap_close($con);	
 			return;	
 		}

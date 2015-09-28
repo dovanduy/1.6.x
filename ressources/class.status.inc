@@ -856,12 +856,12 @@ function Samba_status(){
 private function squid_categorized_websites(){
 	if(!$this->is_squid_statistics()){
 		
-		if($GLOBALS["VERBOSE"]){echo "<span style='font-size:22px;color:red'>is_squid_statistics FALSE</span><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='font-size:22px;color:#d32d2d'>is_squid_statistics FALSE</span><br>\n";}
 		return "<!-- ". date('Y-m-d H:is')." is_squid_statistics FALSE -->";}
 	$pointers="OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" ";
 	$q=new mysql_catz();
 	$categories=$q->COUNT_CATEGORIES();
-	if($GLOBALS["VERBOSE"]){echo "<span style='font-size:22px;color:red'>COUNT_CATEGORIES: $categories</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='font-size:22px;color:#d32d2d'>COUNT_CATEGORIES: $categories</span><br>\n";}
 	if($categories==0){return "<!-- ". date('Y-m-d H:is')." categories = 0 -->";}
 	$categories=numberFormat($categories,0,""," ");
 	$categorized_websites="<div style='font-size:12px;text-align:right;width:220px' 
@@ -935,15 +935,26 @@ private function is_squid_statistics(){
 	
 	
 	if($DisableArticaProxyStatistics==1){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:red;font-size:22px'>NOT AS STATS FOR SQUID</span><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d;font-size:22px'>NOT AS STATS FOR SQUID</span><br>\n";}
 		$GLOBALS["is_squid_statistics"]=false;
 		return $GLOBALS["is_squid_statistics"];
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red;font-size:22px'>AS STATS FOR SQUID</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d;font-size:22px'>AS STATS FOR SQUID</span><br>\n";}
 	$GLOBALS["is_squid_statistics"]=true;
 	return $GLOBALS["is_squid_statistics"];
 }
+
+function proxy_sum_of_requests(){
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/PROXY_REQUESTS_NUMBER")){return 0;}
+	$num=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/PROXY_REQUESTS_NUMBER");
+	return numberFormat($num,0,""," ");	
+	
+	
+}
+
+
 
 function kav4proxy_status(){
 	if(!function_exists("mysql_connect")){
@@ -976,8 +987,8 @@ function kav4proxy_status(){
 		$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
 		
 	}
-	$requests=$q->COUNT_ROWS("$table","artica_events");
-	$requests=numberFormat($requests,0,""," ");	
+	$requests=$this->proxy_sum_of_requests();
+	
 	
 	$sql="SELECT COUNT( zmd5 ) AS tcount FROM kav4proxyVirus WHERE MONTH( days ) = MONTH( NOW( ) ) ";
 	$ligneW=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
@@ -1134,12 +1145,12 @@ function xr_status(){
 	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
 	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
 	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
-	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}	
+	if(preg_match("#2\.10.*#",$master_version)){$img='status_postfix_bg_ok210.png';}	
 	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
 	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
 	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
 	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
-			
+	if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}			
 
 	$design="
 	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
@@ -1157,6 +1168,7 @@ function xr_status(){
 }
 	
 function Squid_status($NOCACHE=false){
+	include_once(dirname(__FILE__)."/class.influx.inc");
 	if($GLOBALS["VERBOSE"]){echo "<strong>function:".__FUNCTION__." Line:".__LINE__."</strong><br>\n";}
 	if(!function_exists("mysql_connect")){
 		return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";
@@ -1167,11 +1179,12 @@ function Squid_status($NOCACHE=false){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$start=null;
+	$connectedApps=null;
 	
 	$sock->getFrameWork('cmd.php?squid-ini-status=yes');
 	$ini->loadFile("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
 	
-	if($GLOBALS["VERBOSE"]){echo "<p style='color:red'>".__FUNCTION__.":: cmd.php?squid-ini-status=yes [".strlen($content)."bytes]</p>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<p style='color:#d32d2d'>".__FUNCTION__.":: cmd.php?squid-ini-status=yes [".strlen($content)."bytes]</p>\n";}
 	
 	
 	$master_pid=$ini->_params["SQUID"]["master_pid"];
@@ -1204,6 +1217,7 @@ if($ini->_params["SQUID"]["running"]==0){
 			if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
 			if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
 			if(preg_match("#3\.4.*#",$master_version)){$img='status_postfix_bg_ok34.png';}
+			if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}
 			$since="{since} ".$ini->_params["SQUID"]["uptime"];
 			$text="{service_running}<br>{using_version} $master_version {pid} $master_pid $since";
 	}
@@ -1278,6 +1292,9 @@ if($IsIcapClient<>'TRUE'){
 	$APP_NGINX=DAEMON_STATUS_LINE("APP_NGINX",$ini,null,1,"220px",true,1,"blur()");
 	$APP_UFDBCAT=DAEMON_STATUS_LINE("APP_UFDBCAT",$ini,null,1,"220px",true,1,"blur()");
 	$APP_HYPERCACHE_WEB=DAEMON_STATUS_LINE("APP_HYPERCACHE_WEB",$ini,null,1,"220px",true,1,"blur()");
+	$APP_NTOPNG=DAEMON_STATUS_LINE("APP_NTOPNG",$ini,null,1,"220px",true,1,"blur()");
+	$APP_INFLUXDB=DAEMON_STATUS_LINE("APP_INFLUXDB",$ini,null,1,"220px",true,1,"blur()");
+	
 	
 	
 	if($EnableTransparent27==1){
@@ -1322,27 +1339,31 @@ if($IsIcapClient<>'TRUE'){
 	
 	$quotahour_table="quotatemp_".date('YmdH');
 	$quotaday_table="quotaday_".date("Ymd");
-	
-	
-	$q=new mysql_squid_builder();
-	if($q->TABLE_EXISTS($quotahour_table)){
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $quotahour_table"));
-		$size=FormatBytes($ligne["size"]/1024);
-		$hoursize=$size;
-		$quota_hour_text="<div style='font-size:12px;text-align:right;width:220px'>
-				<i><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-hour.php');\" 
-				style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_hour}: $size</a></div>";
-	}
-	if($q->TABLE_EXISTS($quotaday_table)){
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(size) as size FROM $quotaday_table"));
-		
-		if($hoursize>0){$ligne["size"]=$ligne["size"]+$hoursize;}
-		$size=FormatBytes($ligne["size"]/1024);
+	$today=strtotime(date("Y-m-d 00:00:00"));
+	$thishour=strtotime(date("Y-m-d H:00:00"));
+	$influx=new influx();
+	$sql="select sum(SIZE) as size from MAIN_SIZE group by time(1d) where time > $today";
+	if($GLOBALS["VERBOSE"]){echo "<H2>$sql</H2>\n";}
+	$main=$influx->QUERY_SQL($sql);
+	$size=intval($main[0]->size);
+	if($size>0){
+		$size=FormatBytes($size/1024);
 		$quota_day_text="<div style='font-size:12px;text-align:right;width:220px'>
-		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-day.php');\" 
-				style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_day}: $size</a></i></div>";
-	}	
-	//$RemoteStatisticsApplianceSettings["SERVER"]
+		<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-day.php');\"
+		style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_day}: $size</a></i></div>";
+	}
+	
+	$sql="select sum(SIZE) as size from MAIN_SIZE group by time(1h) where time > $thishour";
+	$main=$influx->QUERY_SQL($sql);
+	$size=intval($main[0]->size);
+	if($size>0){
+		$size=FormatBytes($size/1024);
+		$quota_hour_text="<div style='font-size:12px;text-align:right;width:220px'>
+		<i><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.users-size-hour.php');\" 
+		style='font-weight:bold;text-decoration:underline'><i>{downloaded} {this_hour}: $size</a></div>";
+	}
+	
+
 	
 	
 	
@@ -1351,11 +1372,8 @@ if($IsIcapClient<>'TRUE'){
 		if($EnableRemoteStatisticsAppliance==0){
 				if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
 				$q=new mysql_squid_builder();
-				$requests=$q->EVENTS_SUM();
-				if($requests>0){
-					$requests=numberFormat($requests,0,""," ");
-					$requests_text="<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>";
-				}
+				$requests=$this->proxy_sum_of_requests();
+				$requests_text="<div style='font-size:12px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><i><strong>$requests {requests}</strong></i></div>";
 				
 				$q=new mysql_squid_builder();
 				$tableblock=date('YW')."_blocked_week";	
@@ -1378,7 +1396,7 @@ if($IsIcapClient<>'TRUE'){
 				$catz=new mysql_catz();
 				$categories=$catz->COUNT_CATEGORIES();
 				if($GLOBALS["VERBOSE"]){
-					echo "<span style='color:red;font-size:22px'>COUNT_CATEGORIES -> $categories</span><br>\n";
+					echo "<span style='color:#d32d2d;font-size:22px'>COUNT_CATEGORIES -> $categories</span><br>\n";
 				}
 				
 				if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
@@ -1446,12 +1464,6 @@ if($IsIcapClient<>'TRUE'){
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "<strong>WEBSTATS STATUS LINE:".__LINE__."</strong><br>\n";}
-	if($DisableArticaProxyStatistics==1){	
-		$catz=new mysql_catz();
-		$categories=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
-		$stats_paragraphe="<div style='font-size:12px;text-align:right;width:220px' $pointers OnClick=\"javascript:Loadjs('squid.categories.php',true)\"><i><strong style='text-decoration:underline'>$categories {websites_categorized}</strong></i></div>$persoCatz";			
-		
-	}
 	
 	
 	$migration_pid=unserialize(base64_decode($sock->getFrameWork("squid.php?migration-stats=yes")));
@@ -1485,10 +1497,13 @@ if($IsIcapClient<>'TRUE'){
 			$APP_UFDBGUARD_CLIENT
 			$APP_ARTICADB
 			$APP_SQUID_DB
+			$APP_INFLUXDB
 			$APP_UFDBCAT
 			$APP_HYPERCACHE_WEB
 			$DNSMASQ_SQUID
-			$APP_NGINX</span>
+			$APP_NGINX
+			$APP_NTOPNG
+			</span>
 			$stats_paragraphe
 			$quota_hour_text
 			$quota_day_text
@@ -1559,7 +1574,7 @@ $stat=unserialize(base64_decode($sock->getFrameWork("cmd.php?postfix-mutli-stat=
 		case '0':
 			
 			$img='status_postfix_bg_failed.png';
-			$text='<span style=color:red>{service_stopped}<br>{using_version} ' . $stat[1]."</span>";
+			$text='<span style=color:#d32d2d>{service_stopped}<br>{using_version} ' . $stat[1]."</span>";
 			$start="<hr><div style='text-align:right'>".button("{start}","MultipleInstanceRestart()")."</div>";
 			
 					
@@ -1665,11 +1680,11 @@ function WEBSTATS(){
 		$APP_UFDBGUARD=DAEMON_STATUS_LINE("APP_UFDBGUARD",$ini,null,0,"220px",true,0,"Loadjs('ufdbguard.php')");
 		$APP_UFDBGUARD_CLIENT=DAEMON_STATUS_LINE("APP_UFDBGUARD_CLIENT",$ini,null,0,"220px",true,0,"Loadjs('ufdbguard.php')");
 		$APP_ARTICADB=DAEMON_STATUS_LINE("APP_ARTICADB",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php',true)");
-		
+		$APP_NTOPNG=DAEMON_STATUS_LINE("APP_NTOPNG",$ini,null,1,"220px",true,1,"Loadjs('squid.categories.php',true)");
 		if($EnableRemoteStatisticsAppliance==1){$APP_ARTICADB=null;}
 		
-		$requests=$q->EVENTS_SUM();
-		$requests=numberFormat($requests,0,""," ");
+		
+		$requests=$this->proxy_sum_of_requests();
 		
 		$websitesnums=$q->COUNT_ROWS("visited_sites");
 		$websitesnums=numberFormat($websitesnums,0,""," ");
@@ -1699,10 +1714,10 @@ $design="
 		<div style='padding-left:155px;min-height:250px'>
 			<h3 style='font-size:16px;font-weight:bold;'>{APP_STATISTICS_APPLIANCE}</h3>
 			<br><span style='font-size:11px;font-weight:bold'><i style='color:black'>$text</i>$start$
-			APP_ARTICADB$icap
-			$status_dansguardian$status_kav4proxy$cicap
-			$APP_SQUIDGUARD_HTTP$APP_UFDBGUARD
-			$APP_UFDBGUARD_CLIENT$APP_UFDBCAT</span>
+			APP_ARTICADB
+			$cicap
+			$APP_UFDBGUARD
+			$APP_UFDBGUARD_CLIENT$APP_NTOPNG</span>
 			$stats_paragraphe
 			
 		</div>
@@ -2027,7 +2042,7 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	
 	if($ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]>0){
 		if($tot>$ini_notifs->_params["SMTP"]["PostfixQueueMaxMails"]){
-			$tot="<span style='font-size:12px;font-weight:bold;color:red'>$tot</span>";
+			$tot="<span style='font-size:12px;font-weight:bold;color:#d32d2d'>$tot</span>";
 		}
 	}
 		
@@ -2157,7 +2172,7 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 			break;
 		case '0':
 			$img='status_postfix_bg_failed.png';
-			$text="<span style=color:red>{service_stopped}<br>{using_version} " . $stat[1]."</span>";
+			$text="<span style=color:#d32d2d>{service_stopped}<br>{using_version} " . $stat[1]."</span>";
 			$startup=urlencode("/etc/init.d/postfix");
 			$start="<hr><div style='text-align:right'>".button("{start}","Loadjs('system.services.cmd.php?APPNAME=APP_POSTFIX&action=start&cmd=$startup&id=&appcode=APP_POSTFIX')")."</div>";
 					
@@ -2166,7 +2181,7 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 	
 	if($EnableStopPostfix==1){
 		$textStopped="<div><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('postfix.stop.php');\"
-		style='color:red;text-decoration:underline;font-size:11px;font-weight:bold'><i>{service_forced_to_be_stopped}</i></a></div>";
+		style='color:#d32d2d;text-decoration:underline;font-size:11px;font-weight:bold'><i>{service_forced_to_be_stopped}</i></a></div>";
 	}
 	
 	if(count($multis)>0){$multiples_instances=@implode("\n",$multis);}
@@ -2223,7 +2238,7 @@ function fetchmail_satus(){
 			$text='{service_running}<br>{using_version} ' . $stat[1]. ' {pid} ' . $stat[2];
 			break;
 		case '0':$img='warning24.png';
-			$text='{service_stopped}<br>{using_version} ' . $stat[1] . ' {pid} ' . $stat[2] . "<br><i style='color:red'>{$user->fetchmail_daemon_logs}</i>";
+			$text='{service_stopped}<br>{using_version} ' . $stat[1] . ' {pid} ' . $stat[2] . "<br><i style='color:#d32d2d'>{$user->fetchmail_daemon_logs}</i>";
 					
 			break;
 	}

@@ -81,10 +81,13 @@ if($prc>=100){
 	echo "
 	function Start$time(){
 		if(!RTMMailOpen()){return;}
-		document.getElementById('title-$t').innerHTML='$title';
-		$('#progress-$t').progressbar({ value: $prc });
-		LayersTabsAllAfter();
-		RTMMailHide();
+			document.getElementById('title-$t').innerHTML='$title';
+			$('#progress-$t').progressbar({ value: $prc });
+			LayersTabsAllAfter();
+			RTMMailHide();
+			if(document.getElementById('proxy-store-caches')){
+				LoadAjaxRound('proxy-store-caches','admin.dashboard.proxy.caches.php');
+			}
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	

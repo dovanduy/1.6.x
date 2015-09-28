@@ -42,7 +42,7 @@ function page(){
 	
 	$html="<center id='amavisbypassList'></center>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
-	<div class=text-info style='font-size:14px'>{amavis_bypass_servers_explain}</div>
+	<div class=explain style='font-size:14px'>{amavis_bypass_servers_explain}</div>
 	<script>
 	
 $(document).ready(function(){

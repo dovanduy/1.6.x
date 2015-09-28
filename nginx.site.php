@@ -59,27 +59,31 @@ function tabs(){
 	
 	//$array["main"]="$servername_text";
 	if($servername<>null){
-		$array["main_parameters"]="$servername_text";
+		$array["main_parameters"]="{parameters}";
 		$array["aliases"]="{aliases}";
-		
+		$array["replace"]="{replace_rules}";
+		$array["anti_exploits"]="{anti_exploits}";
+		if($cache_peer_id>0){$array["cache"]="{cache}";}
 		
 	}
 	
-	if($cache_peer_id>0){
+
 		
+		
+	$array["ssl"]="{ssl-options}";
+	
+	if($cache_peer_id>0){
+	
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr,port FROM reverse_sources WHERE ID='{$cache_peer_id}'"));
 		if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error);return;}
 		$array["destination"]=$ligne["ipaddr"].":".$ligne["port"];
-		
+	
 	}else{
 		$array["destination-none"]="{destination}";
 	}
-		
-		
-	$array["ssl"]="{ssl}";
 
 	
-	$fontsize=18;
+	$fontsize=24;
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="ssl"){
@@ -91,13 +95,28 @@ function tabs(){
 			continue;
 		}
 		
+		if($num=="replace"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.replace.rules.php?servername=$servername_enc\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		if($num=="aliases"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.site.aliases.php?servername=$servername_enc\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="cache"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.site.cache.php?servername=$servername_enc\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}		
 	
 		if($num=="destination"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.peer.php?general-settings=yes&ID=$cache_peer_id\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="anti_exploits"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.anti-exploits.php?servername=$servername_enc\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
@@ -111,7 +130,16 @@ function tabs(){
 	$t=time();
 	//
 	
-	echo build_artica_tabs($tab, "main_nginx_server");	
+	echo $tpl->_ENGINE_parse_body(
+		"<div style='font-size:30px;margin-bottom:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:GoToNginxLists();\"
+			style='text-decoration:underline'
+			>{back_to_list}</a>&nbsp;|&nbsp;$servername_text</div>"	
+		
+			
+			
+			);
+	
+	echo build_artica_tabs($tab, "main_nginx_server",1490);	
 	
 }
 
@@ -134,8 +162,8 @@ function main_parameters(){
 	$html[]="<div style='width:98%' class=form>";
 	$html[]="<table style='width:100%'>";
 	$html[]="<tr><td colspan=2 style='font-size:36px;margin-bottom:20px'>{main_parameters}</td></tr>";
-	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{enable_website}", "{nginx_enable_www_text}","enabled-$t",$ligne["enabled"],null,820)."</td></tr>";
-	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{default_server}", "{NGINX_DEFAULT_SERVER}<br>{nginx_default_server_text}","default_server-$t",$ligne["default_server"],null,820)."</td></tr>";
+	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{enable_website}", "{nginx_enable_www_text}","enabled-$t",$ligne["enabled"],null,1400)."</td></tr>";
+	$html[]="<tr><td colspan=2>".Paragraphe_switch_img("{default_server}", "{NGINX_DEFAULT_SERVER}<br>{nginx_default_server_text}","default_server-$t",$ligne["default_server"],null,1400)."</td></tr>";
 	
 	
 	$html[]=Field_text_table("zOrder-$t","{order}",$ligne["zOrder"],26,null,90);

@@ -249,43 +249,7 @@ function popup_dn_tabs(){
 	
 }
 
-function config(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	
-	$array["config-service"]='{global_parameters}';
-	$array["forward-zones"]='{forward_zones}';
-	$array["restricts"]='{restrictions}';
-	
-	
-	
-	while (list ($num, $ligne) = each ($array) ){
-		
-		if($num=="forward-zones"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.forward-zone.php\"><span>$ligne</span></a></li>\n");
-			continue;
-			
-		}
-		if($num=="restricts"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.restricts.php\"><span>$ligne</span></a></li>\n");
-			continue;
-				
-		}		
-		
-		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&dn-entry=$dn\"><span>$ligne</span></a></li>\n");
-	}
-	
-	
-	echo "
-	<div id=main_config_pdns_general style='width:100%;'>
-	<ul style='font-size:16px'>". implode("\n",$html)."</ul>
-	</div>
-	<script>
-	$(document).ready(function() {
-	$(\"#main_config_pdns_general\").tabs();});
-	</script>";	
-}
+
 
 
 function config_service(){
@@ -916,9 +880,13 @@ function tabs(){
 	if(!is_numeric($PowerDNSDisableLDAP)){$PowerDNSDisableLDAP=1;}
 	$PowerDNSMySQLEngine=$sock->GET_INFO("PowerDNSDisableLDAP");
 	$PowerDNSMySQLEngine=1;
-	if($users->AsDnsAdministrator){$array["status"]='{status}';}
+	
 	if($users->AsDnsAdministrator){$array["config"]='{parameters}';}
-	if($users->AsDnsAdministrator){$array["listen_ip"]='{listen_ip}';}
+	if($users->AsDnsAdministrator){
+		$array["listen_ip"]='{listen_ip}';
+		$array["forward-zones"]='{forward_zones}';
+		$array["restricts"]='{restrictions}';
+	}
 	
 	
 	
@@ -932,14 +900,31 @@ function tabs(){
 	
 	//if($users->AsDnsAdministrator){$array["popup-replic"]='{replication}';}
 	if($users->AsDnsAdministrator){$array["infos"]='{infos}';}
-	if($users->AsDnsAdministrator){$array["logs"]='{events}';}
+	
 	if($users->POWERADMIN_INSTALLED){$array["webconsole"]="{webconsole}";}
 	
 	
-		$fontsize="style='font-size:20px'";
+		$fontsize="style='font-size:24px'";
 	
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="forward-zones"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.forward-zone.php\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+				
+		}
+		if($num=="restricts"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.restricts.php\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		
+		}
+		
+		if($num=="config"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.php?config-service=yes&dn-entry=\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		
 		if($num=="popup-mysql"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"pdns.mysql.php\"><span $fontsize>$ligne</span></a></li>\n");
@@ -1044,12 +1029,12 @@ function status_section(){
 	$t=time();
 	$time=time();
 	
-	$ttr[]=$dns_filter;
-	$ttr[]=$add;
-	$ttr[]=$repair_database;
-	$ttr[]=$help;
-	$ttr[]=$tests;
-	$buttons=CompileTr2($ttr,"form");
+	$ttr[]="<div style='float:left'>".$dns_filter."</div>";
+	$ttr[]="<div style='float:left'>".$add."</div>";
+	$ttr[]="<div style='float:left'>".$repair_database."</div>";
+	$ttr[]="<div style='float:left'>".$help."</div>";
+	$ttr[]="<div style='float:left'>".$tests."</div>";
+	$buttons="<center style='margin:15px'>".@implode("", $ttr)."</center>";
 	
 	if($EnablePDNS==1){
 		$q=new mysql();
@@ -1094,7 +1079,7 @@ function status_section(){
 			<tr>
 				<td colspan=2>
 					$errordb
-					". Paragraphe_switch_img("{EnablePDNS}", "{pdns_explain}","EnablePDNS$t",$EnablePDNS,null,630)."
+					". Paragraphe_switch_img("{EnablePDNS}", "{pdns_explain}","EnablePDNS$t",$EnablePDNS,null,1040)."
 					<hr>
 					<div style='width:100%;text-align:right;margin-bottom:15px'>
 							". button("{apply}","SaveEnablePowerDNS()",30)."</div>
@@ -1215,7 +1200,7 @@ function dnslist(){
 		
 		
 		if($EnablePDNS==0){
-			if(!$users->dnsmasq_installed){$warn="<center><div style='font-size:16px;color:red'>{warn_pdns_is_disabled}</div><hr></center>";}else{if($EnableDNSMASQLDAPDB==0){$warn="<center><div style='font-size:16px;color:red'>{warn_pdns_is_disabled}</div><hr></center>";}}
+			if(!$users->dnsmasq_installed){$warn="<center><div style='font-size:16px;color:#d32d2d'>{warn_pdns_is_disabled}</div><hr></center>";}else{if($EnableDNSMASQLDAPDB==0){$warn="<center><div style='font-size:16px;color:#d32d2d'>{warn_pdns_is_disabled}</div><hr></center>";}}
 		}
 		
 		$html="$warn
@@ -1337,7 +1322,7 @@ function popup_adddns(){
 
 $html="		
 
-<div class=text-info>{ADD_DNS_ENTRY_TEXT}</div>
+<div class=explain>{ADD_DNS_ENTRY_TEXT}</div>
 <div id='SaveDNSEntry'>
 <table style='width:99%' class=form>
 <tr>	
@@ -2059,7 +2044,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		
-		{display: '$events', name : 'content', width :838, sortable : true, align: 'left'},
+		{display: '$events', name : 'content', width :1463, sortable : true, align: 'left'},
 
 	],
 	$buttons
@@ -2076,8 +2061,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 870,
-	height: $TB_HEIGHT,
+	width: '99%',
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 	
@@ -2128,12 +2113,12 @@ function events_query_list(){
 	while (list ($volume_name, $ligne) = each ($array) ){
 		$id=md5($ligne);
 		
-		$ligne=wordwrap($ligne,140,"</br>");
+		
 		
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
-			"<span style='font-size:12px;'>$ligne</span>",
+			"<span style='font-size:16px;'>$ligne</span>",
 			
 		
 		  	

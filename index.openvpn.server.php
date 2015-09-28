@@ -182,7 +182,7 @@ $html="
 <tr><td colspan=3 align='right'><hr>". button("{apply}","SaveOpenVpnServerParams()",32)."</td></tr>
 </table>
 <div style='font-size:32px'><strong>{service_informations}</strong></div>
-<div class=text-info style='font-size:18px'>{openvpn_ippub_explain}</div>
+<div class=explain style='font-size:18px'>{openvpn_ippub_explain}</div>
 <table style='width:99%' class=form>
 <tr>
 	<td class=legend style='font-size:22px' id='PUBLIC_IP_FIELD'>{public_ip_addr}:</td>
@@ -322,7 +322,7 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 	
 	
 	$html="
-<div class=text-info id='openvpnserverform2'>{LOCAL_NETWORK} {SERVER_MODE_TUNE}</div>
+<div class=explain id='openvpnserverform2'>{LOCAL_NETWORK} {SERVER_MODE_TUNE}</div>
 <div style='width:98%' class=form>	
 			<div style='font-size:32px;margin-bottom:30px'><strong>{DHCP_SERVICE_OPENVPN}</strong></div>		
 <table style='width:99%' >

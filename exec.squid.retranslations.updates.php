@@ -63,12 +63,7 @@ function updates_retranslation($MAC,$uid){
 	$q->QUERY_SQL($sql);	
 	
 	
-	$TABLES=$q->LIST_TABLES_QUOTA_HOURS();
-	while (list ($tablename, $rows) = each ($TABLES) ){
-		$sql="UPDATE `$tablename` SET uid='$uid' WHERE MAC='$MAC'";
-		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error;}
-	}
+
 
 	$TABLES=$q->LIST_TABLES_QUOTADAY();
 	while (list ($tablename, $rows) = each ($TABLES) ){
@@ -90,12 +85,7 @@ function updates_retranslation($MAC,$uid){
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo $q->mysql_error;}
 	}
-	$TABLES=$q->LIST_TABLES_HOURS();
-	while (list ($tablename, $rows) = each ($TABLES) ){
-		$sql="UPDATE `$tablename` SET uid='$uid' WHERE MAC='$MAC'";
-		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error;}
-	}
+
 	$TABLES=$q->LIST_TABLES_USERSIZED();
 	while (list ($tablename, $rows) = each ($TABLES) ){
 		$sql="UPDATE `$tablename` SET uid='$uid' WHERE MAC='$MAC'";

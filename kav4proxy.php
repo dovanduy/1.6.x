@@ -96,7 +96,7 @@ function kav4proxy_status(){
 	$pattern_date=base64_decode($sock->getFrameWork("kav4proxy.php?pattern-date=yes"));
 	$pattern_date_org=$pattern_date;
 	if($pattern_date==null){
-		$pattern_date="<strong style='font-size:11px;color:#C61010'>{av_pattern_database_obsolete_or_missing}</strong>";}
+		$pattern_date="<strong style='font-size:18px;color:#C61010'>{av_pattern_database_obsolete_or_missing}</strong>";}
 	else{
 		$day=substr($pattern_date, 0,2);
 		$month=substr($pattern_date, 2,2);
@@ -109,14 +109,14 @@ function kav4proxy_status(){
 	}
 	
 	
-	$iconupdate="arrow-right-16.png";
+	$iconupdate="arrow-right-24.png";
 	$updatejs="<a href=\"javascript:blur();\"
 	OnClick=\"javascript:UpdateKav4Proxy$t();\"
-	style='font-size:12px;text-decoration:underline'>";
+	style='font-size:18px;text-decoration:underline'>";
 	
 	if($ini->_params["KAV4PROXY_KEEPUP2DATE"]["running"]==1){
 		$iconupdate="preloader.gif";
-		$updatejs="<span style='font-size:12px;'>";
+		$updatejs="<span style='font-size:18px;'>";
 		$pattern_date="{downloading}";
 	}	
 	$expire=$tpl->_ENGINE_parse_body("{expire}");
@@ -136,14 +136,14 @@ function kav4proxy_status(){
 		}
 		$license_text="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:Loadjs('Kav4Proxy.License-infos.php');\"
-			style='font-size:11px;font-weight:bold;color:$expiredate_color;text-decoration:underline'>$expire:$expiredate</strong>";		
+			style='font-size:18px;font-weight:bold;color:$expiredate_color;text-decoration:underline'>$expire:$expiredate</strong>";		
 	}else{
 		$sock->getFrameWork("squid.php?kav4proxy-license-generate=yes");
 		$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
 		if($licenseerror<>null){
 			$license_text="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:Loadjs('Kav4Proxy.License.php');\"
-			style='font-size:11px;font-weight:bold;color:#C61010;text-decoration:underline'>$licenseerror</strong>";
+			style='font-size:18px;font-weight:bold;color:#C61010;text-decoration:underline'>$licenseerror</strong>";
 		}
 	}
 	
@@ -179,18 +179,14 @@ function kav4proxy_status(){
 			$jsa=null;
 			$jsb=null;
 			
-			if($link[$ligne]){
-				$jsa="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\"
-				style='font-size:14px;text-decoration:underline'>";
-				$jsb="</a>";
-			}
+	
 			
 			
 			
 		$status[]="
 		<tr>
-			<td class=legend nowrap>{kav4_$ligne}:</td>
-			<td style='font-size:14px'>$jsa{$ligne_query[$ligne]}$jsb</td>
+			<td class=legend style='font-size:18px' nowrap>{kav4_$ligne}:</td>
+			<td style='font-size:18px'>$jsa{$ligne_query[$ligne]}$jsb</td>
 			<td width=1%>". help_icon("{kav4_{$ligne}_text}")."</td>
 		</tr>";	 	 	 	 	 	 	 	 	 	 	 	
 		}
@@ -222,8 +218,8 @@ function kav4proxy_status(){
 	<table class=form>
 	<tbody>
 		<tr>
-			<td class=legend nowrap>{pattern_date}:</td>
-			<td style='font-size:14px' colspan=2>$pattern_date</td>
+			<td class=legend style='font-size:18px' nowrap>{pattern_date}:</td>
+			<td style='font-size:18px' colspan=2>$pattern_date</td>
 		</tr>
 		
 		
@@ -234,13 +230,13 @@ function kav4proxy_status(){
 			<td nowrap>$updatejs{TASK_UPDATE_ANTIVIRUS}</a></span></td>
 		</tr>	
 		<tr>
-			<td class=legend>{license2}:</td>
-			<td style='font-size:14px' colspan=2>$license_text</td>
+			<td class=legend style='font-size:18px'>{license2}:</td>
+			<td style='font-size:18px' colspan=2>$license_text</td>
 		</tr>	
 		<tr>
 			<td width=1% align='right'><img src='img/arrow-right-16.png'></td>
-			<td style='font-size:14px' colspan=2><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('Kav4Proxy.install.php')\"
-			style='font-size:11px;font-weight:bold;color:black;text-decoration:underline'>{uninstall}</td>
+			<td style='font-size:18px' colspan=2><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('Kav4Proxy.install.php')\"
+			style='font-size:18px;font-weight:bold;color:black;text-decoration:underline'>{uninstall}</td>
 		</tr>							
 		$status_text
 	</tbody>
@@ -343,7 +339,7 @@ function status(){
 		
 		$form=$tpl->_ENGINE_parse_body(
 		Paragraphe_switch_img("{ACTIVATEANTIVIRUSSERVICE}", "{ACTIVATEANTIVIRUSWSERVICETEXT}",
-		"kavicapserverEnabled-$t",$kavicapserverEnabled,null,450));
+		"kavicapserverEnabled-$t",$kavicapserverEnabled,null,890));
 		
 		
 		$KAV4PROXY_VERSION=$users->KAV4PROXY_VERSION;
@@ -357,7 +353,7 @@ function status(){
 	<table style='width:100%'>
 	<tbody>
 		<tr>
-			<td width=1% valign='top'><div id='kav4proxy-status'></div></td>
+			<td width=600px valign='top'><div id='kav4proxy-status'></div></td>
 			<td width=1% valign='top'>
 			<div id='$t-div'>
 				<div style='width:98%' class=form>
@@ -366,7 +362,7 @@ function status(){
 				</div>
 			
 				<center style='margin-top:20px'><img src=img/kaspersky-logo-250.png></center>
-				<div class=text-info style='font-size:14px'>{kav4proxy_about}</div></td>
+				<div class=explain style='font-size:18px'>{kav4proxy_about}</div></td>
 			</div>
 		</tr>
 	</tbody>
@@ -423,6 +419,20 @@ function tabs(){
 		$page=CurrentPageName();
 		$users=new usersMenus();
 		$sock=new sockets();
+		if($sock->getFrameWork("kav4proxy.php?is-installed=yes")=="NO"){
+		
+			echo "<div id='KasperskyPromo022014'></div>
+			<script>
+					LoadAjax('KasperskyPromo022014','artica.pubs.php?KasperskyPromo022014=yes');
+			</script>	
+			";
+			return;
+			
+		
+		}
+		
+		
+		$sock=new sockets();
 		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}		
 		
@@ -445,7 +455,7 @@ function tabs(){
 		}
 		
 		
-
+		$font_size="22px";
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="blacklist_databases"){
 			$tab[]="<li><a href=\"squid.blacklist.php\"><span style='font-size:$font_size'>$ligne</span></a></li>\n";
@@ -484,7 +494,7 @@ function tabs(){
 	
 	
 	
-	echo $tpl->_ENGINE_parse_body(build_artica_tabs($tab, "main_kav4proxy_config"));
+	echo $tpl->_ENGINE_parse_body(build_artica_tabs($tab, "main_kav4proxy_config",1490));
 	
 
 }

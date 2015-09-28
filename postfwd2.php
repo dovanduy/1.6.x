@@ -173,7 +173,7 @@ function status(){
 		<div style='font-size:18px'>{APP_POSTFWD2}</div>
 		<div style='text-align:right;padding-top:5px;border-top:1px solid #CCCCCC'><i style='font-size:14px'>&laquo;&nbsp;{instance}:{$_GET["instance"]}&nbsp;&raquo;</i></div>
 		<p>&nbsp;</p>
-		<div class=text-info style='font-size:14px'>{POSTFWD2_ABOUT}</div>
+		<div class=explain style='font-size:14px'>{POSTFWD2_ABOUT}</div>
 	</td>
 	<td valign='top' style='width:270px'>
 		<table style='width:99%' class=form>
@@ -628,7 +628,7 @@ function postfwd2_action_form(){
 	
 	
 	if($_GET["postfwd2-action"]=="rate"){
-		echo $tpl->_ENGINE_parse_body(" <div class=text-info>{postfwd2_action_rate}</div>
+		echo $tpl->_ENGINE_parse_body(" <div class=explain>{postfwd2_action_rate}</div>
 		<center>
 			<table style='width:220px;' class=form>
 			<tr>
@@ -670,7 +670,7 @@ function postfwd2_action_form(){
 		return;		
 		}
 	if($_GET["postfwd2-action"]=="size"){
-		echo $tpl->_ENGINE_parse_body(" <div class=text-info>{postfwd2_action_size}</div>
+		echo $tpl->_ENGINE_parse_body(" <div class=explain>{postfwd2_action_size}</div>
 		<center>
 			<table style='width:220px;' class=form>
 			<tr>
@@ -713,7 +713,7 @@ function postfwd2_action_form(){
 		}
 
 	if($_GET["postfwd2-action"]=="rcpt"){
-		echo $tpl->_ENGINE_parse_body(" <div class=text-info>{postfwd2_action_rcpt}</div>
+		echo $tpl->_ENGINE_parse_body(" <div class=explain>{postfwd2_action_rcpt}</div>
 		<center>
 			<table style='width:220px;' class=form>
 			<tr>
@@ -756,7 +756,7 @@ function postfwd2_action_form(){
 		}
 
 	if($_GET["postfwd2-action"]=="score"){
-		echo $tpl->_ENGINE_parse_body(" <div class=text-info>{postfwd2_action_score}</div>
+		echo $tpl->_ENGINE_parse_body(" <div class=explain>{postfwd2_action_score}</div>
 		<center>
 			<table style='width:220px;' class=form>
 			<tr>
@@ -794,7 +794,7 @@ function postfwd2_action_form(){
 		}	
 
 	if($_GET["postfwd2-action"]=="REDIRECT"){
-		echo $tpl->_ENGINE_parse_body(" <div class=text-info>{postfwd2_action_redirect}</div>
+		echo $tpl->_ENGINE_parse_body(" <div class=explain>{postfwd2_action_redirect}</div>
 		<center>
 			<table style='width:220px;' class=form>
 			<tr>
@@ -976,7 +976,7 @@ function postfwd2_item_form_selected(){
 	if($item=="date"){
 		$html=$html."
 	
-		<div class=text-info>{postfwd2_item_date}</div>
+		<div class=explain>{postfwd2_item_date}</div>
 		<center>
 			<hr>". Field_text("postfwd2-date",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddDate()")."
@@ -1014,7 +1014,7 @@ function postfwd2_item_form_selected(){
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$objects[$ligne["ID"]]=$ligne["ObjectName"];}		
 		$html=$html."
 	
-		<div class=text-info>{postfwd2_item_object}</div>
+		<div class=explain>{postfwd2_item_object}</div>
 		<center>
 			<hr>". Field_array_Hash($objects, "postfwd2-object",null,null,null,0,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddObject()")."
@@ -1047,7 +1047,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="time"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_time}</div>
+		<div class=explain>{postfwd2_item_time}</div>
 		<center>
 			<hr>". Field_text("postfwd2-time",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddTime()")."
@@ -1080,7 +1080,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="days"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_days}</div>
+		<div class=explain>{postfwd2_item_days}</div>
 		<center>
 			<hr>". Field_text("postfwd2-days",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddDays()")."
@@ -1112,7 +1112,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="months"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_months}</div>
+		<div class=explain>{postfwd2_item_months}</div>
 		<center>
 			<hr>". Field_text("postfwd2-months",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddMonths()")."
@@ -1144,7 +1144,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="rbl"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_rbl}</div>
+		<div class=explain>{postfwd2_item_rbl}</div>
 		<center>
 			<hr><textarea id='postfwd2-rbl' style='font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black;height:50px'></textarea><hr>
 			". button("{apply}","postfwd2AddRBL()")."
@@ -1176,7 +1176,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="rblcount"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_rblcount}</div>
+		<div class=explain>{postfwd2_item_rblcount}</div>
 		<center>
 			<hr>". Field_text("postfwd2-rblcount",null,"font-size:16px;font-weight:bold;padding:5px;width:60px;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2AddRblcount()")."
@@ -1209,7 +1209,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="helo_address"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_helo_address}</div>
+		<div class=explain>{postfwd2_item_helo_address}</div>
 		<center>
 			<hr>". Field_text("postfwd2-helo_address",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2helo_address()")."
@@ -1242,7 +1242,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="sender_ns_names"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_sender_ns_names}</div>
+		<div class=explain>{postfwd2_item_sender_ns_names}</div>
 		<center>
 			<hr>". Field_text("postfwd2-sender_ns_names",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2sender_ns_names()")."
@@ -1276,7 +1276,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="sender_ns_addrs"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_sender_ns_addrs}</div>
+		<div class=explain>{postfwd2_item_sender_ns_addrs}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1309,7 +1309,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="sender_mx_names"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_sender_mx_names}</div>
+		<div class=explain>{postfwd2_item_sender_mx_names}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1342,7 +1342,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="sender_mx_addrs"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_sender_mx_addrs}</div>
+		<div class=explain>{postfwd2_item_sender_mx_addrs}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1375,7 +1375,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="client_address"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_client_address}</div>
+		<div class=explain>{postfwd2_item_client_address}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1408,7 +1408,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="client_name"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_client_name}</div>
+		<div class=explain>{postfwd2_item_client_name}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1441,7 +1441,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="reverse_client_name"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_reverse_client_name}</div>
+		<div class=explain>{postfwd2_item_reverse_client_name}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1474,7 +1474,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="helo_name"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_helo_name}</div>
+		<div class=explain>{postfwd2_item_helo_name}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1507,7 +1507,7 @@ function postfwd2_item_form_selected(){
 
 	if($item=="sender"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_sender}</div>
+		<div class=explain>{postfwd2_item_sender}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1540,7 +1540,7 @@ function postfwd2_item_form_selected(){
 	
 	if($item=="recipient"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_recipient}</div>
+		<div class=explain>{postfwd2_item_recipient}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:100%;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1573,7 +1573,7 @@ function postfwd2_item_form_selected(){
 
 if($item=="recipient_count"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_recipient_count}</div>
+		<div class=explain>{postfwd2_item_recipient_count}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:30px;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1606,7 +1606,7 @@ if($item=="recipient_count"){
 	
 if($item=="size"){
 		$html=$html."
-		<div class=text-info>{postfwd2_item_size}</div>
+		<div class=explain>{postfwd2_item_size}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:60px;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."
@@ -1639,7 +1639,7 @@ if($item=="size"){
 	
 if($item=="score"){
 		$html=$html."
-		<div class=text-info>{score}</div>
+		<div class=explain>{score}</div>
 		<center>
 			<hr>". Field_text("postfwd2-Gen",null,"font-size:16px;font-weight:bold;padding:5px;width:60px;color:#B23535;border:2px solid black")."<hr>
 			". button("{apply}","postfwd2Gen()")."

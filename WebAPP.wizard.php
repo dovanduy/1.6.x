@@ -38,7 +38,7 @@ function popup(){
 	$sock->SET_INFO("ZarafaWebAPPWizard",1);
 	$SERVER_ADDR=$_SERVER["SERVER_ADDR"];
 	$t=time();
-	$html="<div class=text-info style='font-size:16px'>{CREATE_YOUR_FIRST_WEBMAIL_W}</div>
+	$html="<div class=explain style='font-size:16px'>{CREATE_YOUR_FIRST_WEBMAIL_W}</div>
 	<div style='width:98%' class=form>
 		<table style='width:100%'>
 			<tr>

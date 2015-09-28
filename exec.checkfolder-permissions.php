@@ -24,14 +24,25 @@ include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 
 $unix=new unix();
 $time=$unix->file_time_min("/etc/artica-postfix/pids/exec.checkfolder-permissions.php.MAIN.time");
-if(!$GLOBALS["FORCE"]){
-	if($time<240){die();}
-	
-	if(system_is_overloaded(basename(__FILE__))){die();}
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){die();}
+
+if($time<240){
+	if($GLOBALS["VERBOSE"]){echo "NEED 240Mn, current {$time}mn die()\n";}
+	die();
 }
+
+
+$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+if(count($pids)>0){
+	if($GLOBALS["VERBOSE"]){echo "Too many instances ". count($pids)." dying\n";}
+	die();
+}
+
+
+
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){die();}
+
 
 if(system_is_overloaded(basename(__FILE__))){
 	die("System is overloaded\n");
@@ -103,6 +114,8 @@ $sock=new sockets();
   	$LighttpdUserAndGroup=str_replace('www-data:www-data:www-data','www-data:www-data',$LighttpdUserAndGroup);   
 	if(!preg_match("#(.+?):(.+)#", $LighttpdUserAndGroup,$re)){$username="www-data";$groupname="www-data";}
   }
+  @mkdir("/etc/artica-postfix/croned.1",0755,true);
+  @mkdir("/etc/artica-postfix/pids",0755,true);
  
   $unix->chmod_func(0755, "$artica_path/*");
   $unix->chmod_func(0755, "$artica_path/bin/*");
@@ -120,6 +133,9 @@ $sock=new sockets();
   	@chgrp("$artica_path", $groupname);  
   	@chmod("$artica_path",0755);
   while (list ($num, $dir) = each ($f) ){
+  	
+  	if(system_is_overloaded(basename(__FILE__))){die();}
+  	
   	writeprogress(5,"$dir");
   	if(!is_dir("$artica_path/$dir")){@mkdir("$artica_path/$dir",0755,true);}
   	@chown("$artica_path/$dir", $username);
@@ -129,8 +145,7 @@ $sock=new sockets();
   	
   }
   
-  @mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
-  @chmod("/var/log/artica-postfix/ufdbguard-blocks", 0777);  
+
   @mkdir("/usr/share/artica-postfix/ressources/logs/web/create-users",0755,true);
   
   @mkdir("/opt/artica/var/rrd/yorel",0755,true);
@@ -145,6 +160,12 @@ while (list ($num, $dir) = each ($f) ){
 	$unix->chown_func($username, $groupname,$dir);
 	$unix->chmod_func(0755,$dir);
 }  
+
+$filesBin=$unix->DirFiles("/usr/share/artica-postfix/bin");
+while (list ($filename,$line) = each ($filesBin)){
+	@chmod("/usr/share/artica-postfix/bin/$filename",0755);
+	@chown("/usr/share/artica-postfix/bin/$filename","root");
+}
   
 
 $f=array();
@@ -162,6 +183,7 @@ $f[]='databases';
 
   while (list ($num, $dir) = each ($f) ){
   	writeprogress(5,"$dir");
+  	if(system_is_overloaded(basename(__FILE__))){die();}
   	$dirname="$artica_path/computers/ressources/$dir";
   	if(!is_dir($dirname)){@mkdir($dirname,0755,true);}
   	@chown($dirname, $username);
@@ -218,7 +240,7 @@ $unix->chown_func($username, $groupname,"$artica_path");
 $unix->chown_func($username, $groupname,"/var/lib/php5/*");
 $unix->chown_func($username, $groupname,"/opt/artica/share/www/jpegPhoto/*");
 
-
+if(system_is_overloaded(basename(__FILE__))){die();}
 $unix->chmod_func(0640,"etc/cron.d");
 $unix->chmod_func(0755,"$artica_path/ressources/databases");
 $unix->chmod_func(0777,"$artica_path/ressources/userdb");
@@ -256,7 +278,7 @@ if(is_dir("/usr/share/pommo")){
   $nohup=$unix->find_program("nohup");
   $rm=$unix->find_program("rm");
 
-  
+  if(system_is_overloaded(basename(__FILE__))){die();}
   $tmpf=$unix->FILE_TEMP();
   $sh[]="#!/bin/sh";
   $sh[]="$nice $chown -R mysql:mysql /var/lib/mysql >/dev/null 2>&1";
@@ -288,7 +310,14 @@ if(is_file($postconf)){
 	$unix->chown_func("postfix", "postfix","$CopyToDomainSpool/*");
 	if(is_file('/var/spool/postfix/var/run/amavisd-milter/amavisd-milter.sock')){$unix->chown_func("postfix", "postfix","/var/spool/postfix/var/run/amavisd-milter/amavisd-milter.sock");}
 	if(is_file('/usr/local/etc/altermime-disclaimer.txt')){$unix->chown_func("postfix", "postfix","/usr/local/etc/altermime-disclaimer.txt");}
-
+	@mkdir("/home/artica/postfix/milter-greylist/logger",0755,true);
+	@chmod("/home/artica/postfix/milter-greylist",0755,true);
+	@chown("/home/artica/postfix/milter-greylist", "postfix");
+	@chgrp("/home/artica/postfix/milter-greylist", "postfix");
+	
+	@chmod("/home/artica/postfix/milter-greylist/logger",0755,true);
+	@chown("/home/artica/postfix/milter-greylist/logger", "postfix");
+	@chgrp("/home/artica/postfix/milter-greylist/logger", "postfix");
 
 }
 
@@ -306,7 +335,6 @@ if($MySQLTMPDIR<>null){
 if(is_file($squidbin)){
 	$GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
 	if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
-	$fSquidDirs[]="/var/log/squid/ufdbguard-blocks";
 	$fSquidDirs[]="/var/log/squid/squid_admin_mysql";
 	$fSquidDirs[]="/usr/share/squid3";
 	$fSquidDirs[]=$GLOBALS["LogFileDeamonLogDir"];

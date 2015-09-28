@@ -673,7 +673,7 @@ function popup_localHostOrDomainIs(){
 	
 	$html="
 	<div id='popup_localHostOrDomainIs_div'>
-	<div style='font-size:14px' class=text-info>{localHostOrDomainIs_explain}</div>
+	<div style='font-size:14px' class=explain>{localHostOrDomainIs_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{pattern}:</td>
@@ -700,7 +700,7 @@ function popup_localHostOrDomainIs(){
 function popup_isInNet(){
 	$html="
 	<div id='isInNet_div'>
-	<div style='font-size:14px' class=text-info>{isInNet_explain}</div>
+	<div style='font-size:14px' class=explain>{isInNet_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{ip_address}:</td>
@@ -753,7 +753,7 @@ function popup_add_proxy(){
 function popup_add_final_proxy(){
 	$html="
 	<div id='popup_add_proxy_div'>
-	<div class=text-info>{proxy_pac_final_proxy_text}</div>
+	<div class=explain>{proxy_pac_final_proxy_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{proxy_addr}:</td>

@@ -61,7 +61,7 @@ function popup2(){
 
 	
 	$SlapdThreads=$sock->GET_INFO("SlapdThreads");
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
 	$EnableVnStat=$sock->GET_INFO("EnableVnStat");
 	
@@ -87,7 +87,7 @@ function popup2(){
 		<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_CLAMAV}:</td>
 		<td valign='top'>". Field_checkbox("EnableClamavDaemon",1,$EnableClamavDaemon)."</td>
-		<td><div class=text-info>{CLAMAV_DISABLE_EXPLAIN}</div></td>
+		<td><div class=explain>{CLAMAV_DISABLE_EXPLAIN}</div></td>
 		</tr>	
 		
 		";
@@ -99,7 +99,7 @@ function popup2(){
 		<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_NSCD}:</td>
 		<td valign='top'>". Field_checkbox("EnableNSCD",1,$EnableNSCD)."</td>
-		<td><div class=text-info>{NSCD_DISABLE_EXPLAIN}</div></td>
+		<td><div class=explain>{NSCD_DISABLE_EXPLAIN}</div></td>
 		</tr>	
 		
 		";
@@ -113,75 +113,75 @@ function popup2(){
 	
 	$html="
 	<input type='hidden' id='arcoptze_text' value='{artica_optimize_explain}'>
-	<div class=text-info id='arcoptze' style='font-size:16px'>{artica_optimize_explain}</div>
+	<div class=explain id='arcoptze' style='font-size:16px'>{artica_optimize_explain}</div>
 	
 	<div style='width:98%' class=form><table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{EnableNginx}:</td>
 		<td valign='top'>". Field_checkbox("EnableNginx",1,$EnableNginx)."</td>
-		<td><div class=text-info>{EnableNginx_disable_explain}</div></td>
+		<td><div class=explain>{EnableNginx_disable_explain}</div></td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{EnableFreeWeb}:</td>
 		<td valign='top'>". Field_checkbox("EnableFreeWeb",1,$EnableFreeWeb)."</td>
-		<td><div class=text-info>{EnableFreeWeb_disable_explain}</div></td>
+		<td><div class=explain>{EnableFreeWeb_disable_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{EnableArpDaemon}:</td>
 		<td valign='top'>". Field_checkbox("EnableArpDaemon",1,$EnableArpDaemon)."</td>
-		<td><div class=text-info>{EnableArpDaemon_disable_explain}</div></td>
+		<td><div class=explain>{EnableArpDaemon_disable_explain}</div></td>
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{EnablePHPFPM}:</td>
 		<td valign='top'>". Field_checkbox("EnablePHPFPM",1,$EnablePHPFPM)."</td>
-		<td><div class=text-info>{EnablePHPFPM_disable_explain}</div></td>
+		<td><div class=explain>{EnablePHPFPM_disable_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{EnableVnStat}:</td>
 		<td valign='top'>". Field_checkbox("EnableVnStat",1,$EnableVnStat)."</td>
-		<td><div class=text-info>{EnableVnStat_disable_explain}</div></td>
+		<td><div class=explain>{EnableVnStat_disable_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{disable_winbindd}:</td>
 		<td valign='top'>". Field_checkbox("DisableWinbindd",1,$DisableWinbindd)."</td>
-		<td><div class=text-info>{DisableWinbindd_explain}</div></td>
+		<td><div class=explain>{DisableWinbindd_explain}</div></td>
 	</tr>				
 
 				
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_GROUPWARE_APACHE}:</td>
 		<td valign='top'>". Field_checkbox("ApacheGroupware",1,$ApacheGroupware)."</td>
-		<td><div class=text-info>{APACHE_GROUPWARE_DISABLE_EXPLAIN}</div></td>
+		<td><div class=explain>{APACHE_GROUPWARE_DISABLE_EXPLAIN}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{LighttpdRunAsminimal}:</td>
 		<td valign='top'>". Field_checkbox("LighttpdRunAsminimal",1,$LighttpdRunAsminimal)."</td>
-		<td><div class=text-info>{reduce_artica_web_explain}</div></td>
+		<td><div class=explain>{reduce_artica_web_explain}</div></td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_MYSQL}:</td>
 		<td valign='top'>$mysqlf</td>
-		<td><div class=text-info>{Reduce_mysql_explain}</div></td>
+		<td><div class=explain>{Reduce_mysql_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{SlapdThreads}:</td>
 		<td valign='top'>". Field_text("SlapdThreads",$SlapdThreads,"font-size:13px;width:60px")."</td>
-		<td><div class=text-info>{SlapdThreads_explain}</div></td>
+		<td><div class=explain>{SlapdThreads_explain}</div></td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_ARTICA_STATUS}:</td>
 		<td valign='top'>". Field_checkbox("EnableArticaStatus",1,$EnableArticaStatus)."</td>
-		<td><div class=text-info>{DisableArticaStatusService_explain}</div></td>
+		<td><div class=explain>{DisableArticaStatusService_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_ARTICA_EXECUTOR}:</td>
 		<td valign='top'>". Field_checkbox("EnableArticaExecutor",1,$EnableArticaExecutor)."</td>
-		<td><div class=text-info>{DisableArticaExecutorService_explain}</div></td>
+		<td><div class=explain>{DisableArticaExecutorService_explain}</div></td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:top'>{APP_ARTICA_BACKGROUND}:</td>
 		<td valign='top'>". Field_checkbox("EnableArticaBackground",1,$EnableArticaBackground)."</td>
-		<td><div class=text-info>{DisableEnableArticaBackgroundService_explain}</div></td>
+		<td><div class=explain>{DisableEnableArticaBackgroundService_explain}</div></td>
 	</tr>	
 	$clamav
 	$nscd

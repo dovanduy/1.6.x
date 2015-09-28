@@ -12,19 +12,18 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 	include_once(dirname(__FILE__).  '/ressources/class.system.network.inc');
 	include_once(dirname(__FILE__).  '/ressources/class.maincf.multi.inc');
 	include_once(dirname(__FILE__).  '/ressources/class.amavis.inc');	
+	include_once(dirname(__FILE__).  "/ressources/class.tcpip.inc");
 		
 	$GLOBALS["CMDLINES"]=@implode(" ", $argv);	
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}	
 	if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	$user=new usersMenus();
-	if(!$user->spamassassin_installed){ die();}
+	$unix=new unix();
+	$spamd=$unix->find_program("spamd");
+	
+	if(!is_file($spamd)){ die();}
 	if($argv[1]=='--sa-update'){sa_update();die();}
-	
-	
-	if(!is_file($user->spamassassin_conf_path)){
-		write_syslog("want to change spamassassin settings but could not stat main configuration file",__FILE__);
-	}
 	if($argv[1]=='--sa-update-check'){sa_update_check();die();}
 	
 	x_headers();
@@ -53,20 +52,35 @@ CheckSecuritiesFolders();
 
 
 function amavis_reload(){
+	$sock=new sockets();
+	$unix=new unix();
+	$EnableAmavisDaemon=intval($sock->GET_INFO("EnableAmavisDaemon"));
+	$SpamAssMilterEnabled=intval($sock->GET_INFO("SpamAssMilterEnabled"));
+	$PHP=$unix->LOCATE_PHP5_BIN();
 	SPAMASSASSIN_V320();
 	PhishTag();
 	HitFreqsRuleTiming();
-	if(!is_file("/usr/local/sbin/amavisd")){return null;}
-	if(!is_file("/usr/local/etc/amavisd.conf")){return null;}
-	$amavis=new amavis();
-	$amavis->CheckDKIM();
-	$conf=$amavis->buildconf();	
-	@file_put_contents("/usr/local/etc/amavisd.conf",$conf);
-	$unix=new unix();
-	$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-make APP_SPAMASSASSIN_RQ");
-	CheckSecuritiesFolders();
-	$unix->send_email_events("Amavis will be reloaded", "exec.spamassassin, ordered to reload amavis {$GLOBALS["CMDLINES"]}", "postfix");
-	$unix->THREAD_COMMAND_SET("/usr/local/sbin/amavisd -c /usr/local/etc/amavisd.conf reload");	
+	
+	if($EnableAmavisDaemon==1){
+		if(!is_file("/usr/local/sbin/amavisd")){return null;}
+		if(!is_file("/usr/local/etc/amavisd.conf")){return null;}
+		$amavis=new amavis();
+		$amavis->CheckDKIM();
+		$conf=$amavis->buildconf();	
+		@file_put_contents("/usr/local/etc/amavisd.conf",$conf);
+		
+		$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-make APP_SPAMASSASSIN_RQ");
+		CheckSecuritiesFolders();
+		$unix->send_email_events("Amavis will be reloaded", "exec.spamassassin, ordered to reload amavis {$GLOBALS["CMDLINES"]}", "postfix");
+		$unix->THREAD_COMMAND_SET("/usr/local/sbin/amavisd -c /usr/local/etc/amavisd.conf reload");	
+	}
+	
+	if($SpamAssMilterEnabled==1){
+		echo "Starting......: ".date("H:i:s")." Restarting SpamAssassin milter edition\n";
+		shell_exec("$PHP /usr/share/artica-postfix/exec.initslapd.php --spamass-milter");
+		shell_exec("/etc/init.d/spamass-milter restart");
+	}
+	
 	
 }
 
@@ -107,14 +121,10 @@ function SaveConf(){
 	$spam=new spamassassin();
 	$datas=$spam->BuildConfig();
 	$datas=str_replace("Array","",$datas);
-	
-	if(strlen($user->spamassassin_conf_path)==null){
-		echo "Starting......: ".date("H:i:s")." spamassassin unable to stat mail configuration path\n";
-		return;
-	}
-	echo "Starting......: ".date("H:i:s")." spamassassin saving $user->spamassassin_conf_path\n";
-	@unlink("$user->spamassassin_conf_path");
-	file_put_contents($user->spamassassin_conf_path,$datas);
+
+	echo "Starting......: ".date("H:i:s")." spamassassin saving /etc/spamassassin/local.cf\n";
+	@unlink("/etc/spamassassin/local.cf");
+	file_put_contents("/etc/spamassassin/local.cf",$datas);
 	
 	if(is_file("/etc/spamassassin/v312.pre")){@unlink("/etc/spamassassin/v312.pre");}
 	if(is_file("/etc/mail/spamassassin/v312.pre")){@unlink("/etc/mail/spamassassin/v312.pre");}	
@@ -123,6 +133,17 @@ function SaveConf(){
 		@unlink("/etc/mail/spamassassin/local.cf");
 		file_put_contents("/etc/mail/spamassassin/local.cf",$datas);
 	}
+	
+	if(is_file("/usr/share/artica-postfix/bin/install/postfix/Botnet.cf")){
+		@copy("/usr/share/artica-postfix/bin/install/postfix/Botnet.cf", "/etc/spamassassin/Botnet.cf");
+		@copy("/usr/share/artica-postfix/bin/install/postfix/Botnet.pl", "/etc/spamassassin/Botnet.pl");
+		@copy("/usr/share/artica-postfix/bin/install/postfix/Botnet.pm", "/etc/spamassassin/Botnet.pm");
+	}
+	
+	if(is_file("/usr/share/artica-postfix/bin/install/postfix/sakam.cf")){
+		@copy("/usr/share/artica-postfix/bin/install/postfix/sakam.cf", "/etc/spamassassin/sakam.cf");
+	}
+	
 	Chineses_rules();
 	TrustedNetworks();
 	
@@ -277,7 +298,7 @@ function SPAMASSASSIN_V320(){
 
 $sock=new sockets();
 $EnableSpamassassinDnsEval=$sock->GET_INFO("EnableSpamassassinDnsEval");
-$EnableSPF=$sock->GET_INFO("EnableSPF");
+$EnableSPF=intval($sock->GET_INFO("EnableSPF"));
 $enable_dkim_verification=$sock->GET_INFO("enable_dkim_verification");
 $EnableSpamassassinURIDNSBL=$sock->GET_INFO("EnableSpamassassinURIDNSBL");
 $EnableSpamAssassinFreeMail=$sock->GET_INFO("EnableSpamAssassinFreeMail");
@@ -315,7 +336,7 @@ $f[]="loadplugin Mail::SpamAssassin::Plugin::RelayEval";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::URIEval";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::WLBLEval";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::ImageInfo";
-$f[]="loadplugin Mail::SpamAssassin::Plugin::AWL";
+//$f[]="loadplugin Mail::SpamAssassin::Plugin::AWL";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::AutoLearnThreshold";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::WhiteListSubject";
 $f[]="loadplugin Mail::SpamAssassin::Plugin::Hashcash";
@@ -372,7 +393,7 @@ if(is_dir("/etc/mail/spamassassin")){@file_put_contents("/etc/mail/spamassassin/
 function spf(){
 
 	$sock=new sockets();
-	$EnableSPF=$sock->GET_INFO("EnableSPF");
+	$EnableSPF=intval($sock->GET_INFO("EnableSPF"));
 	if($EnableSPF==null){$EnableSPF=0;}
 	
 	
@@ -1191,13 +1212,13 @@ $conf[]="";
 function x_headers(){
 	//X-Wum-Spamlevel
 $conf[]="header INFOMANIAK_SPAM X-Infomaniak-Spam =~ /spam/";
-$conf[]="score INFOMANIAK_SPAM       1";
+$conf[]="score INFOMANIAK_SPAM       2";
 $conf[]="header SPAMASS_SPAM X-Spam-Status =~ /Yes/";
-$conf[]="score SPAMASS_SPAM       1";
+$conf[]="score SPAMASS_SPAM       2";
 $conf[]="header XASF_SPAM X-ASF-Spam-Status =~ /Yes/";
-$conf[]="score XASF_SPAM       1";	
+$conf[]="score XASF_SPAM       2";	
 $conf[]="header XTMAS_SPAM X-TM-AS-Result =~ /Yes/";
-$conf[]="score XTMAS_SPAM       1";	
+$conf[]="score XTMAS_SPAM       2";	
 
 if(is_dir("/etc/mail/spamassassin")){
 	@file_put_contents("/etc/mail/spamassassin/x-headers.pre",@implode("\n",$conf));
@@ -1538,22 +1559,48 @@ if(is_dir("/etc/mail/spamassassin")){@file_put_contents("/etc/mail/spamassassin/
 }
 
 function TrustedNetworks(){
-	
+	$ipClass=new IP();
 	$q=new mysql();
 	$sql="SELECT * FROM postfix_whitelist_con";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$q->mysql_error\n";}
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(trim($server)==null){continue;}
-			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["ipaddr"])){
+			if($ipClass->isIPAddressOrRange($ligne["ipaddr"])){
 				$f[]="trusted_networks {$ligne["ipaddr"]}";
+				
 			}
-			
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["hostname"])){
-		  		$f[]="whitelist_from_rcvd *@*  {$ligne["hostname"]}";
+			$hostname=trim(strtolower($ligne["hostname"]));
+			if(strlen($hostname)<3){continue;}
+			if($hostname==null){continue;}
+			if(!$ipClass->isIPAddressOrRange($ligne["ipaddr"])){
+	  			$f[]="whitelist_from_rcvd *@*  $hostname";
 			}
 		}
+		
+		
+		
+	
+	$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='whitelist' AND `type`='addr'";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ipaddr=trim($ligne["pattern"]);
+		if($ipaddr==null){continue;}
+		if($ipaddr=="127.0.0.1/8"){$ipaddr="127.0.0.0/8";}
+		if(!$ipClass->isIPAddressOrRange($ipaddr)){continue;}
+		$f[]="trusted_networks $ipaddr";
+	}	
+	$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='whitelist' AND `type`='from'";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$from=trim($ligne["pattern"]);
+		if($from==null){continue;}
+		if($ipClass->isIPAddressOrRange($from)){continue;}
+		$from=str_replace(".*", "*", $from);
+		$f[]="whitelist_from $from";
+	}
+
+	 
 		
 	
 	
@@ -1767,31 +1814,23 @@ function sa_update_check(){
 	if(!$GLOBALS["FORCE"]){if($unix->file_time_min($timefile)<120){return;}}
 	@file_put_contents($timefile, time());
 	@unlink($statusFile);
-	$cmd="$saupdate --checkonly -D 2>&1";
+	$cmd="$saupdate --checkonly -D --channel sought.rules.yerp.org --channel updates.spamassassin.org 2>&1";
 	exec($cmd,$results);
 	if($GLOBALS["VERBOSE"]){echo "$cmd ". count($results). " rows\n";}
+	$UPDATE=false;
 	while (list ($index, $line) = each ($results)){
 		
 		if(preg_match("#channel:\s+(.+?):\s+update available#", $line,$re)){
-			if($GLOBALS["VERBOSE"]){echo "Spamassassin update available :{$re[1]}\n";}
-			$p=Paragraphe("64-spam-infos.png", "{UPDATE_SA_UPDATE}", "{$re[1]}<br>{SPAMASSASSIN_UPDATE_AVAILABLE_TEXT}",
-			"javascript:Loadjs('sa.update.php')",null,300,80);
-			$unix->send_email_events("Spamassassin update available :{$re[1]}", "There is some SpamAssassin available updates,
-			you need to run the update in order to improve Spamassassin detection rate\n".@implode("\n", $results), "postfix");
-			@file_put_contents($statusFile, $p);
-			@file_put_contents($statusFileContent, @implode("\n", $results));	
-			shell_exec("/bin/chmod 777 $statusFile");
-			shell_exec("/bin/chmod 777 $statusFileContent");	
-			return;
+			
+			$UPDATE=TRUE;
 		}
 		
 		
 		
 		
 	}
-	
-	@file_put_contents($statusFileContent, @implode("\n", $results));
-	shell_exec("/bin/chmod 777 $statusFileContent");	
+
+	if($UPDATE){sa_update();}
 	
 	
 }
@@ -1810,7 +1849,16 @@ function sa_update(){
 	$statusFileContent="/usr/share/artica-postfix/ressources/logs/sa-update-status.txt";	
 	$statusFile="/usr/share/artica-postfix/ressources/logs/sa-update-status.html";
 	if($sacompile<>null){$sacompile=" && $sacompile >>$statusFileContent";}
-	$cmd="$saupdate --nogpg -D >$statusFileContent$sacompile 2>&1";
+	
+	
+	$wget=$unix->find_program("wget");
+	shell_exec("$wget http://yerp.org/rules/GPG.KEY -O /root/GPG.KEY");
+	shell_exec("$saupdate sa-update --import /root/GPG.KEY");
+
+	
+	
+	
+	$cmd="$saupdate --nogpg -D --gpgkey 6C6191E3 --channel sought.rules.yerp.org --channel updates.spamassassin.org >$statusFileContent$sacompile 2>&1";
 	if($GLOBALS["VERBOSE"]){echo "sa-update:: $cmd\n";}
 	shell_exec($cmd);
 	shell_exec("/bin/chmod 777 $statusFileContent");
@@ -1821,6 +1869,7 @@ function sa_update(){
 			$unix->send_email_events("Spamassassin success update databases", @implode("\n", $f), "postfix");
 			shell_exec("$sacompile");
 			@unlink($statusFile);
+			shell_exec("/etc/init.d/spamassassin reload");
 			return;
 		}
 		

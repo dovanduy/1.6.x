@@ -24,7 +24,39 @@ function REALTIME_searchwords($TimeCache){
 	KEY `MAC`(`MAC`),
 	KEY `words`(`words`),
 	KEY `account`(`account`)
-	) ENGINE=MEMORY;");
+	) ENGINE=MYISAM;");
+}
+
+function REALTIME_RTTH_TABLE($tablename){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `squidlogs`.`$tablename` (
+	`xtime` INT UNSIGNED NOT NULL,
+	`sitename` VARCHAR(255) NOT NULL,
+	`ipaddr` VARCHAR(60) NOT NULL,
+	`uid` VARCHAR(60) NOT NULL,
+	`MAC` VARCHAR(90) NOT NULL,
+	`size` INT UNSIGNED NOT NULL,
+	KEY `sitename` (`sitename`),
+	KEY `ipaddr` (`ipaddr`),
+	KEY `xtime` (`xtime`),
+	KEY `uid` (`uid`),
+	KEY `MAC` (`MAC`),
+	KEY `size` (`size`)
+	) ENGINE=MYISAM");
+
+
+}
+
+function HYPERCACHE_APACHE_TABLE($tablename){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `squidlogs`.`$tablename` (
+	`zmd5` VARCHAR(128) PRIMARY KEY,
+	`zDate` DATETIME NOT NULL,
+	`size` INT UNSIGNED NOT NULL,
+	KEY `zDate` (`zDate`),
+	KEY `size` (`size`)
+	) ENGINE=MYISAM"
+			);
+
+
 }
 
 function REALTIME_RTTH($TimeCache){
@@ -41,7 +73,7 @@ function REALTIME_RTTH($TimeCache){
 	KEY `uid` (`uid`),
 	KEY `MAC` (`MAC`),
 	KEY `size` (`size`)
-	) ENGINE=MEMORY");
+	) ENGINE=MYISAM");
 
 
 }
@@ -53,7 +85,7 @@ function REALTIME_sizehour($TimeCache){
 	KEY `zDate` (`zDate`),
 	KEY `cached` (`cached`),
 	KEY `size` (`size`)
-	) ENGINE=MEMORY;");
+	) ENGINE=MYISAM;");
 }
 function REALTIME_youtubehours($TimeCache){
 	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `youtubehours_$TimeCache` (
@@ -70,7 +102,7 @@ function REALTIME_youtubehours($TimeCache){
 	KEY `uid`(`uid`),
 	KEY `MAC`(`MAC`),
 	KEY `account`(`account`)
-	) ENGINE=MEMORY;");
+	) ENGINE=MYISAM;");
 }
 
 function REALTIME_quotatemp($TimeCache){
@@ -92,12 +124,62 @@ function REALTIME_quotatemp($TimeCache){
 	KEY `servername`(`servername`),
 	KEY `uid`(`uid`),
 	KEY `MAC`(`MAC`)
-	) ENGINE=MEMORY;");
+	) ENGINE=MYISAM;");
+	
+
 }
 
 
 function REALTIME_cachehour($TimeCache){
-	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `cachehour_$TimeCache` (
+	REALTIME_cachehour_FULL("cachehour_$TimeCache");
+	
+}
+
+function cache_rate_day($TimeCache){
+	cache_rate_day_FULL("{$TimeCache}_cacherated");
+
+}
+function cache_rate_year($TimeCache){cache_rate_year_FULL("{$TimeCache}_cacherated");}
+
+function cache_rate_day_FULL($tablename){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `$tablename` (
+	`zDate` datetime PRIMARY KEY,
+	`zrate` FLOAT,
+	KEY `zrate` (`zrate`),
+	KEY `zDate` (`zDate`)) ENGINE=MYISAM;");	
+	
+	
+}
+
+function cache_rate_total_FULL(){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `CACHE_RATES` (
+	`zDate` date PRIMARY KEY,
+	`zrate` FLOAT,
+	KEY `zrate` (`zrate`),
+	KEY `zDate` (`zDate`)) ENGINE=MYISAM;");
+
+
+}
+
+function cache_perf_day_FULL($tablename){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `$tablename` (
+	`zDate` datetime PRIMARY KEY,
+	`client_http_hits` FLOAT,
+	`client_http_requests` FLOAT,
+	`client_http_kbytes_out` FLOAT,
+	KEY `client_http_hits` (`client_http_hits`),
+	KEY `client_http_requests` (`client_http_requests`),
+	KEY `client_http_kbytes_out` (`client_http_kbytes_out`),
+	KEY `zDate` (`zDate`)) ENGINE=MYISAM;");
+
+
+}
+
+function cache_rate_year_FULL($tablename){cache_rate_day_FULL($tablename);}
+
+
+function REALTIME_cachehour_FULL($tablename){
+	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `$tablename` (
 	`zDate` datetime NOT NULL,
 	`size` BIGINT UNSIGNED,
 	cached smallint(1),
@@ -106,7 +188,7 @@ function REALTIME_cachehour($TimeCache){
 	KEY `cached` (`cached`),
 	KEY `size` (`size`),
 	KEY `familysite` (`familysite`)
-	)");
+	) ENGINE=MYISAM;");
 }
 function REALTIME_squidhour($TimeCache){
 	REALTIME_SEND_MYSQL("CREATE TABLE IF NOT EXISTS `squidhour_$TimeCache` (
@@ -139,7 +221,7 @@ function REALTIME_squidhour($TimeCache){
 	KEY `uid` (`uid`),
 	KEY `country` (`country`),
 	KEY `MAC` (`MAC`)
-	) ENGINE=MEMORY;");
+	) ENGINE=MYISAM;");
 	
 }
 

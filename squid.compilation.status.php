@@ -29,7 +29,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	header("content-type: application/x-javascript");
-	$title=$tpl->_ENGINE_parse_body("{compilation_status}");
+	$title=$tpl->_ENGINE_parse_body("{upload_package}   /   {compilation_status}");
 	$html="YahooWin4('585','$page?tabs=yes','$title');";
 	echo $html;
 }
@@ -44,7 +44,7 @@ function tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 	
-		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 			
 	}
 	echo build_artica_tabs($html, "squid_compilation_status");
@@ -70,15 +70,16 @@ function manu(){
 	
 	
 	$html="
-	<H2>Squid-Cache $realsquidversion $ArchStruct</H2>
-	<div class=text-info style='font-size:16px'>{manual_update_root_text}</div>
-	<div style='font-size:16px;font-weight:bold'>{your_system}: ". $sock->getFrameWork("system.php?system-text=yes")."</div>
+	<H2 style='font-size:23px;margin-top:20px;'>Proxy $realsquidversion $ArchStruct</H2>
+	<div style='font-size:16px;font-weight:normal;margin-bottom:25px;padding-top:5px;text-align:right;border-top:1px solid black'>{your_system}: ". $sock->getFrameWork("system.php?system-text=yes")."</div>
+	<div class=explain style='font-size:16px'>{manual_update_root_text}</div>
+	
 	<center>
 	<table style='width:80%'>
 	<tr>
 	<td width=1%><img src='img/arrow-blue-left-32.png'></td>
 	<td><a href=\"http://www.articatech.net/artica-catzdb.php?ArchStruct=$ArchStruct\"
-	target=_new style='font-size:16px;text-decoration:underline'>{find_packages}</a></td>
+	target=_new style='font-size:16px;text-decoration:underline;color:black !important'>{find_packages}</a></td>
 	</tr>
 	</table>
 	</center>

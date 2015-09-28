@@ -32,7 +32,7 @@ function add_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 
-	$html="<div class=text-info style='font-size:18px'>{add_iscsi_explain}</div>
+	$html="<div class=explain style='font-size:18px'>{add_iscsi_explain}</div>
 	<hr>
 	<center style='width:98%' class=form>
 		<table style='width:100%'>

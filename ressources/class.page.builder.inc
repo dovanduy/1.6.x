@@ -138,11 +138,22 @@ class pagebuilder{
 	}
 	
 	
-	public function jsArtica(){
-		if(isset($GLOBALS[__CLASS__][__FUNCTION__])){return $GLOBALS[__CLASS__][__FUNCTION__];}
+	public function jsArtica($template=null){
+		
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$filename=basename($trace[1]["file"]);
+				$function=$trace[1]["function"];
+				$line=$trace[1]["line"];
+			}
+		}
+		
+		
+		if(isset($GLOBALS[__CLASS__][$template][__FUNCTION__])){return $GLOBALS[__CLASS__][$template][__FUNCTION__];}
 		if(!isset($GLOBALS["JS_HEAD_PREPREND"])){$GLOBALS["JS_HEAD_PREPREND"]=null;}
 		if(!isset($GLOBALS["JS_NO_CACHE"])){$GLOBALS["JS_NO_CACHE"]=false;}
-		
+		if($template<>null){$this->SetTemplateMemory($template);}
 		
 		if(!$GLOBALS["JS_NO_CACHE"]){
 			if($GLOBALS["EXECUTED_AS_ROOT"]){
@@ -167,9 +178,10 @@ class pagebuilder{
 			$mouse="";
 			$tafel=null;
 			$jsTable=array();
-			
-			$html="\n$backspace<!-- {$_SERVER['HTTP_USER_AGENT']}  -->\n" ;
-			$html="\n$backspace<!-- Prepend:{$GLOBALS['JS_HEAD_PREPREND']}  -->\n" ;
+			$html="\n$backspace<!--Called by  $filename/$function/$line -->\n" ;
+			$html="\n$backspace<!-- Template $template  -->\n" ;
+			$html=$html."$backspace<!-- {$_SERVER['HTTP_USER_AGENT']}  -->\n" ;
+			$html=$html."$backspace<!-- Prepend:{$GLOBALS['JS_HEAD_PREPREND']}  -->\n" ;
 			
 			
 			if(preg_match("#curl\/[0-9\.]+#",$_SERVER['HTTP_USER_AGENT'])){
@@ -212,11 +224,7 @@ class pagebuilder{
 			$jsTable[]="/js/$jquery_custom";
 			$jsTable[]="/default.js";
 			$jsTable[]="/js/rloader1.5.4_min.js";
-			
-			
-			$jsTablesrc[]="/mouse.js";
 			$jsTablesrc[]="/js/md5.js";
-			
 			$jsTablesrc[]="/js/float-barr.js";
 			$jsTablesrc[]="/TimersLogs.js";
 			$jsTablesrc[]="/js/artica_confapply.js";
@@ -235,6 +243,7 @@ class pagebuilder{
 			$jsTablesrc[]="/js/jquery.tools.min.js";
 			$jsTablesrc[]="/js/jquery.qtip.js";
 			$jsTablesrc[]="/js/jquery.kwicks-1.5.1.pack.js";
+			$jsTablesrc[]="/js/jquery.auto-complete.min.js";
 			$jsTablesrc[]="/js/flexigrid.pack.js";
 			$jsTablesrc[]="/js/jquery-ui-timepicker-addon.js";
 			$jsTablesrc[]="/js/ui.selectmenu.js";
@@ -251,22 +260,14 @@ class pagebuilder{
 			$jsTablesrc[]="/js/jquery.blockUI.js";
 			$jsTablesrc[]="/js/justgage.1.0.1.min.js";
 			$jsTablesrc[]="/js/raphael.2.1.0.min.js";
+			$jsTablesrc[]="/js/jquery.bxslider.min.js";
+			$jsTablesrc[]="/js/jquery.tooltipster.min.js";
 			
 			$jsTablesrc[]="/bootstrap/js/bootstrap-tab.js";
 			$jsTablesrc[]="/bootstrap/js/bootstrap-tooltip.js";
 			$jsTablesrc[]="/bootstrap/js/bootstrap-button.js";
 			
-			$favicon="ressources/templates/default/favicon.ico";
-			$favicon_path=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/favicon.ico";
-			if(is_file($favicon_path)){
-				$favicon="ressources/templates/{$_COOKIE["artica-template"]}/favicon.ico";
-			}
-			
-			
-			$chrome[]="$backspace<link rel=\"icon\" type=\"image/x-icon\" href=\"$favicon\" />";
-			$chrome[]="$backspace<!--[if IE]><link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"$favicon\" /><![endif]-->";
-			
-
+			$chrome[]=$this->favicon($this->GetTemplateMemory());
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
 				$tafel=null;
@@ -291,7 +292,8 @@ class pagebuilder{
 			}
 			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $srcs)." ]);</script>";
 			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.blockUI.js\"></script>";
-			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"XHRConnection.js\"></script>";
+			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"/XHRConnection.js\"></script>";
+			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"/mouse.js\"></script>";
 			$f[]="{$backspace}if(head.browser.ie){head.js('/mouse_ie.js');}";
 			$f[]="{$backspace}</script>\n";
 			
@@ -300,9 +302,10 @@ class pagebuilder{
 			if(preg_match("#Safari\/#",$_SERVER['HTTP_USER_AGENT'])){$oldMethod=true;}
 			if(preg_match("#Firefox\/4\.0b[0-9]+#",$_SERVER['HTTP_USER_AGENT'])){$oldMethod=true;}
 			$oldMethod=true;
-			
-			
-			
+			$html=$html . "\n<script type=\"text/javascript\">window.history.forward(0);function noBack(){window.history.forward(0);}</script>\n";
+			$html=$html . "\n<script type=\"text/javascript\">var bajb_backdetect={Version:'1.0.0',Description:'Back Button Detection',Browser:{IE:!!(window.attachEvent&&!window.opera),Safari:navigator.userAgent.indexOf('Apple')>-1,Opera:!!window.opera},FrameLoaded:0,FrameTry:0,FrameTimeout:null,OnBack:function(){alert('Back Button Clicked')},BAJBFrame:function(){var BAJBOnBack=document.getElementById('BAJBOnBack');if(bajb_backdetect.FrameLoaded>1){if(bajb_backdetect.FrameLoaded==2){bajb_backdetect.OnBack();history.back()}}bajb_backdetect.FrameLoaded++;if(bajb_backdetect.FrameLoaded==1){if(bajb_backdetect.Browser.IE){bajb_backdetect.SetupFrames()}else{bajb_backdetect.FrameTimeout=setTimeout(\"bajb_backdetect.SetupFrames();\",700)}}},SetupFrames:function(){clearTimeout(bajb_backdetect.FrameTimeout);var BBiFrame=document.getElementById('BAJBOnBack');var checkVar=BBiFrame.src.substr(-11,11);if(bajb_backdetect.FrameLoaded==1&&checkVar!=\"HistoryLoad\"){BBiFrame.src=\"blank.html?HistoryLoad\"}else{if(bajb_backdetect.FrameTry<2&&checkVar!=\"HistoryLoad\"){bajb_backdetect.FrameTry++;bajb_backdetect.FrameTimeout=setTimeout(\"bajb_backdetect.SetupFrames();\",700)}}},SafariHash:'false',Safari:function(){if(bajb_backdetect.SafariHash=='false'){if(window.location.hash=='#b'){bajb_backdetect.SafariHash='true'}else{window.location.hash='#b'}setTimeout(\"bajb_backdetect.Safari();\",100)}else if(bajb_backdetect.SafariHash=='true'){if(window.location.hash==''){bajb_backdetect.SafariHash='back';bajb_backdetect.OnBack();history.back()}else{setTimeout(\"bajb_backdetect.Safari();\",100)}}},Initialise:function(){if(bajb_backdetect.Browser.Safari){setTimeout(\"bajb_backdetect.Safari();\",600)}else{document.write('<iframe src=\"blank.html\" style=\"display:none;\" id=\"BAJBOnBack\" onunload=\"alert(\'de\')\" onload=\"bajb_backdetect.BAJBFrame();\"></iframe>')}}};bajb_backdetect.Initialise();</script>";
+			$html=$html . "\n<script type=\"text/javascript\">window.location.replace('#');bajb_backdetect.OnBack = function(){alert('This application is not compatible using forward and back browsers buttons\\nTry to not use it!');window.location.replace('#');}</script>";
+			$html=$html . "\n<script type=\"text/javascript\">if(window.history.forward(1) != null) window.history.forward(1);</script>";
 			if($oldMethod){
 				$html=$html . "$backspace".@implode("\n",$chrome);
 				
@@ -317,6 +320,9 @@ class pagebuilder{
 	function headcss(){
 		if($GLOBALS["EXECUTED_AS_ROOT"]){return;}
 		$backspace="\n\t\t";
+		$Template=$this->GetTemplateMemory();
+		
+		
 		if(!isset($_COOKIE["artica-template"])){$_COOKIE["artica-template"]="";}
 		//if(strlen($_SESSION["ARTICA_HEAD_TEMPLATE"])>100){return $backspace."<!-- Session head -->".$_SESSION["ARTICA_HEAD_TEMPLATE"];}
 		if($_COOKIE["artica-template"]==null){$_COOKIE["artica-template"]="default";}
@@ -346,6 +352,10 @@ class pagebuilder{
 			if(!isset($GLOBALS["CSS_FILES"]["menus_top.css"])){$GLOBALS["CSS_FILES"]["menus_top.css"]="menus_top.css";}
 			if(!isset($GLOBALS["CSS_FILES"]["blurps.css"])){$GLOBALS["CSS_FILES"]["blurps.css"]="blurps.css";}
 			if(!isset($GLOBALS["CSS_FILES"]["isoqlog.css"])){$GLOBALS["CSS_FILES"]["isoqlog.css"]="isoqlog.css";}
+			if(!isset($GLOBALS["CSS_FILES"]["jquery.bxslider.css"])){$GLOBALS["CSS_FILES"]["jquery.bxslider.css"]="jquery.bxslider.css";}
+			
+			
+			
 			
 			if((CurrentPageName()=="logon.php") OR (CurrentPageName()=="logoff.php") OR (CurrentPageName()=="404.php")){
 				unset($GLOBALS["CSS_FILES"]["menu.css"]);
@@ -458,23 +468,70 @@ class pagebuilder{
 			
 		}
 		
-		private function GetTemplateMemory(){
-			if(isset($GLOBALS["artica-template"])){return $GLOBALS["artica-template"];}
+		public function SetTemplateMemory($template=null){
+			if($template==null){return;}
+			$_SESSION["artica-template"]=$template;
+			$GLOBALS["artica-template"]=$template;
+			$_COOKIE["artica-template"]=$template;
+		}
+		
+		public function GetTemplateMemory(){
+			if(isset($_SESSION["FORCED_TEMPLATE"])){return $_SESSION["FORCED_TEMPLATE"];}
+			if(isset($GLOBALS["artica-template"])){$_COOKIE["artica-template"]=$GLOBALS["artica-template"];return $GLOBALS["artica-template"];}
+			if(isset($_SESSION["artica-template"])){
+					$_COOKIE["artica-template"]=$_SESSION["artica-template"];
+					$GLOBALS["artica-template"]=$_SESSION["artica-template"];
+					return $_SESSION["artica-template"];
+			}
 			if(!isset($_COOKIE["artica-template"])){$GLOBALS["artica-template"]="default";return;}
 			if(!is_file(dirname(__FILE__)."/templates/{$_COOKIE["artica-template"]}/index.html")){$GLOBALS["artica-template"]="default";return;}
 			$GLOBALS["artica-template"]=$_COOKIE["artica-template"];
 		}
 		
 		public function favicon($template=null){
-			if(!isset($GLOBALS["JS_HEAD_PREPREND"])){$GLOBALS["JS_HEAD_PREPREND"]=null;}
-			if($_COOKIE["artica-template"]==null){if($template<>null){$_COOKIE["artica-template"]=$template;}}
-			if(is_file(dirname(__FILE__)."/templates/{$_COOKIE["artica-template"]}/favicon.ico")){
-				$f[]="<link rel=\"icon\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$_COOKIE["artica-template"]}/favicon.ico\" type=\"image/x-icon\" />";
-				$f[]="<link rel=\"shortcut icon\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$_COOKIE["artica-template"]}/favicon.ico\" type=\"image/x-icon\" />\n";
-				return @implode("\n", $f);
-			}else{
-				return "<!-- favicon :".dirname(__FILE__)."/templates/{$_COOKIE["artica-template"]}/favicon.ico no such file -->\n";
+			
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$filename=basename($trace[1]["file"]);
+					$function=$trace[1]["function"];
+					$line=$trace[1]["line"];
+				}
 			}
+			
+			
+			if(isset($GLOBALS["FAVICON"])){return $GLOBALS["FAVICON"];}
+			if(!isset($GLOBALS["JS_HEAD_PREPREND"])){$GLOBALS["JS_HEAD_PREPREND"]=null;}
+			if($template=="default"){$template=null;}
+			if($template<>null){
+				$_COOKIE["artica-template"]=$template;
+				$_SESSION["artica-template"]=$template;
+			}else{
+				$template=$this->GetTemplateMemory();
+			}
+			
+			
+			$favicon="ressources/templates/default/favicon.ico";
+			if(is_file(dirname(__FILE__)."/templates/$template/favicon.ico")){
+				$favicon="ressources/templates/$template/favicon.ico";
+			}else{
+				$f[]="<!-- favicon :".dirname(__FILE__)."/templates/$template/favicon.ico no such file -->\n";
+			}
+			
+			$f[]="<!-- favicon ". __CLASS__."/".__FUNCTION__."/".__LINE__ ." -->";
+			$f[]="<!-- called by $filename/$function/$line -->";
+			$f[]="<!-- Template Param..:  $template -->";
+			$f[]="<!-- Template Cookie.:  {$_COOKIE["artica-template"]} -->";
+			$f[]="<!-- Template Memory.:  {$GLOBALS["artica-template"]} -->";
+			if(isset($_SESSION["artica-template"])){$f[]="<!-- Template Session:  {$_SESSION["artica-template"]} -->";}
+			if(isset($_SESSION["artica-template"])){$f[]="<!-- Template Session Forced:  {$_SESSION["FORCED_TEMPLATE"]} -->";}
+			$f[]="<!-- File:  {$_COOKIE["artica-template"]} -->";
+			$f[]="<link rel=\"icon\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/$favicon\" type=\"image/x-icon\" />";
+			$f[]="<link rel=\"shortcut icon\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/$favicon\" type=\"image/x-icon\" />\n";
+			$GLOBALS["FAVICON"]=@implode("\n", $f);
+			
+			return $GLOBALS["FAVICON"];
+			
 			
 		}
 		

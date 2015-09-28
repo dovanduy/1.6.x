@@ -163,7 +163,7 @@ $html="
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
-		<div class=text-info>{smtpd_client_restrictions_text}</div>
+		<div class=explain>{smtpd_client_restrictions_text}</div>
 	</td>
 	<td valign='top'>
 		$whitelists

@@ -59,6 +59,7 @@ function js(){
 
 
 function item_popup_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ID=$_GET["item-id"];
@@ -306,6 +307,14 @@ function RefreshSquidGroupItemsTable(){
 	var x_EnableDisableGroup= function (obj) {
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
+		
+		if(document.getElementById('GLOBAL_SSL_CENTER_ID')){
+			$('#'+document.getElementById('GLOBAL_SSL_CENTER_ID').value).flexReload();
+		}
+		if(document.getElementById('SSL_RULES_GROUPS_ID')){
+			$('#'+document.getElementById('SSL_RULES_GROUPS_ID').value).flexReload();
+		}
+		
 	}	
 	
 	function DeleteGroupItem(ID){
@@ -365,6 +374,7 @@ function page(){
 	],";
 
 	$html=$tpl->_ENGINE_parse_body("")."
+	<input type='hidden' id='TABLE_BROWSE_ACL_GROUPS_ID' value='table-$t'>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var DeleteSquidAclGroupTemp=0;
@@ -402,8 +412,20 @@ function AddGroup$t() {
 }	
 
 function RefreshSquidGroupTable(){
+
+	if(document.getElementById('GLOBAL_SSL_CENTER_ID')){
+		$('#'+document.getElementById('GLOBAL_SSL_CENTER_ID').value).flexReload();
+	}
+	if(document.getElementById('SSL_RULES_GROUPS_ID')){
+		$('#'+document.getElementById('SSL_RULES_GROUPS_ID').value).flexReload();
+	}	
+	
+	if(document.getElementById('flexRT-refresh-1')){ 
+		$('#'+document.getElementById('flexRT-refresh-1').value).flexReload();
+	}
+	
 	$('#table-$t').flexReload();
-	if(document.getElementById('flexRT-refresh-1')){ $('#'+document.getElementById('flexRT-refresh-1').value).flexReload();}
+	
 }
 
 
@@ -480,7 +502,7 @@ function item_form(){
 
 	$html="
 	<div style='font-size:16px'>$GroupTypeText</div>
-	<div class=text-info style='font-size:14px'>$explain</div>
+	<div class=explain style='font-size:14px'>$explain</div>
 	<div id='$t'>
 	
 	<table style='width:99%' class=form>

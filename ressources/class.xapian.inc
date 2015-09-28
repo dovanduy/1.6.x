@@ -59,7 +59,7 @@ class XapianSearch{
     try {
     	 $query =  $this->QP->parse_query($this->terms, $flags);
     } catch (Exception $e) {
-    	echo "<span style='color:red;font-size:16px'>Error ".$e->getMessage()."</span>";
+    	echo "<span style='color:#d32d2d;font-size:16px'>Error ".$e->getMessage()."</span>";
     	return array();
     }           
                

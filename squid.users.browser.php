@@ -71,7 +71,7 @@ function internalnets(){
 	$fontsize=16;	
 	
 	$add_categories=Paragraphe("64-categories-add.png", "{add_category}", "{add_category_text}","AddCategory(0)");
-	$html="<div class=text-info style='font-size:14px'>{banned_categories_explain}</div>";
+	$html="<div class=explain style='font-size:14px'>{banned_categories_explain}</div>";
 	
 	$tr[]=$add_categories;
 	
@@ -180,7 +180,7 @@ function yourproxy(){
 		
 	}
 	$html="
-	<div class=text-info style='font-size:16px'>
+	<div class=explain style='font-size:16px'>
 	{configure_your_isp_proxy_explain}</div>
 	<table style='width:100%' class=form>
 	<tr>

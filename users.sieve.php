@@ -337,7 +337,7 @@ function sieve_index(){
 	<div style='float:right;text-align:right'><input type='button' OnClick=\"javascript:SieveAddRuleName();\" value='{add}&nbsp;&raquo;'></div>
 	<p class=caption>{mailboxes_rules_text}<br>{sieve_rule_explain}</p>
 	
-	<div style='font-size:13px;font-weight:bold;color:red;width:80%;margin:3px'>$error</div>
+	<div style='font-size:13px;font-weight:bold;color:#d32d2d;width:80%;margin:3px'>$error</div>
 	
 	";
 	
@@ -448,7 +448,7 @@ function sieve_rule_resumer($rulename,$uid){
 			
 			$jsedit=CellRollOver("SieveEditRule('$rulename','$num')");
 			if(preg_match("#Artica rule#",$ligne)){
-				$ligne=str_replace("Artica rule","<strong style='color:red'>{locked}</strong>",$ligne);
+				$ligne=str_replace("Artica rule","<strong style='color:#d32d2d'>{locked}</strong>",$ligne);
 				$jsedit=null;
 				}
 			$tables=$tables."

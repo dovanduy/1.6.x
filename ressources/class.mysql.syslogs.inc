@@ -713,25 +713,7 @@ class mysql_storelogs{
 		
 	}
 	
-	private function SargTests($filename){
-		$sql="CREATE TABLE IF NOT EXISTS `sarg_performed` (`md5file` VARCHAR(128) PRIMARY KEY ,
-				`filename` VARCHAR(128) ,`zDate` datetime )  ENGINE = MYISAM;";
-		$q=new mysql_squid_builder();
-		
-		
-		
-		if(!$q->QUERY_SQL($sql)){
-			$this->events($q->mysql_error);
-			if($GLOBALS["VERBOSE"]){echo "$sql\n$q->mysql_error\n";}
-			$this->events("Error: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			return false;
-		}
-		$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
-		shell_exec("$php /usr/share/artica-postfix/exec.mysar.php --mysql");
-		shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --conf");
-		return true;
-		
-	}
+
 	
 	private function MySarExec($filename){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
@@ -804,22 +786,10 @@ class mysql_storelogs{
 			return true;
 		}
 		
-		if($this->EnableSargGenerator==0){
-			if($this->mySar==0){
-				$GLOBALS["SARG_TASK"][$filename]=true;
-				return true;
-			}
-		}
 
-		if(!isset($GLOBALS["SARGTESTS"])){
-			$this->events("SargTests on $filename");
-			$GLOBALS["SARGTESTS"]=$this->SargTests($filename);
-		}
+
+
 		
-		if(!$GLOBALS["SARGTESTS"]){
-			$GLOBALS["SARG_TASK"][$filename]=false;
-			return false;
-		}
 		
 		$md5=md5_file($filename);
 		$q=new mysql_squid_builder();
@@ -867,9 +837,8 @@ class mysql_storelogs{
 		
 		if($this->EnableSargGenerator==1){
 			$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
-			$this->events("exec.sarg.php --tofile \"$filename\"");
-			rotate_events("Launching sarg on executed on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --tofile \"$filename\"");
+			
+			
 		}
 		$zDate=date("Y-m-d H:i:s");
 		$sql="INSERT IGNORE INTO `sarg_performed` (`md5file`,`filename`,`zDate`) VALUES ('$md5','$basename','$zDate')";
@@ -903,19 +872,8 @@ class mysql_storelogs{
 		if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
 		$LogRotatePathWork="$LogRotatePath/merged";
 		$BigMerged="$LogRotatePathWork/access.merged.log";
-		$SquidRotateMergeFiles=$sock->GET_INFO("SquidRotateMergeFiles");
-		if(!is_numeric($SquidRotateMergeFiles)){$SquidRotateMergeFiles=1;}
-		$LogsRotateDeleteSize=intval($sock->GET_INFO("LogsRotateDeleteSize"));
-		if($LogsRotateDeleteSize==0){$LogsRotateDeleteSize=5000;}
-		
-		if($SquidRotateMergeFiles==0){
-			$this->events("SquidRotateMergeFiles is disabled...",__FUNCTION__,__LINE__);
-			if(is_file("$BigMerged")){
-				@copy($BigMerged, "$LogRotatePath/work/access.merged.".time().".log");
-				@unlink($BigMerged);
-			}
-			return;
-		}
+
+	
 		
 		$MERGED_FILES=unserialize(@file_get_contents("/etc/artica-postfix/accesslogs_merged.db"));
 		
@@ -1562,7 +1520,7 @@ class mysql_storelogs{
 	
 	public function events($text,$function=null,$line=0){
 		$pid=@getmypid();
-		
+		if($GLOBALS["PROGRESS"]){echo "$text [$function/$line]\n";}
 
 		
 		if(function_exists("debug_backtrace")){

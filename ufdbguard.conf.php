@@ -46,8 +46,8 @@ function conf(){
 	$html="<div id='$t'></div>
 	<table>
 	<tr>
-	<td class=legend style='font-size:16px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
-	<td>". Field_checkbox("DenyUfdbWriteConf", 1,$DenyUfdbWriteConf,"DenySquidWriteConfSave$t()")."</td>
+	<td class=legend style='font-size:20px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
+	<td>". Field_checkbox_design("DenyUfdbWriteConf", 1,$DenyUfdbWriteConf,"DenySquidWriteConfSave$t()")."</td>
 	</tr>
 	</table><textarea 
 		style='width:98%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px !important;
@@ -100,7 +100,7 @@ function tabs(){
 	$array["groups"]='{groups}';
 	$time=time();
 	
-	$fontsize=18;
+	$fontsize=22;
 	
 	while (list ($num, $ligne) = each ($array) ){
 			$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
@@ -133,7 +133,7 @@ $buttons="
 		],";
 $buttons=null;
 		$html="
-		<div class=text-info style='font-size:14px'>$explain</div>
+		<div class=explain style='font-size:18px'>$explain</div>
 		<table class='flexRT$tt' style='display: none' id='flexRT$tt' style='width:100%'></table>
 		<script>
 		function Start$tt(){
@@ -142,16 +142,16 @@ $buttons=null;
 		dataType: 'json',
 		colModel : [
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
-		{display: '$category', name : 'comment', width : 176, sortable : false, align: 'left'},
-		{display: '$database', name : 'eth', width :252, sortable : false, align: 'left'},
-		{display: '$size', name : 'delete', width : 116, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$category</span>', name : 'comment', width : 215, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$database</span>', name : 'eth', width :215, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$size</span>', name : 'delete', width : 215, sortable : false, align: 'right'},
 		],
 		$buttons
 		
 		sortname: 'eth',
 		sortorder: 'asc',
 		usepager: true,
-		title: '$maintitle',
+		title: '<span style=font-size:22px>$maintitle</span>',
 		useRp: false,
 		rp: 50,
 		showTableToggleBtn: false,
@@ -245,14 +245,21 @@ function databases_items(){
 	$data['total'] = count($data);
 	$data['rows'] = array();
 	
+	$ProductName="Artica";
+	$ProductNamef=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf";
+	if(is_file($ProductNamef)){
+		$ProductName=trim(@file_get_contents($ProductNamef));
+	}
+	
+	
 	$dans=new dansguardian_rules();
-	$DBZ["ART"]="Artica Database";
+	$DBZ["ART"]="$ProductName Database";
 	$DBZ["UNIV"]="Toulouse University";
 	$DBZ["PERS"]="Personal Database";
 	
 	if(count($dataZ)==0){json_error_show("no data",1);}
 	
-	$fontsize="16";
+	$fontsize="22";
 	$q=new mysql_squid_builder();
 	
 	

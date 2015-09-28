@@ -8,6 +8,7 @@ include_once('ressources/class.users.menus.inc');
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsArticaAdministrator){die();}		
 	
+	if($_GET["newtab"]=="network2"){network_js();exit;}
 	if($_GET["newtab"]=="network"){network_js();exit;}
 	if(isset($_GET["tab"])){main_switch();exit;}
 	if(isset($_GET["ajaxmenu"])){echo popup();exit;}
@@ -216,7 +217,7 @@ function main_system(){
 	if(GET_CACHED(__FILE__,__FUNCTION__,null)){return;}
 	$users=new usersMenus();
 	$automount=Buildicon64("DEF_ICO_AUTOFS_CENTER");
-	$disks=Buildicon64("DEF_ICO_DISKS");
+	
 	$ntp=Buildicon64('DEF_ICO_NTP');
 	$hardware=Paragraphe('folder-hardware-64.png','{hardware_info}','{hardware_info_text}',"javascript:Loadjs('system.hardware.php')");
 	$memory=Paragraphe('folder-memory-64.png','{memory_info}','{memory_info_text}',"javascript:Loadjs('system.memory.php?js=yes')");
@@ -227,7 +228,7 @@ function main_system(){
 	$perfs=Paragraphe('64-performances.png','{artica_performances}','{artica_performances_text}',"javascript:Loadjs('artica.performances.php')");
 	$zabix=Buildicon64("DEF_ICO_ZABBIX");
 	$kernel=Paragraphe("linux-inside-64.png","{system_kernel}","{system_kernel_text}","javascript:Loadjs('system.kernel.debian.php')");
-	$clock=Paragraphe("clock-gold-64.png","{server_time2}","{server_time2_text}","javascript:Loadjs('index.time.php?settings=yes');");
+	
 	$syslog=Paragraphe("syslog-64.png","{system_log}","{system_log_text}","javascript:Loadjs('syslog.engine.php?windows=yes');");
 	$automount=Paragraphe("magneto-64.png","{automount_center}","{automount_center_text}","javascript:Loadjs('autofs.php?windows=yes');");
 	
@@ -258,7 +259,6 @@ function main_system(){
 		
 	if(!$users->ZABBIX_INSTALLED){$zabix=null;}
 	$tr[]=$ntp;
-	$tr[]=$clock;
 	$tr[]=$hardware;
 	$tr[]=$memory;
 	$tr[]=$proc_infos;
@@ -268,7 +268,7 @@ function main_system(){
 	$tr[]=$zabix;
 	$tr[]=$perfs;
 	$tr[]=$automount;
-	$tr[]=$disks;
+	
 	$tr[]=$File_Deduplication;
 	$tr[]=$usb;
 	$tr[]=$RootPasswordChangedTXT;
@@ -801,7 +801,7 @@ function AdressBookPopup(){
 	
 $html="<div id='rdr'>
 	<H1>{remote_addressbook}</H1>
-	<div class=text-info>{remote_addressbook_text}</div>
+	<div class=explain>{remote_addressbook_text}</div>
 	<table style='width:100%'>
 	<tr>
 

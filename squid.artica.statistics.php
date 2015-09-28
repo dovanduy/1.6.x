@@ -63,7 +63,7 @@ function params(){
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	if($SquidPerformance>1){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled_see_performance}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{artica_statistics_disabled_see_performance}"));
 		return;
 	}
 	
@@ -93,7 +93,7 @@ function params(){
 	
 	if($EnableSquidRemoteMySQL==1){
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
-		$error="<div style='font-size:16px' class=text-info>{remote_mysqlsquidserver_text}<br><strong>mysql://{$TuningParameters["mysqlserver"]}:{$TuningParameters["RemotePort"]}</strong></div>";
+		$error="<div style='font-size:16px' class=explain>{remote_mysqlsquidserver_text}<br><strong>mysql://{$TuningParameters["mysqlserver"]}:{$TuningParameters["RemotePort"]}</strong></div>";
 		$p=Paragraphe_switch_disable("{DisableArticaProxyStatistics}", "{DisableArticaProxyStatistics_explain}",null,600).
 		"".Field_hidden("DisableArticaProxyStatistics", 0);
 	}

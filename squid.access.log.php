@@ -8,13 +8,14 @@ include_once('ressources/class.mysql.inc');
 include_once('ressources/class.privileges.inc');
 include_once('ressources/class.ChecksPassword.inc');
 include_once(dirname(__FILE__)."/ressources/class.logfile_daemon.inc");
+include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 
 session_start();
 if($_SESSION["uid"]==null){ AskPasswordAuth("{realtime_requests}"); }
 
 
 $users=new usersMenus();
-if(!$users->AsDansGuardianAdministrator){
+if(!$users->AsWebStatisticsAdministrator){
 	$tpl=new templates();
 	echo "<script> alert('". $tpl->javascript_parse_text("`{$_SERVER['PHP_AUTH_USER']}/{$_SERVER['PHP_AUTH_PW']}` {ERROR_NO_PRIVS}")."'); </script>";
 	die();
@@ -111,7 +112,7 @@ function popup(){
 	$uri=$tpl->_ENGINE_parse_body("{url}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	if(function_exists("date_default_timezone_get")){$timezone=" - ".date_default_timezone_get();}
-	$title=$tpl->_ENGINE_parse_body("{today}: {realtime_requests} ".date("H")."h$timezone");
+	$title=$tpl->_ENGINE_parse_body("{realtime_requests}");
 	$zoom=$tpl->_ENGINE_parse_body("{zoom}");
 	$button1="{name: 'Zoom', bclass: 'Search', onpress : ZoomSquidAccessLogs},";
 	$stopRefresh=$tpl->javascript_parse_text("{stop_refresh}");
@@ -155,7 +156,9 @@ function popup(){
 	$uri_field=233;
 	$cod_field=233;
 	$size_field=106;
-	$duration_field=106;
+	$duration_field=89;
+	$proto_field=43;
+	$link_field=37;
 	
 	if($_GET["minsize"]==1){
 		$uri_field=450;
@@ -169,9 +172,12 @@ function popup(){
 	
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
-		$url_row=576;
+		$uri_field=529;
+		$ip_field=190;
+		$cod_field=203;
 		$member_row=333;
 		$distance_width=352;
+		$proto_field=43;
 		$margin=0;
 		$margin_left="-5";
 		$tableprc="99%";
@@ -190,77 +196,129 @@ function popup(){
 		$title_table_storage="$logs_container $countContainers $files (".FormatBytes($ligne["tsize"]/1024).")";
 	}
 	
-	
+	$categories=$tpl->javascript_parse_text("{categories}");
 	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
 	$error=$tpl->javascript_parse_text("{error}");
 	$sitename=$tpl->javascript_parse_text("{sitename}");
+	$autorefresh=$tpl->javascript_parse_text("{autorefresh}");
+	
+	$all=$tpl->javascript_parse_text("{all}");
 	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 	
 	
-	$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
+	$buttons[]="{name: '<strong>$autorefresh OFF</stong>', bclass: 'Reload', onpress : AutoRefresh$t},";
 	
 	
 	$html="
-			
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
+	<div id='SQUID_ACCESS_LOGS_DIV'>		
+	<table class='SQUID_ACCESS_LOGS_RT' style='display: none' id='SQUID_ACCESS_LOGS_RT' style='width:99%'></table>
+	<input type='hidden' id='refreshenabled$t' value='0'>
+	<input type='hidden' id='categoriesenabled$t' value='0'>
 	
-	<input type='hidden' id='refresh$t' value='1'>
+	<input type='hidden' id='refresh$t' value='0'>
+	</div>
 	<script>
 	var mem$t='';
 	function StartLogsSquidTable$t(){
-		$('#flexRT$t').flexigrid({
+		$('#SQUID_ACCESS_LOGS_RT').flexigrid({
 			url: '$page?events-list=yes&minsize={$_GET["minsize"]}&SearchString={$_GET["SearchString"]}',
 			dataType: 'json',
 			colModel : [
 			
-			{display: '$zdate', name : 'zDate', width :$date_field, sortable : true, align: 'left'},
-			{display: '$ipaddr', name : 'events', width : $ip_field, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'code', width : $cod_field, sortable : false, align: 'left'},
-			{display: '$proto', name : 'proto', width : 75, sortable : false, align: 'left'},
-			{display: '$uri', name : 'events', width : $uri_field, sortable : false, align: 'left'},
-			{display: '$size', name : 'size', width : $size_field, sortable : false, align: 'left'},
-			{display: '$duration', name : 'duration', width : $duration_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$zdate</span>', name : 'zDate', width :$date_field, sortable : true, align: 'left'},
+			{display: '<span style=font-size:18px>$ipaddr</span>', name : 'events', width : $ip_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>&nbsp;</span>', name : 'code', width : $cod_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$proto</span>', name : 'proto', width : $proto_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$uri</span>', name : 'events', width : $uri_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>LINK</span>', name : 'size2', width : $link_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$size</span>', name : 'size', width : $size_field, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$duration</span>', name : 'duration', width : $duration_field, sortable : false, align: 'left'},
 			],
 				
 			buttons : [
-				
+				{name: '<strong style=font-size:18px id=SQUIDLOGS_REFRESH_LABEL>$autorefresh OFF</strong>', bclass: 'Reload', onpress : AutoRefresh$t},
+				{name: '<strong style=font-size:18px id=SQUIDLOGS_CATEGORIES_LABEL>$categories OFF</strong>', bclass: 'Reload', onpress : Categories$t},
 			],
 				
 	
 			searchitems : [
-			{display: '$sitename', name : 'sitename'},
-			{display: '$uri', name : 'uri'},
-			{display: '$member', name : 'uid'},
-			{display: '$error', name : 'TYPE'},
-			{display: '$ipaddr', name : 'CLIENT'},
-			{display: '$MAC', name : 'MAC'},
+			{display: '$all', name : 'sitename'},
+			
 			],
 			sortname: 'zDate',
 			sortorder: 'desc',
 			usepager: true,
-			title: '<span style=\"font-size:16px\">$title {$_GET["SearchString"]}</span>',
+			title: '<span style=\"font-size:22px\">$title {$_GET["SearchString"]}</span>',
 			useRp: true,
 			rp: 50,
 			showTableToggleBtn: false,
 			width: '98.5%',
-			height: 640,
+			height: 500,
 			singleSelect: true,
 			rpOptions: [10, 20, 30, 50,100,200,500]
 	
 		});
+		
+	if(document.getElementById('SQUID_INFLUDB_TABLE_DIV')){
+		document.getElementById('SQUID_INFLUDB_TABLE_DIV').innerHTML='';
+	}		
 	
 	}
 	
+function AutoRefreshAction$t(){
+	if(!document.getElementById('refreshenabled$t')){return;}
+	var enabled$t=parseInt(document.getElementById('refreshenabled$t').value);
+	if(enabled$t==0){
+		setTimeout('AutoRefreshAction$t()',1000);
+		return;
+	}
+	var Count=parseInt(document.getElementById('refresh$t').value);
 	
-
+	if(Count<5){
+		Count=Count+1;
+		document.getElementById('refresh$t').value=Count;
+		setTimeout('AutoRefreshAction$t()',1000);
+		return;
+	}
+	document.getElementById('refresh$t').value=0;
+	$('#SQUID_ACCESS_LOGS_RT').flexReload();
+	setTimeout('AutoRefreshAction$t()',1000);
+	
+}
+	
+function AutoRefresh$t(){
+	var enabled=parseInt(document.getElementById('refreshenabled$t').value);
+	if( enabled ==0){
+		document.getElementById('refreshenabled$t').value=1;
+		document.getElementById('SQUIDLOGS_REFRESH_LABEL').innerHTML='$autorefresh ON';
+		}
+	if( enabled ==1){
+		document.getElementById('refreshenabled$t').value=0;
+		document.getElementById('SQUIDLOGS_REFRESH_LABEL').innerHTML='$autorefresh OFF';
+	}
+}
+function Categories$t(){
+	var enabled=parseInt(document.getElementById('categoriesenabled$t').value);
+	if( enabled ==0){
+		document.getElementById('categoriesenabled$t').value=1;
+		document.getElementById('SQUIDLOGS_CATEGORIES_LABEL').innerHTML='$categories ON';
+		$('#SQUID_ACCESS_LOGS_RT').flexOptions({url: '$page?events-list=yes&minsize={$_GET["minsize"]}&SearchString={$_GET["SearchString"]}&categories-scan=yes'}).flexReload();
+		}
+	if( enabled ==1){
+		document.getElementById('categoriesenabled$t').value=0;
+		document.getElementById('SQUIDLOGS_CATEGORIES_LABEL').innerHTML='$categories OFF';
+		$('#SQUID_ACCESS_LOGS_RT').flexOptions({url: '$page?events-list=yes&minsize={$_GET["minsize"]}&SearchString={$_GET["SearchString"]}'}).flexReload();
+	}
+}
 StartLogsSquidTable$t();
+setTimeout('AutoRefreshAction$t()',1000);
 </script>";
 echo $html;
 }
 
 function events_list(){
 	$sock=new sockets();
-	
+	$catz=new mysql_catz();
 	
 	$sock->getFrameWork("squid.php?access-real=yes&rp={$_POST["rp"]}&query=".urlencode($_POST["query"])."&SearchString={$_GET["SearchString"]}");
 	$filename="/usr/share/artica-postfix/ressources/logs/access.log.tmp";
@@ -274,12 +332,14 @@ function events_list(){
 	$tcp=new IP();
 	
 	$cachedT=$tpl->_ENGINE_parse_body("{cached}");
+	$unknown=$tpl->javascript_parse_text("{unknown}");
 	$c=0;
 	
 	if(count($dataZ)==0){json_error_show("no data");}
+	$zcat=new squid_familysite();
 	$logfileD=new logfile_daemon();
 	krsort($dataZ);
-	
+	$IP=new IP();
 	while (list ($num, $line) = each ($dataZ)){
 		$TR=preg_split("/[\s]+/", $line);
 		if(count($TR)<5){continue;}
@@ -296,9 +356,15 @@ function events_list(){
 		$PROTO=$TR[5];
 		if($logfileD->CACHEDORNOT($zCode[0])){$color="#009223";}
 		$codeToString=$logfileD->codeToString($zCode[1]);
-		
-		if($PROTO=="CONNECT"){$color="#BAB700";}
+		$port=null;
+		$infos=null;
+		$prefix=null;
+		$query=null;
+		$scheme=null;
+		if($PROTO=="CONNECT"){$color="#BAB700";$PROTO="SSL";
+		$scheme="https";}
 		if($zCode[1]>399){$color="#D0080A";}
+		if($zCode[1]==307){$color="#F59C44";}
 		
 		if(($PROTO=="GET") or ($PROTO=="POST")){
 			if(preg_match("#TCP_REDIRECT#", $zCode[0])){
@@ -306,11 +372,84 @@ function events_list(){
 			}
 		}
 		
+		$URL=$TR[6];
+		$SOURCE_URL=$URL;
 		
 		$fontsize=14;
 		if($_GET["minsize"]==1){
 			$fontsize=12;
 		}
+		
+		$user="{$TR[7]}";
+		if($user=="-"){$user=null;}
+		if($user<>null){$user="/<strong>$user</strong>";}
+		
+		if(!isset($parse["scheme"])){
+			if($PROTO=="SSL"){
+				$GET_URL="https://$SOURCE_URL";
+			}
+		}else{
+			$GET_URL=$SOURCE_URL;
+		}
+				
+		
+		
+		$parse=parse_url($URL);
+		if($scheme==null){$scheme=$parse["scheme"];}
+		
+		
+		$hostname=$parse["host"];
+		if(preg_match("#(.+?):([0-9]+)#", $hostname,$re)){
+			$hostname=$re[1];
+			$port=$re[2];
+		}
+		if($IP->isValid($hostname)){
+			$parse["query"]=null;
+			$parse["path"]=null;
+			
+			$TT=explode(".",$hostname);
+			$net=$TT[0].".".$TT[1].".".$TT[2];
+			$infos="&nbsp;(<a href=\"http://www.tcpiputils.com/browse/ip-address/$hostname\" style='text-decoration:underline;color:black' target=_new>TCP Utils</a>&nbsp;|&nbsp<a href=\"https://db-ip.com/all/$net\" style='text-decoration:underline;color:black' target=_new>Subnet</a>)";
+		}
+		
+		
+		$path=$parse["path"];
+		$query=$parse["query"];
+		$familysite=$zcat->GetFamilySites($hostname);
+		$familysite=str_replace("'", "`", $familysite);
+		$familysiteEnc=urlencode($familysite);
+		if($familysite<>$hostname){
+			$prefix=str_replace(".$familysite", "", $hostname);
+			if($prefix<>"www"){
+				
+				$prefix="<a href=\"javascript:blur();\"
+				OnClick=\"javascript:Loadjs('squid.access.webfilter.tasks.php?familysite=$hostname')\"
+				style='text-decoration:underline;font-size:{$fontsize}px;color:$color;font-weight:bold'>$prefix</a>";
+			}
+		}
+		
+		
+		$familysite="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('squid.access.webfilter.tasks.php?familysite=$familysiteEnc')\"
+		style='text-decoration:underline;font-size:{$fontsize}px;color:$color'>$familysite</a>";
+		
+		$URL="$scheme://";
+		if($prefix<>null){$URL=$URL."$prefix.";}
+		$URL=$URL."$familysite";
+		if($port<>null){$URL=$URL.":$port";}
+		if(!isset($_GET["categories-scan"])){
+			if($path<>null){$URL=$URL.$path;}
+			if($query<>null){$URL=$URL."?$query";}
+		}else{
+			$category=$catz->GET_CATEGORIES($hostname);
+			if($category==null){$category=" ($unknown)";}else{$category=" ($category)";}
+			$URL=$URL.$category;
+		}
+		$TR[6]=$URL;
+		
+		$link="<a href=\"$GET_URL\" target=_new><img src='img/icon-link.png'></a>";
+		
+		
 		
 		if($size>1024){$size=FormatBytes($size/1024);}else{$size="$size Bytes";}
 		$date=str_replace($today." ", "", $date);
@@ -318,10 +457,11 @@ function events_list(){
 				'id' => md5($line),
 				'cell' => array(
 						"<span style='font-size:{$fontsize}px;color:$color'>$date</span>",
-						"<span style='font-size:{$fontsize}px;color:$color'>$ip/{$TR[7]}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>$ip$user</span>",
 						"<span style='font-size:{$fontsize}px;color:$color'>{$zCode[0]} - $codeToString</span>",
 						"<span style='font-size:{$fontsize}px;color:$color'>{$PROTO}</span>",
-						"<span style='font-size:{$fontsize}px;color:$color'>{$TR[6]}</span>",
+						"<span style='font-size:{$fontsize}px;color:$color'>{$TR[6]}$infos</span>",
+						"<center style='font-size:{$fontsize}px;color:$color'>$link</center>",
 						"<span style='font-size:{$fontsize}px;color:$color'>$size</span>",
 						"<span style='font-size:{$fontsize}px;color:$color'>{$duration}$durationunit</span>",
 						"$ip"

@@ -223,7 +223,7 @@ $html="
 		<img src='img/bg_regex.png' style='padding:20px;border:1px solid #CCCCCC;margin:5px'>
 	</td>
 	<td valign='top'>
-	<div class=text-info>{global_smtp_rules_explain}</div>
+	<div class=explain>{global_smtp_rules_explain}</div>
 	</td>
 </tr>
 </table>
@@ -257,7 +257,7 @@ $html="
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
-		<div class=text-info>{blockip_text}</div>
+		<div class=explain>{blockip_text}</div>
 		<div id='blockips'>" . postfix_check_client_access(). "</div>
 	</td>
 	<td valign='top' width=1%>$new_banserv</td>
@@ -278,7 +278,7 @@ $ou=$_GET["ou"];
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
-		<div class=text-info>{postfix_regex_text}</div>	
+		<div class=explain>{postfix_regex_text}</div>	
 		<div id='postfix_regex'>" . postfix_regex(). "</div>
 	</td>
 	<td valign='top' width=1%>$new_regex</td>
@@ -805,7 +805,7 @@ function SimpleWords_popup(){
 
 	$html="
 	<div id='simplewords-smtp-div'>
-	<div class=text-info>{SimpleWords_explain_add}</div>
+	<div class=explain>{SimpleWords_explain_add}</div>
 	<textarea id='simplewords-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","SimpleWordsSave()")."</div>
 	</div>

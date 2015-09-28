@@ -88,7 +88,7 @@ function FreeMem($aspid=false,$SwapOffOn=array()){
 	$text[]="Free memory when Swap exceed {$SwapOffOn["AutoMemPerc"]}%";
 	$text[]="Watchdog scanning interval: each {$SwapOffOn["AutoMemInterval"]}mn";
 	if(isset($SwapOffOn["CURRENT"])){$text[]=$SwapOffOn["CURRENT"];}
-	$text[]=ps_mem_report();
+	$text[]=$unix->ps_mem_report();
 	
 	$TOTAL_MEMORY_MB_FREE=$unix->TOTAL_MEMORY_MB_FREE();
 	$text[]="{$TOTAL_MEMORY_MB_FREE}MB before operation";

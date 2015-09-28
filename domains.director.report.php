@@ -108,7 +108,7 @@ function popup(){
 	<tr>
 		<td valign='top'><img src='img/postmaster-identity-128.png' id='report-image'></td>
 		<td>
-		<div style='font-size:14px' class=text-info>{global_director_report_explain}</div>
+		<div style='font-size:14px' class=explain>{global_director_report_explain}</div>
 		<table style='width:99%' class=form>
 		<tr>
 			<td class=legend style='font-size:13px'>{enabled}:</td>

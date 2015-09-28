@@ -39,7 +39,7 @@ function popup(){
 	}
 	
 	$html="
-	<div class=text-info style='font-size:14px'>{CICAP_MEM_BOOST_EXPLAIN}</div>
+	<div class=explain style='font-size:14px'>{CICAP_MEM_BOOST_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td style='font-size:24px;vertical-align:top'>{memory}:</td>

@@ -331,11 +331,11 @@ function query_group(){
 		
 	
 		if(!preg_match("#^@(.+?):(.+?)$#",$ligne,$re)){
-			if($GLOBALS["VERBOSE"]){echo "<code style='color:red'>&raquo;$ligne&laquo; ! = ^@(.+?):([0-9]+)</code><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<code style='color:#d32d2d'>&raquo;$ligne&laquo; ! = ^@(.+?):([0-9]+)</code><br>\n";}
 			continue;
 		}
 		if($OnlyUsers==1){
-			if($GLOBALS["VERBOSE"]){echo "<code style='color:red'>OnlyUsers = 1 -> next</code><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<code style='color:#d32d2d'>OnlyUsers = 1 -> next</code><br>\n";}
 			continue;
 		}
 		
@@ -352,7 +352,7 @@ function query_group(){
 	
 		$c++;
 		if($c>$_POST["rp"]){
-			if($GLOBALS["VERBOSE"]){echo "<code style='color:red'>\$c ($c) > {$_POST["rp"]} break</code><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<code style='color:#d32d2d'>\$c ($c) > {$_POST["rp"]} break</code><br>\n";}
 			break;}
 	
 		$data['rows'][] = array(

@@ -11,7 +11,7 @@
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");
-	if(!function_exists("session_start")){echo "<div style='margin:200px;padding:10px;border:2px solid red'><center><H1><error>session module is not properly loaded<BR>please restart artica-postfix web daemon using <br> <code>/etc/init.d/artica-postfix restart apache</code></error><div style='color:red;font-size:13px'>Unable to stat session_start function</div></H1></div>";exit;}
+	if(!function_exists("session_start")){echo "<div style='margin:200px;padding:10px;border:2px solid red'><center><H1><error>session module is not properly loaded<BR>please restart artica-postfix web daemon using <br> <code>/etc/init.d/artica-postfix restart apache</code></error><div style='color:#d32d2d;font-size:13px'>Unable to stat session_start function</div></H1></div>";exit;}
 	
 	if(function_exists("session_start")){session_start();}
 	
@@ -52,6 +52,7 @@ if(count($_GET)>0){
 	include_once('ressources/class.browser.detection.inc');
 }
 
+if(isset($_GET["autologmeta"])){autologmeta();exit;}
 if(isset($_GET["logon-form-build"])){logonForm(true);exit;}
 if(isset($_GET["popup-lang"])){TEMPLATE_LANG_POPUP();exit;}
 if(isset($_GET["TEMPLATE_LANG_LINK"])){TEMPLATE_LANG_LINK();exit;}
@@ -69,7 +70,7 @@ if(isset($_GET["login-form"])){pagelogon();exit;}
 if(!is_file("ressources/settings.inc")){echo "
 <div style='margin:200px;padding:10px;border:2px solid red'><center><H1>
 <error>Artica-postfix daemon is not running... <BR>please start artica-postfix daemon</error>
-<div style='color:red;font-size:13px'>Unable to stat ressources/settings.inc</div>
+<div style='color:#d32d2d;font-size:13px'>Unable to stat ressources/settings.inc</div>
 </H1></div>";exit;}
 
 
@@ -439,12 +440,17 @@ function logonForm($ouptut=false){
 	
 	}
 	
-	if($user->WEBSECURIZE){
+	if($users->WEBSECURIZE){
 		$template="<input type='hidden' id='template' value='Websecurize'>";
 		$changename="<input type='hidden' id='change-artica-name' value='Web Securize'>";
 	}
 	
-	if($user->LANWANSAT){
+	if($users->BAMSIGHT){
+		$template="<input type='hidden' id='template' value='BamSight'>";
+		$changename="<input type='hidden' id='change-artica-name' value='BamSight'>";
+	}	
+	
+	if($users->LANWANSAT){
 		$template="<input type='hidden' id='template' value='LanWanSAT'>";
 		$changename="<input type='hidden' id='change-artica-name' value='LanWanSAT Proxy'>";
 	}
@@ -462,7 +468,7 @@ if($AllowInternetUsersCreateOrg==1){
 
 if(!function_exists('ldap_connect')){
 	$ldap_error= "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:0;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:0;top:0;background-color:white'>
 		<center>Error ldap_connect() try to restart the web service<br><br>or check if php5-ldap is installed
 		<br>And restart web server</center>
 		<center>
@@ -478,7 +484,7 @@ if(!function_exists('ldap_connect')){
 
 if(!function_exists("posix_getuid")){
 	$ldap_error=$ldap_error. "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:250px;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:250px;top:0;background-color:white'>
 	Artica-postfix need <strong>posix &laquo;posix_getuid()&raquo;</strong>  function <BR>... please try to install php-posix
 	</div>";
 	
@@ -486,7 +492,7 @@ if(!function_exists("posix_getuid")){
 
 if(!function_exists('mysql_connect')){
 	$ldap_error=$ldap_error. "
-	<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:500px;top:0;background-color:white'>
+	<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:500px;top:0;background-color:white'>
 	Artica-postfix need  <strong> &laquo;mysql_connect()&raquo;</strong>  function <BR>... please try to install php-mysql
 	</div>";	
 	
@@ -495,7 +501,7 @@ if(!function_exists('mysql_connect')){
 	
 	if($browser=="ie"){
 		$ldap_error=$ldap_error. "
-		<div style='border:3px solid red;font-size:16px;color:red;padding:5px;width:220px;position:absolute;left:200px;top:50;background-color:white'>
+		<div style='border:3px solid red;font-size:16px;color:#d32d2d;padding:5px;width:220px;position:absolute;left:200px;top:50;background-color:white'>
 		{NOIEPLEASE_TEXT}<br>
 		<p style='font-size:12px;text-align:left'>
 		<i>{error_no_ie_text}</i></p></div><br>";
@@ -506,7 +512,7 @@ $html="
 <!-- LINE ".__LINE__." -->			
 <div id='loginform'>
 <center>
-<div style='color:red;font-size:13px;font-weight:bold;width:70%;
+<div style='color:#d32d2d;font-size:13px;font-weight:bold;width:70%;
 font-family:Helvetica,Tahoma,Verdana,sans-serif'>{$_GET["ERROR"]}</div>
 </center>
 <H1 style='text-align:left'>{logon}</h1>
@@ -606,7 +612,7 @@ if($error==null){
 			<center>
 				<form>
 				<div style='width:667px;height:395px;background-image:url(img/nologon.jpg);background-repeat:no-repeat;border:1px solid #FFFFFF'>
-					<div style='float:right;margin-right:35px;margin-top:0px;background-color:#FFFFFF;border:1px solid black;padding:5px;font-size:11px;font-weight:bold;color:red;text-align:left'>
+					<div style='float:right;margin-right:35px;margin-top:0px;background-color:#FFFFFF;border:1px solid black;padding:5px;font-size:11px;font-weight:bold;color:#d32d2d;text-align:left'>
 						LDAP error with the following informations : <br>
 						<ul>
 						<li>$ldap_host:$port</li>
@@ -653,6 +659,74 @@ function applyLang(){
 }
 
 
+function autologmeta(){
+	
+	$md5=$_GET["autologmeta"];
+	include("ressources/settings.inc");
+	include_once('ressources/class.sockets.inc');
+	include_once('ressources/class.ldap.inc');
+	include_once('ressources/class.user.inc');
+	include_once('ressources/class.langages.inc');
+	$sock=new sockets();
+	$tpl=new templates();
+	$_POST["artica_password"]=url_decode_special($_POST["artica_password"]);
+	writelogs("Testing logon....{$_POST["artica_username"]}",__FUNCTION__,__FILE__,__LINE__);
+	//writelogs("Testing logon.... password:{$_POST["artica_password"]}",__FUNCTION__,__FILE__,__LINE__);
+	$_COOKIE["artica-language"]=$_POST["lang"];
+	$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
+	$sock->SET_INFO($FileCookyKey, $_POST["Changelang"]);
+	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
+	if($_GLOBAL["ldap_admin"]==null){
+		$sock->getFrameWork("services.php?process1-tenir=yes?MyCURLTIMEOUT=120");
+		include("ressources/settings.inc");
+	}
+	
+	if($_GLOBAL["ldap_admin"]==null){
+		if($VIA_API){echo "FALSE";return;}
+		$tpl=new templates();
+		echo $tpl->javascript_parse_text("{ldap_username_corrupt_text}");
+		return null;
+	}
+	
+	$md5Check=md5($_GLOBAL["ldap_admin"].$_GLOBAL["ldap_password"]);
+	if($md5<>$md5Check){die("Wrong credentials");}
+	
+	$users=new usersMenus();
+	artica_mysql_events("Success to logon on the Web console from {$_SERVER["REMOTE_HOST"]}/META as SuperAdmin",@implode("\n",$notice),"security","security");
+	//session_start();
+	$_SESSION["uid"]='-100';
+	$_SESSION["groupid"]='-100';
+	$_SESSION["passwd"]=$_GLOBAL["ldap_password"];
+	$_SESSION["MINIADM"]=false;
+	setcookie("MINIADM", "No", time()+1000);
+	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	setcookie("artica-language", $_POST["lang"], time()+172800);
+	$_SESSION["detected_lang"]=$_POST["lang"];
+	$_SESSION["CORP"]=$users->CORP_LICENSE;
+	$_SESSION["privileges"]["ArticaGroupPrivileges"]='
+	[AllowAddGroup]="yes"
+	[AllowAddUsers]="yes"
+	[AllowChangeKav]="yes"
+	[AllowChangeKas]="yes"
+	[AllowChangeUserPassword]="yes"
+	[AllowEditAliases]="yes"
+	[AllowEditAsWbl]="yes"
+	[AsSystemAdministrator]="yes"
+	[AsPostfixAdministrator]="yes"
+	[AsArticaAdministrator]="yes"
+	[AsArticaMetaAdmin]="yes"';
+	
+
+	$tpl=new templates();
+	$sock->getFrameWork("squid.php?clean-catz-cache=yes");
+	writelogs("OK it is a global admin -> location:admin.index.php",_FUNCTION__,__FILE__,__LINE__);
+	header("location:admin.index.php");
+	exit;
+	
+	
+}
+
+
 function logon(){
 	include("ressources/settings.inc");
 	include_once('ressources/class.sockets.inc');
@@ -673,7 +747,7 @@ function logon(){
 	
 	if($_SESSION["uid"]<>null){
 		if(!$VIA_API){
-			echo "location:admin.index.php";
+			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return;
 		}
 		
@@ -697,6 +771,14 @@ function logon(){
 		echo $tpl->javascript_parse_text("{ldap_username_corrupt_text}");
 		return null;
 	}
+	
+	if(preg_match("#^cn=(.+)#", $_GLOBAL["ldap_admin"],$re)){$_GLOBAL["ldap_admin"]=$re[1];}
+	
+	if(trim($_POST["artica_password"])==null){
+		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
+		return;
+	}
+	
 	
 	$md5submitted=$_POST["artica_password"];
 	if($VIA_API){$md5submitted=md5($_POST["artica_password"]);}
@@ -853,20 +935,18 @@ function logon(){
 				$_SESSION["MINIADM"]=false;
 				setcookie("MINIADM", "No", time()+1000);
 				if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
-				echo("location:admin.index.php");
+				echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 				return null;
 			}
 			
 			
 			if($VIA_API){BuildSession($_SESSION["uid"]);echo "TRUE";return;}
-			writelogs("[{$_POST["artica_username"]}]: IS AN USER =>../user-backup/logon.php",__FUNCTION__,__FILE__);
+			
 			
 			$array["USERNAME"]=$_POST["artica_username"];
 			$array["PASSWORD"]=md5($_POST["artica_username"]);
 			$credentials=base64_encode(serialize($array));
-			
-			artica_mysql_events("Success to redirect on the end-user management console from {$_SERVER["REMOTE_HOST"]} as User",@implode("\n",$notice),"security","security");
-			echo "location:../miniadm.logon.php?credentials=$credentials";
+			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return null;
 		exit;}else{	
 		if($VIA_API){echo "FALSE";return;}
@@ -1110,7 +1190,7 @@ return false;
 }
 function autoaccount_form2(){
 	$tpl=new templates();
-	$html="<H3 style='color:red'>{you_can_close_this_form}</h3>";
+	$html="<H3 style='color:#d32d2d'>{you_can_close_this_form}</h3>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 function restart_phpldap(){
@@ -1206,7 +1286,7 @@ function buildPage(){
 	if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 	if($hostname==null){$hostname=$users->hostname;}
 	if($GLOBALS["VERBOSE"]){echo "new templates() line:".__LINE__."<br>\n";}
-	$tpl2=new templates();
+	
 	
 	
 	
@@ -1218,6 +1298,8 @@ function buildPage(){
 	if($users->ZARAFA_APPLIANCE){$template="zarafa";$logo="logo-kav.gif";}	
 	if($users->MYCOSI_APPLIANCE){$logo_bg="bg_header_kavweb.gif";$logo="logo-mycosi.gif";$bg_color="#FFB683";$ProductName="MyCosi";$template="myCosi";}
 	if($users->APACHE_APPLIANCE){$template="Apache";$users->SAMBA_APPLIANCE=false;$logo="logo-kav.gif";}
+	
+	
 	if($users->WEBSECURIZE){
 			$LOCK_TEMPLATE=true;
 			$users->SQUID_APPLIANCE=false;
@@ -1238,6 +1320,17 @@ function buildPage(){
 		$link_company_name="http://lanwansan.synology.me/wordpress/";
 		$OEM_CompanyName="LanWanSan";
 		
+	}
+	
+	if($users->BAMSIGHT){
+		$LOCK_TEMPLATE=true;
+		$users->SQUID_APPLIANCE=false;
+		$template="BamSight";
+		$users->SAMBA_APPLIANCE=false;
+		$logo="logo-kav.gif";
+		$ProductName="BamSight";
+		$link_company_name="http://www.networksparis.com/";
+		$OEM_CompanyName="NetworksParis";
 	}
 	
 	
@@ -1261,6 +1354,7 @@ function buildPage(){
 		if($users->LOAD_BALANCE_APPLIANCE){$template="LoadBalance";}
 		if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
 		if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
+		if($users->STATS_APPLIANCE){$template="WebStats";}
 		if($users->GATEWAY_APPLIANCE){$template="Gateway";$TEMPLATE_INDEX="logon.html";}
 		if($users->WORDPRESS_APPLIANCE){$template="Wordpress";}
 		if($AsCategoriesAppliance==1){$template="UfdbCat";}
@@ -1316,9 +1410,12 @@ function buildPage(){
 		if($MikrotikTransparent==1){$TEMPLATE_INDEX="logon_mikrotik.html";}
 		
 	}
+	if($template<>null){$_SESSION["FORCED_TEMPLATE"]=$template;}
+	
 	
 	if($users->APP_UFDBGUARD_INSTALLED){
 		$q=new mysql_squid_builder();
+		$tpl2=new templates();
 		$sql="SELECT COUNT( * ) AS tcount FROM personal_categories WHERE PublicMode=1";
 		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		$ligneCatz=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -1329,15 +1426,18 @@ function buildPage(){
 	}
 	
 
-	if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 	
-	
+	$js[]="<!-- template=$template line ".__LINE__." -->";
+	$tpl2=new templates();
 	if($template<>null){
+	
 		$jquery=null;
+		$_SESSION["FORCED_TEMPLATE"]=$template;
 		
 		include_once(dirname(__FILE__)."/ressources/class.page.builder.inc");
 		if($GLOBALS["VERBOSE"]){echo "new pagebuilder() line ".__LINE__."</H1>";}
 		$p=new pagebuilder();
+		$p->SetTemplateMemory($template);
 		if(is_file("ressources/templates/$template/$TEMPLATE_INDEX"));
 		$tpl=@file_get_contents("ressources/templates/$template/$TEMPLATE_INDEX");
 		
@@ -1371,7 +1471,7 @@ function buildPage(){
 		$jslogon="<script type=\"text/javascript\" src=\"logon.php?start=yes\"></script>";
 		if($ProductName<>null){$ProductName="<input type='hidden' id='change-artica-name' value='$ProductName'>";}
 		
-		$jsArtica=$p->jsArtica();
+		$jsArtica=$p->jsArtica($template);
 		$js[]="<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.reject.js\"></script>";
 		$css[]="<link href=\"/css/jquery.reject.css\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" >";
 		
@@ -1410,7 +1510,6 @@ function buildPage(){
 		
 		
 		
-		$miniadm=$miniadm."<span style='color:$LinkColor'>&nbsp;|&nbsp;</span><a href='miniadm.logon.php' style='color:$LinkColor'>End-User WebAccess</a>&nbsp;";
 		if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 		$company_name=$WizardSavedSettings["company_name"];		
 		if($UnlockCompanyName<>null){$company_name=$UnlockCompanyName;}
@@ -1978,7 +2077,7 @@ function FATAL_ERROR_SHOW_128_NO_IE(){
 	$f[]="";
 	$f[]="<title>$incompatible_browser</title>";
 	$f[]="<script type=\"text/javascript\">";
-	$f[]="    function Blur(){ }";
+	$f[]="    function blur(){ }";
 	$f[]="    function checkIfTopMostWindow()";
 	$f[]="    {";
 	$f[]="        if (window.top != window.self) ";

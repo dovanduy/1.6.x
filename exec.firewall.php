@@ -71,8 +71,15 @@ function build(){
 	$unix=new unix();
 	$q=new mysql();
 	$sock=new sockets();
+	$FireHolEnable=intval($sock->GET_INFO("FireHolEnable"));
+	if($FireHolEnable==1){
+		@unlink("/bin/artica-firewall.sh");
+		iptables_delete_all();
+		return;
+	}
+	
 	iptables_delete_all();
-
+	$FINAL_LOG_DROP=array();
 	
 	
 	if(!$q->FIELD_EXISTS("nics","isFWAcceptNet","artica_backup")){
@@ -80,8 +87,14 @@ function build(){
 		$q->QUERY_SQL($sql,'artica_backup');
 		if(!$q->ok){ echo "[".__LINE__."]: $q->mysql_error\n";}
 	}
+	if(!$q->FIELD_EXISTS("nics","isFWAcceptArtica","artica_backup")){
+		$sql="ALTER TABLE `nics` ADD `isFWAcceptArtica` smallint( 1 ) NOT NULL DEFAULT '0'";
+		$q->QUERY_SQL($sql,'artica_backup');
+		if(!$q->ok){ echo "[".__LINE__."]: $q->mysql_error\n";}
+	}	
 	
-	$sql="SELECT `Interface`,`Bridged`,`BridgedTo`,`isFWAcceptNet`,`isFWLogBlocked` FROM `nics` WHERE `isFW`=1 AND `Bridged`=0";
+	
+	$sql="SELECT `Interface`,`Bridged`,`BridgedTo`,`isFWAcceptNet`,`isFWAcceptArtica`,`isFWLogBlocked` FROM `nics` WHERE `isFW`=1 AND `Bridged`=0";
 	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] $sql\n";}
 	$echo=$unix->find_program("echo");
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -101,6 +114,8 @@ function build(){
 	$iptables=$unix->find_program("iptables");
 	$MARKLOG="-m comment --comment \"ArticaFireWall\"";
 	
+	
+	
 	$net=new networkscanner();
 	while (list ($num, $maks) = each ($net->networklist)){
 		if(trim($maks)==null){continue;}
@@ -111,30 +126,29 @@ function build(){
 	if($CountDeInterface>0){
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$ALL_RULES++;
-			$FINAL_LOG_DROP=null;
+			$isFWAcceptNet=intval($ligne["isFWAcceptNet"]);
 			$J_LOGPRX="--j LOG --log-level debug --log-prefix \"AID=0/INPUT/REJECT \"";
 			$InInterface=" -i {$ligne["Interface"]} ";
-			$FINAL1="$iptables -A INPUT $InInterface $MARKLOG -j REJECT || true";
+			$SCRIPT_FINAL[]="$iptables -A INPUT $InInterface $MARKLOG -j REJECT || true";
 			if($ligne["isFWLogBlocked"]==1){
-				$FINAL_LOG_DROP="$iptables -A INPUT $InInterface $MARKLOG $J_LOGPRX || true";
-			}
-		
-			reset($hash);
-			$SCRIPT[]="$iptables -I INPUT $InInterface -s 127.0.0.1 $MARKLOG -j ACCEPT || true";
-			$SCRIPT[]="$iptables -I INPUT $InInterface -d 127.0.0.1 $MARKLOG -j ACCEPT || true";
-			while (list ($num, $maks) = each ($hash)){
-				$SCRIPT[]="$iptables -I INPUT $InInterface -d $maks $MARKLOG -j ACCEPT || true";
-				$SCRIPT[]="$iptables -I INPUT $InInterface -s $maks $MARKLOG -j ACCEPT || true";
+				$FINAL_LOG_DROP["$iptables -A INPUT $InInterface $MARKLOG $J_LOGPRX || true"]=true;
 			}
 			
+			$SCRIPT[]="$iptables -I INPUT $InInterface -s 127.0.0.1 $MARKLOG -j ACCEPT || true";
+			$SCRIPT[]="$iptables -I INPUT $InInterface -d 127.0.0.1 $MARKLOG -j ACCEPT || true";
+			$SCRIPT[]="# $InInterface Accept local network ? = $isFWAcceptNet";
+			if($isFWAcceptNet==1){
+				reset($hash);
+				while (list ($num, $maks) = each ($hash)){
+					$SCRIPT[]="$iptables -I INPUT $InInterface -d $maks $MARKLOG -j ACCEPT || true";
+					$SCRIPT[]="$iptables -I INPUT $InInterface -s $maks $MARKLOG -j ACCEPT || true";
+				}
+			}
 			
 			$SCRIPT[]=BuilFWdRules($ligne["Interface"],"INPUT",$ligne["isFWLogBlocked"]);
 			$SCRIPT[]=BuilFWdRules($ligne["Interface"],"OUTPUT",$ligne["isFWLogBlocked"]);
 			$SCRIPT[]=BuilFWdRules_FORWARD($ligne["Interface"],$ligne["isFWLogBlocked"]);
 			
-		
-		if($FINAL_LOG_DROP<>null){$SCRIPT_FINAL[]=$FINAL_LOG_DROP;}
-		$SCRIPT_FINAL[]=$FINAL1;
 		}
 	}
 	
@@ -159,7 +173,7 @@ function build(){
 			$InInterface=" -i $interface ";
 			
 			$SCRIPT[]="$iptables -I INPUT $InInterface -s 127.0.0.1 $MARKLOG -j ACCEPT || true";
-			$SCRIPT[]="$iptables -I INPUT $InInterface -d 127.0.0.1 $MARKLOG -j ACCEPT || true";
+			
 			reset($hash);
 			while (list ($num, $maks) = each ($hash)){
 				$SCRIPT[]="$iptables -I INPUT $InInterface -d $maks $MARKLOG -j ACCEPT || true";
@@ -172,7 +186,7 @@ function build(){
 			$SCRIPT[]=BuilFWdRules_MARK($interface);
 			
 			if($ligne["isFWLogBlocked"]==1){
-				$FINAL_LOG_DROP="$iptables -A INPUT $InInterface $MARKLOG $J_LOGPRX || true";
+				$FINAL_LOG_DROP["$iptables -A INPUT $InInterface $MARKLOG $J_LOGPRX || true"]=true;
 			}
 			
 			$SCRIPT_FINAL[]="$iptables -A INPUT $InInterface $MARKLOG -j REJECT || true";
@@ -187,7 +201,14 @@ function build(){
 	
 	
 	$SCRIPT[]="#Final step, block necessaries connections";
-	$SCRIPT[]=$FINAL_LOG_DROP;
+	if(count($FINAL_LOG_DROP)>0){
+		while (list ($itemSRC, $b) = each ($FINAL_LOG_DROP) ){
+			if(is_array($itemSRC)){continue;}
+			$SCRIPT[]=$itemSRC;
+		}
+		
+	}
+	
 	$SCRIPT[]=@implode("\n", $SCRIPT_FINAL);
 	$SCRIPT[]="exit 0\n";
 	@file_put_contents("/bin/artica-firewall.sh", @implode("\n", $SCRIPT));
@@ -217,15 +238,21 @@ function ProtectArtica(){
 	$CountOfRules=$q->COUNT_ROWS("iptables_webint","artica_backup");
 	
 	if($CountOfRules==0){
-		$SCRIPT_FINAL[]="#This rule allow connections to the Web interface in order to allow access to Artica Web interface";
-		$SCRIPT_FINAL[]="$iptables -I INPUT$LighttpdArticaListenIP -p tcp --dport $ArticaHttpsPort $MARKLOG -j ACCEPT || true";
-		$SCRIPT_FINAL[]="";
+		
+		$sql="SELECT `Interface`,`isFWAcceptArtica` FROM `nics` WHERE `isFW`=1 AND `isFWAcceptArtica`=1";
+		$results = $q->QUERY_SQL($sql,"artica_backup");
+		
+		
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$SCRIPT_FINAL[]="#This rule allow connections to the Web interface from {$ligne["Interface"]} in order to allow access to Artica Web interface";
+			$SCRIPT_FINAL[]="$iptables -I INPUT -i {$ligne["Interface"]} $LighttpdArticaListenIP -p tcp --dport $ArticaHttpsPort $MARKLOG -j ACCEPT || true";
+			$SCRIPT_FINAL[]="";
+		}
 		return @implode("\n", $SCRIPT_FINAL);
 	}
 	
 	
 	$SCRIPT_FINAL[]="#This rule allow connection to the Web interface for only $CountOfRules items";
-
 	$SCRIPT_FINAL[]="$iptables -I INPUT$LighttpdArticaListenIP -p tcp --dport $ArticaHttpsPort $MARKLOG -j DROP || true";
 	$SCRIPT_FINAL[]="$iptables -I INPUT$LighttpdArticaListenIP -p tcp --dport $ArticaHttpsPort $MARKLOG --j LOG --log-level debug --log-prefix \"AID=0/INPUT/REJECT\" || true";
 	
@@ -423,7 +450,7 @@ function BuilFWdRules_FORWARD($interface){
 		
 		$prefix="$iptables $APPEND FORWARD $InInterface$OutInterface$proto$GroupTime$MARK_GET ";
 		$forward_prefix="$iptables $APPEND PREROUTING -t nat$InInterface$OutInterface$proto$GroupTime$MARK_GET ";
-		$masquerade_prefix="$iptables $APPEND POSTROUTING -t$InInterface$OutInterface$proto$GroupTime$MARK_GET "; //-j MASQUERADE
+		$masquerade_prefix="$iptables -A POSTROUTING -t nat$InInterface$OutInterface$proto$GroupTime$MARK_GET "; //-j MASQUERADE
 		
 		$sourcegroups=GroupInArray($ligne["source_group"]);
 		$DestGroups=GroupInArray($ligne["dest_group"]);
@@ -732,6 +759,27 @@ function GroupInArray($ID=0,$IsArray=false){
 		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: teamviewer::$ID -> ".count($f)." item(s).\n";}
 		return $f;
 	}
+	
+	if($GroupType=="skype"){
+		include_once(dirname(__FILE__)."/ressources/class.products-ip-ranges.inc");
+		$products_ip_ranges=new products_ip_ranges();
+		$array=$products_ip_ranges->skype_networks();
+		if($GLOBALS["VERBOSE"]){echo "skype_networks ->".count($array)." items [".__LINE__."]\n";}
+		while (list ($a, $b) = each ($array) ){
+			if(preg_match("#([0-9]+)-([0-9]+)#", $b)){
+				$f["-m iprange --dst-range $b"]=true;
+				continue;
+			}
+			$f["--dst $b"]=true;
+				
+		}
+	
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: teamviewer::$ID -> ".count($f)." item(s).\n";}
+		return $f;
+	}	
+	
+	
+	
 	if($GroupType=="google"){
 		include_once(dirname(__FILE__)."/ressources/class.products-ip-ranges.inc");
 		$products_ip_ranges=new products_ip_ranges();

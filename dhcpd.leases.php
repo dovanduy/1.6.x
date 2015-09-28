@@ -66,13 +66,15 @@ function page(){
 	$domain=$tpl->javascript_parse_text("{domain}");
 	$link_computer=$tpl->_ENGINE_parse_body("{link_computer}");
 	$rescan=$tpl->_ENGINE_parse_body("{rescan}");
+	$empty=$tpl->_ENGINE_parse_body("{empty}");
 	$buttons="
 	buttons : [
-	{name: '$rescan', bclass: 'add', onpress : rescan$t},
+	{name: '$rescan', bclass: 'Reload', onpress : rescan$t},
+	{name: '$empty', bclass: 'Delz', onpress : Empty$t},
 	],";		
 		
 	
-if($explain<>null){$explain="<div class=text-info style='font-size:13px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -114,8 +116,11 @@ $('#flexRT$t').flexigrid({
 
 
 function rescan$t(){
-Loadjs('$page?action-rescan=yes')
+	Loadjs('$page?action-rescan=yes')
+}
 
+function Empty$t(){
+	Loadjs('dhcdp.leases.empty.progress.php?source-t=$t');
 
 }
 </script>

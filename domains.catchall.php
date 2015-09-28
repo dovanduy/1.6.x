@@ -122,7 +122,7 @@ function catchall_index(){
 $html="
 	
 
-<div class=text-info>{catch_all_mail_text}</div>
+<div class=explain>{catch_all_mail_text}</div>
 	<table style='width:100%'>
 	<tr>
 		<td>

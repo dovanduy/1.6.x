@@ -1,6 +1,7 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["NORELOAD"]=false;
+$GLOBALS["PROGRESS"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -21,6 +22,125 @@ if(is_array($argv)){
 if($argv[1]=="--count"){Autocount();die();}
 if($argv[1]=="--davfs"){davfs();die();}
 if($argv[1]=="--default"){autofs_default();die();}
+if($argv[1]=="--checks"){Checks();die();}
+if($argv[1]=="--restart-progress"){$GLOBALS["PROGRESS"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);restart_progress();die();}
+
+
+
+
+function build_progress_rs($text,$pourc){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	$echotext=$text;
+	$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+	echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/autofs.restart.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
+function restart_progress(){
+	
+	build_progress_rs("{checking_configuration}",10);
+	Checks();
+	build_progress_rs("{stopping_service}",35);
+	system("/etc/init.d/autofs stop");
+	build_progress_rs("{starting_service}",40);
+	system("/etc/init.d/autofs start");
+	build_progress_rs("{restarting_artica_status}",50);
+	system("/etc/init.d/artica-status restart --force");
+	build_progress_rs("{done}",100);
+}
+
+
+function Checks(){
+	$GLOBALS["NORELOAD"]=true;
+	$unix=new unix();
+	
+	if(!is_file("/usr/lib/x86_64-linux-gnu/autofs/lookup_ldap.so")){
+		build_progress_rs("{install} autofs-ldap",15);
+		$unix->DEBIAN_INSTALL_PACKAGE("autofs-ldap");
+	}
+	
+	if(!is_file("/usr/lib/x86_64-linux-gnu/autofs/lookup_ldap.so")){
+		build_progress_rs("{install} autofs-ldap {failed}",110);
+		return;
+	}
+	if(!$unix->is_socket("/var/run/slapd/slapd.sock")){
+		build_progress_rs("{restarting_service} OpenLDAP",15);
+		system("/etc/init.d/slapd restart");
+		
+	}else{
+		if($GLOBALS["PROGRESS"]){
+			build_progress_rs("{restarting_service} OpenLDAP",15);
+			system("/etc/init.d/slapd restart");
+			
+		}
+	}
+	
+	
+	$curlftpfs=$unix->find_program("curlftpfs");
+	$fusermount=$unix->find_program("fusermount");
+	if(is_file($curlftpfs)){
+		if(!is_file("/sbin/mount.curl")){
+			build_progress_rs("/sbin/mount.curl",15);
+			$curlftpfsZ[]="#! /bin/sh";
+			$curlftpfsZ[]="$curlftpfs $1 $2 -o $5,disable_eprt";
+			$curlftpfsZ[]="";
+			@file_put_contents("/sbin/mount.curl", @implode("\n", $curlftpfsZ));
+			@chmod("/sbin/mount.curl",0755);
+		}
+		
+		if(!is_file("/sbin/umount.curl")){
+			build_progress_rs("/sbin/umount.curl",15);
+			$curlftpfsZ=array();
+			$curlftpfsZ[]="#! /bin/sh";
+			$curlftpfsZ[]="$fusermount -u $1";
+			$curlftpfsZ[]="";
+			@file_put_contents("/sbin/umount.curl", @implode("\n", $curlftpfsZ));
+			@chmod("/sbin/umount.curl",0755);
+		}
+		
+		
+	}
+	
+	
+	
+	
+	
+	
+	$ldap=new clladp();
+	$data="<?xml version=\"1.0\" ?>
+         <autofs_ldap_sasl_conf
+                 usetls=\"no\"
+                 tlsrequired=\"no\"
+                 authrequired=\"yes\"
+                 authtype=\"PLAIN\"
+                 user=\"$ldap->ldap_admin\"
+                 secret=\"$ldap->ldap_password\"
+         />";
+	
+	@file_put_contents("/etc/autofs_ldap_auth.conf", $data);
+	
+	if(is_file("/etc/autofs_ldap_auth.conf")){
+		
+		@chmod("/etc/autofs_ldap_auth.conf", 0600);
+		@chown("/etc/autofs_ldap_auth.conf", "root");
+		@chgrp("/etc/autofs_ldap_auth.conf", "root");
+	}
+	
+	build_progress_rs("{checking_configuration}",15);
+	$auto=new autofs();
+	build_progress_rs("{checking_configuration}",20);
+	autofs_default();
+	build_progress_rs("{checking_configuration}",25);
+	Autocount();
+	build_progress_rs("{checking_configuration}",30);
+	davfs();
+	
+}
 
 
 
@@ -40,12 +160,14 @@ $sr =@ldap_search($ldap->ldap_connection,$suffix,$filter,$attr);
 
 
 function Autocount(){
-$auto=new autofs();
-$hash=$auto->automounts_Browse();
-$sock=new sockets();
-$count=count($hash);
-echo "Starting......: ".date("H:i:s")." AutoFS $count mounted directories\n";
-$sock->SET_INFO("AutoFSCountDirs",$count);
+	if(isset($GLOBALS["AutocountEXec"])){return;}
+	$GLOBALS["AutocountEXec"]=true;
+	$auto=new autofs();
+	$hash=$auto->automounts_Browse();
+	$sock=new sockets();
+	$count=count($hash);
+	echo "Starting......: ".date("H:i:s")." AutoFS $count mounted directories\n";
+	$sock->SET_INFO("AutoFSCountDirs",$count);
 }
 
 function davfs(){
@@ -144,7 +266,7 @@ echo "Starting......: ".date("H:i:s")." AutoFS secrets file with $c credential(s
 
 if(!$GLOBALS["NORELOAD"]){
 	$unix=new unix();
-	if(!is_file("/usr/bin/service")){shell_exec("/usr/bin/service autofs reload");return;}
+	if(is_file("/usr/bin/service")){shell_exec("/usr/bin/service autofs reload");return;}
 	shell_exec("/etc/init.d/autofs reload");
 }
 
@@ -152,6 +274,8 @@ if(!$GLOBALS["NORELOAD"]){
 function autofs_default(){
 	if(!is_file("/etc/default/autofs")){return;}
 	$ldap=new clladp();
+	$sock=new sockets();
+	$EnableAutoFSDebug=intval($sock->GET_INFO("EnableAutoFSDebug"));
 	$f[]="# Define default options for autofs.";
 	$f[]="#";
 	$f[]="# MASTER_MAP_NAME - default map name for the master map.";
@@ -165,8 +289,11 @@ function autofs_default(){
 	$f[]="#APPEND_OPTIONS=\"yes\"";
 	$f[]="# LOGGING - set default log level none, verbose or debug";
 	$f[]="#";
+	
+	$ldapi="ldapi://". urlencode("/var/run/slapd/slapd.sock");
+	
 	$f[]="#LOGGING=\"debug\"";
-	$f[]="LDAP_URI=\"ldap://$ldap->ldap_host:$ldap->ldap_port\"";
+	$f[]="LDAP_URI=\"$ldapi\"";
 	$f[]="LDAP_TIMEOUT=-1";
 	$f[]="# LDAP_NETWORK_TIMEOUT - set the network response timeout (default 8).";
 	$f[]="#LDAP_NETWORK_TIMEOUT=8";
@@ -174,11 +301,23 @@ function autofs_default(){
 	$f[]="LDAPBASE=\"ou=mounts,$ldap->suffix\"";
 	$f[]="DEFAULT_AUTH_CONF_FILE=\"/etc/autofs_ldap_auth.conf\"";
 	$f[]="MASTER_MAP_NAME=\"ou=auto.master,ou=mounts,$ldap->suffix\"";
+	$f[]="DEFAULT_MAP_OBJECT_CLASS=\"automountMap\"";
+	$f[]="DEFAULT_ENTRY_OBJECT_CLASS=\"automount\"";
+	$f[]="DEFAULT_MAP_ATTRIBUTE=\"ou\"";
+	$f[]="DEFAULT_ENTRY_ATTRIBUTE=\"cn\"";
+	$f[]="DEFAULT_VALUE_ATTRIBUTE=\"automountInformation\"";
 	$f[]="USE_MISC_DEVICE=\"yes\"";
 	$f[]="#MAP_HASH_TABLE_SIZE=1024";
-	$f[]="#OPTIONS=\"\"";
+	if($EnableAutoFSDebug==1){
+		$f[]="OPTIONS=\"-d -v\"";
+	}else{
+		$f[]="#OPTIONS=\"-d -v\"";
+	}
 	$f[]="#";
-	$f[]="";	
+	$f[]="";
+
+	echo "Starting......: ".date("H:i:s")." /etc/default/autofs done\n";
+	@file_put_contents("/etc/default/autofs", @implode("\n", $f));
 	
 }
 

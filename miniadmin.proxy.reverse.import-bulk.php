@@ -37,7 +37,7 @@ function popup(){
 	$html="
 
 	<div style='font-size:40px;margin-bottom:20px;margin-top:10px'>{bulk_import}</div>
-	<p class=text-info style='font-size:18px'>{nginx_bulk_import_explain}</p>
+	<p class=explain style='font-size:18px'>{nginx_bulk_import_explain}</p>
 	<div style='width:98%' class=form>
 	
 	<table style='width:100%'>

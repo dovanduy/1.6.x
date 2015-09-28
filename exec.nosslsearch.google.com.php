@@ -23,18 +23,47 @@ if($argv[1]=="--syslog"){checksyslog();exit;}
 
 
 function run(){
+	
+	
+	$ReplaceEntry=null;
 	$sock=new sockets();
 	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
+	
+	echo "Starting......: ".date("H:i:s")." Squid : EnableGoogleSafeSearch = '$EnableGoogleSafeSearch'\n";
+	
+	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}
+	
+	echo "Starting......: ".date("H:i:s")." Squid : DisableGoogleSSL = $DisableGoogleSSL\n";
+	echo "Starting......: ".date("H:i:s")." Squid : EnableGoogleSafeSearch = $EnableGoogleSafeSearch\n";
 	
 	if($DisableGoogleSSL==0){
-		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (disabled)\n";
+		if($EnableGoogleSafeSearch==0){
+			echo "Starting......: ".date("H:i:s")." Squid : change google.com DNS (disabled)\n";
+			remove();
+			build_progress("{disabled}",100);
+			return;
+		}
+		
+	}
+	
+	if($DisableGoogleSSL==1){
+		$ReplaceEntry="nosslsearch.google.com";
+	}
+	
+	if($EnableGoogleSafeSearch==1){
+		$ReplaceEntry="forcesafesearch.google.com";
+	}
+	
+	if($ReplaceEntry==null){
 		remove();
-		build_progress("{disabled}",110);
+		build_progress("{disabled}",100);
 		return;
 	}
-	echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (enabled)\n";
+	
+	echo "Starting......: ".date("H:i:s")." Squid : $ReplaceEntry (enabled)\n";
 	build_progress("{enabled}",5);
-	addDNSGOOGLE();
+	addDNSGOOGLE($ReplaceEntry);
 	
 }
 
@@ -57,14 +86,18 @@ function build_progress($text,$pourc){
 	echo "[$pourc]: $text\n";
 	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
 	@chmod($GLOBALS["CACHEFILE"],0755);
+	if(!isset($GLOBALS["PROGRESS"])){$GLOBALS["PROGRESS"]=false;}
 	if($GLOBALS["PROGRESS"]){sleep(1);}
 
 }
 
-function addDNSGOOGLE(){
+
+
+
+function addDNSGOOGLE($addrName="nosslsearch.google.com"){
 	
-	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: nosslsearch.google.com-> ?\n";}
-	$ipaddr=gethostbyname("nosslsearch.google.com");
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: $addrName -> ?\n";}
+	$ipaddr=gethostbyname($addrName);
 	$ip=new IP();
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -75,40 +108,42 @@ function addDNSGOOGLE(){
 	}
 	if(!$OK){
 		echo "Starting......: ".date("H:i:s")." Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";
-		build_progress("nosslsearch.google.com {failed}",110);
+		build_progress("$addrName {failed}",110);
 		return;
 	}	
 	$q=new mysql();
 	
-	build_progress("nosslsearch.google.com {checking}",5);
-	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup"));
+	build_progress("$addrName {checking}",5);
 	
+	$results=$q->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup");
+	if(mysql_num_rows($results)==1){
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$entry=$ligne["ipaddr"];
+		}
+	}
 	
-	$entry=$ligne["ipaddr"];
+	echo "Starting......: ".date("H:i:s")." Squid : Resolved $ipaddr in DB: $entry\n";
 	if($entry==$ipaddr){
-		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com no changes...\n";
+		echo "Starting......: ".date("H:i:s")." Squid : $addrName no changes...\n";
 		if($GLOBALS["OUTPUT"]){
-			build_progress("nosslsearch.google.com {no_changes}",50);
+			build_progress("$addrName {no_changes}",50);
 			sleep(3);
 			build_progress("Patching host file",95);
 			shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
-			build_progress("Reloading proxy service",95);
-			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
 			reload_pdns();
 			sleep(5);
 			build_progress("{success}",100);
 			return;
 		}
 		
-		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
 		reload_pdns();
 		return; 
 	}
 	
 	if($entry<>null){
-		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com [$entry]...\n";
+		echo "Starting......: ".date("H:i:s")." Squid : $addrName [$entry]...\n";
 	}
-	build_progress("nosslsearch.google.com [$entry]",5);
+	build_progress("$addrName [$entry]",5);
 	
 	
 	$array=GetWebsitesList();
@@ -129,6 +164,7 @@ function addDNSGOOGLE(){
 		
 	}
 	if(count($f)>0){
+		$q->QUERY_SQL("DELETE FROM net_hosts WHERE `hostname` LIKE '%google\.%'" ,"artica_backup");
 		$q->QUERY_SQL("INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`) VALUES ".@implode(",\n", $f),"artica_backup");
 		if(!$q->ok){
 			build_progress("Table net_hosts failed",110);
@@ -139,7 +175,8 @@ function addDNSGOOGLE(){
 		echo "Starting......: ".date("H:i:s")." Squid : adding ".count($f)." google servers [$ipaddr] from /etc/hosts\n";
 		shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
 		build_progress("Reloading proxy service",95);
-		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --squid-reconfigure");
+		shell_exec("$php5 /etc/init.d/squid reload --script=".basename(__FILE__));
+		shell_exec("/etc/init.d/dnsmasq restart");
 		reload_pdns();
 		sleep(5);
 		build_progress("{success}",100);
@@ -193,17 +230,32 @@ function reload_pdns(){
 
 function remove(){
 	$unix=new unix();
-	$entry=$unix->get_EtcHostsByName("www.google.com");
-	if($entry==null){return;}
-	$array=GetWebsitesList();
-	while (list ($table, $fff) = each ($array) ){
-		$unix->del_EtcHostsByName($fff);
-		$c++;
-	}	
-	if($c>0){
-		echo "Starting......: ".date("H:i:s")." Squid : removing $c google servers from /etc/hosts\n";
+	$newf=array();
+	$add=0;
+	$f=explode("\n",@file_get_contents("/etc/hosts"));
+	while (list ($index, $line) = each ($f) ){
+		if(preg_match("#google\.#", $line)){$add++;continue;}
+		$newf[]=$line;
+		
+	}
+	if($add>0){
+		$q=new mysql();
+		$q->QUERY_SQL("DELETE FROM net_hosts WHERE `hostname` LIKE '%google%'" ,"artica_backup");
+		@file_put_contents("/etc/hosts", @implode("\n", $newf));
+		echo "Starting......: ".date("H:i:s")." Squid : removing $add google servers from /etc/hosts\n";
+		shell_exec("/etc/init.d/dnsmasq restart");
 		reload_pdns();
 	}
+	
+	$q=new mysql();
+	$q->QUERY_SQL("DELETE FROM net_hosts WHERE `hostname` LIKE '%google%'" ,"artica_backup");
+	
+}
+
+function remove_entry($val){
+
+	
+	
 }
 
 function checksyslog(){

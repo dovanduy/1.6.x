@@ -360,7 +360,7 @@ Because of this, automounting NFS/Samba shares conserves bandwidth and offers be
 <remote_directory>Remote directory</remote_directory>
 <target_directory>Target directory</target_directory>
 <mounts_list>Mounts list</mounts_list>
-<local_directory_name>Local directory</local_directory_name>
+<local_directory_name>Local directory name</local_directory_name>
 <enable_grehole>Enable dynamic backup</enable_grehole>
 <enable_grehole_text>Dynamic Backup use the greyhole Samba plugin in order to provide a realtime backup of your shared folders.[br]
 When a user add/delete/modify a file in a Samba folder, greyhole will saved it automatically</enable_grehole_text>
@@ -391,8 +391,8 @@ A network/nnn CIDR specification: 10.1.0.0/16
 </apache_auth_ip_explain>
 <enable_limit_by_addresses>Enable client address limitation</enable_limit_by_addresses>
 <clients_restrictions>Clients restrictions</clients_restrictions>
-<reconstruct_caches_explain>This operation will delete the content of all squid caches and rebuild them.
-In this case,you will loose all cached websites and Squid Cache must refill them.
+<reconstruct_caches_explain>This operation will delete the content of all proxy caches and rebuild them.
+In this case,you will loose all cached websites and proxy service must refill them.
 Do you want to perform this operation ?</reconstruct_caches_explain>
 <reconstruct_caches>Reconstruct caches</reconstruct_caches>
 <caches>Caches</caches>
@@ -1853,16 +1853,16 @@ This option is usefull if you want to switch from PowerDNS to DNSMasq or the opp
 <amavis_enable_global_cache>Enable use of libdb-based</amavis_enable_global_cache>
 <APP_MSKTUTIL>keytab client for MS Active Directory</APP_MSKTUTIL>
 <clean_datas>Clean datas</clean_datas>
-<APP_SQUIDKERAUTH>Squid kerberos Authentication</APP_SQUIDKERAUTH>
+<APP_SQUIDKERAUTH>Full kerberos Authentication</APP_SQUIDKERAUTH>
 <APP_SAMBAKERAUTH>Samba kerberos Authentication</APP_SAMBAKERAUTH>
-<APP_SQUIDKERAUTH_TEXT>Squid kerberos Autentication allow to integrate squid authentication with a Microsoft Active Directory server 2003/2008</APP_SQUIDKERAUTH_TEXT>
+<APP_SQUIDKERAUTH_TEXT>Squid kerberos Autentication allow to integrate squid authentication with a Microsoft Active Directory server 2003/2008/2012</APP_SQUIDKERAUTH_TEXT>
 <APP_SQUIDKERAUTH_TEXT_REF>
 Both Windows machines should be able to ping the Linux server by name (and vice versa), and you may need to run "ipconfig /flushdns" at times.[br]
 A reboot may help too, if you want to be really sure there's no cruft hanging around.[br]
 For Windows 2008 server you need to install [b]Hotfix 951191[/b].
 </APP_SQUIDKERAUTH_TEXT_REF>
 
-<APP_SAMBAKERAUTH_TEXT>Samba kerberos Autentication allow to integrate Samba authentication with a Microsoft Active Directory server 2003/2008</APP_SAMBAKERAUTH_TEXT>
+<APP_SAMBAKERAUTH_TEXT>Samba kerberos Autentication allow to integrate Samba authentication with a Microsoft Active Directory server 2003/2008/2012</APP_SAMBAKERAUTH_TEXT>
 
 <APP_SAMBAKERAUTH_TEXT_REF>
 Both Windows machines should be able to ping the Linux server by name (and vice versa), and you may need to run "ipconfig /flushdns" at 
@@ -1985,7 +1985,7 @@ If you disable this feature Artica will not change the maks of shared folders an
 </enable_automask_creation_explain>
 <HomeDirectoriesMask>Permissions mask for home directories</HomeDirectoriesMask>
 <SharedFoldersDefaultMask>Shared folders default mask</SharedFoldersDefaultMask>
-<blacklists>Blacklists</blacklists>
+<blacklists>Black-lists</blacklists>
 <kav4proxy_about>
 Kaspersky Anti-Virus for Proxy Server provides anti-virus protection for network traffic routed through proxy servers
 which support the Internet Content Adaptation Protocol (ICAP).[br]
@@ -2435,7 +2435,8 @@ It will be in charge of calculate all necessaries statistics.
 <APP_PROXY_CATS_TEXT>Proxy categories repository is an application that allow to distribute and manage  Web filters categories for multiple Artica servers For Squid.[br]
 It is designed to automatically add added categories to an "official databases" and provide categories update patterns in order to update newest added categorized websites
 </APP_PROXY_CATS_TEXT>
-<AsDansGuardianAdministrator>Can Manage Web filtering categories and categories repository</AsDansGuardianAdministrator>
+<AsDansGuardianAdministrator>Can Manage Web filtering</AsDansGuardianAdministrator>
+<AsSquidPersonalCategories>Can Manage Personal categories</AsSquidPersonalCategories>
 <miniadm_web_filtering_text>Manage your organization web filtering services</miniadm_web_filtering_text>
 <AsWebFilterRepository>Can manage Proxy categories repository service</AsWebFilterRepository>
 <update_url>Update URL</update_url>
@@ -2618,7 +2619,7 @@ You should use this option very carefully, as any user in this list will be able
 <automobile-carpool>Websites talking about car-sharing, ride-sharing, lift-sharing...</automobile-carpool>
 <update_status>Update status</update_status>
 <available_software>Available software</available_software>
-<APP_SQUID2>Squid Cache Proxy 3.2x</APP_SQUID2>
+<APP_SQUID2>Proxy service 3.2x</APP_SQUID2>
 <reconfigure>Reconfigure</reconfigure>
 <squid_rock>Rock Store (rock)</squid_rock>
 <squid_rock_maxsize>Refers to the max object size.[br]It is used to select the right storage to store objects.</squid_rock_maxsize>
@@ -2850,7 +2851,7 @@ extending LAN-like network connectivity to mobile users, distributed teams and b
 You can easily create secure virtual networks on demand, across public and private networks.[br]
 Hamachi is managed and maintained from anywhere via the web, securely. 
 </APP_HAMACHI_ABOUT>
-<product_not_installed_explain>The software is not installed on your system.[br]You can click on the picture of this row in order to install it</product_not_installed_explain>
+<product_not_installed_explain>The software is not installed on your system</product_not_installed_explain>
 <codename>Code name</codename>
 <codename_setup_explain>This code should be used directly in commandline on your system[br]
 You can execute the program artica-make, based on the /usr/share/artica-postfix/bin directory.[br]
@@ -3173,7 +3174,7 @@ This section is designed to manage and monitor Web filter databases.
 <update_task_stopped>Update task is stopped</update_task_stopped>
 <toulouse_university>Toulouse University</toulouse_university>
 <drugs>drugs</drugs>
-<expressions>expressions</expressions>
+<expressions>Expressions</expressions>
 <enable_rule>Enable this rule</enable_rule>
 <dansguardian_no_filters_explain>No webfilter filter deamon has been activated on your system.
 [br]In this case, there is no Web filtering feature.
@@ -3203,8 +3204,8 @@ This should usually be lower than the  'Naughtiness limit' value above, because 
 A value of 0 here indicates that search terms should be extracted,for logging/reporting purposes, but no filtering should be performed on the resulting text.
 </searchtermlimit2_text>
 <dansguardian_timelimit_explain>
-This section is designed to enable some blacklist by time during the week.[br]
-You can create several time rules.Each of them enables a set of blacklist categories.[br]
+This section is designed to enable some black-list by time during the week.[br]
+You can create several time rules.Each of them enables a set of black-list categories.[br]
 For example you can block porn,ads categories from 12:00 to 17:00, Monday to Friday with one rule 
 and block socialnet,games,porn,ads categories from 09:00 to 12h00 only Monday and friday.[br]
 </dansguardian_timelimit_explain>
@@ -3230,10 +3231,10 @@ To resolve this issue, you can reboot the computer or executing this command-lin
 <ActAsSMTPGatewayStatistics>Act as SMTP Gateway logs/statistics</ActAsSMTPGatewayStatistics>
 <ActAsSMTPGatewayStatistics_text>If enabled this server will server SMTP events statistics and will be in charge of manage/backup/restore SMTP system logs</ActAsSMTPGatewayStatistics_text> 
 <error_missing_mskutil>Error, "mskutil" no such binary.</error_missing_mskutil>
-<error_missing_kerbauth>Error, Squid Cache Proxy is not compiled with Kerberos authentication mode.</error_missing_kerbauth>
+<error_missing_kerbauth>Error, Proxy service is not compiled with Kerberos authentication mode.</error_missing_kerbauth>
 <RemoteSMTPSyslog>Remote SMTP System events</RemoteSMTPSyslog>
 <RemoteSMTPSyslogText>Set this server to send SMTP events to a dedicated System logs server for statistics generation</RemoteSMTPSyslogText>
-<DNSBL_WHY>A DNSBL (DNS-based Blackhole List, Block List, or Blacklist; see below) is a list of IP addresses published through the Internet Domain Name Service (DNS) either as a zone file that can be used by DNS server software, or as a live DNS zone that can be queried in real-time.[br]
+<DNSBL_WHY>A DNSBL (DNS-based Blackhole List, Block List, or Black-list; see below) is a list of IP addresses published through the Internet Domain Name Service (DNS) either as a zone file that can be used by DNS server software, or as a live DNS zone that can be queried in real-time.[br]
 DNSBLs are most often used to publish the addresses of computers or networks linked to spamming; 
 most mail server software can be configured to reject or flag messages which have been sent from a site listed on one or 
 more such lists.[br]
@@ -3381,3 +3382,9 @@ Default is 6 hours (360 minutes).[br]
 <build_cache_users_explain>This task is used when using Active Directory.[br]By default, Artica import each 120mn users from the Active Directory RPC connection.[br]
 You can schedule it if you need to perform it more regulary.[br]
 This users cache is used to manage ACLs and all features requests to query an users list</build_cache_users_explain>
+<PhishTank_about>PhishTank is a community anti-phishing Web site where anyone can go to submit suspected 
+phishes, track the status of their submissions and help verify others submissions.[br]
+Unlike other anti-phishing efforts that may come to mind, PhishTank is totally free to use and open to access.
+</PhishTank_about>
+<PhishTank_enable>Activate PhishTank database</PhishTank_enable>
+

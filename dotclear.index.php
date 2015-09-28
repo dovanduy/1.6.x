@@ -146,7 +146,7 @@ $ini=new Bs_IniHandler();
 	<tr>
 	<td width=1% valign='top'><img src='img/42-red.png'></td>
 	<td valign='top' >
-		<H3 style='color:red'>{tables_error}</H3>
+		<H3 style='color:#d32d2d'>{tables_error}</H3>
 		<p class=caption>{tables_error_text}</p>
 		<center>
 		<input type='button' OnClick=\"javascript:RebuildTablesDotClear();\" value='{rebuild_tables}&nbsp;&raquo;'>

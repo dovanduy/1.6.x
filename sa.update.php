@@ -68,7 +68,7 @@ function popup(){
 	
 	
 	$html="
-	<div  class=text-info >{UPDATE_SA_UPDATE_TEXT}</div>
+	<div  class=explain >{UPDATE_SA_UPDATE_TEXT}</div>
 	<center style='margin:10px'>". button("{run_update_now}","RunSaUpd()")."</center>
 	<center >
 	<div id='saupddiv' style='width:100%;height:550px;overflow:auto'></div>

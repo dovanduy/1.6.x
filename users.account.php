@@ -146,7 +146,7 @@ function users_page(){
 		<center>
 		<img src='img/pic_add-107.gif' style='border:1px dotted #CCCCCC'>
 		</center>
-		<div><strong style='color:red'>{error_image_missing}:</strong><br>$us->jpegPhotoError</strong></div>";
+		<div><strong style='color:#d32d2d'>{error_image_missing}:</strong><br>$us->jpegPhotoError</strong></div>";
 		
 		
 	}else{

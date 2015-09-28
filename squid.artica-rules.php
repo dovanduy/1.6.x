@@ -29,7 +29,11 @@ tabs();
 function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	
+	if($users->HYPERCACHE_STOREID){
+		$array["dedup"]="{HYPERCACHE_STOREID}";
+	}
 	$array["status"]='{enforce_rules}';
 	$array["rules"]='{rules}';
 	$array["mirror"]='{mirror}';
@@ -39,6 +43,12 @@ function tabs(){
 
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="dedup"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hypercache.php\"
+					style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		if($num=="rules"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.artica-rules.rules.php?$num=yes\"

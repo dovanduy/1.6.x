@@ -80,7 +80,7 @@ function popup(){
 		<td valign='top'>
 			<img src='img/change-mysql-128.png'>
 		</td>
-		<td valign='top'><div class=text-info style='font-size:14px'>{{$title}}</div>
+		<td valign='top'><div class=explain style='font-size:14px'>{{$title}}</div>
 			<table style='width:99.5%' class=form>
 				<tr>
 					<td valign='top' class=legend nowrap style='font-size:14px'>{username}:</td>
@@ -129,16 +129,16 @@ function ChangeMysqlPassword(){
 	$localserver=false;
 	
 	$users=new usersMenus();
-	if(!$usersmenus->AsArticaAdministrator==false){echo $tpl->_ENGINE_parse_body('<strong style=color:red>{ERROR_NO_PRIVS}</strong>');exit;	}
+	if(!$usersmenus->AsArticaAdministrator==false){echo $tpl->_ENGINE_parse_body('<strong style=color:#d32d2d>{ERROR_NO_PRIVS}</strong>');exit;	}
 	
 	$q=new mysql();
 	if($q->mysql_server=="localhost"){$localserver=true;}
 	if($q->mysql_server=="127.0.0.1"){$localserver=true;}
-	if(!$localserver){echo $tpl->_ENGINE_parse_body('<strong style=color:red>{ERR_MYSQL_IS_REMOTE}</strong>');exit;}
+	if(!$localserver){echo $tpl->_ENGINE_parse_body('<strong style=color:#d32d2d>{ERR_MYSQL_IS_REMOTE}</strong>');exit;}
 
 	
-	if($_GET["username"]==null){echo $tpl->_ENGINE_parse_body('<strong style=color:red>{ERR_NO_USERNAME}</strong>');exit;}
-	if($_GET["password"]==null){echo $tpl->_ENGINE_parse_body('<strong style=color:red>{ERR_NO_PASS}</strong>');exit;}
+	if($_GET["username"]==null){echo $tpl->_ENGINE_parse_body('<strong style=color:#d32d2d>{ERR_NO_USERNAME}</strong>');exit;}
+	if($_GET["password"]==null){echo $tpl->_ENGINE_parse_body('<strong style=color:#d32d2d>{ERR_NO_PASS}</strong>');exit;}
 	$tpl=new templates();
 	$sock=new sockets();
 	$_GET["password"]=url_decode_special_tool($_GET["password"]);

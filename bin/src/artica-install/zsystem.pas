@@ -125,7 +125,7 @@ public
        function DirDir(FilePath: string):TstringList;
        function DomainName():string;
 
-       function DISKS_STATUS_DEV():string;
+
        function DISKS_INODE_DEV():string;
        function DISK_FORMAT_UNIX(dev:string):string;
        procedure FSTAB_ADD(dev:string;mount_point:string);
@@ -166,7 +166,8 @@ public
        function  PIDOF_PATTERN_PROCESS_NUMBER(pattern:string):integer;
        function  PIDOF_PATTERN_PROCESS_LIST(pattern:string):TstringList;
        function  ReadFromFile(TargetPath:string):string;
-
+       function  XenServer():boolean;
+       function  HyperV():boolean;
        function  ETC_SERVICES_PORT(servicename:string):integer;
 
        function  OPENSSL_TOOL_PATH():string;
@@ -6186,6 +6187,86 @@ begin
 
 end;
 //##############################################################################
+function Tsystem.XenServer():boolean;
+var
+   dmidecode:string;
+   VMWARE_HOST_LOGS:Tlogs;
+   tmpstr:string;
+   RegExpr:TRegExpr;
+   i:integer;
+   l:tstringlist;
+   found:boolean;
+begin
+   result:=false;
+   found:=false;
+   if FileExists('/etc/artica-postfix/XENSERVER_NOHOST') then exit(false);
+   if FileExists('/etc/artica-postfix/XENSERVER_HOST') then exit(true);
+   dmidecode:=LOCATE_GENERIC_BIN('dmidecode');
+   if not FileExists( dmidecode) then exit;
+   VMWARE_HOST_LOGS:=Tlogs.Create;
+   tmpstr:='/etc/artica-postfix/dmidecode_type_1';
+   if not FileExists(tmpstr) then fpsystem(dmidecode+' --type 1 >'+ tmpstr+' 2>&1');
+   RegExpr:=TRegExpr.Create;
+   RegExpr.Expression:='Xen';
+   l:=Tstringlist.Create;
+   l.LoadFromFile(tmpstr);
+   for i:=0 to l.Count-1 do begin
+       if  RegExpr.Exec(l.Strings[i]) then begin
+            VMWARE_HOST_LOGS.WriteToFile('yes' ,'/etc/artica-postfix/XENSERVER_HOST');
+            found:=true;
+            break;
+       end;
+
+   end;
+
+   if not found then VMWARE_HOST_LOGS.WriteToFile('no' ,'/etc/artica-postfix/XENSERVER_NOHOST');
+
+   l.free;
+   RegExpr.free;
+   VMWARE_HOST_LOGS.free;
+
+end;
+//##############################################################################
+function Tsystem.HyperV():boolean;
+var
+   dmidecode:string;
+   VMWARE_HOST_LOGS:Tlogs;
+   tmpstr:string;
+   RegExpr:TRegExpr;
+   i:integer;
+   l:tstringlist;
+   found:boolean;
+begin
+   result:=false;
+   found:=false;
+   if FileExists('/etc/artica-postfix/HYPERV_NOHOST') then exit(false);
+   if FileExists('/etc/artica-postfix/HYPERV_HOST') then exit(true);
+   dmidecode:=LOCATE_GENERIC_BIN('dmidecode');
+   if not FileExists( dmidecode) then exit;
+   VMWARE_HOST_LOGS:=Tlogs.Create;
+   tmpstr:='/etc/artica-postfix/dmidecode_type_1';
+   if not FileExists(tmpstr) then fpsystem(dmidecode+' --type 1 >'+ tmpstr+' 2>&1');
+   RegExpr:=TRegExpr.Create;
+   RegExpr.Expression:='Microsoft Corporation';
+   l:=Tstringlist.Create;
+   l.LoadFromFile(tmpstr);
+   for i:=0 to l.Count-1 do begin
+       if  RegExpr.Exec(l.Strings[i]) then begin
+            VMWARE_HOST_LOGS.WriteToFile('yes' ,'/etc/artica-postfix/HYPERV_HOST');
+            found:=true;
+            break;
+       end;
+
+   end;
+
+   if not found then VMWARE_HOST_LOGS.WriteToFile('no' ,'/etc/artica-postfix/HYPERV_NOHOST');
+
+   l.free;
+   RegExpr.free;
+   VMWARE_HOST_LOGS.free;
+
+end;
+//##############################################################################
 function Tsystem.RotationSeconds(SecondsNumber:integer):boolean;
 var
    s:string;
@@ -6815,65 +6896,6 @@ function Tsystem.LOCATE_STUNNEL():string;
 begin
 if FileExists('/usr/bin/stunnel4') then exit('/usr/bin/stunnel4');
 if FileExists('/usr/bin/stunnel') then exit('/usr/bin/stunnel');
-end;
-//#############################################################################
-function Tsystem.DISKS_STATUS_DEV():string;
-var
-   l:TstringList;
-   i:Integer;
-   RegExpr:TRegExpr;
-   tmp:string;
-   res:string;
-   xxxlogs:tlogs;
-   mounted:string;
-   dubin:string;
-   ss:integer;
-   cmd:string;
-   resultsDu:string;
-begin
-     res:='';
-   xxxlogs:=Tlogs.Create;
-   if not fileexists(LOCATE_FDISK()) then exit;
-   tmp:=FILE_TEMP();
-   cmd:=LOCATE_DF() + ' -P -h -B G >'+ tmp + ' 2>&1';
-   xxxlogs.Debuglogs(cmd);
-   fpsystem(cmd);
-   if not FileExists(tmp) then exit;
-   l:=TstringList.Create;
-   l.LoadFromFile(tmp);
-   DeleteFile(tmp);
-   RegExpr:=TRegExpr.Create;
-   dubin:=LOCATE_GENERIC_BIN('du');
-
-
-   RegExpr.Expression:='^\/dev\/(.+?)\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)G\s+([0-9]+)%\s+(.*)';
-   for i:=0 to l.Count-1 do begin
-       if RegExpr.Exec(l.Strings[i]) then begin
-          mounted:=RegExpr.Match[6];
-          ss:=0;
-          res:=res + RegExpr.Match[1]+','+RegExpr.Match[2]+','+RegExpr.Match[3]+','+RegExpr.Match[4]+',' +RegExpr.Match[5]+ ';';
-          try
-          ss:=StrToInt(RegExpr.Match[5]);
-          except
-            xxxlogs.Debuglogs('Fatal error while try to tranfrom '+RegExpr.Match[5]);
-          end;
-          if ss>94 then begin
-             if DirectoryExists(mounted) then begin
-                fpsystem(dubin+' -h --max-dep=1 '+mounted+' >/tmp/DUH.txt 2>&1');
-                resultsDu:=xxxlogs.ReadFromFile('/tmp/DUH.txt');
-                xxxlogs.DeleteFile('/tmp/DUH.txt');
-             end;
-                xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning disk size !! '+mounted+' on device ' + RegExpr.Match[1],resultsDu+'You need to check disk size, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[5] +'% used','system');
-          end;
-      end else begin
-          xxxlogs.Debuglogs(l.Strings[i]+'->Failed '+RegExpr.Expression);
-       end;
-   end;
-
-   result:=res;
-   FreeAndNil(l);
-   FreeAndNil(RegExpr);
-
 end;
 //#############################################################################
 function Tsystem.SIEVE_PORT():string;

@@ -66,6 +66,7 @@ function install(){
 	progress("{downloading} 1.2.3 version","Downloading $filename",30);
 	progress("{downloading} 1.2.3 version","Temporary directory = $TMPDIR",30);
 	$curl=new ccurl("$uri");
+	$php=$unix->LOCATE_PHP5_BIN();
 	$debianbin=$unix->find_program("update-rc.d");
 	$redhatbin=$unix->find_program("chkconfig");
 	
@@ -121,6 +122,12 @@ function install(){
 	shell_exec("/etc/init.d/artica-status restart --force >/dev/null 2>&1");
 	
 	progress("{installed}","Done",100);
+	shell_exec("$php /usr/share/artica-postfix/exec.phpldapadmin.php --build");
+	
+	sleep(2);
+	shell_exec("/etc/init.d/artica-webconsole restart --force");
+	
+	
 	
 }
 
@@ -129,6 +136,8 @@ function progress($title,$text,$pourc){
 	if($GLOBALS["VERBOSE"]){echo "{$pourc}% ".getmypid()." ".date("Y-m-d H:i:s")."] $text\n";}
 	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/phpldapadmin.status";
 	$data=unserialize(@file_get_contents($cacheFile));
+	echo "{$pourc}% - $title\n";
+	echo "$text\n";
 	$data["TITLE"]=$title;
 	$data["POURC"]=$pourc;
 	$data["LOGS"][]=getmypid()." [".date("Y-m-d H:i:s")."] $text";

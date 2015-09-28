@@ -23,7 +23,6 @@ include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 	if($pid<100){$pid=null;}
 	$unix=new unix();
 	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: $pid -> DIE\n";die();}
-	if($argv[1]=="--iptables"){iptables_rules();exit;}
 	if($argv[1]=="--iptables-delete"){iptables_delete_all();exit;}
 	if($argv[1]=="--progress"){restart_progress();exit;}
 
@@ -48,88 +47,52 @@ if(count($pids)>2){
 
 $sock=new sockets();
 $SquidWCCPEnabled=$sock->GET_INFO("SquidWCCPEnabled");
-$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+$hasProxyTransparent=MYSQL_AS_PROXY_TRANSPARENT();
 $EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
 $EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 $MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
 $UseTProxyMode=intval($sock->GET_INFO("UseTProxyMode"));
+$FireHolEnable=intval($sock->GET_INFO("FireHolEnable"));
 if(!is_numeric($SquidWCCPEnabled)){$SquidWCCPEnabled=0;}
 if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
 if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
 
 
 echo "Starting......: ".date("H:i:s")." Squid Check hasProxyTransparent key ($hasProxyTransparent)...\n";
-echo "Starting......: ".date("H:i:s")." Squid Check SquidWCCPEnabled key ($SquidWCCPEnabled)...\n";
 echo "Starting......: ".date("H:i:s")." Squid Check EnableArticaHotSpot key ($EnableArticaHotSpot)...\n";
 echo "Starting......: ".date("H:i:s")." Squid Check EnableTransparent27 key ($EnableTransparent27)...\n";
 echo "Starting......: ".date("H:i:s")." Squid Check MikrotikTransparent key ($MikrotikTransparent)...\n";
 echo "Starting......: ".date("H:i:s")." Squid Check UseTProxyMode key ($UseTProxyMode)...\n";
+echo "Starting......: ".date("H:i:s")." Squid Check FireHolEnable key ($FireHolEnable)...\n";
+
+if($FireHolEnable==1){
+	disable_transparent();
+	return;
+}
+
 
 if($UseTProxyMode==1){
 	disable_transparent();
-	iptables_wccp_delete_all();
 	$php=$unix->LOCATE_PHP5_BIN();
 	echo "Starting......: ".date("H:i:s")." Squid running Tproxy Mode\n";
 	system("$php /usr/share/artica-postfix/exec.squid.tproxy.php");
 	echo "Starting......: ".date("H:i:s")." Squid running TProxy script...\n";
-	shell_exec("/etc/init.d/tproxy start");
+	shell_exec("/etc/init.d/iptables-transparent start");
 	return;
 	
 }
 
-if($EnableArticaHotSpot==1){disable_transparent();iptables_wccp_delete_all();return;}
-if($EnableTransparent27==1){disable_transparent();iptables_wccp_delete_all();return;}
-if($SquidWCCPEnabled==1){enable_wccp();}else{iptables_wccp_delete_all();}
+if($EnableArticaHotSpot==1){disable_transparent();return;}
+if($EnableTransparent27==1){disable_transparent();return;}
 if($hasProxyTransparent==1){enable_transparent();}else{disable_transparent();}
-echo "Starting......: ".date("H:i:s")." Squid running TProxy script...\n";
-shell_exec("/etc/init.d/tproxy start");
 
-
-function enable_wccp(){
-	$unix=new unix();
-	$sock=new sockets();
-	$ipClass=new IP();
-	$ipbin=$unix->find_program("ip");
-	$ifconfig=$unix->find_program("ifconfig");
-	$WCCPHash=unserialize(base64_decode($sock->GET_INFO("WCCPHash")));
-	$WCCPListenPort=$sock->GET_INFO("WCCPListenPort");
-	$SQUID_IP=$WCCPHash["listen_address"];
-	$iptablesBin=$unix->find_program("iptbales");
-	if(!$ipClass->isValid($SQUID_IP)){$SQUID_IP="127.0.0.1";}
-	if($SQUID_IP=="127.0.0.1"){$eth="lo";}
-	
-	$unix=new unix();
-	$INTERFACES=$unix->NETWORK_ALL_INTERFACES();
-	
-	while (list ($interface, $array) = each ($INTERFACES)){
-		$ipaddr=$array["IPADDR"];
-		if($SQUID_IP==$ipaddr){
-			$eth=$interface;
-		}
-		
-	}
-	
-	echo "Starting......: ".date("H:i:s")." Squid Listen $SQUID_IP:$WCCPListenPort - $eth\n";
-	
-	$wccp2_router=array();
-	$wccp2_routers=$this->WCCPHash["wccp2_router"];
-	if(strpos($wccp2_routers, ",")>0){
-		$wccp2_router=explode(",",$wccp2_routers);
-	}else{
-		$wccp2_router[]=$wccp2_routers;
-	}
-		
-	
-	
-	$i=0;
-	while (list ($index, $router) = each ($wccp2_router)){
-		$i++;
-		shell_exec("$ipbin tunnel add wccp{$i} mode gre remote $router local $SQUID_IP dev $eth");
-		shell_exec("$ifconfig wccp{$i} 127.0.{$i}.1 netmask 255.255.255.255 up");
-		shell_exec("$iptablesBin -t nat -A PREROUTING -i wccp{$i} -d 0/0 -p tcp -j DNAT --to-destination $SQUID_IP:$WCCPListenPort -m comment --comment \"ArticaSquidWCCP\"");
-	}
-
+if(is_file("/etc/init.d/iptables-transparent")){
+	echo "Starting......: ".date("H:i:s")." Squid running Iptables script...\n";
+	shell_exec("/etc/init.d/iptables-transparent start");
 }
+
+
+
 
 function disable_transparent(){
 	$unix=new unix();
@@ -141,56 +104,14 @@ function disable_transparent(){
 	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Disabled\"";
 	$sh[]=$php." ".basename(__FILE__)."/exec.squid.transparent.delete.php >/dev/null 2>&1";
 	$sh[]=script_endfile();
-	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+	@file_put_contents("/etc/init.d/iptables-transparent", @implode("\n", $sh));
 	script_install();
 	shell_exec($php." ".dirname(__FILE__)."/exec.squid.transparent.delete.php");
 	
 }
 
 
-function iptables_wccp_delete_all(){
-	$unix=new unix();
-	$sock=new sockets();
-	$ipClass=new IP();
-	$ipbin=$unix->find_program("ip");	
-	$ifconfig=$unix->find_program("ifconfig");
-	$iptables_save=$unix->find_program("iptables-save");
-	$iptables_restore=$unix->find_program("iptables-restore");
-	exec("$ipbin tunnel show 2>&1",$results);
-	
-	
-	while (list ($index, $line) = each ($results)){
-		$line=trim($line);
-		if($line==null){continue;}
-		if(preg_match("#^wccp([0-9]+):\s+gre\/#", $line,$re)){continue;}
-		$ID=$re[1];
-		echo "Starting......: ".date("H:i:s")." Squid Listen removing wccp{$ID}\n";
-		shell_exec("$ipbin tunnel del wccp{$ID}");
-		shell_exec("$ifconfig wccp{$ID} down");
-		
-		
-	}
-	
-	echo "Starting......: ".date("H:i:s")." Squid Check WCCP mode: removing iptables rules...\n";	
-	$unix=new unix();
-	
-	
-	system("$iptables_save > /etc/artica-postfix/iptables.conf");
-	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
-	$datas=explode("\n",$data);
-	$pattern="#.+?ArticaSquidWCCP#";	
-	$d=0;
-	while (list ($num, $ligne) = each ($datas) ){
-			if($ligne==null){continue;}
-			if(preg_match($pattern,$ligne)){$d++;continue;}
-			$conf=$conf . $ligne."\n";
-			}
-	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
-	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
-	echo "Starting......: ".date("H:i:s")." Squid Check Transparent mode: removing $d iptables rule(s) done...\n";	
-	
-	
-}
+
 
 function ebtables_rules(){
 	$unix=new unix();
@@ -235,41 +156,27 @@ function ebtables_rules(){
 	return @implode("\n", $f);
 }
 
-
 function enable_transparent(){
-	$squid=new squidbee();
 	$unix=new unix();
+	$q=new mysql_squid_builder();
 	$sock=new sockets();
-	$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
-	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
-	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
-	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}	
-	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
-	$ssl_port=$squid->get_ssl_port();
-	if(!is_numeric($squid->listen_port)){$squid->listen_port=3128;}
-	$listen_ssl_port=$squid->listen_port+1;
-	$SSL_BUMP=$squid->SSL_BUMP;
-	$iptables=$unix->find_program("iptables");	
+	$iptables=$unix->find_program("iptables");
+	$GLOBALS["MASKERADE_DONE"]=false;
 	$sysctl=$unix->find_program("sysctl");
 	$ips=$unix->ifconfig_interfaces_list();
-	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
-	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
-	if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
-	
-	
-
-	
-	
-	
 	$php=$unix->LOCATE_PHP5_BIN();
+	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
+	$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
 	$sh[]=script_startfile();
+	
 	
 	if($EnableArticaHotSpot==1){
 		build_progress("HotSpot is enabled, aborting",110);
 		$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: HotSpot system is enabled\"";
 		$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php || true";
 		$sh[]=script_endfile();
-		@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+		@file_put_contents("/etc/init.d/iptables-transparent", @implode("\n", $sh));
 		script_install();
 		return;
 	}
@@ -280,17 +187,13 @@ function enable_transparent(){
 	build_progress("Checking ebtables rules {done}",25);
 	
 	
-	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT(*) as tcount FROM transparent_networks WHERE `enabled`=1";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+
+	build_progress("Building default script...",35);	
 	
-	if($ligne["tcount"]>0){
-		build_progress("Checking iptables rules",30);
-		iptables_rules();
-		build_progress("Checking iptables rules {done}",50);
-		return;
-	}
-	build_progress("Building default script...",35);
+	
+
+	$sh[]="{$GLOBALS["echobin"]} \"Transparent mode: enable the gateway mode...\"";
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: KernelSendRedirects = $KernelSendRedirects...\"";
 	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode:Removing Iptables rules\"";
 	$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php || true";
 	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Patching kernel\"";
@@ -300,40 +203,148 @@ function enable_transparent(){
 	if(is_file("/proc/sys/net/ipv4/conf/eth0/send_redirects")){
 		$sh[]="$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1";
 	}
+	
+	$sql="SELECT * FROM proxy_ports WHERE enabled=1 AND transparent=1";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){
+		$results=unserialize(@file_get_contents("/etc/artica-postfix/proxy_ports_transparent"));
+	}else{
+		@file_put_contents("/etc/artica-postfix/proxy_ports_transparent", serialize($results));
+	}
+	
+	
+	$sh[]="# ".mysql_num_rows($results)." ports to configure..";
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$eth=$ligne["nic"];
+		$ssl_port=0;
+		$http_port=0;
+		$ID=$ligne["ID"];
+		$UseSSL=intval($ligne["UseSSL"]);
+		if($UseSSL==1){
+			$ssl_port=intval($ligne["port"]);
+		}else{
+			$http_port=intval($ligne["port"]);
+		}
+		build_progress("Building rule for ports HTTP:$http_port SSL Port:$ssl_port...",35);
+		$sh[]="# Interface $eth SSL:$UseSSL, HTTP:$http_port SSL Port:$ssl_port [".__LINE__."]";
+		$sh[]=enable_transparent_byport($eth,$http_port,$ssl_port,$ID);
+	}
+	
+
+	$sh[]=script_endfile();
+	@file_put_contents("/etc/init.d/iptables-transparent", @implode("\n", $sh));
+	build_progress("{installing_default_script}...",40);
+	script_install();
+	build_progress("{installing_default_script}...{done}",50);
+
+}
+
+function whitelist_transparent_bymeta(){
+	
+	
+	
+	if(!is_file("/etc/squid3/meta-transparent-whitelist.array")){
+		echo "Starting......: ".date("H:i:s")." Transparent list META does not exists.\n";
+		return;
+	}
+	$unix=new unix();
+	echo "Starting......: ".date("H:i:s")." Transparent list META ( checking ).\n";
+	$data=unserialize(@file_get_contents("/etc/squid3/meta-transparent-whitelist.array"));
+	$iptables=$unix->find_program("iptables");
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	
+	while (list ($index, $ligne) = each ($data) ){
+		$pattern=$ligne["pattern"];
+		$destport=$ligne["destport"];
+		$include=$ligne["include"];
+		if($include==0){$object=" -s $pattern";}
+		if($include==1){$object=" -d $pattern";}
+		$f[]=Output_iptables("$iptables -t nat -I PREROUTING $object -p tcp -m tcp --dport $destport -j RETURN $MARKLOG || true");
+	}
+	
+	if(count($f)>0){return @implode("\n", $f);}
+	
+
+}
+
+function whitelist_transparent_byport($include,$portid,$SQUIDPORT=0,$ssl_port=0){
+	$unix=new unix();
+	
+	$iptables=$unix->find_program("iptables");
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	
+	$q=new mysql_squid_builder();		
+	$sql="SELECT pattern  FROM `proxy_ports_wbl` WHERE include=$include AND portid=$portid";
+	$results = $q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)==0){
+		build_progress("Include:$include Port $portid/$SQUIDPORT/$ssl_port no white rule...",35);
+		return;
+	}
+		
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$f[]="# include:$include 1=destination, 0= source";
+		if($include==0){$object=" -s {$ligne["pattern"]}";}
+		if($include==1){$object=" -d {$ligne["pattern"]}";}
+		if($SQUIDPORT>2){$dport=80;}
+		if($ssl_port>2){$dport=443;}
+		$f[]=Output_iptables("$iptables -t nat -I PREROUTING $object -p tcp -m tcp --dport $dport -j RETURN $MARKLOG || true");
+		
+		
+			
+			
+	}
+	return @implode("\n", $f);
+		
+}
+
+
+
+function enable_transparent_byport($InterfaceDefined=null,$SQUIDPORT=0,$ssl_port=0,$portid){
+	
+	$unix=new unix();
+	$sock=new sockets();
+	$SQUIDPORT=intval($SQUIDPORT);
+	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
+	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}	
+	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
+	
+	$iptables=$unix->find_program("iptables");	
+	$sysctl=$unix->find_program("sysctl");
+	$ips=$unix->ifconfig_interfaces_list();
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+
+	build_progress("Interface: $InterfaceDefined Port $portid/$SQUIDPORT/$ssl_port no white rule...",35);
 	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Enable rules\"";
 	
 	unset($ips["127.0.0.1"]);
 	unset($ips["lo"]);
 	
-	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: enabled in transparent mode in $squid->listen_port Port (SSL_BUMP=$SSL_BUMP) SSL PORT:$ssl_port\"";
-	$sh[]="{$GLOBALS["echobin"]} \"Transparent mode: enable the gateway mode...\"";
-	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: KernelSendRedirects = $KernelSendRedirects...\"";
+	
+	
+	
+	 //Attention, transféré vers firehole
 	if($UseTProxyMode==1){
 		$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Activate TProxy mode...\"";	
 	}
-	
-
-	
-	
-	
-	$chilli=$unix->find_program("chilli");
-	$EnableChilli=$sock->GET_INFO("EnableChilli");
-	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
-	if(!is_file($chilli)){$EnableChilli=0;}
-	
-	if($EnableChilli==1){return;}
-	
-	
-	if($SquidBinIpaddr=="0.0.0.0"){$SquidBinIpaddr=null;}
-	if($SquidBinIpaddr=="127.0.0.1"){$SquidBinIpaddr=null;}
-	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
 	
 	if($UseTProxyMode==1){
 		$sh[]="$iptables -t mangle -N DIVERT -m comment --comment \"ArticaSquidTransparent\" || true";
 		$sh[]="$iptables -t mangle -A DIVERT -j MARK --set-mark 1 -m comment --comment \"ArticaSquidTransparent\" || true";
 		$sh[]="$iptables -t mangle -A DIVERT -j ACCEPT -m comment --comment \"ArticaSquidTransparent\" || true";
 		$sh[]="$iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT -m comment --comment \"ArticaSquidTransparent\" || true";
-		$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY --tproxy-mark 0x1/0x1 --on-port $squid->listen_port -m comment --comment \"ArticaSquidTransparent\" || true";
+		if($SQUIDPORT>2){
+			$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY --tproxy-mark 0x1/0x1 --on-port $SQUIDPORT -m comment --comment \"ArticaSquidTransparent\" || true";
+			return @implode("\n", $sh);
+		}
+		
+		if($ssl_port>2){
+			
+			
+		}
+		
 		return;
 	}
 	
@@ -341,56 +352,84 @@ function enable_transparent(){
 $IPTABLES=$iptables;
 $INPUTINTERFACE="eth0";
 $MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
-$SQUIDPORT=$squid->listen_port;
 
-$EnableNatProxy=intval($sock->GET_INFO("EnableNatProxy"));
-$NatProxyServer=$sock->GET_INFO("NatProxyServer");
-$NatProxyPort=intval($sock->GET_INFO("NatProxyPort"));
 
-$sh[]="# ".__LINE__." EnableNatProxy = $EnableNatProxy";
 
 
 $JREDIRECT_TEXT="-j REDIRECT --to-port $SQUIDPORT";
 $JREDIRECTSSL_TEXT="-j REDIRECT --to-port $ssl_port";
-if($EnableNatProxy==1){
-	$JREDIRECT_TEXT="-j DNAT --to $NatProxyServer:$NatProxyPort"; 
-	$JREDIRECTSSL_TEXT="-j DNAT --to $NatProxyServer:$NatProxySSLPort"; 
+
+$INTERFACE_TEXT=null;
+if($InterfaceDefined<>null){
+	$INTERFACE_TEXT=" -i $InterfaceDefined";
 }
-	
+
+
+$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent Interface:$InterfaceDefined  HTTP Port:$SQUIDPORT / SSL Port:$ssl_port\"";
+$sh[]=whitelist_transparent_byport(0,$portid,$SQUIDPORT,$ssl_port);
+$sh[]=whitelist_transparent_byport(1,$portid,$SQUIDPORT,$ssl_port);
+$sh[]=whitelist_transparent_bymeta();
+
 	while (list ($interface, $ip) = each ($ips) ){
 		$SQUIDIP=$ip;
+		if($InterfaceDefined<>null){
+			if($interface<>$InterfaceDefined){continue;}
+		}
+		
 		if(preg_match("#^ham#", $interface)){
-			$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent mode: Squid Transparent mode: skipping $interface interface\"";continue;}
-			$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent Interface:$interface Adding ipTables rules for $ip\"";
+			$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent mode: Squid Transparent mode: skipping $interface interface\"";continue;
+		}
+		
+		
+			
+		if($SQUIDPORT>2){
 			if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG || true";}
+		}
 
-			if(!$GLOBALS["EBTABLES"]){
-				if($SSL_BUMP==1){
-					$sh[]="$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG || true";
-				}
+		if(!$GLOBALS["EBTABLES"]){
+			if($ssl_port>2){
+				$sh[]="$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG || true";
+			}else{
+				$sh[]="# $SQUIDIP ssl_port = $ssl_port abort";
 			}
+		}
 		
 	}
 	
-	$sh[]="$iptables -t nat -A PREROUTING -p tcp --dport 80 $JREDIRECT_TEXT $MARKLOG || true";
-	if($SSL_BUMP==1){$sh[]="$iptables -t nat -A PREROUTING -p tcp --dport 443 $JREDIRECTSSL_TEXT $MARKLOG || true";}
-	if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG || true";}
-	if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG || true";}
+	
+	
+	if($SQUIDPORT>2){
+			$sh[]="# $SQUIDPORT > 2, Enable HTTP (80) To $SQUIDPORT [".__LINE__."]";
+			$sh[]="$iptables -t nat -A PREROUTING{$INTERFACE_TEXT} -p tcp --dport 80 $JREDIRECT_TEXT $MARKLOG || true";
+		}
+	
+	
+	if($ssl_port>2){
+		$sh[]="# $ssl_port > 2, Enable SSL (443) To $ssl_port [".__LINE__."]";
+		$sh[]="$iptables -t nat -A PREROUTING{$INTERFACE_TEXT} -p tcp --dport 443 $JREDIRECTSSL_TEXT $MARKLOG || true";}
+	
+	if(!$GLOBALS["MASKERADE_DONE"]){
+		if(!$GLOBALS["EBTABLES"]){
+			$GLOBALS["MASKERADE_DONE"]=true;
+			$sh[]="$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG || true";
+		}
+	}
+	
+	
+	if($SQUIDPORT>2){if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG || true";}}
+	
+	
 	if(!$GLOBALS["EBTABLES"]){
-		if($SSL_BUMP==1){
+		if($ssl_port>2){
 			if(!$GLOBALS["EBTABLES"]){
 				$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG || true";
 			}
 		}
 	}
 	
-	///iptables -t nat -I POSTROUTING -o eth0 -s local-network -d squid-box -j SNAT --to iptables-box
+	return @implode("\n", $sh);
+	
 
-	$sh[]=script_endfile();
-	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
-	build_progress("Installing default script...",40);
-	script_install();
-	build_progress("Default script...{done}",50);
 		
 
 }
@@ -413,14 +452,14 @@ function shell_exec2($cmd){
 function script_install(){
 	
 	
-	@chmod("/etc/init.d/tproxy",0755);
+	@chmod("/etc/init.d/iptables-transparent",0755);
 	if(is_file('/usr/sbin/update-rc.d')){
-		shell_exec("/usr/sbin/update-rc.d -f tproxy defaults >/dev/null 2>&1");
+		shell_exec("/usr/sbin/update-rc.d -f iptables-transparent defaults >/dev/null 2>&1");
 	}
 	
 	if(is_file('/sbin/chkconfig')){
-		shell_exec("/sbin/chkconfig --add tproxy >/dev/null 2>&1");
-		shell_exec("/sbin/chkconfig --level 1234 tproxy on >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --add iptables-transparent >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 1234 iptables-transparent on >/dev/null 2>&1");
 	}
 	
 }
@@ -430,8 +469,8 @@ function script_endfile(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$sock=new sockets();
-	$MikrotikTransparent=intval($sock->GET_INFO('MikrotikTransparent'));
 	
+	$sh[]="\t$php ".dirname(__FILE__)."/exec.mikrotik.php >/dev/null 2>&1";
 	$sh[]="{$GLOBALS["echobin"]} \"Transparent proxy done.\"";
 	$sh[]=";;";
 	$sh[]="  stop)";
@@ -448,7 +487,13 @@ function script_endfile(){
 	$sh[]="{$GLOBALS["echobin"]} \"Installing Iptables rules\"";
 	$sh[]=$php." ".__FILE__." --iptables >/dev/null 2>&1";
 	$sh[]="{$GLOBALS["echobin"]} \"Running builded script\"";
-	$sh[]="/etc/init.d/tproxy start";
+	$sh[]="/etc/init.d/iptables-transparent start";
+	$sh[]="\tif [ -e \"/bin/iptables-parents.sh\" ]; then";
+	$sh[]="\t\t{$GLOBALS["echobin"]} \"FireWall: restart Firewall (Proxy parent) rules\"";
+	$sh[]="\t\t/bin/iptables-parents.sh || true";
+	$sh[]="\tfi";	
+	
+	
 	$sh[]=";;";
 	
 	$sh[]="  restart)";
@@ -457,7 +502,12 @@ function script_endfile(){
 	$sh[]="{$GLOBALS["echobin"]} \"Installing Iptables rules\"";
 	$sh[]=$php." ".__FILE__." --iptables >/dev/null 2>&1";
 	$sh[]="{$GLOBALS["echobin"]} \"Running builded script\"";
-	$sh[]="/etc/init.d/tproxy start";
+	$sh[]="/etc/init.d/iptables-transparent start";
+	$sh[]="\tif [ -e \"/bin/iptables-parents.sh\" ]; then";
+	$sh[]="\t\t{$GLOBALS["echobin"]} \"FireWall: restart Firewall (Proxy parent) rules\"";
+	$sh[]="\t\t/bin/iptables-parents.sh || true";
+	$sh[]="\tfi";
+	$sh[]="\t$php ".dirname(__FILE__)."/exec.mikrotik.php >/dev/null 2>&1";
 	$sh[]="{$GLOBALS["echobin"]} \"Restarting Iptables rules success\"";
 	$sh[]=";;";
 	
@@ -510,6 +560,7 @@ function script_startfile(){
 	$sh[]="{$GLOBALS["echobin"]} \"SquidWCCPEnabled key ($SquidWCCPEnabled)...\"";
 	$sh[]="{$GLOBALS["echobin"]} \"EnableArticaHotSpot key ($EnableArticaHotSpot)...\"";
 	$sh[]=MikrotikTransparent();
+	
 	return @implode("\n", $sh);
 }
 
@@ -566,7 +617,7 @@ function iptables_rules(){
 		echo "Starting......: ".date("H:i:s")." Squid running Tproxy Mode\n";
 		system("$php /usr/share/artica-postfix/exec.squid.tproxy.php");
 		echo "Starting......: ".date("H:i:s")." Squid running TProxy script...\n";
-		shell_exec("/etc/init.d/tproxy start");
+		shell_exec("/etc/init.d/iptables-transparent start");
 		return;
 	
 	}
@@ -643,7 +694,7 @@ function iptables_rules(){
 	$sh[]=ChildsProxys();
 	$sh[]=script_endfile();
 	build_progress("Writing script...",45);
-	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+	@file_put_contents("/etc/init.d/iptables-transparent", @implode("\n", $sh));
 	build_progress("Installing script...",48);
 	script_install();
 	
@@ -1208,7 +1259,7 @@ function restart_progress(){
 	if($hasProxyTransparent==1){enable_transparent();}else{disable_transparent();}
 	
 	build_progress("Executing firewall script",55);
-	system("/etc/init.d/tproxy start");
+	system("/etc/init.d/iptables-transparent start");
 	build_progress("Executing firewall script {done}",100);
 	if($GLOBALS["PROGRESS"]){sleep(5);}
 	
@@ -1329,6 +1380,33 @@ function MikrotikRemoveIptables(){
 	
 	echo "Starting......: ".date("H:i:s")." Squid Check MikroTik mode: removing $d iptables rule(s) done...\n";
 	
+	
+}
+
+function MYSQL_AS_PROXY_TRANSPARENT(){
+	if(isset($GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"])){return $GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"];}
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM proxy_ports WHERE enabled=1 AND transparent=1";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){
+		if(is_file("/etc/artica-postfix/MYSQL_AS_PROXY_TRANSPARENT")){
+			$GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"]=intval(@file_get_contents("/etc/artica-postfix/MYSQL_AS_PROXY_TRANSPARENT"));
+			
+		}
+		
+	}
+	
+	
+	
+	if(mysql_num_rows($results)>0){
+			$GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"]=1;
+			@file_put_contents("/etc/artica-postfix/MYSQL_AS_PROXY_TRANSPARENT",intval($GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"]));
+			return 1;
+	}
+	
+	@file_put_contents("/etc/artica-postfix/MYSQL_AS_PROXY_TRANSPARENT",0);
+	$GLOBALS["MYSQL_AS_PROXY_TRANSPARENT"]=0;
+	return 0;
 	
 }
 

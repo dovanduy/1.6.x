@@ -9,7 +9,6 @@ Click on this icon to perform Windows remote execution installation</APP_WINEXE_
 <ExecuteAfter>Execute after</ExecuteAfter>
 <MinutesToWait>Max minutes processing</MinutesToWait>
 <package>Package</package>
-<refresh>refresh</refresh>
 <remote_install>Remote install</remote_install>
 <remote_install_text>Create tasks in order to perform remote installations</remote_install_text>
 <resfresh_software_list>Refresh softwares list</resfresh_software_list>

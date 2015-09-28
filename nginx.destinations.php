@@ -41,12 +41,12 @@ function table(){
 	$array["TITLE"]="{destination_servers_list}";
 	$array["currentpage"]=CurrentPageName();
 	$array["sortname"]="servername";
-	$array["cols"][]=array("source_name:servername",430);
-	$array["cols"][]=array("destination_servers_list:ipaddr",430);
-	$array["cols"][]=array("compile2",80);
-	$array["cols"][]=array("delete",80);
+	$array["cols"][]=array("source_name:servername",550);
+	$array["cols"][]=array("destination_servers_list:ipaddr",550);
+	$array["cols"][]=array("compile2",90);
+	$array["cols"][]=array("delete",90);
 	$array["buttons"][]=array("{new_server}","New$t","add");
-	$array["func"]["New$t"]="Loadjs('$page?ID=0&t=$t')";
+	$array["func"]["New$t"]="Loadjs('nginx.peer.php?js=yes&ID=0&t=$t')";
 	
 	echo TABLE_FLEXIGRID($array);
 	
@@ -59,14 +59,14 @@ function TABLE_FLEXIGRID($array){
 	$title=null;
 	if(!isset($array["TITLE"])){$array["TITLE"]=null;}
 	if($array["TITLE"]<>null){
-		$title="<span style=font-size:18px>".$tpl->javascript_parse_text($array["TITLE"])."</span>";
+		$title="<span style=font-size:30px>".$tpl->javascript_parse_text($array["TITLE"])."</span>";
 	}
 	
 $f[]="
-<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
+<table class='NGINX_DESTINATION_MAIN_TABLE' style='display: none' id='NGINX_DESTINATION_MAIN_TABLE' style='width:99%'></table>
 <script>		
 function BuildTable$t(){
-		$('#flexRT$t').flexigrid({
+		$('#NGINX_DESTINATION_MAIN_TABLE').flexigrid({
 			url: '{$array["currentpage"]}?{$array["TOKEN"]}=yes&t=$t',
 			dataType: 'json',
 			colModel : [";
@@ -82,7 +82,7 @@ while (list ($num, $subarray) = each ($array["cols"]) ){
 		}
 		$align="left";
 		if($subarray[0]=="delete"){$align="center";}
-		$f[]="{display: '$caption', name : '{$subarray[0]}', width :{$subarray[1]}, sortable : false, align: '$align'},";
+		$f[]="{display: '<span style=font-size:20px>$caption</span>', name : '{$subarray[0]}', width :{$subarray[1]}, sortable : false, align: '$align'},";
 }
 
 $f[]="],";
@@ -91,7 +91,7 @@ if(count($array["buttons"]>0)){
 	$f[]="buttons : [";
 	while (list ($num, $subarray) = each ($array["buttons"]) ){
 		$subarray[0]=$tpl->javascript_parse_text($subarray[0]);
-		$f[]="{name: '{$subarray[0]}', bclass: '{$subarray[2]}', onpress : {$subarray[1]}},";
+		$f[]="{name: '<strong style=font-size:22px>{$subarray[0]}</strong>', bclass: '{$subarray[2]}', onpress : {$subarray[1]}},";
 	}
 		
 	$f[]="],	";	
@@ -116,7 +116,7 @@ while (list ($num, $subarray) = each ($array["cols"]) ){
 	
 	$align="left";
 	if($subarray[0]=="delete"){$align="center";}
-	$f[]="{display: '$caption', name : '{.$subarray[0]}'},";
+	$f[]="{display: '<span style=font-size:20px>$caption</span>', name : '{.$subarray[0]}'},";
 }
 
 			
@@ -124,7 +124,7 @@ while (list ($num, $subarray) = each ($array["cols"]) ){
 			sortname: '{$array["sortname"]}',
 			sortorder: 'asc',
 			usepager: true,
-			title: '$title',
+			title: '<span style=font-size:30px>$title</strong>',
 			useRp: true,
 			rp: 50,
 			showTableToggleBtn: false,
@@ -266,6 +266,8 @@ function list_items(){
 		$isSuccessIcon_failed="check-32-grey.png";
 		$isSuccessIcon_success="check-32.png";
 		$isSuccessLink=null;
+		$cacheid=$ligne["cacheid"];
+		$CacheText=null;
 	
 		if($ligne["OnlyTCP"]==1){
 			$icon="folder-network-64.png";
@@ -304,9 +306,16 @@ function list_items(){
 			
 		}
 		
-		$jsedit="<a href=\"javascript:Blur();\" 
+		if($cacheid>0){
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT keys_zone FROM nginx_caches WHERE ID='$cacheid'"));
+			$jsedit="Loadjs('nginx.caches.php?js-cache=yes&ID={$cacheid}')";
+			$CacheText="<br><i style='font-size:18px;font-weight:bold;color:#46a346'>Cache:&nbsp;<a href=\"javascript:blur();\" style='text-decoration:underline;color:#46a346' OnClick=\"javascript:$jsedit\">".utf8_encode($ligne2["keys_zone"])."</a></i>";
+			$jsedit=null;
+		}
+		
+		$jsedit="<a href=\"javascript:blur();\" 
 							OnClick=\"javascript:Loadjs('nginx.peer.php?js=yes&ID={$ligne["ID"]}');\"
-							style='font-size:20px;text-decoration:underline;font-weight:bold'>";
+							style='font-size:24px;text-decoration:underline;font-weight:bold'>";
 		
 		$compile=imgsimple("apply-48.png",null,"Loadjs('nginx.destination.progress.php?cacheid={$ligne["ID"]}')");
 		
@@ -316,8 +325,8 @@ function list_items(){
 				'cell' => array(
 						
 						"$jsedit$servername</a>",
-						"$jsedit{$ligne["ipaddr"]}:{$ligne["port"]}</a>","<center>$compile</center>",
-						$delete,
+						"$jsedit{$ligne["ipaddr"]}:{$ligne["port"]}</a>$CacheText","<center>$compile</center>",
+						"<center>$delete</center>",
 						
 				)
 		);		

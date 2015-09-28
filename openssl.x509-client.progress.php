@@ -146,6 +146,7 @@ if($prc==100){
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
 		RTMMailHide();
+		$('#TABLE_CERTIFICATE_CENTER_MAIN').flexReload();
 	}
 	setTimeout(\"Start$time()\",1000);
 	";	

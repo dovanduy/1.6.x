@@ -156,7 +156,7 @@ function zlist(){
 	if(!$q->ok){json_error_show($q->mysql_error);};	
 	if(mysql_num_rows($results)==0){json_error_show("No data");}
 	
-	$data['total'] = mysql_num_rows($results);
+	$data['total'] = $total;
 	$fontsize=14;
 	$style="style='font-size:{$fontsize}px'";
 	

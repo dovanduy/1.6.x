@@ -34,7 +34,7 @@ function popup(){
 	$emule=new EmuleTelnet();
 	$uid=$_GET["uid"];
 	if(!$emule->ok){
-		echo "<center style='font-size:16px;color:red'>$emule->errstr</center>";
+		echo "<center style='font-size:16px;color:#d32d2d'>$emule->errstr</center>";
 		return;
 	}
 	

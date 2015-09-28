@@ -22,6 +22,7 @@ if(isset($_GET["itcharters-events-search"])){charter_events_search();exit;}
 if(isset($_POST["itcharters-events-delete"])){charter_events_delete();exit;}
 if(isset($_POST["itcharters-delete"])){charter_delete();exit;}
 
+
 if(isset($_POST["ID"])){charter_save();exit;}
 
 tabs();

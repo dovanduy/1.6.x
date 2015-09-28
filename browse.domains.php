@@ -91,7 +91,7 @@ function SelectBrowseDomains$t(domain){
 	
 
 function Apply$t(){
-	Loadjs('firewall.restart.php');
+	Loadjs('firehol.progress.php');
 }
 
 function NewRule$t() {

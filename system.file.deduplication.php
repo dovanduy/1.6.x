@@ -289,7 +289,7 @@ function index(){
 	</tr>
 	</table>
 	</td>
-	<td valign='top'><div class=text-info>{file_deduplication_explain}</div></td>
+	<td valign='top'><div class=explain>{file_deduplication_explain}</div></td>
 	</table>
 	
 	
@@ -416,7 +416,7 @@ function folders(){
 	$sock=new sockets();	
 	
 	$html="
-	<div class=text-info>{lessfs_mount_explain}</div>
+	<div class=explain>{lessfs_mount_explain}</div>
 	<hr>
 	<table style='width:98%' class=form style='margin-bottom:10px'>
 	<tr>
@@ -605,7 +605,7 @@ function popup_install(){
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'><img src='img/deduplication-148.png'></td>
-	<td valign='top'><div class=text-info>{file_deduplication_explain}</div>
+	<td valign='top'><div class=explain>{file_deduplication_explain}</div>
 	</tr>
 	</table>
 	<div id='file_deduplication_status'></div>

@@ -9,7 +9,7 @@ include_once('ressources/class.system.nics.inc');
 $users=new usersMenus();
 if(!$users->AsWebStatisticsAdministrator){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 

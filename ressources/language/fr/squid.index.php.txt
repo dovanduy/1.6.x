@@ -41,10 +41,13 @@ Se r&eacute;f&egrave;re aux requ&ecirc;tes qui sont issues des navigateurs qui o
 [br][blk] .kovaiteam.com[/blk][br]Ce-ci cherche *.kovaiteam.com &agrave; partir de l'URL</acl_dstdomain_text>
 <acl_dstdomain_title>Il s'agit de domaine de destination c'est-&agrave;-dire la source de domaine o&ugrave; le serveur d'origine est localis&eacute;</acl_dstdomain_title>
 <acl_dstdom_regex>Regexp le serveur web</acl_dstdom_regex>
-<acl_dstdom_regex_text>Objets trouv&eacute;s dans le domaine de destination, fait bas&eacute;e sur une expression r&eacute;guli&egrave;re [br]
-[b] Exemple: [/ b]
-[br] [blk] redhat [/ noir] [br]
-Cela ressemble au mot redhat du client reqest</acl_dstdom_regex_text>
+<acl_dstdom_regex_text>Objets trouv&eacute;s dans le domaine de destination, et bas&eacute;e sur une expression r&eacute;guli&egrave;re [br]
+Exemple:[br]
+[b]redhat[/b]: Cela ressemble au mot redhat dans le domaine[br]
+Par d&eacute;faut, Artica est capable de transformer votre chaine en expression r&eacute;guli&egrave;re de fa&ccedil;on automatique.[br]
+Ainsi une valeur comme redhat.* sera comprise.[br]
+Toutefois, si vous souhaitez utiliser des expressions r&eacute;guli&egrave;res, utilisez le pr&eacute;fixe regex:.[br]
+Ainsi: [b]regex:redhat\\.[a-z] [/b] sera comprise comme une expression r&eacute;guli&egrave;re.</acl_dstdom_regex_text>
 <acl_dstdom_regex_title>Fournit match contre le domaine de destination</acl_dstdom_regex_title>
 <acl_dst_as>Num&eacute;ro d'AS de dest</acl_dst_as>
 <acl_dst_as_text>Les syst&egrave;mes de num&eacute;rotation autonomes de type ACL sont, g&eacute;n&eacute;ralement, uniquement utilis&eacute;s dans les restrictions d'acc&egrave;s au cahe distant, ou ICP.[br]
@@ -59,8 +62,6 @@ cache_peer_access mycache_mydomain.net deny all[/b]</acl_dst_as_text>
 <acl_dst_text>[ul]
 [li]172.16.1.0/24 - se r&eacute;f&egrave;re &agrave; l'ensemble du r&eacute;seau avec l'adresse 172.16.1.0[/li]
 [li]172.16.1.25/32 - se r&eacute;f&egrave;re &agrave; une source unique 
-[/li]
-[li]172.16.1.25-172.16.1.35/32 - se r&eacute;f&egrave;re &agrave; la plage d'adresses IP &agrave; partir de 172.16.1.25-172.16.1.35
 [/li]
 [/ ul]</acl_dst_text>
 <acl_dst_title>Idem &agrave; &quot;Adresse du client&raquo;, mais cherche l'adresse IP de destination</acl_dst_title>
@@ -224,7 +225,6 @@ Les d&eacute;cisions de routage sont alors bas&eacute;es sur la connaissance de 
 [ul]
 [li]172.16.1.0/24 - se r&eacute;f&egrave;re &agrave; l'ensemble du r&eacute;seau avec l'adresse 172.16.1.0[/li]
 [li]172.16.1.25/32 - se r&eacute;f&egrave;re &agrave; une source unique[/li]
-[li]172.16.1.25-172.16.1.35/32 - se r&eacute;f&egrave;re a la plage d'adresses IP 172.16.1.25-172.16.1.35[/li]
 [/ul]</acl_src_text>
 <acl_src_title>L'adresse IP du client demandeur ou de l'adresse IP des clients</acl_src_title>
 <acl_time>Date et Heure</acl_time>

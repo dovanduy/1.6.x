@@ -287,7 +287,7 @@ function section_replace(){
 	
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_group}", "Loadjs('$page?js-replace-group=yes&ID=0')"));
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=restart&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
-	echo $tpl->_ENGINE_parse_body("<div class=text-info>{nginx_replace_explain}</div>").
+	echo $tpl->_ENGINE_parse_body("<div class=explain>{nginx_replace_explain}</div>").
 	$error.$boot->SearchFormGen("groupname","group-replace-search",null,$EXPLAIN);	
 }
 function replace_group_search(){

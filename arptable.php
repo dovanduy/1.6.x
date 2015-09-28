@@ -27,6 +27,7 @@ page();
 
 
 function delete_arp_js(){
+	header("content-type: application/x-javascript");
 	$q=new mysql();
 	$ID=$_GET["delete-arp-js"];
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM arpcache WHERE ID=$ID","artica_backup"));
@@ -79,13 +80,13 @@ function arp_options(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$sock=new sockets();
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
-	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}	
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
+	
 	
 	$EnableArpDaemon_form=Paragraphe_switch_img("{EnableArpDaemon}", "{EnableArpDaemon_explain}","EnableArpDaemon",$EnableArpDaemon,null,550);	
 	
 	$html="	
-	<div class=text-info id='ARPD_EXPLAIN' style='font-size:16px'>{ARPD_EXPLAIN}</div>
+	<div class=explain id='ARPD_EXPLAIN' style='font-size:16px'>{ARPD_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
@@ -117,7 +118,7 @@ function page(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$sock=new sockets();
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}	
 	$settings=$tpl->_ENGINE_parse_body("{parameters}");
 	$EnableArpDaemon_form=Paragraphe_switch_img("{EnableArpDaemon}", "{EnableArpDaemon_explain}","EnableArpDaemon",$EnableArpDaemon,null,550);
@@ -155,12 +156,12 @@ $('#flex2Arpd').flexigrid({
 	sortname: 'ipaddr',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<psan style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: true,
-	width: 836,
-	height: 430,
+	width: '99%',
+	height: 550,
 	singleSelect: true
 	
 	});   

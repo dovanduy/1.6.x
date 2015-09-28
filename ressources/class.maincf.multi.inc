@@ -226,7 +226,34 @@ public function relayhost(){
 	}
 	
 	
+	public function main_dnsbl(){
+		$MAIN=array();
+		$sql="SELECT * FROM postfix_dnsbl WHERE hostname='$this->myhostname'";
+		$q=new mysql();
+		$results = $q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$data=trim(strtolower($ligne["dnsbl"]));
+			$MAIN[$data]=true;
+		}
+		return $MAIN;
+	}
+	
+	public function main_rhsbl(){
+		$MAIN=array();
+		$sql="SELECT * FROM postfix_rhsbl WHERE hostname='$this->myhostname'";
+		$q=new mysql();
+		$results = $q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$data=trim(strtolower($ligne["dnsbl"]));
+			$MAIN[$data]=true;
+		}
+		return $MAIN;
+	}
+	
+	
 	public function check_client_access(){
+		$sock=new sockets();
+		$EnableMilterGreylistExternalDB=intval($sock->GET_INFO("EnableMilterGreylistExternalDB"));
 		$unix=new unix();
 		if(!class_exists("IP")){include_once(dirname(__FILE__)."/class.tcpip.inc");}
 		$postmap=$unix->find_program("postmap");
@@ -243,6 +270,48 @@ public function relayhost(){
 		}
 		
 		$q=new mysql();
+		
+		$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='whitelist' AND `type`='addr'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ipaddr=trim($ligne["pattern"]);
+			if($ipaddr==null){continue;}
+			if($ipaddr=="127.0.0.1/8"){$ipaddr="127.0.0.0/8";}
+			if(!$ipClass->isIPAddressOrRange($ipaddr)){
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: bad pattern `$ipaddr` in line:".__LINE__."\n";
+				continue;
+			}
+			$cdir[]="$ipaddr\tOK rule id {$ligne["ID"]}";
+				
+		}
+		
+		
+		if($EnableMilterGreylistExternalDB==1){
+			if(is_file("/etc/mail/milter-greylist-database.conf")){
+				$greylist=explode("\n",@file_get_contents("/etc/mail/milter-greylist-database.conf"));
+				while (list ($index, $line) = each ($greylist) ){
+					if(!preg_match("#acl whitelist addr\s+(.+?)\s+#",$line,$re)){continue;}
+					if(!$ipClass->isIPAddressOrRange($re[1])){continue;}
+					$cdir[]="{$re[1]}\tOK Artica CDIR";
+				}
+				reset($greylist);
+				while (list ($index, $line) = each ($greylist) ){
+					if(!preg_match("#acl blacklist addr\s+(.+?)\s+#",$line,$re)){continue;}
+					if(!$ipClass->isIPAddressOrRange($re[1])){continue;}
+					$cdir[]="{$re[1]}\tREJECT Go Away! Artica CDIR";
+				}	
+	
+				reset($greylist);
+				while (list ($index, $line) = each ($greylist) ){
+					if(!preg_match("#acl blacklist domain\s+(.+?)\s+#",$line,$re)){continue;}
+					if(strpos($re[1], "/")>0){continue;}
+					$miltergreylist_acls[trim(strtolower($re[1]))]="Artica DOMAINS";
+				}
+				
+				
+			}
+		}
+		
 		$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='blacklist' AND `type`='addr'";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -271,14 +340,22 @@ public function relayhost(){
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$domain=$ligne["pattern"];
-			$miltergreylist_acls[trim(strtolower($domain))]=true;
+			if(preg_match("#regex:\s+#", $domain)){continue;}
+			$miltergreylist_acls[trim(strtolower($domain))]=$ligne["ID"];
 		}
 		
 		if(count($miltergreylist_acls)>0){
-			while (list ($domain, $ligne) = each ($miltergreylist_acls) ){
-				$conf[]="$domain\tREJECT Go Away! rule id {$ligne["ID"]}";
+			while (list ($domain, $ID) = each ($miltergreylist_acls) ){
+				if(!is_numeric($ID)){
+					$conf[]="$domain\tREJECT Go Away! $ID";
+					continue;
+				}
+				$conf[]="$domain\tREJECT Go Away! ACL N.$ID";
 			}
 		}
+		
+		
+
 		
 		
 		
@@ -1858,7 +1935,7 @@ private function smtp_sasl_password_map(){
 			if($EnablePostfixHaProxy==0){echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: disabled\n";return;}
 			
 			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: enabled\n";
-			$EnablePostScreen=$this->GET("EnablePostScreen");
+			$EnablePostScreen=intval($this->GET("EnablePostScreen"));
 			if(!is_numeric($EnablePostScreen)){$EnablePostScreen=0;}	
 			if(!$users->POSTSCREEN_INSTALLED){$EnablePostScreen=0;}
 			
@@ -1872,7 +1949,7 @@ private function smtp_sasl_password_map(){
 			}
 		
 		}		
-		
+
 
 		
 	private function POSTSCREEN(){
@@ -3018,6 +3095,8 @@ private function smtp_sasl_password_map(){
 	}
 	
 	private function pure_bodychecks(){
+		$sock=new sockets();
+		$EnableMilterGreylistExternalDB=intval($sock->GET_INFO("EnableMilterGreylistExternalDB"));
 		if($GLOBALS["VERBOSE"]){echo "Starting pure_bodychecks()\n";}
 		$sql="SELECT * FROM postfix_regex_checks WHERE hostname='$this->myhostname' AND enabled=1 AND headers=0";
 		$q=new mysql();
@@ -3046,12 +3125,40 @@ private function smtp_sasl_password_map(){
 			
 		}
 		
+		if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Postfix Check Milter greylist rules...\n";}
+		$sql="SELECT * FROM miltergreylist_acls WHERE type='body' and method='blacklist'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+		if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Postfix Check Milter greylist ". mysql_num_rows($results)." Rules\n";}
+		
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$pattern=$ligne["pattern"];
+			$regex[]="/$pattern/ REJECT Go Away spammer!";
+			
+		}
+		
+		if($EnableMilterGreylistExternalDB==1){
+			if(is_file("/etc/mail/milter-greylist-database.conf")){
+				$greylistdb=explode("\n",@file_get_contents("/etc/mail/milter-greylist-database.conf"));
+				while (list ($to, $line) = each ($greylistdb)){
+					if(preg_match("#dacl blacklist body\s+\/(.+?)\/#", $line,$re)){
+						$regex[]="/{$re[1]}/ REJECT Go Away Artica DB";
+					}
+				}
+			}
+		}
+		
+		
+		
+		
+		
 		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/pcre_body_checks";}
 		else{$target="/etc/postfix-$this->myhostname/pcre_body_checks";}		
 		@unlink($target);
 		
 		if(count($pcre)>0){
 			if($this->IsPcre()){
+				if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Postfix Saving into \"$target\"\n";}
 				if($GLOBALS["VERBOSE"]){echo "Saving into \"$target\"\n";}
 				@file_put_contents($target, @implode("\n", $pcre));
 				$final[]="pcre:$target";
@@ -3060,6 +3167,7 @@ private function smtp_sasl_password_map(){
 		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/regex_body_checks";}else{$target="/etc/postfix-$this->myhostname/regex_body_checks";}
 		
 		if(count($regex)>0){
+				if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Postfix Saving into \"$target\"\n";}
 				@file_put_contents($target, @implode("\n", $regex));
 				$final[]="regexp:$target";
 		}

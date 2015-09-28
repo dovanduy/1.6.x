@@ -135,13 +135,15 @@ class CyrusAdmin
     }    
     
     
-    function _connect()
-    {
+    function _connect(){
 		if ($this->connected) return true;
 		if($this->params['password']==null){
 			$this->writelogs("No password set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}
+		
+		if($this->params["hostspec"]=="localhost"){$this->params["hostspec"]="127.0.0.1";}
+		
 		$this->imap = fsockopen($this->params["hostspec"],$this->params["port"]);
 		if ($this->imap===false) {
 			$this->writelogs("fsockopen failed {$this->params["hostspec"]}:{$this->params["port"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);

@@ -14,6 +14,7 @@ class SquidCacheCenter{
 	public $MAX_PROGRESS=0;
 	public $ASROOT=false;
 	public $CACHES_ARRAY=array();
+	private $IsCacheRock=false;
 
 	function SquidCacheCenter(){
 		$this->CacheDefault();
@@ -28,11 +29,37 @@ class SquidCacheCenter{
 		$this->CACHES_ARRAY=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/squid_caches_center.db"));
 		
 	}
+	private function root_squid_version_nocache(){
+		if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
+		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
+		$unix=new unix();
 	
+		$squidbin=$unix->LOCATE_SQUID_BIN();
+		if($squidbin==null){$squidbin=trim($unix->find_program("squid3"));}
+		if(!is_file($squidbin)){return;}
+		exec("$squidbin -v 2>&1",$results);
+	
+			
+		while (list ($num, $val) = each ($results)){
+			if(preg_match("#Squid Cache: Version.*?([0-9\.]+)#", $val,$re)){
+				if($re[1]=="2.7."){$re[1]="2.7.0";}
+				if($re[1]=="3.0."){$re[1]="3.0.0";}
+				if($re[1]=="3.1."){$re[1]="3.1.0";}
+				if($re[1]=="3.2."){$re[1]="3.2.0";}
+				if($re[1]=="3.3."){$re[1]="3.3.0";}
+				if($re[1]=="3.4."){$re[1]="3.4.0";}
+				if($re[1]=="3.5."){$re[1]="3.5.0";}
+	
+				$GLOBALS[__FUNCTION__]=$re[1];
+				return $re[1];
+			}
+		}
+	
+	}
 	
 	private function CacheDefault(){
 		$q=new mysql();
-		
+		$squidver=$this->root_squid_version_nocache();
 		if(!$q->FIELD_EXISTS("squid_caches_center","remove","artica_backup")){
 			$sql="ALTER TABLE `squid_caches_center` ADD `remove` smallint(1) NOT NULL,ADD INDEX (remove)";
 			$q->QUERY_SQL($sql,$this->database);
@@ -44,18 +71,28 @@ class SquidCacheCenter{
 			$squid=new squidbee();
 			$cachename=basename($squid->CACHE_PATH);
 			$q->QUERY_SQL("INSERT IGNORE INTO $this->table (cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,remove)
-			VALUES('$cachename',1,'$squid->CACHE_PATH','$squid->CACHE_TYPE','2000','128','256',1,0,0,0)",$this->database);
+			VALUES('$cachename',1,'$squid->CACHE_PATH','aufs','2000','128','256',1,0,0,0)",$this->database);
+			
+			
+	
 		}
 		
 
 	}
-	
+	public function WORKERS_NUMBER(){
+		if(isset($GLOBALS["SQUID_WORKERS_NUMBER"])){return $GLOBALS["SQUID_WORKERS_NUMBER"];}
+		 $GLOBALS["SQUID_WORKERS_NUMBER"]=$this->WORKERS();
+		 return  $GLOBALS["SQUID_WORKERS_NUMBER"];
+	}
 	
 	private function WORKERS(){
 		$q=new mysql();
 		$f[1]=1;
 		if(!$this->CORP_LICENSE){return 1;}
 		$sock=new sockets();
+		$unix=new unix();
+		$CPU_NUMBER=$unix->CPU_NUMBER()-1;
+		if($CPU_NUMBER<1){$CPU_NUMBER=1;}
 		$DisableSquidSMP=intval($sock->GET_INFO("DisableSquidSMP"));
 		if($DisableSquidSMP==1){return 1;}
 		
@@ -71,6 +108,7 @@ class SquidCacheCenter{
 			if($cpu>$c){$c=$cpu;}
 		}
 		
+		if($c>$CPU_NUMBER){$c=$CPU_NUMBER;}
 		return $c;
 	}
 	
@@ -108,9 +146,14 @@ class SquidCacheCenter{
 		
 		
 		$this->build_progress("Checking Rock cache");
-		$conf[]=$this->build_rock();
+		
+		$conf[]="#";
+		$conf[]="# # # # # # CPU Affinity # # # # # #";
+		$conf[]=$this->cpu_affinity();
 		$conf[]="#";
 		$conf[]="workers $WORKERS";
+		$rockLines=$this->build_rock();
+		$conf[]=$rockLines;
 		
 		for($i=1;$i<$WORKERS+1;$i++){
 			$conf[]="# --------- CPU #{$i} ".__CLASS__."/".__FUNCTION__." [".__LINE__."]";
@@ -126,19 +169,48 @@ class SquidCacheCenter{
 		return @implode("\n", $conf);
 	}
 	
+	private function cpu_affinity(){
+		$q=new mysql();
+		if(!$q->FIELD_EXISTS("squid_caches_center","CPUAF","artica_backup")){$sql="ALTER TABLE `squid_caches_center` ADD `CPUAF` smallint(2) NOT NULL DEFAULT 0";$q->QUERY_SQL($sql,"artica_backup");}
+		$sql="SELECT cpu,CPUAF FROM squid_caches_center GROUP BY cpu,CPUAF ORDER BY cpu";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
+		$unix=new unix();
+		$CPU_NUMBER=$unix->CPU_NUMBER();
+		$PROCZ=array();
+		$AFF=array();
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$process=$ligne["cpu"];
+			$affinity=intval($ligne["CPUAF"]);
+			if($affinity==0){continue;}
+			if($affinity>$CPU_NUMBER){$affinity=$CPU_NUMBER;}
+			$PROCZ[]=$process;
+			$AFF[]=$affinity;
+		}
+		if(count($PROCZ)==0){return;}
+		if(count($AFF)==0){return;}
+		return "cpu_affinity_map process_numbers=".@implode(",", $PROCZ)." cores=".@implode(",", $AFF);
+	}
+	
 	
 	private function build_rock(){
 		if($this->DisableAnyCache==1){return;}
 		$q=new mysql();
 		$unix=new unix();
 		$conf=array();
+		$sock=new sockets();
+		$EnableRockCache=intval($sock->GET_INFO("EnableRockCache"));
+		$conf[]="# Rock cache EnableRockCache = $EnableRockCache [".__LINE__."]";
+		if($EnableRockCache==0){
+			return @implode("\n", $conf);
+		}
 		if($this->SquidBoosterEnable==1){
-			@mkdir("/home/squid/cache_rock",0755,true);
-			@chown("/home/squid/cache_rock", "squid");
-			@chgrp("/home/squid/cache_rock", "squid");
-			$conf[]="# --------- Cache Booster one rock for better performance...";
-			$conf[]="cache_dir rock /home/squid/cache_rock 5000 min-size=1 max-size=31000 max-swap-rate=250 swap-timeout=350";
-			
+			//@mkdir("/home/squid/cache_rock",0755,true);
+			//@chown("/home/squid/cache_rock", "squid");
+			//@chgrp("/home/squid/cache_rock", "squid");
+			//$conf[]="# --------- Cache Booster one rock for better performance...";
+			///$conf[]="cache_dir rock /home/squid/cache_rock 5000 min-size=0 max-size=32768 max-swap-rate=250 swap-timeout=350";
+			//$this->IsCacheRock=true;
 		}
 		
 		$sql="SELECT * FROM $this->table WHERE `enabled`=1 AND `remove`=0 AND `cache_type`='rock' ORDER BY zOrder";
@@ -188,7 +260,8 @@ class SquidCacheCenter{
 				continue;
 			}
 			$GLOBALS["CACHES_SIZE"][$cache_partition]=$reste;
-			$conf[]="cache_dir rock $cache_dir $cache_size min-size=1 max-size=31000 max-swap-rate=250 swap-timeout=350";
+			$conf[]="cache_dir rock $cache_dir $cache_size min-size=0 max-size=32768 max-swap-rate=250 swap-timeout=350";
+			$this->IsCacheRock=true;
 		}
 		return @implode("\n", $conf);
 	}
@@ -206,26 +279,36 @@ class SquidCacheCenter{
 		
 		$q=new mysql();
 		$unix=new unix();
-		$this->build_progress("Loading MySQL settings for CPU #1");
+		$this->build_progress("Loading MySQL settings for CPU #$cpu");
 		$sql="SELECT * FROM $this->table WHERE `enabled`=1 AND `remove`=0 AND `cpu`=$cpu ORDER BY zOrder";
 		$results=$q->QUERY_SQL($sql,$this->database);
+		$Toend=null;
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$ID=$ligne["ID"];
-			
+			$max_size_text=null;
 			$cachename=$ligne["cachename"];
 			$cache_dir=$ligne["cache_dir"];
 			$cache_type=$ligne["cache_type"];
 			$cache_size=abs(intval($ligne["cache_size"]));
-			$cache_dir_level1=$ligne["cache_dir_level1"];
-			$cache_dir_level2=$ligne["cache_dir_level2"];
+			$cache_dir_level1=intval($ligne["cache_dir_level1"]);
+			$cache_dir_level2=intval($ligne["cache_dir_level2"]);
 			
-			$min_size=$ligne["min_size"];
-			$max_size=$ligne["max_size"];			
+			if($cache_dir_level1==0){continue;}
+			if($cache_dir_level2==0){continue;}
+			if($cache_size==0){continue;}
+			
+			$min_size=intval($ligne["min_size"]);
+			$max_size=$ligne["max_size"];
+
+			if($this->SquidBoosterEnable==1){
+				if($min_size==0){$min_size=256;}
+			}
+			
 			
 			
 			$this->build_progress("Cache $cachename Cache size:{$cache_size}M");
 			$conf[]="#";
-			$conf[]="# --------- [CPU #{$cpu}]: Cache $cachename ID = $ID type:$cache_type Cache size:{$cache_size}M [".__LINE__."]";
+			$conf[]="# --------- [CPU #{$cpu}]: Cache $cachename ID = $ID type:$cache_type Cache size:{$cache_size}M is Rock=$this->IsCacheRock [".__LINE__."]";
 			if($this->DisableAnyCache==1){$cache_type="Cachenull";}
 			
 			if($cache_type=="tmpfs"){
@@ -233,68 +316,39 @@ class SquidCacheCenter{
 				continue;
 			}
 			
-			if($cache_type=="Cachenull"){
-				continue;
-			}
-			
+			if($cache_type=="Cachenull"){continue;}
 			if($cache_type=="rock"){continue;}
 			
 			if(@is_link($cache_dir)){$cache_dir=@readlink($cache_dir);}
 			$this->CreateDir($cache_dir);
 		
 			
-			$cache_partition=$unix->DIRPART_OF($cache_dir);
+			$min_size_text=" min-size=2048";
+			if($max_size>0){
+				$max_size=$max_size*1024;
+				$max_size_text=" max-size=$max_size";
+			}
 		
-			if(!isset($GLOBALS["CACHES_SIZE"][$cache_partition])){
-				
-				if(!isset($this->CACHES_ARRAY["CACHES_SIZE"][$cache_partition])){
-					$GLOBALS["CACHES_SIZE"][$cache_partition]=$unix->DIRECTORY_FREEM($cache_dir);
-				}else{
-					$GLOBALS["CACHES_SIZE"][$cache_partition]=$this->CACHES_ARRAY["CACHES_SIZE"][$cache_partition];
-				}
+			if($min_size>0){
+				$min_size=$min_size*1024;
+				$min_size_text=" min-size=$min_size";
+			}
+		
+			if($this->IsCacheRock && $min_size<131072){
+				$min_size=131072;
+				$min_size_text=" min-size=131072";
 			}
 		
 			
+			$lineZ="cache_dir\t$cache_type\t$cache_dir\t$cache_size\t$cache_dir_level1\t$cache_dir_level2$min_size_text$max_size_text";
+			if($cachename=="cache-default"){$Toend=$lineZ;continue;}
 			
-		if(!isset($this->CACHES_ARRAY[$cache_dir]["DIRSIZE_MB"])){
-			$this->build_progress("Calculate $cache_dir size {please_wait}");
-			$used=$unix->DIRSIZE_MB($cache_dir);
-		}else{
-			$used=$this->CACHES_ARRAY[$cache_dir]["DIRSIZE_MB"];
-		}
-		$conf[]="# --------- [CPU #{$cpu}]: $cache_dir: Used: $used";
-		$current_cache_size=$cache_size-$used;
-		$reste=$GLOBALS["CACHES_SIZE"][$cache_partition]-$current_cache_size;
-		
-		if($GLOBALS["VERBOSE"]){
-			echo "$cache_type $cache_dir\nDefined Size:{$ligne["cache_size"]}M\n";
-			echo "Partition: $cache_partition\n";
-			echo "Available:  {$GLOBALS["CACHES_SIZE"][$cache_partition]}M\n";
-			echo "Used: {$used}M size = $cache_size\n";
-			echo "--------------------------\n";
-			echo "Reste: {$reste}M\n";
-		}
+			$conf[]=$lineZ;
 			
-		
-		$conf[]="# --------- [CPU #{$cpu}]: $cache_dir: {$used}M/{$ligne["cache_size"]}M $cache_partition: {$GLOBALS["CACHES_SIZE"][$cache_partition]}M free:{$reste}MB";
-		
-		if($reste<1){
-			$conf[]="# --------- [CPU #{$cpu}]: No space left on $cache_dir / $cache_partition for {$cache_size}M free:{$reste}M";
-			continue;
-		}
-		$GLOBALS["CACHES_SIZE"][$cache_partition]=$reste;
-		$min_size_text=" min-size=0";
-		if($max_size>0){
-			$max_size=$max_size*1024;
-			$max_size_text=" max-size=$max_size";
 		}
 		
-		if($min_size>0){
-			$min_size=$min_size*1024;
-			$min_size_text=" min-size=$min_size";
-		}
-		$conf[]="cache_dir\t$cache_type\t$cache_dir\t$cache_size\t$cache_dir_level1\t$cache_dir_level2$min_size_text$max_size_text";
-			
+		if($Toend<>null){
+			$conf[]=$Toend;
 		}
 		
 		$conf[]="# --------- [CPU #{$cpu}]: ".count($conf)." items [".__LINE__."]";
@@ -309,7 +363,9 @@ class SquidCacheCenter{
 		$directory="/home/squid/cache/MemBooster$ID";
 		
 		$cache_size_conf=$cache_size-10;
-		
+		if($minsize>0){$minsize=$minsize*1024;}
+		if($maxsize>0){$maxsize=$maxsize*1024;}
+		if($minsize==0){$minsize=2048;}
 		$options[]="min-size=$minsize";
 		if($maxsize>0){$options[]="max-size=$maxsize";}
 		 

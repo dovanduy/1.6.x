@@ -34,7 +34,7 @@ function popup(){
 	
 	$html="
 	<div id=$t>
-		<div style='font-size:16px' class=text-info>{amavis_wizard_rule_per_user_expain1}</div>
+		<div style='font-size:16px' class=explain>{amavis_wizard_rule_per_user_expain1}</div>
 		<div style='margin-top:10px;text-align:right'><hr>
 			". button("{next}","SaveTime$t()",18)."</div>
 	
@@ -64,7 +64,7 @@ function popup2(){
 	$tpl=new templates();
 	$t=time();
 
-	$html="<div style='font-size:16px' class=text-info>{amavis_wizard_rule_per_user_expain2}</div>
+	$html="<div style='font-size:16px' class=explain>{amavis_wizard_rule_per_user_expain2}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{build_mysql_service}:</td>

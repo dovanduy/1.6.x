@@ -59,6 +59,8 @@ while (list ($num, $maks) = each ($tbl) ){
 		WriteProgress('100',"{success}");
 
 		
+		
+		
 	
 function launchscanner($net){
 	$unix=new unix();

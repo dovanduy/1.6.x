@@ -54,7 +54,6 @@ public
     procedure   LDAP_START();
     procedure   LDAP_STOP();
     function    LDAP_PID():string;
-    function    LDAP_VERSION():string;
     function    SLAPCAT_PATH():string;
     function    DAEMON_PATH():string;
     function    PID_PATH():string;
@@ -245,41 +244,6 @@ begin
   logs.Syslogs('Stopping openLdap server.....: DEPRECIATED !');
 end;
 //##############################################################################
-function topenldap.LDAP_VERSION():string;
-var
-    path,ver:string;
-    RegExpr:TRegExpr;
-    tmpstr:string;
-    commandline:string;
-    D:Boolean;
-begin
-   D:=COMMANDLINE_PARAMETERS('debug');
-   tmpstr:=LOGS.FILE_TEMP();
-   path:=SLAPD_BIN_PATH();
-
-
-   if not FileExists(path) then begin
-      if D then logs.Debuglogs('LDAP_VERSION:: Unable to locate slapd bin');
-      exit;
-   end;
-   result:=SYS.GET_CACHE_VERSION('APP_OPENLDAP');
-   if length(result)>2 then exit;
-   commandline:='/bin/cat -v ' + path + '|grep ''$OpenLDAP:'' >'+tmpstr+' 2>&1';
-   if D then logs.Debuglogs('LDAP_VERSION:: ' + commandline);
-
-   fpsystem(commandline);
-   ver:=logs.ReadFromFile(tmpstr);
-   logs.DeleteFile(tmpstr);
-   RegExpr:=TRegExpr.Create;
-   RegExpr.Expression:='\$OpenLDAP:\s+slapd\s+([0-9\.]+)';
-   if RegExpr.Exec(ver) then begin
-      ver:=RegExpr.Match[1];
-      RegExpr.Free;
-      exit(ver);
-   end;
-  SYS.SET_CACHE_VERSION('APP_OPENLDAP',result);
-end;
-//#############################################################################
 function topenldap.LDAP_DATABASES_PATH():string;
 var
     path,ver:string;
@@ -784,6 +748,14 @@ l.Add('access to dn.regex="(cn=.*,)?ou=groups,ou=.+?,dc=organizations,'+ldap_suf
 l.Add(' by anonymous read');
 l.Add(' by * none');
 end;
+
+
+l.Add('access to dn.subtree="ou=mounts,'+ldap_suffix+'"');
+l.Add(' by peername.ip=127.0.0.1 write');
+l.Add(' by users write');
+l.Add(' by anonymous read');
+l.Add(' by * none');
+l.Add('');
 
 
 l.Add('access to dn.subtree="'+ldap_suffix+'"');

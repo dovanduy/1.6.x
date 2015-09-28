@@ -1245,7 +1245,7 @@ function tabs(){
 	
 	
 	if(isset($_GET["subtitle"])){
-		$subtitle=$tpl->_ENGINE_parse_body("<p class=text-info>{reverse_proxy_settings_text}</p>");
+		$subtitle=$tpl->_ENGINE_parse_body("<p class=explain>{reverse_proxy_settings_text}</p>");
 	}
 
 	$array["{websites}"]="$page?websites-section=yes";
@@ -1400,7 +1400,7 @@ function websites_section(){
 	if(!is_numeric($EnableNginxStats)){$EnableNginxStats=0;}
 	$info=null;
 	if($EnableNginxStats==0){
-		$info=$tpl->_ENGINE_parse_body("<div class=text-info>{EnableNginxStats_explain}</div>");
+		$info=$tpl->_ENGINE_parse_body("<div class=explain>{EnableNginxStats_explain}</div>");
 	}
 	
 	if(AdminPrivs()){
@@ -1418,7 +1418,7 @@ function websites_privs_section(){
 	$boot=new boostrap_form();
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$explain=$tpl->_ENGINE_parse_body("<div class=text-info>{NGINX_PRIVS_EXPLAIN}</div>");
+	$explain=$tpl->_ENGINE_parse_body("<div class=explain>{NGINX_PRIVS_EXPLAIN}</div>");
 	$t=time();
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{link_member}", "Loadjs('miniadm.members.browse.php?CallBack=LinkUser$t')"));
 	echo $boot->SearchFormGen(null,"privs-search","&servername={$_GET["servername"]}",$EXPLAIN)."
@@ -2127,10 +2127,10 @@ function parameters_section(){
 	$SquidReverseDefaultWebSite=$sock->GET_INFO("SquidReverseDefaultWebSite");
 	$SquidReverseDefaultCert=$sock->GET_INFO("SquidReverseDefaultWebSite");
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
-	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
+	
 	if($SquidReverseDefaultWebSite==null){$SquidReverseDefaultWebSite=$squid->visible_hostnameF();}
 	
-	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
+	
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	$MySQLNgnixType=$sock->GET_INFO("MySQLNgnixType");
 	if(!is_numeric($MySQLNgnixType)){$MySQLNgnixType=1;}

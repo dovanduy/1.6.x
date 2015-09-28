@@ -81,7 +81,7 @@ function popup(){
 	<div id='$t'>
 	$p
 	<hr>
-	<div class=text-info style='font-size:14px'>{webdav_suffix_domain_explain}</div>
+	<div class=explain style='font-size:14px'>{webdav_suffix_domain_explain}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

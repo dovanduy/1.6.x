@@ -9,7 +9,6 @@ $GLOBALS["NO_HTTPD_RELOAD"]=false;
 $GLOBALS["NO_HTTPD_RESTART"]=false;
 $GLOBALS["FORCE_RESTART"]=false;
 $GLOBALS["NGINX_CONFIGURE"]=false;
-
 if(is_array($argv)){
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
@@ -247,28 +246,8 @@ function reconfigure_all_websites(){
 
 function sync_squid(){
 	$unix=new unix();
-	$free=new freeweb();
-	if(!$unix->IsSquidReverse()){return;}
-
-	$sql="SELECT servername,useSSL FROM freeweb WHERE enabled=1 ORDER BY servername";
-	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$hostname=$ligne["servername"];
-		$f[]="('$hostname','127.0.0.1','82','{$ligne["useSSL"]}')";
-		
-	}
-	
-	$q=new mysql_squid_builder();
-	$sql="DELETE FROM reverse_www WHERE `ipaddr`='127.0.0.1' AND `port`='82'";
-	$q->QUERY_SQL($sql);
-	if(count($f)>0){
-		$prefix="INSERT IGNORE INTO reverse_www (`servername`,`ipaddr`,`port`,`ssl`) VALUES ".@implode(",", $f);
-		$q->QUERY_SQL($prefix);
-		$php5=$unix->LOCATE_PHP5_BIN();
-		$nohup=$unix->find_program("nohup");
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid-reverse.php --build >/dev/null 2>&1 &");
-	}
+	$php=$unix->LOCATE_PHP5_BIN();
+	system("$php /usr/share/artica-postfix/exec.squid.global.access.php --freewebs");
 }
 
 
@@ -748,7 +727,13 @@ function startApache($withoutkill=false,$aspid=false){
 	$GLOBALS["startApacheCount"]=$GLOBALS["startApacheCount"]+1;
 	$EnableFreeWeb=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeWeb"));
 	$SquidPerformance=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidPerformance"));
+	$EnableIntelCeleron=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableIntelCeleron"));
+	$SquidAllow80Port=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidAllow80Port"));
+	
+	
 	if($SquidPerformance>2){$EnableFreeWeb=0;}
+	if($EnableIntelCeleron==1){$EnableFreeWeb=0;}
+	if($SquidAllow80Port==1){$EnableFreeWeb=0;}
 	
 	if(is_file("/etc/httpd/conf.d/ssl.conf")){@unlink("/etc/httpd/conf.d/ssl.conf");}
 	
@@ -787,7 +772,7 @@ function startApache($withoutkill=false,$aspid=false){
 		return;
 	}	
 	
-	if($EnableFreeWeb==0){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Disabled ( see EnableFreeWeb token )\n";return;}
+	if($EnableFreeWeb==0){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Disabled ( see EnableFreeWeb($EnableFreeWeb)/SquidAllow80Port($SquidAllow80Port)/EnableIntelCeleron($EnableIntelCeleron)/SquidPerformance($SquidPerformance) tokens )\n";return;}
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache {$GLOBALS["startApacheCount"]} time(s)\n";
 	$files=$unix->DirFiles("/usr/share/artica-postfix/bin");
 	while (list ($filename,$line) = each ($files)){
@@ -1344,6 +1329,7 @@ function mime_types($path){
 	$f[]="application/pgp-keys					key";
 	$f[]="application/pgp-signature				pgp";
 	$f[]="application/pics-rules				prf";
+	$f[]="application/octet-stream				ovf ova xva hdx";
 	$f[]="application/postscript				ps ai eps epsi epsf eps2 eps3";
 	$f[]="application/rar						rar";
 	$f[]="application/rdf+xml					rdf";
@@ -1708,6 +1694,10 @@ function CheckHttpdConf_mime_module(){
 $f[]="<IfModule mod_mime.c>";
 $f[]="\tTypesConfig /etc/mime.types";
 $f[]="\tAddType application/octet-stream 			.acl";
+$f[]="\tAddType application/octet-stream					.ova";
+$f[]="\tAddType application/octet-stream					.ovf";
+$f[]="\tAddType application/octet-stream					.xva";
+$f[]="\tAddType application/octet-stream					.hdx";
 $f[]="\tAddType application/x-gzip 					.tgz";
 $f[]="\tAddType text/html 							.html .htm";
 $f[]="\tAddType application/x-shockwave-flash 		.swf ";
@@ -2208,25 +2198,7 @@ function CheckHttpdConf(){
 	$conf[]="\tFastCgiIpcDir /var/lib/apache2/fastcgi";
 	$conf[]="</IfModule>";
 	
-	
-	
-	
-	if($users->APACHE_MOD_STATUS){
-		if($ApacheDisableModStatus==0){
-			$unix->hostname_g();
-			$conf[]="ExtendedStatus On";
-			$hosnenc=md5($unix->hostname_g());
-			$conf[]="# Status from ".$unix->hostname_g();
-			$conf[]="<Location /$hosnenc/$hosnenc-status>";
-			$conf[]="\tSetHandler server-status";
-			//$conf[]="\tExtendedStatus On";
-			$conf[]="\tOrder deny,allow";
-			$conf[]="\tDeny from all";
-			$conf[]="\tAllow from 127.0.0.1";
-			$conf[]="\tSatisfy Any";
-			$conf[]="</Location>";		
-		}
-	}
+
 	
 	
 	

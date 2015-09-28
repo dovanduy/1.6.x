@@ -22,6 +22,7 @@ if(preg_match("#--ufdbtail#",implode(" ",$argv),$re)){$GLOBALS["UFDBTAIL"]=true;
 if(preg_match("#--framework#",implode(" ",$argv),$re)){$GLOBALS["FRAMEWORK"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--noupdate#",implode(" ",$argv),$re)){$GLOBALS["NOUPDATE"]=true;}
 
+if($argv[1]=="--meta"){meta();exit;}
 
 xstart();
 
@@ -78,21 +79,26 @@ function ArticaWebFilter(){
 	$CATZ_ARRAY=unserialize(base64_decode(@file_get_contents(CATZ_ARRAY())));
 	$q=new mysql_squid_builder();
 	
+	///etc/artica-postfix/ufdbartica.txt
+	
 	$GLOBALS["MAIN_ARRAY"]["ARTICA_DB_TIME"]=$CATZ_ARRAY["TIME"];
 	
 	$CountDecategories=0;
-	while (list ($table, $items) = each ($CATZ_ARRAY) ){
-		$CategoryName=$q->tablename_tocat($table);
-		if(!is_file("/var/lib/ufdbartica/$table/domains.ufdb")){
-			if($GLOBALS["VERBOSE"]){echo "$table no such db\n";}
-			continue;
+		if(is_array($CATZ_ARRAY)){
+		
+		while (list ($table, $items) = each ($CATZ_ARRAY) ){
+			$CategoryName=$q->tablename_tocat($table);
+			if(!is_file("/var/lib/ufdbartica/$table/domains.ufdb")){
+				if($GLOBALS["VERBOSE"]){echo "$table no such db\n";}
+				continue;
+			}
+			$items=intval($items);
+			$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["ITEMS"]=$items;
+			$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["SIZE"]=@filesize("/var/lib/ufdbartica/$table/domains.ufdb");
+			$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["TIME"]=@filemtime("/var/lib/ufdbartica/$table/domains.ufdb");
+			$CountDecategories=$CountDecategories+$items;
+			if($GLOBALS["VERBOSE"]){echo "$table - $items = $CountDecategories\n";}
 		}
-		$items=intval($items);
-		$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["ITEMS"]=$items;
-		$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["SIZE"]=@filesize("/var/lib/ufdbartica/$table/domains.ufdb");
-		$GLOBALS["MAIN_ARRAY"]["CAT_ARTICAT_ARRAY"][$CategoryName]["TIME"]=@filemtime("/var/lib/ufdbartica/$table/domains.ufdb");
-		$CountDecategories=$CountDecategories+$items;
-		if($GLOBALS["VERBOSE"]){echo "$table - $items = $CountDecategories\n";}
 	}
 	
 	$GLOBALS["MAIN_ARRAY"]["CAT_ARTICA_ITEMS_NUM"]=$CountDecategories;
@@ -134,14 +140,24 @@ function ArticaWebFilter(){
 	
 }
 
+function meta(){
+	
+	print_r(unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/artica-webfilter-db-index.txt"))));;
+}
+
 function CATZ_ARRAY(){
 	
 	$f[]="/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY";
 	$f[]="/home/artica/categories_databases/CATZ_ARRAY";
+	$f[]="/etc/artica-postfix/artica-webfilter-db-index.txt";
 	
 	while (list ($index, $line) = each ($f) ){
 		if(is_file($line)){return $line;}
 	}
+	
+	
+	
+	
 }
 
 function ArticaUfdb(){

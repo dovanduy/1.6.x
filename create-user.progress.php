@@ -28,7 +28,7 @@ function js(){
 	$filename_enc=urlencode($filename);
 	echo "
 	YahooWinBrowseHide();		
-	RTMMail('800','$page?popup=yes','$title');";
+	RTMMail('800','$page?popup=yes&CallBackFunction={$_GET["CallBackFunction"]}','$title');";
 	
 	
 }
@@ -56,6 +56,7 @@ function buildjs(){
 	$array=unserialize(@file_get_contents($cachefile));
 	$prc=intval($array["POURC"]);
 	$title=$tpl->javascript_parse_text($array["TEXT"]);
+	if($_GET["CallBackFunction"]<>null){$CallBackFunction="{$_GET["CallBackFunction"]}();";}
 	
 if($prc==0){
 echo "
@@ -80,7 +81,7 @@ if($md5file<>$_GET["md5file"]){
 		if (res.length>3){
 			document.getElementById('text-$t').value=res;
 		}		
-		Loadjs('$page?build-js=yes&t=$t&md5file=$md5file&filename=".urlencode($_REQUEST["filename"])."');
+		Loadjs('$page?build-js=yes&t=$t&md5file=$md5file&CallBackFunction={$_GET["CallBackFunction"]}');
 	}		
 	
 	function Start$time(){
@@ -120,8 +121,9 @@ if($prc==100){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
+		$CallBackFunction
 		RTMMailHide();
-		
+		LayersTabsAllAfter();
 		}
 	setTimeout(\"Start$time()\",2000);
 	";	
@@ -135,7 +137,7 @@ function Start$time(){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&filename=".urlencode($_GET["filename"])."');
+		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}&CallBackFunction={$_GET["CallBackFunction"]}');
 	}
 	setTimeout(\"Start$time()\",1500);
 ";
@@ -173,7 +175,7 @@ overflow:auto;font-size:11px' id='text-$t'></textarea>
 <script>
 function Step1$t(){
 	$('#progress-$t').progressbar({ value: 1 });
-	Loadjs('$page?build-js=yes&t=$t&md5file=0&filename=".urlencode($_GET["filename"])."');
+	Loadjs('$page?build-js=yes&t=$t&md5file=0&CallBackFunction={$_GET["CallBackFunction"]}');
 }
 $('#progress-$t').progressbar({ value: 1 });
 setTimeout(\"Step1$t()\",1000);

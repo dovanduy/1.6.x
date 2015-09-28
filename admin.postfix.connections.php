@@ -11,8 +11,129 @@
 	$users=new usersMenus();
 	if(!$users->AsPostfixAdministrator){die();}
 	if(isset($_GET["list-table"])){list_table();exit;}
+	if(isset($_GET["success"])){page();exit;}
+	if(isset($_GET["failed"])){page_failed();exit;}
+	if(isset($_GET["list-table-failed"])){list_table_failed();exit;}
+	
+tabs();
 
-page();
+function tabs(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+
+	$array["failed"]="{failed}";
+	$array["success"]="{success}";
+
+	
+
+	$fontsize=22;
+
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="hosts"){
+			$tab[]="<li><a href=\"artica-meta.hosts.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+
+
+		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			
+	}
+
+
+
+	$t=time();
+	//
+
+	echo build_artica_tabs($tab, "main_postfix_cnxs")."<script>LeftDesign('management-console-256.png');</script>";
+
+
+
+}
+
+
+function page_failed(){
+	$table=date("Ymd")."_dfcnx";
+	
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$tt=$_GET["t"];
+	$t=time();
+	$q=new mysql_postfix_builder();
+	$are_you_sure_to_delete=$tpl->javascript_parse_text("{are_you_sure_to_delete}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	
+	$build_parameters=$tpl->javascript_parse_text("{build_parameters}");
+	$new_item=$tpl->javascript_parse_text("{new_item}");
+	$import=$tpl->javascript_parse_text("{import}");
+	$title=$tpl->javascript_parse_text("{today},{last_connections} {total}:&nbsp;").  $q->COUNT_ROWS($table);
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$domain=$tpl->javascript_parse_text("{domain}");
+	$hostname=$tpl->javascript_parse_text("{hostname}");
+	$status=$tpl->javascript_parse_text("{status}");
+	$time=$tpl->javascript_parse_text("{time}");
+	$type=$tpl->javascript_parse_text("{type}");
+	// Hour | cnx | hostname                                       | domain                    |
+	$buttons="
+	buttons : [
+	{name: '$new_item', bclass: 'add', onpress : NewDiffListItem$t},
+	{name: '$import', bclass: 'Reconf', onpress :NewDiffListItemImport$t},
+	],";
+	
+	$buttons=null;
+	
+	$html="
+	
+	
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%;'></table>
+	
+	<script>
+	var memid$t='';
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?list-table-failed=yes&hostname=$hostname&ou={$_GET["ou"]}&t=$t',
+	dataType: 'json',
+	colModel : [
+	
+	{display: '$time', name : 'Hour', width : 74, sortable : true, align: 'left'},
+	{display: 'CNX', name : 'cnx', width :69, sortable : true, align: 'left'},
+	{display: '$hostname', name : 'hostname', width : 381, sortable : false, align: 'left'},
+	{display: '$domain', name : 'domain', width : 199, sortable : false, align: 'left'},
+	{display: '$ipaddr', name : 'ipaddr', width : 160, sortable : false, align: 'left'},
+	{display: '$type', name : 'WHY', width : 160, sortable : false, align: 'left'},
+	],
+	$buttons
+	searchitems : [
+	{display: '$type', name : 'WHY'},
+	{display: '$domain', name : 'domain'},
+	{display: '$ipaddr', name : 'ipaddr'},
+	{display: '$ipaddr', name : 'ipaddr'},
+	],
+	sortname: 'Hour',
+	sortorder: 'desc',
+	usepager: true,
+	title: '<span style=font-size:18px>$title</span>',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 500,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
+	
+	});
+	});
+	
+	</script>";
+	echo $html;
+	}	
+
+
+
 function page(){
 	
 	$table=date("Ymd")."_dcnx";
@@ -91,7 +212,95 @@ function page(){
 </script>";
 	echo $html;
 }
+function list_table_failed(){
 
+	$MyPage=CurrentPageName();
+	$page=1;
+	$tpl=new templates();
+	$table=date("Ymd")."_dfcnx";
+	$q=new mysql_postfix_builder();
+	if(!$q->TABLE_EXISTS($table)){json_error_show("$table no such table");}
+
+	$t=$_GET["t"];
+	$database=null;
+	$FORCE_FILTER=1;
+
+
+
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No item");}
+
+	if(isset($_POST["sortname"])){
+		if($_POST["sortname"]<>null){
+			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
+		}
+	}
+
+	if (isset($_POST['page'])) {$page = $_POST['page'];}
+
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		if(!$q->ok){json_error_show("$q->mysql_error");}
+		$total = $ligne["TCOUNT"];
+		if($total==0){json_error_show("No rows for $searchstring");}
+
+	}else{
+		$total = $q->COUNT_ROWS($table, $database);
+	}
+
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	if(!is_numeric($rp)){$rp=1;}
+
+
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+
+
+	$sql="SELECT *  FROM $table WHERE $FORCE_FILTER $searchstring $ORDER $limitSql";
+
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,$database);
+	if(!$q->ok){json_error_show("$q->mysql_error<hr>$sql<hr>");}
+
+
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	if(mysql_num_rows($results)==0){json_error_show("No data...",1);}
+	$today=date('Y-m-d');
+	$style="font-size:14px;";
+
+	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
+
+	//Hour | cnx | hostname                                       | domain                    |
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+
+
+		$md=md5(serialize($ligne));
+		$cells=array();
+		$cells[]="<span style='font-size:12px;'>{$ligne["Hour"]}h</span>";
+		$cells[]="<span style='font-size:12px;'>{$ligne["cnx"]}</span>";
+		$cells[]="<span style='font-size:12px;'>{$ligne["hostname"]}</span>";
+		$cells[]="<span style='font-size:12px;'>{$ligne["domain"]}</span>";
+		$cells[]="<span style='font-size:12px;'>{$ligne["ipaddr"]}</span>";
+		$cells[]="<span style='font-size:12px;'>{$ligne["WHY"]}</span>";
+
+
+			
+			
+		$data['rows'][] = array(
+				'id' =>$line["zmd5"],
+				'cell' => $cells
+		);
+
+
+	}
+
+	echo json_encode($data);
+}
 function list_table(){
 
 	$MyPage=CurrentPageName();

@@ -1,13 +1,15 @@
 #!/usr/bin/php
 <?php
+$GLOBALS["VERBOSE"]=false;
+include_once(dirname(__FILE__)."/ressources/class.influx.inc");
 //error_reporting(0);
 if(preg_match("#--verbose#", @implode(" ", $argv))){
 	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);error_reporting(1);
-	error_reporting(1);
+	
 	$GLOBALS["VERBOSE"]=true;
 	echo "VERBOSED MODE\n";
 }
-  $GLOBALS["VERBOSE"]=true;
+  
   $GLOBALS["PID"]=getmypid();
   $GLOBALS["STARTIME"]=time();
   $GLOBALS["SESSION_TIME"]=array();
@@ -19,7 +21,7 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $max_execution_time=ini_get('max_execution_time'); 
   WLOG("[START]: Starting New process");
   $GLOBALS["MAIN"]=unserialize(@file_get_contents("/etc/squid3/MacRestrictAccess.db"));
-  
+  error_reporting(0);
   
   
 while (!feof(STDIN)) {
@@ -181,21 +183,14 @@ function WLOG($text=null){
 }
 
 function ufdbgevents($ipaddr){
-	$array["uid"]=null;
-	$array["TIME"]=time();
-	$array["category"]="restricted_time";
-	$array["rulename"]="default";
-	$array["public_ip"]="0.0.0.0";
-	$array["blocktype"]="blocked access";
-	$array["why"]="blocked access";
-	$array["hostname"]=$ipaddr;
-	$array["website"]="ALL";
-	$array["client"]=$ipaddr;
-	$LLOG=array();
-	$serialize=serialize($array);
-	$md5=md5($serialize);
-	if(is_file("/var/log/squid/ufdbguard-blocks/$md5.sql")){return;}
-	@file_put_contents("/var/log/squid/ufdbguard-blocks/$md5.sql",$serialize);
+
+	$time=time();
+	$q=new influx();
+	$Clienthostname=gethostbyaddr($ipaddr);
+	$line="$time:::$ipaddr:::restricted_time:::default:::0.0.0.0:::blocked access::blocked access:::$Clienthostname:::ALL:::$ipaddr";
+	$q->insert_ufdb($line);
+	
+	
 }
 
 

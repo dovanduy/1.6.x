@@ -207,7 +207,7 @@ function homebind_list($userid){
 		
 		if(strlen($val)>39){$dir=texttooltip(substr($val,0,36)."...",$val);}else{$dir=$val;}
 		$tt=$user->homeDirectory."/" . basename($val);
-		if(strlen($tt)>39){$dir=texttooltip(substr($tt,0,36)."...",$tt);}else{$tt=$tt;}
+		if(strlen($tt)>39){$dir=texttooltip(substr($tt,0,36)."...",$tt);}
 		$mnt=trim($sock->getfile("ismounted:$val;$tt"));
 		if($mnt=="FALSE"){
 			$img=imgtootltip("status_critical.png",'{error_not_mounted},{click_to_mount}',"homebindMount($num)");

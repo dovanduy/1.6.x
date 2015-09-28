@@ -280,7 +280,7 @@ if(!$nics->SaveNic()){
 	$resolvDatas=$resolv->build();
 	echo "94%] Saving /etc/resolv.conf\n";
 	@file_put_contents("/etc/resolv.conf", $resolvDatas);
-	echo "95%] Restarting Artica Web Console\n";
+	echo "95%] Restarting Web Console\n";
 	shell_exec2("$nohup /etc/init.d/artica-webconsole restart");
 	echo "100%] Configuration done.\n";
 	echo "Press any key to return to menu.";

@@ -37,7 +37,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div id='$t'>
-	<div class=text-info>{PYICQT_HOWTO}</div>
+	<div class=explain>{PYICQT_HOWTO}</div>
 	<table class=form style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{hostname}:</td>

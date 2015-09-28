@@ -78,21 +78,51 @@ function start($aspid=false){
 		return;
 	}
 	$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableSquidGuardHTTPToArtica=intval($sock->GET_INFO("EnableSquidGuardHTTPToArtica"));
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
+	if($GLOBALS["VERBOSE"]){echo "* * * EnableUfdbGuard = $EnableUfdbGuard * * *\n";}
+	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
-	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
-	if(!is_numeric($EnableSquidGuardHTTPService)){$EnableSquidGuardHTTPService=1;}
-	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
-	if($EnableUfdbGuard==0){$EnableSquidGuardHTTPService=0;}
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
+	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+	if(!is_numeric($EnableSquidGuardHTTPService)){$EnableSquidGuardHTTPService=1;}
+	
+	if(!is_numeric($EnableUfdbGuard)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: disabled $EnableUfdbGuard=0\n";}
+		if($GLOBALS["VERBOSE"]){echo "* * * EnableUfdbGuard NOT A NUMERIC => 0 * * *\n";}
+		$EnableUfdbGuard=0;
+	}
+	
+	
+	if($EnableUfdbGuard==0){
+		$EnableSquidGuardHTTPService=0;
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: disabled because EnableUfdbGuard=$EnableUfdbGuard\n";}
+	
+	}
 	if($SQUIDEnable==0){$SQUIDEnable=0;}
 	if($EnableWebProxyStatsAppliance==1){$EnableSquidGuardHTTPService=1;}
-	if($SquidPerformance>2){$EnableSquidGuardHTTPService=0;}
+	if($SquidPerformance>2){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: disabled because EnableSquidGuardHTTPService=$EnableSquidGuardHTTPService\n";}
+		$EnableSquidGuardHTTPService=0;
+	}
+	if($EnableSquidGuardHTTPToArtica==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: disabled because EnableSquidGuardHTTPService=$EnableSquidGuardHTTPService\n";}
+		$EnableSquidGuardHTTPService=0;
+	}
 
 	if($EnableSquidGuardHTTPService==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableUfdbGuard = $EnableUfdbGuard\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableWebProxyStatsAppliance = $EnableWebProxyStatsAppliance\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} SQUIDEnable = $SQUIDEnable\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} EnableSquidGuardHTTPToArtica = $EnableSquidGuardHTTPToArtica\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} SquidPerformance = $SquidPerformance\n";}
+		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
+		
 		return;
 	}
 
@@ -224,11 +254,13 @@ function build(){
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	$PHP_STANDARD_MODE=true;	
-	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
-	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
-	if(!is_numeric($SquidGuardApachePort)){$SquidGuardApachePort="9020";}
-	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
+	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+	$SquidGuardApacheSSLPort=intval($sock->GET_INFO("SquidGuardApacheSSLPort"));
+	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+	if($SquidGuardApacheSSLPort==0){$SquidGuardApacheSSLPort=9025;}
 	$SquidGuardWebSSLCertificate=$sock->GET_INFO("SquidGuardWebSSLCertificate");
+	@mkdir("/home/squid/error_page_sessions",0755, true);
+	@mkdir("/home/squid/error_page_cache",0755, true);
 	
 	if($username==null){
 		$username="www-data";
@@ -248,6 +280,8 @@ function build(){
 	
 	$unix->chown_func($username,$username, "/var/log/lighttpd/squidguard-lighttpd.log");
 	$unix->chown_func($username,$username, "/var/log/lighttpd/squidguard-lighttpd-error.log");
+	$unix->chown_func($username,$username, "/home/squid/error_page_sessions");
+	$unix->chown_func($username,$username, "/home/squid/error_page_cache");
 	$unix->chown_func($username,$username, "/usr/share/artica-postfix/bin/install/squid/adzap/zaps/*");
 	@chmod("/var/log/lighttpd/squidguard-lighttpd-error.log",0777);
 	@chmod("/var/log/lighttpd/squidguard-lighttpd.log",0777);
@@ -315,6 +349,7 @@ $f[]="server.username = \"$username\"";
 $f[]="server.groupname = \"$username\"";
 $f[]="server.errorlog             = \"/var/log/lighttpd/squidguard-lighttpd-error.log\"";
 $f[]="index-file.names            = ( \"exec.squidguard.php\")";
+
 $f[]="";
 $f[]="mimetype.assign             = (";
 $f[]="  \".pdf\"          =>      \"application/pdf\",";
@@ -379,7 +414,7 @@ $f[]="";
 $f[]="static-file.exclude-extensions = ( \".php\", \".pl\", \".fcgi\" )";
 $f[]="server.port                 = $SquidGuardApachePort";
 $f[]="#server.bind                = \"127.0.0.1\"";
-$f[]="#server.error-handler-404   = \"/error-handler.html\"";
+$f[]="server.error-handler-404   = \"/exec.squidguard.php\"";
 $f[]="#server.error-handler-404   = \"/error-handler.php\"";
 $f[]="server.pid-file             = \"/var/run/lighttpd/squidguard-lighttpd.pid\"";
 $f[]="server.max-fds 		   = 2048";
@@ -391,6 +426,8 @@ $f[]="\$SERVER[\"socket\"]== \":$SquidGuardApacheSSLPort\" {";
 $f[]="\tssl.engine                 = \"enable\"";
 $cert=new lighttpd_certificate($SquidGuardWebSSLCertificate);
 $f[]=$cert->build();
+
+$f[]="ssl.cipher-list=\"ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM:+SSLv3\"";
 $f[]="}";	
 if(!is_file("/opt/artica/ssl/certs/lighttpd.pem")){
 	@chmod("/usr/share/artica-postfix/bin/artica-install", 0755);

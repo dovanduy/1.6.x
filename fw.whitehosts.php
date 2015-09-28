@@ -41,7 +41,7 @@ function add_domain_white_popup(){
 	$t=time();
 	$html="
 	<div style='width:98%' class=form>
-	<div style='font-size:16px' class=text-info>{whitelist_mx_explain}</div>
+	<div style='font-size:16px' class=explain>{whitelist_mx_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{domain}:</td>
@@ -129,8 +129,8 @@ function page(){
 		$new_domain=$tpl->_ENGINE_parse_body("{new_domain}");
 		$buttons="
 		buttons : [
-		{name: '$new_item', bclass: 'add', onpress : AddHostWhite$t},
-		{name: '$new_domain', bclass: 'add', onpress : AddDomainWhite$t},
+		{name: '<strong style=font-size:18px>$new_item</strong>', bclass: 'add', onpress : AddHostWhite$t},
+		{name: '<strong style=font-size:18px>$new_domain</strong>', bclass: 'add', onpress : AddDomainWhite$t},
 		],";
 
 	
@@ -147,9 +147,9 @@ function page(){
 		dataType: 'json',
 		colModel : [
 		
-		{display: '$ipaddr', name : 'ipaddr', width : 238, sortable : true, align: 'left'},
-		{display: '$hostname', name : 'hostname', width :491, sortable : true, align: 'left'},
-		{display: '$delete', name : 'bounce_error', width : 84, sortable : false, align: 'center'},
+		{display: '<span style=font-size:22px>$ipaddr</span>', name : 'ipaddr', width : 329, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$hostname</span>', name : 'hostname', width :886, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$delete</span>', name : 'bounce_error', width : 84, sortable : false, align: 'center'},
 		],
 		$buttons
 		searchitems : [
@@ -160,12 +160,12 @@ function page(){
 		sortname: 'ipaddr',
 		sortorder: 'asc',
 		usepager: true,
-		title: '$title',
+		title: '<strong style=font-size:30px>$title</strong>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
 		width: '99%',
-		height: 650,
+		height: 550,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -276,9 +276,9 @@ function list_table(){
 			$md=md5(serialize($ligne));
 			$cells=array();
 			$delete=imgsimple("delete-32.png",null,"DelHostWhite$t('{$ligne["ipaddr"]}','{$ligne["hostname"]}','$md')");
-			$cells[]="<span style='font-size:18px;'>{$ligne["ipaddr"]}</span>";
-			$cells[]="<span style='font-size:18px;'>{$ligne["hostname"]}</span>";
-			$cells[]="<span style='font-size:11px;'>$delete</span>";
+			$cells[]="<span style='font-size:24px;'>{$ligne["ipaddr"]}</span>";
+			$cells[]="<span style='font-size:24px;'>{$ligne["hostname"]}</span>";
+			$cells[]="<center style='font-size:24px;'>$delete</center>";
 				
 				
 				

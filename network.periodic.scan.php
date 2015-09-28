@@ -41,7 +41,7 @@ function popup(){
 	$id=time();
 	$html="
 	<div id='$id'>
-	<div class=text-info style='font-size:13px'>{periodic_scan_net_explain}</div>
+	<div class=explain style='font-size:13px'>{periodic_scan_net_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tbody>

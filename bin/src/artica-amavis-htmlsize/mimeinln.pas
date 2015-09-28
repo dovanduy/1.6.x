@@ -1,1 +1,0 @@
-../artica-send/mimeinln.pas

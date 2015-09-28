@@ -275,9 +275,7 @@ if ParamStr(1)='--change-initd' then  begin
    zsaslauthd:=tsaslauthd.Create(SYS);
    zsaslauthd.CHANGE_INITD();
 
-   writeln('Modify init.d [spamassassin]');
-   zSpamass:=Tspamass.Create(SYS);
-   zSpamass.CHANGE_INITD_MILTER();
+
 
 
    halt(0);
@@ -721,12 +719,8 @@ writeln(zfetchmail.FETCHMAIL_VERSION());
 halt(0);
 end;
 
-if ParamStr(2)='milter-greylist' then
-begin
-milter_greylist:=tmilter_greylist.Create(SYS);
-writeln(milter_greylist.VERSION());
-halt(0);
-end;
+if ParamStr(2)='milter-greylist' then halt(0);
+
 
 
 
@@ -773,12 +767,6 @@ writeln(zmysql.VERSION());
 halt(0);
 end;
 
-if ParamStr(2)='openldap' then
-begin
-zldap:=tOpenldap.Create();
-writeln(zldap.LDAP_VERSION());
-halt(0);
-end;
 
 if ParamStr(2)='openldap-pid' then
 begin
@@ -822,23 +810,10 @@ if ParamStr(2)='lighttpd-version' then begin
    halt(0);
 end;
 
-if ParamStr(2)='spamassmilter-version' then begin
-   zSpamass:=Tspamass.Create(SYS);
-   writeln(zSpamass.MILTER_VERSION());
-   halt(0);
-end;
+if ParamStr(2)='spamassmilter-version' then halt(0);
+if ParamStr(2)='spamass' then halt(0);
+if ParamStr(2)='spamass-enabled' then halt(0);
 
-if ParamStr(2)='spamass' then begin
-   zSpamass:=Tspamass.Create(SYS);
-   writeln(zSpamass.SPAMASSASSIN_VERSION());
-   halt(0);
-end;
-
-if ParamStr(2)='spamass-enabled' then begin
-   zSpamass:=Tspamass.Create(SYS);
-   writeln(zSpamass.IS_SPAMD_ENABLED());
-   halt(0);
-end;
 
 
 if ParamStr(2)='postfix' then begin
@@ -1390,11 +1365,7 @@ halt(0);
 end;
 
 
-if ParamStr(1)='--reload-spamassassin' then
-begin
-zSpamass.SPAMASSASSIN_RELOAD();
-halt(0);
-end;
+if ParamStr(1)='--reload-spamassassin' then halt();
 
 if ParamStr(1)='--reload-kav4proxy' then
 begin
@@ -1705,13 +1676,7 @@ GLOBAL_INI.CLEAN_QUARANTINES();
 halt(0);
 end;
 
-if paramStr(1)='--spamassassin-reload' then
-begin
-zSpamass:=Tspamass.Create(SYS);
-zSpamass.SPAMASSASSIN_RELOAD();
-halt(0);
-end;
-
+if paramStr(1)='--spamassassin-reload' then halt(0);
 if paramStr(1)='--boa-status' then
 begin
 halt(0);
@@ -2354,14 +2319,7 @@ zdansguardian.C_ICAP_CONFIGURE();
 halt(0);
 end;
 
-if paramStr(1)='--spamd-status' then
-begin
-
-writeln(zSpamass.SPAMASSASSIN_STATUS());
-halt(0);
-end;
-
-
+if paramStr(1)='--spamd-status' then halt(0);
 if paramStr(1)='start' then
 begin
 install.START_SERVICES_PARAMETERS();
@@ -2748,12 +2706,9 @@ GLOBAL_INI.debug:=True;
 writeln('New:',GLOBAL_INI.RRDTOOL_SecondsBetween(s));
 halt(0);
 end;
-if ParamStr(1)='-fdisk' then
-begin
-SYS:=Tsystem.Create;
-writeln(SYS.DISKS_STATUS_DEV());
-halt(0);
-end;
+
+if ParamStr(1)='-fdisk' then halt(0);
+
 
 
 if ParamStr(1)='-dd' then
@@ -3687,13 +3642,7 @@ GLOBAL_INI.deb_files_extists_between(ParamStr(2),ParamStr(3));
 halt(0);
 end;
 
-if ParamStr(1)='--saver' then
-begin
-GLOBAL_INI:=MyConf.Create();
-writeln('Spamassassin version:',  zSpamass.SPAMASSASSIN_VERSION(),' ',zSpamass.SPAMASSASSIN_PATTERN_VERSION());
-halt(0);
-end;
-
+if ParamStr(1)='--saver' then halt(0);
 if ParamStr(1)='--clamver' then
 begin
 GLOBAL_INI:=MyConf.Create();

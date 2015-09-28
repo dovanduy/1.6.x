@@ -75,7 +75,7 @@ function popup(){
 	$ligne["script_code"]=base64_decode($ligne["script_code"]);
 	$_POST["script_data"]=str_replace("\n\n","\n",$_POST["script_data"]);
 	$html="
-	<div style='font-size:13px' class=text-info>{LOGON_SCRIPT_TEXT}<br>
+	<div style='font-size:13px' class=explain>{LOGON_SCRIPT_TEXT}<br>
 	{LOGON_SCRIPT_PUT}</div>
 	<div style='float:right;margin-bottom:8px;'>". imgtootltip("delete-32.png","{delete}","LOGON_SCRIPT_DEL$t()")."</div>
 	<textarea id='script_code$t' style='width:100%;height:350px;overflow:auto; font-family: \"Courier New\", Courier, monospace;padding:3px'>". $ligne["script_code"]."</textarea>

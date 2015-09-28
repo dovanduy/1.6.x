@@ -36,10 +36,10 @@ function tabs(){
 	$page=CurrentPageName();
 	$html=array();
 /*
- * 		$error="<div class=form><center style='font-size:18px;color:red;margin:5px;font-weight:bolder'>{ERROR_VNSTAT_NOT_INSTALLED}</center><center><img src='img/report-warning-256.png'></center></div>";
+ * 		$error="<div class=form><center style='font-size:18px;color:#d32d2d;margin:5px;font-weight:bolder'>{ERROR_VNSTAT_NOT_INSTALLED}</center><center><img src='img/report-warning-256.png'></center></div>";
 		echo $tpl->_ENGINE_parse_body($error);
 		return;
-		$error="<div class=form><center style='font-size:18px;color:red;margin:5px;font-weight:bolder'>{NO_DATA_COME_BACK_LATER}</center><center><img src='img/report-warning-256.png'></center></div>";
+		$error="<div class=form><center style='font-size:18px;color:#d32d2d;margin:5px;font-weight:bolder'>{NO_DATA_COME_BACK_LATER}</center><center><img src='img/report-warning-256.png'></center></div>";
  */	
 if(isset($_GET["newinterface"])){$newinterface="style='font-size:14px'";}
 	$users=new usersMenus();
@@ -110,7 +110,7 @@ function etch(){
 		$imgs=array();
 		
 		
-		$error="<center style='font-size:18px;color:red;margin:5px;font-weight:bolder'>{NO_DATA_COME_BACK_LATER}</center><center><img src='img/report-warning-256.png'></center>";		
+		$error="<center style='font-size:18px;color:#d32d2d;margin:5px;font-weight:bolder'>{NO_DATA_COME_BACK_LATER}</center><center><img src='img/report-warning-256.png'></center>";		
 		
 		while (list ($num, $filename) = each ($cmdr) ){
 			if(!is_file($filename)){continue;}

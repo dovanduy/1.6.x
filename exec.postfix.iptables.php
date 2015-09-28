@@ -674,7 +674,8 @@ function Compile_rules($NoPersoRules=false){
 		$ip=$ligne["serverip"];
 		if($iptablesClass->isWhiteListed($ip)){
 			if($GLOBALS["VERBOSE"]){echo "$ip is whitelisted\n";}
-			continue;}
+			continue;
+		}
 		events("LOG {$ligne["serverip"]} REJECT INBOUND PORT 25");
 		progress(35,"Building logging rules for $ip");
 		$cmd="$iptables -A INPUT -s $ip -p tcp --destination-port 25 -j LOG --log-prefix \"SMTP DROP: \" -m comment --comment \"ArticaInstantPostfix\"";

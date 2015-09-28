@@ -91,7 +91,7 @@ function section_logs(){
 		$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-		<div class=text-info>{postfix_search_logs}</div>
+		<div class=explain>{postfix_search_logs}</div>
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
@@ -184,7 +184,7 @@ function section_events(){
 	$time=time();
 	$tpl=new templates();	
 	$html="
-		<div class=text-info>{postfix_search_events}</div>
+		<div class=explain>{postfix_search_events}</div>
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
@@ -236,7 +236,7 @@ function section_quarantine(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-		<div class=text-info>{postfix_search_quarantine}</div>
+		<div class=explain>{postfix_search_quarantine}</div>
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
@@ -314,7 +314,7 @@ function search_events(){
 	$q=new mysql();	
 	
 	$html="
-	<div class=text-info>$textsearch</div>
+	<div class=explain>$textsearch</div>
 	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
 		<tr>
@@ -391,7 +391,7 @@ function antispam_search(){
 	$q=new mysql();	
 	
 	$html="
-	<div class=text-info>$textsearch</div>
+	<div class=explain>$textsearch</div>
 	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
 		<tr>
@@ -445,7 +445,7 @@ function antispam_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-		<div class=text-info>{postfix_search_amavis}</div>
+		<div class=explain>{postfix_search_amavis}</div>
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 	<thead class='thead'>
@@ -563,7 +563,7 @@ function search_quarantine(){
 	$q=new mysql();	
 	
 	$html="
-	<div class=text-info>$textsearch</div>
+	<div class=explain>$textsearch</div>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
@@ -626,7 +626,7 @@ function parameters(){
 	
 	$html="
 	<div id='postfinder_parameters_div'>
-	<div class=text-info>{postfinder_parameters_explain}</div>
+	<div class=explain>{postfinder_parameters_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{directory}:</td>

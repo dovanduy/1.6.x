@@ -134,7 +134,7 @@ function relayhost_sasl_config(){
 	
 	$html="
 	<div id='smtp_sasl_security_options_div'>
-	<div class=text-info>{smtp_sasl_security_options_text}</div>
+	<div class=explain>{smtp_sasl_security_options_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{smtp_sasl_security_options_noanonymous}</td>
@@ -303,7 +303,7 @@ $sync_artica=Paragraphe("sync-64.png","{smtp_sync_artica}","{smtp_sync_artica_te
 	$html="<table style='width:100%'>
 			<tr>
 				<td valign='top'><img src='img/bg_routing-250.png'></td>
-				<td valign='top'><div class=text-info>{transport_table_explain}</div></td>
+				<td valign='top'><div class=explain>{transport_table_explain}</div></td>
 			</tr>
 			<tr>
 			<td colspan=2>
@@ -786,7 +786,7 @@ $form="
 	<td align='right' colspan=2>". button("{apply}","PostfixAddNewRoutingTable()")."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><hr><div class=text-info><strong>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><hr><div class=explain><strong>{MX_lookups}</strong><br>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>
@@ -841,7 +841,7 @@ $html="
 	<td align='right'  colspan=2>". button("{add}","PostfixRelayRecipientTableSave$t()",18)."</td>
 	</tr>			
 	</table>
-	<div class=text-info style='font-size:14px'>{relay_recipient_maps_text}</div>
+	<div class=explain style='font-size:14px'>{relay_recipient_maps_text}</div>
 	
 	<script>
 
@@ -1030,7 +1030,7 @@ $t=time();
 $ask_compile_postfix=$tpl->javascript_parse_text("{ask_compile_postfix}");
 
 $form="<div style='font-size:16px'>{relayhost}</div>
-<div class=text-info>{relayhost_text}</div>
+<div class=explain>{relayhost_text}</div>
 <div id='relayhostdiv-$t'></div>
 <div style='text-align:right'><code style='font-size:14px;padding:3px'>$relayhost</code></div>
 	<table style='width:100%'>
@@ -1083,7 +1083,7 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 		</td>
 	</tr>
 </table>
-<div class=text-info>{MX_lookups}<br>{MX_lookups_text}</div>
+<div class=explain>{MX_lookups}<br>{MX_lookups_text}</div>
 </div>
 <script>
 var X_PostfixSaveRelayHost= function (obj) {

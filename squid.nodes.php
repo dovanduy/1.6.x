@@ -6,6 +6,7 @@
 	include_once('ressources/class.artica.graphs.inc');
 	include_once('ressources/class.computers.inc');
 	include_once('ressources/class.tcpip.inc');
+	include_once('ressources/class.influx.inc');
 	$users=new usersMenus();
 	if(!$users->AsWebStatisticsAdministrator){die();}
 	
@@ -39,8 +40,13 @@ function link_user_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	header("content-type: application/x-javascript");
-	$title=$tpl->_ENGINE_parse_body("{link_to_an_user}");
-	$html="YahooWin6('600','$page?link-user-popup=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}','$title');";
+	$title=$tpl->_ENGINE_parse_body("{proxy_alias}: {link_to_an_user}");
+	
+	$MAC=$_GET["MAC"];
+	$ipaddr=$_GET["ipaddr"];
+	$ipaddr=urlencode($ipaddr);
+	$MAC=urlencode($MAC);
+	$html="YahooWin6('850','$page?link-user-popup=yes&MAC=$MAC&ipaddr=$ipaddr','$title');";
 	echo $html;
 }
 
@@ -76,6 +82,11 @@ var xdel$t=function(obj){
 	if(tempvalue.length>3){alert(tempvalue);}
 	if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
 	if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
+	 if(document.getElementById('OCS_SEARCH_TABLE')){
+      	var id=document.getElementById('OCS_SEARCH_TABLE').value;
+      	$('#'+id).flexReload();
+      }
+      
 }
 	
 function del$t(){
@@ -145,6 +156,11 @@ function delete_user_js(){
       if(tempvalue.length>3){alert(tempvalue);}
       if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
       if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
+       if(document.getElementById('OCS_SEARCH_TABLE')){
+      	var id=document.getElementById('OCS_SEARCH_TABLE').value;
+      	$('#'+id).flexReload();
+      }
+      
      
      }	
 	
@@ -191,12 +207,12 @@ function node_infos_js(){
 	if($_GET["MAC"]<>null){
 		$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
-		$html="YahooWin5('1056','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+		$html="YahooWin5('1200','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
 	}
 	
 	if($_GET["ipaddr"]<>null){
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["ipaddr"]}");
-		$html="YahooWin5('1056','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
+		$html="YahooWin5('1200','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
 	}	
 	
 	echo $html;	
@@ -204,6 +220,17 @@ function node_infos_js(){
 }
 
 function link_user_save(){
+	
+	
+	$ipClass=new IP();
+	if(!$ipClass->IsvalidMAC($_POST["MAC"])){$_POST["MAC"]=null;}
+	if(!$ipClass->isValid($_POST["ipaddr"])){$_POST["ipaddr"]=null;}
+	
+	
+	$_POST["MAC"]=str_replace("-", ":", $_POST["MAC"]);
+	$_POST["MAC"]=strtolower($_POST["MAC"]);
+	
+	
 	
 	$q=new mysql_squid_builder();
 	if(!$q->FIELD_EXISTS("webfilters_ipaddr", "ip")){
@@ -229,64 +256,87 @@ function link_user_save(){
 			return;
 		}
 		
-		$sock=new sockets();
-		$macenc=urlencode($_POST["MAC"]);
-		$uidenc=urlencode($_POST["uid"]);
-		$sock->getFrameWork("squid.php?user-retranslation-update=yes&MAC=$macenc&uid=$uidenc");
-		writelogs("squid.php?user-retranslation=yes&update=yes",__FUNCTION__,__FILE__,__LINE__);
-		
-		$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 		return;
 	}
+	
+	
 	if($_POST["ipaddr"]<>null){
 		$ip2Long2=ip2Long2($_POST["ipaddr"]);
 		$sql="UPDATE webfilters_ipaddr SET uid='{$_POST["uid"]}',`ip`='$ip2Long2' WHERE ipaddr='{$_POST["ipaddr"]}'";
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM webfilters_ipaddr WHERE ipaddr='{$_POST["ipaddr"]}'"));
 	
-		if($ligne["ipaddr"]==null){
-			$sql="INSERT INTO webfilters_ipaddr (ipaddr,uid,ip,hostname) VALUES ('{$_POST["ipaddr"]}','{$_POST["uid"]}','$ip2Long2','')";
-		}
+		if($ligne["ipaddr"]==null){ $sql="INSERT INTO webfilters_ipaddr (ipaddr,uid,ip,hostname) VALUES ('{$_POST["ipaddr"]}','{$_POST["uid"]}','$ip2Long2','')"; }
 		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error;return;}
-		$sock=new sockets();
-		$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
+		if(!$q->ok){echo "Fatal:".$q->mysql_error;return;}
 		return;
 	}	
 	
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
+	
+	echo "Cannot associate a Proxy alias without any valid IP address or MAC address";
+	
 }
 
 function link_user_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$q=new mysql_squid_builder();
-	if($_GET["MAC"]<>null){
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
-		$member=$ligne["uid"];
-	}
 	
-	if($_GET["ipaddr"]<>null){
-		if($member==null){
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
+	$IPclass=new IP();
+	
+	
+	if($_GET["MAC"]<>null){
+		if($IPclass->IsvalidMAC($_GET["MAC"])){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
 			$member=$ligne["uid"];
 		}
 	}
 	
+	if($_GET["ipaddr"]<>null){
+		if($member==null){
+			if($IPclass->isValid($_GET["ipaddr"])){
+				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
+				$member=$ligne["uid"];
+			}
+		}
+	}
+	$t=time();
+	if($_GET["MAC"]==null){
+		if($_GET["ipaddr"]==null){
+			
+			$form_add="
+			<tr>
+				<td class=legend style='font-size:26px'>{MAC}:</td>
+				<td>". Field_text("$t-MAC",null,"font-size:26px;width:250px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:26px'>{ipaddr}:</td>
+				<td>". field_ipv4("$t-ipaddr",null,"font-size:26px;width:250px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
+			</tr>			
+						
+			";
+			
+		}
+		
+	}
+	
+	
+	
+	$bt_name="{apply}";
+	if($member==null){$bt_name="{add}";}
 	
 	$you_need_to_reconfigure_proxy=$tpl->javascript_parse_text("{you_need_to_reconfigre_proxy}");
-	$t=time();
+	
 	$html="
-	<div id='div-$t'>
-	<table style='width:99%' class=form>
+	<div id='div-$t' style='width:98%' class=form>
+	<div style='font-size:30px;margin-bottom:20px'>{proxy_alias}: {$_GET["MAC"]} / {$_GET["ipaddr"]}</div>
+	<table style='width:100%'>$form_add
 	<tr>
-		<td class=legend style='font-size:16px'>{username}:</td>
-		<td>". Field_text("$t-uid",$member,"font-size:16px;width:220px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
-		<td>". button("{browse}","Loadjs('MembersBrowse.php?field-user=$t-uid&NOComputers=1&OnlyUsers=1')",12)."</td>
+		<td class=legend style='font-size:26px'>{alias}:</td>
+		<td>". Field_text("$t-uid",$member,"font-size:26px;width:550px",null,null,null,false,"LinkUserStatsDBcHeck(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","LinkUserStatsDB()",16)."</td>
+		<td colspan=2 align='right'><hr>". button($bt_name,"LinkUserStatsDB()",32)."</td>
 	</tr>
 	</table>
 	</div>
@@ -294,11 +344,24 @@ function link_user_popup(){
 	
 	var x_LinkUserStatsDB=function(obj){
       var tempvalue=obj.responseText;
-      if(tempvalue.length>3){alert(tempvalue);}
+      if(tempvalue.length>3){alert(tempvalue);return;}
       YahooWin6Hide();
       if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
+      
+      if(document.getElementById('OCS_SEARCH_TABLE')){
+      	var id=document.getElementById('OCS_SEARCH_TABLE').value;
+      	$('#'+id).flexReload();
+      }
+ 	 if(document.getElementById('PROXY_ALIASES_TABLE')){
+      	$('#PROXY_ALIASES_TABLE').flexReload();
+      }  
+
+      if(document.getElementById('container-computer-tabs')){
+      	RefreshTab('container-computer-tabs');
+      }
+      
       if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
-     
+	  Loadjs('squid.macToUid.progress.php');
      }	
 
      function LinkUserStatsDBcHeck(e){
@@ -310,8 +373,19 @@ function link_user_popup(){
 		var XHR = new XHRConnection();
 		XHR.appendData('link-user-save','yes');
 		XHR.appendData('uid',document.getElementById('$t-uid').value);
-		XHR.appendData('MAC','{$_GET["MAC"]}');
-		XHR.appendData('ipaddr','{$_GET["ipaddr"]}');
+		if(!document.getElementById('$t-MAC') ){
+			XHR.appendData('MAC','{$_GET["MAC"]}');
+		}else{
+			XHR.appendData('MAC',document.getElementById('$t-MAC').value);
+		}
+		
+		if(!document.getElementById('$t-ipaddr') ){
+			XHR.appendData('ipaddr','{$_GET["ipaddr"]}');
+		}else{
+			XHR.appendData('ipaddr',document.getElementById('$t-ipaddr').value);
+		}		
+		
+		
 		XHR.sendAndLoad('$page', 'POST',x_LinkUserStatsDB);
 	}	
 	
@@ -328,22 +402,20 @@ function node_infos_tabs(){
 	$q=new mysql_squid_builder();
 	
 	$tablesrc="WEEK_RTTH";
-	
+	$tablesrc_hour="RTTH_".date("YmdH");
 	
 	$array["node-infos-status"]="{status}";
 	$array["node-infos-UserAgents"]="{UserAgents}";
-	$array["node-infos-IPADDRS"]="{ip_addresses}";
+	
 	
 	if($_GET["MAC"]<>null){
 		$array["SQUIDBLK"] = "{internet_access}";
 	}
 	
 	$array["node-infos-RTIME"]="{realtime_requests}";
-	$array["node-infos-GROUPS"]="{proxy_objects}";
-	if($q->TABLE_EXISTS("WEEK_RTTH")){
-		$array["node-infos-WEBACCESS"]="{statistics}";
-	}
 	
+
+
 	
 	if($users->PROXYTINY_APPLIANCE){
 		unset($array["node-infos-WEBACCESS"]);
@@ -354,7 +426,7 @@ function node_infos_tabs(){
 		unset($array["node-infos-IPADDRS"]);
 	}
 	
-	$textsize="16px";
+	$textsize="22px";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -377,6 +449,17 @@ function node_infos_tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.groups.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 	}	
+	
+	if($num=="node-infos-this-hour"){
+		if($_GET["MAC"]<>null){
+			$link="squid.member.RTTH.current.php?popup=yes&field=MAC&value={$_GET["MAC"]}";
+		}
+		if($link==null){
+			$link="squid.member.RTTH.current.php?popup=yes&field=ipaddr&value={$_GET["ipaddr"]}";
+		}
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"$link\"><span>$ligne</span></a></li>\n");
+		continue;
+	}
 
 	
 	if($num=="SQUIDBLK"){
@@ -397,8 +480,7 @@ function node_infos_tabs(){
 	
 	
 	echo build_artica_tabs($html, "main_node_infos_tab");
-	
-	
+
 		
 }
 
@@ -408,14 +490,6 @@ function node_infos_status(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
 	$users=new usersMenus();
-	$results=$q->QUERY_SQL("SELECT UserAgent,MAC FROM UserAutDB GROUP BY UserAgent,MAC HAVING MAC='{$_GET["MAC"]}' AND LENGTH(UserAgent)>0");
-	$UsersAgents=mysql_num_rows($results);
-	
-	
-	$results=$q->QUERY_SQL("SELECT ipaddr,MAC FROM UserAutDB GROUP BY ipaddr,MAC HAVING MAC='{$_GET["MAC"]}' AND LENGTH(ipaddr)>0");
-	if(!$q->ok){echo $q->mysql_error;}
-	
-	$ipaddr=mysql_num_rows($results);
 	
 	$computer=new computers();
 	$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
@@ -550,25 +624,6 @@ function node_infos_status(){
 			<p>&nbsp;</p>
 			<table style='width:100%'>
 				<tbody>
-	
-				
-								
-					<tr>
-						<td width=1% nowrap><img src='img/useragent-48.png'></td>
-						<td class=legend style='font-size:18px' nowrap>{UserAgents}:</td>
-						<td style='font-size:18px;font-weight:bolder'>$UsersAgents</td>
-					</tr>
-					<tr>
-						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
-					</tr>
-					<tr>
-						<td width=1% nowrap><img src='img/folder-network-48.png'></td>
-						<td class=legend style='font-size:18px' width=5% nowrap>{ip_addresses}:</td>
-						<td style='font-size:18px;font-weight:bolder' width=70% nowrap>$ipaddr</td>
-					</tr>
-					<tr>
-						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
-					</tr>	
 					<tr>
 						<td width=1% nowrap><img src='img/folder-network-48.png'></td>
 						<td class=legend style='font-size:18px' width=5% nowrap>{MAC}:</td>
@@ -590,9 +645,14 @@ function node_infos_status(){
 						<td width=1% nowrap><img src='img/user-48.png'></td>
 						<td class=legend style='font-size:18px' nowrap>{member}:</td>
 						<td style='font-size:18px;font-weight:bolder'>
-							<table><tr><td>$jsnode$member</a></td>
-							<td><span  style='margin-left:10px'>$member_delete</span></td>
-							</tr>
+							<table>
+								<tr>
+									<td>$jsnode$member</a></td>
+									<td><span style='margin-left:10px'>$member_delete</span></td>
+								</tr>
+								<tr>
+									<td colspan=2 align='right'><i style='font-size:12px'>{squid_node_alias_explain}</i></td>
+								</tr>
 							</table>
 						</td>
 					</tr>														
@@ -841,7 +901,20 @@ echo json_encode($data);
 function node_infos_UserAgents(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$q=new mysql_squid_builder();	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		echo FATAL_ERROR_SHOW_128("{SQUID_LOCAL_STATS_DISABLED}");
+		die();
+	}
+	
+	$UserAgentsStatistics=intval($sock->GET_INFO("UserAgentsStatistics"));
+	if($UserAgentsStatistics==0){
+		echo FATAL_ERROR_SHOW_128("{UserAgentsStatistics_disabled_error}");
+		die();
+		
+	}
+	
 	$UserAgents=$tpl->_ENGINE_parse_body("{UserAgents}");
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$member=$tpl->_ENGINE_parse_body("{member}");	
@@ -850,6 +923,9 @@ function node_infos_UserAgents(){
 	$add=$tpl->_ENGINE_parse_body("{add}:{extension}");
 	$addDef=$tpl->_ENGINE_parse_body("{add}:{default}");
 	$new_category=$tpl->_ENGINE_parse_body("{new_category}");
+	$size=$tpl->_ENGINE_parse_body("{size}");
+	$hits=$tpl->javascript_parse_text("{hits}");
+	$last_4hours=$tpl->javascript_parse_text("{last_4_hours}");
 	$TB_WIDTH=607;
 	$t=time();
 	$UserAgentsF="UserAgent";
@@ -870,20 +946,21 @@ $('#$t').flexigrid({
 	url: '$page?node-infos-UserAgents-list=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}$listAdd&field=$FilterField',
 	dataType: 'json',
 	colModel : [
-		{display: '$UserAgents', name : '$FilterField', width : 792, sortable : true, align: 'left'},
+		{display: '<strong style=font-size:22px>$UserAgents</strong>', name : 'USERAGENT', width : 832, sortable : true, align: 'left'},
+		{display: '<strong style=font-size:22px>$hits</strong>', name : 'hits', width : 118, sortable : true, align: 'right'},
+		{display: '<strong style=font-size:22px>$size</strong>', name : 'size', width : 118, sortable : true, align: 'right'},
+		
 	],
-	searchitems : [
-		{display: '$UserAgents', name : '$FilterField'},
-		],
-	sortname: '$FilterField',
+
+	sortname: 'size',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
-	useRp: true,
+	title: '<strong style=font-size:26px>$last_4hours</strong>',
+	useRp: false,
 	rp: 15,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 250,
+	height: 450,
 	singleSelect: true
 	
 	});   
@@ -898,79 +975,59 @@ function node_infos_UserAgents_list(){
 	$ip=new IP();
 	$field=$_GET["field"];
 	$search='%';
-	$table="UserAutDB";
-	$Select="MAC";
+	$table="USERAGENTS4H";
+	$Select="UID";
 	$page=1;
-	
+	$influx=new influx();
 	if($ip->isIPAddress($_GET["ipaddr"])){
 		$Select="ipaddr";
-		$FORCE_FILTER="AND ipaddr='{$_GET["ipaddr"]}' AND LENGTH($field)>1";
+		
 	}
 	
 	if($ip->IsvalidMAC($_GET["MAC"])){
 		$Select="MAC";
-		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH($field)>1";
+		$value="{$_GET["MAC"]}";
 	}
-
-	
-	
-	$total=0;
-	
-	if($q->COUNT_ROWS($table)==0){json_error_show("Empty table...");}
-	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
-	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
 	
 	$searchstring=string_to_flexquery();
-
-	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT,$field FROM `$table` GROUP BY $field HAVING 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-		
-	}else{
-		$sql="SELECT COUNT(*) as TCOUNT,$field FROM `$table` GROUP BY $field HAVING 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-	}
+	$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $Select='$value' $searchstring";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$total = $ligne["TCOUNT"];
 	
-	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
-
-	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT $field,$Select FROM `$table` GROUP BY $field,$Select HAVING 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	$results = $q->QUERY_SQL($sql);
 	
+	$sql="SELECT *  FROM $table WHERE $Select='$value' $searchstring $ORDER $limitSql";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
 	
+	if(!$q->ok){json_error_show($q->mysql_error);}
+	if(mysql_num_rows($results)==0){json_error_show("no data $sql" );}
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		json_error_show("$q->mysql_error\n$sql");
-	}	
-
-	
-	if(mysql_num_rows($results)==0){
-		json_error_show("Query return no item<hr>\n$sql");
-	}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
-		$ID=$ligne[$field];
-		$md5=md5($ligne[$field]);
-		
+
+		$USERAGENT=$ligne["USERAGENT"];
+		$size=FormatBytes($ligne["size"]/1024);
+		$md5=md5($USERAGENT);
+		$hits=$ligne["hits"];
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array(
-			"<span style='font-size:16px;'>{$ligne[$field]}</span>",
+			"<span style='font-size:18px;'>$USERAGENT</span>",
+			"<span style='font-size:18px;'>$hits</span>",
+			"<span style='font-size:18px;'>$size</span>",
 			)
 		);
 	}
+	
+	$data['total']=count($data['rows']);
 	
 	
 echo json_encode($data);		
@@ -986,7 +1043,10 @@ function node_infos_realtime(){
 	$proto=$tpl->_ENGINE_parse_body("{proto}");
 	$uri=$tpl->_ENGINE_parse_body("{url}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
-	$title=$tpl->_ENGINE_parse_body("{today}: {$_GET["MAC"]} - {$_GET["ipaddr"]} {realtime_requests} ".date("H")."h");
+	
+	$xtime=$tpl->time_to_date(strtotime('-1 hour'),true);
+	
+	$title=$tpl->_ENGINE_parse_body("{today}: {from} $xtime | {$_GET["MAC"]} | {$_GET["ipaddr"]} | {realtime_requests}");
 	$zoom=$tpl->_ENGINE_parse_body("{zoom}");
 	$button1="{name: 'Zoom', bclass: 'Search', onpress : ZoomSquidAccessLogs},";
 	$stopRefresh=$tpl->javascript_parse_text("{stop_refresh}");
@@ -1024,7 +1084,7 @@ function node_infos_realtime(){
 	$margin_left="-15";
 	if(is_numeric($_GET["table-size"])){$table_size=$_GET["table-size"];}
 	if(is_numeric($_GET["url-row"])){$url_row=$_GET["url-row"];}
-	
+	$hits=$tpl->javascript_parse_text("{hits}");
 
 	
 
@@ -1043,16 +1103,16 @@ function StartLogsSquidTable$t(){
 	url: '$page?node-infos-RTIME-LIST=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}',
 	dataType: 'json',
 	colModel : [
-	{display: '$zdate', name : 'zDate', width :52, sortable : true, align: 'left'},
-	{display: '$uri', name : 'events', width : 739, sortable : false, align: 'left'},
+	{display: '$zdate', name : 'zDate', width :95, sortable : false, align: 'left'},
+	{display: '$sitename', name : 'events', width : 746, sortable : false, align: 'left'},
+	{display: '$hits', name : 'hits', width : 110, sortable : false, align: 'right'},
+	{display: '$size', name : 'size', width : 110, sortable : false, align: 'right'},
 	],
 		
 	
 	
 	searchitems : [
-	{display: '$sitename', name : 'sitename'},
-	{display: '$uri', name : 'uri'},
-	{display: '$error', name : 'TYPE'},
+	{display: '$sitename', name : 'SITE'},
 
 	],
 	sortname: 'zDate',
@@ -1080,17 +1140,16 @@ function node_infos_realtime_list(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$q=new mysql_squid_builder();
-	$GLOBALS["Q"]=$q;
-	$table="squidhour_".date("YmdH");
-	
+	$influx=new influx();
+	$from=strtotime('-1 hour');
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
 	$ip=new IP();
 	
 	if($ip->isIPAddress($_GET["ipaddr"])){
-		$Select="ipaddr";
-		$FORCE_FILTER=" ipaddr='{$_GET["ipaddr"]}'";
+		$Select="IPADDR";
+		$FORCE_FILTER=" IPADDR='{$_GET["ipaddr"]}'";
 	}
 	
 	if($ip->IsvalidMAC($_GET["MAC"])){
@@ -1098,71 +1157,50 @@ function node_infos_realtime_list(){
 		$FORCE_FILTER=" MAC='{$_GET["MAC"]}'";
 	}
 	
-	$searchstring=string_to_flexquery();
 	
-		if($searchstring<>null){
-			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE_FILTER $searchstring";
-			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-			$total = $ligne["TCOUNT"];
+	$sql="SELECT * FROM access_log where time >{$from}s and $FORCE_FILTER ORDER BY time DESC LIMIT $rp";
 	
-		}else{
-			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE_FILTER";
-			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-			$total = $ligne["TCOUNT"];
-		}
-	
-		if(!is_numeric($rp)){$rp=50;}
-		$pageStart = ($page-1)*$rp;
-		$limitSql = "LIMIT $pageStart, $rp";
-		if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
-	
-		$sql="SELECT *  FROM `$table` WHERE $FORCE_FILTER $searchstring $ORDER $limitSql";
-		$results = $q->QUERY_SQL($sql);
-		if(!$q->ok){json_error_show($q->mysql_error."\n$sql");}
-	
+
 		$data = array();
 		$data['page'] = $page;
-		$data['total'] = $total;
+		$data['total'] = 0;
 		$data['rows'] = array();
 		$today=date("Y-m-d");
 		$tcp=new IP();
 	
-		$cachedT=$tpl->_ENGINE_parse_body("{cached}");
+		$main=$influx->QUERY_SQL($sql);
 		$c=0;
-		while ($ligne = mysql_fetch_assoc($results)) {
+	foreach ($main as $row) {
 			$color="black";
 			$return_code_text=null;
 			$ff=array();
 			$color="black";
-			$uri=$ligne["uri"];
-			$date=$ligne["zDate"];
-			$mac=$ligne["MAC"];
-			$ip=$ligne["CLIENT"];
-			$user=$ligne["uid"];
-			$dom=$ligne["sitename"];
-			$cached=$ligne["cached"];
-			$return_code=$ligne["TYPE"];
-			$size=$ligne["QuerySize"];
+			$uri=$row->SITE;
+			$xtimelog=null;
+			
+			
+			$date=date("H:i:s",InfluxToTime($row->time));
+			$mac=$row->MAC;
+			$ip=$row->IPADDR;
+			$user=$row->uid;
+			$size=$row->SIZE;
+			$rqs=$row->RQS;
 			$ident=array();
-			$md=md5(serialize($ligne));
-			$today=date("Y-m-d");
-			$date=str_replace($today, "", $date);
+			$md=md5(serialize($row));
+			$c++;
 		
-			$spanON="<span style='color:$color'>";
+			$spanON="<span style='color:$color;font-size:16px'>";
 			$spanOFF="</span>";
 			$cached_text=null;
-			if($cached==1){$cached_text=" - $cachedT";}
 			$size=FormatBytes($size/1024);
-			if($return_code=="Service Unavailable"){$color="#BA0000";}
-			if($return_code=="Bad Gateway"){$color="#BA0000";}
-			$return_code_text="<div style='color:$color;font-size:11px'><i>&laquo;$return_code&raquo;$cached_text - $size</i></div>";
-	
-	
+			
 			$data['rows'][] = array(
 					'id' => $md,
 					'cell' => array(
 							"$spanON$date$spanOFF",
-							"$spanON$uri.$return_code_text$spanOFF",
+							"$spanON$uri$spanOFF",
+							"$spanON$rqs$spanOFF",
+							"$spanON$size$spanOFF",
 					)
 			);
 	
@@ -1170,6 +1208,6 @@ function node_infos_realtime_list(){
 				
 	
 		}
-	
+		$data['total'] = $c;
 		echo json_encode($data);
 	}	

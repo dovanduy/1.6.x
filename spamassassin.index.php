@@ -267,7 +267,7 @@ function salearn_schedule_popup(){
 	
 	$html="
 	
-	<div class=text-info style='font-size:14px'>{salearnschedule_text}</p>
+	<div class=explain style='font-size:14px'>{salearnschedule_text}</p>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{salearnschedule}:</td>
@@ -410,7 +410,7 @@ function main_status(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td width=1% valign='top'><img src='img/bg_spam-assassin.jpg'>	<div class=text-info>{spamassassin_about}</div></td>
+	<td width=1% valign='top'><img src='img/bg_spam-assassin.jpg'>	<div class=explain>{spamassassin_about}</div></td>
 	<td valign='top'><div id='services_status'>". main_status_milter() . "<br>" . main_status_core() . "</div></td>
 	</tr>
 	</table>
@@ -978,7 +978,7 @@ $html="
 <table style='width:100%'>
 <tr>
 	<td valign='top'>$table</td>
-	<td valign='top' style='border-left:1px solid black;padding:5px'><div class=text-info>{trusted_networks_text}</div></td>
+	<td valign='top' style='border-left:1px solid black;padding:5px'><div class=explain>{trusted_networks_text}</div></td>
 </tr>
 </table>";
 	

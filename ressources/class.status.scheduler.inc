@@ -22,20 +22,40 @@ class status_scheduler{
 	$WebCommunityUpdatePool=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/WebCommunityUpdatePool"));
 	$GLOBALS["LMSensorsEnable"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/LMSensorsEnable"));
 	$LMSensorsEnable_cachefile="/usr/share/artica-postfix/ressources/logs/web/sensors.array";
-	
+	$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
 	
 	if($WebCommunityUpdatePool==0){$WebCommunityUpdatePool=360;}
 	
+	$this->events("LMSensorsEnable = {$GLOBALS["LMSensorsEnable"]}",__FUNCTION__,__LINE__);
 	
 	if($GLOBALS["LMSensorsEnable"]==0){
 		if(is_file($LMSensorsEnable_cachefile)){@unlink($LMSensorsEnable_cachefile);}
 	}
 	if($GLOBALS["LMSensorsEnable"]==1){
 		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.lm-sensors.php.time");
+		$this->events("exec.lm-sensors.php.time = $time_file/14min",__FUNCTION__,__LINE__);
 		if($time_file>14){
 			shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.lm-sensors.php --test >/dev/null 2>&1 &");
+		}else{
+			if(!is_file("/usr/share/artica-postfix/ressources/logs/web/sensors.array")){
+				shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.lm-sensors.php --test >/dev/null 2>&1 &");
+			}
+		
+		}
+		
+		
+	}
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/usb.scan.serialize")){
+		shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.usb.scan.write.php >/dev/null 2>&1 &");
+	}else{
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/usr/share/artica-postfix/ressources/usb.scan.serialize");
+		$this->events("exec.lm-sensors.php.time = $time_file/14min",__FUNCTION__,__LINE__);
+		if($time_file>50){
+			shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.usb.scan.write.php >/dev/null 2>&1 &");
 		}
 	}
+	
 	
 	
 	if($GLOBALS["SquidPerformance"]<3){
@@ -65,6 +85,12 @@ class status_scheduler{
 			}
 		}
 	}
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mysql.clean.php.clean_tmd.time");
+	if($time_file>240){
+		shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.mysql.clean.php --clean-tmd >/dev/null 2>&1 &");
+	}	
+	
 	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.web-community-filter.php.MAIN.time");
 	if($time_file>$WebCommunityUpdatePool){
@@ -101,15 +127,14 @@ class status_scheduler{
 		shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.checkfolder-permissions.php >/dev/null 2>&1 &");
 	}
 	
-	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.containers.php.Checks.time");
-	if($time_file>15){
-		shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.containers.php --cheks >/dev/null 2>&1 &");
+	if($EnableIntelCeleron==0){
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.containers.php.Checks.time");
+		if($time_file>15){
+			shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.containers.php --cheks >/dev/null 2>&1 &");
+		}
 	}
 	
-	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.loadavg.php.start.time");
-	if($time_file>4){
-		shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.loadavg.php >/dev/null 2>&1 &");
-	}
+
 	
 	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.scan.storage-logs.php.ScanFoldders.time");
@@ -172,14 +197,15 @@ class status_scheduler{
 		}
 	}
 	
-	
-	$squid=$GLOBALS["CLASS_UNIX"]->LOCATE_SQUID_BIN();
-	if(is_file($squid)){
-		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.clean_empty_tables.time");
-		if($time_file>240){
-			shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.squid.stats.hours.php --clean-empty 2>&1 &");
+	if($GLOBALS["SquidPerformance"]<3){
+		$squid=$GLOBALS["CLASS_UNIX"]->LOCATE_SQUID_BIN();
+		if(is_file($squid)){
+			$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.clean_empty_tables.time");
+			if($time_file>240){
+				shell_exec2("$prefixcmd {$GLOBALS["BASE_ROOT"]}/exec.squid.stats.hours.php --clean-empty 2>&1 &");
+			}
+		
 		}
-	
 	}
 	
 	
@@ -207,6 +233,22 @@ class status_scheduler{
 	
 
 	
+	}
+	
+	function events($text,$function=null,$line=0){
+		if($GLOBALS["VERBOSE"]){
+			echo "$function:: $text (L.$line)\n";
+			return;
+		}
+		$filename=basename(__FILE__);
+		$classunix=dirname(__FILE__)."/framework/class.unix.inc";
+		if(!isset($GLOBALS["CLASS_UNIX"])){
+			if(!is_file($classunix)){$classunix="/opt/artica-agent/usr/share/artica-agent/ressources/class.unix.inc";}
+			include_once($classunix);
+			$GLOBALS["CLASS_UNIX"]=new unix();
+		}
+	
+		$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/var/log/artica-status.log");
 	}
 	
 }

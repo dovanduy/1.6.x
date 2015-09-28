@@ -84,9 +84,9 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	$ArpdKernelLevel=$sock->GET_INFO("ArpdKernelLevel");
-	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
+	
 	if(!is_numeric($ArpdKernelLevel)){$ArpdKernelLevel=0;}
 	
 
@@ -100,11 +100,12 @@ function start($aspid=false){
 	$echo=$unix->find_program("echo");
 	$nohup=$unix->find_program("nohup");
 	
-	if ($ArpdKernelLevel>0){$ArpdKernelLevel_string=" -a $ArpdKernelLevel";}
+	if (intval($ArpdKernelLevel)>0){$ArpdKernelLevel_string=" -a $ArpdKernelLevel";}
 	$Interfaces=$unix->NETWORK_ALL_INTERFACES();
 	$nic=new system_nic();
 	while (list ($Interface, $ligne) = each ($Interfaces) ){
 		if($Interface=="lo"){continue;}
+		if($Interface=="tun0"){continue;}
 		if($ligne["IPADDR"]=="0.0.0.0"){continue;}
 		$Interface=$nic->NicToOther($Interface);
 		$TRA[$Interface]=$Interface;
@@ -114,7 +115,7 @@ function start($aspid=false){
 	@mkdir('/var/lib/arpd',0755,true);
 	
 	$f[]="$Masterbin -b /var/lib/arpd/arpd.db";
-	$f[]=$ArpdKernelLevel;
+	$f[]=$ArpdKernelLevel_string;
 	
 	if(count($TR)>0){
 		$f[]="-k ".@implode($TR," ");

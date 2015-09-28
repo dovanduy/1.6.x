@@ -1268,7 +1268,7 @@ function quarantine_create_queue_text(){
 	$msgs=count($liste);
 	
 	if($msgs>0){
-		$renvoi="&nbsp;|&nbsp;<a href='#' OnClick=\"javascript:LiberQueue($msgs);\" style='text-decoration:underline;font-size:13px;font-weight:bold;color:red'>{release}</a>";
+		$renvoi="&nbsp;|&nbsp;<a href='#' OnClick=\"javascript:LiberQueue($msgs);\" style='text-decoration:underline;font-size:13px;font-weight:bold;color:#d32d2d'>{release}</a>";
 	}
 	
 	$text="<hr><strong style='font-size:13px'>$msgs {messages_pluri} {selected_accents}$renvoi</strong>";

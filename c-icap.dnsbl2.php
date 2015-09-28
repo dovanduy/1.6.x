@@ -72,7 +72,7 @@ function popup(){
 		],";
 	$buttons=null;
 	
-	$html="<div class=text-info style='font-size:13px'>$DNSBL_WHY</div>
+	$html="<div class=explain style='font-size:13px'>$DNSBL_WHY</div>
 	<table class='dnsbl-table' style='display: none' id='dnsbl-table' style='width:99%'></table>
 <script>
 	$(document).ready(function(){

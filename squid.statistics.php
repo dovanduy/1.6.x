@@ -506,7 +506,7 @@ function thumbnail($zmd5=null){
 	
 	if(is_file($imageSourcePath)){$md5_file=md5_file($imageSourcePath);}
 	if($badThumbs[$md5_file]){
-		if($GLOBALS["VERBOSE"]){echo "<li style=color:red>Deleting $md</li>";}
+		if($GLOBALS["VERBOSE"]){echo "<li style=color:#d32d2d>Deleting $md</li>";}
 		@unlink($imageSourcePath);
 		@unlink($imagepath);
 		$q->QUERY_SQL("DELETE FROM webfilters_thumbnails WHERE zmd5='$md'");

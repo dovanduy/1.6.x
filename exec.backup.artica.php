@@ -1,4 +1,5 @@
 <?php
+ini_set('memory_limit','1000M');
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -16,17 +17,19 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 $GLOBALS["COMMANDLINE"]=@implode(" ", $argv);
 $GLOBALS["NOT_RESTORE_NETWORK"]=false;
 $GLOBALS["SEND_META"]=false;
+$GLOBALS["SNAPSHOT_NO_DELETE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--nowachdog#",$GLOBALS["COMMANDLINE"])){$GLOBALS["DISABLE_WATCHDOG"]=true;}
 if(preg_match("#--force#",$GLOBALS["COMMANDLINE"])){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--meta-ping#",$GLOBALS["COMMANDLINE"])){$GLOBALS["SEND_META"]=true;}
+if(preg_match("#--not-remove#",$GLOBALS["COMMANDLINE"])){$GLOBALS["SNAPSHOT_NO_DELETE"]=true;}
 
 if(preg_match("#--verbose#",$GLOBALS["COMMANDLINE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-
 if($argv[1]=="--restore"){restore();die();}
 if($argv[1]=="--snapshot"){snapshot();die();}
 if($argv[1]=="--snapshot-id"){snapshot_restore_sql($argv[2]);die();}
 if($argv[1]=="--snapshot-file"){snapshot_restore($argv[2]);die();}
+if($argv[1]=="--snapshot-import"){snapshot_import();die();}
 
 
 
@@ -205,7 +208,10 @@ function backup_artica_settings($BaseWorkDir){
 	$BLACKLIST["SYSTEMID"]=true;
 	$BLACKLIST["SoftwaresListCached"]=true;
 	$BLACKLIST["TOP_NOTIFY"]=true;
-	
+	$BLACKLIST["HyperCacheStoreIDLicense"]=true;
+	$BLACKLIST["HyperCacheLicStatus"]=true;
+	$BLACKLIST["UpgradeTov10"]=true;
+	$BLACKLIST["LinuxDistributionFullName"]=true;
 	
 	if (!$handle = opendir("/etc/artica-postfix/settings/Daemons")) {echo "Failed open /etc/artica-postfix/settings/Daemons\n";return;}
 	@mkdir("$BaseWorkDir/Daemons",0755,true);
@@ -250,6 +256,61 @@ function snapshot_restore_sql($ID){
 }
 
 
+
+function snapshot_import_progress($purc,$text){
+	backupevents("$purc) $text");
+	$array=array("POURC"=>$purc,"TEXT"=>$text);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/snapshot.upload.progress", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/snapshot.upload.progress",0755);
+}
+
+function snapshot_import(){
+	$sock=new sockets();
+	ini_set('memory_limit','1000M');
+	$ARRAY=unserialize($sock->GET_INFO("SnapshotUpload"));
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/snapshot.upload.progress";
+	$xdate=$ARRAY["xdate"];
+	$size=$ARRAY["size"];
+	$zmd5=$ARRAY["zmd5"];
+	$filePath=$ARRAY["filepath"];
+	
+	echo "Date: $xdate\n";
+	echo "Size: $size\n";
+	echo "MD5.: $zmd5\n";
+	echo "File: $filePath\n";
+	
+	if(!is_file($filePath)){
+		echo "No such file!\n";
+		snapshot_import_progress(110,"{failed}: ".basename($filePath));
+		return;
+	}
+	
+	snapshot_import_progress(15,"{importing}: ".basename($filePath));
+	$data=mysql_escape_string2(@file_get_contents($filePath));
+	@unlink($filePath);
+	
+	
+	$q=new mysql();
+	
+	for($i=0;$i<6;$i++){
+		snapshot_import_progress(50,"{importing}: ".basename($filePath)." $i/5");
+		$q->QUERY_SQL("INSERT IGNORE INTO `snapshots` (zDate,snap,size,content,zmd5)
+				VALUES ('$xdate','$data','$size','','$zmd5')","artica_snapshots");
+		
+		if($q->ok){
+			snapshot_import_progress(100,"{success}: ".basename($filePath));
+			return;
+		}
+		
+		echo $q->mysql_error."\n";
+		sleep(3);		
+	}
+	
+	snapshot_import_progress(110,"{failed}: ".basename($filePath));
+	
+}
+
+
 function snapshot_restore($tarball){
 	backupevents("Restoring $tarball");
 	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
@@ -275,7 +336,9 @@ function snapshot_restore($tarball){
 	progress(15,"{extracting}");
 	echo $tarball." -> $BaseWorkDir\n";
 	system("$tar xf $tarball -C $BaseWorkDir/");
-	@unlink($tarball);
+	if(!$GLOBALS["SNAPSHOT_NO_DELETE"]){
+		@unlink($tarball);
+	}
 	
 	if(is_file("$BaseWorkDir/TRUNCATE_TABLES")){
 		$TRUNCATE_TABLES=unserialize(@file_get_contents("$BaseWorkDir/TRUNCATE_TABLES"));
@@ -302,6 +365,7 @@ function snapshot_restore($tarball){
 	}
 	
 	progress(30,"{restoring} squidlogs");
+	echo "-> restore_squidlogs....\n";
 	restore_squidlogs($BaseWorkDir);
 	progress(40,"{restoring} artica_backup");
 	restore_artica_backup($BaseWorkDir);
@@ -418,6 +482,9 @@ function snapshot(){
 			$BLACKLIST["webfilters_categories_caches"]=true;
 			$BLACKLIST["webfilters_thumbnails"]=true;
 			$BLACKLIST["wpad_events"]=true;
+			$BLACKLIST["phishtankdb"]=true;
+			$BLACKLIST["squid_storelogs"]=true;
+			
 			
 			while (list ($table_name, $val) = each ($LIST_TABLES_ARTICA_SQUIDLOGS)){
 				if(isset($BLACKLIST[$table_name])){continue;}
@@ -447,6 +514,12 @@ function snapshot(){
 				if(preg_match("#^updateblks_events$#", $table_name)){continue;}
 				if(preg_match("#^main_websites#", $table_name)){continue;}
 				if(preg_match("#^notcategorized#", $table_name)){continue;}
+				if(preg_match("#^ngixattckd_#", $table_name)){continue;}
+				if(preg_match("#^sizehour_#", $table_name)){continue;}
+				if(preg_match("#^squidhour_#", $table_name)){continue;}
+				
+				
+				
 				if($q->COUNT_ROWS($table_name, "squidlogs")==0){
 					$GLOBALS["TRUNCATES"]["squidlogs"][$table_name]=true;
 					continue;
@@ -902,6 +975,7 @@ function restore_artica_settings($sourceDir){
 	$BLACKLIST["SYSTEMID"]=true;
 	$BLACKLIST["BackupArticaRestoreNetwork"]=true;
 	$BLACKLIST["LogsWarninStop"]=true;
+	$BLACKLIST["LinuxDistributionFullName"]=true;
 	
 	if($BackupArticaRestoreNetwork==0){
 		$BLACKLIST["EnableKerbAuth"]=true;

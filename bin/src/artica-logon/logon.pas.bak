@@ -108,6 +108,7 @@ var
    ARTICA_PRODUCT_NAME:string;
    ARTICA_NIGHTLY_VERSION:string;
    htop_bin:string;
+   InFluxDBIP:string;
    ISOCanDisplayUserNamePassword,ISOCanChangeIP,ISOCanReboot,ISOCanShutDown,ISOCanChangeRootPWD,ISOCanChangeLanguage:integer;
 begin
 ArticaAgent:=false;
@@ -119,7 +120,10 @@ if not TryStrToInt(SYS.GET_INFO('ISOCanReboot'),ISOCanReboot) then ISOCanReboot:
 if not TryStrToInt(SYS.GET_INFO('ISOCanShutDown'),ISOCanShutDown) then ISOCanShutDown:=1;
 if not TryStrToInt(SYS.GET_INFO('ISOCanChangeRootPWD'),ISOCanChangeRootPWD) then ISOCanChangeRootPWD:=1;
 if not TryStrToInt(SYS.GET_INFO('ISOCanChangeLanguage'),ISOCanChangeLanguage) then ISOCanChangeLanguage:=1;
- ARTICA_PRODUCT_NAME='Artica';
+ ARTICA_PRODUCT_NAME:='Artica';
+
+
+
 
 if FileExists('/etc/artica-postfix/WEBSECURIZE') then ARTICA_PRODUCT_NAME:='Web Securize';
 
@@ -239,10 +243,13 @@ if FileExists('/opt/kaspersky/klms/bin/klms-control') then begin
    writeln('[C]..... Restart Kaspersky Services');
 end;
 if not  ArticaAgent then writeln('[C]..... Synchronize settings & remove cache');
-writeln('[D]..... Upgrade '+ARTICA_PRODUCT_NAME+' (',ARTICA_NIGHTLY_VERSION,')');
+writeln('[D]..... Upgrade '+ARTICA_PRODUCT_NAME);
 if FileExists('/usr/bin/htop') then writeln('[E]..... Process Monitor');
 writeln('[G]..... '+ARTICA_PRODUCT_NAME+' service setup');
 if FileExists(htop_bin) then writeln('[H]..... Tasks Manager');
+if FileExists('/opt/influxdb/influx') then writeln('[I]..... Statistics database');
+
+
 writeln('[L]..... Configure languages');
 writeln('[N]..... Network settings');
 writeln('[O]..... Meta client tasks');
@@ -303,6 +310,14 @@ end;
 
 if a='H' then begin
    fpsystem(htop_bin);
+   Menu();
+   exit;
+end;
+
+if a='I' then begin
+   InFluxDBIP:=SYS.GET_INFO('InfluxApiIP');
+   if FileExists('/etc/artica-postfix/STATS_APPLIANCE') then InFluxDBIP:='127.0.0.1';
+   fpsystem('/opt/influxdb/influx -host 127.0.0.1 -port 8086');
    Menu();
    exit;
 end;
@@ -589,6 +604,7 @@ end;
    writeln('Restart the framework service.............: [G]');
    writeln('Generate the Main configuration file......: [H]');
    writeln('Rebuild Web console certificate...........: [I]');
+   writeln('Reset all server settings.................: [J]');
 
 
 
@@ -597,6 +613,15 @@ end;
    a:=UpperCase(a);
 
    if a='Q' then exit;
+
+   if a='J' then begin
+      fpsystem('clear');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.users.reset.php');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
 
    if a='C' then begin
       fpsystem('clear');

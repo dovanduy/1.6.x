@@ -206,7 +206,7 @@ function rules(){
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$new_time_rule=$tpl->_ENGINE_parse_body("{new_time_rule}");
 	$t=time();		
-	$html=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:13px'>{connection_time_squid_text}</div>")."
+	$html=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:13px'>{connection_time_squid_text}</div>")."
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var TimeRuleIDTemp=0;
@@ -677,7 +677,7 @@ function EditTimeRule_template(){
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqtimes_rules WHERE ID='$ID'"));
 	if($ligne["Allow"]==1){
-		echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{template_error_no_sense}<div>");
+		echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{template_error_no_sense}<div>");
 		return;
 	}
 	

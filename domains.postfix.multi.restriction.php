@@ -21,7 +21,6 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{messages_restriction}');
 	$html="
-	var x='$x';
 	$datas
 	function LoadMainMMultiRestrictions(){
 		YahooWinS(550,'$page?popup=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}','$title');

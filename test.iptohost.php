@@ -3,14 +3,19 @@
 	include_once('ressources/class.pdns.inc');
 	
 	
-	$ip=$argv[1];
+	echo trim(intval(@file_get_contents("/proc/sys/net/core/wmem_max")))."\n";
 	
 	
-	$pdns=new pdns();
+	$path="/media/Cachesdb/TOTO/proxy-caches/small-cpu1";
 	
-	print_r($pdns->IpToHosts($ip));
-	
-	echo "gethostbyaddr():". gethostbyaddr($ip)."\n";
+	$tt=explode("/",$path);
+	$pathX=null;
+	while (list ($none, $subdir) = each ($tt) ){
+		if($subdir==null){continue;}
+		$pathX=$pathX."/$subdir";
+		echo $pathX."\n";
+		
+	}
 	
 	
 	

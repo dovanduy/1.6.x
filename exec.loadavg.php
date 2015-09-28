@@ -1,4 +1,7 @@
 <?php
+$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+if($EnableIntelCeleron==1){die("EnableIntelCeleron==1\n");}
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["DEBUG"]=false;;
 $GLOBALS["FORCE"]=false;
@@ -11,9 +14,9 @@ include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 include_once(dirname(__FILE__)."/ressources/class.ccurl.inc");
-include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
+include_once(dirname(__FILE__)."/ressources/class.influx.inc");
 
-if($argv[1]=="--tables"){showtables();exit;}
+
 if($argv[1]=="--cmdline"){cmdline();exit;}
 
 if($GLOBALS["VERBOSE"]){echo "Starting....\n";}
@@ -29,7 +32,7 @@ function start(){
 	
 	
 	if(!$GLOBALS["VERBOSE"]){
-		if($unix->file_time_min($pidfileTime)<4){
+		if($unix->file_time_min($pidfileTime)<59){
 			return;
 		}
 	}
@@ -45,29 +48,10 @@ function start(){
 		unix_system_kill_force($pid);
 	}
 	@file_put_contents($pidfile, getmypid());
-	if(system_is_overloaded()){
-		if($GLOBALS["VERBOSE"]){echo "Overloaded\n";}
-		die();}
-	
-	
-	
-	
+	if(system_is_overloaded()){if($GLOBALS["VERBOSE"]){echo "Overloaded\n";}die();}
 	@unlink($pidfileTime);
 	@file_put_contents($pidfileTime, time());
-	
-	if($GLOBALS["VERBOSE"]){echo " ****  TIME :  ". date("Y-m-d H:i:s")." **** \n";}
-	if($GLOBALS["VERBOSE"]){echo "start1\n";}
-	start1();
-	if($GLOBALS["VERBOSE"]){echo "start2\n";}
-	start2();
-	if($GLOBALS["VERBOSE"]){echo "start3\n";}
-	start3();
-	if($GLOBALS["VERBOSE"]){echo "start4\n";}
-	start4();
-	if($GLOBALS["VERBOSE"]){echo "start5\n";}
-	start5();
-	if($GLOBALS["VERBOSE"]){echo "start6\n";}
-	start6();
+
 	if($GLOBALS["VERBOSE"]){echo "cpustats\n";}
 	cpustats();
 }
@@ -75,114 +59,101 @@ function start(){
 
 function cpustats(){
 	
-	
+	$xdata=array();
+	$ydata=array();
 	$unix=new unix();
 	$hostname=$unix->hostname_g();
+	$filecache=dirname(__FILE__)."/ressources/logs/web/cpustatsH.db";
+	$filecache_load=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVGH.db";
+	$filecache_mem=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVG2H.db";
+	
+	
+	$now=InfluxQueryFromUTC(strtotime("-24 hour"));
+	$influx=new influx();
+	$sql="SELECT MEAN(CPU_STATS) as cpu,MEAN(LOAD_AVG) as load,MEAN(MEM_STATS) as memory FROM SYSTEM  where proxyname='$hostname' and time > {$now}s GROUP BY time(10m) ORDER BY ASC";
+	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+	
+	
+	$main=$influx->QUERY_SQL($sql);
+	
+	foreach ($main as $row) {
+		$time=InfluxToTime($row->time);
+		if(!is_numeric($row->cpu)){continue;}
+		if(!is_numeric($row->load)){continue;}
+	
+	
+		$min=date("l H:i",$time)."mn";
+		$xdata[]=$min;
+		$ydata[]=round($row->cpu,2);
+		$ydataL[]=round($row->load,2);
+		$ydataM[]=round(($row->memory),2);
+		if($GLOBALS["VERBOSE"]){echo "$min -> $row->cpu | $row->load | $row->memory\n";}
+	}
+	
+	
+	if(count($xdata)>1){
+		$ARRAY=array($xdata,$ydata);
+		$ARRAYL=array($xdata,$ydataL);
+		$ARRAYM=array($xdata,$ydataM);
+		if($GLOBALS["VERBOSE"]){echo "-> $filecache\n";}
+		@file_put_contents($filecache, serialize($ARRAY));
+		@file_put_contents($filecache_load, serialize($ARRAYL));
+		@file_put_contents($filecache_mem, serialize($ARRAYM));
+	
+		@chmod($filecache,0755);
+		@chmod($filecache_load,0755);
+		@chmod($filecache_mem,0755);
+	}
+	
+	
+	$xdata=array();
+	$ydata=array();
+	$ydataL=array();
+	$ydataM=array();
+	
 	$filecache=dirname(__FILE__)."/ressources/logs/web/cpustats.db";
-	$q=new mysql();
-	if(!$q->TABLE_EXISTS("cpustats", "artica_events")){return;}
+	$filecache_load=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVG.db";
+	$filecache_mem=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVG2.db";
+	$now=InfluxQueryFromUTC(strtotime("-168 hour"));
+	$influx=new influx();
+	$sql="SELECT MEAN(CPU_STATS) as cpu,MEAN(LOAD_AVG) as load,MEAN(MEM_STATS) as memory FROM SYSTEM  where proxyname='$hostname' and time > {$now}s GROUP BY time(1h) ORDER BY ASC";
+	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 	
-	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdate,hostname,
-		MINUTE(zDate) as `time`,AVG(cpu) as value FROM `cpustats` GROUP BY `time` ,tdate,hostname
-		HAVING tdate=DATE_FORMAT(NOW(),'%Y-%m-%d %H') AND `hostname`='$hostname' ORDER BY `time`";	
 	
+	$main=$influx->QUERY_SQL($sql);
 	
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){
-		if(strpos($q->mysql_error, "is marked as crashed")>0){ $q->QUERY_SQL("DROP TABLE `cpustats`","artica_events");return;}
+	foreach ($main as $row) {
+		$time=InfluxToTime($row->time);
+		if(!is_numeric($row->cpu)){continue;}
+		if(!is_numeric($row->load)){continue;}
 		
-		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";} return;}
-	
-	if(mysql_num_rows($results)<2){ if($GLOBALS["VERBOSE"]){echo "mysql_num_rows($results) <2\n";} return;}
-	
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$xdata[]=$ligne["time"];
-		$ydata[]=round($ligne["value"],2);
+		
+		$min=date("l H:00",$time);
+		$xdata[]=$min;
+		$ydata[]=round($row->cpu,2);
+		$ydataL[]=round($row->load,2);
+		$ydataM[]=round(($row->memory/1024),2);
+		if($GLOBALS["VERBOSE"]){echo "$min -> $row->cpu | $row->load | $row->memory\n";}
 	}
 	
 	
 	if(count($xdata)>1){
 		$ARRAY=array($xdata,$ydata);
+		$ARRAYL=array($xdata,$ydataL);
+		$ARRAYM=array($xdata,$ydataM);
 		if($GLOBALS["VERBOSE"]){echo "-> $filecache\n";}
 		@file_put_contents($filecache, serialize($ARRAY));
-		@chmod($filecache,0755);
-	}	
-}
-
-
-function start1(){
-	
-	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdate,
-		MINUTE(zDate) as `time`,AVG(loadavg) as value FROM `sys_loadvg` GROUP BY `time` ,tdate
-		HAVING tdate=DATE_FORMAT(NOW(),'%Y-%m-%d %H') ORDER BY `time`";
-	
-	$filecache=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVG.db";
-	@unlink($filecache);
-	
-	$q=new mysql();
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";}
-		return;}
-	
-	if(mysql_num_rows($results)<2){
-		if($GLOBALS["VERBOSE"]){echo "mysql_num_rows($results) <2\n";}
-		return;}
+		@file_put_contents($filecache_load, serialize($ARRAYL));
+		@file_put_contents($filecache_mem, serialize($ARRAYM));
 		
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$xdata[]=$ligne["time"];
-		$ydata[]=round($ligne["value"],2);
+		@chmod($filecache,0755);
+		@chmod($filecache_load,0755);
+		@chmod($filecache_mem,0755);
 	}
-	
-	
-	if(count($xdata)>1){
-		$ARRAY=array($xdata,$ydata);
-		if($GLOBALS["VERBOSE"]){echo "-> $filecache\n";}
-		@file_put_contents($filecache, serialize($ARRAY));
-		@chmod($filecache,0755);
-	}	
-	
-	
-}
 
-function start2(){
 	
-	$sql="SELECT DATE_FORMAT( zDate, '%Y-%m-%d %H' ) AS tdate, MINUTE( zDate ) AS time,
-				AVG( memory_used ) AS value
-				FROM `sys_mem`
-				GROUP BY `time` , tdate
-				HAVING tdate = DATE_FORMAT( NOW( ) , '%Y-%m-%d %H' )
-				ORDER BY `time`";
+
 	
-	$title="{memory_consumption_this_hour}";
-	$timetext="{minutes}";
-	
-	
-	$filecache=$filecache=dirname(__FILE__)."/ressources/logs/web/INTERFACE_LOAD_AVG2.db";
-	@unlink($filecache);
-	
-	$q=new mysql();
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){return;}
-	
-	if(mysql_num_rows($results)<2){return;}
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$xdata[]=$ligne["time"];
-			$ligne["value"]=$ligne["value"]/1024;
-			$ydata[]=round($ligne["value"],2);
-		}
-		
-	
-		if(count($xdata)>1){
-			$ARRAY=array($xdata,$ydata);
-			@file_put_contents($filecache, serialize($ARRAY));
-			@chmod($filecache,0755);
-		}	
 	
 }
 
@@ -192,201 +163,4 @@ function cmdline(){
 	echo $q->MYSQL_CMDLINES."\n";
 	
 }
-
-function start3(){
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/squid.stats.size.hour.db";
-	@unlink($cacheFile);
-	$unix=new unix();
-	$squid=$unix->LOCATE_SQUID_BIN();
-	if(!is_file($squid)){return;}
-	
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$currenttime=date("YmdH");
-	$table="squidhour_$currenttime";
-	$q=new mysql_squid_builder();
-	
-	if(!$q->TABLE_EXISTS($table)){return;}
-	
-	$sql="SELECT SUM(QuerySize) as tsize,DATE_FORMAT(zDate,'%i') as tdate FROM $table
-	group by tdate HAVING tsize>0
-	ORDER BY tdate ";
-	
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "$q->mysql_error";return;}
-	
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-	
-	$size=round(($ligne["tsize"]/1024),2);
-			if($GLOBALS["VERBOSE"]){echo "<strong>Size: {$ligne["tdate"]} = {$ligne["tsize"]} = $size KB</strong><br>\n";}
-			if(strlen($ligne["tdate"])==1){$ligne["tdate"]="0".$ligne["tdate"];}
-			$xdata[]="\"{$ligne["tdate"]}mn\"";
-		$ydata[]=$size;
-	}
-
-	
-	if(count($xdata)<2){return;}
-	$array=array($xdata,$ydata);
-	
-	
-	@file_put_contents($cacheFile, serialize($array));
-	@chmod($cacheFile,0755);
-	
-	
-}
-
-function showtables(){
-	
-	$q=new mysql_squid_builder();
-	//$results=$q->QUERY_SQL("SHOW TABLES");
-	//while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-	//	echo $ligne["Tables_in_squidlogs"]."\n";
-	//}
-	
-	
-	$LIST_TABLES_SIZEHOURS=$q->LIST_TABLES_SIZEHOURS();
-	while (list ($tablename,$none) = each ($LIST_TABLES_SIZEHOURS) ){
-		echo "Size Hour: $tablename\n";
-		
-	}
-	
-}
-
-
-function start4(){
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_LOAD_AVG3.db";
-	@unlink($cacheFile);
-	$unix=new unix();
-	$squid=$unix->LOCATE_SQUID_BIN();
-	if(!is_file($squid)){
-		if($GLOBALS["VERBOSE"]){echo "start4(): squid no such binary\n";}
-		
-		return;}
-	
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo " ****  TIME :  ". date("Y-m-d H:i:s")." **** \n";}
-	$TableSizeHours="sizehour_".date("YmdH");
-	
-	if($GLOBALS["VERBOSE"]){echo " ****  TABLE $TableSizeHours **** \n";}
-	
-	$q=new mysql_squid_builder();
-	
-	if(!$q->TABLE_EXISTS($TableSizeHours)){
-		if($GLOBALS["VERBOSE"]){echo "start4(): $TableSizeHours no such table\n";}
-		return;}
-	
-	$sql="SELECT SUM(`size`) as tsize,DATE_FORMAT(zDate,'%i') as tdate FROM $TableSizeHours group by tdate HAVING tsize>0 ORDER BY tdate ";
-	
-	
-	if($GLOBALS["VERBOSE"]){echo " ****\n$sql\n**** \n";}
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "$q->mysql_error";return;}
-	
-	if($GLOBALS["VERBOSE"]){echo " ****  TABLE $TableSizeHours mysql_num_rows = ". mysql_num_rows($results)."**** \n";}
-	
-	if(mysql_num_rows($results)<2){return;}
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-	
-		$size=$ligne["tsize"]/1024;
-		$size=round($size/1024);
-		if($GLOBALS["VERBOSE"]){echo "<strong>{$ligne["tdate"]} = $size</strong><br>\n";}
-		if(strlen($ligne["tdate"])==1){$ligne["tdate"]="0".$ligne["tdate"];}
-		$xdata[]="\"{$ligne["tdate"]}\"";
-		$ydata[]=$size;
-	}
-	
-	
-	if(count($xdata)<2){
-		if($GLOBALS["VERBOSE"]){echo "start4(): ".count($xdata)." < 2\n";}
-		return;}
-	$array=array($xdata,$ydata);
-	
-	
-	@file_put_contents($cacheFile, serialize($array));
-	@chmod($cacheFile,0755);	
-	
-}
-function start5(){
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_LOAD_AVG5.db";
-	@unlink($cacheFile);
-	$unix=new unix();
-	$squid=$unix->LOCATE_SQUID_BIN();
-	if(!is_file($squid)){if($GLOBALS["VERBOSE"]){echo "start4(): squid no such binary\n";}return;}
-
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo " ****  TIME :  ". date("Y-m-d H:i:s")." **** \n";}
-	$TableSizeMonth=$table="quotamonth_".date("Ym");
-	$q=new mysql_squid_builder();
-	if(!$q->TABLE_EXISTS($TableSizeMonth)){
-		if($GLOBALS["VERBOSE"]){echo "start4(): $TableSizeMonth no such table\n";}
-		return;
-	}
-
-	$sql="SELECT SUM(`size`) as tsize,`day` as tdate FROM $TableSizeMonth
-	group by tdate HAVING tsize>0
-	ORDER BY tdate ";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "$q->mysql_error";return;}
-
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$size=$ligne["tsize"]/1024;
-		$size=round($size/1024);
-		if($GLOBALS["VERBOSE"]){echo "<strong>{$ligne["tdate"]} = $size</strong><br>\n";}
-		if(strlen($ligne["tdate"])==1){$ligne["tdate"]="0".$ligne["tdate"];}
-		$xdata[]="\"{$ligne["tdate"]}\"";
-		$ydata[]=$size;
-	}
-
-
-	if(count($xdata)<2){
-	if($GLOBALS["VERBOSE"]){echo "start4(): ".count($xdata)." < 2\n";}
-	return;}
-	$array=array($xdata,$ydata);
-	@file_put_contents($cacheFile, serialize($array));
-	@chmod($cacheFile,0755);
-
-}
-
-function start6(){
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_WEBFILTER_BLOCKED.db";
-	@unlink($cacheFile);
-	$unix=new unix();
-	$squid=$unix->LOCATE_SQUID_BIN();
-	if(!is_file($squid)){if($GLOBALS["VERBOSE"]){echo "start6: squid no such binary\n";}return;}
-	$sock=new sockets();
-	if($sock->EnableUfdbGuard()==0){return;}
-	$zday=date('Ymd');
-	$table=$zday."_blocked";
-	$q=new mysql_squid_builder();
-	if(!$q->TABLE_EXISTS($table)){
-		$hier=strtotime($q->HIER()." 00:00:00");
-		$zday=date('Ymd',$hier);
-		$table=$zday."_blocked";
-	}
-	if(!$q->TABLE_EXISTS($table)){return;}
-	
-	$sql="SELECT COUNT(*) as hits,HOUR(zDate) as `hour` FROM $table GROUP BY `hour` ORDER BY `hour`";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "$q->mysql_error";return;}
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
-		$hits=$ligne["hits"];
-		$xdata[]=$ligne["hour"];
-		$ydata[]=$hits;
-		}
-		
-		
-	if(count($xdata)<2){if($GLOBALS["VERBOSE"]){echo "start4(): ".count($xdata)." < 2\n";} return;}
-	$array=array($xdata,$ydata);
-	@file_put_contents($cacheFile, serialize($array));
-	@chmod($cacheFile,0755);
-
-	
-	
-}
+?>

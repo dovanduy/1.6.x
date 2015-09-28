@@ -223,7 +223,7 @@ function webservice(){
 	if($groupwarelink<>null){
 		
 		$explain="
-		<div class=text-info>$groupwares_textintro:<br><strong style='font-size:14px'>
+		<div class=explain>$groupwares_textintro:<br><strong style='font-size:14px'>
 			<a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$groupwarelink',1024,768)\" style='text-decoration:underline;font-weight:bold;color:#969696'>$groupwarelink</a></strong></div>		
 		";
 		

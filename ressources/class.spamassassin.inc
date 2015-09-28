@@ -11,7 +11,7 @@ class spamassassin{
 	var $add_headers=array();
 	var $dn;
 	var $global_conf;
-	var $block_with_required_score=null;
+	var $block_with_required_score=5;
 	var $CountriesCode;
 	var $main_country=array();
 	var $EnableSpamassassinDnsEval=0;
@@ -52,10 +52,7 @@ function Parse_rewrite_headers(){
 		if(preg_match('#^rewrite_header\s+(Subject|From|To)\s+(.+)#',$ligne,$re)){
 			$this->rewrite_headers[$re[1]]=$re[2];
 		}
-		
-		if(preg_match('#milter_block_with_required_score:([0-9\.]+)#',$ligne,$re)){
-			$this->block_with_required_score=$re[1];
-		}
+
 		
 	}
 }
@@ -110,7 +107,7 @@ function SaveToLdap(){
 	$tpl=new templates();
 	$this->SaveRelayCountry();
 	$sock=new sockets();
-	$this->spamassassin_reloadAndSave();
+	
 	
 	
 }
@@ -119,8 +116,8 @@ function SaveToLdap(){
 
 function buildDefault(){
 	
-	
-	
+	$sock=new sockets();
+	$this->block_with_required_score=trim($sock->GET_INFO("SpamAssBlockWithRequiredScore"));
 	if(!isset($this->main_array["use_terse_report"])){$this->main_array["use_terse_report"]=1;}
 	if(!isset($this->main_array["required_score"])){$this->main_array["required_score"]="5.0";}
 	if(!isset($this->main_array["report_safe"])){$this->main_array["report_safe"]=1;}
@@ -138,7 +135,7 @@ function buildDefault(){
 	if($this->main_array["use_auto_whitelist"]==null){$this->main_array["use_auto_whitelist"]="1";}
 	if(!is_numeric($this->main_array["use_razor2"])){$this->main_array["use_razor2"]=0;}
 	if(!is_numeric($this->main_array["use_pyzor"])){$this->main_array["use_pyzor"]=0;}
-	if($this->block_with_required_score==null){$this->block_with_required_score=10;}
+	if($this->block_with_required_score==null){$this->block_with_required_score=5;}
 	
 	$users=new usersMenus();
 	if($users->razor_installed){
@@ -158,18 +155,7 @@ function buildDefault(){
 }
 
 
-function spamassassin_reloadAndSave(){
-	$sock=new sockets();
-	
-	$EnableAmavisDaemon=$sock->GET_INFO("EnableAmavisDaemon");
-	if($EnableAmavisDaemon==1){
-		$sock->getFrameWork("cmd.php?spamass-build=yes");
-	}else{		
-		$sock->getFrameWork("cmd.php?SpamAssassin-Reload=yes");
-	}
-	
-	
-}
+
 
 
 function LoadCountries(){
@@ -186,7 +172,7 @@ function SaveRelayCountry(){
 	$sock=new sockets();
 	$ini->_params=$this->main_country;
 	$sock->SaveConfigFile($ini->toString(),"RelayCountryPlugin");
-	$this->spamassassin_reloadAndSave();
+	
 	}
 
 
@@ -333,10 +319,7 @@ private function spamassassin_rules(){
 	$q=new mysql();
 	$f=array();
 	$results = $q->QUERY_SQL($sql,$database);
-	if(mysql_num_rows($results)==0){
-		echo "Starting......: ".date("H:i:s")." Spamassassin: no rules\n";
-		return;
-	}
+	if(mysql_num_rows($results)==0){return;}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$describe=stripslashes($ligne["describe"]);
 		$pattern=base64_decode($ligne["pattern"]);

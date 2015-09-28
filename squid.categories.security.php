@@ -11,10 +11,8 @@
 	header("Cache-Control: no-cache, must-revalidate");	
 	$user=new usersMenus();
 	if(!$user->AsSquidAdministrator){
-		$tpl=new templates();
-		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
 		exit;
-		
 	}
 	
 	

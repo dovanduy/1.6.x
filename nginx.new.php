@@ -76,7 +76,7 @@ function step1(){
 	if($_SESSION["NGINX"]["www_cnx"]==null){$_SESSION["NGINX"]["www_cnx"]="http://";}
 	$t=time();
 	$html="<div style='width:98%' class=form>
-	<div class=text-info style='font-size:18px'>{nginx_welcome_step1}</div>
+	<div class=explain style='font-size:18px'>{nginx_welcome_step1}</div>
 	<center style='margin-top:20px'>". Field_text("www_cnx-$t",$_SESSION["NGINX"]["www_cnx"],"font-size:22px;font-weight:bold;padding:20px;width:95%",null,null,null,false,"SaveCheck$t(event)")."
 	<div style='margin-top:20px'>". button("{next}","Save$t()",30)."</div>		
 	</center>
@@ -124,7 +124,7 @@ function step2(){
 	$html="
 	<div style='width:98%' class=form>
 	<div style='font-size:18px'>{reverse_proxy}:{$_SESSION["NGINX"]["www_cnx"]}</div>
-	<div class=text-info style='font-size:18px'>$nginx_welcome_step2</div>
+	<div class=explain style='font-size:18px'>$nginx_welcome_step2</div>
 	<center style='margin-top:20px'>". Field_text("www_dest-$t",$_SESSION["NGINX"]["www_dest"],"font-size:22px;font-weight:bold;padding:20px;width:95%",null,null,null,false,"SaveCheck$t(event)")."
 	<div style='margin-top:20px'>". button("{next}","Save$t()",30)."</div>
 	</center>
@@ -171,7 +171,7 @@ function step3(){
 	
 	$html="
 	<div style='width:98%' class=form>
-	<div class=text-info style='font-size:18px'>$nginx_welcome_step3</div>
+	<div class=explain style='font-size:18px'>$nginx_welcome_step3</div>
 	<center>
 	<div style='margin-top:20px'>". button("{build_settings}","Save$t()",30)."</div>
 	</center>

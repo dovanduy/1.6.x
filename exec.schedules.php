@@ -1,4 +1,5 @@
 <?php
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["OUTPUT"]=false;
@@ -56,6 +57,7 @@ if($argv[1]=="--run-schedules"){run_schedules($argv[2]);die();}
 if($argv[1]=="--defaults"){Defaults($argv[2]);die();}
 if($argv[1]=="--run"){execute_task($argv[2]);die();}
 if($argv[1]=="--run-squid"){execute_task_squid($argv[2]);die();}
+if($argv[1]=="--run-meta"){run_meta($argv[2]);die();}
 
 
 build_schedules();
@@ -95,9 +97,6 @@ function build_schedules(){
 	@file_put_contents($pidTime, time());
 	
 	
-	
-	if(!$q->TABLE_EXISTS("system_schedules","artica_backup")){$task->CheckDefaultSchedules();}
-	
 	$task=new system_tasks();
 	$task->CheckDefaultSchedules();
 	$squidbin=$unix->LOCATE_SQUID_BIN();
@@ -105,20 +104,24 @@ function build_schedules(){
 		$q=new mysql_squid_builder();
 		$q->CheckDefaultSchedules();
 	}
-	
-	
+	$q=new mysql();
 	
 	if($q->COUNT_ROWS("system_schedules","artica_backup")==0){
-		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) system_schedules is empty !!\n";
-		die();
+		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) system_schedules table is empty (1)!!\n";
+		$task->CheckDefaultSchedules();
+		Meta_schedules();
+		if($q->COUNT_ROWS("system_schedules","artica_backup")==0){
+			echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) system_schedules table is empty (2)!!\n";
+			die();
+		}
 	}
 	
 	
 	$sql="SELECT * FROM system_schedules WHERE enabled=1";
-	
 	$results = $q->QUERY_SQL($sql,"artica_backup");	
 	if(!$q->ok){
 		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) $q->mysql_error on line ". __LINE__."\n";
+		Meta_schedules();
 		return;
 	}	
 	
@@ -195,9 +198,66 @@ function build_schedules(){
 	
 	}
 	
+	Meta_schedules();
 	shell_exec("/etc/init.d/cron reload");
 	
 }
+
+function Meta_schedules(){
+	$unix=new unix();
+	$sock=new sockets();
+	$q=new mysql();
+	$task=new system_tasks();
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	
+	
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$WorkingDirectory=dirname(__FILE__);
+	$chmod=$unix->find_program("chmod");
+	$nice=$unix->EXEC_NICE();
+	$me=__FILE__;
+	
+	
+	$sql="SELECT * FROM system_meta_schedules";
+	
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){return;}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$TaskType=$ligne["TaskType"];
+		$TimeText=$ligne["TimeText"];
+		if($TaskType==0){continue;}
+		if($ligne["TimeText"]==null){continue;}
+		$md5=md5("$TimeText$TaskType");
+		if(isset($alreadydone[$md5])){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
+		$alreadydone[$md5]=true;
+	
+		if(!isset($task->tasks_processes[$TaskType])){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) Unable to stat task process of `$TaskType`\n";}
+			continue;
+		}
+	
+		if(isset($task->task_disabled[$TaskType])){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix`$TaskType` disabled\n";}
+			continue;
+		}
+	
+		$script=$task->tasks_processes[$TaskType];
+	
+	
+	
+		$f=array();
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." scheduling $script /etc/cron.d/syssch-000{$ligne["ID"]}\n";}
+		$cmdline=trim("$nice $php5 $me --run-meta {$ligne["ID"]}");
+		$f[]="MAILTO=\"\"";
+		$f[]="{$ligne["TimeText"]}  root $cmdline >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/syssch-000{$ligne["ID"]}", @implode("\n", $f));
+	
+	}	
+}
+
 
 function build_system_defaults(){
 	
@@ -258,15 +318,15 @@ function build_system_defaults(){
 
 	
 	$f[]="MAILTO=\"\"";
-	$f[]="7,14,21,28,35,42,49,56 0 * * * * root $nice $php $prefix/exec.dnsmasq.php --varrun >/dev/null 2>&1";
+	$f[]="7,14,21,28,35,42,49,56 0 * * * root $nice $php $prefix/exec.dnsmasq.php --varrun >/dev/null 2>&1";
 	$f[]="";
 	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
 	$f=array();
 	
 	$f[]="MAILTO=\"\"";
-	$f[]="10,34,51 0 * * * * root $nice $php $prefix/exec.watchdog.php --monit >/dev/null 2>&1";
+	$f[]="10,34,51 0 * * * root $nice $php $prefix/exec.watchdog.php --monit >/dev/null 2>&1";
 	$f[]="";
-	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
+	@file_put_contents("/etc/cron.d/artica-watchdogmonit", @implode("\n", $f));
 	$f=array();	
 	
 	$f[]="MAILTO=\"\"";
@@ -282,6 +342,9 @@ function build_system_defaults(){
 		@file_put_contents("/etc/cron.d/artica-salearn-cyrus", @implode("\n", $f));
 		$f=array();
 	}
+	
+	
+	
 	
 
 	if($users->fetchmail_installed){
@@ -357,6 +420,31 @@ function events($text,$function,$line){
 	
 }
 
+function run_meta($ID){
+	$GLOBALS["SCHEDULE_ID"]=$ID;
+	writelogs("Task $ID",__FUNCTION__,__FILE__,__LINE__);
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM system_meta_schedules WHERE ID=$ID","artica_backup"));
+	$tasks=new system_tasks();
+	$TaskType=$ligne["TaskType"];
+	if($TaskType==0){return;}
+	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
+	$script=$tasks->tasks_processes[$TaskType];
+	if(isset($task->task_disabled[$TaskType])){return;}
+
+
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$WorkingDirectory=dirname(__FILE__);
+	$cmd="$php5 $WorkingDirectory/$script --schedule-id=$ID";
+	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$WorkingDirectory/bin/{$re[1]}";}
+
+	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} is scheduled with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
+	$unix->THREAD_COMMAND_SET($cmd);
+
+
+}
 
 function run_schedules($ID){
 	$GLOBALS["SCHEDULE_ID"]=$ID;
@@ -437,7 +525,7 @@ function execute_task_squid($ID){
 		$TASKS_CACHE[$ID]["TaskType"]=$ligne["TaskType"];
 		@file_put_contents("/etc/artica-postfix/TASKS_SQUID_CACHE.DB", serialize($TASKS_CACHE));		
 	}
-	if($TaskType==0){continue;}	
+	if($TaskType==0){return;}
 	if(!isset($q->tasks_processes[$TaskType])){ufdbguard_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
 	if(isset($q->tasks_disabled[$TaskType])){ufdbguard_admin_events("Task type `$TaskType` is disabled" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
 	$script=$q->tasks_processes[$TaskType];

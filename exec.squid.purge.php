@@ -21,6 +21,11 @@ if($argv[1]=="--scan"){scan_stored_items();die();}
 if($argv[1]=="--inject"){inject_stored_items();die();}	
 	
 function scan_stored_items($nopid=true){
+	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance<3){die();}
+	
 	$unix=new unix();
 	if(system_is_overloaded(basename(__FILE__))){
 		$php=$unix->LOCATE_PHP5_BIN();
@@ -134,6 +139,11 @@ $file="/var/cache/purge.calculated.db";
 }
 
 function inject_stored_items($nopid=false){
+	
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance<3){die();}
+	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	

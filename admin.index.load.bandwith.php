@@ -14,7 +14,7 @@ if(function_exists("posix_getuid")){
 
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.html.pages.inc');
-include_once('class.highcharts.inc');
+include_once('ressources/class.highcharts.inc');
 
 
 if(isset($_GET["graph3"])){graph3();exit;}
@@ -163,7 +163,7 @@ function PageDeGarde(){
 	}	
 	
 	$sock=new sockets();
-	$DisableBWMng=intval($sock->GET_INFO("DisableBWMng"));
+	$DisableBWMng=1;
 	
 	if($DisableBWMng==0){
 		if(is_file("ressources/logs/web/BWMRT_OUT.db")){
@@ -291,7 +291,7 @@ function graph_bwrt_out(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="Mn";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();
 	$time=$_GET["time"];
@@ -322,7 +322,7 @@ function graph_bwrt_in(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="Mn";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();
 
@@ -351,7 +351,7 @@ function graph_squid_cached_minutes(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="Mn";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();
 }
@@ -378,7 +378,7 @@ function graph_squid_cached_hours(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="H";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }
@@ -405,7 +405,7 @@ function graph_squid_cached_hier_hours(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="H";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }
@@ -432,7 +432,7 @@ function graph_squid_not_cached_minutes(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="{minute}:";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }
@@ -459,7 +459,7 @@ function graph_squid_not_cached_hours(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="{hour}:";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }
@@ -486,7 +486,7 @@ function graph_squid_not_cached_hier_hours(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix="{hour}:";
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
-	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }

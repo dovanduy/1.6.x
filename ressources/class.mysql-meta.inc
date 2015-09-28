@@ -4,7 +4,7 @@ if(!isset($GLOBALS["DEBUG_SQL"])){$GLOBALS["DEBUG_SQL"]=false;}
 
 class mysql_meta{
 	private $mysql_admin="root";
-	private $SocketName="/var/run/mysqld/mysqld.sock";
+	private $SocketName=null;
 	public $last_id=0;
 	public $ok=false;
 	public $policy_type=array();
@@ -16,6 +16,8 @@ class mysql_meta{
 	private $mysql_password=null;
 	
 	public function mysql_meta(){
+		
+		$this->FillSettings();
 		if(!$this->DATABASE_EXISTS($this->database)){$this->CREATE_DATABASE($this->database);}
 		
 		$this->policy_type[1]="{web_service}";
@@ -48,6 +50,29 @@ class mysql_meta{
 		$this->ok=true;
 		return true;
 	}
+	private FUNCTION DELETE_DATABASE($database){
+		if(!$this->DATABASE_EXISTS($database)){return true;}
+		if($GLOBALS["VERBOSE"]){echo " -> ->DELETE_DATABASE($database)<br>\n";}
+		$this->mysql_password=trim($this->mysql_password);
+	
+		if(!$this->BD_CONNECT()){
+			writelogs("DELETE_DATABASE Connection failed",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
+			return false;
+		}
+		$results=@mysql_query("DROP DATABASE `$database`",$this->mysql_connection);
+		if(@mysql_error($this->mysql_connection)){
+			$time=date('h:i:s');
+			$errnum=@mysql_errno($this->mysql_connection);
+			$des=@mysql_error($this->mysql_connectiond);
+			if(preg_match("#database exists#", $des)){$this->ok=true;return true;}
+			$this->mysql_error="DELETE DATABASE $database -> Error Number ($errnum) ($des)";
+			writelogs("($errnum) $des $this->mysql_admin@$this->mysql_server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return false;
+		}
+	
+		$this->ok=true;
+		return true;
+	}
 	
 	public function SQL_EDIT_FROM_POST($key,$table){
 		while (list ($num, $val) = each ($_POST)){
@@ -56,6 +81,56 @@ class mysql_meta{
 		}
 		return "UPDATE `$table` SET ".@implode(",", $f)." WHERE `$key`='{$_POST[$key]}'";
 		
+	}
+	
+	private function FillSettings(){
+		if(!isset($GLOBALS["posix_getuid"])){
+			$GLOBALS["posix_getuid"]=1000;
+			if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();}
+		}
+	
+			
+		if(!isset($GLOBALS["AS_ROOT"])){if($GLOBALS["posix_getuid"]==0){$GLOBALS["AS_ROOT"]=true;}}
+			
+		$this->mysql_password=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_password"));
+		if($this->mysql_password=="!nil"){$this->mysql_password=null;}
+		$this->mysql_password=stripslashes($this->mysql_password);
+		$this->mysql_admin=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/database_admin"));
+		$this->mysql_server=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/mysql_server"));
+		$this->mysql_port=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/port"));
+		if($this->mysql_port==null){$this->mysql_port=3306;}
+		if($this->mysql_server==null){$this->mysql_server="localhost";}
+		$this->mysql_admin=str_replace("\r", "", $this->mysql_admin);
+		$this->mysql_admin=trim($this->mysql_admin);
+		$this->mysql_password=str_replace("\r", "", $this->mysql_password);
+		$this->mysql_password=trim($this->mysql_password);
+		if(!isset($GLOBALS["TIMEZONES"])){$GLOBALS["TIMEZONES"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones"));}
+	
+		if(function_exists("date_default_timezone_set")){
+			if($GLOBALS["TIMEZONES"]<>null){@date_default_timezone_set($GLOBALS["TIMEZONES"]);}
+		}
+	
+	
+	
+	
+		if(($this->mysql_server=="!nil") OR ($this->mysql_admin=='!nil') OR ($this->mysql_password=='!nil')){
+			$this->mysql_server="127.0.0.1";
+			$this->mysql_password=null;
+			$this->mysql_admin="root";
+	
+		}
+	
+		if($this->mysql_admin==null){$this->mysql_admin="root";}
+		if($this->mysql_server==null){$this->mysql_server="127.0.0.1";}
+		if($this->mysql_server=="localhost"){$this->mysql_server="127.0.0.1";}
+		if($this->mysql_server=="locahost"){$this->mysql_server="127.0.0.1";}
+		if($this->mysql_admin==null){$this->mysql_admin="root";}
+		if(!is_numeric($this->mysql_port)){$this->mysql_port=3306;}
+		if($this->mysql_server=="127.0.0.1"){
+			$this->mysql_server=":/var/run/mysqld/mysqld.sock";
+			$this->SocketName="/var/run/mysqld/mysqld.sock";
+		}
+	
 	}
 	
 	public function SQL_ADD_FROM_POST($key,$table){
@@ -103,7 +178,12 @@ class mysql_meta{
 		
 		if(trim($this->mysql_admin)==null){$this->mysql_admin="root";}
 		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
-		$bd=@mysql_connect(":$this->SocketName",$this->mysql_admin,$this->mysql_password);
+		
+		if($this->SocketName<>null){
+			$bd=@mysql_connect(":$this->SocketName",$this->mysql_admin,$this->mysql_password);
+		}else{
+			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
+		}
 		
 			if($bd){
 				$this->mysql_connection=$bd;
@@ -267,6 +347,16 @@ class mysql_meta{
 			if($ligne["Rows"]==null){$ligne["Rows"]=0;}
 			return $ligne["Rows"];
 		}
+		public function TABLE_SIZE($table,$database=null){
+			$database=trim($database);
+			if($database==null){$database=$this->database;}
+			if(!function_exists("mysql_connect")){return 0;}
+			$sql="show TABLE STATUS WHERE Name='$table'";
+			$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
+			if($ligne["Data_length"]==null){$ligne["Data_length"]=0;}
+			if($ligne["Index_length"]==null){$ligne["Index_length"]=0;}
+			return $ligne["Index_length"]+$ligne["Data_length"];
+		}
 
 		public function EXECUTE_SQL($sql){
 			if(!$this->BD_CONNECT()){return false;}
@@ -369,7 +459,7 @@ class mysql_meta{
 				return $result;
 			
 			}
-			private function DATABASE_EXISTS($database){
+			public function DATABASE_EXISTS($database){
 				$database=trim($database);
 				if($database=="artica_backup"){$database=$this->database;}
 				if($database=="artica_events"){$database=$this->database;}
@@ -408,6 +498,7 @@ class mysql_meta{
 			}
 			
 			public function uuid_to_host($uuid){
+				if($uuid==null){return;}
 				$sql="SELECT hostname FROM metahosts WHERE uuid='$uuid'";
 				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
 				return $ligne["hostname"];
@@ -426,19 +517,31 @@ class mysql_meta{
 				return intval($ligne["tcount"]);
 			}
 			
+			public function IsAD($uuid){
+				$sql="SELECT WINDOWSAD FROM metahosts WHERE uuid='$uuid'";
+				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+				return intval($ligne["WINDOWSAD"]);
+				
+			}
+			
+			
 			public function group_is_ad_inside($gpid){
 				
 				
-				$sql="SELECT `localconfig`.`fileData` 
-					FROM `localconfig`,`metagroups_link`,metahosts WHERE 
-					`localconfig`.`filekey`='EnableKerbAuth'
-					AND `metagroups_link`.uuid=metahosts.uuid
-					AND metagroups_link.gpid=$gpid";
+				$sql="SELECT `metahosts`.`WINDOWSAD` 
+					FROM `metagroups_link`,metahosts WHERE 
+					`metagroups_link`.uuid=metahosts.uuid
+					AND metagroups_link.gpid=$gpid AND `metahosts`.`WINDOWSAD`=1";
 				$results = $this->QUERY_SQL($sql);
-				if(!$this->ok){echo "<H1>$q->mysql_error</H1>";}
-				while ($ligne = mysql_fetch_assoc($results)) {
-					$fileData=intval(trim($ligne["fileData"]));
-					if($fileData==1){return true;}
+				$Count=mysql_num_rows($results);
+				if($GLOBALS["VERBOSE"]){echo $sql."<hr>group_is_ad_inside RETURN $Count ROWS<br>\n";}
+				
+				if(!$this->ok){echo "<strong style='color:#d32d2d;font-size:22px'>MySQL Error!<br>$this->mysql_error</strong>";}
+				
+				
+				if($Count>0){
+					if($GLOBALS["VERBOSE"]){echo $sql."<hr>group_is_ad_inside RETURN TRUE<br>\n";}
+					return true;
 				}
 				
 			}
@@ -462,6 +565,60 @@ class mysql_meta{
 				if(intval($ligne["PROXY"])==1){return true;}
 				return false;
 			}
+			
+			public function ArticaVersion($uuid){
+				$sql="SELECT version FROM metahosts WHERE uuid='$uuid'";
+				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+				return $ligne["version"];
+			}
+			public function LicenseInfos($uuid){
+				$LicenseInfos["CORP_LICENSE"]=false;
+				$DATA=$this->GET_CONFIG("LicenseInfos",$uuid);
+				$LicenseInfos["ExpiresSoon"]=10000;
+				$LicenseInfos=unserialize(base64_decode($DATA));
+				$WizardSavedSettings=unserialize(base64_decode($this->GET_CONFIG("WizardSavedSettings",$uuid)));
+				if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+				if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+				if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+				if(!isset($LicenseInfos["LICENCE_REQUEST"])){$LicenseInfos["LICENCE_REQUEST"]=null;}
+				if($LicenseInfos["license_status"]=="{license_active}"){$LicenseInfos["CORP_LICENSE"]=true;}
+				if(isset($LicenseInfos["FINAL_TIME"])){$FINAL_TIME=intval($LicenseInfos["FINAL_TIME"]);}
+				if($FINAL_TIME>0){
+					$LicenseInfos["ExpiresSoon"]=intval(time_between_day_Web($FINAL_TIME));
+					if($LicenseInfos["ExpiresSoon"]==0){$LicenseInfos["ExpiresSoon"]=10000;}
+					if($LicenseInfos["ExpiresSoon"]==1){$LicenseInfos["ExpiresSoon"]=10000;}
+					//trial_mode
+				}
+				return $LicenseInfos;
+				
+			}
+			
+			
+			public function isProxyGroup($gpid){
+					$table="(SELECT metahosts.PROXY,
+				metahosts.uuid,metagroups_link.zmd5 
+				FROM metahosts,metagroups_link WHERE
+				metagroups_link.uuid=metahosts.uuid
+				AND metagroups_link.gpid=$gpid) as t";
+				$sql="SELECT COUNT(PROXY) as PROXY FROM $table";
+				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+				if(intval($ligne["PROXY"])>0){return true;}
+				return false;
+				
+			}
+			
+			public function isProxyAll(){
+				$sql="SELECT COUNT(PROXY) PROXY FROM metahosts WHERE PROXY=1";
+				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+				return intval($ligne["PROXY"]);
+			
+			}
+			
+			public function CloneSource($uuid){
+				$sql="SELECT cloneFrom FROM metahosts WHERE uuid='$uuid'";
+				$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+				return trim($ligne["cloneFrom"]);
+			}			
 			
 			public function isExists($uuid){
 				$sql="SELECT uuid FROM metahosts WHERE uuid='$uuid'";
@@ -513,6 +670,12 @@ class mysql_meta{
 					echo $this->mysql_error;
 					return false;}
 					
+				if(!$this->DELETE_DATABASE("squid_{$uuid}")){
+					echo "FAILED - DELETE_DATABASE - squid_{$uuid}\n";
+					echo $this->mysql_error;
+					return false;
+				}
+					
 				if($this->TABLE_EXISTS("dansguardian_community_nocat")){
 					$this->QUERY_SQL("DELETE FROM dansguardian_community_nocat WHERE uuid='$uuid'");
 					if(!$this->ok){
@@ -536,6 +699,13 @@ class mysql_meta{
 						echo $this->mysql_error;
 						return false;
 					}
+				}
+
+				if($this->TABLE_EXISTS("meta_admin_hosts")){
+					$this->QUERY_SQL("DELETE FROM `meta_admin_hosts` WHERE `uuid`='$uuid'");
+				}
+				if($this->TABLE_EXISTS("nics")){
+					$this->QUERY_SQL("DELETE FROM `nics` WHERE `uuid`='$uuid'");
 				}				
 				
 				$this->ok=true;
@@ -544,6 +714,10 @@ class mysql_meta{
 					echo "FAILED - metahosts - $uuid\n-------\n$this->mysql_error\n------\n";
 					return false;
 				}
+				
+				$this->QUERY_SQL("DELETE FROM `squid_perfs_gb` WHERE `uuid`='$uuid'");
+				
+				
 				
 				$this->QUERY_SQL("DELETE FROM `metagroups_link` WHERE `uuid`='$uuid'");
 				if(!$this->ok){
@@ -563,7 +737,8 @@ class mysql_meta{
 				if($q->TABLE_EXISTS("meta_admin_mysql","artica_events")){
 					$q->QUERY_SQL("DELETE FROM `meta_admin_mysql` WHERE `uuid`='$uuid'","artica_events");
 				}
-				
+
+			
 				
 				
 				
@@ -573,6 +748,7 @@ class mysql_meta{
 			}
 			
 			public function CreateOrder_group($gpid,$subject, $array=array()){
+				if($gpid==0){return;}
 				$sql="SELECT uuid FROM metagroups_link WHERE gpid=$gpid";
 				$results = $this->QUERY_SQL($sql);
 				if(!$this->ok){echo $this->mysql_error."\n$sql\n";return;}
@@ -600,11 +776,13 @@ class mysql_meta{
 				$sql="INSERT IGNORE INTO metaorders ( `uuid`,`orderid`,`zDate`,`ordersubject`,`ordercontent` )
 						VALUES ('$uuid','$orderid',NOW(),'$subject','$ordercontent')";
 				$this->QUERY_SQL($sql);
+				
+				
 				if(!$this->ok){
-					$this->meta_admin_mysql(0, "MySQL error on order $subject for $uuid", $q->mysql_error,__FILE__,__LINE__);
+					$this->meta_admin_mysql(0, "FATAL MySQL error on order $subject for $uuid", $this->mysql_error,__FILE__,__LINE__);
 					return false;
 				}
-				$this->meta_admin_mysql(2, "Send Order `$subject` for $uuid", $q->mysql_error,__FILE__,__LINE__);
+				$this->meta_admin_mysql(2, "Send Order `$subject` for $uuid", $this->mysql_error,__FILE__,__LINE__);
 				if(!$noSendorders){
 					$sock=new sockets();
 					$sock->getFrameWork("artica.php?meta-admin-orders=yes");
@@ -612,6 +790,91 @@ class mysql_meta{
 				
 				return true;
 			}
+			
+			
+			public function create_table_meta_uuid_admin_mysql(){
+			
+				$sql="CREATE TABLE IF NOT EXISTS `meta_admin_hosts` (
+				`ID` int(11) NOT NULL AUTO_INCREMENT,
+				`zmd5` VARCHAR( 90 ),
+				`uuid` VARCHAR( 90 ),
+				`zDate` TIMESTAMP NOT NULL ,
+				`content` MEDIUMTEXT NOT NULL ,
+				`hostname` VARCHAR( 255 ),
+				`subject` VARCHAR( 255 ) NOT NULL ,
+				`function` VARCHAR( 60 ) NOT NULL ,
+				`filename` VARCHAR( 50 ) NOT NULL ,
+				`line` INT( 10 ) NOT NULL ,
+				`severity` smallint( 1 ) NOT NULL ,
+				`sended` smallint( 1 ) NOT NULL DEFAULT 0,
+				`TASKID` BIGINT UNSIGNED ,
+				  PRIMARY KEY (`ID`),
+				  UNIQUE KEY (`zmd5`),
+				  KEY `zDate` (`zDate`),
+				  KEY `uuid` (`uuid`),
+				  KEY `subject` (`subject`),
+				  KEY `hostname` (`hostname`),
+				  KEY `function` (`function`),
+				  KEY `filename` (`filename`),
+				  KEY `severity` (`severity`)
+				) ENGINE=MYISAM;";
+			
+				$q=new mysql();
+				$q->QUERY_SQL($sql,$this->database);
+			}
+
+			public function create_table_meta_stats_size_hours($tablename){
+				$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+				`zmd5` VARCHAR( 90 ),
+				`uuid` VARCHAR( 90 ),
+				`zDate` TIMESTAMP NOT NULL ,
+				`filename` VARCHAR(256) NOT NULL,
+				`size` INT UNSIGNED,
+				 PRIMARY KEY (`zmd5`),
+				 KEY `uuid` (`uuid`),
+				 KEY `zDate` (`zDate`)
+				) ENGINE=MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){
+					if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n$sql\n";}
+					return false;}
+				return true;
+			}
+			public function create_table_meta_stats_size_day($tablename){
+				$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+						`zmd5` VARCHAR( 90 ),
+						`uuid` VARCHAR( 90 ),
+						`zDate` TIMESTAMP NOT NULL ,
+						`size` INT UNSIGNED,
+						`hits` INT UNSIGNED,
+						PRIMARY KEY (`zmd5`),
+						KEY `uuid` (`uuid`),
+						KEY `zDate` (`zDate`)
+					) 
+				ENGINE=MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n$sql\n";}return false;}
+				return true;
+				}			
+			
+			public function LIST_TABLES_STATS_HOURLY(){
+				if(isset($GLOBALS["LIST_TABLES_STATS_HOURLY"])){return $GLOBALS["LIST_TABLES_STATS_HOURLY"];}
+				$array=array();
+				$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE 'metastats_size_%'";
+				$results=$this->QUERY_SQL($sql);
+				if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+				if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+			
+				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+					if(preg_match("#metastats_size_[0-9]+#", $ligne["c"])){
+						$GLOBALS["LIST_TABLES_STATS_HOURLY"][$ligne["c"]]=$ligne["c"];
+						$array[$ligne["c"]]=$ligne["c"];
+					}
+				}
+				return $array;
+			
+			}			
+			
 			
 			public function create_table_meta_admin_mysql(){
 				
@@ -727,7 +990,9 @@ class mysql_meta{
 					return false;
 				}
 			
-			}			
+			}	
+
+			public function BuildTables(){ $this->CheckTables();}
 			
 			public function CheckTables(){
 				
@@ -790,6 +1055,55 @@ class mysql_meta{
 				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
 				
 				
+				$sql="CREATE TABLE IF NOT EXISTS `webfiltering_categories` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`category_description` VARCHAR( 255 ) NOT NULL ,
+				`PublicMode` smallint(1) NOT NULL,
+				PRIMARY KEY (`category`),
+				INDEX ( `category_description`) ,
+				KEY `PublicMode` (`PublicMode`) )  ENGINE = MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
+				
+				$sql="CREATE TABLE IF NOT EXISTS `webfiltering_categories_items` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`zDate` DATETIME NOT NULL ,
+				`zmd5` VARCHAR(90) NOT NULL,
+				`pattern` VARCHAR(128) NOT NULL,
+				`enabled` smallint(1) NOT NULL,
+				PRIMARY KEY (`zmd5`),
+				INDEX ( `pattern`) ,
+				KEY `enabled` (`enabled`) )  ENGINE = MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
+
+				$sql="CREATE TABLE IF NOT EXISTS `webfiltering_categories_link` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`zmd5` VARCHAR(90) NOT NULL,
+				`gpid` INT(100) NOT NULL,
+				PRIMARY KEY (`zmd5`),
+				INDEX ( `gpid`) ,
+				KEY `category` (`category`) )  ENGINE = MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
+								
+				
+				
+				
+				
+				
+				$sql="CREATE TABLE IF NOT EXISTS `webfiltering_categories_urls` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`zDate` DATETIME NOT NULL ,
+				`zmd5` VARCHAR(90) NOT NULL,
+				`pattern` VARCHAR(128) NOT NULL,
+				`enabled` smallint(1) NOT NULL,
+				PRIMARY KEY (`zmd5`),
+				INDEX ( `pattern`) ,
+				KEY `enabled` (`enabled`) )  ENGINE = MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
+								
 				
 				$sql="CREATE TABLE IF NOT EXISTS `metagroups` (
 				`ID` INT(10) NOT NULL AUTO_INCREMENT,
@@ -827,7 +1141,19 @@ class mysql_meta{
 				$this->QUERY_SQL($sql,$this->database);
 				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
 				
-								
+				$sql="CREATE TABLE IF NOT EXISTS `proxy_ports_wbl` (
+					`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+					`groupid` INT NOT NULL,
+					`destport` INT NOT NULL,
+					`pattern` VARCHAR(128) NOT NULL,
+					`include`  smallint(1) NOT NULL DEFAULT '0' ,
+					KEY `pattern` (`pattern`),
+					KEY `destport` (`destport`),
+					KEY `include` (`include`),
+					KEY `groupid` (`groupid`)
+					)  ENGINE = MYISAM;";
+				$this->QUERY_SQL($sql,$this->database);
+				if(!$this->ok){echo "<H2>$this->mysql_error</H2>";if(isset($GLOBALS["CLIENT_META_IP"])){echo $sql."\n$this->mysql_error\n";}}
 				
 				
 				$sql="CREATE TABLE IF NOT EXISTS `metahosts` (
@@ -838,14 +1164,23 @@ class mysql_meta{
 				`version` CHAR(40) NOT NULL,
 				`blacklisted` SMALLINT(1) NOT NULL DEFAULT 0,
 				`PROXY` SMALLINT(1) NOT NULL DEFAULT 0,
+				`UFDB_ENABLED` SMALLINT(1) NOT NULL DEFAULT 0,
+				`PROXYEMERG` SMALLINT(1) NOT NULL DEFAULT 0,
+				`WINDOWSAD` SMALLINT(1) NOT NULL DEFAULT 0,
+				`ADEMERG` SMALLINT(1) NOT NULL DEFAULT 0,
+				`UFDBARTICA` BIGINT UNSIGNED NOT NULL DEFAULT 0,
 				`BANDWIDTH` BIGINT UNSIGNED NOT NULL DEFAULT 0,
 				`squidver` CHAR(40) NULL,
 				`CPU_NUMBER` SMALLINT(2) NOT NULL DEFAULT 0,
+				`TaskPercent` SMALLINT(2) NOT NULL DEFAULT 0,
 				`load` DOUBLE( 10, 2 ) NOT NULL ,
 				`mem_perc` SMALLINT(2) NOT NULL DEFAULT 0,
 				`mem_used` INT(100) NOT NULL DEFAULT 0,
 				`mem_total` INT(100) NOT NULL DEFAULT 0,
 				`hostag` VARCHAR(128) NULL,
+				`cloneFrom` varchar(90) NOT NULL,
+				`system_adm` varchar(90),
+				`system_password` varchar(90),
 				`disks` TEXT null,
 				PRIMARY KEY (`uuid`),
 				KEY `hostname` (`hostname`),
@@ -857,6 +1192,7 @@ class mysql_meta{
 				KEY `mem_total` (`mem_total`),
 				KEY `BANDWIDTH` (`BANDWIDTH`),
 				KEY `CPU_NUMBER` (`CPU_NUMBER`),
+				KEY `cloneFrom` (`cloneFrom`),
 				KEY `load` (`load`),
 				KEY `PROXY` (`PROXY`),	
 				KEY `hostag` (`hostag`),			
@@ -870,6 +1206,52 @@ class mysql_meta{
 						echo $sql."\n$this->mysql_error\n";
 					}
 				}
+				
+				if(!$this->FIELD_EXISTS("metahosts", "system_adm")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `system_adm` VARCHAR(90)");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}
+				
+				if(!$this->FIELD_EXISTS("metahosts", "system_password")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `system_password` VARCHAR(90)");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}				
+				
+				if(!$this->FIELD_EXISTS("metahosts", "TaskPercent")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `TaskPercent` smallint(2),ADD INDEX ( `TaskPercent` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}	
+
+				if(!$this->FIELD_EXISTS("metahosts", "cloneFrom")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `cloneFrom` VARCHAR(90),ADD INDEX ( `cloneFrom` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}	
+
+				
+				if(!$this->FIELD_EXISTS("metahosts", "PROXYEMERG")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `PROXYEMERG` smallint(1),ADD INDEX ( `PROXYEMERG` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}
+				
+				if(!$this->FIELD_EXISTS("metahosts", "WINDOWSAD")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `WINDOWSAD` smallint(1),ADD INDEX ( `WINDOWSAD` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}
+
+				if(!$this->FIELD_EXISTS("metahosts", "ADEMERG")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `ADEMERG` smallint(1),ADD INDEX ( `ADEMERG` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}				
+
+				if(!$this->FIELD_EXISTS("metahosts", "UFDBARTICA")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `UFDBARTICA` BIGINT UNSIGNED NOT NULL DEFAULT 0");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}				
+				if(!$this->FIELD_EXISTS("metahosts", "UFDB_ENABLED")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `UFDB_ENABLED` smallint(1),ADD INDEX ( `UFDB_ENABLED` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}
+				
 				
 				if(!$this->FIELD_EXISTS("metahosts", "PROXY")){
 					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `PROXY` smallint(1),ADD INDEX ( `PROXY` )");
@@ -890,6 +1272,11 @@ class mysql_meta{
 					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `squidver` varchar(40),ADD INDEX ( `squidver` )");
 					if(!$this->ok){echo $this->mysql_error."\n";}
 				}
+				
+				if(!$this->FIELD_EXISTS("metahosts", "POSTFIX")){
+					$this->QUERY_SQL("ALTER TABLE `metahosts` ADD `POSTFIX` smallint(1),ADD INDEX ( `POSTFIX` )");
+					if(!$this->ok){echo $this->mysql_error."\n";}
+				}				
 
 				
 				$sql="CREATE TABLE IF NOT EXISTS `squid_admin_mysql` (
@@ -915,6 +1302,82 @@ class mysql_meta{
 					) ENGINE=MYISAM;";
 				$this->QUERY_SQL($sql,$this->database);
 				
+				
+				
+				$sql="CREATE TABLE IF NOT EXISTS `nics` (
+				`Interface` varchar(40) NOT NULL,
+				`NICNAME` varchar(90) DEFAULT 'My Interface' NOT NULL,
+				`AUTO` varchar(10) NOT NULL,
+				`BRIDGE_PORTS` varchar(10) NOT NULL,
+				`BRIDGE_STP` varchar(10) NOT NULL,
+				`BRIDGE_MAXWAIT` int(2) NOT NULL,
+				`DNS_SEARCH` varchar(128) NOT NULL,
+				`VLAN_ROW_DEVICE` varchar(40) NOT NULL,
+				`MTU` int(2) NOT NULL,
+				`IPADDR` varchar(128) NOT NULL,
+				`NETMASK` varchar(55) NOT NULL,
+				`BOOTPROTO` varchar(10) NOT NULL,
+				`GATEWAY` varchar(55) NOT NULL,
+				`BROADCAST` varchar(55) NOT NULL,
+				`DNS1` varchar(55) NOT NULL,
+				`DNS2` varchar(55) NOT NULL,
+				`dhcp` smallint(1) NOT NULL,
+				`metric` smallint(5) NOT NULL,
+				`ipv6mask` int(2) NOT NULL,
+				`enabled` smallint(1) NOT NULL,
+				`defaultroute` smallint(1) NOT NULL,
+				`routes` longtext NOT NULL,
+				`NETWORK` varchar(55) NOT NULL,
+				`IsBridge` smallint(1) NOT NULL,
+				`Bridged` smallint(1) NOT NULL,
+				`isFW` smallint(1) NOT NULL,
+				`isFWLogBlocked` smallint(1) NOT NULL,
+				`ipv6` smallint(1) NOT NULL,
+				`BridgedTo` varchar(50) NOT NULL,
+				`isFWAcceptNet` smallint(1) NOT NULL,
+				`ucarp-vid` int(1) DEFAULT '3' NOT NULL,
+				`ucarp-vip` varchar(60),
+				`ucarp-advskew` smallint(1),
+				`ucarp-advbase` smallint(3),
+				`ucarp-enable` smallint(1),
+				`ucarp-master` smallint(1),
+				`QOS` smallint(1) NOT NULL,
+				`QOSMAX` smallint(10) DEFAULT '100' NOT NULL,
+				`ShoreWallServices` text,
+				`netzone` varchar(10),
+				`SourceBasedRouting` smallint(1),
+				`isFWAcceptArtica` smallint(1),
+				`firewall_policy` varchar(10),
+				`firewall_behavior` smallint(1) NOT NULL,
+				`firewall_masquerade` smallint(1) NOT NULL,
+				`ipv6addr` varchar(50) NOT NULL,
+				`ipv6gw` varchar(50) NOT NULL,
+				  KEY `Interface`  (`Interface`),
+				  KEY `BridgedTo` (`BridgedTo`),
+				  KEY `defaultroute` (`defaultroute`),
+				  KEY `QOS` (`QOS`),
+				  KEY `QOSMAX` (`QOSMAX`),
+				  KEY `netzone` (`netzone`),
+				  KEY `SourceBasedRouting` (`SourceBasedRouting`),
+				  KEY `isFWAcceptArtica` (`isFWAcceptArtica`),
+				  KEY `firewall_policy` (`firewall_policy`),
+				  KEY `firewall_behavior` (`firewall_behavior`),
+				  KEY `firewall_behavior_2` (`firewall_behavior`)
+				) ENGINE=MYISAM;
+				";
+				$this->QUERY_SQL($sql,$this->database);
+				
+				$sql="CREATE TABLE IF NOT EXISTS `squid_perfs_gb` (
+				`uuid` varchar(90) NOT NULL,
+				`client_http_hits` FLOAT,
+				`client_http_requests` FLOAT,
+				`client_http_kbytes_out` FLOAT,
+				`TOTALS_NOT_CACHED` INT UNSIGNED,
+				`TOTALS_CACHED` INT UNSIGNED,
+				`TOTALS_CACHED_AVG` FLOAT,
+				PRIMARY KEY (`uuid`)) ENGINE=MYISAM;";
+				
+				$this->QUERY_SQL($sql,$this->database);
 				
 				
 				$sql="CREATE TABLE IF NOT EXISTS `dansguardian_community_nocat` (
@@ -973,7 +1436,24 @@ class mysql_meta{
 					) ENGINE=MYISAM;";
 				$this->QUERY_SQL($sql,$this->database);				
 				
+			$sql="CREATE TABLE IF NOT EXISTS `system_schedules` (
+				`ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY ,
+				`uuid` VARCHAR(128) NOT NULL,
+				`TimeText` VARCHAR( 128 ) NOT NULL ,
+				`TimeDescription` VARCHAR( 128 ) NOT NULL ,
+				`TaskType` SMALLINT( 1 ) NOT NULL ,
+				`enabled` SMALLINT( 1 ) NOT NULL ,
+				 KEY `uuid` (`uuid`),
+				 INDEX ( `TaskType` , `TimeDescription`,`enabled`)
+				)";
+			
+			
+			
 				
+			$this->QUERY_SQL($sql);
+			
+			
+
 				
 				
 				

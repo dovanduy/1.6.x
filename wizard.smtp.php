@@ -108,7 +108,7 @@ function page_4(){
 	$users=new usersMenus();
 	if(!$users->cyrus_imapd_installed){if($_COOKIE["smtp_relay"]==null){$r=false;}}
 	
-	if(!$r){$text="<p style='color:red;font-size:12px'>{wizard_finish_failed}</p>";}else{
+	if(!$r){$text="<p style='color:#d32d2d;font-size:12px'>{wizard_finish_failed}</p>";}else{
 		$text="<p style='color:black;font-weight:bold;font-size:12px'>{wizard_finish_text}</p>";
 		$button="<tr>
 		<td align='right' colspan=2><input type='button' OnClick=\"javascript:ApplyWizardSMTPSettings();\" value='{apply}&nbsp;&raquo;'></td>

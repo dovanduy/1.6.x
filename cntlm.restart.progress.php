@@ -145,7 +145,7 @@ if($prc==100){
 		LayersTabsAllAfter();
 		RTMMailHide();
 		CacheOff();
-		$at_the_end;
+		RefreshTab('main_adker_tabs');
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	

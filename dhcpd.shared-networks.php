@@ -56,8 +56,8 @@ function page(){
 	$scope=$tpl->_ENGINE_parse_body("{scope}");
 	$group=$tpl->_ENGINE_parse_body("{group}");
 	$subnet=$tpl->_ENGINE_parse_body("{subnet}");
-	$range_1=$tpl->_ENGINE_parse_body("{range} {from}");
-	$range_2=$tpl->_ENGINE_parse_body("{range} {to}");
+	$range_1=$tpl->_ENGINE_parse_body("{ipfrom}");
+	$range_2=$tpl->_ENGINE_parse_body("{ipto}");
 	$mask=$tpl->_ENGINE_parse_body("{mask}");
 	$new_group=$tpl->javascript_parse_text("{new_group}");
 	$delete=$tpl->javascript_parse_text("{delete}");
@@ -66,7 +66,7 @@ function page(){
 	$t=$_GET["t"];
 	$tt=time();
 	$html="
-	<div class=text-info style='font-size:14px'>$dhcpd_shared_network_explain</div>
+	<div class=explain style='font-size:14px'>$dhcpd_shared_network_explain</div>
 	<table class='table-items-$tt' style='display: none' id='table-items-$tt' style='width:99%'></table>
 	<script>
 	var DeleteAclKey$tt=0;

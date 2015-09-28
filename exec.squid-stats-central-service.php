@@ -25,7 +25,7 @@ include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 
 $GLOBALS["ARGVS"]=implode(" ",$argv);
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
-if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start_p();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;pamd_conf();vsftpd_conf();}
@@ -51,6 +51,7 @@ if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS
 return;
 }
 function PID_NUM(){
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file("/var/run/squid-stats-central.pid");
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
 	return $GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("exec.squid.stats.central.php");

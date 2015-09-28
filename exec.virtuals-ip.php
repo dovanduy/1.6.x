@@ -126,7 +126,7 @@ function resolvconf(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup $php5 ".dirname(__FILE__)."/exec.dnsmasq.php >/dev/null 2>&1 &");
+	shell_exec("$nohup $php5 ".dirname(__FILE__)."/exec.dnsmasq.php --build >/dev/null 2>&1 &");
 	
 	
 }
@@ -326,7 +326,7 @@ function virtip_build(){
 function etc_hosts_exec(){
 	
 	
-	etc_hosts();
+	if(!etc_hosts()){return;}
 	if(count($GLOBALS["SCRIPTS"])>0){
 		while (list ($index, $line) = each ($GLOBALS["SCRIPTS"]) ){
 			$line=trim($line);
@@ -363,6 +363,7 @@ function etc_hosts(){
 	}
 	
 	if($q->COUNT_ROWS("net_hosts", "artica_backup")==0){
+		if(!$q->ok){echo $q->mysql_error."\n"; return; }
 		etc_hosts_defaults();
 	}
 	if($q->COUNT_ROWS("net_hosts", "artica_backup")==0){
@@ -398,6 +399,7 @@ function etc_hosts(){
 	
 	$sql="SELECT * FROM net_hosts ORDER BY hostname";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error."\n"; return; }
 	$ip=new IP();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
@@ -427,6 +429,7 @@ function etc_hosts(){
 	
 	$sql="SELECT * FROM dnsmasq_records";
 	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n"; return; }
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ipaddr=trim($ligne["ipaddr"]);
@@ -454,7 +457,7 @@ function etc_hosts(){
 	
 	
 	$GLOBALS["SCRIPTS"][]="#";
-	
+	return true;
 	
 }
 
@@ -849,30 +852,9 @@ function IPTABLES_NETWORK_BRIDGES(){
 	$comment=" -m comment --comment \"ArticaNetworkBridges\"";
 	
 	$GLOBALS["SCRIPTS"][]="# Disabling TimeStamps and enable forward packets";
-	$GLOBALS["SCRIPTS"][]="$echo 0 > /proc/sys/net/ipv4/tcp_timestamps";
-	$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/ip_forward";
 	$GLOBALS["SCRIPTS"][]="$echo 1 > /etc/artica-postfix/IPTABLES_BRIDGE";
-	$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS  --clamp-mss-to-pmtu $comment";
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$nic_from=$ligne["nic_from"];
-		$nic_to=$ligne["nic_to"];
-		$DenyDHCP=$ligne["DenyDHCP"];
-		
-		$nic_from=$NetBuilder->NicToOther($nic_from);
-		$nic_to=$NetBuilder->NicToOther($nic_to);
-		
-		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Inbound $nic_from outbound $nic_to $comment DenyDHCP=$DenyDHCP";
-		
+	
 
-		$GLOBALS["SCRIPTS"][]="$iptables -t nat -A POSTROUTING -o $nic_to -j MASQUERADE $comment";
-		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i $nic_from -o $nic_to -m state --state RELATED,ESTABLISHED -j ACCEPT $comment";
-		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT $comment";
-		
-		if($DenyDHCP==1){
-			$GLOBALS["SCRIPTS"][]="$iptables -I FORWARD -i $nic_from -o $nic_to -p udp --dport 67:68 --sport 67:68 -j DROP $comment";
-		}
-		
-	}
 	
 }
 
@@ -1148,6 +1130,15 @@ function build(){
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] **** SETTINGS for LOOP BACK ***";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] *******************************";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";	
+	
+	$ModeProbeAlx=intval($sock->GET_INFO("ModeProbeAlx"));
+	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] ALX driver: $ModeProbeAlx";
+	if($ModeProbeAlx==1){
+		$modprobe=$unix->find_program("modprobe");
+		$GLOBALS["SCRIPTS_TOP"][]="$modprobe alx";
+		
+	}
+	
 	$GLOBALS["SCRIPTS_TOP"][]="$ifconfig lo 127.0.0.1 up";
 	if($Myhostname<>null){$GLOBALS["SCRIPTS_TOP"][]="$hostname_bin \"$Myhostname\"";}
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";
@@ -1175,12 +1166,16 @@ function build(){
 	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script executed (start)\" || true";
 	$mkdir=$unix->find_program("mkdir");
 	$sh[]="mkdir -p /run/network >/dev/null 2>&1";
-	$sh[]="$php5 /usr/share/artica-postfix/exec.virtuals-ip-notify.php --start || true";
+	$sh[]="$php5 /usr/share/artica-postfix/exec.virtuals-ip-notify.php --start $2 $3 || true";
+	
+	
+	
+	
 	etc_hosts();
 	routes_main();
 	ucarp_build(true);
 	bridges_build();
-	nics_wccp_build();
+	
 	IPTABLES_NETWORK_BRIDGES();
 	
 	
@@ -1364,7 +1359,7 @@ function build(){
 	$sh[]="$echo \"Starting FrameWork\"";
 	$sh[]="$nohup $php5 /usr/share/artica-postfix/exec.framework.php --start >/dev/null 2>&1 &";
 	
-	$sh[]="# [".__LINE__."] Starting Artica Meta Client";
+	$sh[]="# [".__LINE__."] Starting Meta Server Client";
 	$sh[]="$echo \"Starting FrameWork\"";
 	$sh[]="$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-client.php --ping --force >/dev/null 2>&1 &";
 	
@@ -1472,7 +1467,7 @@ function build(){
 	squid_admin_mysql(1, "Network script was rebuilded", null,__FILE__,__LINE__);
 	
 	echo "Starting......: ".date("H:i:s")." Building FireWall rules.\n";
-	system("$php5 /usr/share/artica-postfix/exec.firewall.php");
+	system("$php5 /usr/share/artica-postfix/exec.firehol.php --build");
 	echo "Starting......: ".date("H:i:s")." done...\n";
 	
 }
@@ -1530,90 +1525,8 @@ function nics_vde_build(){
 	$GLOBALS["nics_vde_build"]=true;
 }
 
-function nics_wccp_build($finalsh=false){
-	$unix=new unix();
-	$modeprobe=$unix->find_program("modprobe");
-	$ipbin=$unix->find_program("ip");
-	$ifconfig=$unix->find_program("ifconfig");
-	$echobin=$unix->find_program("echo");
-	$iptables=$unix->find_program("iptables");
-	$php=$unix->LOCATE_PHP5_BIN();
-	$route=$unix->find_program("route");
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for SQUID/WCCP Layer 3 ****";
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
-	
-	$sock=new sockets();
-	$SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
-	
-	if($SquidWCCPL3Enabled==0){
-		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Not enabled.";
-		$GLOBALS["SCRIPTS"][]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php";
-		return;
-	}
-	
-	$SquidWCCPL3Addr=$sock->GET_INFO("SquidWCCPL3Addr");
-	$SquidWCCPL3Inter=$sock->GET_INFO("SquidWCCPL3Inter");
-	$SquidWCCPL3Eth=$sock->GET_INFO("SquidWCCPL3Eth");
-	$SquidWCCPL3LocIP=$sock->GET_INFO("SquidWCCPL3LocIP");
-	$SquidWCCPL3ProxPort=intval($sock->GET_INFO("SquidWCCPL3ProxPort"));
-	$SquidWCCPL3Route=$sock->GET_INFO("SquidWCCPL3Route");
-	$SquidWCCPL3SSLProxPort=intval($sock->GET_INFO("SquidWCCPL3SSLProxPort"));
-	if($SquidWCCPL3ProxPort==0){
-		$SquidWCCPL3ProxPort=rand(35000,62680);
-		$sock->SET_INFO("SquidWCCPL3ProxPort", $SquidWCCPL3ProxPort);
-	}
-	
-	$nic=new system_nic($SquidWCCPL3Eth);
-	$SquidWCCPL3LocIP=$nic->IPADDR;
-	
-	
-	$MARKLOG="-m comment --comment \"ArticaWCCPL3Transparent\"";
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Local Interface: $SquidWCCPL3Eth/$SquidWCCPL3LocIP building gre tunnel from $SquidWCCPL3Inter to local $SquidWCCPL3LocIP";
-	$GLOBALS["SCRIPTS"][]="modprobe ip_gre";
-	
 
-	$GLOBALS["SCRIPTS"][]="$ipbin link del dev wccp50";
-	$GLOBALS["SCRIPTS"][]="$ipbin tunnel add wccp50 mode gre remote $SquidWCCPL3Inter local $SquidWCCPL3LocIP dev $SquidWCCPL3Eth";
-	$GLOBALS["SCRIPTS"][]="$ipbin addr add $SquidWCCPL3LocIP dev wccp50";
-	$GLOBALS["SCRIPTS"][]="$ipbin link set wccp50 up";
-	if($SquidWCCPL3Route<>null){
-		$GLOBALS["SCRIPTS"][]="$route add -net $SquidWCCPL3Route dev wccp50";
-	}
 	
-	$GLOBALS["SCRIPTS"][]="$echobin 0 >/proc/sys/net/ipv4/conf/wccp50/rp_filter";
-	$GLOBALS["SCRIPTS"][]="$echobin 0 >/proc/sys/net/ipv4/conf/$SquidWCCPL3Eth/rp_filter";
-	
-	$GLOBALS["SCRIPTS"][]="$echobin 1 >/proc/sys/net/ipv4/ip_forward";
-	$GLOBALS["SCRIPTS"][]="$iptables -I INPUT -s 0.0.0.0/0 -d $SquidWCCPL3LocIP -p gre -j ACCEPT $MARKLOG";
-	$GLOBALS["SCRIPTS"][]="$iptables -t nat -A PREROUTING -i wccp50 -p tcp --dport 80 -j REDIRECT --to-port $SquidWCCPL3ProxPort $MARKLOG";
-	
-	$SquidWCCPL3SSLEnabled=intval($sock->GET_INFO("SquidWCCPL3SSLEnabled"));
-	if($SquidWCCPL3SSLEnabled==1){
-		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] SSL enabled redirect to port: $SquidWCCPL3SSLProxPort";
-		$GLOBALS["SCRIPTS"][]="$iptables -t nat -A PREROUTING -i wccp50 -p tcp --dport 443 -j REDIRECT --to-port $SquidWCCPL3SSLProxPort $MARKLOG";
-	}
-	$GLOBALS["SCRIPTS"][]="$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG";
-	
-	
-	if($finalsh){
-		$unix=new unix();
-		$php=$unix->LOCATE_PHP5_BIN();
-		$sh[]="#!/bin/sh";
-		$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php --wccp";
-		while (list ($arecord, $cmdline) = each ($GLOBALS["SCRIPTS"]) ){
-			$sh[]=$cmdline;
-		}
-		
-	}
-	$sh[]="exit 0\n";
-	@file_put_contents("/bin/artica-wccp.sh", @implode("\n", $sh));
-	@chmod("/bin/artica-wccp.sh",0755);
-	
-	
-}
 
 
 function bridges_build(){
@@ -2625,18 +2538,27 @@ function Checkipv6(){
 	
 	if($EnableipV6==0){
 		echo "Starting......: ".date("H:i:s")." Building networks IPv6 is disabled\n";
+		$unix->sysctl("net.ipv6.conf.all.disable_ipv6",1);
+		$unix->sysctl("net.ipv6.conf.default.disable_ipv6",1);
+		$unix->sysctl("net.ipv6.conf.lo.disable_ipv6",1);
+		@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",1);
+		@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",1);
+		@file_put_contents("/proc/sys/net/ipv6/conf/all/disable_ipv6",1);
+		@file_put_contents("/proc/sys/net/ipv6/conf/default/disable_ipv6",1);
 	}else{
 		echo "Starting......: ".date("H:i:s")." Building networks IPv6 is enabled\n";
+		$unix->sysctl("net.ipv6.conf.all.disable_ipv6",0);
+		$unix->sysctl("net.ipv6.conf.default.disable_ipv6",0);
+		$unix->sysctl("net.ipv6.conf.lo.disable_ipv6",0);
+		@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",0);
+		@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",0);
+		@file_put_contents("/proc/sys/net/ipv6/conf/all/disable_ipv6",0);
+		@file_put_contents("/proc/sys/net/ipv6/conf/default/disable_ipv6",0);
 	}
 	
-	$unix->sysctl("net.ipv6.conf.all.disable_ipv6",$EnableipV6);
-	$unix->sysctl("net.ipv6.conf.default.disable_ipv6",$EnableipV6);
-	$unix->sysctl("net.ipv6.conf.lo.disable_ipv6",$EnableipV6);
+
 	
-	@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",$EnableipV6);
-	@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",$EnableipV6);
-	@file_put_contents("/proc/sys/net/ipv6/conf/all/disable_ipv6",$EnableipV6);
-	@file_put_contents("/proc/sys/net/ipv6/conf/default/disable_ipv6",$EnableipV6);
+
 	echo "Starting......: ".date("H:i:s")." Building networks IPv6 done...\n";
 }
 

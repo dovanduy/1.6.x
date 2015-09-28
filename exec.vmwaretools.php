@@ -24,8 +24,42 @@ if(preg_match("#--verbose#",implode(" ",$argv))){
 	if($unix->process_exists($pid,basename(__FILE__))){events("PID: $pid Already exists....");die();}
 
 
-if($argv[1]=="--cd"){installbycd();die();}
-if($argv[1]=="--path"){@unlink($GLOBALS["LOGFILE"]);installbyPath($argv[2]);die();}
+if($argv[1]=="--cd"){installapt();die();}
+if($argv[1]=="--path"){@unlink($GLOBALS["LOGFILE"]);installapt($argv[2]);die();}
+if($argv[1]=="--install"){@unlink($GLOBALS["LOGFILE"]);installapt($argv[2]);die();}
+
+
+
+function installapt(){
+	@unlink($GLOBALS["LOGFILE"]);
+	$unix=new unix();
+	$mount=$unix->find_program("mount");
+	$umount=$unix->find_program("umount");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	
+	echo "Please wait...\n";
+	build_progress("{update_debian_repository}",5);
+	$aptget=$unix->find_program("apt-get");
+	build_progress("{updating_repository}",15);
+	
+	echo "Please wait, running apt-get install\n";
+	$cmd="DEBIAN_FRONTEND=noninteractive $aptget --force-yes update";
+	system($cmd);
+	
+	build_progress("{INSTALL_VMWARE_TOOLS}",50);
+	$unix->DEBIAN_INSTALL_PACKAGE("open-vm-tools");
+	if(!is_file("/usr/bin/vmware-toolbox-cmd")){
+		build_progress("{INSTALL_VMWARE_TOOLS} {failed_to_install}",110);
+		return;
+	}
+	
+	build_progress("{INSTALL_VMWARE_TOOLS} {success}",90);
+	build_progress("{removing_caches}",95);
+	$unix->REMOVE_INTERFACE_CACHE();
+	build_progress("{success}",100);
+}
+
 
 
 function installbycd(){

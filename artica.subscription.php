@@ -37,11 +37,26 @@ function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$supportlink="http://www.articatech.com/#!contact-us/csu4";
+	$users=new usersMenus();
+	$pagebuilder=new pagebuilder();
+	$Template=$pagebuilder->GetTemplateMemory();
+	
+	
+	if(is_file("ressources/templates/$Template/editorlink.conf")){
+		$supportlink=@file_get_contents("ressources/templates/$Template/editorlink.conf")."/support";
+	}
+	
+	if($users->WEBSECURIZE){
+		$supportlink="http://www.websecurize.com/nous-contacter.html";
+	}
+	
+	
+	
 	$html="<table style='width:100%'>
 	<tbody>
 	<tr>
 		<td valign='top' width=1%><img src='img/technical-support-128.png'></td>
-		<td valign='top' width=100%><div style='font-size:18px' class=text-info>{ARTICA_P_SUPPORT_TEXT}</div>
+		<td valign='top' width=100%><div style='font-size:18px' class=explain>{ARTICA_P_SUPPORT_TEXT}</div>
 		<center style='margin-top:15px;margin-bottom:15px'>
 			<a href=\"javascript:blur();\" 
 			OnClick=\"javascript:s_PopUp('$supportlink',990,900,'');\"

@@ -121,6 +121,7 @@ $ZarafaMAPISSLPort=$sock->GET_INFO("ZarafaMAPISSLPort");
 $ZarafaStoreOutside=$sock->GET_INFO("ZarafaStoreOutside");
 $ZarafaStoreCompressionLevel=$sock->GET_INFO("ZarafaStoreCompressionLevel");
 $ZarafaStoreOutsidePath=$sock->GET_INFO("ZarafaStoreOutsidePath");
+$ZarafaAlwaysSendTnef=intval($sock->GET_INFO("ZarafaAlwaysSendTnef"));
 
 if(!is_numeric($ZarafaServerSMTPPORT)){$ZarafaServerSMTPPORT=25;}
 if(!is_numeric($ZarafaServerListenPort)){$ZarafaServerListenPort=236;}
@@ -156,7 +157,7 @@ for($i=0;$i<10;$i++){
 	
 	$html="
 	<div id='$t'>
-	<div class=text-info style='font-size:16px'>{zarafa_tune_explain}</div>
+	<div class=explain style='font-size:16px'>{zarafa_tune_explain}</div>
 	
 <div style='width:98%' class=form>	
 	<div id='locales-gen-running-$t'></div>
@@ -198,7 +199,7 @@ for($i=0;$i<10;$i++){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px'>MAPI SSL:</td>
-		<td style='font-size:18px'>". Field_checkbox("ZarafaMAPISSLEnabled",1,$ZarafaMAPISSLEnabled,"ZarafaMAPISSLEnabledCheck()")."</td>
+		<td style='font-size:18px'>". Field_checkbox_design("ZarafaMAPISSLEnabled",1,$ZarafaMAPISSLEnabled,"ZarafaMAPISSLEnabledCheck()")."</td>
 		<td></td>
 	</tr>	
 	<tr>
@@ -216,14 +217,20 @@ for($i=0;$i<10;$i++){
 <div style='width:98%' class=form>	
 	<table style='width:99%'>				
 	<tr>
-		<td colspan=3 style='font-size:28px'>{attachments}</td>
+		<td colspan=3 style='font-size:28px;padding-bottom:20px'>{attachments}</td>
 	</tr>	
-			<tr>
-				<td class=legend style='font-size:18px'>{ZarafaStoreOutside}:</td>
-				<td>". Field_checkbox("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaATTCH()")."</td>
-				<td></td>
-			</tr>	
-			<tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{always_send_tnef}:</td>
+		<td>". Field_checkbox_design("AlwaysSendTnef",1,$ZarafaAlwaysSendTnef)."</td>
+		<td></td>
+	</tr>					
+			 	
+	<tr>
+		<td class=legend style='font-size:18px'>{ZarafaStoreOutside}:</td>
+		<td>". Field_checkbox_design("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaATTCH()")."</td>
+		<td></td>
+	</tr>				
+		<tr>
 				<td class=legend style='font-size:18px'>{attachments_path}:</td>
 				<td>". Field_text("ZarafaStoreOutsidePath",$ZarafaStoreOutsidePath,"width:320px;font-size:18px;padding:3px")."</td>
 				<td>". button_browse("ZarafaStoreOutsidePath")."</td>
@@ -546,7 +553,7 @@ function locales_gen_running(){
 	</script>";
 	return;}
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<p class=text-info style='font-size:18px'>{languages} {running} {since} :{$array["SINCE"]}mn PID {$array["PID"]}</p>
+	echo $tpl->_ENGINE_parse_body("<p class=explain style='font-size:18px'>{languages} {running} {since} :{$array["SINCE"]}mn PID {$array["PID"]}</p>
 	
 	<script>
 

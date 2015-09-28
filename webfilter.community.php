@@ -47,7 +47,7 @@ function status(){
 	<tr>
 	<td valign='top'><img src='img/webfilter-community-128.png'></td>
 	<td valign='top' width=99%'>
-		<div class=text-info>{APP_WEBFILTER_COMMUNITY_EXPLAIN}</div>
+		<div class=explain>{APP_WEBFILTER_COMMUNITY_EXPLAIN}</div>
 		<div style='font-size:14px;font-weight:bold'>$total {websites} ({community})</div>
 		$pp
 	</td>

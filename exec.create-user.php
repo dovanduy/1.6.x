@@ -56,6 +56,7 @@ function create_user_from_mysql(){
 			build_progress("{removing_order}",95);
 			$q->QUERY_SQL("DELETE FROM `CreateUserQueue` WHERE `zMD5`='$zMD5'","artica_backup");
 		}else{
+			$q->QUERY_SQL("DELETE FROM `CreateUserQueue` WHERE `zMD5`='$zMD5'","artica_backup");
 			build_progress("{failed}",110);
 			return;
 		}

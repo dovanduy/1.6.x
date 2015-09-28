@@ -14,6 +14,8 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.services.inc');
 include_once(dirname(__FILE__)."/ressources/class.familysites.inc");
 include_once(dirname(__FILE__)."/ressources/class.HyperCache.inc");
+include_once(dirname(__FILE__)."/ressources/class.extensionToMime.inc");
+include_once(dirname(__FILE__)."/ressources/class.hyperCache-central.inc");
 
 ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["HYPER_CACHE_VERBOSE"]=true;$GLOBALS["HYPER_CACHE_VERBOSE_RULES"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -38,6 +40,10 @@ xstart();
 
 
 function xstart(){
+	
+
+	
+	
 	
 	$unix=new unix();
 	$TimeFile="/etc/artica-postfix/pids/exec.squidcache.php.time";
@@ -105,8 +111,11 @@ function xstart(){
 		$ID=$re[1];
 		
 		HyperCacheScanDBFile("/usr/share/squid3/$file",$ID);
+		
 	}
 
+	
+	
 	if($GLOBALS["SIZE_DOWNLOADED"]>0){
 		$size=FormatBytes($GLOBALS["SIZE_DOWNLOADED"]/1024);
 		$hits=$GLOBALS["HITS"];
@@ -163,16 +172,7 @@ function HyperCacheRulesLoad(){
 function HyperCacheMD5File_set($MD5File,$TargetFile,$FileType,$size,$OriginalFile){
 	$dbfile="/usr/share/squid3/HyperCacheMD5.db";
 	
-	if(!is_file($dbfile)){
-		try {
-			
-			$db_desttmp = @dba_open($dbfile, "c","db4"); }
-			catch (Exception $e) {$error=$e->getMessage(); 
-			events("FATAL ERROR $error on $dbfile",0,0,__LINE__);
-		}
-		@dba_close($db_desttmp);
-	
-	}
+	berekley_db_create($dbfile);
 	
 	if(!is_file($dbfile)){
 		events("FATAL ERROR $error on $dbfile",0,0,__LINE__);
@@ -337,21 +337,34 @@ function  HyperCacheRetranslation_clean($dbfile){
 }
 
 
-
-
-function HyperCacheMD5File_get($md5){
+function HyperCacheMD5File_getdb($md5){
+	if(isset($GLOBALS["HyperCacheMD5File_get"][$md5])){return $GLOBALS["HyperCacheMD5File_get"][$md5];}
 	$dbfile="/usr/share/squid3/HyperCacheMD5.db";
-	if(!is_file($dbfile)){return;}
+	if(!is_file($dbfile)){
+		$GLOBALS["HyperCacheMD5File_get"][$md5]=null;
+		return;
+	}
+	
 	$db_con = dba_open($dbfile, "r","db4");
 	if(!$db_con){return;}
 	
 	if(!@dba_exists($md5,$db_con)){
 		@dba_close($db_con);
+		$GLOBALS["HyperCacheMD5File_get"][$md5]=null;
 		return null;
 	}
 	
 	$fetch_content=@dba_fetch($md5,$db_con);
+	@dba_close($db_con);
+	
 	$array=@unserialize($fetch_content);
+	$GLOBALS["HyperCacheMD5File_get"][$md5]=$array;
+	return $array;
+}
+
+function HyperCacheMD5File_get($md5){
+	$array=HyperCacheMD5File_getdb($md5);
+	if(!is_array($array)){return null;}
 	
 	if(!isset($array["TIME"])){
 		events("HyperCacheMD5File_get:: $md5 no time set...",0,1,__LINE__);
@@ -360,8 +373,6 @@ function HyperCacheMD5File_get($md5){
 	
 	$Path=$array["FILEPATH"];
 	
-	
-	@dba_close($db_con);
 	
 	if(is_file($GLOBALS["HyperCacheStoragePath"]."/".$Path)){
 		events("HyperCacheMD5File_get::  **** return $Path *****",0,3,__LINE__);
@@ -375,21 +386,21 @@ function HyperCacheMD5File_get($md5){
 
 
 function HyperCacheRetranslation_get($uri){
+	$md5=md5($uri);
+	if(isset($GLOBALS["HyperCacheRetranslation_get"][$md5])){return $GLOBALS["HyperCacheRetranslation_get"][$md5];}
 	$familysite=tool_get_familysite($uri);
 	$dbfile="/usr/share/squid3/HyperCache-$familysite-Retranslation.db";
 	if(!is_file($dbfile)){return;}
 	$db_con = dba_open($dbfile, "r","db4");
 	if(!$db_con){return;}
-	$md5=md5($uri);
-	
-	
-	
+		
 	if(!@dba_exists($md5,$db_con)){
 		@dba_close($db_con);
 		return null;
 	}
 	$fetch_content=@dba_fetch($md5,$db_con);$array=@unserialize($fetch_content);
 	@dba_close($db_con);
+	$GLOBALS["HyperCacheRetranslation_get"][$md5]=$array["TARGET"];
 	return $array["TARGET"];
 	
 }
@@ -409,20 +420,10 @@ function HyperCacheRetranslation_set($uri,$MD5File,$FileType,$TargetFile){
 	$unix=new unix();
 	$extention=$unix->file_extension(basename($TargetFile));
 	$dbfile="/usr/share/squid3/HyperCache-$familysite-Retranslation.db";
+	berekley_db_create($dbfile);
 	
 	if(!is_file($dbfile)){
-		try {
-			events("Creating $dbfile database",0,2,__LINE__);
-			$db_desttmp = @dba_open($dbfile, "c","db4"); }
-			catch (Exception $e) {$error=$e->getMessage();
-			events("FATAL ERROR $error on $dbfile",0,0,__LINE__);
-			}
-			@dba_close($db_desttmp);
-	
-	}
-	
-	if(!is_file($dbfile)){
-		events("FATAL ERROR $error on $dbfile",0,0,__LINE__);
+		events("FATAL ERROR on $dbfile",0,0,__LINE__);
 		return;
 	}
 	$db_con = dba_open($dbfile, "c","db4");
@@ -436,11 +437,21 @@ function HyperCacheRetranslation_set($uri,$MD5File,$FileType,$TargetFile){
 	if(!@dba_replace($md5,serialize($array),$db_con)){
 		events("$dbfile unable to save $md5 information...",0,0,__LINE__);
 		@dba_close($db_con);
-		return;
+		return false;
 	}
-	
+	@dba_close($db_con);
 	return true;
 	
+}
+
+function berekley_db_create($db_path){
+	if(is_file($db_path)){return true;}
+	events("berekley_db_create:: Creating $db_path database");
+	$db_desttmp = @dba_open($db_path, "c","db4");
+	@dba_close($db_desttmp);
+	if(is_file($db_path)){return true;}
+
+
 }
 
 function HyperCacheScanBuildLocalPath($uri,$ID){
@@ -512,9 +523,40 @@ function HyperCacheScanDBFile_setbulk($dbfile,$array){
 
 }
 
+function  HyperCacheScanDBFile_removebulk($dbfile,$array){
+	if(!is_file($dbfile)){return;}
+	$db_con = dba_open($dbfile, "w","db4");
+	while (list ($key, $none) = each ($array) ){
+		if(!@dba_delete($key,$db_con)){
+			events("$dbfile unable to delete $key information...",0,0,__LINE__);
+			@dba_close($db_con);
+			return;
+		}
+	}
+	
+	@dba_close($db_con);
+	return true;
+	
+}
+
 	
 function HyperCacheScanDBFile($dbfile,$ID){
 	$TT=time();
+	$unix=new unix();
+	
+
+	
+	$Cache=unserialize(@file_get_contents("/usr/share/squid3/lastScan.array"));
+	
+	
+	if(isset($Cache[$ID][$dbfile])){
+		$filemm=filemtime($dbfile);
+		if($filemm==$Cache[$ID][$dbfile]){
+			if($GLOBALS["HYPER_CACHE_VERBOSE"]){echo "HyperCacheScanDBFile $filemm == {$Cache[$ID][$dbfile]} [".__LINE__."]\n";}
+			return;}
+		
+	}
+	
 	
 	
 	$filesize=FormatBytes(@filesize($dbfile)/1024);
@@ -543,26 +585,61 @@ function HyperCacheScanDBFile($dbfile,$ID){
 	
 	$c=0;
 	
-	$HyPerCacheClass=new HyperCache();
+
 	
 	while($urikey !=false){
-		
-		
 		$FileType=dba_fetch($urikey,$db_con);
-		if($GLOBALS["HYPER_CACHE_VERBOSE"]){echo "HyperCacheScanDBFile::[$FileType]: $urikey\n";}
-
+		$GLOBALS["MAINDB"][$urikey]=$FileType;
+		$urikey=dba_nextkey($db_con);
+	}
+	@dba_close($db_con);
+	$GLOBAL["BLACKLISTED"]=array();
+	
+	if(!class_exists("HyperCache")){include_once(dirname(__FILE__)."/ressources/class.HyperCache.inc");}
+	$HyPerCacheClass=new HyperCache();
+	
+	if(!function_exists("HyperCacheRulesBlacklist")){include_once(dirname(__FILE__)."/ressources/class.hyperCache-central.inc");}
+	
+	
+	while (list ($urikey, $FileType) = each ($GLOBALS["MAINDB"]) ){
+		
+		if(HyperCacheRulesBlacklist($urikey)){
+			if($GLOBALS["HYPER_CACHE_VERBOSE"]){echo "HyperCacheScanDBFile:: $urikey Blacklisted";}
+			$GLOBAL["BLACKLISTED"][$urikey]=true;
+			continue;
+		}
+		
+		$SCANNED_URL=ifTracker($urikey);
+		$H=parse_url($SCANNED_URL);
+		
+		$path=$H["path"];
+		$filename=basename($path);
+		$extention=$unix->file_extension($filename);
+		$GetMimeFromExtension=GetMimeFromExtension($extention);
+		if($GetMimeFromExtension<>null){
+			if($FileType<>$GetMimeFromExtension){
+				$FileType=$GetMimeFromExtension;
+				$ARRAY_SAVE[$urikey]=$FileType;
+			}
+		}else{
+			if($GLOBALS["HYPER_CACHE_VERBOSE"]){
+				echo "HyperCacheScanDBFile:: $SCANNED_URL $filename/$FileType - $extention no MIME ??\n";}
+		}
+		
 		if($FileType=="NONE"){
 			$FileType=HyperCacheGetMimeType($urikey,$ID);
-			if($FileType==null){$urikey=dba_nextkey($db_con); continue; }
+			if($FileType==null){
+				$GLOBAL["BLACKLISTED"][$urikey]=true;
+				continue; 
+			}
 			$ARRAY_SAVE[$urikey]=$FileType;			
 			
 		}
 		
 		if(!isset($FileTypesArray[$FileType])){
 			if(!$HyPerCacheClass->ChecksOtherRules($urikey,$FileType,$ID)){
-				
+				$GLOBAL["BLACKLISTED"][$urikey]=true;
 				if($GLOBALS["HYPER_CACHE_VERBOSE"]){events("$urikey $FileType No match...",$ID,3,__LINE__);}
-				$urikey=dba_nextkey($db_con);
 				continue;
 			}
 		}
@@ -572,24 +649,23 @@ function HyperCacheScanDBFile($dbfile,$ID){
 		$FullTargetFile=$GLOBALS["HyperCacheStoragePath"]."/".$TargetFile;
 		
 		
-		if($GLOBALS["HYPER_CACHE_VERBOSE"]){events("HyperCacheScanDBFile::Local file: $FullTargetFile",$ID,3,__LINE__);}
-		if(is_file($FullTargetFile)){
-			$urikey=dba_nextkey($db_con);
-			continue;
-		}
+		if(is_file($FullTargetFile)){continue;}
 		events("Downloading $urikey [$FileType]",$ID,2,__LINE__);
 		HyperCacheScanDownload($urikey,$TargetFile,$ID,$FileType);
-		$urikey=dba_nextkey($db_con);
+		
 		
 	}
 	
+	if(count($GLOBAL["BLACKLISTED"])>0){
+		HyperCacheScanDBFile_removebulk($dbfile,$GLOBAL["BLACKLISTED"]);
+		
+	}
 	
-	
-	@dba_close($db_con);
 	HyperCacheScanDBFile_setbulk($dbfile,$ARRAY_SAVE);
 	
-	
-	
+	$filemm=filemtime($dbfile);
+	$Cache[$ID][$dbfile]=$filemm;
+	@file_put_contents("/usr/share/squid3/lastScan.array", serialize($Cache));
 	
 }
 
@@ -609,7 +685,8 @@ function HyperCacheScanDownload($urikey,$TargetFile,$ID,$FileType){
 	$t=time();
 	events("{downloading} $OriginalFile {from} $hostname",$ID,3,__LINE__);
 	if(!$curl->GetFile($FullTarGetPath)){
-		events("HyperCacheScanDownload:: Download failed with error $curl->error",$ID,2,__LINE__);
+		events("HyperCacheScanDownload:: Download failed with error $curl->CURLINFO_HTTP_CODE",$ID,2,__LINE__);
+		if($curl->CURLINFO_HTTP_CODE>400){$GLOBAL["BLACKLISTED"]=$urikey;}
 		$GLOBALS["FAILED_DOWNLOADED"]++;
 		return false;
 	}
@@ -641,25 +718,29 @@ function HyperCacheScanDownload($urikey,$TargetFile,$ID,$FileType){
 		$GLOBALS["FAILED_DOWNLOADED"]++;
 		return;
 	}
-
+	if($GLOBALS["VERBOSE"]){echo "Downloading DONE....[".__LINE__."]\n";}
 	return true;
 	
 }
 
 
 function HyperCacheGetMimeType($uri,$ID){
+	if(isset($GLOBALS["HyperCacheGetMimeType"][md5($uri)])){return $GLOBALS["HyperCacheGetMimeType"][md5($uri)];}
 	$curl=new ccurl($uri);
 	if(!$curl->GetHeads()){
 		events("headers {failed} $uri Error number: $curl->CURLINFO_HTTP_CODE",$ID,1,__LINE__);
+		$GLOBALS["HyperCacheGetMimeType"][md5($uri)]="NONE_$curl->CURLINFO_HTTP_CODE";
 		return "NONE_$curl->CURLINFO_HTTP_CODE";
 	}
 	
 	if($curl->CURLINFO_HTTP_CODE==501){return "NONE_501"; }
+	if($curl->CURLINFO_HTTP_CODE==404){return "NONE_404"; }
 	$content_type=$curl->CURL_ALL_INFOS["content_type"];
 	if(strpos($content_type, ";")>0){
 		$tbl=explode(";",$content_type);
 		$content_type=trim($tbl[0]);
 	}
+	$GLOBALS["HyperCacheGetMimeType"][md5($uri)]="$content_type";
 	return $content_type;
 	
 	
@@ -1101,7 +1182,7 @@ function HyperCacheMirror($JustID=0){
 				continue;}
 		}
 		$t=time();
-		$count++;
+		
 		$sitename=$ligne["sitename"];
 		
 		$sitename_path=$HyperCache->HyperCacheUriToHostname($sitename);
@@ -1109,10 +1190,10 @@ function HyperCacheMirror($JustID=0){
 		$TimeExec=$ligne["TimeExec"];
 		$TimeExecLast=$unix->file_time_min("$workingdir/TimeExec");
 		if(!$GLOBALS["FORCE"]){
-			events("Scrapping $sitename require {$TimeExec}mn, current {$TimeExecLast}Mn",0,2,__LINE__);
+			
 			if($TimeExecLast<$TimeExec){continue;}
 		}
-		
+		$count++;
 		events("Scrapping rule ID {$ligne["ID"]} for $sitename",0,2,__LINE__);
 		
 		$minrate=$ligne["minrate"];
@@ -1168,7 +1249,9 @@ function HyperCacheMirror($JustID=0){
 		
 	}
 	$took=$unix->distanceOfTimeInWords($t1,time(),true);
-	squid_admin_enforce(2,"$count web site(s) scrapped took $took",null,__FILE__,__LINE__);
+	if($count>0){
+		squid_admin_enforce(2,"$count web site(s) scrapped took $took",null,__FILE__,__LINE__);
+	}
 	
 	
 	

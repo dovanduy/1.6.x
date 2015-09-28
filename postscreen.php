@@ -52,16 +52,22 @@ function popup(){
 // Total downloaded: 100%, Result: Retranslation successful and update is not requested
 	
 	
+	$fontsize=22;
+	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="white"){
-			$tab[]="<li><a href=\"whitelists.admin.php?popup-hosts=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+			$tab[]="<li><a href=\"whitelists.admin.php?popup-hosts=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\">
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
-		$tab[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+		$tab[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			
 	}
 
+	
+	
+	
 	$html="
 		<div id='main_postscreen_config' style='background-color:white'>
 		<ul>
@@ -94,7 +100,7 @@ function dnsbl(){
 		if(preg_match("#RBL:(.+)#",$val,$re)){$RBL[$re[1]]=$re[1];}
 		if(preg_match("#RHSBL:(.+)#",$val,$re)){$RHSBL[$re[1]]=$re[1];}		
 	}
-	$list=Field_array_Hash($RBL,"DNBL_TO_ADD",null,"style:font-size:13px;padding:3px");	
+	$list=Field_array_Hash($RBL,"DNBL_TO_ADD",null,"style:font-size:22px;padding:3px");	
 	$postscreen_dnsbl_action=$main->GET("postscreen_dnsbl_action");
 	$postscreen_dnsbl_ttl=$main->GET("postscreen_dnsbl_ttl");
 	$postscreen_dnsbl_threshold=$main->GET("postscreen_dnsbl_threshold");
@@ -105,41 +111,42 @@ function dnsbl(){
 	
 	
 	$html="
-	<div class=text-info>{postscreen_dnsbl_sites}</div>
-	
-	<table style='width:99%' class=form id='tosave'>
+	<div class=explain style='font-size:18px'>{postscreen_dnsbl_sites}</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%' id='tosave'>
 	
 	<tr>
-		<td class=legend>{postscreen_dnsbl_action}:</td>
-		<td>". Field_array_Hash($action,"postscreen_dnsbl_action",$postscreen_dnsbl_action,"style:font-size:13px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_dnsbl_action}:</td>
+		<td>". Field_array_Hash($action,"postscreen_dnsbl_action",$postscreen_dnsbl_action,"style:font-size:22px;padding:3px")."</td>
 		<td width=1%>". help_icon("{postscreen_dnsbl_action_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{postscreen_dnsbl_threshold}:</td>
-		<td>". Field_text("postscreen_dnsbl_threshold",$postscreen_dnsbl_threshold,"font-size:13px;padding:3px;width:60px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_dnsbl_threshold}:</td>
+		<td>". Field_text("postscreen_dnsbl_threshold",$postscreen_dnsbl_threshold,"font-size:22px;padding:3px;width:60px")."</td>
 		<td width=1%>". help_icon("{postscreen_dnsbl_threshold_text}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{postscreen_dnsbl_ttl}:</td>
-		<td>". Field_text("postscreen_dnsbl_ttl",$postscreen_dnsbl_ttl,"font-size:13px;padding:3px;width:60px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_dnsbl_ttl}:</td>
+		<td>". Field_text("postscreen_dnsbl_ttl",$postscreen_dnsbl_ttl,"font-size:22px;padding:3px;width:60px")."</td>
 		<td width=1%>". help_icon("{postscreen_dnsbl_ttl_text}")."</td>
 	</tr>			
-	<tr><td colspan=3 align='right'><hr>". button("{apply}","SaveDNSBLConfig()")."</td></tr>
+	<tr><td colspan=3 align='right'><hr>". button("{apply}","SaveDNSBLConfig()",26)."</td></tr>
 	</table>	
-	
-	<table class=form>
+	</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{DNSBL}:</td>
+		<td class=legend style='font-size:22px'>{DNSBL}:</td>
 		<td>$list</td>
-		<td class=legend>{threshold}:</td>
-		<td>". Field_text("dnsbl_threshold",$postscreen_dnsbl_threshold,"font-size:13px;padding:3px;width:60px")."</td>
-		<td width=1%>". button("{add}","AddPostScreenDNSBL()")."</td>
+		<td class=legend style='font-size:22px'>{threshold}:</td>
+		<td>". Field_text("dnsbl_threshold",$postscreen_dnsbl_threshold,"font-size:22px;padding:3px;width:60px")."</td>
+		<td width=1%>". button("{add}","AddPostScreenDNSBL()",26)."</td>
 	</tr>
 	
 	</table>
-		
+	</div>
 	
-	<div id='postscreen_dnbl_list' style='width:100%;height:210px;overflow:auto'></div>
+	<div id='postscreen_dnbl_list' style='width:98%;height:210px;overflow:auto' class=form></div>
 	
 	<script>
 	
@@ -203,8 +210,8 @@ function dnsbl_list(){
 <thead class='thead'>
 	<tr>
 	<th>&nbsp;</th>
-	<th>{dnsbl}</th>
-	<th>{threshold}</th>
+	<th style='font-size:28px'>{dnsbl}</th>
+	<th style='font-size:28px'>{threshold}</th>
 	<th>&nbsp;</th>
 	</tr>
 </thead>
@@ -215,9 +222,9 @@ function dnsbl_list(){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 			$html=$html."<tr class=$classtr>
 						<td width=1%><img src='img/domain-32.png'></td>
-						<td><strong style='font-size:16px'>$site</strong></td>
-						<td width=1%  align='center'><strong style='font-size:16px'>$threshold</strong></td>
-						<td width=1% align='center'>".imgtootltip("delete-24.png",'{delete}',"DeletePostScreenDNSBL('$site')")."</td>
+						<td><strong style='font-size:24px'>$site</strong></td>
+						<td width=1%  align='center'><strong style='font-size:24px'>$threshold</strong></td>
+						<td width=1% align='center'>".imgtootltip("delete-32.png",'{delete}',"DeletePostScreenDNSBL('$site')")."</td>
 					</tr>";					
 		
 		
@@ -333,112 +340,112 @@ function parameters(){
 	$action=array("ignore"=>"ignore","enforce"=>"enforce","drop"=>"drop");
 	$html="
 	<div id='NavigationForms4'>
-	<h3><a href=\"#\">{Bare_newline_test}</a></h3>
+	<h3><a href=\"#\" style='font-size:28px'>{Bare_newline_test}</a></h3>
 	<div>
-	<div class=text-info>{POSTSCREEN_BARRE_NEWLINE_EXPLAIN}</div>
+	<div class=explain style='font-size:18px'>{POSTSCREEN_BARRE_NEWLINE_EXPLAIN}</div>
 	
 			<table style='width:99%' class=form>
 			
 			<tr>
-			<td class=legend>{postscreen_bare_newline_enable}:</td>
+			<td class=legend style='font-size:22px'>{postscreen_bare_newline_enable}:</td>
 			<td>". Field_checkbox("postscreen_bare_newline_enable",1,$postscreen_bare_newline_enable)."</td>
 			<td width=1%>". help_icon("{postscreen_bare_newline_enable_text}")."</td>
 			</tr>	
 			
 			
 			<tr>
-			<td class=legend>{postscreen_bare_newline_action}:</td>
-			<td>". Field_array_Hash($action,"postscreen_bare_newline_action",$postscreen_bare_newline_action,"style:font-size:13px;padding:3px")."</td>
+			<td class=legend style='font-size:22px'>{postscreen_bare_newline_action}:</td>
+			<td>". Field_array_Hash($action,"postscreen_bare_newline_action",$postscreen_bare_newline_action,"style:font-size:22px;padding:3px")."</td>
 			<td width=1%>". help_icon("{postscreen_bare_newline_action_text}")."</td>
 			</tr>
 			
 			<tr>
-			<td class=legend>{postscreen_bare_newline_ttl}:</td>
-			<td>". Field_text("postscreen_bare_newline_ttl",$postscreen_bare_newline_ttl,"font-size:13px;padding:3px;width:60px")."</td>
+			<td class=legend style='font-size:22px'>{postscreen_bare_newline_ttl}:</td>
+			<td>". Field_text("postscreen_bare_newline_ttl",$postscreen_bare_newline_ttl,"font-size:22px;padding:3px;width:60px")."</td>
 			<td width=1%>". help_icon("{postscreen_bare_newline_ttl_text}")."</td>
 			</tr>	
-			<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()")."</td></tr>
+			<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()",30)."</td></tr>
 			</table>
 	</div>
 
-	<h3><a href=\"#\">{Command_pipelining_test}</a></h3>
+	<h3><a href=\"#\" style='font-size:28px'>{Command_pipelining_test}</a></h3>
 	<div>
-	<div class=text-info>{postscreen_pipelining_explain}</div>	
+	<div class=explain style='font-size:18px'>{postscreen_pipelining_explain}</div>	
 
 	<table style='width:99%' class=form>
 	
 	<tr>
-		<td class=legend>{postscreen_pipelining_enable}:</td>
+		<td class=legend style='font-size:22px'>{postscreen_pipelining_enable}:</td>
 		<td>". Field_checkbox("postscreen_pipelining_enable",1,$postscreen_pipelining_enable)."</td>
 		<td width=1%>". help_icon("{postscreen_pipelining_enable_text}")."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend>{postscreen_pipelining_action}:</td>
-		<td>". Field_array_Hash($action,"postscreen_pipelining_action",$postscreen_pipelining_action,"style:font-size:13px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_pipelining_action}:</td>
+		<td>". Field_array_Hash($action,"postscreen_pipelining_action",$postscreen_pipelining_action,"style:font-size:22px;padding:3px")."</td>
 		<td width=1%>". help_icon("{postscreen_pipelining_action_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{postscreen_pipelining_ttl}:</td>
-		<td>". Field_text("postscreen_pipelining_ttl",$postscreen_pipelining_ttl,"font-size:13px;padding:3px;width:60px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_pipelining_ttl}:</td>
+		<td>". Field_text("postscreen_pipelining_ttl",$postscreen_pipelining_ttl,"font-size:22px;padding:3px;width:60px")."</td>
 		<td width=1%>". help_icon("{postscreen_pipelining_ttl_text}")."</td>
 	</tr>	
-	<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()")."</td></tr>
+	<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()",30)."</td></tr>
 	</table>
 	
 	</div>
 	
-	<h3><a href=\"#\">{postscreen_non_smtp_command_title}</a></h3>
+	<h3><a href=\"#\" style='font-size:28px'>{postscreen_non_smtp_command_title}</a></h3>
 	<div>
-	<div class=text-info>{postscreen_non_smtp_command_explain}</div>	
+	<div class=explain style='font-size:18px'>{postscreen_non_smtp_command_explain}</div>	
 	<table style='width:99%' class=form>
 	
 	<tr>
-		<td class=legend>{postscreen_non_smtp_command_enable}:</td>
+		<td class=legend style='font-size:22px'>{postscreen_non_smtp_command_enable}:</td>
 		<td>". Field_checkbox("postscreen_non_smtp_command_enable",1,$postscreen_non_smtp_command_enable)."</td>
 		<td width=1%>". help_icon("{postscreen_non_smtp_command_enable_text}")."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend>{postscreen_non_smtp_command_action}:</td>
-		<td>". Field_array_Hash($action,"postscreen_non_smtp_command_action",$postscreen_non_smtp_command_action,"style:font-size:13px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_non_smtp_command_action}:</td>
+		<td>". Field_array_Hash($action,"postscreen_non_smtp_command_action",$postscreen_non_smtp_command_action,"style:font-size:22px;padding:3px")."</td>
 		<td width=1%>". help_icon("{postscreen_non_smtp_command_action_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{postscreen_non_smtp_command_ttl}:</td>
-		<td>". Field_text("postscreen_non_smtp_command_ttl",$postscreen_non_smtp_command_ttl,"font-size:13px;padding:3px;width:60px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_non_smtp_command_ttl}:</td>
+		<td>". Field_text("postscreen_non_smtp_command_ttl",$postscreen_non_smtp_command_ttl,"font-size:22px;padding:3px;width:60px")."</td>
 		<td width=1%>". help_icon("{postscreen_non_smtp_command_ttl_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{postscreen_forbidden_commands}:</td>
-		<td>". Field_text("postscreen_forbidden_commands",$postscreen_forbidden_commands,"font-size:13px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{postscreen_forbidden_commands}:</td>
+		<td>". Field_text("postscreen_forbidden_commands",$postscreen_forbidden_commands,"font-size:22px;padding:3px;width:220px")."</td>
 		<td width=1%>". help_icon("{postscreen_forbidden_commands_text}")."</td>
 	</tr>	
-	<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()")."</td></tr>
+	<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()",30)."</td></tr>
 	
 	</table>
 	
 	</div>
 	
-	<h3><a href=\"#\">{limits}</a></h3>
+	<h3><a href=\"#\" style='font-size:28px'>{limits}</a></h3>
 	<div>
 		<table style='width:99%' class=form>
 		
 		<tr>
-			<td class=legend>{client_connection_count_limit}:</td>
-			<td>". Field_text("postscreen_client_connection_count_limit",$postscreen_client_connection_count_limit,"font-size:13px;padding:3px;width:60px")."</td>
+			<td class=legend style='font-size:22px'>{client_connection_count_limit}:</td>
+			<td>". Field_text("postscreen_client_connection_count_limit",$postscreen_client_connection_count_limit,"font-size:22px;padding:3px;width:60px")."</td>
 			<td width=1%>". help_icon("{client_connection_count_limit_text}")."</td>
 		</tr>	
 		<tr>
-			<td class=legend>{postscreen_post_queue_limit}:</td>
-			<td>". Field_text("postscreen_post_queue_limit",$postscreen_post_queue_limit,"font-size:13px;padding:3px;width:60px")."</td>
+			<td class=legend style='font-size:22px'>{postscreen_post_queue_limit}:</td>
+			<td>". Field_text("postscreen_post_queue_limit",$postscreen_post_queue_limit,"font-size:22px;padding:3px;width:60px")."</td>
 			<td width=1%>". help_icon("{postscreen_post_queue_limit_text}")."</td>
 		</tr>
-			<td class=legend>{postscreen_pre_queue_limit}:</td>
-			<td>". Field_text("postscreen_pre_queue_limit",$postscreen_pre_queue_limit,"font-size:13px;padding:3px;width:60px")."</td>
+			<td class=legend style='font-size:22px'>{postscreen_pre_queue_limit}:</td>
+			<td>". Field_text("postscreen_pre_queue_limit",$postscreen_pre_queue_limit,"font-size:22px;padding:3px;width:60px")."</td>
 			<td width=1%>". help_icon("{postscreen_pre_queue_limit_text}")."</td>
 		</tr>	
-		<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()")."</td></tr>
+		<tr><td colspan=3 align='right'><hr>". button("{apply}","SavePostScreenConfig()",30)."</td></tr>
 		
 		</table>
 	</div>
@@ -485,9 +492,9 @@ function index(){
 	<tr>
 	<td valign='top'><img src='img/postscreen-128.png'></td>
 	
-		<td valign='top'>". Paragraphe_switch_img("{ENABLE_POSTSCREEN}","{POSTSCREEN_TEXT}","EnablePostScreen",$main->GET("EnablePostScreen"),null,390)."
+		<td valign='top'>". Paragraphe_switch_img("{ENABLE_POSTSCREEN}","{POSTSCREEN_TEXT}","EnablePostScreen",$main->GET("EnablePostScreen"),null,1150)."
 		<hr>
-		<div style='text-align:right'>". button("{apply}","SaveEnablePostScreen()")."</div>
+		<div style='text-align:right'>". button("{apply}","SaveEnablePostScreen()",55)."</div>
 		</td>
 	</tr>
 	</table>

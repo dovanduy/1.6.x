@@ -59,6 +59,7 @@ function build(){
 }
 
 function progress($title,$perc){
+	echo "$title,$perc\n";
 	$array=array($title,$perc);
 	@file_put_contents("/usr/share/artica-postfix/ressources/support/support.progress",serialize($array));
 	@chmod("/usr/share/artica-postfix/ressources/support/support.progress", 0755);
@@ -69,6 +70,8 @@ function support_step1(){
 	$ps=$unix->find_program("ps");
 	$df=$unix->find_program("df");
 	$du=$unix->find_program("du");
+	$lsof=$unix->find_program("lsof");
+	$free=$unix->find_program("free");
 	$files[]="/etc/hostname";
 	$files[]="/etc/resolv.conf";
 	$files[]="/usr/share/artica-postfix/ressources/settings.inc";
@@ -76,27 +79,50 @@ function support_step1(){
 	$files[]="/usr/share/artica-postfix/ressources/logs/global.versions.conf";
 	$files[]="/var/log/lighttpd/squidguard-lighttpd-error.log";
 	$files[]="/var/log/lighttpd/squidguard-lighttpd.start";
+	$files[]="/var/log/artica-parse.hourly.log";
 	$files[]="/etc/init.d/tproxy";
 	$files[]="/etc/init.d/artica-ifup";
+	$files[]="/var/log/squid/artica.watchdog.log";
 
-
+	progress("{remove}",30);
 	if(is_dir("/usr/share/artica-postfix/ressources/support")){
 		shell_exec("/bin/rm -rf /usr/share/artica-postfix/ressources/support");
 	}
 
 	@mkdir("/usr/share/artica-postfix/ressources/support",0755,true);
 	while (list ($a, $b) = each ($files) ){
+		progress("$b",30);
 		$destfile=basename($b);
 		@copy($b, "/usr/share/artica-postfix/ressources/support/$destfile");
 	}
 
-	shell_exec("$ps aux >/usr/share/artica-postfix/ressources/support/ps.txt 2>&1");
+	$iptables=$unix->find_program("iptables-save");
+	
+	progress("{get_system_informations}",31);
+	shell_exec("$ps auxww >/usr/share/artica-postfix/ressources/support/ps.txt 2>&1");
+	progress("{get_system_informations}",32);
 	shell_exec("$df -h >/usr/share/artica-postfix/ressources/support/dfh.txt 2>&1");
+	progress("{get_system_informations}",33);
+	shell_exec("$df -i >/usr/share/artica-postfix/ressources/support/dfi.txt 2>&1");
+	
+	progress("$lsof",34);
+	shell_exec("$lsof >/usr/share/artica-postfix/ressources/support/lsof.txt 2>&1");
+	
+	progress("$iptables",34);
+	shell_exec("$iptables >/usr/share/artica-postfix/ressources/support/iptables.txt 2>&1");
+	
+	
+	progress("ps_mem",34);
+	shell_exec("/usr/share/artica-postfix/bin/ps_mem.py  >/usr/share/artica-postfix/ressources/support/ps_mem.txt 2>&1");
+	
+	progress("$free -m",34);
+	shell_exec("$free -m  >/usr/share/artica-postfix/ressources/support/free.txt 2>&1");
+	
+	
 
 	progress("{scanning} /var/log {partition}",35);
-	shell_exec("$du -h --max-dep=1 >/usr/share/artica-postfix/ressources/support/var-log-sizes.txt 2>&1");
-	
-	
+	shell_exec("$du -h /var/log --max-dep=1 >/usr/share/artica-postfix/ressources/support/var-log-sizes.txt 2>&1");
+	progress("{scanning} {network}",37);
 	$report=$unix->NETWORK_REPORT();
 	@file_put_contents("/usr/share/artica-postfix/ressources/support/NETWORK_REPORT.txt", $report);
 }
@@ -152,6 +178,7 @@ function support_step2(){
 	$files[]="/var/log/squid/logfile_daemon.debug";
 	$files[]="/var/log/php.log";
 	$files[]="/var/log/mail.log";
+	$files[]="/var/log/squid.watchdog.log";
 	$files[]="/var/log/squid/ufdbguardd.log";
 	$files[]="/var/log/samba/log.winbindd";
 	$files[]="/etc/samba/smb.conf";
@@ -207,17 +234,19 @@ function support_step2(){
 		}
 	}
 
-	progress("{get_all_logs}",49);
+	progress("{get_all_logs} lshw",49);
 	$lshw=$unix->find_program("lshw");
 	exec("$lshw -class network 2>&1",$results);
 	
-	progress("{get_all_logs}",50);
+	progress("{get_all_logs} ifconfig",50);
 	$ifconfig=$unix->find_program("ifconfig");
 	exec("$ifconfig -a 2>&1",$results);
 	$results[]="\n\t***************\n";
+	progress("{get_all_logs} IP",50);
 	$ip=$unix->find_program("ip");
 	exec("$ip link show 2>&1",$results);
 	$results[]="\n\t***************\n";
+	progress("{get_all_logs} Route",50);
 	exec("$ip route 2>&1",$results);
 	$results[]="\n\t***************\n";
 
@@ -233,7 +262,7 @@ function support_step2(){
 		$results[]="\n\t***************\n";
 	}
 
-	progress("{get_all_logs}",51);
+	progress("{get_all_logs} uname",51);
 	$unix=new unix();
 	$uname=$unix->find_program("uname");
 	$results[]="$uname -a:";
@@ -244,7 +273,7 @@ function support_step2(){
 
 	$results[]="\n";
 
-	progress("{get_all_logs}",52);
+	progress("{get_all_logs} gdb",52);
 	$gdb=$unix->find_program("gdb");
 	if(is_file($gdb)){
 		$results[]="$gdb --version:";
@@ -263,7 +292,7 @@ function support_step2(){
 
 	$results[]="\n";
 	
-	progress("{get_all_logs}",53);
+	progress("{get_all_logs} $squidbin",53);
 	if(is_file($squidbin)){
 		$results[]="$squidbin -v:";
 		exec("$squidbin -v 2>&1",$results);
@@ -293,7 +322,7 @@ function support_step2(){
 		$results[]="squid3 no such binary....";
 	}
 	
-	progress("{get_all_logs}",55);
+	progress("{get_all_logs} DF",55);
 	$results[]="\n";
 	$df=$unix->find_program("df");
 	if(is_file($df)){

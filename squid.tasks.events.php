@@ -43,7 +43,7 @@ function table(){
 	
 	$t=time();
 	$html="
-	<div class=text-info>$explain</div>
+	<div class=explain>$explain</div>
 
 
 	<div style='margin-left:-15px'>

@@ -76,11 +76,10 @@ function tabs(){
 
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
 	}
-	echo build_artica_tabs($html, "main_proxy_monitorv2",1206);
+	echo build_artica_tabs($html, "main_proxy_monitorv2",1316);
 	
 	
 }
-
 
 function page_start(){
 	$page=CurrentPageName();
@@ -98,6 +97,16 @@ function page_start(){
 
 function page(){
 	$page=CurrentPageName();
+	$sock=new sockets();
+	
+	$DisableAnyCache=intval($sock->GET_INFO("DisableAnyCache"));
+	
+	if($DisableAnyCache==1){
+		echo FATAL_ERROR_SHOW_128("{DisableAnyCache_enabled_warning}");
+		return;
+	}
+	
+	
 	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db";
 	$array=unserialize(@file_get_contents($cachefile));
 	$tpl=new templates();
@@ -137,7 +146,7 @@ function page(){
 	$cacheTime=filemtime($cachefile);
 	$cacheTime_text=date("{l} d",$cacheTime)." {at} ".date("H:i:s",$cacheTime);
 	if(count($ARRAY)==0){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{no_cache_as_been_detected}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{no_cache_as_been_detected}"));
 	}
 	echo 
 	$tpl->_ENGINE_parse_body("

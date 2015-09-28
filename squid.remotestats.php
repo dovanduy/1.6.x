@@ -82,7 +82,7 @@ function popup(){
 	</tr>
 	</tbody>
 	</table>
-		<div class=text-info style='font-size:16px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_SYSLOGAPPLIANCE_EXPLAIN}</div>
+		<div class=explain style='font-size:16px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_SYSLOGAPPLIANCE_EXPLAIN}</div>
 	<script>
 		var x_SaveStatsApp$t=function (obj) {
 			var results=obj.responseText;

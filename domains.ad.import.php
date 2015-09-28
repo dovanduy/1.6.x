@@ -185,12 +185,12 @@ function main_status(){
 		
 	    if($ad->suffix==null){
 	    	$img="warning64.png";
-	    	$text=$text."<div style=color:red>{missing} suffix</div>";
+	    	$text=$text."<div style=color:#d32d2d>{missing} suffix</div>";
 	    }else{
 	    	$count=$ad->CountDeusers();
 	    	if(!$count){
 	    		$img="warning64.png";
-	    		$text=$text."<div style=color:red>$ad->ldap_error</div>";
+	    		$text=$text."<div style=color:#d32d2d>$ad->ldap_error</div>";
 	    	}else{
 	    		$text=$text."<div style=color:#005447;font-weight:bolder>$count {users}</div>";
 	    	}
@@ -264,7 +264,7 @@ function main_config(){
 	<tr>
 		<td width=1% valign='top'><img src='img/chiffre1.png'></td>
 		<td valign='top'><H3>{ad_server} ({$_GET["ou"]})</H3>
-		<div class=text-info>{ad_server_text}</div>
+		<div class=explain>{ad_server_text}</div>
 		<table style='width:100%'>
 		<tr>
 			<td align='right' style='font-weight:bold;font-size:14px'>{server_name}:</td>
@@ -283,7 +283,7 @@ function main_config(){
 	<tr>
 		<td width=1% valign='top'><img src='img/chiffre2.png'></td>
 		<td valign='top'><H3>{admin_dn}</H3>
-		<div class=text-info>{admin_dn_text}</div>
+		<div class=explain>{admin_dn_text}</div>
 		<table style='width:100%'>
 		<tr>
 			<td align='right' style='font-weight:bold;font-size:14px' nowrap>{anonymous_access}:</td>
@@ -315,7 +315,7 @@ function main_config(){
 	<tr>
 		<td width=1% valign='top'><img src='img/chiffre3.png'></td>
 		<td valign='top'><H3>{local_group}</H3>
-		<div class=text-info>{local_group_text}</div>
+		<div class=explain>{local_group_text}</div>
 		<table style='width:100%'>
 		<tr>
 			<td align='right' style='font-weight:bold;font-size:12px'>{local_group}:</td>

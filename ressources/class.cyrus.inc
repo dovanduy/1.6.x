@@ -191,7 +191,7 @@ class cyrus{
 		if(!$cyradm->_connect()){
 			
 			$this->cyrus_infos=$this->cyrus_infos."\n{unable_to_connect_imap}<br>\n.$cyradm->error";
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'> CONNECTING Failed $this->cyrus_infos </span><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'> CONNECTING Failed $this->cyrus_infos </span><br>\n";}
 			return false;	
 		}
     
@@ -307,6 +307,14 @@ class cyrus{
 		$user=new user($uid);
 		if(!$cyradm->deletemailbox("user/$REAL_UID")){return false;}
 		return true;
+		
+	}
+	
+	public function TestConnection(){
+		$cyradm=new CyrusAdmin($this->cyr_params);
+		return $cyradm->_connect();
+		
+		
 		
 	}
 	

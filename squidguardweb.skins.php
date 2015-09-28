@@ -62,6 +62,8 @@ function skin_delete(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM ufdb_design WHERE zmd5='{$_POST["delete-rule"]}'");
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 	
 }
 
@@ -76,6 +78,8 @@ function skin_enable(){
 	}
 	$q->QUERY_SQL("UPDATE ufdb_design SET `enabled`=1 WHERE zmd5='{$_POST["enable-rule"]}'");
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 }
 
 function skin_enable_js(){
@@ -175,6 +179,7 @@ function skin_parameters(){
 	$newcat["safebrowsing"]="Google Safe Browsing";
 	$newcat["blacklist"]="{blacklist}";
 	$newcat["restricted_time"]="{restricted_access}";
+	$newcat["generic"]="{generic}";
 	
 	$ligne["enabled"]=1;
 	
@@ -256,7 +261,8 @@ function skin_logo(){
 	$SquidHTTPTemplateLogoEnable=intval($ligne["SquidHTTPTemplateLogoEnable"]);
 	$SquidHTTPTemplateLogoPositionH=$ligne["SquidHTTPTemplateLogoPositionH"];
 	$SquidHTTPTemplateLogoPositionL=$ligne["SquidHTTPTemplateLogoPositionL"];
-	$SquidHTTPTemplateSmiley=$ligne["SquidHTTPTemplateSmiley"];
+	$SquidHTTPTemplateSmiley=intval($ligne["SquidHTTPTemplateSmiley"]);
+	$SquidHTTPTemplateSmileyEnable=$ligne["SquidHTTPTemplateSmileyEnable"];
 	$picturealign=$ligne["picturealign"];
 	
 	$picturemode=$ligne["picturemode"];
@@ -264,7 +270,7 @@ function skin_logo(){
 
 	if($SquidHTTPTemplateLogoPositionH==null){$SquidHTTPTemplateLogoPositionH="10";}
 	if($SquidHTTPTemplateLogoPositionL==null){$SquidHTTPTemplateLogoPositionL="10";}
-	if(!is_numeric($SquidHTTPTemplateSmiley)){$SquidHTTPTemplateSmiley=2639;}
+	if($SquidHTTPTemplateSmiley==0){$SquidHTTPTemplateSmiley=2639;}
 
 	if(!$users->CORP_LICENSE){
 		$error="<p class=text-error>{MOD_TEMPLATE_ERROR_LICENSE}</p>";
@@ -290,11 +296,22 @@ function skin_logo(){
 	<tr>
 		<td class=legend style='font-size:26px'>{enable_logo_image}:</td>
 		<td>". Field_checkbox_design("SquidHTTPTemplateLogoEnable-$t",1,$SquidHTTPTemplateLogoEnable)."</td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:26px'>Smiley:</td>
-		<td>". Field_text("SquidHTTPTemplateSmiley-$t",$SquidHTTPTemplateSmiley,"width:120px;font-size:26px")."</td>
 	</tr>
+
+	<tr><td colspan=2><p>&nbsp;</p></td></tr>			
+	<tr>
+		<td class=legend style='font-size:34px'>Smiley:</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:26px'>{enabled}:</td>
+		<td>". Field_checkbox_design("SquidHTTPTemplateSmileyEnable-$t",1,$SquidHTTPTemplateSmileyEnable)."</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:26px'>Smiley (code):</td>
+		<td>". Field_text("SquidHTTPTemplateSmiley-$t",$SquidHTTPTemplateSmiley,"width:120px;font-size:26px")."</td>
+	</tr>				
+	<tr><td colspan=2><p>&nbsp;</p></td></tr>			
 
 	<tr>
 		<td class=legend style='font-size:26px'>{position} TOP:</td>
@@ -327,12 +344,19 @@ var xSave$t=function(obj){
 function Save$t(){
 	var XHR = new XHRConnection();
 	var SquidHTTPTemplateLogoEnable=0;
+	var SquidHTTPTemplateSmileyEnable=0;
 	if(document.getElementById('SquidHTTPTemplateLogoEnable-$t').checked){SquidHTTPTemplateLogoEnable=1;}
+	if(document.getElementById('SquidHTTPTemplateSmileyEnable-$t').checked){SquidHTTPTemplateSmileyEnable=1;}	
+	
+	
+	
+	
 	XHR.appendData('zmd5','{$_GET["zmd5"]}');
 	XHR.appendData('picturemode',document.getElementById('picturemode-$t').value);
 	XHR.appendData('picturealign',document.getElementById('picturealign-$t').value);
 	
 	XHR.appendData('SquidHTTPTemplateLogoEnable',SquidHTTPTemplateLogoEnable);
+	XHR.appendData('SquidHTTPTemplateSmileyEnable',SquidHTTPTemplateSmileyEnable);
 	XHR.appendData('SquidHTTPTemplateSmiley',document.getElementById('SquidHTTPTemplateSmiley-$t').value);
 	XHR.appendData('SquidHTTPTemplateLogoPositionH',document.getElementById('SquidHTTPTemplateLogoPositionH-$t').value);
 	XHR.appendData('SquidHTTPTemplateLogoPositionL',document.getElementById('SquidHTTPTemplateLogoPositionL-$t').value);
@@ -350,14 +374,24 @@ echo $tpl->_ENGINE_parse_body($html);
 function skin_logo_save(){
 	$sql="UPDATE ufdb_design SET `SquidHTTPTemplateLogoEnable`='{$_POST["SquidHTTPTemplateLogoEnable"]}',
 	`SquidHTTPTemplateSmiley`='{$_POST["SquidHTTPTemplateSmiley"]}',
+	`SquidHTTPTemplateSmileyEnable`='{$_POST["SquidHTTPTemplateSmileyEnable"]}',
 	`SquidHTTPTemplateLogoPositionH`='{$_POST["SquidHTTPTemplateLogoPositionH"]}',
 	`SquidHTTPTemplateLogoPositionL`='{$_POST["SquidHTTPTemplateLogoPositionL"]}',
 	`picturemode`='{$_POST["picturemode"]}',
 	`picturealign`='{$_POST["picturealign"]}'
 	WHERE `zmd5`='{$_POST["zmd5"]}'";
 	$q=new mysql_squid_builder();
+	
+	if(!$q->FIELD_EXISTS("ufdb_design", "SquidHTTPTemplateSmileyEnable")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `SquidHTTPTemplateSmileyEnable` smallint(1) NOT NULL DEFAULT 1");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	
+	
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 	
 }
 
@@ -373,6 +407,8 @@ function skin_parameters_save(){
 	}
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 }
 
 function skin_design(){
@@ -405,6 +441,10 @@ function skin_design(){
 	$UfdbGuardHTTPBackgroundColorBLK=$ligne["UfdbGuardHTTPBackgroundColorBLK"];
 	$UfdbGuardHTTPBackgroundColorBLKBT=$ligne["UfdbGuardHTTPBackgroundColorBLKBT"];
 	$UfdbGuardHTTPDisableHostname=intval($ligne["UfdbGuardHTTPDisableHostname"]);
+	$UFDBGUARD_UNLOCK_LINK=$ligne["UFDBGUARD_UNLOCK_LINK"];
+	$UFDBGUARD_TICKET_LINK=$ligne["UFDBGUARD_TICKET_LINK"];
+	$TICKET_TEXT=$ligne["TICKET_TEXT"];
+	$TICKET_TEXT_SUCCESS=$ligne["TICKET_TEXT_SUCCESS"];
 	
 	if($UFDBGUARD_TITLE_1==null){$UFDBGUARD_TITLE_1="{UFDBGUARD_TITLE_1}";}
 	if($UFDBGUARD_PARA1==null){$UFDBGUARD_PARA1="{UFDBGUARD_PARA1}";}
@@ -417,7 +457,8 @@ function skin_design(){
 	if($UfdbGuardHTTPBackgroundColorBLK==null){$UfdbGuardHTTPBackgroundColorBLK="#0300AC";}
 	if($UfdbGuardHTTPBackgroundColorBLKBT==null){$UfdbGuardHTTPBackgroundColorBLKBT="#625FFD";}
 	if($UfdbGuardHTTPFontColor==null){$UfdbGuardHTTPFontColor="#FFFFFF";}
-	
+	if($TICKET_TEXT==null){$TICKET_TEXT="{ufdb_ticket_text}";}
+	if($TICKET_TEXT_SUCCESS==null){$TICKET_TEXT_SUCCESS="{ufdb_ticket_text_success}";}
 	
 	
 	if($UfdbGuardHTTPFamily==null){$UfdbGuardHTTPFamily="Calibri, Candara, Segoe, \"Segoe UI\", Optima, Arial, sans-serif";}
@@ -497,6 +538,28 @@ $html="$error<div style='width:98%' class=form>
 		</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:22px'>{submit_ticket_text}:</td>
+		<td><textarea
+			style='width:100%;height:150px;font-size:18px !important;border:4px solid #CCCCCC;font-family:\"Courier New\",
+			Courier,monospace;background-color:white;color:black' id='TICKET_TEXT-$t'>$TICKET_TEXT</textarea>
+		</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{submit_ticket_text} ({success}):</td>
+		<td><textarea
+			style='width:100%;height:150px;font-size:18px !important;border:4px solid #CCCCCC;font-family:\"Courier New\",
+			Courier,monospace;background-color:white;color:black' id='TICKET_TEXT_SUCCESS-$t'>$TICKET_TEXT_SUCCESS</textarea>
+		</td>
+	</tr>			
+	<tr>
+		<td class=legend style='font-size:22px'>{UFDBGUARD_UNLOCK_LINK}:</td>
+		<td>".Field_text("UFDBGUARD_UNLOCK_LINK-$t",$UFDBGUARD_UNLOCK_LINK,"font-size:22px;width:100%")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:22px'>{UFDBGUARD_TICKET_LINK}:</td>
+		<td>".Field_text("UFDBGUARD_TICKET_LINK-$t",$UFDBGUARD_TICKET_LINK,"font-size:22px;width:100%")."</td>
+	</tr>	
+	<tr>
 		<td colspan=2 align='right'>$button</td>
 	</tr>
 	<script>
@@ -513,6 +576,12 @@ $html="$error<div style='width:98%' class=form>
 			XHR.appendData('UFDBGUARD_TITLE_2',encodeURIComponent(document.getElementById('UFDBGUARD_TITLE_2-$t').value));
 			XHR.appendData('UFDBGUARD_PARA1',encodeURIComponent(document.getElementById('UFDBGUARD_PARA1-$t').value));
 			XHR.appendData('UFDBGUARD_PARA2',encodeURIComponent(document.getElementById('UFDBGUARD_PARA2-$t').value));
+			XHR.appendData('UFDBGUARD_UNLOCK_LINK',encodeURIComponent(document.getElementById('UFDBGUARD_UNLOCK_LINK-$t').value));
+			XHR.appendData('UFDBGUARD_TICKET_LINK',encodeURIComponent(document.getElementById('UFDBGUARD_TICKET_LINK-$t').value));
+			XHR.appendData('TICKET_TEXT',encodeURIComponent(document.getElementById('TICKET_TEXT-$t').value));
+			XHR.appendData('TICKET_TEXT_SUCCESS',encodeURIComponent(document.getElementById('TICKET_TEXT_SUCCESS-$t').value));
+			
+			
 			
 			XHR.appendData('UfdbGuardHTTPFamily',document.getElementById('UfdbGuardHTTPFamily-$t').value);
 			XHR.appendData('UfdbGuardHTTPBackgroundColor',document.getElementById('UfdbGuardHTTPBackgroundColor-$t').value);
@@ -553,13 +622,18 @@ function skin_design_save(){
 			UfdbGuardHTTPDisableHostname='{$_POST["UfdbGuardHTTPDisableHostname"]}',
 			UfdbGuardHTTPFontColor='{$_POST["UfdbGuardHTTPFontColor"]}',
 			UfdbGuardHTTPNoVersion='{$_POST["UfdbGuardHTTPNoVersion"]}',
-			UfdbGuardHTTPEnablePostmaster='{$_POST["UfdbGuardHTTPEnablePostmaster"]}'
+			UfdbGuardHTTPEnablePostmaster='{$_POST["UfdbGuardHTTPEnablePostmaster"]}',
+			UFDBGUARD_UNLOCK_LINK='{$_POST["UFDBGUARD_UNLOCK_LINK"]}',
+			UFDBGUARD_TICKET_LINK='{$_POST["UFDBGUARD_TICKET_LINK"]}',
+			TICKET_TEXT='{$_POST["TICKET_TEXT"]}',
+			TICKET_TEXT_SUCCESS='{$_POST["TICKET_TEXT_SUCCESS"]}'
 			WHERE `zmd5`='{$_POST["zmd5"]}'";
 	
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}
-	
+	if(!$q->ok){echo $q->mysql_error."\n".$sql."\n";}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 	
 	
 }
@@ -598,12 +672,17 @@ function page(){
 			`UfdbGuardHTTPFamily` varchar(128),
 			`SquidHTTPTemplateSmiley` INT(10),
 			`SquidHTTPTemplateLogoEnable` smallint(1),
+			`SquidHTTPTemplateSmileyEnable` smallint(1) NOT NULL DEFAULT 1,
 			`SquidHTTPTemplateLogoPositionH` INT(10),
 			`SquidHTTPTemplateLogoPositionL` INT(10),
 			`UFDBGUARD_TITLE_1` TEXT,
 			`UFDBGUARD_TITLE_2` TEXT,
 			`UFDBGUARD_PARA1` TEXT,
 			`UFDBGUARD_PARA2` TEXT,
+			`UFDBGUARD_UNLOCK_LINK` VARCHAR(128),
+			`UFDBGUARD_TICKET_LINK` VARCHAR(128),
+			`TICKET_TEXT` TEXT,
+			`TICKET_TEXT_SUCCESS` TEXT,
 			`picturename` varchar(128),
 			`picture` MEDIUMBLOB,
 			`picturemode` varchar(15),
@@ -617,6 +696,23 @@ function page(){
 		if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error_html());}
 		return;
 	}
+	
+	if(!$q->FIELD_EXISTS("ufdb_design", "UFDBGUARD_UNLOCK_LINK")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `UFDBGUARD_UNLOCK_LINK` VARCHAR(128)");
+	}
+	if(!$q->FIELD_EXISTS("ufdb_design", "UFDBGUARD_TICKET_LINK")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `UFDBGUARD_TICKET_LINK` VARCHAR(128)");
+	}	
+	if(!$q->FIELD_EXISTS("ufdb_design", "TICKET_TEXT")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `TICKET_TEXT` TEXT");
+	}
+	if(!$q->FIELD_EXISTS("ufdb_design", "TICKET_TEXT_SUCCESS")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `TICKET_TEXT_SUCCESS` TEXT");
+	}		
+	if(!$q->FIELD_EXISTS("ufdb_design", "SquidHTTPTemplateSmileyEnable")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_design` ADD `SquidHTTPTemplateSmileyEnable` smallint(1) NOT NULL DEFAULT 1");
+	}	
+	
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -638,7 +734,7 @@ function page(){
 	
 	$buttons="
 	buttons : [
-		{name: '$new_skin', bclass: 'apply', onpress :  NewSkin$t},
+		{name: '<strong style=font-size:22px>$new_skin</strong>', bclass: 'apply', onpress :  NewSkin$t},
 	],";
 	
 	
@@ -649,9 +745,9 @@ $('#UFDB_SKIN_RULES').flexigrid({
 	url: '$page?list=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$rulename', name : 'ruleid', width :505, sortable : true, align: 'left'},
-	{display: '$category', name : 'category', width :250, sortable : true, align: 'center'},
-	{display: '$enabled', name : 'enabled', width :95, sortable : true, align: 'left'},
+	{display: '<span style=font-size:22px>$rulename</span>', name : 'ruleid', width :505, sortable : true, align: 'left'},
+	{display: '<span style=font-size:22px>$category</span>', name : 'category', width :250, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>$enabled</span>', name : 'enabled', width :95, sortable : true, align: 'left'},
 	{display: '&nbsp;', name : 'delete', width :70, sortable : false, align: 'center'},
 	],
 	$buttons
@@ -663,12 +759,12 @@ $('#UFDB_SKIN_RULES').flexigrid({
 	sortname: 'category',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<strong style=font-size:18px>$banned_page_webservice >> $skins</strong>',
+	title: '<strong style=font-size:30px>$banned_page_webservice >> $skins</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 400,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 	

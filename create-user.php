@@ -13,7 +13,7 @@
 	include_once('ressources/class.computers.inc');
 	include_once('ressources/class.ini.inc');	
 	
-
+	if(isset($_GET["ou-field"])){OU_FIELD();exit;}
 	if(isset($_GET["form"])){formulaire();exit;}
 	if(isset($_GET["ch-groupid"])){groups_selected();exit;}
 	if(isset($_GET["ch-domain"])){domain_selected();exit;}
@@ -36,6 +36,9 @@ $ouJS="";
 $title=$tpl->_ENGINE_parse_body('{add user explain}');
 if(!is_numeric($_GET["t"])){$t=time();}else{$t=$_GET["t"];}
 if($_GET["ou"]<>null){$ffou="&ou={$_GET["ou"]}";$ouJS="{$_GET["ou"]}";}
+
+if($_GET["CallBackFunction"]<>null){$CallBackFunction="{$_GET["CallBackFunction"]}();";}
+
 $html="
 var x_serid='';
 
@@ -53,6 +56,7 @@ var x_ChangeFormValues= function (obj) {
 	document.getElementById('select_groups-$t').innerHTML=tempvalue;
 	if(document.getElementById('internet_domain-$t')){internet_domain=document.getElementById('internet_domain-$t').value;}
 	if(document.getElementById('DomainsUsersFindPopupDiv')){DomainsUsersFindPopupDivRefresh();}
+	$CallBackFunction
   	 var XHR = new XHRConnection();
   	 XHR.setLockOff();
      XHR.appendData('ou',ou);
@@ -70,7 +74,7 @@ var x_ChangeFormValues2= function (obj) {
 	var ouJS='$ouJS';
 	var ou=document.getElementById('organization-$t').value;
 	if(ouJS.length>0){ou=ouJS;}
-	
+	$CallBackFunction
 	document.getElementById('select_domain-$t').innerHTML=tempvalue;
 	if(!document.getElementById('email-$t')){alert('email-$t no such id');}
 	if(!document.getElementById('login-$t')){alert('login-$t no such id');}
@@ -90,7 +94,7 @@ var x_SaveAddUser= function (obj) {
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){ alert(tempvalue);return;}
 	YahooWin5Hide();
-	Loadjs('create-user.progress.php');
+	Loadjs('create-user.progress.php?CallBackFunction={$_GET["CallBackFunction"]}');
 	if(document.getElementById('flexRT$t')){ $('#flexRT$t').flexReload(); }
 	if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
 	if(document.getElementById('TABLE_SEARCH_USERS')){  $('#'+document.getElementById('TABLE_SEARCH_USERS').value).flexReload();  }
@@ -98,6 +102,7 @@ var x_SaveAddUser= function (obj) {
 	if(document.getElementById('MAIN_PAGE_ORGANIZATION_LIST')){ $('#table-'+document.getElementById('MAIN_PAGE_ORGANIZATION_LIST').value).flexReload(); }
 	if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
 	if(document.getElementById('org_main')){RefreshTab('org_main');}
+	$CallBackFunction
 	ExecuteByClassName('SearchFunction');
 }
 
@@ -153,13 +158,12 @@ function BuildLocalesCreateUser(){
 function ChangeFormValues(){
   var gpid='';
   var ou=document.getElementById('organization-$t').value;
-		
-  		if(document.getElementById('groupid-$t')){gpid=document.getElementById('groupid-$t').value;}
-  		var XHR = new XHRConnection();
-        XHR.appendData('ch-groupid',gpid);
-        XHR.setLockOff();
-        XHR.appendData('ou',ou);
-        XHR.sendAndLoad('$page', 'GET',x_ChangeFormValues);	
+  if(document.getElementById('groupid-$t')){gpid=document.getElementById('groupid-$t').value;}
+  var XHR = new XHRConnection();
+  XHR.appendData('ch-groupid',gpid);
+  XHR.setLockOff();
+  XHR.appendData('ou',ou);
+  XHR.sendAndLoad('$page', 'GET',x_ChangeFormValues);	
 
 }
 
@@ -193,8 +197,9 @@ function formulaire(){
 	$users=new usersMenus();
 	$ldap=new clladp();
 	$tpl=new templates();
-	$page=CurrentPageName();	
-	
+	$page=CurrentPageName();
+	$TT=time();	
+	$add_new_organisation_text=$tpl->javascript_parse_text("{add_new_organisation_text}");
 	$lang=null;
 	$t=$_GET["t"];
 	if($users->AsAnAdministratorGeneric){
@@ -213,7 +218,7 @@ function formulaire(){
 	
 	if(count($hash)==0){
 		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{error_no_ou_created}<center style='margin-top:30px'>".
-				button("{create_a_new_organization}", "loadjs('organization.js.php?add-ou=yes');",22)."</center>"));
+				button("{create_a_new_organization}", "Loadjs('organization.js.php?add-ou=yes');",22)."</center>"));
 
 		return;
 		
@@ -259,6 +264,19 @@ function formulaire(){
 	while (list ($num, $ligne) = each ($hash) ){
 		$ous[$ligne]=$ligne;
 	}
+	$ouenc=urlencode($_GET["ou"]);
+	
+	$ADMIN=false;
+	if($users->AsSquidAdministrator){$ADMIN=true;}
+	if($users->AsDebianSystem){$ADMIN=true;}
+	if($users->AsSystemAdministrator){$ADMIN=true;}
+	
+	if($ADMIN) {
+		
+		$add_ou="<div style='float:right'>". imgtootltip("32-plus.png","{create_a_new_organization}","TreeAddNewOrganisation$TT()")."</div>";
+		$add_group="<div style='float:right'>". imgtootltip("32-plus.png","{new_group}","CreateGroup$TT()")."</div>";
+		
+	}
 	
 	$ou=Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:28px;padding:3px");
 	$form="
@@ -268,11 +286,11 @@ function formulaire(){
 	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:28px'>{organization}:</td>
-			<td>$ou</td>
+			<td>$add_ou<span id='ou-$TT'></span></td>
 		</tr>
 		<tr>
 			<td class=legend style='font-size:28px'>{group}:</td>
-			<td><span id='select_groups-$t'>$groups</span>
+			<td>$add_group<span id='select_groups-$t'>$groups</span>
 		</tr>
 		<tr>
 		<tr>
@@ -312,11 +330,70 @@ function formulaire(){
 			
 	$html="<div id='ffform-$t'>
 	<div>$form</div>
-
+	<script>
+	var xTreeAddNewOrganisation$TT= function (obj) {
+		var response=obj.responseText;
+		if(response){alert(response);}
+		OpenOU$TT();
+		ChangeFormValues();
+		$('#table-$t').flexReload();
+	}	
+	
+	function TreeAddNewOrganisation$TT(){
+		var org=prompt('$add_new_organisation_text','');
+		if(!org){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('TreeAddNewOrganisation',org);
+		XHR.sendAndLoad('domains.php', 'GET',xTreeAddNewOrganisation$TT);
+	}
+	
+	function OpenOU$TT(){
+		LoadAjaxSilent('ou-$TT','$page?ou-field=yes&t=$t&ou=$ouenc');
+	}
+	
+	function CreateGroup$TT(){
+		var ou=document.getElementById('organization-$t').value;
+		Loadjs('domains.edit.group.php?popup-add-group=yes&ou='+ou+'&t=$t&tt={$_GET["tt"]}&CallBackFunction=ChangeFormValues');
+	}
+	OpenOU$TT();
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
+	
+}
+
+function OU_FIELD(){
+	$users=new usersMenus();
+	$ldap=new clladp();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=$_GET["t"];
+	if($users->AsAnAdministratorGeneric){
+		$hash=$ldap->hash_get_ou(false);
+	}else{
+		if($_GET["ou"]==null){
+			$hash=$ldap->Hash_Get_ou_from_users($_SESSION["uid"],1);
+			if(count($hash)==0){if(isset($_SESSION["ou"])){$hash[0]=$_SESSION["ou"];}}
+				
+		}else{
+			$hash[0]=$_GET["ou"];
+			if(count($hash)==0){if(isset($_SESSION["ou"])){$hash[0]=$_SESSION["ou"];}}
+		}
+	
+	}
+	
+	if(count($hash)==1){
+		$org=$hash[0];
+		
+	}
+	while (list ($num, $ligne) = each ($hash) ){
+		$ous[$ligne]=$ligne;
+	}
+	
+	echo Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:28px;padding:3px")."
+	<script>ChangeFormValues();</script>		
+	";
 	
 }
 

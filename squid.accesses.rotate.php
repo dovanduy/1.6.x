@@ -92,7 +92,7 @@ function status(){
 	
 	
 	
-	$html="<div class=text-info style='font-size:14px'>{access_logs_storage_explain}</div>".
+	$html="<div class=explain style='font-size:14px'>{access_logs_storage_explain}</div>".
 	CompileTr3($tr);
 	
 	echo $tpl->_ENGINE_parse_body($html);

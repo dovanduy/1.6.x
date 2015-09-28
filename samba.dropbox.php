@@ -279,7 +279,7 @@ function service_status(){
 	";
 	
 	if(strlen($uri)<10){
-		$link="<br><span style='font-size:14px;color:red;padding:5px;font-weight:bolder'>{unable_to_obtain_uri}</span>";
+		$link="<br><span style='font-size:14px;color:#d32d2d;padding:5px;font-weight:bolder'>{unable_to_obtain_uri}</span>";
 		
 	}
 	
@@ -306,7 +306,7 @@ function service_status(){
 	
 	
 	
-	<div style='font-size:13px' class=text-info>{dropbox_service_text}</div>
+	<div style='font-size:13px' class=explain>{dropbox_service_text}</div>
 	");
 }
 

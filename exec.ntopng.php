@@ -60,8 +60,12 @@ function reload($nopid=false){
 	$sock=new sockets();
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+	if($EnableIntelCeleron==1){$Enablentopng=0;}
+	
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
+		stop();
 		return;		
 	}
 	
@@ -155,7 +159,9 @@ function start($nopid=false){
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
 	if($SquidPerformance>2){$Enablentopng=0;}
+	if($EnableIntelCeleron==1){$Enablentopng=0;}
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
@@ -202,20 +208,31 @@ function start($nopid=false){
 	
 	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
 	
+	if(intval($arrayConf["ENABLE_LOGIN"])==1){
+		$ldap=new clladp();
+		$rediscli=$unix->find_program("redis-cli");
+		shell_exec("$rediscli SET ntopng.user.$ldap->ldap_admin.full_name $ldap->ldap_admin");
+		shell_exec("$rediscli SET ntopng.user.$ldap->ldap_admin.group administrator");
+		shell_exec("$rediscli SET ntopng.user.$ldap->ldap_admin.password ".md5($ldap->ldap_password));
+		
+	}
+	
 	
 	$f[]=$masterbin;
 	$f[]="--daemon";
+	$f[]="--verbose";
 	$f[]="--dns-mode 1";
 	$f[]="--http-port {$arrayConf["HTTP_PORT"]}";
+	if(intval($arrayConf["ENABLE_LOGIN"])==0){
+		$f[]="-l 1";
+	}
 	$f[]="--local-networks \"".@implode(",", $MASKZ)."\"";
 	$f[]="--user root";
 	$f[]="--data-dir /home/ntopng";
 	$f[]="--pid /var/run/ntopng/ntopng.pid";
-	$f[]="--dump-flows";
+	
 	$f[]=all_interfaces();
-	if(intval($arrayConf["ENABLE_LOGIN"])==0){
-		$f[]="--disable-login";
-	}
+
 	$cmd=@implode(" ", $f);
 	shell_exec($cmd);
 	
@@ -354,6 +371,7 @@ function cleanstorage(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	$CacheFile="/etc/artica-postfix/settings/Daemons/NTOPNgSize";
 	$pid=file_get_contents("$pidfile");
 	if($GLOBALS["VERBOSE"]){echo "$timefile\n";}
 	
@@ -370,10 +388,11 @@ function cleanstorage(){
 			die();
 		}
 	}
-	
-	if(!$GLOBALS["FORCE"]){
-		$TimeExec=$unix->file_time_min($timefile);
-		if($TimeExec<1880){return;}
+	if(is_file($CacheFile)){
+		if(!$GLOBALS["FORCE"]){
+			$TimeExec=$unix->file_time_min($timefile);
+			if($TimeExec<1880){return;}
+		}
 	}
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
@@ -383,63 +402,86 @@ function cleanstorage(){
 	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+	if($EnableIntelCeleron==1){$Enablentopng=0;}
 	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
 	if(!is_numeric($arrayConf["ENABLE_LOGIN"])){$arrayConf["ENABLE_LOGIN"]=0;}
 	if(!is_numeric($arrayConf["MAX_DAYS"])){$arrayConf["MAX_DAYS"]=30;}
+	if(!is_numeric($arrayConf["MAX_SIZE"])){$arrayConf["MAX_SIZE"]=5000;}
+	
+	$rm=$unix->find_program("rm");
+	$size=$unix->DIRSIZE_MB("/home/ntopng");
+	
+	
+	if($size>$arrayConf["MAX_SIZE"]){
+		shell_exec("$rm -rf /home/ntopng");
+		$redis=$unix->find_program("redis-cli");
+		shell_exec("$redis flushall");
+		squid_admin_mysql(1, "Removing NTOP NG directory {$size}MB, exceed {$arrayConf["MAX_SIZE"]}MB", null,__FILE__,__LINE__);
+		shell_exec("/etc/init.d/ntopng restart");
+	}
+	
 	$ThisYear=date("y");
 	$directory="/home/ntopng/db";
-	$unix=new unix();
-	$rm=$unix->find_program("rm");
-	echo "Scanning /home/ntopng/db/{$ThisYear}\n";
-	$directory="/home/ntopng/db/{$ThisYear}";
-	$thisMonth=date("m");
-	if(strlen($thisMonth)==1){$thisMonth="0{$thisMonth}";}
+	
 	if(!is_dir($directory)){return;}
 	
-	echo "Skip /home/ntopng/db/{$ThisYear}/{$thisMonth}\n";
-	$dirs=$unix->dirdir($directory);
+	$unix=new unix();
 	
 	
-	while (list ($scanneddir, $line) = each ($dirs)){
+	
+	if(is_dir("/home/ntopng/db/{$ThisYear}")){
+		echo "Scanning /home/ntopng/db/{$ThisYear}\n";
+		$directory="/home/ntopng/db/{$ThisYear}";
+		$thisMonth=date("m");
+		if(strlen($thisMonth)==1){$thisMonth="0{$thisMonth}";}
+		if(!is_dir($directory)){return;}
 		
-		$month=basename($scanneddir);
-		if($month==$thisMonth){
-			echo "Skip $thisMonth\n";
-			continue;
+		echo "Skip /home/ntopng/db/{$ThisYear}/{$thisMonth}\n";
+		$dirs=$unix->dirdir($directory);
+		
+		
+		while (list ($scanneddir, $line) = each ($dirs)){
+			
+			$month=basename($scanneddir);
+			if($month==$thisMonth){
+				echo "Skip $thisMonth\n";
+				continue;
+			}
+			
+			echo "Remove $scanneddir\n";
+			shell_exec("$rm -rf $scanneddir");
+		}
+			
+		if($arrayConf["MAX_DAYS"]==30){return;}
+	
+		echo "/home/ntopng/db/{$ThisYear}/{$thisMonth}";
+		$dirs=$unix->dirdir("/home/ntopng/db/{$ThisYear}/{$thisMonth}");
+		if($dirs<$arrayConf["MAX_DAYS"]){return;}
+		while (list ($scanneddir, $line) = each ($dirs)){
+			$basename=basename($scanneddir);
+			$T[$basename]=$scanneddir;
+			
 		}
 		
-		echo "Remove $scanneddir\n";
-		shell_exec("$rm -rf $scanneddir");
-	}
+		ksort($T);
+		print_r($T);
+			
+		$CurrentDays=count($T);
+		$Tokeep=$CurrentDays-$arrayConf["MAX_DAYS"];
+		if($Tokeep<1){return;}
 		
-	if($arrayConf["MAX_DAYS"]==30){return;}
+		echo "Keeping $Tokeep days\n";
+		$c=0;
+		while (list ($dir, $path) = each ($T)){
+			echo "Remove $path\n";
+			shell_exec("$rm -rf $path");
+			$c++;
+			if($c>=$Tokeep){break;}
+		}
+	}
+	
 
-	echo "/home/ntopng/db/{$ThisYear}/{$thisMonth}";
-	$dirs=$unix->dirdir("/home/ntopng/db/{$ThisYear}/{$thisMonth}");
-	if($dirs<$arrayConf["MAX_DAYS"]){return;}
-	while (list ($scanneddir, $line) = each ($dirs)){
-		$basename=basename($scanneddir);
-		$T[$basename]=$scanneddir;
-		
-	}
-	
-	ksort($T);
-	print_r($T);
-		
-	$CurrentDays=count($T);
-	$Tokeep=$CurrentDays-$arrayConf["MAX_DAYS"];
-	if($Tokeep<1){return;}
-	
-	echo "Keeping $Tokeep days\n";
-	$c=0;
-	while (list ($dir, $path) = each ($T)){
-		echo "Remove $path\n";
-		shell_exec("$rm -rf $path");
-		$c++;
-		if($c>=$Tokeep){break;}
-		
-		
-	}
 	
 }
 

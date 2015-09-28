@@ -66,6 +66,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["params"]='{dnsmasq_DNS_cache_settings}';
+	$array["sub-localdomains"]='{local_domains}';
 	$array["dn_entries"]="{dns_items}";
 	$array["records"]='{dnsmasq_DNS_records}';
 	$array["hosts"]='{hosts}';
@@ -85,7 +86,7 @@ function tabs(){
 $height="650px";
 	
 	if($_GET["newinterface"]<>null){
-		$style="style='font-size:16px'";
+		$style="style='font-size:22px'";
 		$height="100%;margin-top:10px";
 	}
 	
@@ -93,6 +94,11 @@ $height="650px";
 	
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="sub-localdomains"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"dnsmasq.dns.settings.php?sub-localdomains=yes\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		if($num=="dn_entries"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.items.php?bigsize=yes\"><span $style>$ligne</span></a></li>\n");

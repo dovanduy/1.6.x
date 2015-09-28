@@ -512,6 +512,10 @@ function create_default_rules(){
 	
 
 	$FileTypes["application/octet-stream"]=1;
+	$FileTypes["application/x-forcedownload"]=1;
+	$FileTypes["application/x-msdos-program"]=1;
+	$FileTypes["application/x-msi"]=1;
+	$FileTypes["application/microsoftpatch"]=1;
 	$FileTypes_enc=mysql_escape_string2(serialize($FileTypes));
 	
 	$q->QUERY_SQL("INSERT IGNORE INTO artica_caches (foldersize,filesnumber,MaxSizeBytes,FileTypes,storagemin,rulename,sitename,enabled,OtherDomains) VALUES
@@ -534,6 +538,16 @@ function create_default_rules(){
 	$FileTypes["image/florian"]=1;
 	$FileTypes["image/fif"]=1;
 	$FileTypes["image/vnd.dwg"]=1;
+	
+	$FileTypes["application/x-forcedownload"]=1;
+	$FileTypes["application/x-msdos-program"]=1;
+	$FileTypes["application/x-msi"]=1;
+	$FileTypes["application/microsoftpatch"]=1;
+
+	
+	
+	
+	
 	$FileTypes_enc=mysql_escape_string2(serialize($FileTypes));
 	
 	$q->QUERY_SQL("INSERT IGNORE INTO artica_caches (foldersize,filesnumber,MaxSizeBytes,FileTypes,storagemin,rulename,sitename,enabled,OtherDomains) VALUES
@@ -552,6 +566,13 @@ function create_default_rules(){
 	$FileTypes["text/css"]=1;
 	$FileTypes["application/x-javascript"]=1;
 	$FileTypes["application/javascript"]=1;
+	$FileTypes["application/x-shockwave-flash"]=1;
+	$FileTypes["font/woff"]=1;
+	$FileTypes["font/woff2"]=1;
+	$FileTypes["application/font-woff"]=1;
+	$FileTypes["application/x-woff"]=1;
+	$FileTypes["font/x-woff"]=1;
+	$FileTypes["application/x-font-ttf"]=1;
 	$FileTypes_enc=mysql_escape_string2(serialize($FileTypes));
 	
 	$OtherDomains["s-msn.com"]=true;
@@ -748,6 +769,7 @@ function MimeArray(){
 	$f["text/vnd.abc"]=true;
 	$f["text/html"]=true;
 	$f["video/animaflex"]=true;
+	$f["video/x-ms-wmv"]=true;
 	$f["application/postscript"]=true;
 
 	$f["application/x-aim"]=true;
@@ -757,6 +779,18 @@ function MimeArray(){
 	$f["application/mime"]=true;
 	$f["application/octet-stream"]=true;
 	
+	$f["application/x-chrome-extension"]=true;
+	$f["application/x-forcedownload"]=true;
+	$f["application/x-msdos-program"]=true;
+	$f["application/x-msi"]=true;
+	$f["application/microsoftpatch"]=true;
+	$f["application/x-shockwave-flash"]=true;
+	$f["font/woff"]=true;
+	$f["font/woff2"]=true;
+	$f["application/font-woff"]=true;
+	$f["application/x-woff"]=true;
+	$f["font/x-woff"]=true;
+	$f["application/x-font-ttf"]=true;
 	
 	
 	$f["application/x-mplayer2"]=true;
@@ -786,7 +820,8 @@ function MimeArray(){
 	$f["video/mpeg"]=true;
 	$f["video/x-mpeg"]=true;
 	$f["video/x-mpeq2a"]=true;
-	
+	$f["video/mp4"]=true;
+	$f["video/f4f"]=true;
 	$f["video/x-motion-jpeg"]=true;
 	$f["video/x-sgi-movie"]=true;
 
@@ -1308,12 +1343,15 @@ function MimeArray(){
 	$f["image/png"]=true;
 	$f["image/x-xwd"]=true;
 	$f["image/x-xwindowdump"]=true;
-	
+	$f["application/vnd.ms-fontobject"]=true;
+	$f["application/font-sfnt"]=true;
+	$f["application/font-woff"]=true;
 	$f["video/x-amt-showrun"]=true;
-
+	$f["application/x-mpegURL"]=true;
 	$f["chemical/x-pdb"]=true;
-
+	$f["audio/mpegURL"]=true;
 	$f["text/x-script.zsh"]=true;
+	$f["video/MP2T"]=true;
 	ksort($f);
 	return $f;
 }

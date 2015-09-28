@@ -86,8 +86,7 @@ if($prc==100){
 	$('#progress-$t').progressbar({ value: $prc });
 	LayersTabsAllAfter();
 	RTMMailHide();
-
-}
+	}
 setTimeout(\"Start$time()\",1000);
 ";
 	return;

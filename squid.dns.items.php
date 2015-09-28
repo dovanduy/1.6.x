@@ -110,15 +110,33 @@ function table(){
 	$hosts=$tpl->_ENGINE_parse_body("{hosts}");
 	$addr=$tpl->_ENGINE_parse_body("{addr}");
 	$new_computer=$tpl->_ENGINE_parse_body("{new_host}");
-	$blacklist=$tpl->_ENGINE_parse_body("{blacklist}");
+	
 	$aliases=$tpl->_ENGINE_parse_body("{aliases}");
 	$appy=$tpl->_ENGINE_parse_body("{apply}");
+	
+	
+	
+	
+	
+	$q=new mysql_squid_builder();
+	$sql="CREATE TABLE IF NOT EXISTS `dnsmasq_records` (
+				`ID` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+				`ipaddrton` BIGINT UNSIGNED,
+				`ipaddr` VARCHAR( 90 ) NOT NULL,
+				`hostname` VARCHAR(128),
+				 KEY `ipaddr` (`ipaddr`),
+				 KEY `ipaddrton` (`ipaddrton`),
+				 KEY `hostname` (`hostname`)
+				 )  ENGINE = MYISAM;
+			";
+	$q->QUERY_SQL($sql);
+	
 	$buttons="
 	buttons : [
 	{name: '$new_computer', bclass: 'add', onpress : AddHost$t},
-	{name: '$blacklist', bclass: 'Copy', onpress : BlackList$t},
 	
-	{name: '$appy', bclass: 'add', onpress : Apply$t},
+	
+	{name: '$appy', bclass: 'apply', onpress : Apply$t},
 	],";
 	
 	$html="
@@ -158,9 +176,6 @@ function FlexReloadDNSMASQHOSTS(){
 	$('#flexRT$t').flexReload();
 }
 
-function BlackList$t(){
-	Loadjs('squid.dns.items.black.php');
-}
 	
 	
 function DnsmasqDeleteAddress(md5,num){
@@ -176,7 +191,7 @@ function AddHost$t(){
 }
 
 function Apply$t(){
-	Loadjs('system.services.cmd.php?APPNAME=APP_DNSMASQ&action=restart&cmd=%2Fetc%2Finit.d%2Fdnsmasq&appcode=DNSMASQ');
+	Loadjs('dnsmasq.restart.progress.php');
 }
 	
 var x_AddDnsMasqHostT= function (obj) {

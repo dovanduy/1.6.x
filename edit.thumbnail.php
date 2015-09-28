@@ -52,7 +52,7 @@ $html="<p>&nbsp;</p>
 <td valign='top'>
 <h3>{edit_photo_title}</h3>
 <p>{edit_photo_text}</p>
-<div style='color:red'>{$GLOBALS["Photo_error"]}</div>
+<div style='color:#d32d2d'>{$GLOBALS["Photo_error"]}</div>
 <div style='font-size:11px'><code>$error</code></div>
 <form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 $hidden

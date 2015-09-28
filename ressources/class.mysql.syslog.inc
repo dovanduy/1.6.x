@@ -156,7 +156,6 @@ class mysql_syslog{
 		$f[]="/var/log/mail.info";
 		$f[]="/var/log/mail.warn";
 		$f[]="/var/log/mail.err";
-		$f[]="/var/log/mail.log";
 		$f[]="/var/log/daemon.log";
 		$f[]="/var/log/kern.log";
 		$f[]="/var/log/user.log";

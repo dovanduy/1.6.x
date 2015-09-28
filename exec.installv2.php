@@ -15,6 +15,16 @@ if($argv[1]=="--install"){install($argv[2]);exit;}
 
 function parsefilename($filename){
 	echo "Uploaded $filename\n";
+	
+	
+	if(preg_match("#^influxdb-(.+?)\.tar\.gz$#", $filename,$re)){
+		$array["VERSION"]=$re[1];
+		$array["ARCHBIN"]=64;
+		$array["DISTRI"]="debian7";
+		return $array;
+	}
+	
+	
 	if(preg_match("#^(.+?)-(.+?)([0-9]+)-([0-9]+)-([0-9\.\-]+)\.tar\.gz$#", $filename,$re)){
 		$ARCHBIN=$re[4];
 		$VERSION=$re[5];
@@ -41,7 +51,7 @@ function parsefilename($filename){
 
 
 function install($filename){
-	
+	$AS_POSTFIX=false;
 	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.progress";
 	$GLOBALS["DOWNLOAD_PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/$filename.download.progress";
 	
@@ -144,7 +154,7 @@ function install($filename){
 			return;
 		}
 	}
-	
+	@unlink("/usr/share/artica-postfix/ressources/logs/global.versions.conf");
 	$tar=$unix->find_program("tar");
 	$rm=$unix->find_program("rm");
 	$nohup=$unix->find_program("nohup");
@@ -156,6 +166,32 @@ function install($filename){
 		$AS_HOSTPOT=true;
 	}
 	
+	if(preg_match("#^influxdb-#", $filename)){
+		$AS_INFLUXDB=true;
+		build_progress("{stopping_service} BigData...",52);
+		echo "Stopping BigData engine\n";
+		sleep(2);
+		system("/etc/init.d/influx-db stop");
+	}
+	
+	if(preg_match("#^milter-regex-#", $filename)){
+		$AS_INFLUXDB=true;
+		build_progress("{stopping_service} Milter-regex...",52);
+		sleep(2);
+		system("/etc/init.d/milter-regex stop");
+	}	
+	
+	
+	if(preg_match("#^postfixp#", $filename)){
+		$AS_POSTFIX=TRUE;
+		build_progress("{stopping_service} postfix...",52);
+		sleep(2);
+		system("/etc/init.d/postfix stop");
+		shell_exec("$rm -rf /var/spool/postfix/var/run");
+	}	
+	
+	
+	
 	
 	if(preg_match("#^squid32#", $filename)){
 		echo "Removing /lib/squid3\n";
@@ -164,7 +200,8 @@ function install($filename){
 		shell_exec("$rm -f /usr/sbin/squid");
 	}
 	
-	
+	build_progress("{extracting}:...",53);
+	sleep(1);
 	$ERROR=false;
 	exec("$tar xvf $TMP_FILE -C / 2>&1",$EXT);
 	while (list ($index, $ligne) = each ($EXT) ){
@@ -182,23 +219,24 @@ function install($filename){
 	if(is_file($TMP_FILE)){@unlink($TMP_FILE);}
 	
 
-	build_progress("{restart_services}: Artica Status...",50);
+	build_progress("{restart_services}: Artica Status...",53);
 	
 	system("/etc/init.d/artica-status reload --force");
 	
 	if(preg_match("#^squid32#", $filename)){
+		
 		@unlink(dirname(__FILE__)."/ressources/logs/squid.compilation.params");
-		build_progress("{restart_services}: Squid-Cache...",51);
+		build_progress("{restart_services}: Squid-Cache...",54);
 		system("/etc/init.d/squid restart --force");
-		build_progress("{restart_services}: exec.squid.php...",51);
+		build_progress("{restart_services}: exec.squid.php...",54);
 		system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
-		build_progress("{restart_services}: exec.squidguard.php...",51);
+		build_progress("{restart_services}: exec.squidguard.php...",54);
 		system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
-		build_progress("{reconfiguring} {APP_UFDBGUARD}...",51);
+		build_progress("{reconfiguring} {APP_UFDBGUARD}...",54);
 		system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
-		build_progress("{restarting} {APP_UFDBGUARD}...",51);
+		build_progress("{restarting} {APP_UFDBGUARD}...",54);
 		system("/etc/init.d/ufdb restart");
-		build_progress("{restart_services}: squid restart --force...",51);
+		build_progress("{restart_services}: squid restart --force...",54);
 		system("/etc/init.d/squid restart --force");
 	}
 	
@@ -206,28 +244,52 @@ function install($filename){
 		$sock=new sockets();
 		$sock->SET_INFO("EnablePDNS",1);
 		$sock->SET_INFO("EnableDNSMASQ", 0);
-		build_progress("{restart_services}: PowerDNS...",51);
+		build_progress("{restart_services}: PowerDNS...",54);
 		shell_exec("/etc/init.d/dnsmasq stop");
 		shell_exec("/etc/init.d/pdns restart");
 		shell_exec("/etc/init.d/pdns-recursor restart");
 	}
 	
 	if(preg_match("#^nginx#", $filename)){
-		build_progress("{restart_services}: NGINX...",51);
+		build_progress("{restart_services}: NGINX...",54);
 		system("/etc/init.d/nginx restart --force");
 	}
 	if(preg_match("#^ntopng#", $filename)){
-		build_progress("{restart_services}: NTOPNG...",51);
+		build_progress("{restart_services}: NTOPNG...",54);
 		system("$php /usr/share/artica-postfix/exec.initslapd.php --ntopng --force");
 		system("/etc/init.d/ntopng restart --force");
 	}	
+	if(preg_match("#^influxdb-#", $filename)){
+		$AS_INFLUXDB=true;
+		build_progress("{starting_service} BigData...",54);
+		echo "Starting BigData engine\n";
+		sleep(2);
+		system("/etc/init.d/influx-db start");
+	}
+	
+	if(preg_match("#^milter-regex-#", $filename)){
+		$AS_INFLUXDB=true;
+		build_progress("{starting_service} Milter-regex...",54);
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --milter-regex >/dev/null 2>&1 &");
+		sleep(2);
+		system("/etc/init.d/milter-regex start");
+	}
+	
+	if($AS_POSTFIX){
+		build_progress("{starting_service}...",54);
+		system("/etc/init.d/milter-regex restart");
+		system("/etc/init.d/milter-greylist restart");
+		system("/etc/init.d/postfix restart");
+		
+	}
+	
 
 	if($AS_HOSTPOT){
 		shell_exec("$nohup $php /usr/share/artica-postfix/exec.initslapd.php --wifidog >/dev/null 2>&1 &");
 	}
-	build_progress("Learning the system...",52);
+	build_progress("Learning the system...",55);
 	system("/usr/share/artica-postfix/bin/process1 --force --verbose -6464646464");
-	build_progress("{restart_services}: Auth TAIL...",52);
+	build_progress("{restart_services}: Auth TAIL...",55);
 	system("/etc/init.d/auth-tail restart");
 	build_progress("{restart_services}: Building collection...",60);
 	system("/usr/share/artica-postfix/bin/process1 --force --verbose");

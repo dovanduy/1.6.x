@@ -108,7 +108,7 @@ function status(){
 	$html="<table style='width:100%'>
 	<tr>
 		<td valign='top' width=1% nowrap width=1%><img src='img/folder-watch-128.png' id='audit-picture' style='margin:10px'></td>
-		<td valign='top' width=1% ><div class=text-info>{APP_AUDITD_TEXT}</div>
+		<td valign='top' width=1% ><div class=explain>{APP_AUDITD_TEXT}</div>
 		<div id='audtid-status'></div>
 		
 	</tr>
@@ -343,7 +343,7 @@ function folders(){
 	}
 	
 	$html="
-<div class=text-info>{AUDITD_FOLDERS_LIST_EXPLAIN}</div>	
+<div class=explain>{AUDITD_FOLDERS_LIST_EXPLAIN}</div>	
 	
 	
 <table cellspacing='0' cellpadding='0' border='0' class='tableView'>

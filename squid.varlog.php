@@ -25,7 +25,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$log_location=$tpl->javascript_parse_text("{log_location}");
-	echo "YahooWin2('790','$page?popup=yes','$log_location')";
+	echo "YahooWin2('990','$page?popup=yes','$log_location')";
 	
 }
 
@@ -38,14 +38,16 @@ function popup(){
 	$varlog=base64_decode($sock->getFrameWork("squid.php?varlog-location=yes"));
 	$t=time();
 	$html="
+	<div style='font-size:32px;margin-bottom:25px'>{log_location}</div>
+	<div class=explain style='font-size:22px;margin-bottom:25px'>{squid_log_location_explain}</div>
 	<div style='width:98%' class=form>		
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend style='font-size:18px;vertical-align:middle'>{directory}:</td>
-		<td>". Field_text("location-$t",$varlog,"font-size:18px;width:99%")."</td>
-		<td style='font-size:18px;vertical-align:middle'>". button_browse("location-$t")."</td>
+		<td valign='top' class=legend style='font-size:28px;vertical-align:middle'>{edit_location}:</td>
+		<td>". Field_text("location-$t",$varlog,"font-size:28px;width:99%")."</td>
+		<td style='font-size:28px;vertical-align:middle'>". button_browse("location-$t")."</td>
 	</tr>
-	<tr><td colspan=3 align='right'><p>&nbsp;</p><hr>". button("{apply}","Save$t()",22)."</td></tr>
+	<tr><td colspan=3 align='right'><p>&nbsp;</p><hr>". button("{apply}","Save$t()",38)."</td></tr>
 	</table>		
 	</div>
 <script>

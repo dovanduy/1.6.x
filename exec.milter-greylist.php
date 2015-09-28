@@ -56,6 +56,7 @@ if($EnablePostfixMultiInstance==1){
 if($argv[1]=="--database"){parse_database("/var/milter-greylist/greylist.db","master");die();}
 
 
+
 SingleInstance();
 
 function parsecmdlines($argv){
@@ -166,7 +167,9 @@ function SingleInstance_reload(){
 		if(!$unix->process_exists($pid)){ SingleInstance_start(true);}
 		return;
 	}
-	
+	$PHP=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $PHP /usr/share/artica-postfix/exec.spamassassin.php --whitelist >/dev/null 2>&1 &");
 	SingleInstance_start(true);
 	
 
@@ -274,7 +277,26 @@ function SingleInstance_start($nopid=false){
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} Failed\n";}
 		if($GLOBALS["OUTPUT"]){echo "$cmd\n";}
+		return;
+	}
+	
+	for($i=1;$i<15;$i++){
+		if(!$unix->is_socket($FullSocketPath)){
+			$socketname=basename($FullSocketPath);
+			if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} Waiting $socketname socket $i/5...\n";}
+			sleep(1);
+			continue;
+		}
+		break;
 		
+	}
+	
+	
+	if($unix->is_socket($FullSocketPath)){
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} $FullSocketPath OK\n";}
+		@chown("$FullSocketPath","postfix");
+		@chgrp($FullSocketPath, "postfix");
+		@chmod($FullSocketPath,0777);
 	}
 	
 	
@@ -352,6 +374,7 @@ function SingleInstance(){
 	$nohup=$unix->find_program("nohup");
 	echo "{$GLOBALS["deflog_start"]} single instance execute exec.white-black-central.php\n";
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.white-black-central.php >/dev/null 2>&1 &");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --body-checks >/dev/null 2>&1 &");
 	
 	$mg=new milter_greylist(false,"master","master");
 	$datas=$mg->BuildConfig();
@@ -373,6 +396,7 @@ function SingleInstance(){
 		echo "{$GLOBALS["deflog_start"]} writing $conf_path (". count($newf)." lines)\n";
 		@file_put_contents($conf_path,@implode("\n",$newf));
 	}
+	
 	
 	TestConfigFile($conf_path);
 	echo "{$GLOBALS["deflog_start"]} notify administrator\n";

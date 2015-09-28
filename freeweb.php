@@ -28,7 +28,6 @@
 	if(isset($_GET["watchdog-popup"])){watchdog_form();exit;}
 	if(isset($_POST["watchdog"])){watchdog_save();exit;}
 	if(isset($_GET["status"])){freewebs_status();exit;}
-	if(isset($_POST["EnableArticaInNGINX"])){EnableArticaInNGINX();exit;}
 	if(isset($_POST["EnablePHPFPM"])){EnablePHPFPM();exit;}
 	if(isset($_POST["EnableNginx"])){EnableNginx();exit;}
 	if(isset($_GET["log-rotate-js"])){log_rotate_js();exit;}
@@ -1408,7 +1407,7 @@ function mode_evasive_form(){
 	
 	
 	$html="
-	<div class=text-info id='modeevasivedef'>{mod_evasive_explain}</div>
+	<div class=explain id='modeevasivedef'>{mod_evasive_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{DOSHashTableSize}:</td>
@@ -1625,16 +1624,12 @@ function watchdog_form(){
 	$FreeWebChangeInit=$sock->GET_INFO("FreeWebChangeInit");
 	if(!is_numeric($FreeWebChangeInit)){$FreeWebChangeInit=0;}
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("ApacheWatchdogMonitConfig")));
-	$EnableArticaInNGINX_warn=$tpl->javascript_parse_text("{EnableArticaInNGINX_warn}");
-	$EnableArticaInNGINX_warn2=$tpl->javascript_parse_text("{EnableArticaInNGINX_warn2}");
 	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
 	$EnableNginx_warn=$tpl->javascript_parse_text("{EnableNginx_warn}");
 	
 	
+
 	
-	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
-	$EnableNginx=$sock->GET_INFO("EnableNginx");
-	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
 	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
 	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
 	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
@@ -1674,11 +1669,6 @@ function watchdog_form(){
 				<td>". Field_checkbox_design("$t-EnableNginx", 1,$EnableNginx,"EnableNginx{$t}()")."</td>
 				<td>&nbsp;</td>
 			</tr>		
-			<tr>
-				<td class=legend style='font-size:22px' nowrap>{ArticaWebConsoleAsFrontEnd}:</td>
-				<td>". Field_checkbox_design("$t-EnableArticaInNGINX", 1,$EnableArticaInNGINX,"EnableArticaInNGINX{$t}()")."</td>
-				<td>&nbsp;</td>
-			</tr>
 			<tr>
 				<td class=legend style='font-size:22px' nowrap>{EnablePHPFPM}:</td>
 				<td>". Field_checkbox_design("$t-EnablePHPFPM", 1,$EnablePHPFPM,"EnableEnablePHPFPM{$t}()")."</td>
@@ -1736,27 +1726,7 @@ function watchdog_form(){
 			LoadWatchdogConfig();
 		}	
 	
-	function EnableArticaInNGINX{$t}(){
-		var XHR = new XHRConnection();
-		EnableArticaInNGINX=0;
-		if(document.getElementById('$t-EnableArticaInNGINX').checked){EnableArticaInNGINX=1;}
-		XHR.appendData('EnableArticaInNGINX',EnableArticaInNGINX);
-		if(EnableArticaInNGINX==0){
-			if(confirm('$EnableArticaInNGINX_warn')){
-				AnimateDiv('$t');
-				XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
-			}
-		
-		}else{
-			if(confirm('$EnableArticaInNGINX_warn2')){
-				
-				AnimateDiv('$t');
-				XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
-			}
-		
-		}
-		
-	}
+
 	
 	function ZarafaWebAccessInFrontEnd{$t}(){
 		var XHR = new XHRConnection();
@@ -1799,17 +1769,7 @@ function watchdog_form(){
 		
 	}
 	
-	function EnableNginxCheck{$t}(){
-		var NgnixInstalled=$NgnixInstalled;
-		EnableNginx=0;
-		if(NgnixInstalled==0){document.getElementById('$t-EnableNginx').disabled=true;return;}
-		
-		if(document.getElementById('$t-EnableNginx').checked){EnableNginx=1;}
-		document.getElementById('$t-EnableArticaInNGINX').disabled=true;
-		if(EnableNginx==1){
-			document.getElementById('$t-EnableArticaInNGINX').disabled=false;
-		}
-	}
+
 	
 	
 	var x_{$t}_SaveInstance= function (obj) {
@@ -1832,7 +1792,7 @@ function watchdog_form(){
 		if(document.getElementById('$t-FreeWebChangeInit').checked){XHR.appendData('FreeWebChangeInit',1);}else{XHR.appendData('FreeWebChangeInit',0);}
 		XHR.sendAndLoad('$page', 'POST');
 	}
-	EnableNginxCheck{$t}();
+	
 	ZarafaWebAccessInFrontEnd{$t}Check();
 </script>
 
@@ -1899,7 +1859,7 @@ function log_rotate_popup(){
 
 	
 	$html="
-	<div class=text-info style='font-size:14px'>{ApacheLogRotate_explain}</div>
+	<div class=explain style='font-size:14px'>{ApacheLogRotate_explain}</div>
 	<div id='div-$t'>
 	<table style='width:99%' class='form'>
 	<tr>
@@ -1953,11 +1913,6 @@ function FreeWebsScanSize(){
 	$sock=new sockets();
 	$sock->getFrameWork("freeweb.php?ScanSize=yes");
 	echo $success;
-}
-function EnableArticaInNGINX(){
-	$sock=new sockets();
-	$sock->SET_INFO("EnableArticaInNGINX",$_POST["EnableArticaInNGINX"]);
-	$sock->getFrameWork("nginx.php?restart=yes");
 }
 
 function EnablePHPFPM(){

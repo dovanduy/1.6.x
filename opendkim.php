@@ -66,7 +66,7 @@ function popup(){
 		$a[]="<li style='font-size:18px'><a href=\"$page?$num=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}\"><span>". $tpl->_ENGINE_parse_body("$ligne")."</span></a></li>\n";
 	}	
 	
-	$html=build_artica_tabs($a,'OPENDKIM_TABS',975)."
+	$html=build_artica_tabs($a,'OPENDKIM_TABS',1450)."
 	<script>LeftDesign('certified-256-white-opac20.png');</script>";
 	echo $html;
 	
@@ -111,7 +111,7 @@ function config(){
 			<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('dkim_service','$page?dkim-service=yes');")."</div>
 			</td>
 			<td valing='top'>
-			<div class=text-info style='font-size:14px'>{dkim_about}{dkim_about2}</div>
+			<div class=explain style='font-size:14px'>{dkim_about}{dkim_about2}</div>
 			</td>
 			</tr>
 			</table>
@@ -296,7 +296,7 @@ function dns_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<div style='font-size:18px' class=text-info>{dkim_showkeys_text}</div>
+	<div style='font-size:18px' class=explain>{dkim_showkeys_text}</div>
 	<center style='margin:10px'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('dns_key_display','$page?dns-key-view=yes');")."</center>
 	<div id='dns_key_display'></div>
 	
@@ -343,7 +343,7 @@ function dns_tests_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<div style='font-size:16px' class=text-info>{dkim_testkeys_text}</div>
+	<div style='font-size:16px' class=explain>{dkim_testkeys_text}</div>
 	<p style='margin:10px'>
 	<a href=\"http://www.protodave.com/tools/dkim-key-checker/\" target=_new
 	style='font-size:16px;text-decoration:underline'>DKIM Key Checker &laquo;  protodave</a>
@@ -393,7 +393,7 @@ $sock=new sockets();
 	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add}","DKIM_SPAMMASS_ADD_WL()",22)."</div></td>
 	</tr>
 	</table>
-	<div style='font-size:16px;margin-bottom:30px' class=text-info>{DKIM_SPAMASS_WBL_HOWTO}</div>
+	<div style='font-size:16px;margin-bottom:30px' class=explain>{DKIM_SPAMASS_WBL_HOWTO}</div>
 	
 	<div id='whitelistsDKIMspamass' style='min-height:450px;'></div>
 	

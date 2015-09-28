@@ -217,7 +217,7 @@ function table(){
 	],";
 
 	$html="
-	<div class=text-info style='font-size:14px'>$hotspot_whitelist_www_explain</div>
+	<div class=explain style='font-size:14px'>$hotspot_whitelist_www_explain</div>
 	<table class='flexRT$tt' style='display: none' id='flexRT$tt' style='width:100%'></table>
 	<script>
 	function Start$tt(){

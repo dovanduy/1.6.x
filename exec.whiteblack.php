@@ -283,7 +283,7 @@ function BuildWhiteListReport($uid,$sender_email,$subject){
 				<tr>
 				<td><strong style='font-size:12px'>From $email</td>
 				<td><strong style='font-size:12px'>To you $ct->DisplayName</td>
-				<td><div style='width:5px;background-color:red'>&nbsp;</div></td>
+				<td><div style='width:5px;background-color:#d32d2d'>&nbsp;</div></td>
 				<td><strong style='font-size:12px'>Deny</td>
 				</tr>
 				<tr><td colspan=4><hr></tr>";
@@ -396,7 +396,7 @@ if(!is_array($hash)){return null;}
 				<tr>
 				<td><strong style='font-size:12px'>From $match</td>
 				<td><strong style='font-size:12px'>To $email</td>
-				<td><div style='width:5px;background-color:red'>&nbsp;</div></td>
+				<td><div style='width:5px;background-color:#d32d2d'>&nbsp;</div></td>
 				<td><strong style='font-size:12px'>Deny</td>
 				</tr>
 				<tr><td colspan=4><hr></tr>";

@@ -9,8 +9,7 @@ if(isset($_GET["mysqldb-restart"])){mysql_db_restart();exit;}
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["version"])){version();exit;}
 if(isset($_GET["restart"])){restart();exit;}
-
-
+if(isset($_GET["install-progress"])){install();exit;}
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -56,6 +55,25 @@ function status(){
 	exec($cmd,$results);
 	writelogs_framework("$cmd ".count($results)." rows",__FUNCTION__,__FILE__,__LINE__);
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+
+function install(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/roundcube.install.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/roundcube.install.progress.txt";
+
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.roundcube.install.php >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
 }
 
 function version(){

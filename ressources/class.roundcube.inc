@@ -683,8 +683,6 @@
 				if(!is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){$this->plugin_install($this->root_path,"sticky_notes");}
 				if(!is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){$this->plugin_install($this->root_path,"jqueryui");}
 				if(!is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){$this->plugin_install($this->root_path,"dkimstatus");}
-				//if(!is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){$this->plugin_install($this->root_path,"fail2ban");}
-			
 				}
 			}
 				

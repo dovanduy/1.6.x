@@ -54,6 +54,8 @@ class nginx_sources{
 		$this->proxy_buffering=$ligne["proxy_buffering"];
 		$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
 		$this->proxy_buffer_size=$ligne["proxy_buffer_size"];
+		$this->proxy_max_temp_file_size=intval($ligne["proxy_max_temp_file_size"]);
+		$this->proxy_temp_file_write_size=$ligne["proxy_temp_file_write_size"];
 		$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
 		$this->proxy_buffers=$ligne["proxy_buffers"];
 		$this->proxy_cookie_domain=$ligne["proxy_cookie_domain"];

@@ -198,7 +198,7 @@ function PID_PATH(){
 
 
 function build(){
-	
+	$unix=new unix();
 	$sock=new sockets();
 	$EnableSNMPD=$sock->GET_INFO("EnableSNMPD");
 	$SNMPDNetwork=$sock->GET_INFO("SNMPDNetwork");
@@ -214,6 +214,7 @@ function build(){
 	
 
 $f[]="agentAddress udp:161";
+
 $f[]="view   systemonly  included   .1.3.6.1.2.1.1";
 $f[]="view   systemonly  included   .1.3.6.1.2.1.25.1";
 $f[]="rwcommunity $SNMPDCommunity  $SNMPDNetwork";
@@ -225,9 +226,6 @@ $f[]="sysServices    72";
 $f[]="proc  mountd";
 $f[]="proc  ntalkd";
 
-$unix=new unix();
-$squid=$unix->LOCATE_SQUID_BIN();
-if($squid<>null){ $f[]="proc  $squid";}
 
 $apache=$unix->LOCATE_APACHE_BIN_PATH();
 if($apache<>null){ $f[]="proc  $apache";}
@@ -252,6 +250,24 @@ $f[]="load   12 10 5";
 $f[]="iquerySecName   internalUser       ";
 $f[]="rouser          internalUser";
 $f[]="defaultMonitors          yes";
+$unix=new unix();
+$squid=$unix->LOCATE_SQUID_BIN();
+if($squid<>null){
+	$f[]="proc  $squid";
+	$SquidSNMPPort=intval($sock->GET_INFO("SquidSNMPPort"));
+	$SquidSNMPComunity=$sock->GET_INFO("SquidSNMPComunity");
+	if($SquidSNMPPort==0){$SquidSNMPPort=$squid->snmp_port;}
+	if($SquidSNMPComunity==null){$SquidSNMPComunity=$squid->snmp_community;}
+	if($SquidSNMPComunity==null){$SquidSNMPComunity="public";}
+	if(is_file("/usr/share/squid3/mib.txt")){$moib=" -m /usr/share/squid3/mib.txt";}
+	$f[]="proxy$moib -v 1 -c $SquidSNMPComunity 127.0.0.1:$SquidSNMPPort .1.3.6.1.4.1.3495.1";
+
+}
+
+
+
+
+
 $f[]="master          agentx";
 $f[]="#agentXSocket    tcp:localhost:705";
 

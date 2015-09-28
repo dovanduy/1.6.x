@@ -306,7 +306,7 @@ function index(){
 		<div style='width:98%' class=form>
 		<table style='width:100%'>
 		<td valign='top' width=1%'>$DEF_ICO_SSL_KEY</td>
-		<td valign='top'><div style='font-size:18px' class=text-info>{TLS_EXPLAIN}</div></td>
+		<td valign='top'><div style='font-size:18px' class=explain>{TLS_EXPLAIN}</div></td>
 		</tr>
 		</table></div>
 		<br>";

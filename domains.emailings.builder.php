@@ -611,7 +611,7 @@ function right_panel(){
 			$messages_number=emailing_builder_get_queue_number($ligne["database_id"]);
 			$tr[]=Paragraphe("server-mail-64.png",
 			$ligne["name"],"$messages_number {emails}<br>$dbname, $tpl_name",
-			"javascript:javascript:Loadjs('$page?ou={$_GET["ou"]}&mailer-link=yes&ID={$ligne["ID"]}')");
+			"javascript:Loadjs('$page?ou={$_GET["ou"]}&mailer-link=yes&ID={$ligne["ID"]}')");
 		}
 	
 $tables[]="<table style='width:100%'><tr>";

@@ -42,7 +42,7 @@ function popup(){
 	$default_domain=$tpl->javascript_parse_text("{default_domain}");
 	$restore_from_container=$tpl->javascript_parse_text("{restore_from_container_ask}");
 	$html="
-	<div style='font-size:14px' class=text-info>{PDNS_IMPORT_EXPLAIN}</div>
+	<div style='font-size:14px' class=explain>{PDNS_IMPORT_EXPLAIN}</div>
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
 		<tr>

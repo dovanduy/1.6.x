@@ -458,7 +458,7 @@ public function CACHEDORNOT($SquidCode){
 	
 	if($sitename==null){
 		$this->events($uri." => Unable to extract domain name from ");
-		$this->youtube_events(__FUNCTION__."::".__LINE__." Unable to extract domain name from `$uri`");
+		$this->youtube_events(__FUNCTION__."::".__LINE__." Unable to extract domain name from `$uri`",__LINE__);
 		return;
 	}	
 	
@@ -502,7 +502,7 @@ public function CACHEDORNOT($SquidCode){
 	if(strpos(" $uri", "youtube")>0){
 		$VIDEOID=$this->GetYoutubeID($uri);
 		if($VIDEOID<>null){
-			$this->youtube_events("YOUTUBE:: $date: $CLIENT $username $mac [$VIDEOID]");
+			$this->youtube_events("YOUTUBE:: $date: $CLIENT $username $mac [$VIDEOID]",__LINE__);
 			if($hostname==null){$hostname=$this->GetComputerName($CLIENT);}
 			$youtube=array(
 					"VIDEOID"=>$VIDEOID,
@@ -585,7 +585,7 @@ public function CACHEDORNOT($SquidCode){
   
 }
 
-private function youtube_events($text,$line){
+private function youtube_events($text,$line=0){
 	$this->events($text);
 	$common="/var/log/artica-postfix/youtube.scanner.log";
 	$size=@filesize($common);

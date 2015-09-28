@@ -34,7 +34,7 @@ function popup(){
 	$TB_WIDTH=872;
 	$TB2_WIDTH=610;
 	
-	$explain=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{quotas_table_explain}</div>");
+	$explain=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{quotas_table_explain}</div>");
 	
 	$t=time();
 	

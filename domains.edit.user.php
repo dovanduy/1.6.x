@@ -503,10 +503,7 @@ function AJAX_COMPUTER_TAB() {
 	if ($users->OCSI_INSTALLED) {
 		$ocs=new ocs();
 		if($ocs->GET_HARDWARE_ID_FROM_MAC($cmp->ComputerMacAddress)>0){$arr["ocs"] = "{APP_OCSI}";unset($arr["material"]);}
-	}else{
-		
 	}
-	
 	
 	
 	if($users->dhcp_installed){
@@ -525,14 +522,8 @@ function AJAX_COMPUTER_TAB() {
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==1){
 			$AS_SQUID=true;
-			$q=new mysql_squid_builder();
-			$date=date("Ym");
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM {$date}_maccess WHERE MAC='$cmp->ComputerMacAddress' LIMIT 0,1"));
-				
+			$arr["proxy-alias"] = "{proxy_alias}";
 			$arr["SQUIDBLK"] = "{internet_access}";
-			if($ligne["MAC"]<>null){
-				$arr["SQUIDSTATS"] = "{internet_activity}";
-			}
 			
 		}
 		
@@ -562,6 +553,7 @@ function AJAX_COMPUTER_TAB() {
 	
 	$uidenc=urlencode($_GET["userid"]);
 	$ComputerMacAddressEnc=urlencode($cmp->ComputerMacAddress);
+	$ComputerIPEnc=urlencode($cmp->ComputerIP);
 	
 	while ( list ( $num, $ligne ) = each ( $arr ) ) {
 		
@@ -592,6 +584,14 @@ function AJAX_COMPUTER_TAB() {
 			$toolbox[]="<li><a href=\"computer.activity.php?uid=$uidenc&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 			continue;
 		}
+		
+		if($num=="proxy-alias"){
+			$toolbox[]="<li><a href=\"squid.nodes.php?link-user-popup=yes&MAC=$ComputerMacAddressEnc&ipaddr=$ComputerIPEnc\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
+			continue;
+			
+		}
+		
+		
 		
 		$toolbox[]="<li><a href=\"$page?userid=$uidenc&ajaxmode=yes&section=$num&t={$_GET["t"]}\"><span style='font-size:$fontsize'>$ligne</span></a></li>";
 	}
@@ -855,7 +855,8 @@ function AJAX_COMPUTER() {
 	}
 	
 	$uidenc=urlencode($_GET["userid"]);
-	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', "{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid=$uidenc&t={$_GET["t"]}')" );
+	$delete = Paragraphe ( 'delete-64.png', '{delete_this_computer}', 
+			"{delete_this_computer}","javascript:Loadjs('computer.delete.php?uid=$uidenc&t={$_GET["t"]}')" );
 	$bind9 = new bind9 ( );
 	$t=time();
 	if ($EnableDHCPServer == 1) {
@@ -1621,7 +1622,7 @@ function USER_ALIASES_FORM_ADD() {
     			</table>";
 	
 	$html = "
-<div class=text-info style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
+<div class=explain style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
 $form_add
 
 
@@ -1710,7 +1711,7 @@ function USER_ALIASES($userid) {
 	$html = "
     	
     	$title
-    	<div class=text-info>{aliases_text}:&nbsp;&laquo;<b>$user->mail&raquo;</b></div>
+    	<div class=explain>{aliases_text}:&nbsp;&laquo;<b>$user->mail&raquo;</b></div>
     	<table style='width:100%'>
     	<tr>
     		<td valign='top' style='vertical-align:top' style='vertical-align:top' width=1%><br><img src='img/96-bg_addresses.png' style='margin-right:30px'></td>
@@ -1977,7 +1978,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 			if (trim ( $val ) == null) {
 				continue;
 			}
-			$error = $error . "<div style='color:red'>$val</div>";
+			$error = $error . "<div style='color:#d32d2d'>$val</div>";
 		}
 	}
 	reset ( $priv );
@@ -1991,7 +1992,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	}
 	
 	$html = "
-	<div class=text-info>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
+	<div class=explain>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
 	<div id='USER_SAMBA_PRIVILEGES_PAGE'>
 	<div style='width:98%' class=form>
 	<table>
@@ -2095,7 +2096,7 @@ function USER_SAMBA_DISPLAY_STATUS($userid) {
 		if (preg_match ( '#pdb_get_group_sid:(.+)#', $ligne, $re )) {
 			if (preg_match ( "#ailed#", $re [1], $ri )) {
 				$js = "javascript:YahooWin4(700,'$page?SAMBADISPLAYPDBEDIT=$userid','{SAMBA_ERROR_USER}');";
-				return $tpl->_ENGINE_parse_body ( Paragraphe ( "danger64.png", "{SAMBA_ERROR_USER}", "{SAMBA_ERROR_REPORT}<br><strong style='color:red'>{$re[1]}</strong>{SAMBA_ERROR_CLICK}", $js, "{SAMBA_ERROR_CLICK}" ) );
+				return $tpl->_ENGINE_parse_body ( Paragraphe ( "danger64.png", "{SAMBA_ERROR_USER}", "{SAMBA_ERROR_REPORT}<br><strong style='color:#d32d2d'>{$re[1]}</strong>{SAMBA_ERROR_CLICK}", $js, "{SAMBA_ERROR_CLICK}" ) );
 			}
 		}
 	
@@ -2742,7 +2743,7 @@ function USER_NOTEXISTS($uid,$error=null) {
 			<img src='img/user-warn.png'>
 		</td>
 		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
-			<H2 style='color:red'>{USER_DOES_NOT_EXISTS}</H2>
+			<H2 style='color:#d32d2d'>{USER_DOES_NOT_EXISTS}</H2>
 			<div><code style='font-size:16px'>$error</code></div>
 			<p style='font-size:12px;font-weight:bold'>{USER_DOES_NOT_EXISTS_EXPLAIN}</p>
 			<p style='font-size:12px;font-weight:bold'>{CLEAN_USER_EXPLAIN}</p>
@@ -3055,7 +3056,7 @@ function USER_ACCOUNT_POPUP($userid) {
 		$imcontact = str_replace ( "img/", "", $imcontact );
 	}
 	
-	$picture = $picture;
+	
 	$mots = strlen ( $us->mail );
 	$size_text = 14;
 	if ($mots > 42) {
@@ -3277,7 +3278,7 @@ function USER_MAILBOX_WIZARD_STEP1() {
 	
 	$html = "
 	<div style='width:98%' class=form>
-	<div style='font-size:16px' class=text-info>{USER_MAILBOX_WIZARD_STEP1}</div>
+	<div style='font-size:16px' class=explain>{USER_MAILBOX_WIZARD_STEP1}</div>
 	<div style='width:100%'>
 	<table>
 	<tr>
@@ -4811,7 +4812,7 @@ function USER_TRANSPORT_DELTE() {
 function USER_CHANGE_UID() {
 	$uid = $_GET["userid"];
 	$html = "
-	<div class=text-info style='font-size:16px'>{change_uid_explain}</div>
+	<div class=explain style='font-size:16px'>{change_uid_explain}</div>
 	<div id='chuiseriddiv' style='width:98%' class=form>
 	<div style='width:100%'>
 	<table style='width:100%'>
@@ -4947,7 +4948,7 @@ function TOOLS_REPAIR() {
 	$uid = $_GET["uid"];
 	$html = "
 	
-	<div class=text-info>{repair_mailbox_infos}</div>
+	<div class=explain>{repair_mailbox_infos}</div>
 	<center>
 	<input type='button' value='{repair_mailbox}&nbsp;&raquo;' 
 	style='font-size:16px;padding:5px;margin:15px'

@@ -1,6 +1,9 @@
 <?php
 ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-if(!is_file("/usr/share/artica-postfix/ressources/settings.new.inc")){die();}
+if(!is_file("/usr/share/artica-postfix/ressources/settings.new.inc")){
+	echo "/usr/share/artica-postfix/ressources/settings.new.inc no such file\n";
+	die();
+}
 
 @mkdir("/etc/artica-postfix/pids",0755,true);
 $cachefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
@@ -10,7 +13,13 @@ if(is_file($cachefile)){$time=_file_time_min($cachefile); if($time<2){die();} }
 include("/usr/share/artica-postfix/ressources/settings.new.inc");
 
 if(!isset($_GLOBAL["ldap_admin"])){
-	if(!is_file("/etc/init.d/artica-process1")){die();}
+	
+	echo "ldap_admin pattern is not found\n";
+	if(!is_file("/etc/init.d/artica-process1")){
+		echo "/etc/init.d/artica-process1 not found\n";
+		die();
+	}
+
 	shell_exec("/etc/init.d/artica-process1 start");
 	die();
 }
@@ -20,6 +29,8 @@ $t=@file_get_contents("/usr/share/artica-postfix/ressources/settings.new.inc");
 if(preg_match("#<\?php(.+?)\?>#is", $t,$re)){
 	@copy("/usr/share/artica-postfix/ressources/settings.new.inc", "/usr/share/artica-postfix/ressources/settings.inc");
 	@unlink("/usr/share/artica-postfix/ressources/settings.new.inc");
+}else{
+	echo "Unable to preg_match!\n";
 }
 
 

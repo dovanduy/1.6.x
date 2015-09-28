@@ -24,7 +24,8 @@ header("Pragma: no-cache");
 		die();exit();
 	}
 	
-	
+	if(isset($_GET["change-cache-types-js"])){change_cache_type_js();exit;}
+	if(isset($_GET["change-cache-types-popup"])){change_cache_type_popup();exit;}
 	if(isset($_GET["delete-empty-js"])){delete_empty_js();exit;}
 	if(isset($_GET["items"])){items();exit;}
 	if(isset($_GET["move-item-js"])){move_items_js();exit;}
@@ -41,6 +42,7 @@ header("Pragma: no-cache");
 	if(isset($_GET["delete-item-js"])){items_js_delete();exit;}
 	if(isset($_POST["move-item"])){move_items();exit;}
 	if(isset($_POST["empty-item"])){empty_item();exit;}
+	if(isset($_POST["chcachetype"])){chcachetype();exit;}
 	table();
 	
 function delete_empty_js(){
@@ -105,6 +107,9 @@ var xSave$t= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){ alert(results); return; }
 	$('#flexRT{$_GET["t"]}').flexReload();
+	if(document.getElementById('proxy-store-caches')){
+		LoadAjaxRound('proxy-store-caches','admin.dashboard.proxy.caches.php');
+	}
 	
 }
 function Save$t(){
@@ -243,6 +248,13 @@ function items_delete(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n$sql";return;}
 }
+function change_cache_type_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{change_caches_type}");
+	header("content-type: application/x-javascript");
+	echo "YahooWin2('750','$page?change-cache-types-popup=yes','$title',true)";
+}
 	
 function items_js(){
 	header("content-type: application/x-javascript");
@@ -327,8 +339,66 @@ function CacheTypeExplain(){
 	if($ID>0){$js=null;}
 	
 	echo $tpl->_ENGINE_parse_body("
-	<div class=text-info style='font-size:16px'>
+	<div class=explain style='font-size:16px'>
 			<strong style='font-size:18px'>$type:</strong><hr>$explain</div>")."<script>$js</script>";
+	
+}
+
+function change_cache_type_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$caches_types[null]="{select}";
+	$caches_types["aufs"]="aufs";
+	$caches_types["diskd"]="diskd";
+	$t=time();
+	$sock=new sockets();
+	$SquidForceCacheTypes=$sock->GET_INFO("SquidForceCacheTypes");
+	$Fcaches_types=Field_array_Hash($caches_types,"cache_type-$t",$SquidForceCacheTypes,"blur()",null,0,"font-size:30px;padding:3px");
+	
+	$html="
+	<div style='font-size:30px;margin-bottom:30px'>{change_caches_type}</div>		
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
+	<tr>
+	<td class=legend style='font-size:30px' nowrap>{type}:</td>
+	<td style='font-size:30px'>$Fcaches_types</td>
+	</tr>
+<tr>
+		<td align='right' colspan=2><hr>". button("{apply}","Save$t()",40)."</td>
+	</tr>
+	</table>
+<script>
+	
+var xSave$t= function (obj) {
+	
+	var results=obj.responseText;
+	if(results.length>3){ alert(results); return; }
+	YahooWin2Hide();
+	Loadjs('squid.compile.progress.php');
+	if(document.getElementById('proxy-store-caches')){
+		LoadAjaxRound('proxy-store-caches','admin.dashboard.proxy.caches.php');
+	}
+	
+}
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('chcachetype',document.getElementById('cache_type-$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>
+";
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
+function chcachetype(){
+	$q=new mysql();
+	if($_POST["chcachetype"]==null){echo "Null!??\n";return;}
+	$sock=new sockets();
+	$sock->SET_INFO("SquidForceCacheTypes", $_POST["chcachetype"]);
+	$q->QUERY_SQL("UPDATE squid_caches_center SET cache_type='{$_POST["chcachetype"]}'","artica_backup");
 	
 }
 	
@@ -339,12 +409,19 @@ function items_popup(){
 	$users=new usersMenus();
 	$max_size_explain=null;
 	$ID=intval($_GET["ID"]);
+	$DisableAnyCache=intval($sock->GET_INFO("DisableAnyCache"));
+	$SquidForceCacheTypes=$sock->GET_INFO("SquidForceCacheTypes");
+	if($SquidForceCacheTypes==null){$SquidForceCacheTypes="aufs";}
 	
+	if($DisableAnyCache==1){
+		FATAL_ERROR_SHOW_128("{DisableAnyCache_enabled_warning}");
+		return;
+	}
 	
-	$cpunumber=$users->CPU_NUMBER;
-	
+	$cpunumber=$users->CPU_NUMBER-1;
+	if($cpunumber<1){$cpunumber=1;}
 	for($i=1;$i<$cpunumber+1;$i++){
-		$CPUZ[$i]="CPU $i";
+		$CPUZ[$i]="{process} $i";
 	}
 	
 	$t=time();
@@ -411,14 +488,14 @@ function items_popup(){
 	if($cache_size<1){$cache_size=5000;}
 	if($cache_dir_level1<16){$cache_dir_level1=16;}
 	if($cache_dir_level2<64){$cache_dir_level2=64;}
-	if($cache_type==null){$cache_type="aufs";}
+	if($cache_type==null){$cache_type=$SquidForceCacheTypes;}
 	
 	$caches_types=unserialize(base64_decode($sock->getFrameWork("squid.php?caches-types=yes")));
 	$caches_types[null]='{select}';
-	$caches_types["rock"]="{squid_rock}";
 	$caches_types["tmpfs"]="{squid_cache_memory}";
 	$caches_types["Cachenull"]="{without_cache}";
 	
+	unset($caches_types["rock"]);
 	
 	
 	
@@ -449,7 +526,7 @@ function items_popup(){
 	</tr>	
 				
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{cpu}:</td>
+		<td class=legend style='font-size:16px' nowrap>{process}:</td>
 		<td>$cpus</td>
 		<td>&nbsp;</td>
 		<td>&nbsp;</td>
@@ -524,7 +601,12 @@ var x_AddNewCacheSave$t= function (obj) {
 	document.getElementById('waitcache-$t').innerHTML='';
 	if(results.length>3){ alert(results); return; }
 	if(cacheid==0){YahooWin2Hide();}
-	$('#flexRT{$_GET["t"]}').flexReload();
+	if(document.getElementById('proxy-store-caches')){
+		LoadAjaxRound('proxy-store-caches','admin.dashboard.proxy.caches.php');
+	}
+	if(document.getElementById('flexRT{$_GET["t"]}')){
+		$('#flexRT{$_GET["t"]}').flexReload();
+	}
 }
 	
 function AddNewCacheSave$t(){
@@ -615,6 +697,15 @@ function items_save(){
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
+	
+
+	if(!$q->FIELD_EXISTS("squid_caches_center","wizard","artica_backup")){
+		$sql="ALTER TABLE `squid_caches_center` ADD `wizard` smallint NOT NULL DEFAULT 0";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	}	
+	
+	
 	if(!$q->FIELD_EXISTS("squid_caches_center","max_size","artica_backup")){
 		$sql="ALTER TABLE `squid_caches_center` ADD `max_size` BIGINT UNSIGNED NOT NULL DEFAULT 0";
 		$q->QUERY_SQL($sql,"artica_backup");
@@ -660,6 +751,7 @@ function table(){
 $page=CurrentPageName();
 $tpl=new templates();
 $users=new usersMenus();
+$sock=new sockets();
 $tt=time();
 $t=$_GET["t"];
 $_GET["ruleid"]=$_GET["ID"];
@@ -672,7 +764,7 @@ $rewrite_rules_fdb_explain=$tpl->javascript_parse_text("{rewrite_rules_fdb_expla
 $new_cache=$tpl->javascript_parse_text("{new_cache}");
 $license=$tpl->javascript_parse_text("{artica_license}");
 $rules=$tpl->javascript_parse_text("{rules}");
-$cpu=$tpl->javascript_parse_text("{cpu}");
+$cpu=$tpl->javascript_parse_text("{process}");
 $apply=$tpl->javascript_parse_text("{apply}");
 $action=$tpl->javascript_parse_text("{action}");
 $restricted_ports=$tpl->javascript_parse_text("{restricted_ports}");
@@ -683,12 +775,21 @@ $all=$tpl->javascript_parse_text("{all}");
 $reconstruct_caches=$tpl->javascript_parse_text("{reconstruct_caches}");
 $enable=$tpl->_ENGINE_parse_body("{enable}");
 $refresh=$tpl->javascript_parse_text("{refresh}");
+$cpu_affinity=$tpl->javascript_parse_text("{cpu_affinity}");
 $tt=time();
 $sock=new sockets();
 
+$DisableAnyCache=intval($sock->GET_INFO("DisableAnyCache"));
+
+if($DisableAnyCache==1){
+	echo FATAL_ERROR_SHOW_128("{DisableAnyCache_enabled_warning}");
+	return;
+}
+
 $smp_mode_is_disabled=null;
 
-$cpunumber=$users->CPU_NUMBER;
+$cpunumber=$users->CPU_NUMBER-1;
+if($cpunumber<1){$cpunumber=1;}
 
 $q=new mysql();
 $q->CheckTablesSquid();
@@ -696,24 +797,24 @@ $q->CheckTablesSquid();
 
 
 
-$bts[]="{name: '$new_cache', bclass: 'add', onpress : NewRule$tt}";
-$bts[]="{name: '$all', bclass: 'cpu', onpress : Bycpu0}";
+$bts[]="{name: '<strong style=font-size:18px>$new_cache</strong>', bclass: 'add', onpress : NewRule$tt}";
+$bts[]="{name: '<strong style=font-size:18px>$all</strong>', bclass: 'cpu', onpress : Bycpu0}";
 
 $CPUZ[]="function Bycpu0(){
 $('#flexRT$tt').flexOptions({url: '$page?items=yes&t=$tt&tt=$tt&cpu=0'}).flexReload();
 }";
 
 for($i=1;$i<$cpunumber+1;$i++){
-	$bts[]="{name: 'CPU $i', bclass: 'cpu', onpress : Bycpu$i}";
+	$bts[]="{name: '<strong style=font-size:18px>Proc. $i</strong>', bclass: 'cpu', onpress : Bycpu$i}";
 	$CPUZ[]="function Bycpu$i(){
 		$('#flexRT$tt').flexOptions({url: '$page?items=yes&t=$tt&tt=$tt&cpu=$i'}).flexReload(); 
 	}";
 }
 
-
-$bts[]="{name: '$refresh', bclass: 'Reload', onpress : Refresh$tt}";
-$bts[]="{name: '$reconstruct_caches', bclass: 'recycle', onpress : ReconstructCaches$tt}";
-$bts[]="{name: '<center style=font-size:16px;font-weight:bold>$apply</center>', bclass: 'Reconf', onpress : Apply$tt}";
+$bts[]="{name: '<strong style=font-size:18px>$cpu_affinity</strong>', bclass: 'Settings', onpress : CpuAff$tt}";
+$bts[]="{name: '<strong style=font-size:18px>$refresh</strong>', bclass: 'Reload', onpress : Refresh$tt}";
+$bts[]="{name: '<strong style=font-size:18px>$reconstruct_caches</strong>', bclass: 'recycle', onpress : ReconstructCaches$tt}";
+$bts[]="{name: '<strong style=font-size:18px>$apply</strong>', bclass: 'Reconf', onpress : Apply$tt}";
 
 
 $sock=new sockets();
@@ -739,14 +840,14 @@ $html="$smp_mode_is_disabled
 		dataType: 'json',
 		colModel : [
 		{display: '&nbsp;', name : 'none', width :32, sortable : false, align: 'center'},
-		{display: '$order', name : 'cpu', width :32, sortable : true, align: 'center'},
-		{display: '$cpu', name : 'cpu', width :32, sortable : true, align: 'center'},
-		{display: '$cache', name : 'cachename', width :122, sortable : true, align: 'left'},
-		{display: '$directory', name : 'cache_dir', width :162, sortable : true, align: 'left'},
-		{display: '$type', name : 'cache_type', width :55, sortable : true, align: 'left'},
-		{display: '$size', name : 'cache_size', width :160, sortable : true, align: 'left'},
-		{display: '%', name : 'percentcache', width :55, sortable : true, align: 'center'},
-		{display: '$enable', name : 'enabled', width :55, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>$order</span>', name : 'cpu', width :48, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>$cpu</span>', name : 'cpu', width :32, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>$cache</span>', name : 'cachename', width :210, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$directory</span>', name : 'cache_dir', width :332, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$type</span>', name : 'cache_type', width :68, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$size</span>', name : 'cache_size', width :236, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>%</span>', name : 'percentcache', width :55, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>$enable</span>', name : 'enabled', width :55, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'up', width :55, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'down', width :55, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},
@@ -762,12 +863,12 @@ $html="$smp_mode_is_disabled
 		sortname: 'zOrder',
 		sortorder: 'asc',
 		usepager: true,
-		title: '<span style=font-size:22px>$title</span>',
+		title: '<span style=font-size:30px>$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
 		width: '99%',
-		height: 450,
+		height: 500,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -782,24 +883,30 @@ $('#flexRT$tt').flexReload();
 }
 	
 function Apply$tt(){
-	Loadjs('squid.restart.php?ApplyConfToo=yes&ask=yes');
+	Loadjs('squid.caches.progress.php');
 	
 }
+
+function CpuAff$tt(){
+	Loadjs('squid.caches.center.cpuaff.php');
+}
+
 function Refresh$tt(){
 	Loadjs('squid.refresh-status.php');
 }
 
 	
 function  License$tt(){
-	Loadjs('artica.license.php');
+	GoToArticaLicense();
 }
 ". @implode("\n", $CPUZ)."
 	
 function NewRule$tt(){
-	Loadjs('$page?item-js=yes&ID=0&t=$tt',true);
+	Loadjs('squid.caches.center.wizard.php',true);
+	//Loadjs('$page?item-js=yes&ID=0&t=$tt',true);
 }
 function ReconstructCaches$tt(){
-	Loadjs('squid.rebuildcahes.php');
+	Loadjs('squid.rebuild.caches.progress.php');
 }
 	
 function INOUT$tt(ID){
@@ -923,7 +1030,7 @@ function items(){
 	if(mysql_num_rows($results)==0){json_error_show("no data $sql",1);}
 	$caches_disabled="<br>".$tpl->_ENGINE_parse_body("{caches_are_disabled}");
 	$muliproc_disabled="<br>".$tpl->javascript_parse_text("{muliproc_disabled}");
-	$fontsize="16";
+	$fontsize="20";
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
@@ -950,7 +1057,7 @@ function items(){
 		
 		if($ligne["remove"]==1){$color="#C7C7C7";$delete="&nbsp;";$icon_status="ok32-grey.png";}
 		if($DisableAnyCache==1){$color="#9A9A9A";$infos=$caches_disabled;$icon_status="ok32-grey.png";}
-		$usedcache=FormatBytes($ligne["usedcache"]/1024);
+		$usedcache=FormatBytes($ligne["usedcache"]);
 		
 		if($DisableSquidSMP==1){
 			if($cpu>1){
@@ -997,8 +1104,14 @@ function items(){
 			$cache_dir="-";
 			$reconstruct="&nbsp;";
 		}
+		$CPUAF_TEXT=null;
 		
-		
+		if($cache_type<>"rock"){
+			$CPUAF=$ligne["CPUAF"];
+			if($CPUAF>0){
+				$CPUAF_TEXT=" <span style='font-size:14px'>(CPU #$CPUAF)</span>";
+			}
+		}
 		
 		
 		if($ligne["remove"]==1){$link=null;}
@@ -1008,14 +1121,16 @@ function items(){
 						"<img src='img/$icon_status'>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>{$ligne["zOrder"]}</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cpu</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cachename</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cachename</a>$CPUAF_TEXT</span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cache_dir</a></span>$infos<i>$explainSMP</i></strong>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$cache_type</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$usedcache/$cache_size</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link{$percentcache}%</a></span>",$enable,
-						$up,$down,
+						"<center>$up</center>",
+						"<center>$down</center>",
 						
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</span>",$reconstruct)
+						"<center style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</center>",
+						"<center>$reconstruct</center>")
 		);
 	}
 

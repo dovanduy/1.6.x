@@ -146,12 +146,16 @@ function start($nopid=false){
 	$unix=new unix();
 	$sock=new sockets();
 	
+	
+	
+	
 	if(!$nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pid=$unix->get_pid_from_file($pidpath);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			echo "Starting......: ".date("H:i:s")." WINBIND Already running start process exists\n";
 			Winbindd_events("Already running start process exists",__FUNCTION__,__LINE__);
+			
 			return;
 		}
 	}
@@ -159,6 +163,7 @@ function start($nopid=false){
 	if(is_run()){
 		echo "Starting......: ".date("H:i:s")." WINBIND already running....\n";
 		Winbindd_events("Winbindd ask to start But already running",__FUNCTION__,__LINE__);
+		@file_put_contents("/var/run/samba/winbindd.pid", WINBIND_PID());
 		echo "Starting......: ".date("H:i:s")." WINBIND check privileges...\n";
 		DirsPrivileges();
 		return;
@@ -172,8 +177,6 @@ function start($nopid=false){
 	$squid=$unix->LOCATE_SQUID_BIN();
 	if(is_file($squid)){
 		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-		$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
-		if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
 		if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 		if($EnableKerbAuth==1){$DisableWinbindd=0;}
 	}

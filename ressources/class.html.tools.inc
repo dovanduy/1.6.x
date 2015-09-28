@@ -11,7 +11,7 @@ function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterfac
 	
 	if(!isset($bsini->_params[$key]["service_name"])){
 		if($GLOBALS["VERBOSE"]){
-			echo "<span style='color:red'>".__FUNCTION__."::".__LINE__."::FAILED:: KEY \"service_name\" for &laquo;$key&raquo;<br>\n".print_r($bsini->_params[$key])."<br></span>\n";}return null;}
+			echo "<span style='color:#d32d2d'>".__FUNCTION__."::".__LINE__."::FAILED:: KEY \"service_name\" for &laquo;$key&raquo;<br>\n".print_r($bsini->_params[$key])."<br></span>\n";}return null;}
 	if($bsini->_params["$key"]["service_name"]==null){
 			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED<br>\n";}return null;}
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
@@ -62,7 +62,7 @@ if($monit==1){
 
 
 if($noenable==1){
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>$key:Service not enabled -> NULL</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>$key:Service not enabled -> NULL</span><br>\n";}
 	if($bsini->_params["$key"]["service_disabled"]==0){return null;}}
 $tpl=new templates();
 $prod=$bsini->_params[$key]["service_name"];
@@ -209,7 +209,7 @@ $version="
 		$textoadd=
 		"<tr>
 		<td align='right' valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>{info}:</strong></td>
-		<td align='left' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong style='color:red'>{$bsini->_params["$key"]["why"]}</strong></td>
+		<td align='left' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong style='color:#d32d2d'>{$bsini->_params["$key"]["why"]}</strong></td>
 		</tr>";
 	}
 	if($bsini->_params["$key"]["other"]<>null){
@@ -467,16 +467,20 @@ if(preg_match("#font-size:([0-9]+)px#", $style_of_field,$re)){
 	$html="
 	<!--Field_array_Hash default value=\"$default\" -->
 	<select name=\"$FieldName\" id='$FieldName' $java $class $DISABLED_TOKEN>";	
-	reset ($Hash);$q=false;
+	reset ($Hash);
+	$q=false;
 	while (list($num,$val)=each($Hash)){	
-	$def=null;
-	$val=$tpl->_ENGINE_parse_body($val);
-	if(!$q){
-		if($num==$default){$def="selected";$q=true;}
-	}
+		$def=null;
+		$val=$tpl->_ENGINE_parse_body($val);
+		if(!$q){
+			if($num==$default){
+				$def="selected";
+				$q=true;
+			}
+		}
 	
-	if($maxlength>0){if (strlen($val)>$maxlength){$val=substr($val,0,$maxlength-3) . "...";}}
-	$html=$html ."\t<option value=\"$num\" $def>$val</option>\n";
+		if($maxlength>0){if (strlen($val)>$maxlength){$val=substr($val,0,$maxlength-3) . "...";}}
+		$html=$html ."\t<option value=\"$num\" $def>$val</option>\n";
 	}
 
 	if(!isset($_SESSION["DisableJqueryDropDown"])){
@@ -505,6 +509,7 @@ return $html;}
 
 
 function url_decode_special_tool($path){
+	$path=str_replace("%C3%A7","ç",$path);
 	$path=str_replace("%C3%C2§","ç",$path);
 	$path=str_replace("%5C","\\",$path);
 	$path=str_replace("%20"," ",$path);
@@ -513,15 +518,116 @@ function url_decode_special_tool($path){
 	$path=str_replace("%C2§","§",$path);
 	$path=str_replace("%C3§","ç",$path);
 	$path=str_replace("%E2%82%AC","€",$path);
+	
+	$path=str_replace("%C3%89","É",$path);
 	$path=str_replace("%C3%A9","é",$path);
-	$path=str_replace("%C3%A0","à",$path);
+	$path=str_replace("%C3%A8","è",$path);
 	$path=str_replace("%C3%AA","ê",$path);
+	$path=str_replace("%C3%AB","ë",$path);
+	
+	$path=str_replace("%C3%A0","à",$path);
+	
 	$path=str_replace("%C3%B9","ù",$path);
+	$path=str_replace("%C3%BB","û",$path);
 	$path=str_replace("%C3%A8","è",$path);
 	$path=str_replace("%C3%A2","â",$path);
+	$path=str_replace("%C3%A4","ä",$path);
+	$path=str_replace("%C3%A0","à",$path);
+	$path=str_replace("%C3%A0","à",$path);
+	$path=str_replace("%C3%A1","á",$path);
+	$path=str_replace("%C3%A2","â",$path);
+	$path=str_replace("%C3%A3","ã",$path);
+	$path=str_replace("%C3%A4","ä",$path);
+	$path=str_replace("%C3%A5","å",$path);
+	$path=str_replace("%C3%A6","æ",$path);
+	
 	$path=str_replace("%C3%B4","ô",$path);
+	
+	$path=str_replace("%C3%AC","ì",$path);
+	$path=str_replace("%C3%AD","í",$path);
 	$path=str_replace("%C3%AE","î",$path);
+	$path=str_replace("%C3%AF","ï",$path);
+	$path=str_replace("%C3%B6","ö",$path);
+	$path=str_replace("%C3%B0","ð",$path);
+	$path=str_replace("%C3%B1","ñ",$path);
+	$path=str_replace("%C3%B2","ò",$path);
+	$path=str_replace("%C3%B3","ó",$path);
+	$path=str_replace("%C3%B4","ô",$path);
+	$path=str_replace("%C3%B5","õ",$path);
+	$path=str_replace("%C3%B6","ö",$path);
+
+	
+	
+	$path=str_replace("%C2%A1","¡",$path);
+	$path=str_replace("%C2%A2","¢",$path);
+	$path=str_replace("%C2%A2","£",$path);
+	$path=str_replace("%C2%A4","¤",$path);
+	$path=str_replace("%C2%A5","¥",$path);
+	$path=str_replace("%C2%A6","¦",$path);
+	$path=str_replace("%C2%A7","§",$path);
+	$path=str_replace("%C2%A8","¨",$path);
+	$path=str_replace("%C2%A9","©",$path);
+	$path=str_replace("%C2%AE","®",$path);
+	$path=str_replace("%C2%AA","ª",$path);
+	$path=str_replace("%C2%AB","«",$path);
+	$path=str_replace("%C2%AC","¬",$path);
+	$path=str_replace("%C2%AF","¯",$path);
+	$path=str_replace("%C2%B0","°",$path);
+	$path=str_replace("%C2%B1","±",$path);
+	$path=str_replace("%C2%B2","²",$path);
+	$path=str_replace("%C2%B3","³",$path);
+	$path=str_replace("%C2%B4","´",$path);
+	$path=str_replace("%C2%B5","µ",$path);
+	$path=str_replace("%C2%B6","¶",$path);
+	$path=str_replace("%C2%B7","·",$path);
+	$path=str_replace("%C2%B8","¸",$path);
+	$path=str_replace("%C2%B9","¹",$path);
+	$path=str_replace("%C2%BA","º",$path);
+	$path=str_replace("%C2%BB","»",$path);
+	$path=str_replace("%C2%BC","¼",$path);
+	$path=str_replace("%C2%BD","½",$path);
+	$path=str_replace("%C2%BE","¾",$path);
+	$path=str_replace("%C2%BF","¿",$path);
+	
+	$path=str_replace("%C3%80","À",$path);
+	$path=str_replace("%C3%81","Á",$path);
+	$path=str_replace("%C3%82","Â",$path);
+	$path=str_replace("%C3%83","Ã",$path);
+	$path=str_replace("%C3%84","Ä",$path);
+	$path=str_replace("%C3%85","Å",$path);
+	$path=str_replace("%C3%86","Æ",$path);
+	$path=str_replace("%C3%87","Ç",$path);
+	$path=str_replace("%C3%88","È",$path);
+	$path=str_replace("%C3%89","É",$path);
+	
+	$path=str_replace("%C3%8A","Ê",$path);
+	$path=str_replace("%C3%8B","Ë",$path);
+	$path=str_replace("%C3%8C","Ì",$path);
+	$path=str_replace("%C3%8D","Í",$path);
+	$path=str_replace("%C3%8E","Î",$path);
+	$path=str_replace("%C3%8F","Ï",$path);
+
+	$path=str_replace("%C3%90","Ð",$path);
+	$path=str_replace("%C3%91","Ñ",$path);
+	$path=str_replace("%C3%92","Ò",$path);
+	$path=str_replace("%C3%93","Ó",$path);
+	$path=str_replace("%C3%94","Ô",$path);
+	$path=str_replace("%C3%95","Õ",$path);
+	$path=str_replace("%C3%96","Ö",$path);
+	$path=str_replace("%C3%97","×",$path);
+	
+	$path=str_replace("%C3%98","Ø",$path);
+	$path=str_replace("%C3%99","Ù",$path);
+	$path=str_replace("%C3%9A","Ú",$path);
+	$path=str_replace("%C3%9B","Û",$path);
+	$path=str_replace("%C3%9C","Ü",$path);
+	$path=str_replace("%C3%9D","Ý",$path);
+	$path=str_replace("%C3%9E","Þ",$path);
+	$path=str_replace("%C3%B7","÷",$path);
+
+	
 	$path=str_replace("%E9","é",$path);
+	$path=str_replace("%E2","â",$path);
 	$path=str_replace("%E0","à",$path);
 	$path=str_replace("%F9","ù",$path);
 	$path=str_replace("%20"," ",$path);
@@ -535,7 +641,7 @@ function url_decode_special_tool($path){
 	$path=str_replace("%EF","ï",$path);
 	$path=str_replace("%EE","î",$path);
 	$path=str_replace("%EA","ê",$path);
-	$path=str_replace("%E2","â",$path);
+
 	$path=str_replace("%FB","û",$path);
 	$path=str_replace("%u20AC","€",$path);
 	$path=str_replace("%u2014","–",$path);
@@ -543,10 +649,10 @@ function url_decode_special_tool($path){
 	$path=str_replace("%24","$",$path);
 	$path=str_replace("%21","!",$path);
 	$path=str_replace("%23","#",$path);
-	
+	$path=str_replace("%2C",",",$path);
 	$path=str_replace("%7E",'~',$path);
 	$path=str_replace("%22",'"',$path);
-	$path=str_replace("%22",'"',$path);
+	$path=str_replace("%25",'%',$path);
 	$path=str_replace("%27","'",$path);
 	$path=str_replace("%F8","ø",$path);
 	$path=str_replace("%2C",",",$path);
@@ -559,6 +665,7 @@ function url_decode_special_tool($path){
 	$path=str_replace("%3E",">",$path);
 	$path=str_replace("%B5","µ",$path);
 	$path=str_replace("%B0","°",$path);
+	$path=str_replace("%C3§","ç",$path);
 	$path=str_replace("%7C","|",$path);
 	$path=str_replace("%5E","^",$path);
 	$path=str_replace("%60","`",$path);
@@ -612,6 +719,46 @@ function url_decode_special_tool($path){
 	return $path;
 }
 
+function percent_encoding($value){
+	$value=str_replace("!", "%21", $value);
+	$value=str_replace("#", "%23", $value);
+	$value=str_replace("$", "%24", $value);
+	$value=str_replace("&", "%26", $value);
+	$value=str_replace("'", "%27", $value);
+	$value=str_replace("(", "%28", $value);
+	$value=str_replace(")", "%29", $value);
+	$value=str_replace("*", "%2A", $value);
+	$value=str_replace("+", "%2B", $value);
+	$value=str_replace(",", "%2C", $value);
+	$value=str_replace("/", "%2F", $value);
+	$value=str_replace(":", "%3A", $value);
+	$value=str_replace(";", "%3B", $value);
+	$value=str_replace("=", "%3D", $value);
+	$value=str_replace("?", "%3F", $value);
+	$value=str_replace("@", "%40", $value);
+	$value=str_replace("[", "%5B", $value);
+	$value=str_replace("]", "%5D", $value);
+	return $value;
+}
+function autofs_escape_chars($value){
+	$value=str_replace("!", "\\!", $value);
+	$value=str_replace("#", "\\#", $value);
+	$value=str_replace("$", "\\$", $value);
+	$value=str_replace("&", "\\&", $value);
+	$value=str_replace("'", "\\'", $value);
+	$value=str_replace("(", "\\(", $value);
+	$value=str_replace(")", "\\)", $value);
+	$value=str_replace("*", "\\*", $value);
+	$value=str_replace("+", "\\+", $value);
+	$value=str_replace(",", "\\,", $value);
+	$value=str_replace("/", "\\/", $value);
+	$value=str_replace(":", "\\:", $value);
+	$value=str_replace(";", "\\;", $value);
+	$value=str_replace("=", "\\=", $value);
+	$value=str_replace("?", "\\?", $value);
+	$value=str_replace("@", "\\@", $value);
+	return $value;
+}
 
 class htmltools_inc{
 	
@@ -658,27 +805,28 @@ class htmltools_inc{
 	function StripSpecialsChars($pattern){
 		
 		$pattern=$this->replace_accents($pattern);
-		$pattern=str_replace(" ","_",$pattern);
-		$pattern=str_replace("-","_",$pattern);
-		$pattern=str_replace("&","_",$pattern);
-		$pattern=str_replace(",","_",$pattern);
-		$pattern=str_replace(";","_",$pattern);
-		$pattern=str_replace("%","_",$pattern);
-		$pattern=str_replace("*","_",$pattern);
-		$pattern=str_replace("ø","_",$pattern);
-		$pattern=str_replace("$","_",$pattern);
-		$pattern=str_replace("/","_",$pattern);
-		$pattern=str_replace("\\","_",$pattern);
-		$pattern=str_replace("?","_",$pattern);
-		$pattern=str_replace("µ","_",$pattern);
-		$pattern=str_replace("£","_",$pattern);
-		$pattern=str_replace(")","_",$pattern);
-		$pattern=str_replace("(","_",$pattern);
-		$pattern=str_replace("[","_",$pattern);
-		$pattern=str_replace("]","_",$pattern);
-		$pattern=str_replace("#","_",$pattern);
-		$pattern=str_replace("'","_",$pattern);
-		$pattern=str_replace("\"","_",$pattern);
+		$pattern=str_replace(" ","",$pattern);
+		$pattern=str_replace(".","",$pattern);
+		$pattern=str_replace("-","",$pattern);
+		$pattern=str_replace("&","",$pattern);
+		$pattern=str_replace(",","",$pattern);
+		$pattern=str_replace(";","",$pattern);
+		$pattern=str_replace("%","",$pattern);
+		$pattern=str_replace("*","",$pattern);
+		$pattern=str_replace("ø","",$pattern);
+		$pattern=str_replace("$","",$pattern);
+		$pattern=str_replace("/","",$pattern);
+		$pattern=str_replace("\\","",$pattern);
+		$pattern=str_replace("?","",$pattern);
+		$pattern=str_replace("µ","",$pattern);
+		$pattern=str_replace("£","",$pattern);
+		$pattern=str_replace(")","",$pattern);
+		$pattern=str_replace("(","",$pattern);
+		$pattern=str_replace("[","",$pattern);
+		$pattern=str_replace("]","",$pattern);
+		$pattern=str_replace("#","",$pattern);
+		$pattern=str_replace("'","",$pattern);
+		$pattern=str_replace("\"","",$pattern);
 		$pattern=str_replace("+","_",$pattern);
 		$pattern=substr($pattern,0,20);		
 		return $pattern;
@@ -697,6 +845,38 @@ class htmltools_inc{
 		return $lang;
 	}
 	
+	
+	
+}
+
+
+function WEBFILTERING_TOP_MENU(){
+	$users=new usersMenus();
+	
+	if($users->AsDansGuardianAdministrator){
+	$top_menu[]=texttooltip("{service_status}","position:bottom:{dashboard_webfiltering_explain}","GoToUfdbguardMain()");
+	$top_menu[]=texttooltip("{webfiltering_rules}","position:bottom:{webfiltering_rules_text}",
+			"GoToUfdbguardRules()");
+	
+	$top_menu[]=texttooltip("{your_categories}","position:bottom:{your_categories_explain}",
+			"GotoYourcategories()");
+	
+	
+	
+	$top_menu[]=texttooltip("{unlock_rules}","position:bottom:{unlock_rules_explain_text}",
+			"GotoUfdbUnlockPages()");
+	
+	$top_menu[]=texttooltip("{paranoid_mode}","position:bottom:{paranoid_squid_mode_explain}",
+			"GotoParanoidMode()");
+	
+	
+	
+	
+	}
+	
+	
+	
+	return @implode("&nbsp;|&nbsp;", $top_menu);
 	
 	
 }

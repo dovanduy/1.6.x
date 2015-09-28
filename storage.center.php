@@ -154,7 +154,7 @@ function software_list(){
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){$error=$q->mysql_error;}
 	
-	$html="<span style='color:red'>$error</span>
+	$html="<span style='color:#d32d2d'>$error</span>
 	<table style='width:99%'>
 	<tr>
 		<th width=1%>&nbsp;</th>
@@ -354,14 +354,14 @@ if($error==0){
     $sql .= "'$filename', '$size', '$type','$commandline','$ExecuteAfter','$MinutesToWait')";
     $q->QUERY_SQL($sql,"artica_backup");
     if($q->ok){
-    	echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:red'>{success} $filename</strong>");
+    	echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:#d32d2d'>{success} $filename</strong>");
     	exit;
     }
     
-   echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:red'>$q->mysql_error</strong>"); 
+   echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:#d32d2d'>$q->mysql_error</strong>"); 
 	
 }else{
-	 echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:red'>Error number $error</strong>"); 
+	 echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px;color:#d32d2d'>Error number $error</strong>"); 
 	 exit;	
 }
 }

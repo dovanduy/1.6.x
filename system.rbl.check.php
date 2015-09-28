@@ -570,7 +570,7 @@ function rbls(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'><div class=text-info>{rbl_check_artica_text}</div>
+	<td valign='top'><div class=explain>{rbl_check_artica_text}</div>
 	<td valign='top'>". Paragraphe32("add","addrbl_server_text","add_RblCheck()", "32-plus.png")."</td>
 	</tr>	
 	</table>
@@ -701,7 +701,7 @@ function rbl_add_popup(){
 	
 	$html="
 	<div id='simplekeywords-smtp-div2'>
-	<div class=text-info>{add_multiple_rbl_explain}</div>
+	<div class=explain>{add_multiple_rbl_explain}</div>
 	<textarea id='rbls-servers-container' style='width:100%;height:450px;overflow:auto;font-size:14px'></textarea>
 	<div style='text-align:right'>". button("{add}","RBLsSave()")."</div>
 	</div>

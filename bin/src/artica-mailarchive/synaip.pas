@@ -1,1 +1,0 @@
-../mimemessage_src/synaip.pas

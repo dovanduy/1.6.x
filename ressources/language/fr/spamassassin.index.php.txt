@@ -10,7 +10,7 @@
 <ham>Lorsqu'un message ham est d&eacute;tect&eacute;</ham>
 <managed_by_mimedefang>G&eacute;r&eacute; par MimeDefang</managed_by_mimedefang>
 <managed_by_mimedefang_not_enabled>Devrait &ecirc;tre g&eacute;r&eacute; par MimeDefang</managed_by_mimedefang_not_enabled>
-<plugins>Plugins Spamassassin</plugins>
+<plugins>Plugins</plugins>
 <pyzor_text>Pyzor est un syst&egrave;me r&eacute;seau collaboratif,  pour d&eacute;tecter et bloquer les spams gr&acirc;ce &agrave; l'identification des r&eacute;sum&eacute;s de messages.[br]
 Pyzor a tout d'abord d'&ecirc;t&eacute; une impl&eacute;mentation Python de Razor. (Voir http://pyzor.sourceforge.net)</pyzor_text>
 <razor_text>ipul's Razorest une solution de d&eacute;tection de spam et de filtrage r&eacute;seau distribu&eacute;e et collaborative.[br]

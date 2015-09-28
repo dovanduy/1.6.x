@@ -63,6 +63,7 @@ function rules_browse_popup(){
 	$expressions=$tpl->_ENGINE_parse_body("{expressions}");
 	$add=$tpl->_ENGINE_parse_body("{link}");
 	$explain=$tpl->_ENGINE_parse_body("{explain}");
+	$words=$tpl->javascript_parse_text("{words}");
 	$give_the_rulename=$tpl->javascript_parse_text("{give_the_rulename}");
 	$TB_WIDTH=580;
 	$time=time();
@@ -517,7 +518,7 @@ function table(){
 	$t=time();
 	
 	$html="
-	<div id='TableExpressionsParReglesLiees' class=text-info>$ufdbguard_terms_explain</div>
+	<div id='TableExpressionsParReglesLiees' class=explain>$ufdbguard_terms_explain</div>
 	<table class='$t-table' style='display: none' id='$t-table' style='width:99%'></table>
 <script>
 var IDRULEEXP=0;

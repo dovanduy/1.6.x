@@ -99,8 +99,8 @@ function popup_squidguard(){
 	
 		if(is_array($array2["domainlist"])){
 			if($array2["domainlist"]["size"]==null){
-				$not_compiled=texttooltip("{not_compiled}","{compile_squidguard_databases}<hr><i>{compile_squidguard_databases_text}</i>","Loadjs('squidguard.status.php?compile=yes')",0,"color:red;font-size:14px;font-weight:bold");
-				$array2["domainlist"]["size"]="<span style='color:red'>$not_compiled</span>";
+				$not_compiled=texttooltip("{not_compiled}","{compile_squidguard_databases}<hr><i>{compile_squidguard_databases_text}</i>","Loadjs('squidguard.status.php?compile=yes')",0,"color:#d32d2d;font-size:14px;font-weight:bold");
+				$array2["domainlist"]["size"]="<span style='color:#d32d2d'>$not_compiled</span>";
 			
 		}else{$array2["domainlist"]["size"]=FormatBytes($array2["domainlist"]["size"]/1024);}
 		

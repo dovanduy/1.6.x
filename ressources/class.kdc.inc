@@ -27,10 +27,13 @@ class kdc{
 		$full_servernameUpper=strtoupper($full_servername);
 		$conf[]="[libdefaults]";
 		$conf[]="\tdefault_realm = $domain";
+		$conf[]="\tclockskew 	= 	300";
 		$conf[]="\tdns_lookup_realm = false";
+		$conf[]="\tproxiable	=	true";
 		$conf[]="\tdns_lookup_kdc = false";
-		$conf[]="\tticket_lifetime = 24h";
+		$conf[]="\tticket_lifetime = 1d";
 		$conf[]="\tforwardable = yes";
+		$conf[]="\tdefault_ccache_name = FILE:/etc/kerberos/tickets/krb5cc_%{euid}";
 		if($this->wintype=="WIN_2008AES"){
 			$conf[]="\tdefault_tgs_enctypes = arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des3-hmac-sha1";
   			$conf[]="\tdefault_tkt_enctypes = arcfour-hmac-md5 des-cbc-crc des-cbc-md5 des3-hmac-sha1";
@@ -61,9 +64,12 @@ class kdc{
 		$conf[]="\t\trenew_lifetime = 36000";
 		$conf[]="\t\tforwardable = true";
 		$conf[]="\t\tkrb4_convert = false";
-		$conf[]="\t}";		
+		$conf[]="\t}";	
+		
 		
 		$conf[]="";
+		$conf[]="";
+		@mkdir("/etc/kerberos/tickets",0755,true);
 		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Kerberos: saving /etc/krb5.conf\n";}
 		@file_put_contents("/etc/krb5.conf",@implode("\n",$conf));		
 		

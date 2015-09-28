@@ -56,7 +56,7 @@ function popup(){
 	
 	$html="
 	<div id='FROM_ISO_DIV'>
-	<div class=text-info style='margin-top:10px'>{MENU_CONSOLE_TEXT}</div>
+	<div class=explain style='margin-top:10px'>{MENU_CONSOLE_TEXT}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

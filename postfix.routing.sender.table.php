@@ -232,7 +232,7 @@ $html="
 	</tr>
 </table>
 </div>
-<div class=text-info style='font-size:14px'>{sender_dependent_relayhost_maps_text}</div>
+<div class=explain style='font-size:14px'>{sender_dependent_relayhost_maps_text}</div>
 <script>
 var X_PostfixAddNewSenderTable$t= function (obj) {
 	var results=obj.responseText;

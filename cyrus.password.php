@@ -61,7 +61,7 @@ function popup(){
 	
 	$html="
 	<div id='change_cyrus_password' style='width:98%' class=form>
-	<div class=text-info style='font-size:16px'>{change_cyrus_password}</div>
+	<div class=explain style='font-size:16px'>{change_cyrus_password}</div>
 	<table style='width:99%'>
 	<tr>
 	<td class=legend style='font-size:16px'>{password}:</td>

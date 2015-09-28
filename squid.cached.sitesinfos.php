@@ -64,7 +64,7 @@ function AddCachedSitelist_js(){
 	$page=CurrentPageName();
 	$html="
 		function AddCachedSitelistStart(){
-			YahooWin3('650','$page?AddCachedSitelist-popup=yes&id={$_GET["id"]}&t={$_GET["t"]}','$add_new_cached_web_site');
+			YahooWin3('890','$page?AddCachedSitelist-popup=yes&id={$_GET["id"]}&t={$_GET["t"]}','$add_new_cached_web_site');
 			
 		}
 		
@@ -211,46 +211,42 @@ function AddCachedSitelist_popup(){
 		$button="{apply}";
 		}
 		
-		$refresh_pattern_opt=Field_array_Hash($option,"refresh_pattern_option-$t",$refresh_pattern_option,null,null,0,"font-size:14px;padding:3px");
+		$refresh_pattern_opt=Field_array_Hash($option,"refresh_pattern_option-$t",
+				$refresh_pattern_option,null,null,0,"font-size:22px;padding:3px");
 	
 	$html="
 	<div id='AddCachedSitelistDiv-$t'></div>
 	<div style='width:98%' class=form>
-	<table >
+	<table style='width:100%'>
 	<tr>
 	<td valign='top'>
 	
 	". Field_hidden("id","{$_GET["id"]}")."
-	<div style='font-size:14px;padding:5px' class=text-info>{squid_refresh_pattern_explain}</div>
+	<div style='font-size:18px;padding:5px' class=explain>{squid_refresh_pattern_explain}</div>
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{pattern}:</td>
-		<td style='font-size:14px'>". Field_text("refresh_pattern_site-$t",$domain,'font-size:16px;padding:3px;width:95%',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."</td>
-		<td width=1%>". help_icon("{refresh_pattern_site}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{pattern}","{refresh_pattern_site}").":</td>
+		<td style='font-size:22px'>". Field_text("refresh_pattern_site-$t",$domain,'font-size:22px;padding:3px;width:640px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{minimal_time}:</td>
-		<td style='font-size:14px'>". Field_text("refresh_pattern_min-$t",$refresh_pattern_min,'width:50px;font-size:14px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;Mn</td>
-		<td width=1%>". help_icon("{refresh_pattern_min}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{minimal_time}","{refresh_pattern_min}").":</td>
+		<td style='font-size:18px'>". Field_text("refresh_pattern_min-$t",$refresh_pattern_min,'width:110px;font-size:22px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;Mn</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{percentage}:</td>
-		<td style='font-size:14px'>". Field_text("refresh_pattern_pourc-$t",$pourc,'width:50px;font-size:14px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;%</td>
-		<td width=1%>". help_icon("{refresh_pattern_pourc}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{percentage}","{refresh_pattern_pourc}").":</td>
+		<td style='font-size:18px'>". Field_text("refresh_pattern_pourc-$t",$pourc,'width:110px;font-size:22px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;%</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{maximal_time}:</td>
-		<td style='font-size:14px'>". Field_text("refresh_pattern_max-$t",$refresh_pattern_max,'width:50px;font-size:14px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;Mn</td>
-		<td width=1%>". help_icon("{refresh_pattern_max}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{maximal_time}","{refresh_pattern_max}").":</td>
+		<td style='font-size:18px'>". Field_text("refresh_pattern_max-$t",$refresh_pattern_max,'width:110px;font-size:22px;padding:3px',null,null,null,false,"AddCachedSiteListCheckEnter(event)")."&nbsp;Mn</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{option}:</td>
-		<td style='font-size:14px'>$refresh_pattern_opt</td>
-		<td width=1%>". help_icon("{refresh_pattern_option}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{option}","{refresh_pattern_option}").":</td>
+		<td style='font-size:18px'>$refresh_pattern_opt</td>
 	</tr>	
 	<tr>
 		<td colspan=3 align='right'><hr>
-			". button($button,"AddCachedSitelistSave$t()",16).
+			". button($button,"AddCachedSitelistSave$t()",32).
 		"</td>
 	</tr>
 	</table>		
@@ -332,7 +328,7 @@ $expire_time=$tpl->_ENGINE_parse_body("{expire_time}");
 $limit=$tpl->_ENGINE_parse_body("{limit}");
 $add_new_cached_web_site=$tpl->_ENGINE_parse_body("{add_new_cached_web_site}");
 $add_default_settings=$tpl->_ENGINE_parse_body("{add_default_settings}");
-$refresh_pattern_intro=$tpl->_ENGINE_parse_body("{refresh_pattern_intro}");
+$caches_rules=$tpl->javascript_parse_text("{caches_rules}");
 $delete_all=$tpl->javascript_parse_text("{delete_all}");	
 $EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
@@ -344,24 +340,21 @@ if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}
 $apply_params=$tpl->_ENGINE_parse_body("{apply}");
 $options=$tpl->javascript_parse_text("{options}");
 $restart=$tpl->javascript_parse_text("{restart}");
-
+$prefix="<strong style=font-size:18px>";
 
 $buttons="
-{name: '$add_new_cached_web_site', bclass: 'add', onpress : AddNewCachedWebsite},
-		{name: '$add_default_settings', bclass: 'add', onpress : add_default_settings},
-		{name: '$delete_all', bclass: 'Delz', onpress : delete_all},
+{name: '$prefix$add_new_cached_web_site</strong>', bclass: 'add', onpress : AddNewCachedWebsite},
+		{name: '$prefix$add_default_settings</strong>', bclass: 'add', onpress : add_default_settings},
+		{name: '$prefix$delete_all</strong>', bclass: 'Delz', onpress : delete_all},
 	{separator: true},
-	{name: '$options', bclass: 'Settings', onpress : CacheOptions$t},		
-	{separator: true},
-	{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
-	{name: '$restart', bclass: 'Reload', onpress : SquidRestartNow$t},		
+	{name: '$prefix$apply_params</strong>', bclass: 'Reload', onpress : SquidBuildNow$t},
+	
 ";
 
 if($EnableRemoteStatisticsAppliance==1){$buttons=null;}
 
 
 $html="
-<div class=text-info>$refresh_pattern_intro</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 $(document).ready(function(){
@@ -369,12 +362,12 @@ $('#flexRT$t').flexigrid({
 	url: '$page?websites-search=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'setz', width : 31, sortable : false, align: 'center'},	
-		{display: '$website', name : 'domain', width : 368, sortable : true, align: 'left'},	
-		{display: '$expire_time', name : 'refresh_pattern_min', width : 151, sortable : true, align: 'left'},
-		{display: '%', name : 'refresh_pattern_perc', width : 38, sortable : true, align: 'center'},
-		{display: '$limit', name : 'refresh_pattern_max', width : 106, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 38, sortable : false, align: 'center'},
+		
+		{display: '$website', name : 'domain', width : 690, sortable : true, align: 'left'},	
+		{display: '$expire_time', name : 'refresh_pattern_min', width : 209, sortable : true, align: 'left'},
+		{display: '%', name : 'refresh_pattern_perc', width : 88, sortable : true, align: 'right'},
+		{display: '$limit', name : 'refresh_pattern_max', width : 162, sortable : true, align: 'right'},
+		{display: '&nbsp;', name : 'delete', width : 71, sortable : false, align: 'center'},
 	],
 	
 	
@@ -391,12 +384,12 @@ buttons : [
 	sortname: 'domain',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:30px>$caches_rules</span>',
 	useRp: true,
 	rp: 100,
 	showTableToggleBtn: false,
 	width: '98%',
-	height: 400,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -407,9 +400,7 @@ buttons : [
 		Loadjs('squid.compile.php');
 	}
 	
-	function SquidRestartNow$t(){
-		Loadjs('squid.restart.php?onlySquid=yes&ApplyConfToo=yes');
-	}
+	
 
 function AddNewCachedWebsite(){
 	var CORP=$CORP;
@@ -524,7 +515,7 @@ function WEBSITES_SEARCH(){
 		$ID=md5($ligne["domain"].$ligne["ID"]);
 		$color="black";
 		if($DisableAnyCache==1){$color="#8a8a8a";}
-		$delete=imgtootltip("delete-24.png","{delete}","Loadjs('$MyPage?AddCachedSitelist-delete={$ligne["ID"]}&t={$_GET["t"]}&IDROW={$ID}')");
+		$delete=imgtootltip("delete-32.png","{delete}","Loadjs('$MyPage?AddCachedSitelist-delete={$ligne["ID"]}&t={$_GET["t"]}&IDROW={$ID}')");
 		$select="Loadjs('$MyPage?AddCachedSitelist-js=yes&id={$ligne["ID"]}&t={$_GET["t"]}');";
 		
 		$ligne["refresh_pattern_min"]=$ligne["refresh_pattern_min"];
@@ -537,7 +528,7 @@ function WEBSITES_SEARCH(){
 		
 		$link="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:$select\" 
-		style='font-size:12px;text-decoration:underline;color:$color'>";
+		style='font-size:16px;text-decoration:underline;color:$color'>";
 		if(trim($ligne["domain"])=='.'){$ligne["domain"]=$tpl->_ENGINE_parse_body("{all}");}
 		
 		$set=imgsimple("24-parameters.png",null,$select);
@@ -547,11 +538,11 @@ function WEBSITES_SEARCH(){
 	$data['rows'][] = array(
 		'id' => $ID,
 		'cell' => array(
-		$set,
-		"<span style='font-size:14px;color:$color'>$link{$ligne["domain"]}</a></span>"
-		,"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_min"]}</a></span>",
-		"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_perc"]}%</a></span>",
-		"<span style='font-size:12px;color:$color'>{$ligne["refresh_pattern_max"]}</a></span>",$delete )
+		"<span style='font-size:16px;color:$color'>$link{$ligne["domain"]}</a></span>"
+		,"<span style='font-size:16px;color:$color'>{$ligne["refresh_pattern_min"]}</a></span>",
+		"<span style='font-size:16px;color:$color'>{$ligne["refresh_pattern_perc"]}%</a></span>",
+		"<span style='font-size:16px;color:$color'>{$ligne["refresh_pattern_max"]}</a></span>",
+		"<center>$delete</center>" )
 		);
 	}
 	
@@ -578,7 +569,7 @@ function WEBSITES_LIST_OLD(){
 	$html="
 	
 	<hr>
-	<div class=text-info>{refresh_pattern_intro}</div>
+	<div class=explain>{refresh_pattern_intro}</div>
 	<div style='text-align:right'>
 	<table style='width:99%'>
 	<tr>

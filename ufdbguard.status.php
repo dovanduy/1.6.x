@@ -22,6 +22,15 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	if(isset($_GET["GoogleSafeBrowsingApiKey-js"])){GoogleSafeBrowsingApiKey_js();exit;}
 	if(isset($_GET["GoogleSafeBrowsingApiKey-popup"])){GoogleSafeBrowsingApiKey_popup();exit;}
 	if(isset($_POST["GoogleSafeBrowsingApiKey"])){GoogleSafeBrowsingApiKey_save();exit;}
+	
+	if(isset($_GET["PhishTankApiKey-js"])){PhishTankApiKey_js();exit;}
+	if(isset($_GET["PhishTankApiKey-popup"])){PhishTankApiKey_popup();exit;}
+	if(isset($_POST["PhishTankApiKey"])){PhishTankApiKey_save();exit;}
+	if(isset($_POST["EnableSquidPhishTank"])){EnableSquidPhishTank_save();exit;}
+	
+	
+	
+	
 page();
 
 
@@ -57,6 +66,72 @@ function GoogleSafeBrowsingApiKey_js(){
 	echo "
 		YahooWin6('850','$page?GoogleSafeBrowsingApiKey-popup=yes','$title');
 	";
+}
+
+function PhishTankApiKey_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("PhishTankApiKey",$_POST["PhishTankApiKey"]);
+	$sock->SET_INFO("EnableSquidPhishTank",1);
+	
+}
+function EnableSquidPhishTank_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableSquidPhishTank",$_POST["EnableSquidPhishTank"]);
+}
+
+function PhishTankApiKey_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->javascript_parse_text("{API_KEY}");
+	header("content-type: application/x-javascript");
+	$sock=new sockets();
+	$t=time();
+	
+	echo "
+	YahooWin6('850','$page?PhishTankApiKey-popup=yes','$title');
+	";	
+	
+}
+
+
+function PhishTankApiKey_popup(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$PhishTankApiKey=$sock->GET_INFO("PhishTankApiKey");
+	$t=time();
+	
+	$html="<div style='width:98%' class=form>
+<table style='width:100%'>
+<tr>
+	<td class=legend style='font-size:18px'>{API_KEY}:</td>
+	<td>". Field_text("PhishTankApiKey-$t",$PhishTankApiKey,"font-size:28px;width:650px")."</td>
+</tR>
+<tr>
+	
+". Field_button_table_autonome("{apply}", "Save$t()",36).
+"</table>
+</div>
+<script>
+var xSave$t= function (obj) {
+	var res=obj.responseText;
+	if(res.length>0){alert(res);}
+	LoadAjaxRound('main-ufdb-frontend','ufdbguard.status.php');
+	Loadjs('squid.reload.php');
+
+}
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('PhishTankApiKey', document.getElementById('PhishTankApiKey-$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>
+";
+echo $tpl->_ENGINE_parse_body($html);
+
+		
+	
 }
 
 
@@ -140,7 +215,7 @@ function GoogleSafeBrowsingApiKey_save(){
 	$sock->SET_INFO("GoogleSafeBrowsingCacheTime", $_POST["GoogleSafeBrowsingCacheTime"]);
 	$sock->SET_INFO("GoogleSafeBrowsingDNS", $_POST["GoogleSafeBrowsingDNS"]);
 	$sock->SET_INFO("GoogleSafeBrowsingInterface", $_POST["GoogleSafeBrowsingInterface"]);
-	$sock->SET_INFO("EnableGoogleSafeSearch", 1);
+	$sock->SET_INFO("EnableGoogleSafeBrowsing", 1);
 	
 	
 
@@ -168,10 +243,40 @@ function service_cmds_perform(){
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$t=time();
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	if($sock->EnableUfdbGuard()==0){
+		
+		
+		if($q->COUNT_ROWS("webfilter_rules")==0){
+			
+			echo $tpl->_ENGINE_parse_body("<center style='margin:90px'>".button("{activate_the_webfiltering_engine_wizard}","Loadjs('dansguardian2.wizard.rule.php')",40)."</center>");
+			return;
+		}
+		
+		
+		echo $tpl->_ENGINE_parse_body("<center style='margin:90px'>
+				<p style='font-size:20px'>{warn_ufdbguard_not_activated_explain}</p>
+				
+				".button("{activate_webfilter_engine}",
+						"Loadjs('ufdbguard.enable.progress.php')",40)."</center>");
+				
+				
+		
+		return;
+		
+	}
 	
+	
+	
+	
+	
+	
+	
+	$t=time();
+	$WEBFILTERING_TOP_MENU=WEBFILTERING_TOP_MENU();
 	$html="
-	<div style='font-size:30px;margin-bottom:20px'>{web_filtering}</div>
+	<div style='font-size:30px;margin-bottom:20px'>$WEBFILTERING_TOP_MENU</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -198,12 +303,12 @@ function page(){
 function EnableGoogleSafeSearch_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableGoogleSafeSearch", $_POST["EnableGoogleSafeSearch"]);
+	$sock->getFrameWork("squid.php?google-no-ssl-progress=yes");
 	
 }
 
 function EnableGoogleSafeBrowsing_save(){
 	$sock=new sockets();
-	echo $_POST["EnableGoogleSafeBrowsing"];
 	$sock->SET_INFO("EnableGoogleSafeBrowsing", $_POST["EnableGoogleSafeBrowsing"]);	
 	
 }
@@ -228,7 +333,11 @@ function main(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 	$EnableGoogleSafeBrowsing=intval($sock->GET_INFO("EnableGoogleSafeBrowsing"));
-	
+	$EnableGoogleSafeBrowsing_popupon=$tpl->javascript_parse_text("{EnableGoogleSafeBrowsing_popupon}");
+	$EnableGoogleSafeBrowsing_popupoff=$tpl->javascript_parse_text("{EnableGoogleSafeBrowsing_popupoff}");
+	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	$PhishTankApiKey=$sock->GET_INFO("PhishTankApiKey");
+	$EnableSquidPhishTank=intval($sock->GET_INFO("EnableSquidPhishTank"));
 	
 	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}
 
@@ -236,7 +345,7 @@ function main(){
 	$ufdbguardConfig=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	if(!is_numeric($ufdbguardConfig["DebugAll"])){$ufdbguardConfig["DebugAll"]=0;}
 	if($ufdbguardConfig["DebugAll"]==1){
-		echo FATAL_WARNING_SHOW_128("<strong>{webfiltering_in_debug_mode}</strong><p>&nbsp;</p>{webfiltering_in_debug_mode_text}
+		echo FATAL_ERROR_SHOW_128("<strong>{webfiltering_in_debug_mode}</strong><p>&nbsp;</p>{webfiltering_in_debug_mode_text}
 				<div style='margin:20px;text-align:right'>". button("{disable}","Loadjs('ufdbguard.debug.php')",20)."</div>
 				
 				");
@@ -245,9 +354,9 @@ function main(){
 	}
 	
 	if($SquidUrgency==1){
-		echo FATAL_WARNING_SHOW_128("<strong>{proxy_in_emergency_mode}</strong><p>&nbsp;</p>{proxy_in_emergency_mode_explain}
+		echo FATAL_ERROR_SHOW_128("<strong>{proxy_in_emergency_mode}</strong><p>&nbsp;</p>{proxy_in_emergency_mode_explain}
 		<div style='margin:20px;text-align:right'>". 
-		button("{urgency_mode}","Loadjs('squid.urgency.php')",20)
+		button("{urgency_mode}","Loadjs('squid.urgency.php?justbutton=yes')",20)
 		."</div>
 		");
 			
@@ -258,6 +367,18 @@ function main(){
 	if(!is_numeric($UfdbUseArticaClient)){$UfdbUseArticaClient=1;}	
 	$GoogleSafeBrowsingApiKey_color="#04A910";
 	$GoogleSafeBrowsingApiKey_link=$tpl->_ENGINE_parse_body("{defined}");
+	
+	
+	$PhishTankApiKey_color="#04A910";
+	$PhishTankApiKey_link=$tpl->_ENGINE_parse_body("{defined}");
+	
+	
+	
+	if(strlen($PhishTankApiKey)<10){
+		$PhishTankApiKey_color="#A90404";
+		$PhishTankApiKey_link=$tpl->_ENGINE_parse_body("{not_set}");
+	}
+	
 	
 	if(strlen($GoogleSafeBrowsingApiKey)<10){
 		$GoogleSafeBrowsingApiKey_color="#A90404";
@@ -279,14 +400,42 @@ function main(){
 					,"EnableGoogleSafeBrowsing-$t",$EnableGoogleSafeBrowsing,null,750
 			);
 	
+	
+	
+	$EnablePhishtank=Paragraphe_switch_img("{PhishTank_enable}",
+			"{PhishTank_about}
+			<div style='margin-top:10px;text-align:right'>
+			<a href=\"javascript:Loadjs('$page?PhishTankApiKey-js=yes')\"
+			style='font-size:22px;color:$PhishTankApiKey_color;text-decoration:underline'>{API_KEY}:$PhishTankApiKey_link</a>
+				
+			</div>
+			<div style='margin-top:10px;text-align:right'>
+			<a href=\"https://www.phishtank.com/api_register.php\"
+			style='font-size:18px;text-decoration:underline' target=_new>PhishTank:&nbsp;{free_register}</a>
+			</div>
+			"
+			,"EnableSquidPhishTank-$t",$EnableSquidPhishTank,null,750
+	);	
+	
+	
+	
 	$EnableGoogleSafeBrowsing_button=button("{apply}","EnableGoogleSafeBrowsing$t()",26);
+	$EnablePhishtank_button=button("{apply}","EnablePhishtank$t()",26);
 	
 	if($UfdbUseArticaClient==0){
 		$EnableGoogleSafeBrowsing_field=Paragraphe_switch_disable("{EnableGoogleSafeBrowsing}", 
 				"{EnableGoogleSafeBrowsing_explain}"
 				,"EnableGoogleSafeBrowsing-$t",$EnableGoogleSafeBrowsing,null,750
 		);
+		
+		$EnablePhishtank=Paragraphe_switch_disable("{PhishTank_enable}",
+				"{PhishTank_about}"
+				,"EnableSquidPhishTank-$t",$EnableSquidPhishTank,null,750
+		);
+		
+		
 		$EnableGoogleSafeBrowsing_button=null;
+		$EnablePhishtank_button=null;
 		
 	}
 	
@@ -295,12 +444,26 @@ function main(){
 		$UseRemoteUfdbguardService=1;
 	}
 	
+	
+	if($DisableGoogleSSL==1){$DisableGoogleSSL_text="{enabled}";}else{$DisableGoogleSSL_text="{disabled}";}
+	
+	
+	echo $tpl->_ENGINE_parse_body("<div style='margin-bottom:20px;margin-top:20px;width:98%' class=form>
+			$EnablePhishtank
+			<div style='text-align:right'>$EnablePhishtank_button</div>
+			</div>");	
+	
+	
 if($UseRemoteUfdbguardService==0){	
+	
+	
+	
+	
 	echo $tpl->_ENGINE_parse_body("<div style='margin-bottom:20px;margin-top:20px;width:98%' class=form>".
 		Paragraphe_switch_img("{EnableGoogleSafeSearch}", "{safesearch_explain}
 				<div style='margin-top:10px;text-align:right'>
 					<a href=\"javascript:Loadjs('squid.google.ssl.php')\" 
-					style='font-size:22px;text-decoration:underline'>{disable_google_ssl}</a></div>
+					style='font-size:22px;text-decoration:underline'>{disable_google_ssl} ($DisableGoogleSSL_text)</a></div>
 				
 				"
 			,"EnableGoogleSafeSearch-$t",$EnableGoogleSafeSearch,null,750	
@@ -309,6 +472,8 @@ if($UseRemoteUfdbguardService==0){
 		<div style='text-align:right'>". button("{apply}","EnableGoogleSafeSearch$t()",26)."</div>			
 		</div>");
 }
+
+
 
 echo $tpl->_ENGINE_parse_body("<div style='margin-bottom:20px;margin-top:20px;width:98%' class=form>
 		$EnableGoogleSafeBrowsing_field
@@ -396,6 +561,7 @@ echo $tpl->_ENGINE_parse_body("<div style='margin-bottom:20px;margin-top:20px;wi
 	}		
 		
 	function EnableGoogleSafeSearch$t(){
+		if(!document.getElementById('EnableGoogleSafeSearch-$t')){ alert('Error in field, please refresh...'); return; }
 		var XHR = new XHRConnection();
 		XHR.appendData('EnableGoogleSafeSearch', document.getElementById('EnableGoogleSafeSearch-$t').value);
 		XHR.sendAndLoad('$page', 'POST',xEnableGoogleSafeSearch$t);  
@@ -403,16 +569,30 @@ echo $tpl->_ENGINE_parse_body("<div style='margin-bottom:20px;margin-top:20px;wi
 	
 	var xEnableGoogleSafeBrowsing$t= function (obj) {
 		var res=obj.responseText;
+		LoadAjaxRound('main-ufdb-frontend','ufdbguard.status.php');
 		Loadjs('squid.compile.progress.php');
 		
 	}	
 	
 	function EnableGoogleSafeBrowsing$t(){
+		if(!document.getElementById('EnableGoogleSafeBrowsing-$t')){alert('Error in field, please refresh...'); return; }
 		var XHR = new XHRConnection();
-		XHR.appendData('EnableGoogleSafeBrowsing', document.getElementById('EnableGoogleSafeBrowsing-$t').value);
+		var EnableGoogleSafeBrowsing=document.getElementById('EnableGoogleSafeBrowsing-$t').value;
+		if(EnableGoogleSafeBrowsing==1){ if(!confirm('$EnableGoogleSafeBrowsing_popupon')){return;} }
+		if(EnableGoogleSafeBrowsing==0){if(!confirm('$EnableGoogleSafeBrowsing_popupoff')){return;} }
+		XHR.appendData('EnableGoogleSafeBrowsing', EnableGoogleSafeBrowsing);
 		XHR.sendAndLoad('$page', 'POST',xEnableGoogleSafeBrowsing$t); 	
 	
 	}
+	
+	function  EnablePhishtank$t(){
+		if(!document.getElementById('EnableSquidPhishTank-$t')){alert('Error in field, please refresh...'); return; }
+		var XHR = new XHRConnection();
+		var EnableSquidPhishTank=document.getElementById('EnableSquidPhishTank-$t').value;
+		XHR.appendData('EnableSquidPhishTank', EnableSquidPhishTank);
+		XHR.sendAndLoad('$page', 'POST',xEnableGoogleSafeBrowsing$t); 
+	}
+	
 </script>
 		
 		";

@@ -556,15 +556,18 @@ function popup_list(){
 		$blocktype="<br><i style='font-size:10px'>{$ligne["blocktype"]}</i>";
 	}
 	
+	$linkToWebsite="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
+			style='font-weight:bold;text-decoration:underline;font-size:13px'>";
+	
 	
 	$field=Field_array_Hash($CATEGORIES, "Move$id",trim($ligne["category"]),"blur()");
+	if(trim($ligne["category"])=="restricted_time"){$field="&nbsp;";$linkToWebsite="<span style='font-weight:bold;font-size:13px'>";}
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
-			"<span style='font-size:12px;'>{$ligne["zDate"]}</span>",
-			"<strong style='font-size:12px;'>$member</a></strong>",
-			"<span style='font-size:13px;'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')\" 
-			style='font-weight:bold;text-decoration:underline;font-size:13px'>{$ligne["website"]}</a></span>$blocktype",
+			"<span style='font-size:13px;'>{$ligne["zDate"]}</span>",
+			"<strong style='font-size:13px;'>$member</a></strong>",
+			"<span style='font-size:13px;'>$linkToWebsite{$ligne["website"]}</a></span>$blocktype",
 			"<span style='font-size:13px;font-weight:bold'>{$ligne["category"]}</a></span>",
 			"<span style='font-size:13px;'>{$ligne["rulename"]}</a></span>",
 			"$field",

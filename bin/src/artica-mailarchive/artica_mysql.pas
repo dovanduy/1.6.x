@@ -1,1 +1,0 @@
-../artica-thread-back/artica_mysql.pas

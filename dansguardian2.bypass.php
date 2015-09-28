@@ -56,7 +56,7 @@ function popup() {
 	$t=time();
 	$html="
 	<div id='$t'>
-	<div class=text-info style='font-size:14px'>{TemporaryDeniedPageBypassExplain}<br>{BypassSecretKeyExplain}</div>
+	<div class=explain style='font-size:14px'>{TemporaryDeniedPageBypassExplain}<br>{BypassSecretKeyExplain}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 		<tr>

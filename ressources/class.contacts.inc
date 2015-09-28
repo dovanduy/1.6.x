@@ -104,7 +104,7 @@ class contacts{
 	var $fileAs;
 	var $sn; // Last Name;
 	var $personalTitle;
-	
+	var $GlobalAddr=false;
 	//ICQ LIKE
 	
 	var $ERROR;
@@ -151,7 +151,11 @@ class contacts{
 		
 		public function employeeNumberByEmail($mail){
 			$ldap=new clladp();
+			
 			$dn="ou=$this->uid,ou=People,dc=$this->UseridOU,dc=NAB,$ldap->suffix";
+			if($this->GlobalAddr){
+				$dn="dc=NAB,$ldap->suffix";
+			}
 			$filter="(&(objectClass=inetOrgPerson)(|(mozillaSecondEmail=$mail)(mail=$mail)))";
 			$attrs=array("employeeNumber");
 			$hash=$ldap->Ldap_search($dn,$filter,$attrs,5);
@@ -259,6 +263,39 @@ private	function LoadContact(){
 		
 	}
 	
+	
+	public function CreateZarafaAddressList($Addresslist){
+		$ldap=new clladp();
+		$dn="ou=Addresslist,dc=NAB,$ldap->suffix";
+		if(!$ldap->ExistsDN($dn)){
+			$upd=array();
+			$upd["objectClass"][]="top";
+			$upd["objectClass"][]="organizationalUnit";
+			$upd["ou"][]="Addresslist";
+			if(!$ldap->ldap_add($dn,$upd)){
+				return false;
+			}
+			unset($upd);
+		}
+		
+		$dn="cn=$Addresslist,ou=Addresslist,dc=NAB,$ldap->suffix";
+		if(!$ldap->ExistsDN($dn)){
+			$upd=array();
+			$upd["objectClass"][]="top";
+			$upd["objectClass"][]="zarafa-addresslist";
+			$upd["cn"][]=$Addresslist;
+			$upd["zarafabase"][]="dc=NAB,$ldap->suffix";
+			$upd["zarafafilter"][]="(mail=*)";
+			$upd["zarafahidden"][]="0";
+			if(!$ldap->ldap_add($dn,$upd)){
+				return false;
+			}
+			unset($upd);
+		}
+		
+		return true;
+	}
+	
 function BuildDefault(){
 		if($this->sn==null){$this->sn="Unknown";}
 		if($this->givenName==null){$this->givenName="Unknown";}
@@ -301,6 +338,11 @@ function BuildDefault(){
 				$asContact=true;
 				//zarafa-contact
 			}
+			
+			if($this->GlobalAddr){
+				$this->dn="cn=$this->cn,dc=NAB,$ldap->suffix";
+			}
+			
 		}
 		
 		writelogs("Cheking dn \"$this->dn\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -639,9 +681,17 @@ function BuildDefault(){
 		
 		$this->dn="cn=$cn,ou=$this->uid,ou=People,dc=$this->UseridOU,dc=NAB,$ldap->suffix";
 		
+		if($this->GlobalAddr){$this->dn="cn=$cn,dc=NAB,$ldap->suffix";}
+		
+		if($GLOBALS["VERBOSE"]){echo "$this->dn [".__LINE__."]\n";}
+		
 		writelogs("Cheking dn \"$this->dn\" does not exists",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$this->BuildDefault();
-		if($cn<>$this->cn){$cn=$this->cn;$this->dn="cn=$cn,ou=$this->uid,ou=People,dc=$this->UseridOU,dc=NAB,$ldap->suffix";}
+		if($cn<>$this->cn){
+				$cn=$this->cn;
+				$this->dn="cn=$cn,ou=$this->uid,ou=People,dc=$this->UseridOU,dc=NAB,$ldap->suffix";
+				if($this->GlobalAddr){$this->dn="cn=$cn,dc=NAB,$ldap->suffix";}
+		}
 		writelogs("[$cn]: employeeNumber = $this->employeeNumber ($orginal_emplnb)",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$contact=new user();
 		$upd=array();
@@ -663,7 +713,7 @@ function BuildDefault(){
 		$upd["homeDirectory"][0]="/dev/null";
 		//$upd["modifyTimestamp"][0]=date('Y-m-d H:i:s');
 		
-		
+		if($GLOBALS["VERBOSE"]){echo "DN $this->dn [".__LINE__."]\n";}
 		if(!$ldap->ldap_add($this->dn,$upd) ){
 			$this->ERROR=$ldap->ldap_last_error;
 			writelogs("$this->ERROR",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);

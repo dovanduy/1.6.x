@@ -51,10 +51,10 @@ function tabs(){
 	$tpl=new templates();
 
 	$array["status"]='{status}';
+	$array["tables"]='{tables}';
 	$array["popup"]='{parameters}';
 	$array["backup"]='{backup}';
 	$array["members"]='{members}';
-	$array["purge"]='{manual_purge}';
 	$array["restore"]='{restore}';
 	
 	
@@ -67,7 +67,10 @@ function tabs(){
 			$html[]= "<li $font><a href=\"squid.statistics.parameters.php\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
-		
+		if($num=="tables"){
+			$html[]= "<li $font><a href=\"squid-db.tables.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
 		
 		if($num=="purge"){
 			$html[]= "<li $font><a href=\"squid.artica.statistics.purge.php?purge-bydate=yes\"><span>$ligne</span></a></li>\n";
@@ -170,7 +173,7 @@ function status(){
 	<tr>
 	<td valign='top'><div id='squid-db-status'></div></td>
 	<td valign='top'><div id='squid-db-mysql'>
-		<div class=text-info style='font-size:14px'>{squiddb_howitis}</div>
+		<div class=explain style='font-size:14px'>{squiddb_howitis}</div>
 	</td>
 	</tr>
 	</table>

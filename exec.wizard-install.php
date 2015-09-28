@@ -151,21 +151,7 @@ function automation(){
 		$key=trim($re[1]);
 		$value=trim($re[2]);
 		writeprogress(5,"Parsing [$key] = \"$value\"");
-		
-		
-		if($key=="WizardStatsApplianceDisconnected"){
-				$sock->SET_INFO("WizardStatsApplianceDisconnected", $value); 
-				$sock->SET_INFO("EnableMySQLSyslogWizard", 1); 
-				$sock->SET_INFO("WizardStatsApplianceSeen", 1); 
-				
-				continue; }
-		if($key=="WizardStatsAppliance_server"){$WizardStatsAppliance["SERVER"]=$value; continue; }
-		if($key=="WizardStatsAppliance_port"){$WizardStatsAppliance["PORT"]=$value; continue; }
-		if($key=="WizardStatsAppliance_username"){$WizardStatsAppliance["MANAGER"]=$value; continue; }
-		if($key=="WizardStatsAppliance_password"){$WizardStatsAppliance["MANAGER-PASSWORD"]=$value; continue; }		
 		if(preg_match("#BackupSquidLogs#", $key)){$sock->SET_INFO($key, $value);}
-		
-		
 		if($key=="caches"){ $WizardSavedSettings["CACHES"][]=$value; continue; }
 		$WizardSavedSettings[$key]=$value;
 		$KerbAuthInfos[$key]=$value;
@@ -194,7 +180,7 @@ function automation(){
 	
 	$ProxyDNSCount=0;
 	if(isset($WizardSavedSettings["EnableKerbAuth"])){
-		$sock->SET_INFO("EnableKerbAuth", $WizardSavedSettings["EnableKerbAuth"]);
+		$sock->SET_INFO("EnableKerbAuth", intval($WizardSavedSettings["EnableKerbAuth"]));
 		$sock->SET_INFO("UseADAsNameServer", $WizardSavedSettings["UseADAsNameServer"]);
 		$sock->SET_INFO("NtpdateAD", $WizardSavedSettings["NtpdateAD"]);
 		if($WizardSavedSettings["UseADAsNameServer"]==1){
@@ -294,7 +280,7 @@ function automation(){
 	
 	if(isset($WizardSavedSettings["CACHES"])){
 		if(count($WizardSavedSettings["CACHES"])>0){
-			$q=new mysql_squid_builder();
+			
 			$order=1;
 			while (list ($index, $line) = each ($WizardSavedSettings["CACHES"]) ){
 				$order++;
@@ -307,6 +293,7 @@ function automation(){
 				$cache_dir_level1=$CONFCACHE[5];
 				$cache_dir_level2=$CONFCACHE[6];
 				if($cache_type=="tmpfs"){ $users=new usersMenus(); $memMB=$users->MEM_TOTAL_INSTALLEE/1024; $memMB=$memMB-1500; if($size>$memMB){ $size=$memMB-100; }}
+				$q=new mysql();
 				$q->QUERY_SQL("INSERT IGNORE INTO squid_caches_center
 						(cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,zOrder)
 						VALUES('$cachename',$CPU,'$cache_directory','$cache_type','$size','$cache_dir_level1','$cache_dir_level2',1,0,0,$order)","artica_backup");
@@ -335,18 +322,50 @@ function automation(){
 	
 	
 
-	
+	$squid=new squidbee();
 	writeprogress(14,"Analyze configuration file...");
-	if(isset($WizardSavedSettings["EnableTransparent"])){
-		$sock->SET_INFO("hasProxyTransparent",$WizardSavedSettings["EnableTransparent"]);
-		if( $WizardSavedSettings["EnableTransparent"] ==1){
-			$squid=new squidbee();
-			$squid->listen_port=$WizardSavedSettings["TransparentPort"];
-			$squid->second_listen_port=$WizardSavedSettings["proxy_listen_port"];
-			$WizardSavedSettings["proxy_listen_port"]=$WizardSavedSettings["TransparentPort"];
-			$squid->SaveToLdap(true);
-		}
 	
+	$q=new mysql_squid_builder();
+	$sql="CREATE TABLE IF NOT EXISTS `proxy_ports` (
+			`ID` INT NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`PortName` VARCHAR(128) NULL,
+			`zMD5` VARCHAR(90) NOT NULL,
+			`xnote` TEXT NULL ,
+			`Params` TEXT NULL ,
+			`TProxy` smallint(1) NOT NULL ,
+			`ipaddr` VARCHAR(128) NOT NULL,
+			`AuthForced` smallint(1) NOT NULL,
+			`AuthPort` smallint(1) NOT NULL,
+			`port` INT NOT NULL,
+			`transparent` smallint(1) NOT NULL DEFAULT '0' ,
+			`enabled` smallint(1) NOT NULL DEFAULT '1' ,
+			 KEY `ipaddr` (`ipaddr`),
+			 KEY `TProxy` (`TProxy`),
+			 KEY `AuthForced` (`AuthForced`),
+			 KEY `AuthPort` (`AuthPort`),
+			 KEY `enabled` (`enabled`),
+			 KEY `port` (`port`)
+			)  ENGINE = MYISAM AUTO_INCREMENT = 20;";
+	$q->QUERY_SQL($sql);
+	
+	$SQLSZ[]=$sql;
+	
+	
+	if(isset($WizardSavedSettings["EnableTransparent"])){
+		if( intval($WizardSavedSettings["EnableTransparent"])==1){
+			if(intval($WizardSavedSettings["TransparentPort"])>80){
+				$sql="INSERT IGNORE INTO proxy_ports (ID,PortName,ipaddr,port,enabled,transparent) 
+				VALUES (1,'Transparent Port','0.0.0.0','{$WizardSavedSettings["TransparentPort"]}',1,1)";
+				$q->QUERY_SQL($sql);
+				$SQLSZ[]=$sql;
+			}
+		}
+	}
+	if(intval($WizardSavedSettings["proxy_listen_port"])>80){
+		$sql="INSERT IGNORE INTO proxy_ports (ID,PortName,ipaddr,port,enabled,transparent,AuthPort)
+		VALUES (1,'Connected Port','0.0.0.0','{$WizardSavedSettings["proxy_listen_port"]}',1,0,".intval($WizardSavedSettings["EnableKerbAuth"]).")";
+		$q->QUERY_SQL($sql);
+		$SQLSZ[]=$sql;
 	}
 	
 	writeprogress(15,"Analyze configuration file...");
@@ -399,7 +418,7 @@ function automation(){
 	$Encoded=base64_encode(serialize($WizardSavedSettings));
 	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", $Encoded);
 	
-	
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSqlWait", serialize($SQLSZ));
 	writeprogress(18,"Analyze configuration file...{finish}");
 	WizardExecute(true);
 		
@@ -484,8 +503,8 @@ function WizardExecute($aspid=false){
 	if(is_numeric($WizardWebFilteringLevel)){
 		$WizardSavedSettings["EnableWebFiltering"]=1;
 	}
-	
-	
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/DisableBWMng",1);
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidDatabasesUtlseEnable",1);
 	@file_put_contents("/etc/artica-postfix/settings/Daemons/AsMetaServer", $AsMetaServer);
 	@file_put_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance", $AsCategoriesAppliance);
 	if($AsCategoriesAppliance==1){
@@ -530,7 +549,7 @@ function WizardExecute($aspid=false){
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableArpDaemon",0);
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableFreeWeb",0);
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/SlapdThreads",2);
-		@file_put_contents("/etc/artica-postfix/settings/Daemons/DisableBWMng",1);
+		
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/DisableNetDiscover",1);
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/SambaEnabled",0);
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableFreeWeb",0);
@@ -601,6 +620,43 @@ function WizardExecute($aspid=false){
 	$sock=new sockets();
 	
 	
+		$CPU_NUMBERS=$unix->CPU_NUMBER();
+		if($CPU_NUMBERS==0){$CPU_NUMBERS=4;}
+		$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+		$MEMORY_TEXT=FormatBytes($MEMORY);
+		$INTEL_CELERON=FALSE;
+		writeprogress(25,"CPUs $CPU_NUMBERS - {memory}: $MEMORY_TEXT");
+		sleep(2);
+		if($MEMORY>1){
+			if($unix->MEM_TOTAL_INSTALLEE()<624288){
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron", 1);
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance", 3);
+				writeprogress(25,"$MEMORY_TEXT = Enable Intel Celeron mode....");
+				shell_exec("$php5 /usr/share/artica-postfix/exec.intel.celeron.php");
+				$INTEL_CELERON=true;
+			}
+			
+		}
+		
+		if(!$INTEL_CELERON){
+			if($CPU_NUMBERS<2){
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron", 1);
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance", 3);
+				writeprogress(25,"CPUs:$CPU_NUMBERS = Intel Celeron mode....");
+				shell_exec("$php5 /usr/share/artica-postfix/exec.intel.celeron.php");
+				$INTEL_CELERON=true;
+			}
+		}
+		if(!$INTEL_CELERON){	
+			if($CPU_NUMBERS<3){	
+				@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance", 2);
+				writeprogress(25,"CPUs:$CPU_NUMBERS = {features}: {no_statistics}");
+				sleep(1);
+			}
+		}
+		
+	
+		
 	writeprogress(26,"{creating_services}");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initslapd.php  --force >/dev/null 2>&1 &");
 	
@@ -657,16 +713,6 @@ function WizardExecute($aspid=false){
 	if(!$ldap->AddDomainEntity($savedsettings["organization"],$savedsettings["smtp_domainname"])){debug_logs("AddDomainEntity failed $ldap->ldap_last_error");}
 	sleep(2);
 	
-
-	
-	
-	shell_exec("$nohup $php /usr/share/artica-postfix/exec.cache.pages.php --force --verbose >>$DEBUG_LOG 2>&1 &");
-	for($i=1;$i<6;$i++){
-		writeprogress(60,"{building_cache_pages} $i/5...");
-		sleep(1);
-	}
-	
-	
 	$timezone=$savedsettings["timezones"];
 	$sourcefile="/usr/share/zoneinfo/$timezone";
 	if(is_file($sourcefile)){
@@ -703,8 +749,11 @@ function WizardExecute($aspid=false){
 				$squid->hasProxyTransparent=1;
 			}
 			
-			if(is_numeric($savedsettings["proxy_listen_port"])){$squid->listen_port=$savedsettings["proxy_listen_port"]; }
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/HyperCacheStoreID",1);
 			
+			
+			
+			$q=new mysql();
 			if($q->COUNT_ROWS("squid_caches_center", "artica_backup")==0){
 				$cachename=basename($squid->CACHE_PATH);
 				$q->QUERY_SQL("INSERT IGNORE INTO `squid_caches_center` (cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,remove)
@@ -719,8 +768,8 @@ function WizardExecute($aspid=false){
 			}
 			
 			$squid->SaveToLdap(true);
-			writeprogress(65,"{ReconfiguringProxy}");
-			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
+			writeprogress(65,"{ReconfiguringProxy} {please_wait} 1/2");
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 		}else{
 			writeprogress(63,"{stopping} {proxy_service}");
 			shell_exec("/etc/init.d/squid stop");
@@ -848,7 +897,7 @@ function WizardExecute($aspid=false){
 		writeprogress(82,"{activate_webfiltering_service}...");
 		sleep(2);
 		EnableWebFiltering();
-		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.update.squid.tlse.php --force");
+		
 	}else{
 		writeprogress(82,"{no_web_filtering}");
 		sleep(2);
@@ -867,7 +916,7 @@ function WizardExecute($aspid=false){
 	
 	$serverbin=$unix->find_program("zarafa-server");
 	if(is_file($serverbin)){
-		writeprogress(85,"Restarting Zarafa services$rebootWarn");
+		writeprogress(85,"{restarting_zarafa_services}$rebootWarn");
 		shell_exec("$php5 /usr/share/artica-postfix/exec.initdzarafa.php");
 		shell_exec("$php5 /usr/share/artica-postfix/exec.zarafa-db.php --init");
 		shell_exec("/etc/init.d/zarafa-db restart");
@@ -875,7 +924,7 @@ function WizardExecute($aspid=false){
 		shell_exec("/etc/init.d/zarafa-web restart");
 	}
 	
-	writeprogress(90,"Restarting services$rebootWarn");
+	writeprogress(90,"{restarting_services}$rebootWarn");
 	shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.monit.php --build >/dev/null 2>&1");
@@ -884,7 +933,29 @@ function WizardExecute($aspid=false){
 	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
 	if($EnableArticaMetaClient==1){shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-client.php --ping --force >/dev/null 2>&1 &"); }
 	
+	if(is_file($squidbin)){
+		if($SQUIDEnable==1){
+			
+			$q=new mysql_squid_builder();
+			if($q->COUNT_ROWS("proxy_ports")==0){
+				$WizardSqlWait=unserialize(@file_get_contents("/etc/artica-postfix/settings/Daemons/WizardSqlWait"));
+				while (list ($none, $sql) = each ($WizardSqlWait)){
+					$q->QUERY_SQL($sql);
+				}
+			}
+			
+			
+			writeprogress(95,"{ReconfiguringProxy} {please_wait} 2/2");
+			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
+			writeprogress(97,"{checking_hypercache_feature} {please_wait}");
+			shell_exec("$php5 /usr/share/artica-postfix/exec.hypercache-dedup.php --wizard");
+		}
+	}
 	
+	writeprogress(98,"{empty_watchdog_events} {please_wait}");
+	$q=new mysql();
+	$q->QUERY_SQL("TRUNCATE TABLE squid_admin_mysql","artica_events");
+
 	$time=$unix->file_time_min("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED");
 	if(!$reboot){
 		writeprogress(100,"{done}");
@@ -1075,7 +1146,7 @@ function BUILD_NETWORK(){
 		$php=$unix->LOCATE_PHP5_BIN();
 		$nohup=$unix->find_program("nohup");
 	
-		writeprogress(60,"Building resolv configuration");
+		writeprogress(60,"{building_resolv_configuration}");
 		shell_exec(trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.virtuals-ip.php --resolvconf >/dev/null 2>&1"));
 	
 	

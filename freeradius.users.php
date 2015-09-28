@@ -53,7 +53,7 @@ function tabs(){
 	}
 
 
-	echo build_artica_tabs($html, "administrators_tabs",1050)."<script>LeftDesign('users-search-opac20.png');</script>";
+	echo build_artica_tabs($html, "administrators_tabs",1490)."<script>LeftDesign('users-search-opac20.png');</script>";
 
 
 }
@@ -175,19 +175,21 @@ function page(){
 		$add=$tpl->javascript_parse_text("{new_member}");
 		$groups=$tpl->javascript_parse_text("{groups2}");
 		$members=$tpl->javascript_parse_text("{members}");
-		$freeradius_users_explain=$tpl->_ENGINE_parse_body("{freeradius_users_explain}");
+		$title=$tpl->javascript_parse_text("{administrators}");
+		$freeradius_users_explain=$tpl->javascript_parse_text("{freeradius_users_explain}");
+		$about2=$tpl->javascript_parse_text("{about2}");
 		$tablewidht=883;
 		$t=time();
 	
 		$buttons="buttons : [
-		{name: '$add', bclass: 'Add', onpress : AddConnection$t},
-		{name: '$groups', bclass: 'Group', onpress : Groups$t},
+		{name: '<strong style=font-size:18px>$add</strong>', bclass: 'Add', onpress : AddConnection$t},
+		{name: '<strong style=font-size:18px>$groups</strong>', bclass: 'Group', onpress : Groups$t},
+		{name: '<strong style=font-size:18px>$about2</strong>', bclass: 'Help', onpress : About$t},
 		],	";
 	
 
 	
 echo "
-<div class=text-info style='font-size:14px'>$freeradius_users_explain</div>
 <table class='$t' style='display: none' id='$t' style='width:99%;text-align:left'></table>
 <script>
 	var MEMM$t='';
@@ -197,7 +199,7 @@ echo "
 			dataType: 'json',
 			colModel : [
 			{display: '&nbsp;', name : 'none2', width : 62, sortable : false, align: 'center'},
-			{display: '$shortname', name : 'username', width : 740, sortable : false, align: 'left'},
+			{display: '<span style=font-size:22px>$shortname</span>', name : 'username', width : 740, sortable : false, align: 'left'},
 			{display: '&nbsp;', name : 'none3', width : 62, sortable : false, align: 'center'},
 		],
 		$buttons
@@ -209,12 +211,12 @@ echo "
 		sortname: 'username',
 		sortorder: 'asc',
 		usepager: true,
-		title: '<span style=font-size:18px>$members</span>',
+		title: '<span style=font-size:30px>$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
 		width: '99%',
-		height: 450,
+		height: 550,
 		singleSelect: true
 		});
 	});
@@ -234,6 +236,10 @@ echo "
 	
 	function Groups$t(){
 		Loadjs('freeradius.groups.php');
+	}
+	
+	function About$t(){
+		alert('$freeradius_users_explain');
 	}
 	
 	var x_Refresh$t=function (obj) {

@@ -1,5 +1,5 @@
 <?php
-	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -106,7 +106,7 @@ function role_popup(){
 	$html="
 	<div id='STEP_{$_GET["t"]}'>
 	<div style='width:98%' class=form>
-		<div style='font-size:16px' class=text-info>{create_role_explain}</div>
+		<div style='font-size:16px' class=explain>{create_role_explain}</div>
 		<table style='width:100%;margin-top:20px'>	
 			<tr>
 				<td class=legend style='font-size:16px'>{role}:</td>

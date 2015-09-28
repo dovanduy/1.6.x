@@ -477,7 +477,7 @@ function enable_host(){
 }
 function softwares_client(){
 	
-	$html="<div class=text-info>{JABBER_SOFT_CLIENTS}</div>
+	$html="<div class=explain>{JABBER_SOFT_CLIENTS}</div>
 	
 	<div style='font-size:16px;margin:10px'>{resources}:</div>
 	<table style='width:99%' class=form>

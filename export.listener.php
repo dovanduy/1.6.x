@@ -24,7 +24,7 @@ $html="
 <div id='content'>
 <h1>{import users} {$_GET["ou"]}</h1>
 <p>{import users explain}</p>
-<div style='color:red;font-size:12px'><b>$error</b></div><br>
+<div style='color:#d32d2d;font-size:12px'><b>$error</b></div><br>
 <form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 <p>
 <input type=\"hidden\" name=\"articamethod\" value='ImportUsers'>
@@ -78,7 +78,7 @@ function Parsing_first_users(){
 	";
 	for($i=0;$i<5;$i++){
 		$table=$table. "<tr>";
-		if(preg_match_all('#"([A-Za-z0-9\._\-\séèàùÃ«\'©\(\)\{\}\@]+|)"#',$array_content[$i],$res)){
+		if(preg_match_all('#"([A-Za-z0-9\._\-\sï¿½ï¿½ï¿½ï¿½Ã«\'ï¿½\(\)\{\}\@]+|)"#',$array_content[$i],$res)){
 		$table=$table. "<td>{$res[1][1]}</td><td>{$res[1][2]}</td><td>{$res[1][3]}</td><td>{$res[1][4]}</td><td>{$res[1][5]}</td>";	
 		}else{
 			$table=$table. "<td colspan=7>Line $i ({$array_content[$i]}) {failed}</td>";
@@ -202,7 +202,7 @@ class ImportFile{
 			$this->quota=null;
 			$this->group_id=0;
 		
-		if(preg_match_all('#"([A-Za-z0-9\._\-\séèàùÃ«\'©\(\)\{\}\@]+|)"#',$ligne,$res)){
+		if(preg_match_all('#"([A-Za-z0-9\._\-\sï¿½ï¿½ï¿½ï¿½Ã«\'ï¿½\(\)\{\}\@]+|)"#',$ligne,$res)){
 			$this->DisplayName=$res[1][0];
 			$this->eMail=$res[1][1];
 			$this->enable_mailbox=$res[1][2];

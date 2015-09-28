@@ -161,6 +161,7 @@ function smtp_notifs(){
 var x_SaveArticaSMTPNotifValues$t= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){alert(results);}
+	Loadjs('squid.proxy.watchdog.smtp.progress.php');
 	RefreshTab('watchdogsquid');
 }
 	
@@ -232,7 +233,7 @@ function save_watchdog_notif(){
 		$UfdbguardSMTPNotifs[$num]=$ligne;
 	}
 	$sock->SaveConfigFile(base64_encode(serialize($UfdbguardSMTPNotifs)), "UfdbguardSMTPNotifs");
-	$sock->getFrameWork("squid.php?tests-smtp-watchfog=yes");
+	
 }
 
 

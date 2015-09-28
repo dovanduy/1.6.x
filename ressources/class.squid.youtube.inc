@@ -181,7 +181,7 @@ class YoutubeStats{
 	
 	}
 
-	private function youtube_events($text,$line){
+	private function youtube_events($text,$line=0){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		if($GLOBALS["VERBOSE"]){echo "[$this->VIDEOID] $text\n";}
 		$common="/var/log/artica-postfix/youtube.inject.log";

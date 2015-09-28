@@ -45,7 +45,7 @@ function popup() {
 	if($ipaddr==null){$ipaddr=$_SERVER["REMOTE_ADDR"];}
 	if($www==null){$www="http://www.youporn.com";}
 	
-	$html="<div style='font-size:18px' class=text-info>{ufdbguard_verify_rules_explain}</div>
+	$html="<div style='font-size:18px' class=explain>{ufdbguard_verify_rules_explain}</div>
 	<div style='width:95%;padding:15px' class=form>
 	<center>
 	<div id='check-$t'></div>
@@ -154,26 +154,53 @@ function test(){
 			$address="-S 127.0.0.1 -p {$datas["listen_port"]} ";
 		}
 	}
-	if($address==null){echo "<strong style='color:red'>Cannot determine address</strong>\n";return;}
+	if($address==null){echo "<strong style='color:#d32d2d'>Cannot determine address</strong>\n";return;}
 	
 	$cmdline="$address $www $ipaddr $user";
 	$cmdline=urlencode(base64_encode($cmdline));
 	$datas=base64_decode($sock->getFrameWork("squid.php?ufdbclient=$cmdline"));
 	
+	if(preg_match("#^http.*#", $www)){
+		$url_www=parse_url($www);
+		$url_host=$url_www["host"];
+	}else{
+		$url_host=$www;
+	}
+	
 	$tpl=new templates();
 	$title_pass=$tpl->_ENGINE_parse_body("{access_to_internet}");
 	$redirected=$tpl->_ENGINE_parse_body("{redirected}");
-	if(trim($datas)==null){echo "
+	$datas=trim($datas);
+	if($datas=="OK"){$datas=null;}
+	
+	if(trim($datas)==null){
+		
+		$catz=new mysql_catz();
+		$category=$catz->GET_CATEGORIES($url_host);
+		if($category<>null){
+			$category_text=$tpl->_ENGINE_parse_body("<br>{category}: $category");
+		}
+		
+		
+		echo "
 			<table style='width:100%'>
 			<tr>
-				<td valign='top' style='width:256px'><img src='img/ok-pass-256.png'>
+				<td valign='top' style='width:256px'><img src='img/shield-ok-256.png'>
 				<td valign='top' style='width:99%;vertical-align:middle'>
-					<div style='font-size:26px;color:#46a346'>$title_pass</div></td>
+					<div style='font-size:26px;color:#46a346'>$title_pass$category_text</div></td>
 			</tr>
 			</table>
 			
 			\n";return;}
 	
+	
+	
+	
+	$HTTP_CODE="{http_status_code}: 302<br>";
+	if(preg_match('#status=([0-9]+)\s+url="(.*?)"#', $datas,$re)){
+		$datas=$re[2];
+		$HTTP_CODE="{http_status_code}: {$re[1]}<br>";
+	}
 	
 	$url=parse_url($datas);
 
@@ -182,9 +209,9 @@ function test(){
 	
 	echo "<table style='width:100%'>
 			<tr>
-				<td valign='top' style='width:256px'><img src='img/stop-256.png'>
+				<td valign='top' style='width:256px'><img src='img/shield-red-256.png'>
 				<td valign='top' style='width:99%;vertical-align:middle'>
-			<div style='font-size:18px;color:#d32d2d'>";
+			<div style='font-size:22px;color:#d32d2d'>";
 				
 	echo "$redirected: {$url["scheme"]}://{$url["host"]}:{$url["port"]}<br>";
 	
@@ -197,6 +224,16 @@ function test(){
 		}
 	}
 		
+	echo $tpl->_ENGINE_parse_body($HTTP_CODE);
+	
+	
+	if($array["targetgroup"]=="none"){
+		$catz=new mysql_catz();
+		$category=$catz->GET_CATEGORIES($url_host);
+		if($category==null){$array["targetgroup"]="{ufdb_none} - {unknown}";}else{$array["targetgroup"]="{ufdb_none} - $category";}
+		
+	}
+	
 	
 	if($url["path"] == "/exec.squidguard.php"){
 		if(isset($array["rule-id"])){

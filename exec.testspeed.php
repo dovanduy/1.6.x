@@ -72,20 +72,13 @@ function runProc($norestart=false){
 	$speedYNum=0;
 	$IP=null;
 	$ISP=null;
-	if(!is_file("/usr/local/lib/python2.6/site-packages/socks.py")){
-		@mkdir("/usr/local/lib/python2.5/site-packages",0755,true);
-		@mkdir("/usr/local/lib/python2.6/site-packages",0755,true);
-		@mkdir("/usr/local/lib/python2.7/site-packages",0755,true);
-		@mkdir("/usr/local/lib/python2.8/site-packages",0755,true);
-		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.5/site-packages/socks.py");
-		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.7/site-packages/socks.py");
-		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.6/site-packages/socks.py");
-		@copy("/usr/share/artica-postfix/bin/socks.py", "/usr/local/lib/python2.8/site-packages/socks.py");
-		
+
+	if(!is_file("/usr/lib/pyshared/python2.7/lxml/etree.so")){
+		$unix->DEBIAN_INSTALL_PACKAGE("python-lxml");
 	}
 	
 	@chdir("/usr/share/artica-postfix/bin");
-	exec("$python /usr/share/artica-postfix/bin/tespeed.py 2>&1",$results);
+	exec("$python /usr/share/artica-postfix/bin/tespeed.py -dt 1 -ut 1 2>&1",$results);
 	@chdir("/root");
 	while (list ($index, $line) = each ($results) ){
 		if($GLOBALS["VERBOSE"]){echo "$line\n";}
@@ -110,12 +103,12 @@ function runProc($norestart=false){
 		
 		
 		
-		if(preg_match("#Download speed:\s+([0-9\.]+)\s+MiB#", $line,$re)){
+		if(preg_match("#Download speed:\s+([0-9\.]+)\s+Mbit#", $line,$re)){
 			$speedDNum=$re[1];
 			$speedDNum=$speedDNum*1024;
 		}
 		
-		if(preg_match("#Upload speed:\s+([0-9\.]+)\s+MiB#", $line,$re)){
+		if(preg_match("#Upload speed:\s+([0-9\.]+)\s+Mbit#", $line,$re)){
 			$speedUNum=$re[1];
 			$speedYNum=$speedUNum*1024;
 		}		
@@ -145,6 +138,8 @@ function runProc($norestart=false){
 			system_admin_events("Fatal error, $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "testspeed");
 		}
 	}
+	
+	$q->QUERY_SQL("DELETE FROM speedtests WHERE zDate<DATE_SUB(NOW(),INTERVAL 35 DAY)","artica_events");
 	
 }
 

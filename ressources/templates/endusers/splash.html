@@ -3,10 +3,6 @@
   <head>
     <meta charset="utf-8">
     <title>{PAGE_TITLE}</title>
-    
-   <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.css">
-   <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.css">
-   <link rel="stylesheet" type="text/css" href="/bootstrap/css/docs.css">
    <link rel="stylesheet" type="text/css" href="/css/rounded.css" />
    <link rel="stylesheet" type="text/css" href="/css/flexigrid.pack.css" />
    <link rel="stylesheet" href="/ressources/templates/endusers/css/jquery2.css" />
@@ -58,10 +54,108 @@
 	<script>try {  for(var lastpass_iter=0; lastpass_iter < document.forms.length; lastpass_iter++){    var lastpass_f = document.forms[lastpass_iter];    if(typeof(lastpass_f.lpsubmitorig)=="undefined"){      if (typeof(lastpass_f.submit) == "function") {        lastpass_f.lpsubmitorig = lastpass_f.submit;        lastpass_f.submit = function(){          var form = this;          try {            if (document.documentElement && 'createEvent' in document)            {              var forms = document.getElementsByTagName('form');              for (var i=0 ; i<forms.length ; ++i)                if (forms[i]==form)                {                  var element = document.createElement('lpformsubmitdataelement');                  element.setAttribute('formnum',i);                  element.setAttribute('from','submithook');                  document.documentElement.appendChild(element);                  var evt = document.createEvent('Events');                  evt.initEvent('lpformsubmit',true,false);                  element.dispatchEvent(evt);                  break;                }            }          } catch (e) {}          try {            form.lpsubmitorig();          } catch (e) {}        }      }    }  }} catch (e) {}</script><script>try {  for(var lastpass_iter=0; lastpass_iter < document.forms.length; lastpass_iter++){    var lastpass_f = document.forms[lastpass_iter];    if(typeof(lastpass_f.lpsubmitorig)=="undefined"){      if (typeof(lastpass_f.submit) == "function") {        lastpass_f.lpsubmitorig = lastpass_f.submit;        lastpass_f.submit = function(){          var form = this;          try {            if (document.documentElement && 'createEvent' in document)            {              var forms = document.getElementsByTagName('form');              for (var i=0 ; i<forms.length ; ++i)                if (forms[i]==form)                {                  var element = document.createElement('lpformsubmitdataelement');                  element.setAttribute('formnum',i);                  element.setAttribute('from','submithook');                  document.documentElement.appendChild(element);                  var evt = document.createEvent('Events');                  evt.initEvent('lpformsubmit',true,false);                  element.dispatchEvent(evt);                  break;                }            }          } catch (e) {}          try {            form.lpsubmitorig();          } catch (e) {}        }      }    }  }} catch (e) {}</script>	
   	
     <style type="text/css">
-      body {
-        padding-top: 60px;
-        padding-bottom: 40px;
+body {
+	background-repeat: repeat-x;";
+	background-color: white;";
+	font-family: "Segoe UI", "verdana", "arial";
+	margin: 0em;";
+	color: #575757;";
+	
       }
+
+.mainContent {
+	margin-top: 80px;
+	width: 700px;
+	margin-left: 120px;
+	margin-right: 120px;
+}
+			
+.text-error{
+	color: #d32d2d;
+	font-family: "Segoe UI", "verdana";
+	font-weight: 200;
+	font-size: 12pt;
+	padding-top: 5px;
+
+}	
+.Button2014-lg {
+	border-radius: 6px 6px 6px 6px;
+	-moz-border-radius: 6px 6px 6px 6px;
+	-khtml-border-radius: 6px 6px 6px 6px;
+	-webkit-border-radius: 6px 6px 6px 6px;
+	font-size: 18px;
+	line-height: 1.33;
+	padding: 10px 16px;
+}
+.Button2014-success {
+	background-color: #2778ec;
+	border-color: #000000;
+	color: white;
+}
+.Button2014 {
+	-moz-user-select: none;
+	border: 1px solid transparent;
+	border-radius: 4px 4px 4px 4px;
+	cursor: pointer;
+	display: inline-block;
+	font-size: 22px;
+	font-weight: normal;
+	line-height: 1.42857;
+	margin-bottom: 0;
+	padding: 6px 22px;
+	text-align: center;
+	vertical-align: middle;
+	white-space: nowrap;
+	font-family:  "Segoe UI", "verdana";
+}		
+			
+.title {
+	color: #2778ec;
+	font-size: 38pt;
+	font-weight: 300;
+	vertical-align: bottom;
+	margin-bottom: 20px;
+	font-family: "Segoe UI", "verdana", "arial";
+	position: relative;
+}
+
+#countdown{
+	color: #2778ec;
+	font-size: 38pt;
+	font-weight: 300;
+	vertical-align: bottom;
+	margin-bottom: 20px;
+	font-family: "Segoe UI", "verdana", "arial";
+	position: relative;
+}
+
+
+.title2 {
+	color: #2778ec;
+	font-size: 28pt;
+	font-weight: 300;
+	vertical-align: bottom;
+	margin-bottom: 20px;
+	font-family: "Segoe UI", "verdana", "arial";
+	position: relative;
+}
+.taskSection {
+	margin-top: 20px;
+	margin-bottom: 40px;
+	position: relative;
+}
+.Textintro {
+	color: #000000;
+	font-size: 22pt;
+	font-family: "Segoe UI", "verdana";
+	font-weight: 200;
+	font-size: 12pt;
+	padding-top: 5px;
+}
+
+
+
+
       .sidebar-nav {
         padding: 9px 0;
       }
@@ -313,27 +407,11 @@ div .formOver {
 <div id='find' style='position:absolute'></div>
 
 
-    <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container-fluid" id='top-menu'>
- 		
-          
-          <!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
-
-    <div class="container-fluid">
-		{CONTENT}
-      </div><!--/row-->
-
-      <hr>
-
-      <footer>
-        
-      </footer>
-
-    </div>
+<DIV class="mainContent" id="contentContainer">
+<DIV class="title" id="mainTitle">{PAGE_TITLE}</DIV>
+<DIV class="taskSection" id="taskSection">{CONTENT}</div>
+</DIV>
+     
 
 
 
@@ -341,9 +419,5 @@ div .formOver {
 {SCRIPT}
 initMessagesTop();
 </script>
-<script src="bootstrap/js/bootstrap-tab.js"></script>
-<script src="bootstrap/js/bootstrap-tooltip.js"></script>
-<script src="bootstrap/js/bootstrap-button.js"></script>
-
 </body>
 </html>

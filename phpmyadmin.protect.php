@@ -59,7 +59,7 @@ function popup(){
 	//AllowNoPassword
 	$t=time();
 	$html="
-	<div class=text-info>$explain</div>
+	<div class=explain>$explain</div>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var selectedMysqlid='';
@@ -248,7 +248,7 @@ function item_popup_form(){
 	
 	
 	$html="
-	<div class=text-info>{protect_phpmyadmin_item_text}</div>
+	<div class=explain>{protect_phpmyadmin_item_text}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{xtype}:</td>

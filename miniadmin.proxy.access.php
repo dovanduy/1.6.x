@@ -84,7 +84,7 @@ function tabs(){
 	}
 	
 	if($users->APP_UFDBGUARD_INSTALLED){
-		$EnableUfdbGuard=$sock->EnableUfdbGuard();
+		$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 		if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 		if($EnableUfdbGuard==1){
 			$array["{webfiltering}"]="$page?section-blocked-tabs=yes";

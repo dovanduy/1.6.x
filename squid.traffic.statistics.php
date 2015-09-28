@@ -792,7 +792,7 @@ function general_status_graphs(){
 		<td width=1%>". button("{apply}","SquidFlowSizeQuery('$type')")."</td>
 	</tr>
 	</table>
-	<div id='$t-2' style='height:350px'><center><img src='img/wait-clock.gif'></center></div>
+	
 	
 	
 	
@@ -811,10 +811,7 @@ function general_status_graphs(){
 			setTimeout(\"StartGraph2$t()\",2000);
 		}
 		
-		function StartGraph2$t(){
-			Loadjs('$page?squid-cache-flow-performance=yes&id=$t-2&from={$_GET["from"]}&to={$_GET["to"]}&type={$_GET["type"]}');
-		 }
-		
+
 		StartGraph1$t();
 		
 	</script>

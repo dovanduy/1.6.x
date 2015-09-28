@@ -1,4 +1,5 @@
 <?php
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
@@ -28,6 +29,7 @@ if($argv[1]=='--squid-store-logs'){die();}
 if($argv[1]=='--used-space'){used_space();die();}
 if($argv[1]=='--cleandb'){CleanLogsDatabases(true);die();}
 if($argv[1]=='--clean-logs'){CleanLOGSF();}
+if($argv[1]=='--buidsh'){buidsh();exit;}
 if(!$GLOBALS["FORCE"]){
 	if(system_is_overloaded(__FILE__)){
 		if($GLOBALS["VERBOSE"]){echo "This system is overloaded, die()\n";}
@@ -43,6 +45,7 @@ if($GLOBALS["VERBOSE"]){
 
 if($argv[1]=='--squid-urgency'){squidlogs_urgency(true);die();}
 if($argv[1]=='--logs-urgency'){logs_urgency(true);die();}
+if($argv[1]=='--clean-tmp1'){Clean_tmp_path(true);}
 if($argv[1]=='--clean-tmp2'){Clean_tmp_path(true);logrotatelogs(true);die();}
 if($argv[1]=='--clean-tmp'){CleanLogs();logrotatelogs(true);Clean_tmp_path(true);die();}
 if($argv[1]=='--clean-sessions'){sessions_clean();Clean_tmp_path(true);logrotatelogs(true);die();}
@@ -107,13 +110,12 @@ function CleanLOGSF(){
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	if(is_file($squidbin)){
 		squidClean();
-		
 	}
+	CleanKav4ProxyLogs();
 	CleanLogs(true);
 	logrotatelogs(true);
 	Clean_tmp_path(true);
 	artica_logs();
-	nginx();
 	sessions_clean();
 	die();	
 	
@@ -150,10 +152,10 @@ function squidClean($nopid=false){
 		@file_put_contents($PidTime, time());
 	}
 	
-	
-	
+
 	CleanCacheStores(true);
 	squidlogs_urgency();
+	CleanKav4ProxyLogs();
 	
 	
 }
@@ -183,6 +185,12 @@ function init(){
 function varlog(){
 	$unix=new unix();
 	
+	$rsync=$unix->find_program("rsync");
+	$rm=$unix->find_program("rm");
+	if(!is_file($rsync)){
+		$unix->DEBIAN_INSTALL_PACKAGE("rsync");
+	}
+	
 	//$GLOBALS["ArticaMaxLogsSize"]=$ArticaMaxLogsSize;
 	//$GLOBALS["logs_cleaning"]=$sock->GET_NOTIFS("logs_cleaning");
 	//$GLOBALS["MaxTempLogFilesDay"]=$sock->GET_INFO("MaxTempLogFilesDay");
@@ -194,18 +202,87 @@ function varlog(){
 	$LogsDirectoryStorage=$sock->GET_INFO("LogsDirectoryStorage");
 	if(trim($LogsDirectoryStorage)==null){$LogsDirectoryStorage="/home/logs-backup";}
 	$echo=$unix->find_program("echo");
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
+	$REMOVE_PHP_SCRIPTS[]="/usr/share/artica-postfix/miniadm.logon.php";
+	$REMOVE_PHP_SCRIPTS[]="/usr/share/artica-postfix/miniadm.index.php";
+	$REMOVE_PHP_SCRIPTS[]="/usr/share/artica-postfix/miniadm.logoff.php";
+	
+	while (list ($index,$filepath) = each ($REMOVE_PHP_SCRIPTS)){
+		if(is_file($filepath)){@unlink($filepath);}
+		
+	}
+	
+	$RESTART_SQUID=false;
 	$syslog[]="/var/log/syslog";
 	$syslog[]="/var/log/messages";
 	$syslog[]="/var/log/daemon.log";
 	$syslog[]="/var/log/auth.log";
 	$syslog[]="/var/log/kern.log";
 	$syslog[]="/var/log/user.log";
+	
+	
 	$other[]="/var/log/php.log";
 	$other[]="/var/log/artica-postfix/framework.log";
+	$other[]="/usr/share/artica-postfix/ressources/logs/php.log";
 	$other[]="/var/log/artica-postfix/logrotate.debug";
 	$other[]="/var/log/ArticaProc.log";
+	$other[]="/var/log/clamav/clamav.log";
+	$other[]="/var/log/clamav/clamd.log";
+	$other[]="/var/log/clamav/freshclam.log";
+	$other[]="/var/log/lighttpd/access.log";
+	$other[]="/var/log/lighttpd/apache-access.log";
+	$other[]="/var/log/apt/history.log";
+	$other[]="/var/log/apt/term.log";
+	$other[]="/var/log/redis/redis-server.log";
+	$other[]="/var/log/clamav-unofficial-sigs.log";
+	$other[]="/var/log/influxdb/influxdb.startup";  
+	$other[]="/var/log/influxdb/influxd.log";
+	$other[]="/var/log/influxdb/influxd.service.log";
 	
+	if(is_dir("/usr/share/artica-postfix/ressources/ressources")){
+		shell_exec("$rm -rf /usr/share/artica-postfix/ressources/ressources");
+	}
+	
+	if(is_file("/var/log/artica-postfix/squid-logger-start.log")){
+		shell_exec("$echo \"\">/var/log/artica-postfix/squid-logger-start.log");
+	}
+	
+	if(is_file("/var/log/artica-postfix/exec.syslog-engine.php.log")){
+		shell_exec("$echo \"\">/var/log/artica-postfix/exec.syslog-engine.php.log");
+	}
+	
+	if(is_file("/var/log/squid/squidtail.log")){
+		$size=(@filesize("/var/log/squid/squidtail.log")/1024)/1000;
+		if($size>$LogsRotateDefaultSizeRotation){
+			if(@copy("/var/log/squid/squidtail.log", "$LogRotatePath/squidtail.log.".time())){
+				shell_exec("$echo \"\">/var/log/squid/squidtail.log");
+				$RESTART_SYSLOG=true;
+				$RESTART_SQUID=true;
+			}
+		}
+	}
+	
+	if(is_file("/var/log/squid/logfile_daemon.debug")){
+		$size=(@filesize("/var/log/squid/logfile_daemon.debug")/1024)/1000;
+		if($size>$LogsRotateDefaultSizeRotation){
+		shell_exec("$echo \"\">/var/log/squid/logfile_daemon.debug");
+		$RESTART_SYSLOG=true;
+		}
+	}
+	
+	if(is_file("/var/log/squid/ext_time_quota_acl.log")){
+		$size=(@filesize("/var/log/squid/ext_time_quota_acl.log")/1024)/1000;
+		if($size>$LogsRotateDefaultSizeRotation){
+			shell_exec("$echo \"\">/var/log/squid/ext_time_quota_acl.log");
+		}
+	}
+	
+	
+	$RESTART_SYSLOG=false;
 	$checks=array();
 	while (list ($index,$filepath) = each ($syslog)){
 		$size=(@filesize($filepath)/1024)/1000;
@@ -215,7 +292,31 @@ function varlog(){
 			if(!@copy($filepath, $nextfile)){ @unlink($nextfile); continue;}
 			$checks[]=$nextfile;
 			shell_exec("$echo \"\" >$filepath");
+			$RESTART_SYSLOG=true;
 		}
+	}
+	
+	if($RESTART_SQUID){
+		$squidbin=$unix->LOCATE_SQUID_BIN();
+		if(is_file($squidbin)){
+			if($SQUIDEnable==1){
+				$restart_squid_stamp="/etc/artica-postfix/pids/".basename(__FILE__).".".__LINE__;
+				if($unix->file_time_min($restart_squid_stamp)>240){
+					system_admin_mysql(1, "Ask to rotate logs after cleaning log files", null,__FILE__,__LINE__);
+					shell_exec("$squidbin -f /etc/squid3/squid.conf -k reconfigure");
+					shell_exec("$squidbin -f /etc/squid3/squid.conf -k rotate");
+					@unlink($restart_squid_stamp);
+					@file_put_contents($restart_squid_stamp, time());
+				}
+			}
+		}
+		
+	}
+	
+	
+	if($RESTART_SYSLOG){
+		squid_admin_mysql(1, "Restarting Syslog after a rotation", null,__FILE__,__LINE__);
+		$unix->RESTART_SYSLOG();
 	}
 	
 	
@@ -240,6 +341,49 @@ function varlog(){
 				
 		}
 	}
+	
+	if ($handle = opendir("/var/log")) {
+		while (false !== ($fileZ = readdir($handle))) {
+			if($fileZ=="."){continue;}
+			if($fileZ==".."){continue;}
+			$path="/var/log/$filename";
+			if(is_dir($path)){continue;}
+			if(!preg_match("#artica-status\.log\.[0-9]+$#", $fileZ)){continue;}
+			if($unix->file_time_min($path)>1440){@unlink($path);}
+		}
+	}
+	
+	
+	if ($handle = opendir("/var/log/influxdb")) {
+		while (false !== ($fileZ = readdir($handle))) {
+			if($fileZ=="."){continue;}
+			if($fileZ==".."){continue;}
+			$path="/var/log/influxdb/$filename";
+			if(is_dir($path)){continue;}
+			if(preg_match("#\.log\.[0-9]+$#", $fileZ)){
+				@unlink($path);
+				continue;
+			}
+			
+		}
+	}
+	
+	if ($handle = opendir("/var/log/squid")) {
+		while (false !== ($fileZ = readdir($handle))) {
+			if($fileZ=="."){continue;}
+			if($fileZ==".."){continue;}
+			$path="/var/log/squid/$filename";
+			if(is_dir($path)){continue;}
+			if(preg_match("#ufdbguardd\.log\.[0-9]+$#", $fileZ)){@unlink($path);continue;}
+				
+		}
+	}	
+	
+	
+	
+	
+	
+	
 	
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
@@ -409,7 +553,7 @@ function CleanCacheStores($aspid=false){
 			if($GLOBALS["VERBOSE"]){echo "Removing dir `$dirname`\n";}
 			system_admin_events("Old squid cache directory $dirname will be deleted", __FUNCTION__, __FILE__, __LINE__, "clean");
 			squid_admin_mysql(2,"Deleting Old squid cache directory $dirname","Old squid cache directory $dirname will be deleted\nRemoving: `$directory`");
-			squid_admin_notifs("Old squid cache directory $dirname will be deleted\nRemoving: `$directory`", __FUNCTION__, __FILE__, __LINE__, "clean");
+			
 			shell_exec("$rm -rf $directory >/dev/null 2>&1");
 		}
 	}
@@ -454,8 +598,7 @@ function LogRotateTimeAndSize($BaseWorkDir){
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
 	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
-	$LogsRotateDeleteSize=intval($sock->GET_INFO("LogsRotateDeleteSize"));
-	if($LogsRotateDeleteSize==0){$LogsRotateDeleteSize=5000;}
+
 	$syslog=new mysql_storelogs();
 	
 	if($BaseWorkDir=="/var/log/squid"){return; }
@@ -473,15 +616,7 @@ function LogRotateTimeAndSize($BaseWorkDir){
 		$sizePHP=round(unix_file_size($filename)/1024);
 		$size=round(($size/1024)/1000,2);
 		
-		
-		if($size>=$LogsRotateDeleteSize){
-			$syslog->events("$filename -> set to 0bytes $size >{$LogsRotateDeleteSize}",__FUNCTION__,__LINE__);
-			shell_exec("$echo \" \" > \"$filename\"");
-			$GLOBALS["DELETED_SIZE"]=$GLOBALS["DELETED_SIZE"]+$sizePHP;
-			$GLOBALS["DELETED_FILES"]++;
-			$GLOBALS["DELETED_FILES"][]="$filename";
-			continue;
-		}
+	
 	
 		if($GLOBALS["VERBOSE"]){echo "Found file: $filename {$size}M !== {$LogsRotateDefaultSizeRotation}M\n";}
 	
@@ -491,21 +626,14 @@ function LogRotateTimeAndSize($BaseWorkDir){
 					exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --force 2>&1",$results);
 					squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
 					return;
-				}else{
-					if($size>$LogsRotateDeleteSize){
-						$warnfile="/etc/artica-postfix/pids/squid.rotate.cache.warn";
-						if($unix->file_time_min($warnfile)>30){
-							squid_admin_mysql(1, "Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",null,__FILE__,__LINE__);
-							@unlink($warnfile);
-							@file_put_contents($warnfile, time());
-						}
-					}
 				}
 			}
 			continue;
 		}
 		if($fileZ=="external-acl.log"){continue;}
 		if($fileZ=="ufdbguardd.log"){continue;}
+		
+		
 		if($fileZ=="access.log"){
 			if($size>$LogsRotateDefaultSizeRotation){
 				if($SquidRotateOnlySchedule==0){
@@ -514,21 +642,23 @@ function LogRotateTimeAndSize($BaseWorkDir){
 					rotate_admin_events("$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M perform a Proxy log rotation",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
 					squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
 					return;
-				}else{
-					
-					if($size>$LogsRotateDeleteSize){
-						$warnfile="/etc/artica-postfix/pids/squid.rotate.access.warn";
-						if($unix->file_time_min($warnfile)>30){
-							$syslog->events("Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",__FUNCTION__,__LINE__);
-							rotate_admin_events(1,"Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",null,__FILE__,__LINE__);
-							squid_admin_mysql(1, "Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",null,__FILE__,__LINE__);
-							@unlink($warnfile);
-							@file_put_contents($warnfile, time());
-						}
-					}					
 				}
 			}
 		}
+		if($fileZ=="squidtail.log"){
+			if($size>$LogsRotateDefaultSizeRotation){
+				if($SquidRotateOnlySchedule==0){
+					$syslog->events("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --smooth",__FUNCTION__,__LINE__);
+					exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --smooth 2>&1",$results);
+					rotate_admin_events("$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M perform a Proxy log rotation",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
+					squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
+					return;
+				}
+			}
+		}
+		
+		
+		
 		if($fileZ=="netdb.state"){continue;}
 		$time=$unix->file_time_min($filename);
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
@@ -659,7 +789,6 @@ function maillog(){
 
 function artica_logs(){
 	$unix=new unix();
-	$Dir="/var/log/artica-postfix";
 	if ($handle = opendir($Dir)) {
 		while (false !== ($file = readdir($handle))) {
 			if ($file != "." && $file != "..") {
@@ -739,6 +868,8 @@ function CleanAllindDir($DirPath,$maxtime=180){
 		if(is_dir($DirPath)){continue;}
 		$path="$DirPath/$file";
 		if(preg_match("#_[0-9]+_tmp#", $file)){@unlink($path);continue;}
+		if(preg_match("#^krb5#", $file)){continue;}
+		if(preg_match("#\.winbindd#", $file)){continue;}
 		if($unix->is_socket($path)){continue;}
 		$time=$unix->file_time_min($path);
 		if($time<$maxtime){continue;}
@@ -839,6 +970,28 @@ function logs_urgency($aspid=false){
 	
 }
 
+function buidsh(){
+	
+	$unix=new unix();
+	$array=array("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","x","y","z");
+	$f=$unix->dirdir("/var/log/artica-postfix");
+	
+	$z[]="rm -rf /var/log/artica-postfix/* >/dev/null 2>&1";
+	while (list ($dir, $line) = each ($f) ){
+		reset($array);
+		$z[]="echo \"Removing content of $dir\"";
+		while (list ($a, $b) = each ($array) ){
+			$z[]="rm -rf $dir/$b* >/dev/null 2>&1";
+		}
+		
+		for($i=0;$i<10;$i++){
+			$z[]="rm -rf $dir/$i* >/dev/null 2>&1";
+		}
+	}
+	
+	echo @implode("\n", $z);
+}
+
 
 function Clean_attachments(){
 	$unix=new unix();
@@ -862,6 +1015,7 @@ function Clean_apache_logs(){
 	$FILZ["nginx.access.log"]=true;    
 	$FILZ["nginx.error.log"]=true;    
 	$FILZ["php.log"]=true;  
+
 	
 	$syslog=new mysql_storelogs();
 	
@@ -936,6 +1090,55 @@ function Clean_tmp_path($aspid=false){
 	
 	@unlink($PidTime);
 	@file_put_contents($PidTime, time());
+	
+	
+	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.1",2880);
+	CleanAllindDir("/tmp",2880);
+	CleanAllindDir("/var/lib/c_icap/temporary",2880);
+	CleanAllindDir("/var/log/clamav",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/cron.2",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.1",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.2",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids.3",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/loadavg.queue",750);
+	CleanAllindDir("/var/log/artica-postfix/sys_mem",750);
+	CleanAllindDir("/var/log/artica-postfix/sys_loadavg",750);
+	CleanAllindDir("/var/log/artica-postfix/events",240);
+	CleanAllindDir("/var/log/artica-postfix/postqueue",240);
+	CleanAllindDir("/var/log/artica-postfix/system_failover_events",240);
+	CleanAllindDir("/var/log/artica-postfix/squid-brut",2880);
+	CleanAllindDir("/var/log/artica-postfix/ufdbguard_admin_events",240);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/logs",180);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/logs/web",180);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/conf/upload",240);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/support",60);
+	CleanAllindDir("/home/nginx/logsWork",7200);
+	CleanAllindDir("/opt/artica/ldap-backup",7200);
+	
+	
+	
+	
+	ZarafaLocks();
+	clean_rotate_events();
+	CleanCacheStores();
+	CleanRotatedFiles();
+	CleanLogsDatabases();
+	sessions_clean();
+	clean_artica_workfiles("/var/log/artica-postfix/Postfix-sql-error");
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/conf/upload",60);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web/cache",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web/help",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web/queue/sessions",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/categorize-tables",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/jGrowl",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/support",240);
+	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs",240);
+	clean_squid_users_size(true);
+	artica_logs();
+	
+	
 	
 	$syslog_sql=new mysql_storelogs();
 	$LogsDirectoryStorage=$sock->GET_INFO("LogsDirectoryStorage");
@@ -1176,48 +1379,7 @@ function Clean_tmp_path($aspid=false){
 	}
 	if($GLOBALS["VERBOSE"]){echo "$tmpdir done..\n";}
 	
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.1",2880);
-	CleanAllindDir("/tmp",2880);
-	CleanAllindDir("/var/lib/c_icap/temporary",2880);
-	CleanAllindDir("/var/log/clamav",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/cron.2",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.1",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.2",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids.3",2880);
-	CleanAllindDir("/etc/artica-postfix/artica-postfix/loadavg.queue",750);
-	CleanAllindDir("/var/log/artica-postfix/sys_mem",750);
-	CleanAllindDir("/var/log/artica-postfix/sys_loadavg",750);
-	CleanAllindDir("/var/log/artica-postfix/events",240);
-	CleanAllindDir("/var/log/artica-postfix/postqueue",240);
-	CleanAllindDir("/var/log/artica-postfix/system_failover_events",240);
-	CleanAllindDir("/var/log/artica-postfix/squid-brut",2880);
-	CleanAllindDir("/var/log/artica-postfix/ufdbguard_admin_events",240);
-	CleanAllindDir("/usr/share/artica-postfix/ressources/logs",180);
-	CleanAllindDir("/usr/share/artica-postfix/ressources/logs/web",180);
-	CleanAllindDir("/usr/share/artica-postfix/ressources/conf/upload",30);
-	CleanAllindDir("/usr/share/artica-postfix/ressources/support",30);
-	
-	
-	
-	
-	ZarafaLocks();
-	clean_rotate_events();
-	CleanCacheStores();
-	CleanRotatedFiles();
-	CleanLogsDatabases();
-	sessions_clean();
-	clean_artica_workfiles("/var/log/artica-postfix/Postfix-sql-error");
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/conf/upload",60);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web/cache",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/web/queue/sessions",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/categorize-tables",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs/jGrowl",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/support",240);
-	clean_artica_workfiles("/usr/share/artica-postfix/ressources/logs",240);
-	clean_squid_users_size(true);
-	artica_logs();
+
 	
 }
 
@@ -1521,8 +1683,7 @@ function UrgencyChecks(){
 	}
 	@file_put_contents($pidpath, getmypid());
 	$echo=$unix->find_program("echo");
-	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
-	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+
 	
 	Clean_tmp_path(true);
 	$f=$unix->DirFiles("/var/log");
@@ -1532,6 +1693,7 @@ function UrgencyChecks(){
 	varlog();
 			
 	while (list ($num, $filename) = each ($f) ){
+		if($filename=="mail.log"){continue;}
 		$filepath="/var/log/$filename";
 		if(!is_file($filepath)){continue;}
 		$size=$unix->file_size($filepath);
@@ -1543,15 +1705,6 @@ function UrgencyChecks(){
 	
 	$restart=false;
 	
-	while (list ($filepath, $sizeM) = each ($ARRAY) ){
-		if($sizeM>$LogsRotateDeleteSize){
-			shell_exec("$echo \"\" >$filepath");
-			$restart=true;
-			$unix->send_email_events("$filepath was cleaned ({$sizeM}M)", "It exceed maximal size {$LogsRotateDeleteSize}M", "system");
-			$size=$unix->file_size($filepath);$size=$size/1024;$size=round($size/1000,2);
-			$unix->events("UrgencyChecks():: $filepath {$sizeM}M > {$LogsRotateDeleteSize}M `$echo \"\" >$filepath` = {$size}M");
-		}
-	}
 	
 	if($restart){
 		@chmod("/etc/init.d/syslog",0755);
@@ -1582,8 +1735,7 @@ function logrotatelogs($nopid=false){
 	
 	
 	$echo=$unix->find_program("echo");
-	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
-	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+
 	include_once(dirname(__FILE__)."/ressources/class.mysql.syslog.inc");
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$q=new mysql_syslog();
@@ -1598,6 +1750,8 @@ function logrotatelogs($nopid=false){
 		if(strpos($filepath, "*")>0){
 			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: Scanning $filepath line:".__LINE__."\n";}
 			foreach (glob($filepath) as $filename) {
+				if($filename=="/var/log/squid/access.log"){continue;}
+				if($filename=="/var/log/mail.log"){continue;}
 				$size=$unix->file_size($filename);
 				$size=$size/1024;
 				$size=round($size/1000,2);
@@ -1608,6 +1762,8 @@ function logrotatelogs($nopid=false){
 			
 		}else{
 			if(is_file($filepath)){
+				if($filepath=="/var/log/mail.log"){continue;}
+				if($filepath=="/var/log/squid/access.log"){continue;}
 				$size=$unix->file_size($filepath);
 				$size=$size/1024;
 				$size=round($size/1000,2);
@@ -1615,7 +1771,9 @@ function logrotatelogs($nopid=false){
 			}
 			if(is_dir($filepath)){
 				while (list ($num, $filename) = each ($f) ){
+					if($filename=="mail.log"){continue;}
 					$filepath="/var/log/$filename";
+					if($filepath=="/var/log/squid/access.log"){continue;}
 					$f=$unix->DirFiles("$filepath");
 					$size=$unix->file_size($filepath);
 					$size=$size/1024;
@@ -1629,6 +1787,7 @@ function logrotatelogs($nopid=false){
 	}
 	$f=$unix->DirFiles("/var/log");
 	while (list ($num, $filename) = each ($f) ){
+		if($filename=="mail.log"){continue;}
 		$filepath="/var/log/$filename";
 		$size=$unix->file_size($filepath);
 		$size=$size/1024;
@@ -1646,15 +1805,7 @@ function logrotatelogs($nopid=false){
 	}	
 	
 	$restart=false;
-	
-	while (list ($filepath, $sizeM) = each ($ARRAY) ){
-		if($sizeM>$LogsRotateDeleteSize){
-			shell_exec("$echo \"\" >$filepath");
-			$restart=true;
-			$unix->send_email_events("$filepath was cleaned ({$sizeM}M)", "It exceed maximal size {$LogsRotateDeleteSize}M", "system");
-		}
-	}
-	
+
 	if($restart){
 		shell_exec("/etc/init.d/syslog restart");
 		shell_exec("/etc/init.d/artica-syslog restart");
@@ -1704,11 +1855,10 @@ function CheckSingle_logfile($path,$maxsize){
 
 
 function CleanLogs($aspid=false){
-
+	$unix=new unix();
 	$timefile="/etc/artica-postfix/pids/exec.clean.logs.php.CleanLogs.time";
 	if(!$aspid){
 		$maxtime=480;
-		$unix=new unix();
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pid=@file_get_contents($pidpath);
 		if($unix->process_exists($pid)){
@@ -1968,52 +2118,49 @@ if($GLOBALS["VERBOSE"]){echo "/tmp/process1*\n";}
 	
 }
 
+
+function sessions_clean_parse($directory,$CleanPHPSessionTime,$APACHE_SRC_ACCOUNT=null,$APACHE_SRC_GROUP=null){
+	$CleanPHPSessionTime=$CleanPHPSessionTime-1;
+	if(!is_dir($directory)){return;}
+	
+	if (!$handle = opendir($directory)) {return;}
+	$unix=new unix();
+	while (false !== ($fileZ = readdir($handle))) {
+		if($fileZ=="."){continue;}
+		if($fileZ==".."){continue;}
+		$filename="$directory/$fileZ";
+		if(is_dir($filename)){continue;}
+		$time=$unix->file_time_min($filename);
+		if($time>$CleanPHPSessionTime){@unlink($filename);continue;}
+		if($APACHE_SRC_ACCOUNT<>null){
+			$unix->chown_func($APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP,$filename);
+		}
+	}
+		
+	
+}
+
+
 function sessions_clean(){
 	$unix=new unix();
 	$sock=new sockets();
 	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($unix->file_time_min($TimeFile)<60){return;}
+	
+	@unlink($TimeFile);
+	@file_put_contents($TimeFile, time());
 	
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
-	
-	
 	$CleanPHPSessionTime=$sock->GET_INFO("CleanPHPSessionTime");
-	if(!is_numeric($CleanPHPSessionTime)){$CleanPHPSessionTime=2880;}
+	if(!is_numeric($CleanPHPSessionTime)){$CleanPHPSessionTime=1440;}
 	
-	if($unix->file_time_min($TimeFile)<60){return;}
-	@unlink($TimeFile);
-	@file_put_contents($TimeFile, time());
-	if($CleanPHPSessionTime>5){
-		if(is_dir("/var/lib/php5")){
-			foreach (glob("/var/lib/php5/*") as $filename) {
-				$unix->chown_func($APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP,$filename);
-				$time=$unix->file_time_min($filename);
-				if($time>2880){
-					$unix->_syslog("Clean: Remove PHP Session file ".basename($filename)." {$time}Mn", basename(__FILE__));
-					@unlink($filename);}
-			}
-		}
-		
-		if(is_dir("/var/lib/php5-zarafa")){
-			foreach (glob("/var/lib/php5-zarafa/*") as $filename) {
-				$time=$unix->file_time_min($filename);
-				if($time>2880){
-					$unix->_syslog("Clean: Remove PHP Zarafa Session file ".basename($filename)." {$time}Mn", basename(__FILE__));
-					@unlink($filename);}
-			}
-		}
-	}
-	
-	foreach (glob("/usr/share/artica-postfix/ressources/logs/jGrowl/*") as $filename) {
-		$time=$unix->file_time_min($filename);
-		if($time>360){@unlink($filename);}
-	}
-	
-	foreach (glob("/usr/share/artica-postfix/ressources/conf/*") as $filename) {
-		$time=$unix->file_time_min($filename);
-		if($time>360){@unlink($filename);}
-	}	
-	
+	sessions_clean_parse("/var/lib/php5",$CleanPHPSessionTime,$APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP);
+	sessions_clean_parse("/var/lib/php5-zarafa",$CleanPHPSessionTime,$APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP);
+	sessions_clean_parse("/home/squid/error_page_sessions",$CleanPHPSessionTime,$APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP);
+	sessions_clean_parse("/usr/share/artica-postfix/ressources/logs/jGrowl",360,$APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP);
+	sessions_clean_parse("/usr/share/artica-postfix/ressources/conf",360,$APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP);
+	sessions_clean_parse("/home/squid/error_page_cache",60);
 }
 function wrong_number(){
 	$unix=new unix();
@@ -2154,6 +2301,63 @@ function clean_artica_workfiles($dir,$maxtime=0){
 	}
 }
 
+function CleanKav4ProxyLogs(){
+	if(!is_dir("/var/log/kaspersky/kav4proxy")){return;}
+	$unix=new unix();
+	$echo =$unix->find_program("echo");
+	$RELOAD=false;
+	if (!$handle = opendir("/var/log/kaspersky/kav4proxy")) {return;}
+	$unix=new unix();
+	while (false !== ($fileZ = readdir($handle))) {
+		if($fileZ=="."){continue;}
+		if($fileZ==".."){continue;}
+		$filename="/var/log/kaspersky/kav4proxy/$fileZ";
+		if(is_dir($filename)){continue;}
+		$time=$unix->file_time_min($filename);
+		if($time>120){@unlink($filename);continue;}
+		if(preg_match("#\.gz$#", $fileZ)){@unlink($filename);continue;}
+		$size=@filesize($filename);
+		$size=$size/1024;
+		$size=$size/1024;
+		if($size>100){
+			shell_exec("$echo \"\" >$filename");
+			$RELOAD=true;
+		}
+		
+	}
+	if (!$handle = opendir("/var/log/kaspersky/kav4proxy/core")) {return;}
+	$unix=new unix();
+	while (false !== ($fileZ = readdir($handle))) {
+		if($fileZ=="."){continue;}
+		if($fileZ==".."){continue;}
+		$filename="/var/log/kaspersky/kav4proxy/core/$fileZ";
+		if(is_dir($filename)){continue;}
+		$time=$unix->file_time_min($filename);
+		if($time>120){@unlink($filename);continue;}
+		if(preg_match("#\.gz$#", $fileZ)){@unlink($filename);continue;}
+		$size=@filesize($filename);
+		$size=$size/1024;
+		$size=$size/1024;
+		if($size>100){
+			shell_exec("$echo \"\" >$filename");
+			$RELOAD=true;
+		}
+	
+	}
+	
+	if($RELOAD){
+		
+		if(is_file("/etc/init.d/kav4proxy")){
+			squid_admin_mysql(1, "Reloading Kaspersky For Proxy server after cleaned logs",null,__FILE__,__LINE__);
+			system("/etc/init.d/kav4proxy reload");
+		}
+	}
+	
+	
+	
+	
+}
+
 
 function CleanDirLogs($path){
 	return;
@@ -2179,6 +2383,7 @@ function CleanDirLogs($path){
 		if(is_link($filepath)){continue;}
 		if(is_dir($filepath)){continue;}
 		if($filepath==$maillog_path){continue;}
+		if($filepath=="/var/log/mail.log"){continue;}
 		if(preg_match("#\/log\/artica-postfix\/#",$filepath)){continue;}
 		
 		$countfile++;

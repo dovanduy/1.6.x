@@ -82,7 +82,7 @@ function popup(){
 		<img src='img/poubelle-128.png'></td>
 		</div>
 	<td valign='top'>
-			<div class=text-info>{empty_this_mailbox_explain}</div>
+			<div class=explain>{empty_this_mailbox_explain}</div>
 			<table style='width:99%' class=form>
 			<tr>
 				<td class=legend style='font-size:13px'>{size_of_message}:</td>

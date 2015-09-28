@@ -25,6 +25,9 @@ function start(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	
 	if($unix->process_exists($unix->get_pid_from_file($pidfile))){
 		system_admin_events("Already exists in memory, aborting task", __FUNCTION__, __FILE__, __LINE__, "zarafa");
 		return;
@@ -34,6 +37,13 @@ function start(){
 	$ZarafaServerListenIP=$sock->GET_INFO("ZarafaServerListenIP");
 	if($ZarafaServerListenIP==null){$ZarafaServerListenIP="127.0.0.1";}
 	if($ZarafaServerListenIP=="0.0.0.0"){$ZarafaServerListenIP="127.0.0.1";}
+	
+	$TimeFile=$unix->file_time_min($pidtime);
+	if($TimeFile<240){return;}
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	
+	
 	
 	$ldap=new clladp();
 	$ous=$ldap->hash_get_ou(true);

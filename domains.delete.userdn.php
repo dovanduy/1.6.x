@@ -89,7 +89,7 @@ function popup(){
 	$dn=base64_decode($_GET["dn"]);
 	$picture="<img src='$user->img_identity' style='border:1px dotted #CCCCCC'>";
 $user_infos="
-<div class=text-info>{delete_this_user_dn_text}</div>
+<div class=explain>{delete_this_user_dn_text}</div>
 <table style='width:100%'>
 <tr>
 	<td valign='top' width=1%>$picture</td>

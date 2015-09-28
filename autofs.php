@@ -21,7 +21,7 @@ if(isset($_GET["service-cmds-peform"])){service_cmds_perform();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["autofs-status"])){status_service();exit;}
-if(isset($_GET["EnableAutoFSDebug"])){EnableAutoFSDebugSave();exit;}
+if(isset($_POST["EnableAutoFSDebug"])){EnableAutoFSDebugSave();exit;}
 
 if(isset($_GET["mounts-list-js"])){mounts_list_js();exit;}
 if(isset($_GET["mounts"])){mounts_list();exit;}
@@ -55,7 +55,7 @@ function form_add_js(){
 	$YahooWin="YahooWin4";
 	if($_GET["field"]<>null){$YahooWin="LoadWinORG";}
 	
-	echo "$YahooWin('650','$page?form-add-popup=yes&dn={$_GET["dn"]}&t={$_GET["t"]}&field={$_GET["field"]}','$title');";
+	echo "$YahooWin('850','$page?form-add-popup=yes&dn={$_GET["dn"]}&t={$_GET["t"]}&field={$_GET["field"]}','$title');";
 	
 }
 function mounts_list_js(){
@@ -136,13 +136,13 @@ function form_add_popup(){
 	<div id='form-autofs-add-div'>
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_1}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_1}</td>
 		
 	</tr>			
 			
 	<tr>
-		<td class=legend style='font-size:16px'>{filesystem_type}:</td>
-		<td>". Field_array_Hash($protos,"proto",null,"ChangeFS()",null,0,"font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{filesystem_type}:</td>
+		<td>". Field_array_Hash($protos,"proto",null,"ChangeFS()",null,0,"font-size:22px;padding:3px")."</td>
 	</tr>
 	</table>
 	<hr>
@@ -179,8 +179,9 @@ switch ($_GET["proto"]) {
 
 function EnableAutoFSDebugSave(){
 	$sock=new sockets();
-	$sock->SET_INFO("EnableAutoFSDebug",$_GET["EnableAutoFSDebug"]);
-	$sock->getFrameWork("cmd.php?autofs-restart=yes");
+	$sock->SET_INFO("EnableAutoFSDebug",$_POST["EnableAutoFSDebug"]);
+	
+	
 	
 	
 }
@@ -192,11 +193,11 @@ function form_add_details_USB(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("USB_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{local_directory_name}:</td>
+		<td>". Field_text("USB_LOCAL_DIR",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>			
 	</table>
 	<div style='width:100%;text-align:right;margin-bottom:5px'>". imgtootltip("refresh-32.png","{refresh}","refreshUsbList()")."</div>
@@ -305,27 +306,27 @@ function form_add_details_FTP(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_2}</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
-		<td>". Field_text("FTP_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{remote_server_name}:</td>
+		<td>". Field_text("FTP_SERVER",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{ftp_user}:</td>
-		<td>". Field_text("FTP_USER",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{ftp_user}:</td>
+		<td>". Field_text("FTP_USER",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("FTP_PASSWORD",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{password}:</td>
+		<td>". Field_password("FTP_PASSWORD",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("FTP_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{local_directory_name}:</td>
+		<td>". Field_text("FTP_LOCAL_DIR",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>			
 	<tr>
-		<td colspan=2 align='right' style='font-size:16px'>
-		<hr>". button("{add}","SaveAutoFsFTP()","16px")."</td>
+		<td colspan=2 align='right' style='font-size:22px'>
+		<hr>". button("{add}","SaveAutoFsFTP()","30px")."</td>
 	</tr>
 	</table>
 	
@@ -345,9 +346,11 @@ var x_SaveAutoFsFTP= function (obj) {
 		var XHR = new XHRConnection();
 		XHR.appendData('FTP_SERVER',document.getElementById('FTP_SERVER').value);
 		XHR.appendData('FTP_USER',document.getElementById('FTP_USER').value);
-		XHR.appendData('FTP_PASSWORD',document.getElementById('FTP_PASSWORD').value);
-		XHR.appendData('FTP_LOCAL_DIR',document.getElementById('FTP_LOCAL_DIR').value);
-		//document.getElementById('form-autofs-add-div').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';	
+		
+		var pp=encodeURIComponent(document.getElementById('FTP_PASSWORD').value);
+		
+		XHR.appendData('FTP_PASSWORD',pp);
+		XHR.appendData('FTP_LOCAL_DIR',document.getElementById('FTP_LOCAL_DIR').value);	
 		XHR.sendAndLoad('$page', 'GET',x_SaveAutoFsFTP);
 	}		
 		
@@ -366,28 +369,28 @@ $dn=$_GET["dn"];
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{url}:</td>
-		<td>". Field_text("HTTP_SERVER",null,"font-size:16px;padding:3px;width:350px")."</td>
+		<td class=legend style='font-size:22px'>{url}:</td>
+		<td>". Field_text("HTTP_SERVER",null,"font-size:22px;padding:3px;width:350px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{web_user}:</td>
-		<td>". Field_text("HTTP_USER",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{web_user}:</td>
+		<td>". Field_text("HTTP_USER",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("HTTP_PASSWORD",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{password}:</td>
+		<td>". Field_password("HTTP_PASSWORD",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("HTTP_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px",
+		<td class=legend style='font-size:22px'>{local_directory_name}:</td>
+		<td>". Field_text("HTTP_LOCAL_DIR",null,"font-size:22px;padding:3px;width:250px",
 				null,null,null,false,"SaveAutoWebDavfsCK(event)")."</td>
 	</tr>			
 	<tr>
-		<td colspan=2 align='right' style='font-size:16px'>
-		<hr>". button("{add}","SaveAutoWebDavfs()","16px")."</td>
+		<td colspan=2 align='right' style='font-size:22px'>
+		<hr>". button("{add}","SaveAutoWebDavfs()","30px")."</td>
 	</tr>
 	</table>
 	
@@ -442,23 +445,23 @@ switch ($_GET["proto"]) {
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_2}</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
-		<td>". Field_text("NFS_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{remote_server_name}:</td>
+		<td>". Field_text("NFS_SERVER",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{target_directory}:</td>
-		<td>". Field_text("NFS_FOLDER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{target_directory}:</td>
+		<td>". Field_text("NFS_FOLDER",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("NFS_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{local_directory_name}:</td>
+		<td>". Field_text("NFS_LOCAL_DIR",null,"font-size:22px;padding:3px;width:250px")."</td>
 	</tr>			
 	<tr>
-		<td colspan=2 align='right' style='font-size:16px'>
-		<hr>". button("{add}","SaveAutoFsNFS()","16px")."</td>
+		<td colspan=2 align='right' style='font-size:22px'>
+		<hr>". button("{add}","SaveAutoFsNFS()","30px")."</td>
 	</tr>
 	</table>
 	
@@ -512,36 +515,36 @@ function form_add_details_CIFS(){
 	$html="
 	<table style='width:99%' class=form>
 	<tr>
-		<td style='font-size:16px' colspan=2><div class=text-info style='font-size:16px'>{autofs_wizard_2}</td>
+		<td style='font-size:22px' colspan=2><div class=explain style='font-size:22px'>{autofs_wizard_2}</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{remote_server_name}:</td>
-		<td>". Field_text("CIFS_SERVER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{remote_server_name}:</td>
+		<td>". Field_text("CIFS_SERVER",null,"font-size:22px;padding:3px;width:250px")."</td>
 		<td>$button_browes</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{target_directory}:</td>
-		<td>". Field_text("CIFS_FOLDER",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{target_directory}:</td>
+		<td>". Field_text("CIFS_FOLDER",null,"font-size:22px;padding:3px;width:250px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{username}:</td>
-		<td>". Field_text("CIFS_USER",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{username}:</td>
+		<td>". Field_text("CIFS_USER",null,"font-size:22px;padding:3px;width:250px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("CIFS_PASSWORD",null,"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:22px'>{password}:</td>
+		<td>". Field_password("CIFS_PASSWORD",null,"font-size:22px;padding:3px;width:250px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{local_directory_name}:</td>
-		<td>". Field_text("CIFS_LOCAL_DIR",null,"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{local_directory_name}:</td>
+		<td>". Field_text("CIFS_LOCAL_DIR",null,"font-size:22px;padding:3px;width:250px")."</td>
 		<td>&nbsp;</td>
 	</tr>			
 	<tr>
-		<td colspan=3 align='right' style='font-size:16px'>
-		<hr>". button("{apply}","SaveAutoFsCIFS()","16px")."</td>
+		<td colspan=3 align='right' style='font-size:22px'>
+		<hr>". button("{add}","SaveAutoFsCIFS()","30px")."</td>
 	</tr>
 	</table>
 	
@@ -562,12 +565,13 @@ var x_SaveAutoFsCIFS= function (obj) {
 		
 	function SaveAutoFsCIFS(){
 		var XHR = new XHRConnection();
+		var pp=encodeURIComponent(document.getElementById('CIFS_PASSWORD').value);
+		var pp1=encodeURIComponent(document.getElementById('CIFS_FOLDER').value);
 		XHR.appendData('CIFS_SERVER',document.getElementById('CIFS_SERVER').value);
 		XHR.appendData('CIFS_USER',document.getElementById('CIFS_USER').value);
-		XHR.appendData('CIFS_FOLDER',document.getElementById('CIFS_FOLDER').value);
-		XHR.appendData('CIFS_PASSWORD',document.getElementById('CIFS_PASSWORD').value);
-		XHR.appendData('CIFS_LOCAL_DIR',document.getElementById('CIFS_LOCAL_DIR').value);
-		//document.getElementById('form-autofs-add-div').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';	
+		XHR.appendData('CIFS_FOLDER',pp1);
+		XHR.appendData('CIFS_PASSWORD',pp);
+		XHR.appendData('CIFS_LOCAL_DIR',document.getElementById('CIFS_LOCAL_DIR').value);	
 		XHR.sendAndLoad('$page', 'GET',x_SaveAutoFsCIFS);
 	}		
 		
@@ -596,7 +600,7 @@ function PROTO_USB_ADD(){
 		$upd["cn"][]="{$_GET["USB_LOCAL_DIR"]}";
 		$upd["automountInformation"][]=$pattern;
 		if(!$ldap->ldap_add($dn,$upd)){echo "function: ".__FUNCTION__."\n"."file: ".__FILE__."\nline: ".__LINE__."\n" .$ldap->ldap_last_error;return;}
-		$sock->getFrameWork("cmd.php?autofs-reload=yes");
+		$sock->getFrameWork("autofs.php?autofs-reload=yes");
 		return;
 	}
 	
@@ -607,7 +611,7 @@ function PROTO_USB_ADD(){
 		return false;
 	}	
 	
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");	
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");	
 	
 }
 
@@ -615,6 +619,9 @@ function PROTO_CIFS_ADD(){
 	$ldap=new clladp();
 	$sock=new sockets();
 	$auto=new autofs();
+	$_GET["CIFS_PASSWORD"]=autofs_escape_chars(url_decode_special_tool($_GET["CIFS_PASSWORD"]));
+	$_GET["CIFS_FOLDER"]=autofs_escape_chars(url_decode_special_tool($_GET["CIFS_FOLDER"]));
+	
 	
 	$_GET["CIFS_LOCAL_DIR"]=strtolower($ldap->StripSpecialsChars($_GET["CIFS_LOCAL_DIR"]));
 	$upd=array();
@@ -631,7 +638,7 @@ function PROTO_CIFS_ADD(){
 		$upd["cn"][]="{$_GET["CIFS_LOCAL_DIR"]}";
 		$upd["automountInformation"][]=$pattern;
 		if(!$ldap->ldap_add($dn,$upd)){echo "function: ".__FUNCTION__."\n"."file: ".__FILE__."\nline: ".__LINE__."\n" .$ldap->ldap_last_error;return;}
-		$sock->getFrameWork("cmd.php?autofs-reload=yes");
+		$sock->getFrameWork("autofs.php?autofs-reload=yes");
 		return;
 	}
 	
@@ -642,7 +649,7 @@ function PROTO_CIFS_ADD(){
 		return false;
 	}	
 	
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");	
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");	
 }
 
 function PROTO_NFS_ADD(){
@@ -661,7 +668,7 @@ function PROTO_NFS_ADD(){
 		$upd["cn"][]="{$_GET["NFS_LOCAL_DIR"]}";
 		$upd["automountInformation"][]=$pattern;
 		if(!$ldap->ldap_add($dn,$upd)){echo "function: ".__FUNCTION__."\n"."file: ".__FILE__."\nline: ".__LINE__."\n" .$ldap->ldap_last_error;return;}
-		$sock->getFrameWork("cmd.php?autofs-reload=yes");
+		$sock->getFrameWork("autofs.php?autofs-reload=yes");
 		return;
 	}
 	
@@ -672,7 +679,7 @@ function PROTO_NFS_ADD(){
 		return false;
 	}	
 	
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");	
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");	
 }
 
 function PROTO_WEBDAVFS_ADD(){
@@ -715,7 +722,7 @@ if(!$ldap->ExistsDN($dn)){
 	$upd["cn"][]="{$_GET["HTTP_LOCAL_DIR"]}";
 	$upd["automountInformation"][]=$pattern;
 	if(!$ldap->ldap_add($dn,$upd)){echo "function: ".__FUNCTION__."\n"."file: ".__FILE__."\nline: ".__LINE__."\n" .$ldap->ldap_last_error;return;}
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");
 	return;
 	}
 	
@@ -730,7 +737,7 @@ if(!$ldap->ExistsDN($dn)){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}	
 	
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");	
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");	
 }
 
 
@@ -741,12 +748,17 @@ function PROTO_FTP_ADD(){
 	$_GET["FTP_LOCAL_DIR"]=strtolower($ldap->StripSpecialsChars($_GET["FTP_LOCAL_DIR"]));
 	$upd=array();
 	$dn="cn={$_GET["FTP_LOCAL_DIR"]},ou=auto.automounts,ou=mounts,$ldap->suffix";
+	$_GET["FTP_PASSWORD"]=percent_encoding(url_decode_special_tool($_GET["FTP_PASSWORD"]));
+	
+
+	
+	
 	
 	if($_GET["FTP_USER"]<>null){
 		$auth="{$_GET["FTP_USER"]}\:{$_GET["FTP_PASSWORD"]}\@";
 	}
 	
-	$pattern="-fstype=curl,allow_other :ftp\://$auth{$_GET["FTP_SERVER"]}/";
+	$pattern="-fstype=curl,rw,allow_other,nodev,nonempty,noatime :ftp\://$auth{$_GET["FTP_SERVER"]}/";
 	
 
 if(!$ldap->ExistsDN($dn)){
@@ -755,7 +767,7 @@ if(!$ldap->ExistsDN($dn)){
 	$upd["cn"][]="{$_GET["FTP_LOCAL_DIR"]}";
 	$upd["automountInformation"][]=$pattern;
 	if(!$ldap->ldap_add($dn,$upd)){echo "function: ".__FUNCTION__."\n"."file: ".__FILE__."\nline: ".__LINE__."\n" .$ldap->ldap_last_error;return;}
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");
 	return;
 	}
 	
@@ -766,7 +778,7 @@ if(!$ldap->ExistsDN($dn)){
 		return false;
 	}	
 	
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");
 }
 
 
@@ -799,51 +811,51 @@ function status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$add=Paragraphe("net-disk-add-64.png","{add_mount_point}","{add_mount_point_text}","javascript:Loadjs('$page?form-add-js=yes')");
+	$add=Paragraphe("net-disk-add-64.png","{add_mount_point}","{add_mount_point_text}","javascript:");
 	$EnableAutoFSDebug=$sock->GET_INFO("EnableAutoFSDebug");
 	if(!is_numeric($EnableAutoFSDebug)){$EnableAutoFSDebug=1;}
-	$help=Paragraphe("help-64.png","{help}","{online_help}","javascript:s_PopUpFull('http://nas-appliance.org/index.php?cID=187','1024','900');");
-
+	
+	$add=imgtootltip("add-128.png","{add_mount_point}","Loadjs('$page?form-add-js=yes')");
 	
 	$autofs=new autofs();
 	$hash=$autofs->automounts_Browse();	
 	if(count($hash)==0){
-		$error="<table style='width:99%' class=form style='margin-top:15px'>
-		<tr>
-			<td width=1% valign='top'><img src='img/error-64.png'></td>
-			<td width=99% style='font-size:14px;font-weight:bold' valign='top'>{AUTOFS_ERROR_NO_CONNECTION}</td>
-		</tr>
-		</table>
+		$error=FATAL_ERROR_SHOW_128_DESIGN(null,"{AUTOFS_ERROR_NO_CONNECTION}");
 		
-		";
 		
 	}
 	
 	$html="
-	<div class=text-info style='font-size:16px'>{autofs_about}</div>
+	<div style='font-size:30px'>{automount_center}</div>
+	<div class=explain style='font-size:24px'>{autofs_about}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td valign='top'>
-		<div id='autofs-status'></div>$error
+		<td valign='top' style='width:500px'>
+		<div id='autofs-status'></div>
 		</td>
-		<td valign='top' width=99%'>
+		<td valign='top' width=1000px'>
 			
 		<center>
-		<table>
-		<tr><td>$add</td><td>$help</td>
-		</tr>
-		</table>
-
+		$add
+		<center style='font-size:18px;margin-bottom:20px;margin-top:15px'>{add_mount_point_text}</center>
+		$error		
 		<table style='width:99%'>
 			<tr>
-				<td class=legend>{debug_mode}:</td>
-				<td>". Field_checkbox("EnableAutoFSDebug",1,$EnableAutoFSDebug,"EnableAutoFSDebugCheck()")."
+				<td class=legend style='font-size:22px'>{debug_mode}:</td>
+				<td>". Field_checkbox_design("EnableAutoFSDebug",1,$EnableAutoFSDebug,"EnableAutoFSDebugCheck()")."
 			</td>
 		</table>
 		</center>
 	</tr>
 	</table>
 	<script>
+	var xEnableAutoFSDebugCheck= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);return;}	
+		Loadjs('autofs.restart.progress.php')
+	}		
+	
+	
 	
 	
 		function EnableAutoFSDebugCheck(){
@@ -854,7 +866,7 @@ function status(){
 				XHR.appendData('EnableAutoFSDebug','0');
 			}
 	
-			XHR.sendAndLoad('$page', 'GET');
+			XHR.sendAndLoad('$page', 'POST',xEnableAutoFSDebugCheck);
 		}	
 	
 		
@@ -874,31 +886,14 @@ function status_service(){
 	$tpl=new templates();
 	$ini=new Bs_IniHandler();
 	$page=CurrentPageName();
-	$datas=base64_decode($sock->getFrameWork("cmd.php?autofs-ini-status=yes"));	
+	$datas=base64_decode($sock->getFrameWork("autofs.php?autofs-ini-status=yes"));	
 	
 	$ini->loadString($datas);
-	
-	
-	
 	$status=DAEMON_STATUS_ROUND("APP_AUTOFS",$ini,null,0);
+	$html="<center style='padding-left:10px'>$status
+	". button("{restart_service}", "Loadjs('autofs.restart.progress.php')",28,430)."	
 	
-	$html="		<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
-		<table style='width:70%'>
-		<tbody>
-		<tr>
-			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-		</tr>
-		</tbody>
-		</table>
-	
-		</center>
-		<center style='padding-left:10px'>$status</center>	
-						
-		";
-	
-	
+	</center>";
 	echo $tpl->_ENGINE_parse_body($html);		
 	
 }
@@ -917,7 +912,7 @@ function tabs(){
 	
 
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:26px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -945,12 +940,12 @@ function mounts_list(){
 	$remove_connection_ask=$tpl->_ENGINE_parse_body("{remove_connection_ask}");
 	$buttons="
 	buttons : [
-		{name: '$add_mount_point', bclass: 'add', onpress : add_mount_point$t},
+		{name: '<strong style=font-size:18px>$add_mount_point</strong>', bclass: 'add', onpress : add_mount_point$t},
 	],";		
 		
 	if($_GET["field"]<>null){$buttons=null;}
 	
-if($explain<>null){$explain="<div class=text-info style='font-size:13px'>$explain</div>";}	
+
 $html="
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 <script>
@@ -960,10 +955,10 @@ $('#flexRT$t').flexigrid({
 	url: '$page?now-search-items=yes&t=$t&field={$_GET["field"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$proto', name : 'proto', width : 79, sortable : false, align: 'center'},	
-		{display: '$source', name : 'source', width :301, sortable : true, align: 'left'},
-		{display: '$local_directory_name', name : 'ipaddr', width :287, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$proto</span>', name : 'proto', width : 90, sortable : false, align: 'center'},	
+		{display: '<span style=font-size:18px>$source</span>', name : 'source', width :609, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$local_directory_name</span>', name : 'ipaddr', width :544, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 90, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -979,8 +974,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 780,
-	height: 320,
+	width: '99%',
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -1025,11 +1020,11 @@ function mounts_list_items(){
 	$data['page'] = $page;
 	$data['total'] = count($hash);
 	$data['rows'] = array();	
-	$fontsize="16px";
+	$fontsize="30px";
 	$cs=0;
 	while (list ($localmount, $array) = each ($hash) ){
 		$id=md5(serialize($array));
-		$delete=imgsimple("delete-24.png",null,"AutoFSDeleteDN('{$array["DN"]}','$id','$localmount')");
+		$delete=imgsimple("delete-42.png",null,"AutoFSDeleteDN('{$array["DN"]}','$id','$localmount')");
 		if(preg_match("#\{device\}:(.+)#",$array["SRC"],$re)){
 			$uuid=$re[1];
 			$ligne=$_GLOBAL["usb_list"][$uuid];
@@ -1055,13 +1050,15 @@ function mounts_list_items(){
 		}
 		
 		
+		
+		
 		$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
 		"<span style='font-size:$fontsize'>{$array["FS"]}</a></span>",
 		"<span style='font-size:$fontsize'>$jslink{$array["SRC"]}</a></span>",
 		"<a href=\"javascript:blur();\" OnClick=\"javascript:$browsejs\" style='font-size:$fontsize;text-decoration:underline'>/automounts/$localmount</a></span>",
-		$delete )
+		"<center>$delete</center>" )
 		);	
 
 		$cs++;
@@ -1183,72 +1180,115 @@ function mounts_delete(){
 	}
 	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?autofs-reload=yes");	
+	$sock->getFrameWork("autofs.php?autofs-reload=yes");	
 	
 }
 
 function mounts_events(){
 	$page=CurrentPageName();
-	$html="
-	<table style='width:100%'>
-	<tr>
-		<td class=legend valign='middle'>{search}:</td>
-		<td>". Field_text("syslog-search",null,"font-size:13px;padding:3px;",null,null,null,false,"SyslogSearchPress(event)")."</td>
-		<td align='right' width=1%>". imgtootltip("32-refresh.png","{refresh}","SyslogRefresh()")."</td>
-	</tr>
-	</table>
 	
-	<div style='widht:99%;height:600px;overflow:auto;margin:5px' id='syslog-table'></div>
-	<script>
-		function SyslogSearchPress(e){
-			if(checkEnter(e)){SearchSyslog();}
-		}
-	
-	
-		function SearchSyslog(){
-			var pat=escape(document.getElementById('syslog-search').value);
-			LoadAjax('syslog-table','$page?syslog-table=yes&search='+pat);
-		
-		}
-		
-		function SyslogRefresh(){
-			SearchSyslog();
-		}
-	
-	SearchSyslog();
-	</script>
-	";
-	
+	$page=CurrentPageName();
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
+	$t=time();
+	$date=$tpl->_ENGINE_parse_body("{date}");
+	$event=$tpl->_ENGINE_parse_body("{event}");
+	$local_directory_name=$tpl->_ENGINE_parse_body("{local_directory_name}");
+	$title=$tpl->_ENGINE_parse_body($title);
+	$users=new usersMenus();
+	$ComputerMacAddress=$tpl->javascript_parse_text("{ComputerMacAddress}");
+	$addr=$tpl->javascript_parse_text("{addr}");
+	$domain=$tpl->javascript_parse_text("{domain}");
+	$search=$tpl->_ENGINE_parse_body("{search}");
+	$new_computer=$tpl->_ENGINE_parse_body("{new_computer}");
+	$add_mount_point=$tpl->_ENGINE_parse_body("{add_mount_point}");
+	$remove_connection_ask=$tpl->_ENGINE_parse_body("{remove_connection_ask}");
+	$buttons="
+	buttons : [
+	{name: '<strong style=font-size:18px>$add_mount_point</strong>', bclass: 'add', onpress : add_mount_point$t},
+	],";
+	
+	$buttons=null;
+	
+	
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	<script>
+	$(document).ready(function(){
+	var TMPMD$t='';
+	$('#flexRT$t').flexigrid({
+	url: '$page?syslog-table=yes',
+		dataType: 'json',
+		colModel : [
+			{display: '<span style=font-size:18px>$date</span>', name : 'proto', width : 215, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$event</span>', name : 'source', width :1209, sortable : true, align: 'left'},
+		],
+		$buttons
+		searchitems : [
+			{display: '$search', name : 'search'},
+
+	
+			],
+			sortname: 'hostname',
+			sortorder: 'asc',
+			usepager: true,
+			title: '',
+			useRp: true,
+			rp: 50,
+			showTableToggleBtn: false,
+			width: '99%',
+			height: 550,
+			singleSelect: true,
+			rpOptions: [10, 20, 30, 50,100,200]
+	
+	});
+	});
+</script>
+";
+			echo $html;
 }
 
 function mounts_events_query(){
-	
-	$pattern=base64_encode($_GET["search"]);
+	$tpl=new templates();
+	$pattern=base64_encode($_POST["query"]);
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=automount");
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=automount&rp={$_POST["rp"]}");
 	$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
-	if(!is_array($array)){return null;}
+	if(!is_array($array)){json_error_show("no data");}
+	$fontsize="16px";
+	$cs=0;
+	krsort($array);
+	while (list ($ey, $line) = each ($array) ){
+		$id=md5($line);
+		
+		if(!preg_match("#^(.+?)\s+([0-9]+)\s+([0-9:]+)\s+.*?\[[0-9]+\]:\s+(.+)#", $line,$re)){continue;}
+		
+		$xdate=strtotime(date("Y-m")."-{$re[2]} {$re[3]}");
+		$zdate=$tpl->time_to_date($xdate,true);
+		$event=$re[4];
+		
+		$data['rows'][] = array(
+				'id' => $id,
+				'cell' => array(
+						"<span style='font-size:$fontsize'>$zdate</a></span>",
+						"<span style='font-size:$fontsize'>$event</span>",
+						
+						 )
+		);
 	
-	$html="<table class=TableView>";
+		$cs++;
+		if($cs>$_POST["rp"]){break;}
 	
-	while (list ($key, $line) = each ($array) ){
-		if($line==null){continue;}
-		if($tr=="class=oddrow"){$tr=null;}else{$tr="class=oddrow";}
-		
-			$html=$html."
-			<tr $tr>
-			<td><code>$line</cod>
-			</tr>
-		
-		";
-		
+	
 	}
 	
 	
-	$html=$html."</table>";
-
-	echo $html;
+	$data['total'] = $cs;
+	echo json_encode($data);
+	return;
+	
+	
+	
+	
+	
 }
 

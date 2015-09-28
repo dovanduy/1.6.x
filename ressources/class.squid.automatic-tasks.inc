@@ -69,7 +69,7 @@ class squid_auto_tasks{
 		if($CACHE_DYN_PARAMS["INTERVAL"]<60){$CACHE_DYN_PARAMS["INTERVAL"]=60;}
 		$EnableProxyCompressor=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableProxyCompressor"));
 		$SquidPerformance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
-		
+		$EnableKerbAuth=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableKerbAuth"));
 		
 		//Paramètres de rotation des logs.
 		$SquidLogRotateFreq=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidLogRotateFreq"));
@@ -131,39 +131,6 @@ class squid_auto_tasks{
 			
 	}
 		
-//**********************************************************************************************************************
-//Construction des données graphiques pour les sites mis en cache.
-		$TimeFile="/etc/artica-postfix/pids/exec.squid.cache.optimize.php.gencaches_start.time";
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
-		if($CacheSchedules>10){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.cache.optimize.php --gencaches >/dev/null 2>&1 &");
-			$this->squid_rtt_events("Running $cmd");
-			shell_exec($cmd);
-		}		
-//**********************************************************************************************************************
-//Analyse les statistiques de caches pour le refresh_pattern
-	if($CACHE_DYN_PARAMS["ENABLED"]==1){
-		$TimeFile="/etc/artica-postfix/pids/exec.squid.cache.optimize.php.scan_stats.time";
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
-		if($CacheSchedules>$CACHE_DYN_PARAMS["INTERVAL"]){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.cache.optimize.php >/dev/null 2>&1 &");
-			$this->squid_rtt_events("Running $cmd");
-			shell_exec($cmd);
-		}		
-	}		
-		
-//**********************************************************************************************************************		
-//D'importe quel cas, vider le dossier /var/log/squid/mysql-queue
-		$TimeFile="/etc/artica-postfix/pids/exec.logfile_daemon-parse.php.time";
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
-		_statussquid("exec.logfile_daemon-parse.php.time = {$CacheSchedules}s/10s");
-		
-		if($CacheSchedules>10){
-			@unlink($TimeFile);
-			@file_put_contents($TimeFile, time());
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.logfile_daemon-parse.php >/dev/null 2>&1 &");
-			$this->shell_exec2($cmd);
-		}
 //**********************************************************************************************************************		
 		//Regénères les états de l'interface ( toutes les 10mn)	
 		$TimeFile="/etc/artica-postfix/pids/SQUID_ALL_STATUS.time";
@@ -176,18 +143,6 @@ class squid_auto_tasks{
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 			$this->shell_exec2($cmd);
 		}
-//**********************************************************************************************************************		
-// Analyse les statistics de mise en cache / Jour ( chaque 24h).
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.cache.optimize.php.StatsDaysTables.time");
-		_statussquid("exec.squid.cache.optimize.php --stats-days {$CacheSchedules}Mn/1440");
-		
-		if($CacheSchedules>1440){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.cache.optimize.php --stats-days >/dev/null 2>&1 &");
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$this->shell_exec2($cmd);
-			if(!is_file($TimeFile)){ @file_put_contents($TimeFile, time()); }
-		}		
-		
 
 //**********************************************************************************************************************		
 //rotation des évènements squid.
@@ -251,15 +206,7 @@ class squid_auto_tasks{
 		}
 		
 		
-		if($EnableSargGenerator==1){
-			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/settings/Daemons/SargDirStatus");
-			if($CacheSchedules>60){
-				if(system_is_overloaded()){return;}
-				$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.sarg.php --status >/dev/null 2>&1 &");
-				if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-				$this->shell_exec2($cmd);
-			}
-		}
+
 		
 		
 
@@ -296,12 +243,7 @@ class squid_auto_tasks{
 		}
 		
 		if(!$system_is_overloaded){
-			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.syslog-engine.php.squid_rt_mysql_failed.time");
-			if($CacheSchedules>5){
-				$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.syslog-engine.php --squid-rt-failed >/dev/null 2>&1 &");
-				if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-				$this->shell_exec2($cmd);
-			}	
+		
 		
 		
 		
@@ -343,15 +285,6 @@ class squid_auto_tasks{
 			}
 		
 			
-			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.rebuild.caches.php.clean_old_caches.time");
-			if($CacheSchedules>60){
-				$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.rebuild.caches.php --clean >/dev/null 2>&1 &");
-				if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-				$this->shell_exec2($cmd);
-			}
-	
-			
-			
 		
 		
 			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.php.build_schedules_tests.time");
@@ -382,7 +315,6 @@ class squid_auto_tasks{
 		
 			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
 			if($CacheSchedules>1440){
-				squid_watchdog_events("Building scheduled tasks...");
 				$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.php --build-schedules >/dev/null 2>&1 &");
 				@unlink("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
 				@file_put_contents("/etc/artica-postfix/CACHES_SQUID_SCHEDULE", time());
@@ -395,9 +327,7 @@ class squid_auto_tasks{
 			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.watchdog.php --peer-status >/dev/null 2>&1 &"));
 		
 		
-			if(is_file("{$GLOBALS["BASE_ROOT"]}/exec.squid-tail-injector.php")){
-				$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid-tail-injector.php >/dev/null 2>&1 &"));
-			}
+			
 		
 		
 		
@@ -409,8 +339,15 @@ class squid_auto_tasks{
 		
 		
 			if(is_file("{$GLOBALS["BASE_ROOT"]}/exec.kerbauth.php")){
-				$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.kerbauth.php --klist >/dev/null 2>&1 &"));
-				$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.kerbauth.php --winbinddpriv >/dev/null 2>&1 &"));
+				if($EnableKerbAuth==1){
+					$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.kerbauth.php.1");
+					if($time>30){
+						$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.kerbauth.php --klist >/dev/null 2>&1 &"));
+						$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.kerbauth.php --winbinddpriv >/dev/null 2>&1 &"));
+						@unlink("/etc/artica-postfix/pids/exec.kerbauth.php.1");
+						@touch("/etc/artica-postfix/pids/exec.kerbauth.php.1");
+					}
+				}
 			}
 		}
 		
@@ -437,28 +374,6 @@ class squid_auto_tasks{
 			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.php --tpl-save >/dev/null 2>&1 &"));
 		}
 		
-	
-		
-
-	
-		
-	// Importation des vieux fichiers de logs Squid... ****************************************************************
-		if($EnableImportOldSquid==1){
-			$pidTime="/etc/artica-postfix/pids/exec.squid.logs.import.php.analyze_all.time";
-			$pidfile="/etc/artica-postfix/pids/exec.squid.logs.import.php.analyze_all.pid";		
-			if(!$GLOBALS["CLASS_UNIX"]->process_exists(@file_get_contents($pidfile))){
-				$time=$GLOBALS["CLASS_UNIX"]->file_time_min($pidTime);
-				if($time>30){
-					if(system_is_overloaded()){return;}
-					$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.logs.import.php --all >/dev/null 2>&1 &"));
-				}
-				
-			}
-		}
-		
-	//*******************************************************************************************************************
-	
-		
 	$time=$GLOBALS["CLASS_UNIX"]->file_time_min("{$GLOBALS["BASE_ROOT"]}/ressources/logs/web/squiddb.size.db");
 	_statussquid("exec.squid-db.php --databasesize {$time}Mn");
 	if($time>20){
@@ -480,8 +395,8 @@ private function statistics_tasks(){
 		
 		$this->events("Execute: statistics_tasks() ifStatisticsMustBeExecuted:$ifStatisticsMustBeExecuted",_CLASS_."/".__FUNCTION__,__LINE__);
 		
-		$CategoriesDatabasesByCron=@file_get_contents("/etc/artica-postfix/settings/Daemons/CategoriesDatabasesByCron");
-		if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}
+		$CategoriesDatabasesByCron=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/CategoriesDatabasesByCron"));
+		
 		
 		// Scan les videos Youtube toutes les heures.
 		if($ifStatisticsMustBeExecuted){
@@ -504,107 +419,30 @@ private function statistics_tasks(){
 		$this->shell_exec2($cmd);
 	}		
 // ********************************************************************************************************************		
-// * Reconstruit la table du mois en cours.
-	$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.month.php.Calculate_current_month.time");
-	if($CacheSchedules>1440){
-		$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.month.php --current >/dev/null 2>&1 &");
-		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-		$this->shell_exec2($cmd);
-	}
+
 if($ifStatisticsMustBeExecuted){
 	// ********************************************************************************************************************
-	// * Créé les tables familysites.
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.familyday.php.start.time");
-		if($CacheSchedules>2880){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.familyday.php >/dev/null 2>&1 &");
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$this->shell_exec2($cmd);
-		}
-	// ********************************************************************************************************************
-	// 
-	// * Créé les tables users par jour.
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.usersday.php.start.time");
-		if($CacheSchedules>2880){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.usersday.php >/dev/null 2>&1 &");
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$this->shell_exec2($cmd);
-		}
-		// ********************************************************************************************************************
 				
 		
 }
-	
-	$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.quotatemp.time");
-		if($CacheSchedules>59){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.quotaday.php --quotatemp >/dev/null 2>&1 &");
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$this->shell_exec2($cmd);
-		}
-		
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time");
-		if($CacheSchedules>62){
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid-searchwords.php --hour >/dev/null 2>&1 &");
-			$this->shell_exec2($cmd);
-		}
-		
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.start.time");
-		if($CacheSchedules>62){
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.quotaday.php >/dev/null 2>&1 &");
-			$this->shell_exec2($cmd);
-		}
-		
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.hourly.tables.php.time");
-		if($CacheSchedules>15){
-			$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.hourly.tables.php >/dev/null 2>&1 &");
-			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-			$this->shell_exec2($cmd);
-		}
-		
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mysar.php.build.time");
-		if($CacheSchedules>1440){
-			if(!system_is_overloaded()){
-				$cmd=trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.mysar.php >/dev/null 2>&1 &");
-				if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-				$this->shell_exec2($cmd);
-				@unlink($CacheSchedules);
-				@file_put_contents($CacheSchedules, time());
-			}
-		}
+
+
 		
 		
 		if($CategoriesDatabasesByCron==0){
-			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("{$GLOBALS["BASE_ROOT"]}/ressources/logs/web/cache/CATZ_ARRAY");
+			$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/settings/Daemons/ArticaDbCloud");
 			if($time>60){
-				@unlink("{$GLOBALS["BASE_ROOT"]}/ressources/logs/web/cache/CATZ_ARRAY");
-				$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.blacklists.php --get-version --verbose >/dev/null 2>&1 &"));
+				$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.blacklists.php >/dev/null 2>&1 &"));
 			}
 		}
 			
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time");
-		if($time>30){
-			if(system_is_overloaded()){return;}
-			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid-searchwords.php --hour >/dev/null 2>&1 &"));
-		}
+
 			
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.time");
-		if($time>60){
-			if(system_is_overloaded()){return;}
-			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.hours.php >/dev/null 2>&1 &"));
-		}
 		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mysar.php.build.time");
-		if($time>60){
-			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.mysar.php >/dev/null 2>&1 &"));
-		}
+
+
 		
-		
-		$time=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.macscan.time");
-		if($time>30){
-			if(system_is_overloaded()){return;}
-			$this->shell_exec2(trim($prefixcmd."{$GLOBALS["BASE_ROOT"]}/exec.squid.stats.hours.php --macscan >/dev/null 2>&1 &"));
-		}
+
 			
 			
 				

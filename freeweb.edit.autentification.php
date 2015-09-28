@@ -74,11 +74,11 @@ function params(){
 	if(!isset($FreeWebPerformances["KeepAlive"])){$FreeWebPerformances["KeepAlive"]=0;}
 	
 	if($FreeWebPerformances["KeepAlive"]==0){
-		$info=$info.FATAL_WARNING_SHOW_128("{KeepAlive_tlm_notset}");
+		$info=$info.FATAL_ERROR_SHOW_128("{KeepAlive_tlm_notset}");
 	}
 
 	if($PERL_AUTHNTLM==0){
-		$info=$info.FATAL_WARNING_SHOW_128("{pythonntlm_not_installed}");
+		$info=$info.FATAL_ERROR_SHOW_128("{pythonntlm_not_installed}");
 		
 	}
 	//http://www.mail-appliance.org/index.php?cID=393
@@ -92,7 +92,7 @@ function params(){
 	<tr>
 		<td class=legend style='font-size:14px'>{enable_ldap_authentication}:</td>
 		<td>". Field_checkbox("enable_ldap_authentication",1,$Params["LDAP"]["enabled"],"CheckApacheLdap$t()")."</td>
-		<td width=1%><span id='disabled-why' style='font-size:11px;color:red'></span>
+		<td width=1%><span id='disabled-why' style='font-size:11px;color:#d32d2d'></span>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{authentication_banner}:</td>

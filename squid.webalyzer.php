@@ -31,7 +31,7 @@ page();
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();		
-	$html="<div class=text-info>{webalyzer_howto}</div>
+	$html="<div class=explain>{webalyzer_howto}</div>
 	<table class=form>
 	<tbody>
 	<tr>

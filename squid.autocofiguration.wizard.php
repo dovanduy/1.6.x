@@ -55,7 +55,7 @@ function step1(){
 	$page=CurrentPageName();
 	$t=time();
 	$html="
-	<div style='font-size:18px' class=text-info>{autoconfiguration_wizard1}</div>	
+	<div style='font-size:18px' class=explain>{autoconfiguration_wizard1}</div>	
 		<div style='width:98%' class=form>
 		<div style='font-size:34px;margin-bottom:30px;'>{network_domain}:</div>
 		<div style='padding-left:50px'>". Field_text("DOMAIN-$t",$_SESSION["autoconfiguration_wizard"]["DOMAIN"],"font-size:34px;width:650px")."</div>
@@ -86,7 +86,7 @@ function step2(){
 	$explain=str_replace("%a", $_SESSION["autoconfiguration_wizard"]["DOMAIN"], $explain);
 	$t=time();
 	$html="
-	<div style='font-size:18px' class=text-info>$explain</div>
+	<div style='font-size:18px' class=explain>$explain</div>
 	<div style='width:98%' class=form>
 	<div style='font-size:34px;margin-bottom:30px;'>{local_network}:</div>
 	<div style='padding-left:50px'>". Field_text("LOCALNET-$t",$_SESSION["autoconfiguration_wizard"]["LOCALNET"],"font-size:30px;width:650px")."</div>
@@ -120,7 +120,7 @@ function step3(){
 	$explain=str_replace("%b", $_SESSION["autoconfiguration_wizard"]["LOCALNET"], $explain);
 	
 	$html="
-	<div style='font-size:18px' class=text-info>$explain</div>
+	<div style='font-size:18px' class=explain>$explain</div>
 	<div style='width:98%' class=form>
 	<div style='font-size:34px;margin-bottom:30px;'>{proxy_address}:</div>
 	<div style='padding-left:50px'>". Field_text("PROXY-$t",$_SESSION["autoconfiguration_wizard"]["PROXY"],"font-size:30px;width:650px;font-weight:bold")."</div>
@@ -160,7 +160,7 @@ function step4(){
 	$explain=str_replace("%d", $_SESSION["autoconfiguration_wizard"]["PORT"], $explain);
 
 	$html="
-	<div style='font-size:18px' class=text-info>$explain</div>
+	<div style='font-size:18px' class=explain>$explain</div>
 	<div style='width:98%' class=form>
 	<div style='margin-top:30px;text-align:center'>". button("{build_settings}", "Save$t()",50)."</div>
 	</div>

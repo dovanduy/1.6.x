@@ -66,7 +66,7 @@ function page(){
 
 	],";
 	$html="
-	<table class='table-$t' style='display: none' id='table-$t' style='width:100%;margin:-10px'></table>
+	<table class='table-$t' style='display: none' id='table-$t' style='width:100%'></table>
 		<table class=form>
 		<tr>
 			<td class=legend>$broadcast_has_ipaddr</td>

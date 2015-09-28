@@ -5,13 +5,29 @@ $GLOBALS["OUTPUT"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RELOAD"]=false;
 $GLOBALS["RESTART"]=false;
+$GLOBALS["VERBOSE"]=false;
+$GLOBALS["WRITELOGS"]=false;
 $GLOBALS["TITLENAME"]="URLfilterDB daemon";
+include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian.compile.log";
 if(posix_getuid()<>0){
-	//$GLOBALS["VERBOSE"]=true;
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	header("Cache-Control: no-cache, must-revalidate");
+	session_save_path('/home/squid/error_page_sessions');
+	session_cache_expire(10);
+	
 	if(isset($_POST["smtp-send-email"])){parseTemplate_smtp_post();exit;}
 	if(isset($_POST["unlock-www"])){parseTemplate_unlock_save();exit;}
+	if(isset($_POST["unlock-ticket"])){parseTemplate_ticket_save();exit;}
+	
 	if(isset($_GET["unlock"])){parseTemplate_unlock();exit;}
+	if(isset($_GET["ticket"])){parseTemplate_ticket();exit;}
+	if(isset($_GET["release-ticket"])){parseTemplate_release_ticket();exit;}
+	
+	
+	
 	if(isset($_GET["SquidGuardWebAllowUnblockSinglePass"])){parseTemplate_SinglePassWord();die();}
 	if(isset($_GET["smtp-send-js"])){parseTemplate_sendemail_js();exit;}
 	if(isset($_REQUEST["send-smtp-notif"])){parseTemplate_sendemail_perform();exit;}
@@ -38,6 +54,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.ufdbguard-tools.inc');
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
+include_once(dirname(__FILE__)."/ressources/class.ufdb.microsoft.inc");
 
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -109,8 +126,8 @@ if(count($argv)>0){
 	if($argv[1]=="--list-missdbs"){BuildMissingUfdBguardDBS(false,true);exit;}				
 	if($argv[1]=="--parsedir"){ParseDirectory($argv[2]);exit;}
 	if($argv[1]=="--notify-dnsmasq"){notify_remote_proxys_dnsmasq();exit;}
-	if($argvs[1]=='--build-ufdb-smoothly'){$GLOBALS["FORCE"]=true;echo build_ufdbguard_smooth();echo "Starting......: ".date("H:i:s")." Starting UfdGuard FINISH DONE\n";exit;}
-	
+	if($argv[1]=='--build-ufdb-smoothly'){$GLOBALS["FORCE"]=true;echo build_ufdbguard_smooth();echo "Starting......: ".date("H:i:s")." Starting UfdGuard FINISH DONE\n";exit;}
+	if($argv[1]=='--apply-restart'){$GLOBALS["FORCE"]=true;echo build_ufdbguard_restart();;exit;}
 	
 	
 }
@@ -160,19 +177,79 @@ function build_categories(){
 	
 }
 
+function build_progress($text,$pourc){
+	echo "[{$pourc}%]: $text\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/ufdbguard.compile.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
+
+function build_ufdbguard_restart(){
+	$GLOBALS["build_ufdbguard_HUP_EXECUTED"]=true;
+	$GLOBALS["FORCE"]=true;
+	build_ufdbguard_config();
+	build_progress("{apply_restart}: {restarting_service}",70);
+	system("/etc/init.d/ufdb restart --force");
+	build_progress("{apply_restart}: {reloading_proxy_service}",90);
+	$unix=new unix();
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	exec("$squidbin -f /etc/squid3/squid.conf -k reconfigure 2>&1",$RESULTS);
+	squid_admin_mysql(1,"Reloading proxy service (Web filtering)",@implode("\n", $RESULTS),__FILE__,__LINE__);
+	sleep(5);
+	build_progress("{apply_restart}: {done}",100);
+}
+
 
 function build_ufdbguard_smooth(){
 	$users=new usersMenus();
-	if(!$users->APP_UFDBGUARD_INSTALLED){echo "Starting......: ".date("H:i:s")." ufdbGuard is not installed, aborting\n";return;}
+	$unix=new unix();
+	if(!$users->APP_UFDBGUARD_INSTALLED){echo "Starting......: ".date("H:i:s")." Webfiltering service is not installed, aborting\n";return;}
 	$sock=new sockets();
+	$php=$unix->LOCATE_PHP5_BIN();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
-	if($EnableRemoteStatisticsAppliance==1){echo "Starting......: ".date("H:i:s")." It use Statistics appliance, aborting\n";return;}
+	if($EnableRemoteStatisticsAppliance==1){
+		echo "Starting......: ".date("H:i:s")." It use Statistics appliance, aborting\n";
+		build_progress("use Statistics appliance, aborting",110);
+		return;
+	}
 	if(function_exists('WriteToSyslogMail')){WriteToSyslogMail("build_ufdbguard_smooth() -> reconfigure UfdbGuardd", basename(__FILE__));}
 	
-	echo "Starting......: ".date("H:i:s")." ufdbGuard ". date("Y-m-d H:i:s")."\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service ". date("Y-m-d H:i:s")."\n";
 	build_ufdbguard_config();
-	build_ufdbguard_HUP();
+	build_progress("{reloading_service}",70);
+	if(!build_ufdbguard_HUP()){
+		build_progress("{reloading_service} {failed}",75);
+		ufdbguard_start();
+	}
+	
+	if(!build_ufdbguard_isinconf()){
+		build_progress("{reconfiguring_proxy_service}",95);
+		system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
+		
+	}
+	
+	
+	build_progress("{done}",100);
+}
+
+
+function build_ufdbguard_isinconf(){
+
+	$squidconf="/etc/squid3/squid.conf";
+	if(!is_file("/etc/artica-postfix/settings/Daemons/EnableTransparent27")){@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableTransparent27", 0);}
+	$EnableTransparent27=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableTransparent27"));
+	if($EnableTransparent27==1){$squidconf="/etc/squid27/squid.conf";}
+	
+	$f=explode("\n",@file_get_contents($squidconf));
+	while (list($num,$val)=each($f)){
+		if(preg_match("#ufdbgclient#i", $val)){return true;}
+	}
+
 }
 
 
@@ -184,8 +261,9 @@ function build_ufdbguard_HUP(){
 	$ufdbguardReloadTTL=intval($sock->GET_INFO("ufdbguardReloadTTL"));
 	if($ufdbguardReloadTTL<1){$ufdbguardReloadTTL=10;}
 	$php5=$unix->LOCATE_PHP5_BIN();
+	$rm=$unix->find_program("rm");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.ufdbclient.reload.php");
-	
+	shell_exec("$rm /home/squid/error_page_cache/*");
 	
 	if(function_exists("debug_backtrace")){
 		$trace=@debug_backtrace();
@@ -199,8 +277,9 @@ function build_ufdbguard_HUP(){
 	$TimeReload=$unix->file_time_min($timeFile);
 	if(!$GLOBALS["FORCE"]){
 		if($TimeReload<$ufdbguardReloadTTL){
-			$unix->_syslog("ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn", basename(__FILE__));
-			echo "Starting......: ".date("H:i:s")." ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn\n";
+			build_progress("{reloading_service} {failed}",110);
+			$unix->_syslog("Webfiltering service Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn", basename(__FILE__));
+			echo "Starting......: ".date("H:i:s")." Webfiltering service Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn\n";
 			return;
 		}
 	}else{
@@ -210,55 +289,73 @@ function build_ufdbguard_HUP(){
 	@file_put_contents($timeFile, time());
 	
 	$pid=ufdbguard_pid();
-	
-	$squidbin=$unix->find_program("squid");
-	if(!is_file($squidbin)){$unix->find_program("squid3");}
+	build_progress("{reloading_service} $pid",71);
+	$squidbin=$unix->LOCATE_SQUID_BIN();
 	$ufdbguardd=$unix->find_program("ufdbguardd");
 	if(strlen($ufdbguardd)<5){WriteToSyslogMail("ufdbguardd no such binary", basename(__FILE__));return;}
-	$kill=$unix->find_program("kill");	
+	$kill=$unix->find_program("kill");
+
+	
+	
 	
 if($unix->process_exists($pid)){
 		$processTTL=intval($unix->PROCCESS_TIME_MIN($pid));
 		
 		$LastTime=intval($unix->file_time_min($timeFile));
+		build_progress("{reloading_service} $pid {$processTTL}Mn",72);
 		
-		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service TTL {$processTTL}Mn\n";
-		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Last config since {$LastTime}Mn\n";
-		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading Max reload {$ufdbguardReloadTTL}Mn\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading service TTL {$processTTL}Mn\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading service Last config since {$LastTime}Mn\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading Max reload {$ufdbguardReloadTTL}Mn\n";
 		
 		if(!$GLOBALS["FORCE"]){
-			echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading force is disabled\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading force is disabled\n";
 			if($LastTime<$ufdbguardReloadTTL){
-				squid_admin_mysql(1, "Reloading Web Filtering [Aborted] last reload {$LastTime}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
-				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn - Current {$LastTime}mn\n";
+				squid_admin_mysql(2, "Reloading Web Filtering PID: $pid [Aborted] last reload {$LastTime}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
+				echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn - Current {$LastTime}mn\n$called\n";
 				return;
 			}			
 			
 			
 			if($processTTL<$ufdbguardReloadTTL){
-				squid_admin_mysql(1, "Reloading Web Filtering [Aborted] {$processTTL}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
-				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
+				squid_admin_mysql(2, "Reloading Web Filtering PID: $pid [Aborted] {$processTTL}Mn, need {$ufdbguardReloadTTL}mn",null,__FILE__,__LINE__);
+				echo "Starting......: ".date("H:i:s")." Webfiltering service PID: $pid  Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n$called\n";
 				return;
 			}
 		}
-		if($GLOBALS["FORCE"]){ $forceTXT=" with option FORCE enabled";}
+		
+		
+		if($GLOBALS["FORCE"]){ $forceTXT=" with option FORCE enabled";$prefix="[FORCED]:";}
 		@unlink($timeFile);
 		@file_put_contents($timeFile, time());
 		
-		echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service PID:$pid {$processTTL}mn\n";
-		squid_admin_mysql(1, "Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
+		echo "Starting......: ".date("H:i:s")." Webfiltering service Reloading service PID:$pid {$processTTL}mn\n";
+		squid_admin_mysql(1, "{$prefix}Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
+		
+		build_progress("{reloading_service} HUP $pid",75);
 		unix_system_HUP($pid);
-		return;
+		build_progress("{reloading_proxy_service}",76);
+		shell_exec("$php5 /usr/share/artica-postfix/exec.ufdbclient.reload.php");
+		$squidbin=$unix->LOCATE_SQUID_BIN();
+		squid_admin_mysql(1, "{$prefix}Reloading Proxy service",null,__FILE__,__LINE__);
+		system("$squidbin -k reconfigure");
+		return true;
 }
 	
 	squid_admin_mysql(1, "Warning, Reloading Web Filtering but not running [action=start]","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
-	echo "Starting......: ".date("H:i:s")." UfdbGuard reloading service no pid is found, Starting service...\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service reloading service no pid is found, Starting service...\n";
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
-	ufdbguard_start();
-	echo "Starting......: ".date("H:i:s")." UfdbGuard restarting ufdb-tail process\n";
+	build_progress("{starting_service}",76);
+	if(!ufdbguard_start()){return;}
+	
+	echo "Starting......: ".date("H:i:s")." Webfiltering Service restarting ufdb-tail process\n";
 	shell_exec("/etc/init.d/ufdb-tail restart");
-
+	shell_exec("$php5 /usr/share/artica-postfix/exec.ufdbclient.reload.php");
+	squid_admin_mysql(1, "{$prefix}Reloading Proxy service",null,__FILE__,__LINE__);
+	system("$squidbin -k reconfigure");
+	build_progress("{starting_service} {done}",77);
+	return true;
 }
 
 function ufdbguard_pid(){
@@ -273,22 +370,22 @@ function ufdbguard_pid(){
 }
 
 function ufdguard_start_notify(){
-	squid_admin_mysql(2, "Starting Web Filtering engine service by init.d script","",__FILE__,__LINE__);
+	squid_admin_mysql(2, "{starting_web_filtering} engine service by init.d script","",__FILE__,__LINE__);
 	$unix=new unix();
 	$fuser=$unix->find_program("fuser");
 	$port=ufdguard_get_listen_port();
 	$results=array();
-	echo "Starting......: ".date("H:i:s")." UfdbGuard Listen on port $port\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service Listen on port $port\n";
 	$cmd="$fuser $port/tcp 2>&1";
 	exec("$cmd",$results);
-	echo "Starting......: ".date("H:i:s")." UfdbGuard `$cmd` ". count($results) ." lines.\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service `$cmd` ". count($results) ." lines.\n";
 	while (list ($num, $ligne) = each ($results) ){
 		if(preg_match("#$port\/tcp:(.+)#", $ligne,$re)){
 			$ff=explode(" ", $re[1]);
 			while (list ($index, $ligne2) = each ($ff) ){
 				$ligne2=trim($ligne2);
 				if(!is_numeric($ligne2)){continue;}
-				echo "Starting......: ".date("H:i:s")." UfdbGuard killing PID $ligne2\n";
+				echo "Starting......: ".date("H:i:s")." Webfiltering service killing PID $ligne2\n";
 				$unix->KILL_PROCESS($ligne2,9);
 			}
 		}
@@ -315,7 +412,8 @@ function ufdbguard_start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		echo "Starting......: ".date("H:i:s")." UfdbGuard Starting service aborted, task pid already running $pid\n";
+		build_progress("Already task executed", 110);
+		echo "Starting......: ".date("H:i:s")." Webfiltering service Starting service aborted, task pid already running $pid\n";
 		writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
 		return;
 	}
@@ -334,10 +432,11 @@ function ufdbguard_start(){
 			echo "Starting......: ".date("H:i:s")." UfdGuard master is running, updating PID file with $master_pid\n";
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("UfdGuard master is running, updating PID file with $master_pid", basename(__FILE__));}
 			@file_put_contents($pid_path,$master_pid);	
-			return;
+			build_progress("Already running...",76);
+			return true;
 		}
 	}
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
@@ -347,7 +446,7 @@ function ufdbguard_start(){
 	if($SQUIDEnable==0){$EnableUfdbGuard=0;}
 	if($EnableUfdbGuard==0){echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service Aborting, service is disabled\n";return;}
 	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-	squid_admin_mysql(2, "Starting Web Filtering engine service","$trace\n{$GLOBALS["CMDLINEXEC"]}");
+	squid_admin_mysql(2, "{starting_web_filtering} engine service","$trace\n{$GLOBALS["CMDLINEXEC"]}");
 	ufdbguard_admin_events("Asking to start ufdbguard $trace",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");	
 	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service...\n";
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service...", basename(__FILE__));}
@@ -361,6 +460,7 @@ function ufdbguard_start(){
 	
 	
 	for($i=1;$i<5;$i++){
+		build_progress("Starting {webfiltering} waiting $i/5",76);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Starting UfdGuard  waiting $i/5\n";}
 		sleep(1);
 		$pid=ufdbguard_pid();
@@ -371,12 +471,13 @@ function ufdbguard_start(){
 	$master_pid=ufdbguard_pid();
 	if(!$unix->process_exists($master_pid)){
 		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service failed...\n";
-		squid_admin_mysql(0, "Starting Web Filtering engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n");
-	}else{
-		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master success pid $master_pid...\n";
+		squid_admin_mysql(0, "{starting_web_filtering} engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n");
+		return false;
 	}
-	
+	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master success pid $master_pid...\n";
+	squid_admin_mysql(2, "{starting_web_filtering} engine service success","$trace\n{$GLOBALS["CMDLINEXEC"]}\n");
 	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master ufdbguard_start() function done\n";
+	return true;
 	
 }
 
@@ -445,6 +546,9 @@ function build_ufdbguard_config(){
 	@unlink("/etc/ufdbguard/ufdbGuard.conf");
 	@unlink("/etc/squid3/ufdbGuard.conf");	
 	remove_bad_files();
+	
+	build_progress("Building parameters",10);
+	
 	$ufdb=new compile_ufdbguard();
 	$datas=$ufdb->buildConfig();	
 	
@@ -456,6 +560,7 @@ function build_ufdbguard_config(){
 	}
 
 	if($DenyUfdbWriteConf==0){
+		build_progress("Saving configuration",60);
 		@file_put_contents("/etc/ufdbguard/ufdbGuard.conf",$datas);
 		@file_put_contents("/etc/squid3/ufdbGuard.conf",$datas);
 		$sock->TOP_NOTIFY("{webfiltering_parameters_was_saved}");
@@ -468,7 +573,7 @@ function build_ufdbguard_config(){
 	shell_exec("chown -R squid:squid /var/log/squid");
 	shell_exec("chown -R squid:squid /etc/squid3");
 	shell_exec("chown -R squid:squid /var/lib/ufdbartica");
-	
+	build_progress("Saving configuration {done}",65);
 	
 }
 
@@ -545,13 +650,13 @@ function remove_bad_files(){
 	while (list ($directory, $b) = each ($dirs)){
 		$dirname=basename($directory);
 		if(is_link("$directory/$dirname")){
-			echo "Starting......: ".date("H:i:s")." UfdBguard removing $dirname/$dirname bad file\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service removing $dirname/$dirname bad file\n";
 			@unlink("$directory/$dirname");
 		}
 	}
 	
 	
-	echo "Starting......: ".date("H:i:s")." UfdBguard removing bad files done...\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service removing bad files done...\n";
 }
 
 
@@ -582,7 +687,7 @@ function build(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid");}
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
@@ -599,7 +704,7 @@ function build(){
 	if($EnableWebProxyStatsAppliance==0){
 		$installed=false;
 		if($users->SQUIDGUARD_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." SquidGuard is installed\n";}
-		if($users->APP_UFDBGUARD_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." UfdBguard is installed\n";}
+		if($users->APP_UFDBGUARD_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." Webfiltering service is installed\n";}
 		if($users->DANSGUARDIAN_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." Dansguardian is installed\n";}
 		if(!$installed){if($GLOBALS["VERBOSE"]){echo "No one installed...\n";
 		shell_exec("$nohup ".LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.usrmactranslation.php >/dev/null 2>&1 &");
@@ -648,7 +753,7 @@ function build(){
 		if(is_file("/etc/init.d/ufdb")){
 			echo "Starting......: ".date("H:i:s")." Checking watchdog\n";
 			ufdbguard_watchdog();
-			echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service reloading service\n";
 			build_ufdbguard_HUP();
 		}
 	}
@@ -1080,8 +1185,14 @@ function compile_databases(){
 
 function  parseTemplate_extension($uri){
 	
-	$array=parse_url($uri);
+	$js_forced["revsci.net"]=true;
+	$js_forced["omtrdc.net"]=true;
 	
+	$array=parse_url($uri);
+	$hostname=$array["host"];
+
+	$fam=new squid_familysite();
+	$hostname=$fam->GetFamilySites($hostname);
 	
 	if(count($array)==0){return false;}
 	if(!isset($array["path"])){return false;}
@@ -1097,6 +1208,10 @@ function  parseTemplate_extension($uri){
 		parseTemplate_extension_gif();
 		return true;
 	}
+	
+	
+	
+	if(isset($js_forced[$hostname])){$ext="js";}
 	
 	
 	
@@ -1168,6 +1283,7 @@ function parseTemplate_extension_gif($filename){
     	}
     	
 function parseTemplateLogs($text=null,$function,$file,$line){
+	if(!$GLOBALS["WRITELOGS"]){return;}
 	$time=date('m-d H:i:s');
 
 	if($GLOBALS["VERBOSE"]){echo "[$time]:$function:$text in line $line<br>\n";}
@@ -1488,7 +1604,8 @@ function parseTemplate_SinglePassWord(){
 
 }
 
-function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
+function parseTemplate_categoryname($category=null,$license=0,$nosuffix=0){
+		
 		$CATEGORY_PLUS_TXT=null;
 		parseTemplateLogs("parseTemplate_categoryname($category,$license)",__FUNCTION__,__FILE__,__LINE__);
 		$sock=new sockets();
@@ -1526,6 +1643,7 @@ function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
 			$users=new usersMenus();
 			if($users->WEBSECURIZE){$CATEGORY_PLUS_TXT="Web Securize Database";}
 			if($users->LANWANSAT){$CATEGORY_PLUS_TXT="LanWanSAT Database";}
+			if($users->BAMSIGHT){$CATEGORY_PLUS_TXT="BamSight Database";}
 			
 			
 		}
@@ -1547,6 +1665,7 @@ function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
 	
 function hostfrom_url($url){
 	$URL_ARRAY=parse_url($url);
+	if(!isset($URL_ARRAY["host"])){return null;}
 	$src_hostname=$URL_ARRAY["host"];
 	if(preg_match("#^www.(.+)#", $src_hostname,$re)){$src_hostname=$re[1];}
 	if(preg_match("#^(.+?):[0-9]+#", $src_hostname,$re)){$src_hostname=$re[1];}
@@ -1584,12 +1703,141 @@ function parseadmin($emailTemplate,$subj){
 	
 }
 
+function parseTemplate_file_time_min($path){
+	$last_modified=0;
+
+	if(is_dir($path)){return 10000;}
+	if(!is_file($path)){return 100000;}
+		
+	$data1 = filemtime($path);
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
+}
+
+
+function parseTemplate_events($text,$line=0){
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
+	$logFile="/var/log/artica-webpage-error.log";
+	$size=@filesize($logFile);
+	if($size>9000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+
+	@fwrite($f, "$date:$text  - $line\n");
+	@fclose($f);
+}
+
+function parseTemplate_string_to_url($url){
+	$url=str_replace("%3A", ":", $url);
+	$url=str_replace("%2F", "/", $url);
+	$url=str_replace("%3D","=",$url);
+	$url=str_replace("%3F","?",$url);
+	$url=str_replace("%20"," ",$url);
+	$url=str_replace("%25",'%',$url);
+	$url=str_replace("%40","@",$url);
+	return $url;
+}
+
 function parseTemplate(){
 	
-	session_start();
-
-	$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
+	
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
+	include_once(dirname(__FILE__)."/ressources/class.ufdb.microsoft.inc");
+	$CATEGORY_SOURCE=null;
+	$proto="http";
+	$url=$_GET["url"];
+	$cacheid=null;
+	$HTTP_X_FORWARDED_FOR=null;
+	$HTTP_X_REAL_IP=null;
+	if(isset($_GET["category"])){$CATEGORY_SOURCE=$_GET["category"];}
+	$AS_SSL=false;
+	$DisableSquidGuardHTTPCache=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableSquidGuardHTTPCache"));
+	
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;font-size:22px;color:black'>".__LINE__.": DisableSquidGuardHTTPCache: $DisableSquidGuardHTTPCache</div>\n";}
+	
+
+	
+	$HTTP_REFERER=null;
+	if(isset($_GET["targetgroup"])){
+		$TARGET_GROUP_SOURCE=$_GET["targetgroup"];
+		if($CATEGORY_SOURCE==null){$CATEGORY_SOURCE=$TARGET_GROUP_SOURCE;}
+	}
+	$clientgroup=$_GET["clientgroup"];
+	$QUERY_STRING=$_SERVER["QUERY_STRING"];
+	if(isset($_SERVER["HTTP_REFERER"])){$HTTP_REFERER=$_SERVER["HTTP_REFERER"];}
+	$HTTP_REFERER_HOST=hostfrom_url($HTTP_REFERER);
+	if(isset($_SERVER["HTTP_X_FORWARDED_FOR"])){$HTTP_X_FORWARDED_FOR=$_SERVER["HTTP_X_FORWARDED_FOR"];}
+	if(isset($_SERVER["HTTP_X_REAL_IP"])){$HTTP_X_REAL_IP=$_SERVER["HTTP_X_REAL_IP"];}
+	
+	$URL_HOST=hostfrom_url($url);
+	if(isset($_GET["rule-id"])){$ID=$_GET["rule-id"];}
+	if(isset($_GET["fatalerror"])){$ID=0;$cacheid="fatalerror";}
+	if(isset($_GET["loading-database"])){$ID=0;$cacheid="loading-database";}
+	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";$AS_SSL=true;}}
+	$time=date("Ymdh");
+	
+	if($AS_SSL){
+		if(!isset($_GET["SquidGuardIPWeb"])){
+			$requested_uri="https://".$_SERVER["SERVER_NAME"]."/".$_SERVER["REQUEST_URI"];
+			$arrayURI=parse_url($requested_uri);
+			$requested_hostname=$arrayURI["host"];
+		}
+	}
+	
+	
+	if(preg_match("#&url=(.*?)(&|$)#", $QUERY_STRING,$re)){
+		$requested_uri=parseTemplate_string_to_url($re[1]);
+		$arrayURI=parse_url($requested_uri);
+		$requested_hostname=$arrayURI["host"];
+	}
+	
+	$GLOBALS["BLOCK_KEY_CACHE"]=md5("$HTTP_X_FORWARDED_FOR$HTTP_X_REAL_IP$time$proto$proto$TARGET_GROUP_SOURCE$clientgroup$requested_hostname$HTTP_REFERER_HOST$URL_HOST$ID$cacheid");
+	if($GLOBALS["VERBOSE"]){$DisableSquidGuardHTTPCache=1;}
+	
+	if($DisableSquidGuardHTTPCache==0){
+		if(is_file("/home/squid/error_page_cache/{$GLOBALS["BLOCK_KEY_CACHE"]}")){
+			if(parseTemplate_file_time_min("/home/squid/error_page_cache/{$GLOBALS["BLOCK_KEY_CACHE"]}")<10){
+				echo @file_get_contents("/home/squid/error_page_cache/{$GLOBALS["BLOCK_KEY_CACHE"]}");
+				return;
+			}
+		}
+	}
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;font-size:22px;color:black'>".__LINE__.": TARGET_GROUP_SOURCE $TARGET_GROUP_SOURCE / $requested_hostname</div>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;font-size:22px;color:black'>".__LINE__.": CATEGORY_SOURCE $CATEGORY_SOURCE / $requested_hostname</div>\n";}
+	
+	
+	if($TARGET_GROUP_SOURCE=="none"){
+		$TARGET_GROUP_SOURCE="{ufdb_none}";
+		$EnableSquidGuardSearchCategoryNone=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSquidGuardSearchCategoryNone"));
+		
+		if($CATEGORY_SOURCE==null){
+			$EnableSquidGuardSearchCategoryNone=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSquidGuardSearchCategoryNone"));
+			if($EnableSquidGuardSearchCategoryNone==1){
+				include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
+				$catz=new mysql_catz();
+				$CATEGORY_SOURCE=$catz->GET_CATEGORIES($requested_hostname);
+				if($CATEGORY_SOURCE==null){$CATEGORY_SOURCE="{unknown}";}
+			}
+		}
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;font-size:22px;color:black'>".__LINE__.": TARGET_GROUP_SOURCE $TARGET_GROUP_SOURCE / $requested_hostname</div>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;font-size:22px;color:black'>".__LINE__.": CATEGORY_SOURCE $CATEGORY_SOURCE / $requested_hostname</div>\n";}
+	
+	
+	
+	
+
+	session_start();
+	$HTTP_REFERER=null;
+	$template_default_file=dirname(__FILE__)."/ressources/databases/dansguard-template.html";
+	
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$sock=new sockets();
@@ -1602,21 +1850,11 @@ function parseTemplate(){
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
 	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	
-	
-	
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
 	if(!is_numeric($SquidGuardWebUseLocalDatabase)){$SquidGuardWebUseLocalDatabase=0;}
-	$CATEGORY_SOURCE=$_GET["category"];
-	$TARGET_GROUP_SOURCE=$_GET["targetgroup"];
 	
-	$proto="http";
 	
-	$QUERY_STRING=$_SERVER["QUERY_STRING"];
-	$HTTP_REFERER=$_SERVER["HTTP_REFERER"];
-	$url=$_GET["url"];
 	
-	$URL_HOST=hostfrom_url($url);
-	$HTTP_REFERER_HOST=hostfrom_url($HTTP_REFERER);
 	
 	if($SquidGuardWebBlankReferer==1){
 		if($URL_HOST<>$HTTP_REFERER_HOST){
@@ -1626,15 +1864,6 @@ function parseTemplate(){
 			echo $data;
 			die();
 		}
-	}
-	
-	
-	
-
-	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
-	
-	while (list ($num, $ligne) = each ($_GET) ){
-		parseTemplateLogs("GET[$num]=`$ligne`",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	$GLOBALS["JS_NO_CACHE"]=true;
@@ -1656,7 +1885,7 @@ function parseTemplate(){
 	$ADD_JS_PACK=false;
 	
 	
-	
+
 	
 	if($SquidGuardWebUseLocalDatabase==1){
 		$clientaddr=base64_encode($_GET["clientaddr"]);
@@ -1668,17 +1897,26 @@ function parseTemplate(){
 	if(!$users->CORP_LICENSE){$LICENSE=0;}
 	parseTemplateLogs("{$_GET["clientaddr"]}: Category=`$CATEGORY_SOURCE` targetgroup=`{$_GET["targetgroup"]}` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
 	$CATEGORY_KEY=null;
-	$_GET["targetgroup"]=parseTemplate_categoryname($_GET["targetgroup"],$LICENSE);
+	$_GET["targetgroup"]=parseTemplate_categoryname($TARGET_GROUP_SOURCE,$LICENSE);
 	$_GET["clientgroup"]=parseTemplate_categoryname($_GET["clientgroup"],$LICENSE);
 	$_GET["category"]=parseTemplate_categoryname($CATEGORY_SOURCE,$LICENSE);
 	$CATEGORY_KEY=parseTemplate_categoryname($CATEGORY_SOURCE,$LICENSE,1);
 	if($CATEGORY_KEY==null){
 		$CATEGORY_KEY=parseTemplate_categoryname($TARGET_GROUP_SOURCE,$LICENSE,1);
 	}
+	
+	
 
 	$_CATEGORIES_K=$_GET["category"];
+	
+	
+	
+	
 	$_RULE_K=$_GET["clientgroup"];
 	if($_CATEGORIES_K==null){$_CATEGORIES_K=$_GET["targetgroup"];}
+	
+	
+	
 
 	if($_RULE_K==null){$_RULE_K="{web_filtering}";}
 	$REASONGIVEN="{web_filtering} $_CATEGORIES_K";
@@ -1704,8 +1942,6 @@ function parseTemplate(){
 				if(trim($RedirectCategory["template_data"])<>null){
 					header('Content-Type: text/html; charset=iso-8859-1');
 					$TemplateErrorFinal=$RedirectCategory["template_data"];
-
-					
 					return;
 				}
 			}
@@ -1713,10 +1949,7 @@ function parseTemplate(){
 	}
 		
 	$EnableSquidFilterWhiteListing=$sock->GET_INFO("EnableSquidFilterWhiteListing");
-	if(isset($_GET["rule-id"])){$ID=$_GET["rule-id"];}
-	parseTemplateLogs("ID: $ID",__FUNCTION__,__FILE__,__LINE__);
-	if(isset($_GET["fatalerror"])){$ID=0;}
-	if(isset($_GET["loading-database"])){$ID=0;}
+
 
 	if($LICENSE==1){
 		if(is_numeric($ID)){
@@ -1779,8 +2012,12 @@ function parseTemplate(){
 	$ARRAY["IpToUid"]=$IpToUid;
 	$ARRAY["clientname"]=$_GET["clientname"];
 	$ARRAY["HOST"]=$_SESSION["IPRES"][$_GET["clientaddr"]];
-	echo parseTemplate_build_main($ARRAY);
 	
+	
+	$GLOBALS["BLOCK_KEY_CACHE"];
+	$Content=parseTemplate_build_main($ARRAY);
+	@file_put_contents("/home/squid/error_page_cache/{$GLOBALS["BLOCK_KEY_CACHE"]}", $Content);
+	echo $Content;
 	
 }
 
@@ -2006,7 +2243,7 @@ function sourceCategoryToArticaCategory($category){
 	$array["redirector"]="redirector";
 	$array["religion"]="religion";
 	$array["remotecontrol"]="remote-control";
-	$array["ringtones"]="ringtones";
+	
 	$array["searchengines"]="searchengines";
 	$array["shopping"]="shopping";
 	$array["socialnet"]="socialnet";
@@ -2138,6 +2375,8 @@ function inject($category,$table=null,$file=null){
 	$countstart=$q->COUNT_ROWS($table);
 	$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid) VALUES ";
 	echo "$prefix\n";
+	
+	$catz=new mysql_catz();
 	$c=0;
 	$CBAD=0;
 	$CBADIP=0;
@@ -2150,6 +2389,7 @@ function inject($category,$table=null,$file=null){
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$CBADIP++;continue;}
 		$www=trim(strtolower($www));
 		if($www=="thisisarandomentrythatdoesnotexist.com"){$CBAD++;continue;}
+		
 		if($www==null){$CBADNULL++;continue;}
 		if(preg_match("#(.+?)\s+(.+)#", $www,$re)){$www=$re[1];}
 		if(preg_match("#^\.(.*)$#", $www,$re)){$www=$re[1];}
@@ -2160,6 +2400,399 @@ function inject($category,$table=null,$file=null){
 		if(strpos($www, "(")>0){echo "FALSE: $www\n";continue;}
 		if(strpos($www, ")")>0){echo "FALSE: $www\n";continue;}
 		if(strpos($www, "%")>0){echo "FALSE: $www\n";continue;}
+		
+		$category2=$catz->GET_CATEGORIES($www);
+		if($category2<>null){
+			if($category2==$category){continue;}
+			$md5=md5($category.$www);
+			
+			if($category=="porn"){
+				
+				
+				if($category2=="shopping"){
+					echo date("H:i:s"). " Remove $www from shopping and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_shopping WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+				
+				if($category2=="hobby/arts"){
+					echo date("H:i:s"). " Remove $www from hobby/arts and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_hobby_arts WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				
+				if($category2=="society"){
+					echo date("H:i:s"). " Remove $www from society and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_society WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				
+
+
+				if($category2=="finance/realestate"){
+					echo date("H:i:s"). " Remove $www from finance/realestate and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_finance_realestate WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+					
+				}
+				
+				if($category2=="science/computing"){
+					echo date("H:i:s"). " Remove $www from science/computing and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_science_computing WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+					
+				}
+				
+				if($category2=="industry"){
+					echo date("H:i:s"). " Remove $www from industry and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_industry WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+								
+				}	
+
+				if($category2=="proxy"){
+					echo date("H:i:s"). " Remove $www from proxy and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_proxy WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="searchengines"){
+					echo date("H:i:s"). " Remove $www from searchengines and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_searchengines WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}		
+
+				if($category2=="blog"){
+					echo date("H:i:s"). " Remove $www from blog and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_blog WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				if($category2=="forums"){
+					echo date("H:i:s"). " Remove $www from blog and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_blog WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}		
+
+				if($category2=="recreation/sports"){
+					echo date("H:i:s"). " Remove $www from recreation/sports and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_recreation_sports WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+
+				if($category2=="hacking"){
+					echo date("H:i:s"). " Remove $www from hacking and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_hacking WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+				if($category2=="malware"){
+					echo date("H:i:s"). " Remove $www from malware and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_malware WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="drugs"){
+					echo date("H:i:s"). " Remove $www from drugs and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_drugs WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="health"){
+					echo date("H:i:s"). " Remove $www from health and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_health WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				if($category2=="news"){
+					echo date("H:i:s"). " Remove $www from news and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_news WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+				if($category2=="audio-video"){
+					echo date("H:i:s"). " Remove $www from audio-video and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_audio_video WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+
+				if($category2=="recreation/schools"){
+					echo date("H:i:s"). " Remove $www from recreation/schools and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_recreation_schools WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+				if($category2=="reaffected"){
+					echo date("H:i:s"). " Remove $www from reaffected and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_reaffected WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}						
+				if($category2=="warez"){
+					echo date("H:i:s"). " Remove $www from warez and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_warez WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				if($category2=="suspicious"){
+					echo date("H:i:s"). " Remove $www from suspicious and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_suspicious WHERE `pattern`='$www'");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					$q->QUERY_SQL("INSERT IGNORE INTO category_porn (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				
+				
+			}
+			
+			
+			if($category=="gamble"){
+				if($category2=="shopping"){
+					echo date("H:i:s"). " Remove $www from shopping and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_shopping WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+			}
+			if($category=="proxy"){
+				if($category2=="society"){
+					echo date("H:i:s"). " Remove $www from society and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_society WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+			
+				if($category2=="porn"){
+					echo date("H:i:s"). " Remove $www from porn and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_porn WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+				if($category2=="shopping"){
+					echo date("H:i:s"). " Remove $www from shopping and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_shopping WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}				
+				
+				if($category2=="science/computing"){
+					echo date("H:i:s"). " Remove $www from science/computing and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_science_computing WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+
+				if($category2=="industry"){
+					echo date("H:i:s"). " Remove $www from industry and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_industry WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}				
+				
+				if($category2=="filehosting"){
+					echo date("H:i:s"). " Remove $www from filehosting and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_filehosting WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}	
+
+				if($category2=="hacking"){
+					echo date("H:i:s"). " Remove $www from hacking and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_hacking WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}	
+				if($category2=="governments"){
+					echo date("H:i:s"). " Remove $www from governments and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_governments WHERE `pattern`='$www'");
+					$q->categorize($www, $category,true);
+					continue;
+				}
+			}
+
+			if($category=="spyware"){
+				if($category2=="society"){
+					echo date("H:i:s"). " Remove $www from society and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_society WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="industry"){
+					echo date("H:i:s"). " Remove $www from industry and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_industry WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				if($category2=="recreation/sports"){
+					echo date("H:i:s"). " Remove $www from recreation/sports and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_recreation_sports WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				
+				if($category2=="recreation/schools"){
+					echo date("H:i:s"). " Remove $www from recreation/schools and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_recreation_schools WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				
+				if($category2=="searchengines"){
+					echo date("H:i:s"). " Remove $www from searchengines and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_searchengines WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="shopping"){
+					echo date("H:i:s"). " Remove $www from shopping and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_shopping WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+				if($category2=="audio-video"){
+					echo date("H:i:s"). " Remove $www from audio-video and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_audio_video WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="suspicious"){
+					$q->QUERY_SQL("DELETE FROM category_suspicious WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="health"){
+					echo date("H:i:s"). " Remove $www from health and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_health WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+				if($category2=="jobsearch"){
+					echo date("H:i:s"). " Remove $www from jobsearch and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_jobsearch WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}		
+
+				if($category2=="hobby/arts"){
+					$q->QUERY_SQL("DELETE FROM category_hobby_arts WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}	
+
+				if($category2=="science/computing"){
+					echo date("H:i:s"). " Remove $www from science_computing and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_science_computing WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+
+				if($category2=="recreation/travel"){
+					echo date("H:i:s"). " Remove $www from recreation_travel and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_recreation_travel WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="dynamic"){
+					echo date("H:i:s"). " Remove $www from dynamic and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_dynamic WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}				
+				
+				if($category2=="finance/realestate"){
+					echo date("H:i:s"). " Remove $www from finance_realestate and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_finance_realestate WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}
+				if($category2=="isp"){
+					echo date("H:i:s"). " Remove $www from isp and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_isp WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}if($category2=="housing/accessories"){
+					echo date("H:i:s"). " Remove $www from housing/accessories and add it to $category\n";
+					$q->QUERY_SQL("DELETE FROM category_housing_accessories WHERE `pattern`='$www'");
+					$q->QUERY_SQL("INSERT IGNORE INTO category_spyware (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$md5',NOW(),'porn','$www','$uuid',1)");
+					if(!$q->ok){echo "$q->mysql_error\n";die();}
+					continue;
+				}		
+
+				
+				
+				if($category2=="malware"){continue;}
+				if($category2=="phishing"){continue;}
+				
+			}			
+			
+			echo date("H:i:s"). " $www $category2 SKIP\n";
+			continue;
+		}
 		
 		$md5=md5($www.$category);
 		$n[]="('$md5',NOW(),'$category','$www','$uuid')";
@@ -2338,7 +2971,7 @@ function BuildMissingUfdBguardDBS($all=false,$output=false){
 		
 	}
 	
-	echo "Starting......: ".date("H:i:s")." ufdbGuard ". count($Narray)." database(s) must be compiled\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service ". count($Narray)." database(s) must be compiled\n";
 	if(!$all){
 		@file_put_contents("/usr/share/artica-postfix/ressources/logs/ufdbguard.db.status.txt",serialize($Narray));
 		chmod("/usr/share/artica-postfix/ressources/logs/ufdbguard.db.status.txt",777);
@@ -2509,22 +3142,22 @@ function ufdbguard_recompile_missing_dbs(){
 		$table=$ligne["c"];
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
-		echo "Starting......: ".date("H:i:s")." ufdbGuard $table -> $categoryname\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service $table -> $categoryname\n";
 		if(!is_file("/var/lib/squidguard/$categoryname/domains")){
 			@mkdir("/var/lib/squidguard/$categoryname",0755,true);
 			$sql="SELECT LOWER(pattern) FROM {$ligne["c"]} WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '$table.temp' FIELDS OPTIONALLY ENCLOSED BY 'n'";
 			$q->QUERY_SQL($sql);
 			if(!is_file("$MYSQL_DATA_DIR/squidlogs/$table.temp")){
-				echo "Starting......: ".date("H:i:s")." ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp no such file\n";
+				echo "Starting......: ".date("H:i:s")." Webfiltering service $MYSQL_DATA_DIR/squidlogs/$table.temp no such file\n";
 				continue;
 			}
-			echo "Starting......: ".date("H:i:s")." ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp done...\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service $MYSQL_DATA_DIR/squidlogs/$table.temp done...\n";
 			@copy("$MYSQL_DATA_DIR/squidlogs/$table.temp", "/var/lib/squidguard/$categoryname/domains");	
 			@unlink("$MYSQL_DATA_DIR/squidlogs/$table.temp");
-			echo "Starting......: ".date("H:i:s")." ufdbGuard UFDBGUARD_COMPILE_SINGLE_DB(/var/lib/squidguard/$categoryname/domains)\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service UFDBGUARD_COMPILE_SINGLE_DB(/var/lib/squidguard/$categoryname/domains)\n";
 			UFDBGUARD_COMPILE_SINGLE_DB("/var/lib/squidguard/$categoryname/domains");					
 		}else{
-			echo "Starting......: ".date("H:i:s")." ufdbGuard /var/lib/squidguard/$categoryname/domains OK\n";
+			echo "Starting......: ".date("H:i:s")." Webfiltering service /var/lib/squidguard/$categoryname/domains OK\n";
 			
 		}
 		
@@ -2533,7 +3166,7 @@ function ufdbguard_recompile_missing_dbs(){
 	}
 	build();
 	if(is_file("/etc/init.d/ufdb")){
-		echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service reloading service\n";
 		ufdbguard_admin_events("Service will be reloaded",__FUNCTION__,__FILE__,__LINE__,"config");
 		build_ufdbguard_HUP();
 	}
@@ -2566,7 +3199,7 @@ function ufdbguard_schedule(){
 	if(!is_numeric($UfdbGuardSchedule["EnableSchedule"])){$UfdbGuardSchedule["EnableSchedule"]=1;}
 	if($UfdbGuardSchedule["EnableSchedule"]==0){
 		@unlink($cronfile);
-		echo "Starting......: ".date("H:i:s")." ufdbGuard recompile all databases is not scheduled\n";
+		echo "Starting......: ".date("H:i:s")." Webfiltering service recompile all databases is not scheduled\n";
 		return;
 	}
 	if(!is_numeric($UfdbGuardSchedule["H"])){$UfdbGuardSchedule["H"]=5;}
@@ -2575,7 +3208,7 @@ function ufdbguard_schedule(){
 	$f[]="{$UfdbGuardSchedule["H"]} {$UfdbGuardSchedule["M"]} * * * root ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --ufdbguard-recompile-dbs >/dev/null 2>&1"; 
 	$f[]="";
 	@file_put_contents($cronfile,@implode("\n",$f) );	
-	echo "Starting......: ".date("H:i:s")." ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}\n";
+	echo "Starting......: ".date("H:i:s")." Webfiltering service recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}\n";
 	//events_ufdb_tail("ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}",__LINE__);
 }
 
@@ -2637,6 +3270,10 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 
 function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	$sock=new sockets();
+	if(system_is_overloaded(basename(__FILE__))){
+		squid_admin_mysql(1, "Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting recompiling personal categories", null,__FILE__,__LINE__);
+		die();
+	}
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
@@ -3237,7 +3874,7 @@ function stop_ufdbguard($aspid=false){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$kill=$unix->find_program("kill");
-	squid_admin_mysql(2, "Stopping Web Filtering engine service","");
+	squid_admin_mysql(0, "Stopping Web Filtering engine service","",__FILE__,__LINE__);
 	
 	
 	
@@ -3296,9 +3933,7 @@ function ufdguard_artica_db_status(){
 function parseTemplate_headers($title,$addhead=null,$SquidGuardIPWeb=null){
 	$sock=new sockets();
 	
-	if(!isset($GLOBALS["UfdbGuardHTTP"])){
-		$sock->BuildTemplatesConfig();
-	}
+	if(!isset($GLOBALS["UfdbGuardHTTP"])){$sock->BuildTemplatesConfig();}
 	
 	if($SquidGuardIPWeb<>null){
 		$SquidGuardIPWeb=str_replace("/".basename(__FILE__), "", $SquidGuardIPWeb);
@@ -3309,10 +3944,15 @@ function parseTemplate_headers($title,$addhead=null,$SquidGuardIPWeb=null){
 	if(isset($_REQUEST["unlock"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
 	if(isset($_REQUEST["unlock-www"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
 	if(isset($_REQUEST["smtp-send-email"])){$Background=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLK"];}
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"])){$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"]=2639;}
 	
 	
-	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"])){
-		$SquidHTTPTemplateSmiley=$sock->GET_INFO("SquidHTTPTemplateSmiley");
+	$SquidHTTPTemplateSmiley=intval($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"]);
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmileyEnable"])){
+		$SquidHTTPTemplateSmileyEnable=1;
+	}else{
+		$SquidHTTPTemplateSmileyEnable=$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmileyEnable"];
 	}
 	
 	$BackgroundColorBLKBT=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"];
@@ -3335,7 +3975,7 @@ function parseTemplate_headers($title,$addhead=null,$SquidGuardIPWeb=null){
 	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/default.js\"></script>";
 	$f[]="<script type=\"text/javascript\" language=\"javascript\" src=\"$SquidGuardIPWeb/XHRConnection.js\"></script>";
 	$f[]="<script type=\"text/javascript\">";
-	$f[]="    function Blur(){ }";
+	$f[]="    function blur(){ }";
 	$f[]="    function checkIfTopMostWindow()";
 	$f[]="    {";
 	$f[]="        if (window.top != window.self) ";
@@ -3475,6 +4115,7 @@ function parseTemplate_headers($title,$addhead=null,$SquidGuardIPWeb=null){
 		if($picturemode==null){$picturemode="absolute";}
 		$widthDiv="100%";
 		$heightDiv=null;
+		$align=null;
 		
 			list($width, $height, $type, $attr) = getimagesize(dirname(__FILE__)."/{$GLOBALS["UfdbGuardHTTP"]["picture_path"]}");
 			
@@ -3583,7 +4224,7 @@ function parseTemplate_smtp_button($ARRAY,$SquidGuardIPWeb){
 		<input type='hidden' name='email' value='$email'>
 		<input type='hidden' name='serialize' value='$serialize_array'>
 	</form>
-	<a href=\"javascript:Blur();\" OnClick=\"javascript:document.forms['post-send-email'].submit();\">{$SquidGuardWebSMTP["smtp_recipient"]}</a>";
+	<a href=\"javascript:blur();\" OnClick=\"javascript:document.forms['post-send-email'].submit();\">{$SquidGuardWebSMTP["smtp_recipient"]}</a>";
 	
 	
 }
@@ -3621,6 +4262,7 @@ function parseTemplate_smtp_post(){
 
 	$SquidGuardIPWeb=$ARRAY["SquidGuardIPWeb"];
 	$error=parseTemplate_sendemail_perform($email,$ARRAY);
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
 	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
 
 	$notify_your_administrator=$tpl->_ENGINE_parse_body("{notify_your_administrator}");
@@ -3798,7 +4440,7 @@ function parseTemplate_sendemail_js(){
 	
 }
 
-function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
+function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY,$ticket=false,$SquidGuardIPWeb=null){
 	ini_set('html_errors',0);
 	ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);
@@ -3811,11 +4453,14 @@ function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 	
-	if($smtp_sender==null){
-		$tpl=new templates();
-		return $tpl->_ENGINE_parse_body("{give_your_email_address}");
-	}
 	
+	if(!$ticket){
+		if($smtp_sender==null){
+			$tpl=new templates();
+			return $tpl->_ENGINE_parse_body("{give_your_email_address}");
+		}
+	}
+	$main_array=base64_encode(serialize($ARRAY));
 	$tpl=new templates();
 	$HOST=$ARRAY["HOST"];
 	$clientname=$ARRAY["clientname"];
@@ -3843,6 +4488,8 @@ function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
 	$URL=mysql_escape_string2($URL);
 	$REASONGIVEN=mysql_escape_string2($REASONGIVEN);
 	$md5=md5(serialize($ARRAY)."$Subject $smtp_sender");
+	$ticket_val=0;
+	if($ticket){$ticket_val=1;}
 	
 	$tablename="ufdb_smtp";
 	if($q->COUNT_ROWS("ufdb_smtp")==0){
@@ -3853,28 +4500,47 @@ function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
 	`zDate` datetime NOT NULL,
 	`Subject` varchar(255) NOT NULL,
 	`content` varchar(255) NOT NULL,
+	`main_array` TEXT,
 	`URL` varchar(255) NOT NULL,
 	`REASONGIVEN` varchar(255) NOT NULL,
 	`sender` varchar(128) NOT NULL,
 	`retrytime` smallint(1) NOT NULL,
+	`ticket` smallint(1) NOT NULL,
+	`SquidGuardIPWeb` varchar(255),
 	PRIMARY KEY (`zmd5`),
 	KEY `zDate` (`zDate`),
 	KEY `Subject` (`Subject`),
 	KEY `sender` (`sender`),
+	KEY `ticket` (`ticket`),
 	KEY `retrytime` (`retrytime`)
 	
-	) ENGINE=MEMORY;";
+	) ENGINE=MYISAM;";
 	
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
 		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
 		echo $q->mysql_error;return;}
 	
-	$q->QUERY_SQL("INSERT IGNORE INTO ufdb_smtp (`zmd5`,`zDate`,`Subject`,`content`,`sender`,`URL`,`REASONGIVEN`,`retrytime`) VALUES
-	('$md5',NOW(),'$Subject','$text','$smtp_sender','$URL','$REASONGIVEN','0')");
+	if(!$q->FIELD_EXISTS("ufdb_smtp", "SquidGuardIPWeb")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_smtp` ADD `SquidGuardIPWeb` varchar(255)");
+	}
+	if(!$q->FIELD_EXISTS("ufdb_smtp", "ticket")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_smtp` ADD `ticket` smallint(1) NOT NULL");
+	}
+	if(!$q->FIELD_EXISTS("ufdb_smtp", "main_array")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_smtp` ADD `main_array` TEXT");
+	}		
+	
+	
+	
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO ufdb_smtp (`zmd5`,`zDate`,`Subject`,`content`,`sender`,`URL`,
+			`REASONGIVEN`,`retrytime`,`SquidGuardIPWeb`,`ticket`,`main_array`) VALUES
+			('$md5',NOW(),'$Subject','$text','$smtp_sender','$URL','$REASONGIVEN','0','$SquidGuardIPWeb','$ticket_val','$main_array')");
 	if(!$q->ok){
 		writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		return $q->mysql_error_html();return false;
+		return $q->mysql_error_html();
+		return false;
 	}
 	
 	
@@ -3889,168 +4555,20 @@ function parseTemplate_sendemail_perform($smtp_sender=null,$ARRAY){
 	
 }
 
-function parseTemplate_unlock_privs($ARRAY,$pattern="deny=1",$tokenSource,$debug=false){
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.dansguardian.inc');
-	$HOST=$ARRAY["HOST"];
-	
-	$URL=$ARRAY["URL"];
-	$IPADDR=$ARRAY["IPADDR"];
-	$REASONGIVEN=$ARRAY["REASONGIVEN"];
-	$CATEGORY_KEY=$ARRAY["CATEGORY_KEY"];
-	$_CATEGORIES_K=$ARRAY["CATEGORY"];
-	$_RULE_K=$ARRAY["RULE"];
-	$targetgroup=$ARRAY["targetgroup"];
-	$IpToUid=$ARRAY["IpToUid"];
-	$SquidGuardIPWeb=base64_decode($_GET["SquidGuardIPWeb"]);
-	$client_username=$ARRAY["clientname"];
-	$RETURNED=2;
-	if(preg_match("#(.+?)=([0-9]+)#", $pattern,$re)){
-		$FIELD_TO_QUERY=$re[1];
-		$VALUE_TO_QUERY=$re[2];
-	}
-	
-	if($FIELD_TO_QUERY=="deny"){$RETURNED=0;}
-	if($FIELD_TO_QUERY=="allow"){$RETURNED=1;}
-	if($FIELD_TO_QUERY=="noauth"){$RETURNED=1;}
-	
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>FIELD_TO_QUERY == &laquo;$FIELD_TO_QUERY&raquo;,return =&laquo;$RETURNED&raquo;</span><br>\n";}
-	
-	$FILTER="`$FIELD_TO_QUERY`=$VALUE_TO_QUERY";
-	
-	if($FIELD_TO_QUERY=="addTocat"){
-		$FILTER="LENGTH(addTocat)>0";
-		$RETURNED=2;
-	}
-	
-	
-	
-	if(!isset($_SESSION["IsKerbAuth"])){
-		$ldap=new clladp();
-		$_SESSION["IsKerbAuth"]=$ldap->IsKerbAuth();
-	}
-	
-	if($debug){writelogs("$CATEGORY_KEY:: $FIELD_TO_QUERY -> $VALUE_TO_QUERY",__FUNCTION__,__FILE__,__LINE__);}
-	$q=new mysql_squid_builder();
-	
-	
-	$sql="SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND adgroup='*' AND $FILTER";
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>$sql</span><br>\n";}
-	
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>$q->mysql_error</span><br>\n";}
-		writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
-	
-	if($ligne["zmd5"]<>null){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>zmd5<>null</span><br>\n";}
-		if($RETURNED==2){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>RETURNED == 2<>null return {$ligne[$FIELD_TO_QUERY]}</span><br>\n";}
-			$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-			return $ligne[$FIELD_TO_QUERY];
-		}
-		if($ligne[$FIELD_TO_QUERY]==1){
-			$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-			return $RETURNED;
-		}
-	}
-	
-	if($_SESSION["IsKerbAuth"]){
-		if($debug){writelogs("$CATEGORY_KEY:: IsKerbAuth -> TRUE",__FUNCTION__,__FILE__,__LINE__);}
-		$sql="SELECT zmd5,maxtime,adgroup,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND $FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		if(!$q->ok){writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
-		
-		if($ligne["zmd5"]<>null){
-			
-			if($debug){writelogs("$CATEGORY_KEY:: {$ligne["zmd5"]}",__FUNCTION__,__FILE__,__LINE__);}
-			if($ligne["adgroup"]<>null){
-				if($client_username<>null){
-					if($debug){writelogs("$CATEGORY_KEY:: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username",__FUNCTION__,__FILE__,__LINE__);}
-					if(parseTemplate_if_in_ADGroup($ligne["adgroup"],$client_username)){
-						if($RETURNED==2){
-							if($debug){writelogs("$CATEGORY_KEY:: [$FIELD_TO_QUERY]: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username RETURN:{$ligne[$FIELD_TO_QUERY]}",__FUNCTION__,__FILE__,__LINE__);}
-							$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-							return $ligne[$FIELD_TO_QUERY];
-						}
-						if($debug){writelogs("$CATEGORY_KEY:: [$FIELD_TO_QUERY]: parseTemplate_if_in_ADGroup {$ligne["adgroup"]}/$client_username RETURN:$RETURNED",__FUNCTION__,__FILE__,__LINE__);}
-						$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-						return $RETURNED;
-					}
-				}
-			}
-		}
-	}
 
-	if($client_username<>null){
-		$sql="SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND `username`='$client_username' AND $FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		if(!$q->ok){writelogs("$CATEGORY_KEY:: MySQL ERROR $q->mysql_error $sql",__FUNCTION__,__FILE__,__LINE__);}
-			if($ligne["zmd5"]<>null){
-				if($RETURNED==2){$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];return $ligne[$FIELD_TO_QUERY];}
-				if($ligne[$FIELD_TO_QUERY]==1){
-					if($debug){writelogs("$CATEGORY_KEY::RETURN $RETURNED",__FUNCTION__,__FILE__,__LINE__);}
-					$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-					return $RETURNED;
-				} 
-		}
-	}
-	
-	if($IPADDR<>null){
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zmd5,maxtime,`$FIELD_TO_QUERY` FROM ufdb_page_rules WHERE category='$CATEGORY_KEY' AND `username`='$IPADDR' AND $FILTER"));
-		if($ligne["zmd5"]<>null){
-			if($RETURNED==2){return $ligne[$FIELD_TO_QUERY];}
-			if($ligne[$FIELD_TO_QUERY]==1){
-				if($debug){writelogs("$CATEGORY_KEY::RETURN $RETURNED",__FUNCTION__,__FILE__,__LINE__);}
-				$GLOBALS["RULE_MAX_TIME"]=$ligne["maxtime"];
-				return $RETURNED;
-			} 
-		}
-	}	
-	
-	return $tokenSource;
-	
-}
 
-function parseTemplate_if_in_ADGroup($adgroup,$client_username){
-	include_once(dirname(__FILE__)."/ressources/class.external_acl_squid_ldap.inc");
-	
-	if(!isset($_SESSION["GROUPES_IN_AD"])){
-		$ad=new external_acl_squid_ldap();
-		$groupes=$ad->ADLdap_getgroups($client_username);
-		while (list ($GroupName, $none) = each ($groupes) ){
-			$GROUPES_IN_AD[trim(strtolower($GroupName))]=true;
-		}
-		$_SESSION["GROUPES_IN_AD"]=$GROUPES_IN_AD;
-	}else{
-		$GROUPES_IN_AD=$_SESSION["GROUPES_IN_AD"];
-	}
-	
-	
-	if(strpos($adgroup, ",")>0){
-		$QueriesGroups=explode(",",$adgroup);
-	}else{
-		$QueriesGroups[]=$adgroup;
-	}
-	
-	while (list ($none, $GroupName) = each ($QueriesGroups) ){
-		$GROUPES_TO_AD[trim(strtolower($GroupName))]=true;
-	}
-	
-	while (list ($GroupName,$none ) = each ($GROUPES_TO_AD) ){
-		if(isset($GROUPES_IN_AD[$GroupName])){return true;}
-	}
-	
-	
-	
+
+
+function parseTemplate_debug($text,$line){
+	if(!$GLOBALS["VERBOSE"]){return;}
+	echo "<p style='color:yellow'>$text ( in line $line )</p>\n";
 }
 
 
 function parseTemplate_build_main($ARRAY){
 	$sock=new sockets();
 	$page=CurrentPageName();
+	if(!isset($GLOBALS["ARTICA_VERSION"])){$GLOBALS["ARTICA_VERSION"]=null;}
 	if($GLOBALS["ARTICA_VERSION"]==null){$GLOBALS["ARTICA_VERSION"]=trim(@file_get_contents(dirname(__FILE__)."/VERSION"));}
 	
 	$version=$GLOBALS["ARTICA_VERSION"];
@@ -4067,9 +4585,27 @@ function parseTemplate_build_main($ARRAY){
 	$SquidGuardIPWeb=base64_decode($_GET["SquidGuardIPWeb"]);
 	$client_username=$ARRAY["clientname"];
 	$hostname=$sock->GET_INFO("myhostname");
+
 	$ARRAY["Proxy Server"]=$hostname;
 	$sock->BuildTemplatesConfig($ARRAY);
+	$EnableSquidGuardMicrosoftTPL=intval($sock->GET_INFO("EnableSquidGuardMicrosoftTPL"));
+	$SquidHTTPTemplateSmiley=intval($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"]);
 	
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white'>";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='color:black'>".__CLASS__."/".__LINE__.":UfdbGuardHTTPNoVersion: {$GLOBALS["UfdbGuardHTTP"]["NoVersion"]}</li>";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='color:black'>".__CLASS__."/".__LINE__.":SquidHTTPTemplateSmileyEnable: {$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmileyEnable"]} / {$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmiley"]}</li>";}
+	if($GLOBALS["VERBOSE"]){echo "</div>";}
+	
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmileyEnable"])){
+		$SquidHTTPTemplateSmileyEnable=1;
+	}else{
+		$SquidHTTPTemplateSmileyEnable=$GLOBALS["UfdbGuardHTTP"]["SquidHTTPTemplateSmileyEnable"];
+	}
+	
+	$BackgroundColorBLKBT=$GLOBALS["UfdbGuardHTTP"]["BackgroundColorBLKBT"];
+	
+	if(!is_numeric($SquidHTTPTemplateSmiley)){$SquidHTTPTemplateSmiley=2639;}
 	
 	if($IPADDR==null){
 		$IPADDR=parseTemplate_GET_REMOTE_ADDR();
@@ -4129,21 +4665,33 @@ function parseTemplate_build_main($ARRAY){
 		$Postmaster=parseTemplate_smtp_button($ARRAY,$SquidGuardIPWeb);
 	}
 	
-
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
 	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
 	$UFDBGUARD_TITLE_1=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_1"];
 	$UFDBGUARD_PARA1=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA1"];
 	$UFDBGUARD_PARA2=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_PARA2"];
 	$UFDBGUARD_TITLE_2=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TITLE_2"];
+	$UFDBGUARD_UNLOCK_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	$UFDBGUARD_TICKET_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_TICKET_LINK"];
+	$UfdbGuardHTTPDisableHostname=$GLOBALS["UfdbGuardHTTP"]["UfdbGuardHTTPDisableHostname"];
 	
+	if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white'>";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='color:black'>UfdbGuardHTTPDisableHostname: $UfdbGuardHTTPDisableHostname</li>";}
+	if($GLOBALS["VERBOSE"]){echo "<li style='color:black'>UfdbGuardHTTPNoVersion: $UfdbGuardHTTPNoVersion</li>";}
+	
+	if($GLOBALS["VERBOSE"]){echo "</div>";}
 	
 
 	
 	$f[]=parseTemplate_headers("$UFDBGUARD_TITLE_1 - $_CATEGORIES_K",null,$SquidGuardIPWeb);
+	$f2[]=microsoft_ufdb_template("$UFDBGUARD_TITLE_1",null,$SquidGuardIPWeb);
+	
+	$f2[]="<p style='font-size:25px'>$REASONGIVEN</p>";
 	
 	
-	
-	$f[]="    <h1 class=bad></h1>";
+	if($SquidHTTPTemplateSmileyEnable==1){
+		$f[]="    <h1 class=bad></h1>";
+	}
 	if(trim(strtolower($UFDBGUARD_TITLE_1))<>"none"){
 		$f[]="    <h2>$UFDBGUARD_TITLE_1</h2>    ";
 	}
@@ -4151,12 +4699,15 @@ function parseTemplate_build_main($ARRAY){
 	
 	if(trim(strtolower($UFDBGUARD_PARA1))<>"none"){
 		$f[]="    <p>$UFDBGUARD_PARA1</p>";
+		$f2[]="    <p>$UFDBGUARD_PARA1</p>";
 	}
 	if(trim(strtolower($UFDBGUARD_TITLE_2))<>"none"){
 		$f[]="    <h3>$UFDBGUARD_TITLE_2</h3>";
+		$f2[]="    <p style='font-size:25px'>$UFDBGUARD_TITLE_2</p>";
 	}
 	if(trim(strtolower($UFDBGUARD_PARA2))<>"none"){
 		$f[]="    <p>$UFDBGUARD_PARA2</p>    ";
+		$f2[]="    <p>$UFDBGUARD_PARA2</p>";
 	}
 	$f[]="    ";
 	$f[]="    <div id=\"info\">";
@@ -4185,25 +4736,30 @@ function parseTemplate_build_main($ARRAY){
 	}
 	
 	$membersTX=@implode(", ", $members);
-	
+	$f2[]="<UL class=\"tasks\" id=\"cantDisplayTasks\">";
 	if($UfdbGuardHTTPDisableHostname==0){
 		$hostname=$sock->GET_INFO("myhostname");
 		if($hostname==null){$hostname=$sock->getFrameWork("system.php?hostname-g=yes");$sock->SET_INFO($hostname,"myhostname");}
 		$f[]="        <tr><td class=\"info_title\">{proxy_server}:</td><td class=\"info_content\">$hostname</td></tr>";
+		$f2[]="<li><strong>{proxy_server}</strong>: $hostname</li>";
 	}	
 	
 	if($GLOBALS["VERBOSE"]){echo "<span style='font-size:16px'>UfdbGuardHTTPEnablePostmaster:$UfdbGuardHTTPEnablePostmaster</span><br>\n";}
 	
 	if($UfdbGuardHTTPEnablePostmaster==1){
 		$f[]="        <tr><td class=\"info_title\">{administrator}:</td><td class=\"info_content\">$Postmaster</td></tr>";
+		$f2[]="<li><strong>{administrator}</strong>: $Postmaster</li>";
 	}
 	if($UfdbGuardHTTPNoVersion==0){
-		$f[]="        <tr><td class=\"info_title\">{application}:</td><td class=\"info_content\">Artica Proxy, version $version</td></tr>";
+		$f2[]="<li><strong>{application}</strong>: Version $version</li>";
+		$f[]="        <tr><td class=\"info_title\">{application}:</td><td class=\"info_content\">Version $version</td></tr>";
 	}
 	
 	
 	if($targetgroup=="restricted_time"){$targetgroup="{restricted_access}";}
-	
+	$f2[]="<li><strong>{member}</strong>: $membersTX</li>";
+	$f2[]="<li><strong>{policy}</strong>: $_RULE_K, $targetgroup</li>";
+	$f2[]="<li><strong>{requested_uri}</strong>: $URL</li>";
 	$f[]="        <tr><td class=\"info_title\">{member}:</td><td class=\"info_content\">$membersTX</td></tr>";
 	$f[]="        <tr><td class=\"info_title\">{policy}:</td><td class=\"info_content\">$_RULE_K, $targetgroup</td></tr>";
 	$f[]="        <tr>";
@@ -4217,20 +4773,29 @@ function parseTemplate_build_main($ARRAY){
 	$NOUNBLOCK=false;
 	if(isset($_GET["fatalerror"])){$NOUNBLOCK=true;}
 	if(isset($_GET["loading-database"])){$NOUNBLOCK=true;}
-	
+	$AllowTicket=0;
 	
 	$q=new mysql_squid_builder();
-	if($q->COUNT_ROWS("ufdb_page_rules")>0){
+	$CountOfufdb_page_rules=$q->COUNT_ROWS("ufdb_page_rules");
+	parseTemplate_debug("ufdb_page_rules: $CountOfufdb_page_rules", __LINE__);
+	
+	
+	if($CountOfufdb_page_rules>0){
+		include_once(dirname(__FILE__)."/ressources/class.ufdb.parsetemplate.inc");
+		$unlock=new parse_template_ufdb();
 		
 		if($GLOBALS["VERBOSE"]){echo "<hr style='border-color:#35CA61'>\n";}
 		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
-		$UfdbGuardHTTPAllowUnblock=parseTemplate_unlock_privs($ARRAY,"allow=1",$UfdbGuardHTTPAllowUnblock);
+		$UfdbGuardHTTPAllowUnblock=$unlock->parseTemplate_unlock_privs($ARRAY,"allow=1",$UfdbGuardHTTPAllowUnblock);
 		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>allow: UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
-		$UfdbGuardHTTPAllowUnblock=parseTemplate_unlock_privs($ARRAY,"deny=1",$UfdbGuardHTTPAllowUnblock);
+		$UfdbGuardHTTPAllowUnblock=$unlock->parseTemplate_unlock_privs($ARRAY,"deny=1",$UfdbGuardHTTPAllowUnblock);
 		if($GLOBALS["VERBOSE"]){echo "<span style='color:#35CA61'>Deny: UfdbGuardHTTPAllowUnblock=$UfdbGuardHTTPAllowUnblock</span><br>\n";}
+		
+		$AllowTicket=$unlock->parseTemplate_unlock_privs($ARRAY,"ticket=1",0);
+		if($AllowTicket==1){$UfdbGuardHTTPAllowUnblock=0;}
 	}
 	
-	
+	$f2[]="</ul>";
 	
 	if($UfdbGuardHTTPAllowUnblock==1){
 
@@ -4239,15 +4804,61 @@ function parseTemplate_build_main($ARRAY){
 			$IPADDR_ENCODE=urlencode($IPADDR);
 			$page=CurrentPageName();
 			$SquidGuardIPWeb_enc=urlencode($SquidGuardIPWeb);
+			$unlock_web_site_text="{unlock_web_site}";
+			if($UFDBGUARD_UNLOCK_LINK<>null){$unlock_web_site_text=$UFDBGUARD_UNLOCK_LINK;}
 			
 			if(isset($GLOBALS["RULE_MAX_TIME"])){$ARRAY["RULE_MAX_TIME"]=$GLOBALS["RULE_MAX_TIME"];}
 			
 			$ARRAY_SERIALIZED=urlencode(base64_encode(serialize($ARRAY)));
-			$f[]="<p>{$GLOBALS["UfdbGuardHTTP"]["UnbblockText1"]}</p>
+			$unlock_text="<p>{$GLOBALS["UfdbGuardHTTP"]["UnbblockText1"]}</p>
 			<div style='text-align:right;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};padding-top:5px'>
-			<a href='$SquidGuardIPWeb?unlock=yes&url=$URL_ENCODED&ipaddr=$IPADDR_ENCODE&SquidGuardIPWeb=$SquidGuardIPWeb_enc&clientname={$ARRAY["clientame"]}&serialize=$ARRAY_SERIALIZED' class=important>{unlock_web_site}</a></div>";
+			<a href='$SquidGuardIPWeb?unlock=yes&url=$URL_ENCODED&ipaddr=$IPADDR_ENCODE&SquidGuardIPWeb=$SquidGuardIPWeb_enc&clientname={$ARRAY["clientame"]}&serialize=$ARRAY_SERIALIZED' class=important>
+			$unlock_web_site_text</a></div>";
+			
+			$f[]=$unlock_text;
+			$f2[]=$unlock_text;
 		}
-	}	
+	}
+
+	if($AllowTicket==1){
+		$URL_ENCODED=urlencode($URL);
+		$IPADDR_ENCODE=urlencode($IPADDR);
+		$page=CurrentPageName();
+		$SquidGuardIPWeb_enc=urlencode($SquidGuardIPWeb);
+		$ticket_web_site_text="{submit_a_ticket}";
+		if($UFDBGUARD_TICKET_LINK<>null){$ticket_web_site_text=$UFDBGUARD_TICKET_LINK;}
+		$ARRAY_SERIALIZED=urlencode(base64_encode(serialize($ARRAY)));
+		$unlock_text="<p>{$GLOBALS["UfdbGuardHTTP"]["TICKET_TEXT"]}</p>
+		<div style='text-align:right;border-top:1px solid {$GLOBALS["UfdbGuardHTTP"]["FontColor"]};padding-top:5px'>
+		<a href='$SquidGuardIPWeb?ticket=yes&url=$URL_ENCODED&ipaddr=$IPADDR_ENCODE&SquidGuardIPWeb=$SquidGuardIPWeb_enc&clientname={$ARRAY["clientame"]}&serialize=$ARRAY_SERIALIZED' class=important>
+		$ticket_web_site_text</a></div>";
+		$f[]=$unlock_text;
+		$f2[]=$unlock_text;
+	}
+	
+	$f2[]="$FOOTER</DIV>";
+	$f2[]="</DIV>";
+	$f2[]="</BODY>";
+	$f2[]="</HTML>";
+	
+	if(!isset($_SESSION["UFDB_PAGE_LANG"])){
+		if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/ressources/class.langages.inc");}
+		$langAutodetect=new articaLang();
+		$_SESSION["UFDB_PAGE_LANG"]=$langAutodetect->get_languages();
+	
+	}
+	
+
+	$tpl=new templates();
+	
+	$tpl->language=$_SESSION["UFDB_PAGE_LANG"];
+	
+	if($EnableSquidGuardMicrosoftTPL==1){
+		return $tpl->_ENGINE_parse_body(@implode("\n", $f2));
+	
+	}
+	
+	
 	
 	$f[]="    </div>    $FOOTER";
 	$f[]="</div>";
@@ -4257,14 +4868,6 @@ function parseTemplate_build_main($ARRAY){
 		$f[]="    $num = $ligne";
 	}
 
-	$tpl=new templates();
-	if(!isset($_SESSION["UFDB_PAGE_LANG"])){
-		if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/ressources/class.langages.inc");}
-		$langAutodetect=new articaLang();
-		$_SESSION["UFDB_PAGE_LANG"]=$langAutodetect->get_languages();
-		
-	}
-	$tpl->language=$_SESSION["UFDB_PAGE_LANG"];
 	$f[]=" Language : $tpl->language";
 	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 	$f[]="    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
@@ -4283,7 +4886,7 @@ function parseTemplate_build_main($ARRAY){
 	$f[]="-->";
 	$f[]="</html>";
 	
-	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+	return $tpl->_ENGINE_parse_body(@implode("\n", $f));
 }
 
 function wifidog_build_uri(){
@@ -4308,6 +4911,7 @@ function parseTemplate_unlock_checkcred(){
 	include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 	include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	include_once(dirname(__FILE__)."/ressources/class.ldap-extern.inc");
 	include("ressources/settings.inc");
 	$sock=new sockets();
 	$UfdbGuardHTTPAllowNoCreds=intval($sock->GET_INFO("UfdbGuardHTTPAllowNoCreds"));
@@ -4315,6 +4919,16 @@ function parseTemplate_unlock_checkcred(){
 	if($_POST["nocreds"]==1){return true;}
 	$username=$_POST["username"];
 	$password=trim($_POST["password"]);
+	
+	
+	if($sock->SQUID_IS_EXTERNAL_LDAP()){
+		$ldap_extern=new ldap_extern();
+		if($ldap_extern->checkcredentials($username, $password)){return true;}
+		
+		
+	}
+	
+	
 	
 	
 	if(trim(strtolower($username))==trim(strtolower($_GLOBAL["ldap_admin"]))){
@@ -4355,9 +4969,158 @@ function parseTemplate_unlock_checkcred(){
 	
 }
 
+function parseTemplate_ticket_save(){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+	include_once(dirname(__FILE__)."/ressources/class.templates.inc");	
+	
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	$tpl=new templates();
+
+	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
+	$sock->BuildTemplatesConfig($ARRAY);
+	$finalhost=$_POST["finalhost"];
+	$IPADDR=$_REQUEST["ipaddr"];
+	$user=$_REQUEST["username"];
+	$SquidGuardIPWeb=$_REQUEST["SquidGuardIPWeb"];
+	$familysite=$q->GetFamilySites($finalhost);
+	
+	$_RULE_K=$ARRAY["RULE"];
+	$IPADDR=$ARRAY["IPADDR"];
+	$targetgroup=$ARRAY["targetgroup"];
+	$IpToUid=$ARRAY["IpToUid"];
+	$URL=$ARRAY["URL"];
+	$HOST=$ARRAY["HOST"];
+	
+	$members[]=$IPADDR;
+	if($HOST<>null){$members[]=$HOST; }
+	if(trim($IpToUid)<>null){$members[]=$IpToUid;}
+	if(count($members)>0){while (list ($num, $ligne) = each ($members) ){$AAAA[$ligne]=true;}
+	$members=array();
+	while (list ($num, $ligne) = each ($AAAA) ){$members[]=$num;}}
+	$membersTX=@implode(", ", $members);
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+	$notify_your_administrator=$tpl->_ENGINE_parse_body("{notify_your_administrator}");
+	
+	$ticket_web_site_text="{submit_a_ticket}";
+	$UFDBGUARD_TICKET_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	$TICKET_TEXT_SUCCESS=$GLOBALS["UfdbGuardHTTP"]["TICKET_TEXT_SUCCESS"];
+	if($TICKET_TEXT_SUCCESS==null){$TICKET_TEXT_SUCCESS="{ufdb_ticket_text_success}";}
+	
+	if($UFDBGUARD_TICKET_LINK<>null){$ticket_web_site_text=$UFDBGUARD_TICKET_LINK;}
+	
+	$cssform="  -moz-border-radius: 5px;
+  border-radius: 5px;
+  border:1px solid #DDDDDD;
+  background:url(\"/img/gr-greybox.gif\") repeat-x scroll 0 0 #FBFBFA;
+  background:-moz-linear-gradient(center top , #F1F1F1 0px, #FFFFFF 45px) repeat scroll 0 0 transparent;
+  background: rgb(255,255,255); /* Old browsers */
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,1)), color-stop(47%,rgba(246,246,246,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* IE10+ */
+  background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+						
+  margin:5px;padding:5px;
+  -webkit-border-radius: 5px;
+  -o-border-radius: 5px;
+ -moz-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ -webkit-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+ box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);";	
+	
+	
+	$MAX=intval($GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]);
+	$url=$_REQUEST["url"];
+	$md5=md5($finalhost.$IPADDR.$user);
+	$q->QUERY_SQL("INSERT IGNORE INTO webfilters_usersasks (zmd5,ipaddr,sitename,uid) VALUES ('$md5','$IPADDR','$familysite','$user')");
+	$function=__FUNCTION__;
+	$file=basename(__FILE__);
+	$line=__LINE__;
+	$subject="Unlock website ticket $finalhost/$familysite from $user/$IPADDR";
+	
+	
+	
+	
+	
+	
+	
+	$q=new mysql();
+	$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_mysql`
+			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+			(NOW(),'','$subject','$function','$file','$line','1','{$_SERVER["SERVER_NAME"]}')","artica_events");
+	if(!$q->ok){
+		$redirect=null;
+		$MAIN_BODY="<center style='margin:20px;padding:20px;$cssform;color:black;width:80%'>
+		<H1>Oups!</H1><hr>".$q->mysql_error_html()."</center>";
+	
+	}
+	$error=parseTemplate_sendemail_perform(null,$ARRAY,true,$SquidGuardIPWeb);
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
+	
+	$notify_your_administrator=$tpl->_ENGINE_parse_body("{notify_your_administrator}");
+	$fontfamily="font-family: {$GLOBALS["UfdbGuardHTTP"]["Family"]};";
+	$fontfamily=str_replace('"', "", $fontfamily);
+	
+	
+	$f[]=parseTemplate_headers($ticket_web_site_text,null,$SquidGuardIPWeb);
+	$f[]="    <h2>{notify_your_administrator}</h2>";
+	if($error<>null){$f[]="    <h2>$error</h2>";}
+	$f[]="<h3>$TICKET_TEXT_SUCCESS</h3>";
+	$f[]="<div id=\"info\" style='margin-top:20px'>";
+	
+	$f[]="<form id='send-email-form' action=\"$SquidGuardIPWeb\" method=\"post\">";
+	$f[]="<table width='100%;'>";
+	$f[]="        <tr><td class=\"info_title\">{member}:</td><td class=\"info_content\">$membersTX</td></tr>";
+	$f[]="        <tr><td class=\"info_title\">{policy}:</td><td class=\"info_content\">$_RULE_K, $targetgroup</td></tr>";
+	$f[]="        <tr>";
+	$f[]="            <td class=\"info_title\" nowrap>{requested_uri}:</td>";
+	$f[]="            <td class=\"info_content\">";
+	$f[]="                <div class=\"break-word\">$URL</div>";
+	$f[]="            </td>";
+	$f[]="        </tr>";
+	$f[]="    </table>
+	<p style='margin-top:50px'>&nbsp;</p>";
+	$f[]="
+	</form>
+	<script>
+	function CheckTheForm(e){
+		if(!checkEnter(e)){return;}
+		document.forms['send-email-form'].submit();
+		}
+	
+	</script>
+	";
+	
+	
+	$f[]="</div>    $FOOTER";
+	$f[]="</div>";
+	$f[]="</body>";
+	$f[]="</html>";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));
+		
+	
+	
+	
+}
 
 
-function parseTemplate_unlock_save(){
+function parseTemplate_release_ticket(){
+
+	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
+
+	parseTemplate_unlock_save(true,$ARRAY,true);
+		
+}
+
+
+
+function parseTemplate_unlock_save($noauth=false,$ARRAYCMD=array(),$noredirect=false){
 	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
@@ -4375,10 +5138,11 @@ function parseTemplate_unlock_save(){
  -webkit-box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);";	
 	
-	
-	if(!parseTemplate_unlock_checkcred()){
-		parseTemplate_unlock("{wrong_password_or_username}");
-		die();
+	if(!$noauth){
+		if(!parseTemplate_unlock_checkcred()){
+			parseTemplate_unlock("{wrong_password_or_username}");
+			die();
+		}
 	}
 	
 	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
@@ -4388,10 +5152,22 @@ function parseTemplate_unlock_save(){
 	$finalhost=$_POST["finalhost"];
 	$IPADDR=$_REQUEST["ipaddr"];
 	$user=$_REQUEST["username"];
+	$url=$_REQUEST["url"];
 	$SquidGuardIPWeb=$_REQUEST["SquidGuardIPWeb"];
 	
+	if(count($ARRAYCMD)>3){
+		$IPADDR=$ARRAY["IPADDR"];
+		$user=$ARRAY["clientname"];
+		$url=$ARRAY["URL"];
+		$H=parse_url($url);
+		$finalhost=$H["host"];
+		
+	}
+	
+	
 	$MAX=intval($GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"]);
-	$url=$_REQUEST["url"];
+	
+	
 	
 	if(isset($ARRAY["RULE_MAX_TIME"])){
 		if(intval($ARRAY["RULE_MAX_TIME"])>0){
@@ -4425,7 +5201,9 @@ function parseTemplate_unlock_save(){
 	
 	
 	$familysite=$q->GetFamilySites($finalhost);
-	$addTocategory=parseTemplate_unlock_privs($ARRAY,"addTocat=1",null);
+	include_once(dirname(__FILE__)."/ressources/class.ufdb.parsetemplate.inc");
+	$unlock=new parse_template_ufdb();
+	$addTocategory=$unlock->parseTemplate_unlock_privs($ARRAY,"addTocat=1",null);
 	
 	if(!isset($ARRAY["RULE_MAX_TIME"])){
 		if(isset($GLOBALS["RULE_MAX_TIME"])){
@@ -4465,21 +5243,31 @@ function parseTemplate_unlock_save(){
 	$file=basename(__FILE__);
 	$line=__LINE__;
 	$subject="Unlocked website $finalhost/$familysite from $user/$IPADDR";
-	$redirect="<META http-equiv=\"refresh\" content=\"10; URL=$url\">";
+	$redirect="<META http-equiv=\"refresh\" content=\"10; URL=$url?ufdbtime=".time()."\">";
 	
 	$redirecting_text=$tpl->javascript_parse_text("{redirecting}");
-	$MAIN_BODY="<center>
 	
-	<center style='margin:20px;padding:20px;$cssform;color:black;width:80%'>
+	$redirect_text="{please_wait_redirecting_to}<br>$url<br><{for} $MAX {minutes}";
+	
+	if($noredirect==true){
+		$redirect=null;
+		$redirect_text="{unlock}<br>$url<br><{for} $MAX {minutes}";
+		$redirecting_text=$tpl->javascript_parse_text("{done}");
+	}
+	
+	$MAIN_BODY="<center>
+	<div id='maincountdown' style='width:100%'>
+	<center style='margin:20px;padding:20px;$cssform;color:black;width:80%' >
 		<input type='hidden' id='countdownvalue' value='10'>
 		<span id='countdown' style='font-size:70px'></span>
 	</center>
-	
+	</div>
 	<p style='font-size:22px'>
 			<center style='margin:50px;$cssform;color:black;width:80%'>
-				{please_wait_redirecting_to}<br>$url<br><{for} $MAX {minutes}
-				<center style='margin:20px'>
-				<img src='img/wait_verybig_mini_red.gif'></center>
+				$redirect_text
+				<center style='margin:20px;font-size:70px' id='wait_verybig_mini_red'>
+					<img src='img/wait_verybig_mini_red.gif'>
+				</center>
 			</center>
 	</p> 
 	</center>
@@ -4491,7 +5279,10 @@ setInterval(function () {
 	var countdown = document.getElementById('countdownvalue').value
 	countdown=countdown-1;
 	if(countdown==0){
-		document.getElementById('countdownvalue').innerHTML='$redirecting_text';
+		document.getElementById('countdownvalue').value=0;
+		document.getElementById('wait_verybig_mini_red').innerHTML='$redirecting_text';
+		document.getElementById('maincountdown').innerHTML='';
+		
 		return;
 	}
 	document.getElementById('countdownvalue').value=countdown;
@@ -4516,10 +5307,21 @@ setInterval(function () {
 	
 	if($redirect<>null){
 		$sock=new sockets();
+		if($GLOBALS["VERBOSE"]){echo "<H1 style='color:white'>squid.php?reconfigure-unlock=yes</H1>";}
+		$sock->getFrameWork("squid.php?reconfigure-unlock=yes");
+	}
+	if($noredirect){
+		$sock=new sockets();
+		if($GLOBALS["VERBOSE"]){echo "<H1 style='color:white'>squid.php?reconfigure-unlock=yes</H1>";}
 		$sock->getFrameWork("squid.php?reconfigure-unlock=yes");
 	}
 	
-	$f[]=parseTemplate_headers("{unlock_web_site}",$redirect);
+	$UFDBGUARD_UNLOCK_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	$unlock_web_site_text="{unlock_web_site}";
+	if($UFDBGUARD_UNLOCK_LINK<>null){$unlock_web_site_text=$UFDBGUARD_UNLOCK_LINK;}
+	
+	$f[]=parseTemplate_headers($unlock_web_site_text,$redirect);
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
 	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
 	$f[]=$MAIN_BODY;
 	$f[]=$FOOTER;
@@ -4529,7 +5331,53 @@ setInterval(function () {
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body(@implode("\n", $f));	
 	
+}
+
+function parseTemplate_ticket($error=null){
+	include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");	
+	$sock=new sockets();
+	$ARRAY=unserialize(base64_decode($_REQUEST["serialize"]));
+	$sock->BuildTemplatesConfig($ARRAY);
+	$SquidGuardIPWeb=null;
+	$url=$_REQUEST["url"];
+	$IPADDR=$_REQUEST["ipaddr"];
+	if(isset($_GET["SquidGuardIPWeb"])){$SquidGuardIPWeb=$_GET["SquidGuardIPWeb"];}
+	if($SquidGuardIPWeb==null){$SquidGuardIPWeb=CurrentPageName();}
+	if($GLOBALS["VERBOSE"]){echo "<H1>SquidGuardIPWeb=$SquidGuardIPWeb</H1>";}
+	$UfdbGuardHTTPAllowNoCreds=intval($sock->GET_INFO("UfdbGuardHTTPAllowNoCreds"));
 	
+	$q=new mysql_squid_builder();
+	$parse_url=parse_url($url);
+	$host=$parse_url["host"];
+	if(preg_match("#(.+?):[0-9]+#", $host,$re)){$host=$re[1];}
+	$FinalHost=$q->GetFamilySites($host);
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
+	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];	
+	
+	$ticket_web_site_text="{submit_a_ticket}";
+	$UFDBGUARD_TICKET_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	if($UFDBGUARD_TICKET_LINK<>null){$ticket_web_site_text=$UFDBGUARD_TICKET_LINK;}
+	
+	$f[]=parseTemplate_headers("$UFDBGUARD_TICKET_LINK",null,$SquidGuardIPWeb);
+	$f[]=$f[]="<form id='unlockform' action=\"$SquidGuardIPWeb\" method=\"post\">
+	<input type='hidden' id='unlock-ticket' name='unlock-ticket' value='yes'>
+	<input type='hidden' id='finalhost' name='finalhost' value='$FinalHost'>
+	<input type='hidden' id='ipaddr' name='ipaddr' value='$IPADDR'>
+	<input type='hidden' id='SquidGuardIPWeb' name='SquidGuardIPWeb' value='$SquidGuardIPWeb'>
+	<input type='hidden' id='serialize' name='serialize' value='{$_REQUEST["serialize"]}'>
+	<input type='hidden' id='url' name='url' value='$url'>";
+	$f[]="<input type='hidden' id='username' name='username' value='{$_REQUEST["clientname"]}'>";
+	$f[]="<script>	";
+	$f[]="function CheckTheForm(){	";
+	$f[]="document.forms['unlockform'].submit();";
+	$f[]="}	";
+	$f[]="CheckTheForm();";
+	$f[]="</script>	";
+	$f[]="</body>";
+	$f[]="</html>";
+	echo @implode("\n", $f);
 	
 	
 }
@@ -4555,6 +5403,8 @@ function parseTemplate_unlock($error=null){
 	$host=$parse_url["host"];
 	if(preg_match("#(.+?):[0-9]+#", $host,$re)){$host=$re[1];}
 	$FinalHost=$q->GetFamilySites($host);
+	
+	if(!isset($GLOBALS["UfdbGuardHTTP"]["FOOTER"])){$GLOBALS["UfdbGuardHTTP"]["FOOTER"]=null;}
 	$FOOTER=$GLOBALS["UfdbGuardHTTP"]["FOOTER"];
 	$MAX=$GLOBALS["UfdbGuardHTTP"]["UnbblockMaxTime"];
 	$Timez[5]="5 {minutes}";
@@ -4584,12 +5434,18 @@ function parseTemplate_unlock($error=null){
 	if($client_username<>null){$_REQUEST["clientname"]=$client_username;}
 	
 	if($q->COUNT_ROWS("ufdb_page_rules")>0){
-		$noauth=parseTemplate_unlock_privs($ARRAY,$pattern="noauth=1",0,true);
+		include_once(dirname(__FILE__)."/ressources/class.ufdb.parsetemplate.inc");
+		$unlock=new parse_template_ufdb();
+		$noauth=$unlock->parseTemplate_unlock_privs($ARRAY,$pattern="noauth=1",0,true);
 		$UfdbGuardHTTPAllowNoCreds=$noauth;
 	}
 	
+	$UFDBGUARD_UNLOCK_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	$unlock_web_site_text="{unlock_web_site}";
+	if($UFDBGUARD_UNLOCK_LINK<>null){$unlock_web_site_text=$UFDBGUARD_UNLOCK_LINK;}
+	
 	if($noauth==1){
-		$f[]=parseTemplate_headers("{unlock_web_site}",null,$SquidGuardIPWeb);
+		$f[]=parseTemplate_headers("$unlock_web_site_text",null,$SquidGuardIPWeb);
 		$f[]=$f[]="<form id='unlockform' action=\"$SquidGuardIPWeb\" method=\"post\">
 		<input type='hidden' id='unlock-www' name='unlock-www' value='yes'>
 		<input type='hidden' id='finalhost' name='finalhost' value='$FinalHost'>
@@ -4610,10 +5466,12 @@ function parseTemplate_unlock($error=null){
 		echo @implode("\n", $f);
 		return;
 	}
+	$UFDBGUARD_UNLOCK_LINK=$GLOBALS["UfdbGuardHTTP"]["UFDBGUARD_UNLOCK_LINK"];
+	$unlock_web_site_text="{unlock_web_site}";
+	if($UFDBGUARD_UNLOCK_LINK<>null){$unlock_web_site_text=$UFDBGUARD_UNLOCK_LINK;}
 	
-	
-	$f[]=parseTemplate_headers("{unlock_web_site}",null,$SquidGuardIPWeb);
-	$f[]="    <h2>{unlock_web_site} $FinalHost {for} $IPADDR {$_REQUEST["clientname"]}</h2>";
+	$f[]=parseTemplate_headers($unlock_web_site_text,null,$SquidGuardIPWeb);
+	$f[]="    <h2>$unlock_web_site_text $FinalHost {for} $IPADDR {$_REQUEST["clientname"]}</h2>";
 	if($error<>null){
 		$f[]="    <h2>$error</h2>";
 	}

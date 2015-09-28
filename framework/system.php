@@ -4,8 +4,18 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 
-
+if(isset($_GET["refresh-cpus-progress"])){refresh_cpus_progress();exit;}
+if(isset($_GET["make-writable"])){make_www_writable();exit;}
+if(isset($_GET["phpldapadmin_installed"])){phpldapadmin_installed();exit;}
+if(isset($_GET["php-snmp-progress"])){php_snmp_progress();exit;}
+if(isset($_GET["EnableBandwithCalculation"])){EnableBandwithCalculation();exit;}
+if(isset($_GET["EnableMilterGreylistExternalDB"])){EnableMilterGreylistExternalDB();exit;}
+if(isset($_GET["dashboard-refresh"])){dashboard_refresh();exit;}
+if(isset($_GET["upgradev10"])){upgradev10();exit;}
+if(isset($_GET["ChangePerformance"])){ChangePerformance();exit;}
+if(isset($_GET["modinfo"])){modinfo();exit;}
 if(isset($_GET["optimize-progress"])){optimize();exit;}
+if(isset($_GET["optimize-celeron"])){optimize_celeron();exit;}
 if(isset($_GET["sensors"])){sensors();exit;}
 if(isset($_GET["NetDiscover-restart"])){NetDiscover_Restart();exit;}
 if(isset($_GET["phpmyadpmin-version"])){phpmyadmin_version();exit;}
@@ -115,6 +125,7 @@ if(isset($_GET["refresh-logs-storefiles"])){refresh_logs_storefiles();exit;}
 if(isset($_GET["ping-host"])){ping_host();exit;}
 if(isset($_GET["etc-timezone"])){etc_timezone();exit;}
 if(isset($_GET["ucarp-isactive"])){ucarp_isactive();exit;}
+if(isset($_GET["ps-mem"])){ps_mem();exit;}
 
 
 
@@ -346,12 +357,17 @@ function generic_start(){
 	$action=$_GET["action"];
 	$token=$_GET["cmd"];
 	$file="/usr/share/artica-postfix/ressources/logs/web/$key.log";
-	@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
+	if(is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");}
+	if(is_file("/usr/share/artica-postfix/ressources/logs/global.status.ini")){@unlink("/usr/share/artica-postfix/ressources/logs/global.status.ini");}
+	
+	
 	@unlink($file);
 	
 	
 	
 	writelogs_framework("token $token -> $action",__FUNCTION__,__FILE__,__LINE__);
+	
+
 	
 	$binary="/etc/init.d/artica-postfix";
 	if(strpos("$token", "init.d")>0){
@@ -360,6 +376,10 @@ function generic_start(){
 		$token=null;
 	}else{
 		$token=" $token";
+	}
+	
+	if(preg_match("#squid-cache#",$token)){
+		$binary="/etc/init.d/squid";
 	}
 		
 	
@@ -877,7 +897,7 @@ function artica_ifup(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	ToSyslog("kernel: [  Artica-Net] start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
-	shell_exec("$nohup /etc/init.d/artica-ifup start >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-ifup start --script=system.php/artica_ifup >/dev/null 2>&1 &");
 }
 
 function etchosts_default(){
@@ -1284,9 +1304,9 @@ function MII_TOOLS_SAVE(){
 	if($flow_control==1){$flow_control_text=" flow-control";}
 	
 	if($autonegotiation==1){
-	$cmd="$miitool --force=$duptype$flow_control_text $eth";
+	$cmd="$miitool --force=$duptype $eth";
 	}else{
-		$cmd="$miitool --advertise=$duptype$flow_control_text $eth";
+		$cmd="$miitool --advertise=$duptype $eth";
 	}
 	writelogs_framework("$cmd",__FUNCTION__,__LINE__);
 	echo "<articadatascgi>".base64_encode(shell_exec($cmd))."</articadatascgi>";
@@ -1407,6 +1427,24 @@ function optimize(){
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
+	
+}
+function optimize_celeron(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/system.optimize.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/system.optimize.progress.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"], 0755);
+	@chmod($GLOBALS["LOGSFILES"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.intel.celeron.php  >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
 	
 }
 
@@ -1600,9 +1638,62 @@ function dhcpd_progress(){
 	@touch($GLOBALS["LOGSFILES"]);
 	@chmod($GLOBALS["CACHEFILE"],0777);
 	@chmod($GLOBALS["LOGSFILES"],0777);
-	system("$nohup $php5 /usr/share/artica-postfix/exec.dhcpd.compile.php --restart --force >{$GLOBALS["LOGSFILES"]} 2>&1 &");
-		
+	system("$nohup $php5 /usr/share/artica-postfix/exec.dhcpd.compile.php --restart --force --progress >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+}
+function dashboard_refresh(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/admin.refresh.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/admin.refresh.progress.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	system("$nohup $php5 /usr/share/artica-postfix/exec.squid.interface-size.php --flux-hour --force --progress >{$GLOBALS["LOGSFILES"]} 2>&1 &");	
+	
+	
+}
+
+function refresh_cpus_progress(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/system.refreshcpu.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/system.refreshcpu.progress.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	system("$nohup $php5 /usr/share/artica-postfix/exec.system.refresh.php >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+}
+
+function php_snmp_progress(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+
+
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/php-snmp.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/php-snmp.progress.txt";
+	
+	
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	system("$nohup $php5 /usr/share/artica-postfix/exec.lighttpd.php --php-snmp >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+
+
 }
 
 function phpmyadmin_install(){
@@ -1621,6 +1712,23 @@ function phpmyadmin_install(){
 	system("$nohup $php5 /usr/share/artica-postfix/exec.install-phpmyadmin.php >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 		
 	
+}
+function upgradev10(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/upgradev10.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/upgradev10.progress.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	system("$nohup $php5 /usr/share/artica-postfix/exec.squid.upgradev10.php >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	
+		
 }
 
 
@@ -1733,5 +1841,174 @@ function  NetDiscover_Restart(){
 	shell_exec("/etc/init.d/netdiscover restart");
 	
 }
+function modinfo(){
+	$unix=new unix();
+	$modinfo=$unix->find_program("modinfo");
+	$file=exec("modinfo --field=filename {$_GET["modinfo"]} 2>&1");
+	if(is_file($file)){echo "<articadatascgi>TRUE</articadatascgi>";}
+	
+	
+	
+	
+}
+
+function ChangePerformance(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();	
+	
+	$tmpf=$unix->FILE_TEMP().".sh";
+	$H[]="#!/bin/sh";
+	$H[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
+	$H[]="/usr/share/artica-postfix/bin/artica-install --nsswitch";
+	$H[]="/etc/init.d/slapd restart";
+	$H[]="/etc/init.d/artica-memcache restart";
+	$H[]="/etc/init.d/auth-tail restart";
+	$H[]="/etc/init.d/artica-syslog restart";
+	$H[]="/etc/init.d/mysql restart --force --framework=byhand";
+	$H[]="$php5 /usr/share/artica-postfix/exec.shm.php --SessionMem";
+	$H[]="rm /etc/artica-postfix/CPU_NUMBER";
+	$H[]="rm -f $tmpf";
+	
+	$H[]="";
+	@file_put_contents($tmpf, @implode("\n", $H));
+	@chmod($tmpf, 0755);
+	writelogs_framework($tmpf ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("$nohup $tmpf >/dev/null 2>&1 &");
+}
+
+function make_www_writable(){
+	$dir=$_GET["make-writable"];
+	if(!is_dir($dir)){return;}
+	@chmod($dir, 0777);
+	
+}
+function ps_mem(){
+	
+	exec("/usr/share/artica-postfix/bin/ps_mem.py -s 2>&1",$results);
+	
+while (list ($num, $line) = each ($results)){
+	if(!preg_match("#[0-9\.]+\s+[A-Z-a-z]+.*?[0-9\.]+\s+[A-Z-a-z]+\s+=\s+([0-9\.]+)\s+([A-Z-a-z]+)\s+(.+)#", $line,$re)){continue;}
+	$MEMORY=$re[1];
+	$UNIT=$re[2];
+	$PROG=trim($re[3]);
+	if($UNIT=="KiB"){continue;}
+	//writelogs_framework($PROG,__FUNCTION__,__FILE__,__LINE__);
+	
+	if($UNIT=="KiB"){$MEMORY=$MEMORY/1024;}
+	if($UNIT=="GiB"){$MEMORY=$MEMORY*1024;}
+	$MEMORY=round($MEMORY);
+	if(preg_match("#\/influxd -pidfile#", $PROG)){$PROG="BigData service";}
+	if(preg_match("#exec\.logfile_daemon\.php#", $PROG)){$PROG="Proxy Access Logger";}
+	if(preg_match("#\/ufdbcatdd -c #", $PROG)){$PROG="Categories service";}
+	if(preg_match("#smbd -D#", $PROG)){$PROG="Samba service";}
+	if(preg_match("#memcached\.pid#", $PROG)){$PROG="Memory Cache service";}
+	if(preg_match("#slapd\.conf -u#", $PROG)){$PROG="OpenLDAP server";}
+	if(preg_match("#monit\.state#", $PROG)){$PROG="System Watchdog";}
+	if(preg_match("#\(ssl_crtd\)#", $PROG)){$PROG="Proxy SSL Client";}
+	if(preg_match("#\(ntlm_auth\)#", $PROG)){$PROG="NTLM Authenticator";}
+	if(preg_match("#\(squid-[0-9]+\)#", $PROG)){$PROG="Proxy Service";}
+	if(preg_match("#\(squid-coord-[0-9]+\)#", $PROG)){$PROG="Proxy Service";}
+	if(preg_match("#sshd:#", $PROG)){$PROG="OpenSSH server";}
+	if(preg_match("#\/ufdbgclient\.php#", $PROG)){$PROG="Web Filtering client";}
+	if(preg_match("#\/external_acl_response\.php#", $PROG)){$PROG="Proxy File Watcher";}
+	if(preg_match("#\/external_acl_squid\.php#", $PROG)){$PROG="Proxy ACLs Watcher";}
+	if(preg_match("#\/external_acl_squid_ldap\.php#", $PROG)){$PROG="Proxy Active Directory Watcher";}
+	if(preg_match("#\/exec.ufdbguard-tail\.php#", $PROG)){$PROG="Web Filtering Watcher";}
+	if(preg_match("#\/opt\/squidsql\#", $PROG)){$PROG="MySQL for Proxy";}
+	if(preg_match("#\/var\/run\/mysqld\/mysqld\.sock#", $PROG)){$PROG="MySQL Server";}
+	if(preg_match("#\/exec.cache-logs\.php#", $PROG)){$PROG="Proxy Real-time Watchdog";}
+	if(preg_match("#\/exec\.syslog\.php#", $PROG)){$PROG="System Watchdog";}
+	if(preg_match("#\/bin\/ufdbguardd#", $PROG)){$PROG="Web Filtering Service";}
+	if(preg_match("#\/exec\.status\.php#", $PROG)){$PROG="Services Watchdog";}
+	if(preg_match("#\/exec.auth-tail\.php#", $PROG)){$PROG="Authentication Watchdog";}
+	if(preg_match("#bin\/apache2#", $PROG)){$PROG="Web Service";}
+	if(preg_match("#winbindd -D#", $PROG)){$PROG="Winbind Daemon";}
+	if(preg_match("#apache2\.conf -k start#", $PROG)){$PROG="Web Service";}
+	if(preg_match("#exec\.web-community-filter\.php#", $PROG)){$PROG="Cloud Update process";}
+	if(preg_match("#tmp --log-warnings=2 --default-storage-engine=myisam#", $PROG)){$PROG="MySQL Server";}
+	
+	if(strpos($PROG, "/")>0){
+		
+		if(strpos($PROG, " ")>0){$TR=explode(" ",$PROG);$PROG=$TR[0];}
+	}
+	$PROG=basename($PROG);
+	$PROG=str_replace("(", "", $PROG);
+	$PROG=str_replace(")", "", $PROG);
+	
+	if($PROG=="php5"){$PROG="php";}
+	if(preg_match("#^squid-#", $PROG)){$PROG="Proxy Service";}
+	if(!isset($MEM[$PROG])){$MEM[$PROG]=$MEMORY;}else{$MEM[$PROG]=$MEM[$PROG]+$MEMORY;}
+}
+	
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/ps_mem.array", serialize($MEM));
+	
+	
+}
 
 
+
+function EnableBandwithCalculation(){
+	$EnableBandwithCalculation=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableBandwithCalculation"));
+	$BandwithCalculationSchedule=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/BandwithCalculationSchedule"));
+	
+	if($EnableBandwithCalculation==0){
+		writelogs_framework("/etc/cron.d/artica-testspeed -> 0" ,__FUNCTION__,__FILE__,__LINE__);
+		if(is_file("/etc/cron.d/artica-testspeed")){
+			@unlink("/etc/cron.d/artica-testspeed");
+			shell_exec("/etc/init.d/cron reload");
+			return;
+		}
+	}
+	
+	$schedules[1]="0 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 * * *";
+	$schedules[2]="0 2,4,6,8,10,12,14,16,18,20,22 * * *";
+	$schedules[4]="0 4,8,12,16,20 * * *";
+	$schedules[8]="0 8,16 * * *";
+	$schedules[24]="0 1 * * *";
+	$schedule=$schedules[$BandwithCalculationSchedule];
+	
+	$unix=new unix();
+	writelogs_framework("/etc/cron.d/artica-testspeed -> $schedule" ,__FUNCTION__,__FILE__,__LINE__);
+	$unix->Popuplate_cron_make("artica-testspeed",$schedule,"exec.testspeed.php");
+	shell_exec("/etc/init.d/cron reload");
+}
+function EnableMilterGreylistExternalDB(){
+	$EnableMilterGreylistExternalDB=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB"));
+	$BandwithCalculationSchedule=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB"));
+
+	if($EnableMilterGreylistExternalDB==0){
+		writelogs_framework("/etc/cron.d/artica-miltergreylist -> 0" ,__FUNCTION__,__FILE__,__LINE__);
+		if(is_file("/etc/cron.d/artica-miltergreylist")){
+			@unlink("/etc/cron.d/artica-miltergreylist");
+			shell_exec("/etc/init.d/cron reload");
+			return;
+		}
+	}
+	
+	if($EnableMilterGreylistExternalDB==1){
+		$unix=new unix();
+		$nohup=$unix->find_program("nohup");
+		$php5=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.milter-greylist.update.php >/dev/null 2>&1 &");
+	}
+
+	$schedules[1]="0 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 * * *";
+	$schedules[2]="0 2,4,6,8,10,12,14,16,18,20,22 * * *";
+	$schedules[4]="0 4,8,12,16,20 * * *";
+	$schedules[8]="0 8,16 * * *";
+	$schedules[24]="0 1 * * *";
+	$schedule=$schedules[$BandwithCalculationSchedule];
+
+	$unix=new unix();
+	writelogs_framework("/etc/cron.d/artica-miltergreylist -> $schedule" ,__FUNCTION__,__FILE__,__LINE__);
+	$unix->Popuplate_cron_make("artica-miltergreylist",$schedule,"exec.milter-greylist.update.php");
+	shell_exec("/etc/init.d/cron reload");
+}
+function phpldapadmin_installed(){
+	
+	if(is_file("/usr/share/phpldapadmin/index.php")){
+		echo "<articadatascgi>TRUE</articadatascgi>";
+		
+	}
+}

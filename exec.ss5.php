@@ -4,12 +4,14 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["NOSQUIDOUTPUT"]=true;
+$GLOBALS["PROGRESS"]=false;
 $GLOBALS["TITLENAME"]="Socks5 Proxy daemon";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
+if(preg_match("#--progress#",implode(" ",$argv),$re)){$GLOBALS["PROGRESS"]=true;$GLOBALS["OUTPUT"]=true;}
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
@@ -28,7 +30,17 @@ if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 
+function build_progress($text,$pourc){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/ss5.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
+	@chmod($GLOBALS["CACHEFILE"],0755);
+	if($GLOBALS["PROGRESS"]){sleep(1);}
 
+}
 
 
 function restart() {
@@ -41,10 +53,17 @@ function restart() {
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	build_progress("{stopping_service}",5);
 	stop(true);
 	sleep(1);
-	start(true);
-	
+	build_progress("{building_settings}",45);
+	buildconfig();
+	build_progress("{starting_service}",50);
+	if(!start(true)){
+		build_progress("{starting_service} {failed}",110);
+		return;
+	}
+	build_progress("{starting_service} {done}",100);
 }
 
 
@@ -76,12 +95,12 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
-	$EnableSocks5=$sock->GET_INFO("EnableSocks5");
+	$EnableSS5=intval($sock->GET_INFO("EnableSS5"));
 	
 	
 
-	if($EnableSocks5==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableArpDaemon)\n";}
+	if($EnableSS5==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableSS5)\n";}
 		return;
 	}
 
@@ -102,7 +121,7 @@ function start($aspid=false){
 		@chgrp($directory,"squid");
 		
 	}
-
+	build_progress("{starting_service}",60);
 	
 	$cmd="$Masterbin -s -t -u squid -p /var/run/ss5/ss5.pid >/dev/null 2>&1 &";
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
@@ -112,6 +131,7 @@ function start($aspid=false){
 	
 
 	for($i=1;$i<5;$i++){
+		build_progress("{waiting} $i/5",65);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM();
@@ -121,6 +141,8 @@ function start($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		build_progress("{success}",70);
+		return true;
 		
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
@@ -157,10 +179,11 @@ function stop($aspid=false){
 	
 
 
-
+	build_progress("{stopping_service}",10);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
+		build_progress("{stopping_service}",15);
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
@@ -170,9 +193,11 @@ function stop($aspid=false){
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		build_progress("{stopping_service}",45);
 		return;
 	}
 
+	build_progress("{stopping_service}",35);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
@@ -181,12 +206,12 @@ function stop($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
-
+	build_progress("{stopping_service}",45);
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
-
+	
 }
 
 function PID_NUM(){
@@ -521,7 +546,8 @@ function buildconfig(){
 	$f[]="#vitual	-	-";
 	$f[]="";	
 	
-	
+	@file_put_contents("/etc/ss5.conf", @implode("\n", $f));
+	@chown("/etc/ss5.conf","squid");
 }
 
 

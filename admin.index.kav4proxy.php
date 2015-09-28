@@ -249,7 +249,7 @@ $sql="SELECT AVG( `$type` ) AS sload, DATE_FORMAT( zDate, '$h:%i:00' ) AS ttime 
 	//$gp->SetFillColor('green'); 
 	
 	$gp->line_green();
-	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=text-info>{kav4_{$type}_text}</div>");
+	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=explain>{kav4_{$type}_text}</div>");
 	echo "
 	
 	<center><img src='ressources/logs/kav4-$type-hour.png'></center>
@@ -302,7 +302,7 @@ $sql="SELECT AVG( `$type` ) AS sload, DATE_FORMAT( zDate, '%H' ) AS ttime FROM `
 	//$gp->SetFillColor('green'); 
 	
 	$gp->line_green();
-	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=text-info>{kav4_{$type}_text}</div>");
+	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=explain>{kav4_{$type}_text}</div>");
 	echo "<img src='ressources/logs/kav4-$type-24h.png'></div>";	
 	
 	
@@ -356,7 +356,7 @@ $sql="SELECT AVG( `$type` ) AS sload, DATE_FORMAT( zDate, '%d' ) AS ttime FROM `
 	
 	$gp->line_green();
 	$time=time();
-	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=text-info>{kav4_{$type}_text}</div>");
+	$tpl=new templates();echo $tpl->_ENGINE_parse_body("<div class=explain>{kav4_{$type}_text}</div>");
 	echo "<img src='ressources/logs/kav4-$type-7d.png'></div>";	
 	
 	

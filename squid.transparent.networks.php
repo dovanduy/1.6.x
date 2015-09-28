@@ -181,7 +181,7 @@ function item_popup2(){
 	
 	$t=time();
 	$html="<div class=form style='width:95%'>
-	<div class=text-info style='font-size:14.5px'>{transparent_pattern_explain}</div>
+	<div class=explain style='font-size:14.5px'>{transparent_pattern_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{interface}:</td>

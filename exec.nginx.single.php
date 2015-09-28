@@ -114,7 +114,9 @@ function compile_site($servername){
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
+		$cmdline=@file_get_contents("/proc/$pid/cmdline");
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx $cmdline\n";}
 		return;
 	}
 	

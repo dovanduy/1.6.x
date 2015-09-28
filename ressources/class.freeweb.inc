@@ -915,6 +915,9 @@
 			
 		}
 		public function mod_status($servername=null){
+			//désactivé le 13 Jav 2014
+			
+			return null;
 			$sock=new sockets();
 			$ApacheDisableModStatus=intval($sock->GET_INFO("ApacheDisableModStatus"));
 			if($ApacheDisableModStatus==1){return null;}
@@ -1617,8 +1620,11 @@
 			}
 			$this->WORKING_DIRECTORY="/automounts/$this->lvm_vg-$this->servername";
 			if($this->AS_ROOT){
-				exec("/bin/ls -lah $this->WORKING_DIRECTORY 2>&1",$results);
-				if($GLOBALS["VERBOSE"]){while (list ($num, $line) = each ($results)){echo "CheckWorkingDirectoryLVM() -> $line\n";}}
+				
+				if($GLOBALS["VERBOSE"]){
+					exec("/bin/ls -lah $this->WORKING_DIRECTORY 2>&1",$results);
+					while (list ($num, $line) = each ($results)){echo "CheckWorkingDirectoryLVM() -> $line\n";}
+				}
 				$this->CheckDirectoryRights();
 			}
 			return true;
@@ -1708,7 +1714,7 @@
 		$wel[]="<?php";
 		$wel[]="echo \"<H1>It Works!</H1>\";";
 		$wel[]="while (list(\$index,\$line)=each(\$_SERVER)){";
-		$wel[]="echo \"<H2 style='font-size:16px'>\$index:<span style='color:red'>\$line</span></H2>\";";
+		$wel[]="echo \"<H2 style='font-size:16px'>\$index:<span style='color:#d32d2d'>\$line</span></H2>\";";
 		$wel[]=";}";
 		$wel[]="?>";			
 		$index_php=@implode("\n",$wel);	
@@ -3492,6 +3498,21 @@
 				$unix=new unix();
 				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/*");
 				echo "$this->PrefixOutput [CLASS/".__LINE__."] InstallZarafaZpush():: Check Autodiscover...\n";
+				
+				$FAKE[]="index.php";
+				$FAKE[]="index2.php";
+				$FAKE[]="index.html";
+				$FAKE[]="update.html";
+				
+				while (list ($index, $filename) = each ($FAKE) ){
+					@unlink("$Directory/state/$filename");
+					@touch("$Directory/state/$filename");
+					@chmod("$Directory/state/$filename",0644);
+					@chown("$Directory/state/$filename", "root");
+					@chgrp("$Directory/state/$filename", "root");
+				}
+				
+
 				$this->Autodiscover();
 		}
 		
@@ -3691,7 +3712,7 @@
 				//$f[]="	// Enable the plugins";
 				$f[]="	define(\"ENABLE_PLUGINS\", true);";
 				//$f[]="	// Define list of disabled plugins separated by semicolon";
-				$f[]="	define(\"DISABLED_PLUGINS_LIST\", '');";
+				$f[]="	define(\"DISABLED_PLUGINS_LIST\", 'browsercompatibility;feedback;pdfbox;webappmanual;webodf;zperformance');";
 				//$f[]="	// Disable PHP5>PHP4 compatibility, this could segfault apache with xml_parser_free";
 				$f[]="	ini_set('zend.ze1_compatibility_mode', false);";
 				//$f[]="	// Set addressbook for GAB not to show any users unless searching for a specific user";
@@ -3947,7 +3968,7 @@
 				}else{
 					$conf[]="define(\"ENABLE_PLUGINS\", false);";
 				}
-				$conf[]="define(\"DISABLED_PLUGINS_LIST\", \"\");";
+				$conf[]="define(\"DISABLED_PLUGINS_LIST\", \"browsercompatibility;feedback;pdfbox;webappmanual;webodf;zperformance\");";
 				$conf[]="define(\"DISABLE_FULL_GAB\", false);";
 				$conf[]="define(\"DISABLE_FULL_CONTACTLIST_THRESHOLD\", -1);";
 				$conf[]="define(\"ENABLE_GAB_ALPHABETBAR\", false);";
@@ -3960,6 +3981,7 @@
 				$conf[]="define(\"FCKEDITOR_PATH\",dirname(\$_SERVER[\"SCRIPT_FILENAME\"]).\"/client/widgets/fckeditor\");";
 				$conf[]="define(\"FCKEDITOR_JS_PATH\",\"client/widgets/fckeditor\");";
 				
+			
 				if($ZarafaAspellEnabled==1){
 					$asspellbin=$unix->find_program("aspell");
 					$f[]="define(\"FCKEDITOR_SPELLCHECKER_ENABLED\", true);";

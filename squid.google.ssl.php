@@ -32,8 +32,8 @@ function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();	
 	$sock=new sockets();
-	$DisableGoogleSSL=$sock->GET_INFO("DisableGoogleSSL");
-	if(!is_numeric($DisableGoogleSSL)){$DisableGoogleSSL=0;}
+	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	
 	$warn_squid_restart=$tpl->javascript_parse_text("{warn_squid_restart}");
 	$display_dns_items=$tpl->javascript_parse_text("{display_dns_items}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -100,6 +100,14 @@ function Save(){
 
 function google_dns(){
 	$sock=new sockets();
+	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	if($DisableGoogleSSL==0){
+		echo "<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;
+		height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:16px' id='textToParseCats$t'>Disabled...\n</textarea>";
+		return;
+	}
+	
+	
 	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?GoogleSSL-dump=yes")));
 	echo "<textarea style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:16px' id='textToParseCats$t'>".@implode("\n", $datas)."</textarea>";
 }

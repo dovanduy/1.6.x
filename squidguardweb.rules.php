@@ -3,6 +3,7 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.dansguardian.inc');
+	include_once('ressources/class.ldap-extern.inc');
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -20,7 +21,7 @@
 	if(isset($_GET["rule-popup"])){rule_popup();exit;}
 	if(isset($_POST["rule"])){rule_save();exit;}
 	if(isset($_POST["delete"])){rule_delete();exit;}
-	
+	if(isset($_POST["clean-cache"])){clean_cache();exit;}
 table();
 
 
@@ -58,7 +59,9 @@ function rule_delete(){
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM ufdb_page_rules WHERE `zmd5`='{$_POST["delete"]}'");
 	if(!$q->ok){echo $q->mysql_error;}
-	
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
+	$sock->getFrameWork("ufdbguard.php?remove-sessions-caches=yes");
 }
 
 function rule_js(){
@@ -130,22 +133,60 @@ function rule_popup(){
 	
 	$cats=$dans->LoadBlackListes();
 	while (list ($num, $ligne) = each ($cats) ){$newcat[$num]=$num;}
-	$newcat[null]="{none}";
+	$newcat[null]="{all_categories}";
 	$newcat["safebrowsing"]="Google Safe Browsing";
 	$newcat["blacklist"]="{blacklist}";
+	$newcat["generic"]="{generic}";
+	
+	if(!$q->FIELD_EXISTS("ufdb_page_rules", "ticket")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `ticket` smallint(1) NOT NULL DEFAULT 0, ADD INDEX ( `ticket` )");
+	}
+	
+	if(!$q->FIELD_EXISTS("ufdb_page_rules", "ticket")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `ticket` smallint(1) NOT NULL DEFAULT 0, ADD INDEX ( `ticket` )");
+	}
+		
+	if(!$q->FIELD_EXISTS("ufdb_page_rules", "webruleid")){
+		$q->QUERY_SQL("ALTER TABLE `ufdb_page_rules` ADD `webruleid` INT(10) NOT NULL NOT NULL DEFAULT 0, ADD INDEX ( `webruleid` )");
+	}
+
+	
+	$sql="SELECT ID,groupname FROM webfilter_rules WHERE enabled=1";
+	$results = $q->QUERY_SQL($sql);
+	$RULES["0"]="{all_rules}";
+	$btname="{add}";
+	$t=time();
+	while ($ligne = mysql_fetch_assoc($results)) {$RULES[$ligne["ID"]]="{$ligne["groupname"]}";}
+	
+	
 	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM ufdb_page_rules WHERE zmd5='$md5'"));
+	
+	
+	$group_legend="{active_directory_group}";
+	
+	if($sock->SQUID_IS_EXTERNAL_LDAP()){
+		$group_legend="{ldap_group}";
+	}
+	
+	
 	if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error);return;}
 	
 	$html[]="<div style='width:98%' class=form>";
 	$html[]="<table style='width:100%'>";
+	$html[]=Field_list_table("webruleid-$t","{rule}",$ligne["webruleid"],$fields_size,$RULES,null,450);
 	$html[]=Field_list_table("category-$t","{category}",$ligne["category"],$fields_size,$newcat,null,450);
 	$html[]=Field_list_table("maxtime-$t","{unlock_during}",$ligne["maxtime"],$fields_size,$Timez,null,450);
-	$html[]=Field_text_table("adgroup-$t","{active_directory_group}",$ligne["adgroup"],$fields_size,null,450);
+	$html[]=Field_text_table("adgroup-$t","$group_legend",$ligne["adgroup"],$fields_size,null,450);
+	
+	if($sock->SQUID_IS_EXTERNAL_LDAP()){
+		$html[]=Field_button_table_autonome("{browse}", "Loadjs('browse-extldap-groups.php?MainFunction=FdapGroup$t')");
+	}
 	$html[]=Field_text_table("username-$t","{username}",$ligne["username"],$fields_size,null,450);
 	$html[]=Field_checkbox_table("deny-$t", "{deny_unlock}",$ligne["deny"],$fields_size,null,"UnCheckAllow$t()");
 	$html[]=Field_checkbox_table("allow-$t", "{allow_unlock}",$ligne["allow"],$fields_size,null,"UnCheckDeny$t()");
+	$html[]=Field_checkbox_table("ticket-$t", "{submit_ticket}",$ligne["ticket"],$fields_size,null,"UnTicket$t()");
 	$html[]=Field_checkbox_table("noauth-$t", "{not_authenticate}",$ligne["noauth"],$fields_size);
 	$html[]=Field_list_table("addTocat-$t","{automatically_add_to}",$ligne["addTocat"],$fields_size,$newcat,null,450);
 	
@@ -179,6 +220,30 @@ function rule_popup(){
 		}
 	}
 	
+	function UnTicket$t(){
+		if(document.getElementById('ticket-$t').checked){
+			document.getElementById('deny-$t').checked=true;
+			document.getElementById('allow-$t').checked=false;
+			document.getElementById('noauth-$t').checked=true;
+			document.getElementById('deny-$t').disabled=true;
+			document.getElementById('allow-$t').disabled=true;
+			document.getElementById('noauth-$t').disabled=true;
+			document.getElementById('maxtime-$t').disabled=true;
+			document.getElementById('addTocat-$t').disabled=true;
+		}else{
+			document.getElementById('deny-$t').disabled=false;
+			document.getElementById('allow-$t').disabled=false;
+			document.getElementById('noauth-$t').disabled=false;
+			document.getElementById('maxtime-$t').disabled=false;
+			document.getElementById('addTocat-$t').disabled=false;
+			}
+		
+	}
+	
+	function FdapGroup$t(DN){
+		document.getElementById('adgroup-$t').value='EXTLDAP:'+DN;
+	}
+	
 	
 	function Submit$t(){
 		var XHR = new XHRConnection();
@@ -188,6 +253,7 @@ function rule_popup(){
 		XHR.appendData('username',document.getElementById('username-$t').value);
 		XHR.appendData('addTocat',document.getElementById('addTocat-$t').value);
 		XHR.appendData('maxtime',document.getElementById('maxtime-$t').value);
+		XHR.appendData('webruleid',document.getElementById('webruleid-$t').value);
 		
 		
 		
@@ -210,12 +276,22 @@ function rule_popup(){
 		}else{
 			XHR.appendData('noauth','0');	
 		
-		}		
+		}
+
+		if(document.getElementById('ticket-$t').checked){
+			XHR.appendData('ticket','1');	
+		}else{
+			XHR.appendData('ticket','0');	
+		
+		}			
+		
+		
 
 		XHR.sendAndLoad('$page', 'POST',xSubmit$t);
 	}
 	
 	UnCheckAllow$t();
+	UnTicket$t();
 	</script>
 		
 	";
@@ -232,6 +308,8 @@ function rule_save(){
 	$allow=$_POST["allow"];
 	$addTocat=$_POST["addTocat"];
 	$maxtime=$_POST["maxtime"];
+	$ticket=$_POST["ticket"];
+	$webruleid=$_POST["webruleid"];
 	$q=new mysql_squid_builder();
 	if(trim($adgroup)==null){$adgroup="*";}
 	
@@ -250,8 +328,8 @@ function rule_save(){
 	if($md5==null){
 			$md5=md5(serialize($_POST));
 		$q->QUERY_SQL("INSERT IGNORE INTO ufdb_page_rules 
-			(`zmd5`,`category`,`adgroup`,`username`,`deny`,`noauth`,`allow`,`addTocat`,`maxtime`) VALUES
-			('$md5','$category','$adgroup','$username','$deny','$noauth','$allow','$addTocat','$maxtime')
+			(`zmd5`,`category`,`adgroup`,`username`,`deny`,`noauth`,`allow`,`addTocat`,`maxtime`,`ticket`,`webruleid`) VALUES
+			('$md5','$category','$adgroup','$username','$deny','$noauth','$allow','$addTocat','$maxtime','$ticket','$webruleid')
 			");
 		
 	
@@ -265,14 +343,26 @@ function rule_save(){
 			`noauth`='$noauth',
 			`allow`='$allow',
 			`addTocat`='$addTocat',
-			`maxtime`='$maxtime'
+			`maxtime`='$maxtime',
+			`webruleid`='$webruleid',
+			`ticket`='$ticket'
 			WHERE `zmd5`='$md5'");
 		
 		
 	}
 	
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
+	$sock->getFrameWork("ufdbguard.php?remove-sessions-caches=yes");
+}
 
+function clean_cache(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
+	$sock->getFrameWork("ufdbguard.php?remove-sessions-caches=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{success}");
 }
 
 
@@ -290,6 +380,8 @@ function table(){
 	}
 	
 	$q=new mysql_squid_builder();
+	
+	
 
 	if(!$q->TABLE_EXISTS("ufdb_page_rules")){
 		$sql="CREATE TABLE IF NOT EXISTS `ufdb_page_rules` (
@@ -303,10 +395,12 @@ function table(){
 			`infinite` smallint(1) NOT NULL,
 			`addTocat` varchar(255) NOT NULL,
 			`username` varchar(255) NOT NULL,
+			`webruleid` INT(10) NOT NULL,
 			PRIMARY KEY (`zmd5`),
 			KEY `category` (`category`),
 			KEY `deny` (`deny`),
 			KEY `allow` (`allow`),
+			KEY `webruleid`(`webruleid`),
 			KEY `infinite` (`infinite`)
 			) ENGINE=MYISAM;";
 		$q->QUERY_SQL($sql);
@@ -331,16 +425,28 @@ function table(){
 	$banned_page_webservice=$tpl->javascript_parse_text("{banned_page_webservice}");
 	$rules=$tpl->javascript_parse_text("{rules}");
 	$apply=$tpl->javascript_parse_text("{apply}");
+	$ticket=$tpl->javascript_parse_text("{ticket}");
+	$clean_cache=$tpl->javascript_parse_text("{clean_cache}");
+	$smtp_parameters=$tpl->javascript_parse_text("{smtp_parameters}");
 	$t=time();
+	
+	if(isset($_GET["dashboard"])){
+		$WEBFILTERING_TOP_MENU=WEBFILTERING_TOP_MENU();
+		$DASHBOARD=$tpl->_ENGINE_parse_body("<div style='font-size:30px;margin-bottom:20px'>$WEBFILTERING_TOP_MENU</div>");
+		
+	}
+	
 
 	$buttons="
 	buttons : [
-		{name: '$new_rule', bclass: 'add', onpress :  newrule$t},
-		{name: '$apply', bclass: 'apply', onpress :  apply$t},
+		{name: '<strong style=font-size:22px>$new_rule</strong>', bclass: 'add', onpress :  newrule$t},
+		{name: '<strong style=font-size:22px>$apply</strong>', bclass: 'apply', onpress :  apply$t},
+		{name: '<strong style=font-size:22px>$clean_cache</strong>', bclass: 'apply', onpress :  CleanCache$t},
+		{name: '<strong style=font-size:22px>$smtp_parameters</strong>', bclass: 'Settings', onpress :  smtp_parameters$t},
 	],";
 
 
-	$html="
+	$html="$DASHBOARD
 	<table class='UFDB_PAGE_RULE' style='display: none' id='UFDB_PAGE_RULE' style='width:99%'></table>
 	<script>
 	function BuildTable$t(){
@@ -348,10 +454,11 @@ function table(){
 	url: '$page?list=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$category', name : 'category', width :323, sortable : false, align: 'left'},
-	{display: '$deny', name : 'deny', width :70, sortable : true, align: 'center'},
-	{display: '$allow', name : 'allow', width :70, sortable : true, align: 'center'},
-	{display: '$members', name : 'members', width :348, sortable : false, align: 'left'},
+	{display: '<span style=font-size:18px>$category</span>', name : 'category', width :595, sortable : false, align: 'left'},
+	{display: '<span style=font-size:18px>$deny</span>', name : 'deny', width :70, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$allow</span>', name : 'allow', width :70, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$ticket</span>', name : 'ticket', width :70, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$members</span>', name : 'members', width :433, sortable : false, align: 'left'},
 	{display: '&nbsp;', name : 'delete', width :70, sortable : false, align: 'center'},
 	],
 	$buttons
@@ -362,12 +469,12 @@ function table(){
 	sortname: 'category',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<strong style=font-size:18px>$banned_page_webservice >> $rules</strong>',
+	title: '<strong style=font-size:30px>$banned_page_webservice > > $rules</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 400,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 
@@ -384,13 +491,27 @@ function newrule$t(){
 function purge_caches$t(){
 Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=purge&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');
 }
-function import_export$t(){
-Loadjs('miniadmin.proxy.reverse.import.php');
+function smtp_parameters$t(){
+	Loadjs('squidguardweb.php?smtp-parameters-js=yes')
 }
 
 function New$t(){
-Loadjs('nginx.new.php?peer-id={$_GET["ID"]}');
+	Loadjs('nginx.new.php?peer-id={$_GET["ID"]}');
 }
+
+var xCleanCache$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+}
+
+function CleanCache$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('clean-cache','yes');
+	XHR.sendAndLoad('$page', 'POST',xCleanCache$t);
+	
+}
+
+
 	BuildTable$t();
 	</script>";
 	echo $html;
@@ -411,7 +532,7 @@ function rules_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 
-
+	if(!is_numeric($page)){$page=1;}
 	$searchstring=string_to_flexquery();
 
 	if($searchstring<>null){
@@ -456,6 +577,7 @@ $unlock_during=$tpl->javascript_parse_text("{unlock_during}");
 	$fontsize=22;
 	$span="<span style='font-size:{$fontsize}px'>";
 	$everyone=$tpl->javascript_parse_text("{everyone}");
+	$all_categories=$tpl->javascript_parse_text("{all_categories}");
 
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		
@@ -464,6 +586,7 @@ $unlock_during=$tpl->javascript_parse_text("{unlock_during}");
 		$warn="warning32.png";
 		$zmd5=$ligne["zmd5"];
 		$category=$ligne["category"];
+		$webruleid=intval($ligne["webruleid"]);
 		$deny=$ligne["deny"];
 		$adgroup=$ligne["adgroup"];
 		$noauth=$ligne["noauth"];
@@ -476,6 +599,8 @@ $unlock_during=$tpl->javascript_parse_text("{unlock_during}");
 		$unlock_during=null;
 		$icon="ok32-grey.png";
 		$icon_allow="ok32-grey.png";
+		$icon_ticket="ok32-grey.png";
+		$groupname=null;
 		if($allow==1){
 			$icon_allow=$ok;
 			$icon="ok32-grey.png";
@@ -494,8 +619,33 @@ $unlock_during=$tpl->javascript_parse_text("{unlock_during}");
 		if($noauth==1){
 			$icon_allow=$warn;
 		}
+		if($ligne["ticket"]==1){
+			$icon_ticket=$ok;
+			$icon_allow="ok32-grey.png";
+		}		
 		
 		if($adgroup=="*"){$adgroup="$everyone";}
+		
+		if(preg_match("#EXTLDAP:(.+)#", $adgroup,$re)){
+			$ldap=new ldap_extern();
+			$hash=$ldap->DNInfos($re[1]);
+			$DNENC=urlencode($re[1]);
+			if(isset($hash[0]["cn"])){
+				$adgroup=$hash[0]["cn"][0];
+				
+				if(isset($hash[0][$ldap->ldap_filter_group_attribute]["count"])){
+					$CountOfUsers=" (<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('browse-extldap-users.php?DN=$DNENC');\" style='text-decoration:underline'>".intval($hash[0][$ldap->ldap_filter_group_attribute]["count"])." {members}</a>)";
+				}
+				if(isset($hash[0]["description"])){
+					$description="<br><i>{$hash[0]["description"][0]}</i>";
+				}
+				
+				$adgroup=$tpl->_ENGINE_parse_body("{ldap_group}: $adgroup $CountOfUsers$description");
+				
+			}
+			
+		}
+		
 		
 		
 		$delete=imgsimple("delete-42.png",null,"Loadjs('$MyPage?delete-js=$zmd5')");
@@ -506,15 +656,25 @@ $unlock_during=$tpl->javascript_parse_text("{unlock_during}");
 		if($maxtime>0){
 			$automatically_add_to_text=$automatically_add_to_text."<br><i>$unlock_during {$maxtime} minutes</i>";
 		}
+		
+		if($category==null){
+			$category=$all_categories;
+		}
+		
+		if($webruleid>0){
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT groupname FROM webfilter_rules WHERE ID=$webruleid"));
+			$groupname="<br>$href<i style='font-size:18px'>".utf8_encode($ligne["groupname"])."</i></a>";
+		}
 
 		$data['rows'][] = array(
 				'id' => $zmd5,
 				'cell' => array(
-						"$href$category</a>$automatically_add_to_text",
-						"<img src='img/$icon'>",
-						"<img src='img/$icon_allow'>",
+						"$href$category</a>$groupname$automatically_add_to_text",
+						"<center><img src='img/$icon'></center>",
+						"<center><img src='img/$icon_allow'></center>",
+						"<center><img src='img/$icon_ticket'></center>",
 						"$span$adgroup</span>",
-						$delete
+						"<center>$delete</center>"
 				)
 		);
 

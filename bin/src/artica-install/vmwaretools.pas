@@ -63,8 +63,9 @@ end;
 //##############################################################################
 function tvmtools.BIN_PATH():string;
 begin
-
+   if FileExists('/usr/bin/vmtoolsd') then exit('/usr/sbin/vmtoolsd');
    if FileExists('/usr/sbin/vmware-guestd') then exit('/usr/sbin/vmware-guestd');
+   if FileExists('/usr/bin/vmware-toolbox-cmd') then exit('/usr/bin/vmware-toolbox-cmd');
    if FileExists('/usr/lib/vmware-tools/bin32/vmware-user-loader') then exit('/usr/lib/vmware-tools/bin32/vmware-user-loader');
    if FileExists('/usr/sbin/vmtoolsd') then exit('/usr/sbin/vmtoolsd');
 end;

@@ -76,7 +76,7 @@ For example if a client with an internal IP is 192.168.12.* establish a connecti
  <import_datas>Import datas</import_datas>
  <http_safe_ports>Safe ports</http_safe_ports>
  <HTTP_SAFE_PORTS_EXPLAIN>Access control list to define Safe ports that should be allowed by default</HTTP_SAFE_PORTS_EXPLAIN>
- <ports>ports</ports>
+ <ports>Ports</ports>
  <HTTP_ADD_SAFE_PORTS_EXPLAIN>
  You should use :
  "123 125 126": add multiple ports list
@@ -91,8 +91,8 @@ For example if a client with an internal IP is 192.168.12.* establish a connecti
  <REPOSITORY_DEB_MIRROR>Debian mirror</REPOSITORY_DEB_MIRROR>
  <REPOSITORY_DEB_MIRROR_TEXT>create a Debian/Ubuntu mirror for your local network</REPOSITORY_DEB_MIRROR_TEXT>
  <create_task>Create task</create_task>
- <imported>imported</imported>
- <terminated>terminated</imported>
+ <imported>Imported</imported>
+ <terminated>Terminated</imported>
  <tasks_list>Tasks list</tasks_list>
  <member>Member</member>
  <imap_server>IMAP server</imap_server>
@@ -115,15 +115,15 @@ For example if a client with an internal IP is 192.168.12.* establish a connecti
  This for sharing your work with others Artica community members.[br]
  Your Artica server is able to download itself periodically new added web sites by the Artica's community.
 </APP_WEBFILTER_COMMUNITY_EXPLAIN>   
-<only>only</only>
+<only>Only</only>
 <all_days_of_month>All days of months</all_days_of_month>
-<only_days>only days</only_days>
+<only_days>Only days</only_days>
 <at>at</at>
 <SARG_MEMBERS_EXPLAIN>Give here members allowed to display squid statistics.</SARG_MEMBERS_EXPLAIN>
 <RUN_COMPILATION_SARG>Launch squid statistics generation now.</RUN_COMPILATION_SARG>
 <RUN_COMPILATION>Run compilation</RUN_COMPILATION>
 <sarg_access>Acces to Proxy statistics</sarg_access>
-<requests>requests</requests>
+<requests>Requests</requests>
 <apt_mirror_threads>Number of processes used for download packages.[br]Increase this value will increase the bandwidth consumption.</apt_mirror_threads>
 <updated_from_community>Updated from community repository</updated_from_community>
 <added_on>added on</added_on>
@@ -140,7 +140,7 @@ This section defines purge parameters in order to reduce the database size.[br]P
 <backup_datas_before_delete>Backup datas before delete</backup_datas_before_delete>
 <max_day_events>Max events days</max_day_events>
 <schedules>Schedules</schedules>
-<download_tasks>download tasks</download_tasks>
+<download_tasks>Download tasks</download_tasks>
 <country_code>Country code</country_code>
 <allow_nmap_scanner>Allow auto NMAP scanner</allow_nmap_scanner>
 <allow_parse_dhcp_leases>Allow parse DHCP leases infos</allow_parse_dhcp_leases>

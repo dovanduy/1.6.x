@@ -27,10 +27,14 @@ function ReloadMacHelpers($output=false){
 	while (list ($index, $ligne) = each ($results) ){
 		if(preg_match("#pgrep#", $ligne)){continue;}
 		if(!preg_match("#^([0-9]+)\s+#", $ligne,$re)){continue;}
+		$PIDS[]=$re[1];
 		echo "Starting......: ".date("H:i:s")." [INIT]: Webfilter client reloading PID {$re[1]}\n";
 		@touch("/var/log/squid/reload/{$re[1]}.ufdbgclient.php");
 		@chown("/var/log/squid/reload/{$re[1]}.ufdbgclient.php","squid");
 		@chgrp("/var/log/squid/reload/{$re[1]}.ufdbgclient.php", "squid");
 
 	}
+	
+	
+	squid_admin_mysql(2, count($PIDS)." Artica helper(s) was reloaded", null,__FILE__,__LINE__);
 }

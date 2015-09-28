@@ -49,7 +49,7 @@ function tabs(){
 	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
 	if($EnableNginx==0){
 	
-		echo FATAL_WARNING_SHOW_128("
+		echo FATAL_ERROR_SHOW_128("
 		{enable_reverse_proxy_service}
 		<center style='margin:30px'>". button("{enable_reverse_proxy_service}","Loadjs('$page?EnableNginx=yes')",42)."</center>");
 		return;
@@ -65,7 +65,9 @@ function tabs(){
 	
 	
 	$array["general-settings"]=$title;
-	$array["web-servers"]='{web_servers}';
+	if($ID>0){
+		$array["web-servers"]='{web_servers}';
+	}
 	
 	
 	$fontsize=18;
@@ -107,7 +109,7 @@ function tabs(){
 	
 function general_settings(){
 	
-	$ID=$_GET["ID"];
+	$ID=intval($_GET["ID"]);
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$fields_size=22;
@@ -135,6 +137,10 @@ function general_settings(){
 	$html[]=Field_text_table("servername-$t","{name}",$ligne["servername"],$fields_size,null,450);
 	$html[]=Field_ipv4_table("ipaddr-$t","{ipaddr}",$ligne["ipaddr"],$fields_size,null,110);
 	$html[]=Field_text_table("port-$t","{inbound_port}",$ligne["port"],$fields_size,null,110);
+	$html[]=Field_checkbox_table("ssl-$t", "{UseSSL}",$ligne["ssl"],$fields_size);
+	
+	
+	
 	$html[]=Field_text_table("forceddomain-$t","{forceddomain}",$ligne["forceddomain"],$fields_size,null,450);
 	
 	
@@ -151,16 +157,23 @@ function general_settings(){
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		$('#NGINX_MAIN_TABLE').flexReload();
+		$('#NGINX_DESTINATION_MAIN_TABLE').flexReload();
+		var ID=$ID
+		if(ID==0){ YahooWin2Hide();}
 	
 	}
 	
 	
 	function Submit$t(){
+		var ssl=0
 		var XHR = new XHRConnection();
 		XHR.appendData('general-settings','$ID');
+		if(document.getElementById('ssl-$t').checked){ss=1;}
 		XHR.appendData('servername',document.getElementById('servername-$t').value);
 		XHR.appendData('ipaddr',document.getElementById('ipaddr-$t').value);
+		XHR.appendData('ssl',ssl);
 		XHR.appendData('port',document.getElementById('port-$t').value);
+		
 		XHR.appendData('forceddomain',document.getElementById('forceddomain-$t').value);
 		var pp=encodeURIComponent(document.getElementById('remote_path-$t').value);
 		XHR.appendData('remote_path',document.getElementById('remote_path-$t').value);
@@ -181,7 +194,8 @@ function general_settings_save(){
 	if(!$q->FIELD_EXISTS("reverse_sources", "cacheid")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `cacheid` INT(10) NOT NULL DEFAULT '0'");}
 	if(!$q->FIELD_EXISTS("reverse_sources", "certificate")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `certificate` CHAR(128) NULL");}
 	
-	
+	$ID=intval($_POST["general-settings"]);
+	if($ID>0){
 	$q->QUERY_SQL("UPDATE `reverse_sources` SET
 			`servername`='{$_POST["servername"]}',
 			`ipaddr`='{$_POST["ipaddr"]}',
@@ -189,8 +203,15 @@ function general_settings_save(){
 			`forceddomain`='{$_POST["forceddomain"]}',
 			`port`='{$_POST["port"]}',
 			`cacheid`='{$_POST["cacheid"]}',
+			`ssl`='{$_POST["ssl"]}',
 			`certificate`='{$_POST["certificate"]}'
 			WHERE ID='{$_POST["general-settings"]}'");
-	if(!$q->ok){echo $q->mysql_error;}
+			if(!$q->ok){echo $q->mysql_error;}
+	}else{
+		$q->QUERY_SQL("INSERT IGNORE INTO `reverse_sources` (`ssl`,`servername`,`ipaddr`,`remote_path`,`forceddomain`,`port`,`cacheid`,`certificate`)
+		VALUES('{$_POST["ssl"]}','{$_POST["servername"]}','{$_POST["ipaddr"]}','{$_POST["remote_path"]}','{$_POST["forceddomain"]}','{$_POST["port"]}','{$_POST["cacheid"]}','{$_POST["certificate"]}')");
+		if(!$q->ok){echo $q->mysql_error;}
+		
+	}
 	
 }

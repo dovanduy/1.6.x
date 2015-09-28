@@ -82,7 +82,7 @@ while (list ($num, $ligne) = each ($array) ){
 		$html[]= "<li><a href=\"$page?main=$num\"><span style='font-size:20px'>$ligne</span></a></li>\n";
 	}
 	
-	return build_artica_tabs($html, "main_config_postfix_net");
+	return build_artica_tabs($html, "main_config_postfix_net",1490);
 }
 
 
@@ -992,7 +992,7 @@ function POSTFIX_MULTI_INSTANCE(){
 		</td>
 	</tr>
 	</table>
-	<div class=text-info style='font-size:13px'>{POSTFIX_MULTI_INSTANCE_HOWTO}</div>
+	<div class=explain style='font-size:13px'>{POSTFIX_MULTI_INSTANCE_HOWTO}</div>
 		<div style='text-align:right'><hr>
 		". button("{apply}","POSTFIX_MULTI_INSTANCE()",16)."
 		</div>
@@ -1046,7 +1046,7 @@ function ipv6(){
 	<img src='img/folder-network-128.png' id='smtp_bind_address6_img'>
 	</td>
 	<td valign='top' style='padding-left:15px'>
-	<div class=text-info style='font-size:18px'>{smtp_bind_address6}</div>
+	<div class=explain style='font-size:18px'>{smtp_bind_address6}</div>
 	
 	<table style='width:100%'>
 	<tr>

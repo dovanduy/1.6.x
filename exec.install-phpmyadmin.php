@@ -21,7 +21,7 @@ function install(){
 	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/phpmyadmin.progress";
 	$GLOBALS["DOWNLOAD_PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/phpmyadmin.download.progress";
 	$uri="http://articatech.net/download/phpMyAdmin-4.2.12.tar.gz";
-	$uri="http://artica.fr/download/phpMyAdmin-4.2.12.tar.gz";
+	//$uri="http://artica.fr/download/phpMyAdmin-4.2.12.tar.gz";
 	echo "Starting $uri\n";
 	$unix=new unix();
 	
@@ -33,6 +33,7 @@ function install(){
 	$curl->WriteProgress=true;
 	$curl->ProgressFunction="download_progress";
 	if(!$curl->GetFile($TMP_FILE)){
+		@unlink($TMP_FILE);
 		build_progress("{downloading} phpMyAdmin-4.2.12.tar.gz {failed}...",110);
 		return;
 	}
@@ -50,14 +51,19 @@ function install(){
 	
 	
 	$ERROR=false;
+	echo "$tar xvf $TMP_FILE -C /usr/share/ 2>&1\n";
 	exec("$tar xvf $TMP_FILE -C /usr/share/ 2>&1",$EXT);
 	while (list ($index, $ligne) = each ($EXT) ){
 		echo "$ligne\n";
 		if(preg_match("#(Cannot|recoverable|Error|exiting)\s+#", $ligne)){
 			echo "Error Found $ligne\n";
-			$ERROR=true; }
+			$ERROR=true; 
+		}
 		
 	}
+	
+	
+	
 	if($ERROR){
 		build_progress("{extraction_failed}...",110);
 		sleep(4);
@@ -111,7 +117,11 @@ function download_progress( $download_size, $downloaded_size, $upload_size, $upl
 	}
 	 
 	if ( $progress > $GLOBALS["previousProgress"]){
+		$downloaded_size=FormatBytes($downloaded_size/1024,true);
+		$download_size=FormatBytes($download_size/1024,true);
 		
+		
+		echo "phpMyAdmin-4.2.12.tar.gz: {$progress}% $downloaded_size/$download_size\n";
 		@file_put_contents($GLOBALS["DOWNLOAD_PROGRESS_FILE"], $progress);
 		@chmod($GLOBALS["DOWNLOAD_PROGRESS_FILE"], 0777);
 		$GLOBALS["previousProgress"]=$progress;

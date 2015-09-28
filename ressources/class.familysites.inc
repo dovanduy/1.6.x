@@ -113,7 +113,7 @@ class familysite{
 				'tw' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true,'ac'=>true,"com"=>true,"net"=>true),
 				'th' => array('co' => true,"go"=>true,"in"=>true,"gov"=>true,'ac'=>true),
 				'tr' => array('com' => true,"org"=>true,"co"=>true,"gov"=>true),
-				'co' => array('gov' => true,"za"=>true,"gov"=>true,"com"=>true),
+				'co' => array('gov' => true,"za"=>true,"gov"=>true,"com"=>true,"cc"=>true),
 				'gi' => array('gov' => true),
 				'ca' => array('qc' => true,"gov"=>true),
 				'ch' =>true,

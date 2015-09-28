@@ -241,7 +241,7 @@ function START_PAGE($gpid){
 	$html="
 	
 	<div style='font-size:16px'>{importing_form_text_file}</div>
-	<p class=text-info>{importuser_text}<br>{importuser_aliases_text}</div>
+	<p class=explain>{importuser_text}<br>{importuser_aliases_text}</div>
 		<input type='hidden' name='groupid' value='$gpid'>
     	<form action=\"$page\" method=\"post\" onsubmit=\"return AIM.submit(this, {'onStart' : startCallback, 'onComplete' : completeCallback})\">
 			<div><label>File:</label> <input type=\"file\" name=\"form[file]\" />&nbsp;&nbsp;<input type=\"submit\" value=\"{upload}&nbsp;&raquo;\" /></div>

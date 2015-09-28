@@ -42,7 +42,7 @@ function page(){
 	
 	$html="
 	<div id='mod_fcgi_div'>
-	<div class=text-info>{apache_mod_fcgid_explain}</div>
+	<div class=explain>{apache_mod_fcgid_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{enable}:<td>

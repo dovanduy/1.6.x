@@ -97,6 +97,8 @@ if($prc>100){
 		document.getElementById('title-$t').style.border='1px solid #C60000';
 		document.getElementById('title-$t').style.color='#C60000';
 		$('#progress-$t').progressbar({ value: 100 });
+		LoadAjaxRound('artica-license-status','admin.dashboard.license.php');
+		LayersTabsAllAfter();
 	}
 	setTimeout(\"Start$time()\",1000);
 	";
@@ -113,6 +115,7 @@ if($prc==100){
 		LayersTabsAllAfter();
 		RTMMailHide();
 		CacheOff();
+		LoadAjaxRound('artica-license-status','admin.dashboard.license.php');
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	

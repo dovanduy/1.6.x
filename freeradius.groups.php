@@ -70,13 +70,16 @@ function group_id(){
 	
 	$html="<div id='anim-$t'></div>
 	<div style='width:98%' class=form>	
+	<div style='font-size:18px;margin-bottom:20px'><i>administrators,ProxyAdms,ProxySecurity and WebStatsAdm</i></div>
+	
+	
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{name}:</td>
-		<td>". Field_text("groupname-$t",$ligne["groupname"],"font-size:16px;width:220px")."</td>		
+		<td class=legend style='font-size:26px'>{name}:</td>
+		<td>". Field_text("groupname-$t",$ligne["groupname"],"font-size:26px;width:480px")."</td>		
 	</tr>					
 	<tr>
-		<td colspan=2 align=right><hr>".button("$btname","Save$t()",18)."</td>
+		<td colspan=2 align=right><hr>".button("$btname","Save$t()",42)."</td>
 	</tr>	
 	</table>	
 	</div>
@@ -131,11 +134,12 @@ function popup(){
 		$connection=$tpl->javascript_parse_text("{connection}");
 		$add=$tpl->javascript_parse_text("{new_group}");
 		$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+		$title=$tpl->javascript_parse_text("{groups2}");
 		$tablewidht=680;
 		$t=time();
 	
 		$buttons="buttons : [
-		{name: '$add', bclass: 'Add', onpress : AddConnection$t},
+		{name: '<strong style=font-size:18px>$add</strong>', bclass: 'Add', onpress : AddConnection$t},
 		],	";
 	
 
@@ -151,7 +155,7 @@ echo "
 			dataType: 'json',
 			colModel : [
 			{display: '&nbsp;', name : 'none2', width : 52, sortable : false, align: 'center'},
-			{display: '$shortname', name : 'groupname', width : 510, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$shortname</span>', name : 'groupname', width : 510, sortable : false, align: 'left'},
 			{display: '&nbsp;', name : 'none3', width : 52, sortable : false, align: 'center'},
 		],
 		$buttons
@@ -162,7 +166,7 @@ echo "
 		sortname: 'groupname',
 		sortorder: 'asc',
 		usepager: true,
-		title: '',
+		title: '<span style=font-size:26px>$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
@@ -266,10 +270,13 @@ function connection_list(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql,$database);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
 	
+	if(mysql_num_rows($results)==0){
+		json_error_show("no data");
+	}
 	
 	
 	$data['page'] = $page;

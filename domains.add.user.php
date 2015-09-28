@@ -164,10 +164,10 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	<td valign='top' style='width:50%'>
 			<center style='margin-bottom:8px'><img src='img/add-woman-256.png'></center>
 			<div style='padding-left:10px'>		
-				<div class=text-info id='text-1' style='font-size:16px'>{name_the_new_account_explain}</div>
-				<div class=text-info id='text-2' style='font-size:16px'>{user_email_text}</div>
-				<div class=text-info id='text-3' style='font-size:16px'>{select_user_group_text}</div>
-				<div class=text-info id='text-4' style='font-size:16px'>{give_password_text}</div>
+				<div class=explain id='text-1' style='font-size:16px'>{name_the_new_account_explain}</div>
+				<div class=explain id='text-2' style='font-size:16px'>{user_email_text}</div>
+				<div class=explain id='text-3' style='font-size:16px'>{select_user_group_text}</div>
+				<div class=explain id='text-4' style='font-size:16px'>{give_password_text}</div>
 			</div>
 			
 	</td>

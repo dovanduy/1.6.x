@@ -32,7 +32,7 @@ function page(){
 	
 	$html="
 	<div id='mod_cache_div'>
-	<div class=text-info>{apache_mod_cache_explain}</div>
+	<div class=explain>{apache_mod_cache_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{enable}:<td>
@@ -64,7 +64,7 @@ function page(){
 	</tr>
 	</table>	
 	</div>
-	<div class=text-info>{CacheDisable_explain}</div>
+	<div class=explain>{CacheDisable_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{url}:</td>

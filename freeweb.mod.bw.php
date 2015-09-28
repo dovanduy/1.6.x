@@ -238,7 +238,7 @@ function rule_popup_type(){
 	
 	if($type=="BandWidth"){
 		$html="
-		<div class=text-info>{apache_explain_BandWidth}</div>
+		<div class=explain>{apache_explain_BandWidth}</div>
 		
 		<table style='width:99%;' class=form>
 		<tbody>
@@ -257,7 +257,7 @@ function rule_popup_type(){
 	}
 	if($type=="MinBandWidth"){
 		$html="
-		<div class=text-info>{apache_explain_BandWidth}</div>
+		<div class=explain>{apache_explain_BandWidth}</div>
 		
 		<table style='width:99%;' class=form>
 		<tbody>
@@ -276,7 +276,7 @@ function rule_popup_type(){
 	}
 	if($type=="LargeFileLimit"){
 		$html="
-		<div class=text-info>{apache_explain_LargeFileLimit}</div>
+		<div class=explain>{apache_explain_LargeFileLimit}</div>
 		
 		<table style='width:99%;' class=form>
 		<tbody>
@@ -300,7 +300,7 @@ function rule_popup_type(){
 	
 	if($type=="MaxConnection"){
 		$html="
-		<div class=text-info>{apache_explain_MaxConnection}</div>
+		<div class=explain>{apache_explain_MaxConnection}</div>
 		
 		<table style='width:99%;' class=form>
 		<tbody>

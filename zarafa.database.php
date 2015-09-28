@@ -32,6 +32,7 @@ function tabs(){
 	$array["status"]="{status}";
 	
 	$array["popup-mysql"]="{mysql_tuning}";
+	$array["popup-importAD"]="{active_directory_importation}";
 	
 	$fontsize="font-size:18px";
 	
@@ -43,7 +44,10 @@ function tabs(){
 			continue;
 		}
 	
-	
+		if($num=="popup-importAD"){
+			$html[]="<li><a href=\"zarafa.import-ad-contacts.php\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			continue;
+		}	
 		
 		
 		if($num=="popup-mysql"){
@@ -197,7 +201,7 @@ function mysql_dir_popup(){
 	$t=time();
 	$html="
 	<div id='ChangeMysqlDirDiv$t'></div>
-	<div class=text-info style='font-size:16px'>{ChangeMysqlDir_explain}</div>
+	<div class=explain style='font-size:16px'>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>

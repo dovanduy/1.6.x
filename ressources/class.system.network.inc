@@ -20,7 +20,9 @@ class networking{
 			include_once(dirname(__FILE__) . '/class.tcpip.inc');
 			if(isset($GLOBALS["__CLASS-networking"])){
 			foreach (get_object_vars($GLOBALS["__CLASS-networking"]) as $key => $value){$this->$key = $value;}
-			if($GLOBALS["DEBUG_MEM"]){events("Memory: class.system.network.inc -> networking class() -> ".round(((memory_get_usage()/1024)/1000),2) ." line:".__LINE__);}
+			if($GLOBALS["DEBUG_MEM"]){
+				if(function_exists("events")){events("Memory: class.system.network.inc -> networking class() -> ".round(((memory_get_usage()/1024)/1000),2) ." line:".__LINE__);}
+				}
 			return null;
 			}		
 		
@@ -33,6 +35,20 @@ class networking{
 		$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
 		writelogs("Loading success $called",__CLASS__.'/'.__FUNCTION__,__FILE__);
 	}
+	
+	
+  public function NETWORK_ALL_INTERFACES(){
+  	if(!$GLOBALS["AS_ROOT"]){
+  		$sock=new sockets();
+  		$INTERFACES=unserialize(base64_decode($sock->getFrameWork("cmd.php?TCP_NICS_STATUS_ARRAY=yes")));
+  		 
+  	}else{
+  		$unix=new unix();
+  		$INTERFACES=$unix->NETWORK_ALL_INTERFACES();
+  	}
+  	return $INTERFACES;
+  	
+  }
 	
   public function Local_interfaces($filter=false) {
     $results = array();
@@ -49,7 +65,7 @@ class networking{
     
     while (list ($dev_name, $ligneAR) = each ($INTERFACES) ){
     	
-    	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>Receive interface name:$dev_name / {$ligneAR["IPADDR"]}</span><br>\n";}
+    	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>Receive interface name:$dev_name / {$ligneAR["IPADDR"]}</span><br>\n";}
     	if($dev_name=="lo"){continue;}
     	
     	

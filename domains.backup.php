@@ -715,7 +715,7 @@ $results=$q->QUERY_SQL($sql,"artica_backup");
 while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($del){
 			DeleteOrgMail($ligne["MessageID"]);
-			$ligne["subject"]="<strong style='color:red'>{deleted}</strong>";
+			$ligne["subject"]="<strong style='color:#d32d2d'>{deleted}</strong>";
 		}
 	
 	    if(strlen($ligne["subject"])>50){

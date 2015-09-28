@@ -56,19 +56,19 @@ function rewrite_rule_items_popup(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:18px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:22px'>{enabled}:</td>
+		<td>". Field_checkbox_design("enabled-$t",1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{searchthestring}:</td>
-		<td>". Field_text("frompattern-$t",$ligne["frompattern"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
+		<td class=legend style='font-size:22px'>{searchthestring}:</td>
+		<td>". Field_text("frompattern-$t",$ligne["frompattern"],"font-size:22px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{replacewith}:</td>
-		<td>". Field_text("topattern-$t",$ligne["topattern"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
+		<td class=legend style='font-size:22px'>{replacewith}:</td>
+		<td>". Field_text("topattern-$t",$ligne["topattern"],"font-size:22px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck$t(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter$t()",26)."</td>
+		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter$t()",30)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -79,6 +79,9 @@ function rewrite_rule_items_popup(){
 			var res=obj.responseText;
 			if (res.length>3){alert(res);}
 			var ID=$ID;
+			if(document.getElementById('MAIN_TABLE_REWRITE_OBJECTS')){ $('#'+document.getElementById('MAIN_TABLE_REWRITE_OBJECTS').value).flexReload(); }
+			if(document.getElementById('tableau-reecriture-id')){ $('#'+document.getElementById('tableau-reecriture-id').value).flexReload(); }
+						
 			if(document.getElementById('tableau-reecriture-regles')){FlexReloadRulesRewrite();}
 			if(document.getElementById('tableau-reecriture-regles2')){FlexReloadRulesRewriteItems();}
 			YahooWin3Hide();
@@ -132,15 +135,15 @@ function rewrite_rule_settings(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:18px'>{rule_name}:</td>
-		<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:18px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck(event)")."</td>
+		<td class=legend style='font-size:22px'>{rule_name}:</td>
+		<td>". Field_text("rulename-$t",$ligne["rulename"],"font-size:22px;width:99%",null,null,null,false,"SaveMainRewriteFilterCheck(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:22px'>{enabled}:</td>
+		<td>". Field_checkbox_design("enabled-$t",1,$ligne["enabled"])."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter()",26)."</td>
+		<td colspan=2 align='right'><hr>". button($button,"SaveMainRewriteFilter()",30)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -151,9 +154,12 @@ function rewrite_rule_settings(){
 			var res=obj.responseText;
 			if (res.length>3){alert(res);}
 			var ID=$ID;
-			if(ID==0){YahooWin2Hide();if(document.getElementById('tableau-reecriture-regles')){FlexReloadRulesRewrite();}return;}
-			RefreshTab('main_rewriterule_$ID');
+			
+			if(document.getElementById('MAIN_TABLE_REWRITE_OBJECTS')){ $('#'+document.getElementById('MAIN_TABLE_REWRITE_OBJECTS').value).flexReload(); }
+			if(document.getElementById('tableau-reecriture-id')){ $('#'+document.getElementById('tableau-reecriture-id').value).flexReload(); }
 			if(document.getElementById('tableau-reecriture-regles')){FlexReloadRulesRewrite();}
+			if(ID==0){YahooWin2Hide();return;}
+			
 			
 			
 		}	
@@ -352,17 +358,18 @@ function rewrite_rule_items(){
 	$source=$tpl->_ENGINE_parse_body("{searchthestring}");
 	$replaceby=$tpl->_ENGINE_parse_body("{replacewith}");
 	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
-	
+	$rewrite_objects=$tpl->javascript_parse_text("{rewrite_objects}");
 	
 	
 	$buttons="
 	buttons : [
-	{name: '$new_item', bclass: 'add', onpress : ReWriteRuleAddItem},
+	{name: '<strong style=font-size:22px>$new_item</strong>', bclass: 'add', onpress : ReWriteRuleAddItem},
 	],";		
 	
 	
 $html="
 <span id='tableau-reecriture-regles2'></div>
+<input type=hidden id='tableau-reecriture-id' value='flexRT$t'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -372,8 +379,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?rewrite-rule-items-list=yes&ruleid={$_GET["ID"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$source', name : 'frompattern', width : 262, sortable : false, align: 'left'},	
-		{display: '$replaceby', name : 'topattern', width :220, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$source</span>', name : 'frompattern', width : 262, sortable : false, align: 'left'},	
+		{display: '<span style=font-size:18px>$replaceby</span>', name : 'topattern', width :220, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'enabled', width : 25, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'left'},
 		],
@@ -399,6 +406,7 @@ $('#flexRT$t').flexigrid({
 	var x_RuleRewriteDeleteItem= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}	
+		if(document.getElementById('MAIN_TABLE_REWRITE_OBJECTS')){ $('#'+document.getElementById('MAIN_TABLE_REWRITE_OBJECTS').value).flexReload(); }
 		FlexReloadRulesRewriteItems();
 		if(document.getElementById('tableau-reecriture-regles')){FlexReloadRulesRewrite();}
 	}
@@ -440,45 +448,28 @@ function popup(){
 	$t=time();
 	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
 	$items=$tpl->_ENGINE_parse_body("{items}");
-	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
+	$new_rule=$tpl->_ENGINE_parse_body("{new_object}");
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
-	$rewrite_rules_fdb_explain=$tpl->_ENGINE_parse_body("{rewrite_rules_fdb_explain}");
+	$rewrite_objects=$tpl->javascript_parse_text("{rewrite_objects}");
 	
 	$buttons="
 	buttons : [
-	{name: '$new_rule', bclass: 'add', onpress : ReWriteRuleAdd},
+	{name: '<strong style=font-size:22px>$new_rule</strong>', bclass: 'add', onpress : ReWriteRuleAdd},
 	],";		
 		
-	if(($_GET["blk"]==2) OR ($_GET["blk"]==3)){
-		$buttons="
-		buttons : [
-		{name: '$AddWWW', bclass: 'add', onpress : AddByWebsite},
-		{name: '$squidGroup', bclass: 'add', onpress : AddBySquidGroupWWW},
-		],";
-	}
-
-if($_GET["blk"]==4){		
-	$buttons="
-		buttons : [
-		{name: '$AddWWW', bclass: 'add', onpress : AddByWebsite},
-		{name: '$squidGroup', bclass: 'add', onpress : AddBySquidGroupWWW},
-		],";
-	}	
 	
 	
 $html="
-<div id='tableau-reecriture-regles' class=text-info style='font-size:14px'>$rewrite_rules_fdb_explain</div>
+<input type=hidden id='MAIN_TABLE_REWRITE_OBJECTS' value='flexRT$t'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-
-	
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
 	url: '$page?now-search=yes&blk={$_GET["blk"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$rulename', name : 'rulename', width : 650, sortable : false, align: 'left'},	
-		{display: '$items', name : 'ItemsNumber', width :99, sortable : true, align: 'center'},
+		{display: '<span style=font-size:22px>$rulename</span>', name : 'rulename', width : 650, sortable : false, align: 'left'},	
+		{display: '<span style=font-size:22px>$items</span>', name : 'ItemsNumber', width :99, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'enabled', width : 99, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 99, sortable : false, align: 'center'},
 		],
@@ -489,12 +480,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'rulename',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:30px>$rewrite_objects</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 350,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -504,7 +495,7 @@ $('#flexRT$t').flexigrid({
 	var x_AddByMac= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}
-		FlexReloadblk();
+		$('#flexRT$t').flexReload();
 		if(document.getElementById('rules-toolbox')){RulesToolBox();}
 	}
 	
@@ -523,7 +514,8 @@ $('#flexRT$t').flexigrid({
 	var x_RuleRewriteDelete= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}	
-		FlexReloadRulesRewrite();
+		$('#flexRT$t').flexReload();
+		
 	}
 	
 	
@@ -619,8 +611,8 @@ function popup_list(){
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:22px;text-decoration:underline'>{$ligne["rulename"]}</span>",
-			"<span style='font-size:22px'>{$ligne["ItemsCount"]}</span>",$enable,$delete )
+			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:26px;text-decoration:underline'>{$ligne["rulename"]}</span>",
+			"<span style='font-size:26px'>{$ligne["ItemsCount"]}</span>",$enable,$delete )
 		);
 	}
 	
@@ -701,7 +693,8 @@ function rewrite_rule_items_list(){
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:18px;text-decoration:underline'>{$ligne["frompattern"]}</span>",
-			"<span style='font-size:18px'>{$ligne["topattern"]}</span>",$enable,$delete )
+			"<span style='font-size:18px'>{$ligne["topattern"]}</span>",$enable,
+			"<center>$delete</center>" )
 		);
 	}
 	

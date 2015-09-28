@@ -34,15 +34,21 @@ function manual_update(){
 	$allowedExtensions="allowedExtensions: ['gz'],";
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
-	<H2>{manual_update}</H2>
-	<div class=text-info style='font-size:16px'>{software_manual_update_text}</div>
+	<div style='font-size:32px;margin-top:20px;margin-bottom:20px'>{manual_update}</div>
+	<div style='font-size:18px'>{software_manual_update_text}</div>
 	<center>
 	<table style='width:80%'>
 	<tr>
 		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
 		<td><a href=\"http://www.articatech.net/artica-catzdb.php\" target=_new 
-		style='font-size:16px;text-decoration:underline'>{supported_softwares}</a></td>
+		style='font-size:16px;text-decoration:underline;color:black'>{supported_softwares}</a></td>
 	</tr>
+		<tr>
+		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
+		<td><a href=\"http://www.articatech.net/influx.versions.php\" target=_new 
+		style='font-size:16px;text-decoration:underline;color:black'>BigData database</a></td>
+	</tr>
+	
 	</table>
 	</center>
 	

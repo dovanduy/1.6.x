@@ -79,7 +79,9 @@ function start($aspid=false){
 	}
 
 	$EnableMemcached=$sock->GET_INFO("EnableMemcached");
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if(!is_numeric($EnableMemcached)){$EnableMemcached=1;}
+	if($SquidPerformance>2){$EnableMemcached=0;}
 	
 	if($EnableMemcached==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service disabled (EnableMemcached = $EnableMemcached)\n";}

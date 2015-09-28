@@ -102,7 +102,7 @@ fpsystem('date +%m%d%H >'+dir+'/date.txt');
 J:=TStringList.Create;
 J.LoadFromFile(dir+'/date.txt');
 txt:=trim(J.Strings[0]);
-result:='1.8.'+txt;
+result:='2.20.'+txt;
 fpsystem('/bin/rm '+dir+'/date.txt');
 
 end;
@@ -1048,8 +1048,7 @@ if FileExists(BasePath + '/bin/artica-filter-smtp-out') then begin
 end;
 
 if FileExists(BasePath + '/bin/artica-logon') then begin
-   Execute('strip -s ' + BasePath + '/bin/artica-logon');
-   Writeln('STRIP artica-postfix/bin/artica-logon');
+   Execute ('rm -f ' + BasePath + '/bin/artica-logon');
 end;
 
 
@@ -1115,7 +1114,7 @@ Execute('cd ' + DestPath+'/artica-agent' + ' && tar -czf '+ DestPath+'/artica-ag
 fpsystem('/bin/chmod -R 755 '+ExtractFilePath(BasePath));
 
 
-
+fpsystem('/bin/touch '+DestPath+'/'+VERSION+'.txt');
 
 
 cmd:='cd ' + ExtractFilePath(BasePath) + ' && tar -czf '+ DestPath+'/artica-' + VERSION + '.tgz artica-postfix';
@@ -1186,6 +1185,7 @@ cmd:=cmd + ' --exclude artica-postfix/tests.py';
 cmd:=cmd + ' --exclude artica-postfix/.eric4project';
 cmd:=cmd + ' --exclude artica-postfix/.settings';
 cmd:=cmd + ' --exclude artica-postfix/.mldonkey';
+cmd:=cmd + ' --exclude artica-postfix/exec.compile-official-ufdb.php';
 
 for i:=0 to languages_bases.Count -1 do begin
     cmd:=cmd + ' --exclude artica-postfix/ressources/language/' +languages_bases.Strings[i] ;

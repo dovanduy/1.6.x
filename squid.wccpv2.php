@@ -66,7 +66,7 @@ function popup(){
 	);
 $html="
 <div style='font-size:22px'>{WCCP_NAME}</div>
-<div class=text-info style='font-size:14px'>{WCCP_HOWTO}</div>
+<div class=explain style='font-size:14px'>{WCCP_HOWTO}</div>
 <div id='SquidAVParamWCCP' style='width:98%' class=form>
 <table style='width:100%'>
 	<tr>

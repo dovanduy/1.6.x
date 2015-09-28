@@ -416,7 +416,7 @@ function add_server_popup(){
 		<tbody>
 		<tr>
 		<td valign='middle'><img src='img/error-64.png'></td>
-		<td valign='middle'><H2 style=color:red'>{ERROR_CREATE_SMTP_DOMAINS_FIRST}</h2></td>
+		<td valign='middle'><H2 style=color:#d32d2d'>{ERROR_CREATE_SMTP_DOMAINS_FIRST}</h2></td>
 		</tr>
 		</tbody>
 		</table>");

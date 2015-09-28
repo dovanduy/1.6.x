@@ -4,10 +4,12 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.squid.builder.php');
 	
+	
 	$users=new usersMenus();
 	if(!$users->AsWebStatisticsAdministrator){echo header("content-type: application/x-javascript");"alert('No privs!');";die();}
 	
 	if(isset($_GET["popup"])){popup();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["list"])){showlist();exit;}
 	if(isset($_GET["refresh"])){refresh();exit;}
 js();
@@ -22,7 +24,7 @@ function js(){
 	$page=CurrentPageName();
 	$html="
 	function Start$t(){
-		YahooWin5('950','$page?popup=yes','$title')
+		YahooWin5('1050','$page?popup=yes','$title')
 	}
 	
 	Start$t();";
@@ -31,6 +33,58 @@ function js(){
 	
 	
 }
+function tabs(){
+	$tpl=new templates();
+	$stats_appliance=new stats_appliance();
+	
+	$array["popup"]='{active_requests}';
+	
+	$time=time();
+
+	$style="style='font-size:22px'";
+
+
+
+	$page=CurrentPageName();
+
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="categories"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.active.requests.categories.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="categories-day"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.active.requests.categories.day.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}	
+		
+		
+
+		if($num=="popup-members"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.active.requests.members.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="popup-members-day"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.active.requests.members.day.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$time\"><span $style>$ligne</span></a></li>\n");
+	}
+
+
+
+	echo build_artica_tabs($html, "squid_active_requests_relatime");
+
+
+
+}
+
+
+
 function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -41,11 +95,12 @@ function popup(){
 	$familysite=$tpl->javascript_parse_text("{familysite}");
 	$uid=$tpl->javascript_parse_text("{uid}");
 	$size=$tpl->javascript_parse_text("{size}");
+	$refresh=$tpl->javascript_parse_text("{refresh}");
 	// ipaddr        | familysite            | servername                                | uid               | MAC               | size
 	$t=time();
 	$ActiveRequestsR=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/active_requests.inc"));
 	$ActiveRequestsNumber=count($ActiveRequestsR["CON"]);
-	$title=$tpl->javascript_parse_text("{active_requests}::$ActiveRequestsNumber");
+	$title=$tpl->javascript_parse_text("{active_requests}");
 	$html="
 <table class='flexRT$t' style='display:none' id='flexRT$t'></table>
 <script>
@@ -55,11 +110,11 @@ $('#flexRT$t').flexigrid({
 	url: '$page?list=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$uid', name : 'uid', width : 141, sortable : false, align: 'left'},
-	{display: '$ipaddr', name : 'ipaddr', width :95, sortable : false, align: 'left'},
-	{display: '$familysite', name : 'familysite', width : 349, sortable : false, align: 'left'},
-	{display: '$size', name : 'size', width : 114, sortable : false, align: 'right'},
-	{display: '$duration', name : 'size2', width : 142, sortable : false, align: 'right'},
+	{display: '<strong style=font-size:18px>$uid</strong>', name : 'uid', width : 141, sortable : false, align: 'left'},
+	{display: '<strong style=font-size:18px>$ipaddr</strong>', name : 'ipaddr', width :95, sortable : false, align: 'left'},
+	{display: '<strong style=font-size:18px>$familysite</strong>', name : 'familysite', width : 349, sortable : false, align: 'left'},
+	{display: '<strong style=font-size:18px>$size</strong>', name : 'size', width : 114, sortable : false, align: 'right'},
+	{display: '<strong style=font-size:18px>$duration</strong>', name : 'size2', width : 142, sortable : false, align: 'right'},
 	],
 
 	searchitems : [
@@ -68,10 +123,16 @@ $('#flexRT$t').flexigrid({
 	{display: '$uid', name : 'uid'},
 	
 	],
+	
+	buttons : [
+				{name: '<strong style=font-size:18px>$refresh</strong>', bclass: 'Reload', onpress : refresh$t},
+			],	
+	
+	
 	sortname: 'size',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<span id=title-$t style=font-size:22px>$title</span>',
+	title: '<span id=title-$t style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 500,
 	showTableToggleBtn: false,
@@ -84,8 +145,12 @@ $('#flexRT$t').flexigrid({
 
 }
 
+function refresh$t(){
+	$('#flexRT$t').flexReload();
+
+}
+
 StartLogsSquidTable$t();
-Loadjs('$page?refresh=yes&id=$t');
 </script>
 ";
 echo $html;
@@ -100,15 +165,24 @@ function refresh(){
 	$tpl=new templates();
 	$title=$tpl->javascript_parse_text("{active_requests}::$ActiveRequestsNumber");
 	
-	echo "function RefreshActiveRequests(){
-				if(!document.getElementById('flexRT$t')){return;}
-				if(!YahooWin5Open()){return;}
-				document.getElementById('title-$t').innerHTML='$title';
-				$('#flexRT$t').flexReload();
-				Loadjs('$page?refresh=yes&id=$t');
-			}
-			
-	setTimeout('RefreshActiveRequests()',3000);";
+echo "
+function RefreshActiveRequests$t(){
+	var Count=parseInt(document.getElementById('counter$t').value);
+
+		
+	if(Count<10){
+		Count=Count+1;
+		document.getElementById('counter$t').value=Count;
+		setTimeout('RefreshActiveRequests$t()',1000);
+		return;
+	}
+	
+	if(!document.getElementById('flexRT$t')){return;}
+	if(!YahooWin5Open()){return;}
+	document.getElementById('title-$t').innerHTML='$title';
+c	Loadjs('$page?refresh=yes&id=$t');
+}
+setTimeout('RefreshActiveRequests$t()',10000);";
 	
 	
 }

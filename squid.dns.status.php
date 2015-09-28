@@ -75,7 +75,7 @@ function page(){
 	$array["dns-servers"]='{dns_servers}';
 	$array["items"]='{items}';
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?$num&=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num&=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 	}
 	
 	echo build_artica_tabs($html, "squid_dns_tab");
@@ -86,7 +86,7 @@ function dns_servers(){
 $sock=new sockets();
 $data=base64_decode($sock->getFrameWork("squid.php?idns=yes"));
 echo "<textarea style='width:100%;height:650px;overflow:auto;border:0px solid #CCCCCC;
-	font-size:14px;font-weight:bold;padding:3px' id='SQUID_CONTENT-$t'>$data</textarea>";
+	font-size:18px !important;font-weight:bold;padding:3px' id='SQUID_CONTENT-$t'>$data</textarea>";
 }
 
 function items(){
@@ -97,5 +97,5 @@ function items(){
 	echo "
 	<center style='margin:20px'>". $tpl->_ENGINE_parse_body(button("{purge}", "Loadjs('$page?purge-js=yes',true)",16))."</center>		
 	<textarea style='width:100%;height:650px;overflow:auto;border:0px solid #CCCCCC;
-	font-size:14px;font-weight:bold;padding:3px' id='SQUID_CONTENT-$t'>$data</textarea>";
+	font-size:18px !important;font-weight:bold;padding:3px' id='SQUID_CONTENT-$t'>$data</textarea>";
 }

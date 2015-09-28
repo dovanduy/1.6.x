@@ -305,7 +305,7 @@ function popup_status(){
 	
 	<table style='width:100%' style='margin-top:10px'>
 		<tr>
-			<td valign='top'><div  style='font-size:14px' class=text-info>{APP_OCSI_TEXT}</div><div id='ocs-resolve'></div></td>
+			<td valign='top'><div  style='font-size:14px' class=explain>{APP_OCSI_TEXT}</div><div id='ocs-resolve'></div></td>
 			<td valign='top'><div id='ocsweb-status' style='margin:10px'></div></td>
 		</tr>
 	</table>
@@ -374,7 +374,7 @@ $removeInstall
 		<img src='img/web-64.png'>
 	</td>
 	<td valign='top'>
-			<div style='font-size:14px' class=text-info>{ocs_web_params_text}</div>
+			<div style='font-size:14px' class=explain>{ocs_web_params_text}</div>
 			<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2><hr><div>$www</div><div style='font-size:11px;text-align:right'>{username}:admin&nbsp;{password}:admin<hr></td>
@@ -630,7 +630,7 @@ function popup_connected_search(){
 		$js_text="{$ligne["NAME"]}<hr>{last_com}:$last<hr>{$ligne["IPADDRESS"]}/{$ligne["MACADDR"]}";
 		
 		if($mins>$PROLOG_FREQ){
-			$js_text="{$ligne["NAME"]}<hr><span color:red>{last_com}:$last</span>";
+			$js_text="{$ligne["NAME"]}<hr><span color:#d32d2d>{last_com}:$last</span>";
 			$status=imgtootltip('ok32-grey.png',$js_text);
 			
 			
@@ -1133,7 +1133,7 @@ function popup_agent_win(){
 <center style='margin-top:8px'>
 	<img src='img/ocs/Agent_setup_3.png'><br><br>
 	<strong style='font-size:14px;margin:5px'>{OCS_AGENT_INSTALL_3}
-		<span color:red>{servername}:$servername, {listen_port}:$OCSWebPort</span>
+		<span color:#d32d2d>{servername}:$servername, {listen_port}:$OCSWebPort</span>
 	</strong>
 </center>
 

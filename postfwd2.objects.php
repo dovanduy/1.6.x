@@ -233,7 +233,7 @@ function page(){
 	$page=CurrentPageName();
 	
 	$html="
-	<div class=text-info>{postfwd_objects_explain}</div>
+	<div class=explain>{postfwd_objects_explain}</div>
 	<table style='width:99%' class=form>
 		<tbody>
 			<tr>

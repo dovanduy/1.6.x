@@ -1,15 +1,18 @@
 <?php
+include_once(dirname(__FILE__)."/class.os.system.inc");
 
 
 class squid_stats_tools{
 	
 	public $NoCategorize=false;
 	public $database="squidlogs";
-	
+	private $SquidPerformance;
 	
 	function squid_stats_tools(){
 		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+		$sock=new sockets();
+		$this->SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 		
 	}
 	
@@ -254,6 +257,10 @@ class squid_stats_tools{
 // Analyse les tables heures, et les catégorises.
 	
 	public function not_categorized_day_scan(){
+		
+		if($this->SquidPerformance>0){return ;}
+		if(system_is_overloaded()){return;}
+		
 		if($this->NoCategorize){
 			$this->categorize_table_resync();
 			return;
@@ -274,6 +281,8 @@ class squid_stats_tools{
 		$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 		if(!$GLOBALS["Q"]->ok){return;}
 		
+		
+		$c=0;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$sitename=$ligne["sitename"];
 			if($sitename==null){continue;}
@@ -282,6 +291,11 @@ class squid_stats_tools{
 				$GLOBALS["MEMORYSITES"][$sitename]=$category;
 			}else{
 				$category=$GLOBALS["MEMORYSITES"][$sitename];
+			}
+			$c++;
+			if($c>200){
+				if(system_is_overloaded()){return;}
+				$c=0;
 			}
 			if(trim($category)==null){continue;}
 			$sitename=mysql_escape_string2($sitename);

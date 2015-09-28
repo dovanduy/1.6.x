@@ -437,6 +437,61 @@ class parse_berekley_dbs{
 	}
 	
 	
+	public function MYSQL_ERROR_PARSE_DB($filename){
+		if(!is_file($filename)){return;}
+		include_once(dirname(__FILE__)."/class.realtime-buildsql.inc");
+		$db_con = dba_open($filename, "w","db4");
+		if(!$db_con){echo "DB open $filename failed\n";return false;}
+		$mainkey=dba_firstkey($db_con);
+		$q=new mysql_squid_builder();
+		
+		$c=0;
+		while($mainkey !=false){
+			$tablename=$mainkey;
+			$qeries=unserialize(dba_fetch($mainkey,$db_con));
+			$LOOP=false;
+			$c++;
+			if(count($qeries)==0){
+				dba_delete($mainkey, $db_con);
+				$mainkey=dba_nextkey($db_con);
+				continue;
+			}
+			
+			
+			if(preg_match("#^RTTH_[0-9]+#",$tablename)){
+				REALTIME_RTTH_TABLE($tablename);
+				$LOOP=true;
+			}
+			
+			if(preg_match("#^cachehour_[0-9]+#",$tablename)){
+				REALTIME_cachehour_FULL($tablename);
+				$LOOP=true;
+			}
+			
+			if($tablename=="UserAutDB"){$LOOP=true;}
+			
+			if(!$LOOP){
+				$mainkey=dba_nextkey($db_con);
+				continue;
+			}
+			
+			$newQueries=$qeries;
+			while (list ($index, $sql) = each ($qeries) ){
+					$q->QUERY_SQL($sql);
+					if($q->ok){unset($newQueries[$index]);}
+				}
+				
+			dba_replace($mainkey,serialize($newQueries),$db_con);
+			$mainkey=dba_nextkey($db_con);
+	
+		}
+	
+		@dba_close($db_con);
+		if($c==0){@unlink($filename);}
+		
+		return false;
+	}	
+	
 	public function ACCESS_PARSE_DB($filename,$xtime){
 		$db_con = dba_open($filename, "r","db4");
 		if(!$db_con){echo "DB open $filename failed\n";return false;}

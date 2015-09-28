@@ -3,6 +3,7 @@ if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}
 include_once(dirname(__FILE__).'/class.templates.inc');
 include_once(dirname(__FILE__).'/class.ldap.inc');
 include_once(dirname(__FILE__).'/class.mysql.inc');
+include_once(dirname(__FILE__) . '/class.computers.inc');
 
 	class ocs{
 		var $mac=null;
@@ -67,6 +68,11 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			$this->ComputerName=$ligne["NAME"];
 			$this->ComputerOS=$ligne["OSNAME"];
 			$this->ComputerIP=$ligne["IPADDR"];
+			
+			$sql="SELECT * FROM networks WHERE HARDWARE_ID='$this->HARDWARE_ID'";
+			$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'ocsweb'));
+			$this->mac=$ligne["MACADDR"];
+			
 		}
 		
 		public function UPDATE_IPADDR($ipaddr){
@@ -127,6 +133,75 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			return $ligne["ID"];
 		}
 		
+		public function DeleteComputer(){
+			if($this->mac==null){
+				echo "NO MAC defined!";
+				return false;
+			}
+			$q=new mysql();
+			$this->mac=str_replace("-", ":", $this->mac);
+			$this->mac=strtolower($this->mac);
+			$MAC_UPPER=strtoupper($this->mac);
+			$sql="SELECT ID,HARDWARE_ID FROM networks WHERE UPPER(MACADDR)='$MAC_UPPER'";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"ocsweb"));
+			$ID=$ligne["ID"];
+			$HARDWARE_ID=$ligne["HARDWARE_ID"];
+			$q->QUERY_SQL("DELETE FROM hardware WHERE ID='$HARDWARE_ID'","ocsweb");
+			if(!$q->ok){echo $q->mysql_error;return false;}
+			$q->QUERY_SQL("DELETE FROM networks WHERE ID='$ID'","ocsweb");
+			if(!$q->ok){echo $q->mysql_error;return false;}
+			
+			if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
+			$sql="DELETE webfilters_nodes WHERE MAC='{$this->mac}'";
+			$q=new mysql_squid_builder();
+			$q->QUERY_SQL($sql);
+			$sql="DELETE FROM webfilters_ipaddr WHERE ipaddr='$this->ComputerIP'";
+			$q->QUERY_SQL($sql);
+			
+			$computer=new computers();
+			$uid=$computer->ComputerIDFromMAC($this->mac);
+			if($uid<>null){
+				$computer=new computers($uid);
+				if(!$computer->RemoveHost()){return false;}
+			}
+			
+
+			
+			$dhcp=new dhcpd_hosts();
+			$dhcp->MAC=$this->mac;
+			$dhcp->DeleteFixed();
+			
+
+			
+		}
+		
+		public function UpdateDirect(){
+			if($this->HARDWARE_ID==0){echo "HARDWARE_ID = 0 ";return false;}
+	
+			$q=new mysql();
+			$q->QUERY_SQL("UPDATE hardware SET `IPADDR`='$this->ComputerIP',`NAME`='$this->ComputerName' 
+					WHERE `ID`='$this->HARDWARE_ID'",'ocsweb');
+			if(!$q->ok){echo $q->mysql_error;return false;}
+			if($this->mac<>null){
+				$MAC_UPPER=strtoupper($this->mac);
+				$sql="SELECT ID FROM networks WHERE UPPER(MACADDR)='$MAC_UPPER'";
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"ocsweb"));
+				if($ligne["ID"]>0){
+					$NET_ID=$ligne["ID"];
+					$q->QUERY_SQL("UPDATE networks SET IPADDRESS='$this->ComputerIP' WHERE ID='$NET_ID'",'ocsweb');
+					if(!$q->ok){echo $q->mysql_error;return false;}
+				}else{
+					$sql="INSERT INTO networks (HARDWARE_ID,IPADDRESS,MACADDR) VALUES('$this->HARDWARE_ID','$this->ComputerIP','$MAC_UPPER')";
+					$q->QUERY_SQL($sql,"ocsweb");
+					if(!$q->ok){echo $q->mysql_error;return false;}
+				}
+				
+			}
+			
+			return true;
+			
+		}
+		
 		
 		public function EditComputer(){
 			if($this->ComputerName==null){return;}
@@ -142,7 +217,8 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			$IPADDR_SQL=null;
 			$date=date('Y-m-d H:i:s');
 			$q=new mysql();
-			$sql="SELECT ID FROM networks WHERE UPPER(MACADDR)='$this->mac'";
+			$MAC_UPPER=strtoupper($this->mac);
+			$sql="SELECT ID FROM networks WHERE UPPER(MACADDR)='$MAC_UPPER'";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"ocsweb"));
 			if(!$q->ok){if($GLOBALS["VERBOSE"]){writelogs($q->mysql_error,__CLASS__."/".__FILE__,__FILE__,__LINE__);}return false;}	
 			if(!is_numeric($ligne["ID"])){$ligne["ID"]=0;}
@@ -193,7 +269,7 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 				}else{
 					$unix=new unix();
 					$nohup=$unix->find_program("nohup");
-					$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php >/dev/null 2>&1");
+					$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php --build >/dev/null 2>&1");
 					shell_exec($cmd);				
 				}
 			

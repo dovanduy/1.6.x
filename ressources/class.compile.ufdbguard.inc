@@ -24,7 +24,7 @@ class compile_ufdbguard{
 	var $SquidGuardWebUseExternalUri=0;
 	var $SquidGuardWebExternalUri=null;
 	var $SquidGuardWebExternalUriSSL=null;
-	var $UseDynamicGroupsAcls=0;
+	var $UseDynamicGroupsAcls=1;
 	var $KerbAuthDisableNsswitch=0;
 	var $licensed=0;
 	var $Ufdbguard_Version=null;
@@ -69,8 +69,7 @@ class compile_ufdbguard{
 		$this->DisableExpressionList=$ufdbguardConfig["DisableExpressionList"];
 		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." ".__LINE__."[CNF] DisableExpressionList:`{$ufdbguardConfig["DisableExpressionList"]}`\n";}
 		
-		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
-		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}		
+	
 		
 		if(!is_numeric($this->SquidGuardWebUseExternalUri)){$this->SquidGuardWebUseExternalUri=0;}
 		if(!is_numeric($this->UpdateUtilityRedirectEnable)){$this->UpdateUtilityRedirectEnable=0;}
@@ -101,7 +100,7 @@ class compile_ufdbguard{
 		
 		
 		
-		if(@file_get_contents("/usr/local/share/artica/.lic")=="TRUE"){$this->licensed=1;}else{$this->SquidDatabasesArticaEnable=0;}
+		if(@file_get_contents(base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw=="))=="TRUE"){$this->licensed=1;}else{$this->licensed=0;$this->SquidDatabasesArticaEnable=0;}
 		
 	
 		$this->Ufdbguard_Version=$this->ufdbguardVersion();
@@ -144,6 +143,19 @@ class compile_ufdbguard{
 		$IPS=array();
 		$MAIN_INTERFACE=null;
 		
+		$sock=new sockets();
+		$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
+		$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+		$SquidGuardApacheSSLPort=intval($sock->GET_INFO("SquidGuardApacheSSLPort"));
+		if($SquidGuardApacheSSLPort==0){$SquidGuardApacheSSLPort=9025;}
+		if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+		
+		if($SquidGuardServerName<>null){
+			$this->SquidGuardIPWeb="http://$SquidGuardServerName:$SquidGuardApachePort/exec.squidguard.php";
+			$this->SquidGuardIPWebSSL="https://$SquidGuardServerName:$SquidGuardApacheSSLPort/exec.squidguard.php";
+			return;
+		}
+		
 		if($GLOBALS["AS_ROOT"]){
 			if(class_exists("unix")){
 				$unix=new unix();
@@ -170,10 +182,10 @@ class compile_ufdbguard{
 		
 		
 		if($this->SquidGuardIPWeb==null){
-			$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:9020/exec.squidguard.php";
+			$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:$SquidGuardApachePort/exec.squidguard.php";
 		}
 		if($this->SquidGuardIPWebSSL==null){
-			$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:9025/exec.squidguard.php";
+			$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:$SquidGuardApacheSSLPort/exec.squidguard.php";
 		}
 		
 		
@@ -185,39 +197,34 @@ class compile_ufdbguard{
 		
 		echo "Starting......: ".date("H:i:s")." ufdbGuard Main interface = `$MAIN_INTERFACE`\n";
 		echo "Starting......: ".date("H:i:s")." ufdbGuard SquidGuardIPWeb = `$this->SquidGuardIPWeb` hostname=`$hostname`\n";
-		if(!$ipClass->isValid($hostname)){ 
-			echo "Starting......: ".date("H:i:s")." ufdbGuard hostname=`$hostname` INVALID\n"; 
-			$hostname=null;
+
+		
+		if(!$ipClass->isValid($hostname)){
+			echo "Starting......: ".date("H:i:s")." ufdbGuard SquidGuardIPWeb: $hostname is not an ip address\n";
+			$ip=gethostbyname($hostname);
+			if(!$ipClass->isValid($ip)){
+				$hostname=null;
+					
+			}
+
+		}
+		
+		if($hostname==null){
 			if($MAIN_INTERFACE<>null){
+				echo "Starting......: ".date("H:i:s")." ufdbGuard IPADDR `$hostname` Not found !\n";
 				$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:9020/exec.squidguard.php";
 				$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:9025/exec.squidguard.php";
 				echo "Starting......: ".date("H:i:s")." ufdbGuard Redirect to `http://$MAIN_INTERFACE:9020/exec.squidguard.php`\n";
 				return;
 			}
-			
 		}
 		
-		if(count($IPS)>0){
-			if(!isset($IPS[$hostname])){
-				if($MAIN_INTERFACE<>null){
-					echo "Starting......: ".date("H:i:s")." ufdbGuard IPADDR `$hostname` Not found !\n";
-					$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:9020/exec.squidguard.php";
-					$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:9025/exec.squidguard.php";
-					echo "Starting......: ".date("H:i:s")." ufdbGuard Redirect to `http://$MAIN_INTERFACE:9020/exec.squidguard.php`\n";
-					return;
-				}
-			}
-		}
 		
 		if($this->SquidPerformance>2){
 			echo "Starting......: ".date("H:i:s")." System Performance is turned to less features\n";
 			$this->SquidGuardIPWeb="http://articatech.net/block.html";
 			$this->SquidGuardIPWebSSL="https://articatech.net/block.html";
 		}
-		
-		
-		
-		
 	}
 	
 	private function ufdbguardVersion(){
@@ -329,28 +336,49 @@ class compile_ufdbguard{
 		
 	}
 	
+	private function build_progress($text,$prc){
+		if(!function_exists("build_progress")){return;}
+		build_progress($text,$prc);
+	}
+	
 	
 	public function buildConfig(){
 		$sock=new sockets();
 		$IpClass=new IP();
+		
+		
+		$this->build_progress("{building_rules} (sources)",15);
 		$sources=$this->build_sources();
+		
+		$this->build_progress("{building_rules} (rewrites)",20);
 		$rewrite=$this->build_rewrites();
+		
+		$this->build_progress("{building_rules} (times)",25);
 		$times=$this->build_times();
+		
+		$this->build_progress("{building_rules} ({categories})",30);
 		$categories=$this->build_categories();
+		$this->build_progress("{building_rules} (banned files)",35);
 		$bannedFiles=$this->BuildBannedFiles();
+		$this->build_progress("{building_rules} (banned domains)",40);
 		$BannexExtDomains=$this->BuildBannedDomains();
+		$this->build_progress("{building_rules} (expressions)",45);
 		$build_expressions_list=$this->build_expressions_list();
+		
+		$this->build_progress("{building_rules} ({ACLS})",50);
 		$acls=$this->build_acls();
 		$EnableYoutubeForSchools=$sock->GET_INFO("EnableYoutubeForSchools");
 		$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 		$YoutubeForSchoolsID=$sock->GET_INFO("YoutubeForSchoolsID");
 		$UfdbForceSquidVersion=$sock->GET_INFO("UfdbForceSquidVersion");
 		if(!is_numeric($EnableYoutubeForSchools)){$EnableYoutubeForSchools=0;}
-		if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}		
+		if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}	
+		$SquidGuardDenySSL=intval($sock->GET_INFO("SquidGuardDenySSL"));
 		$unix=new unix();
 		$major=$unix->UFDBGUARDD_MAJOR();
 		$minor=$unix->UFDBGUARDD_MINOR();
 		$squidversion=$unix->squid_version();	
+		
 		if(!preg_match("#^([0-9]+)\.([0-9]+)#", $UfdbForceSquidVersion)){$UfdbForceSquidVersion=null;}
 		if($UfdbForceSquidVersion<>null){$squidversion=$UfdbForceSquidVersion;}
 		if(preg_match("#^([0-9]+)\.([0-9]+)#", $squidversion,$re)){$squidversion=$re[1].".".$re[2];}		
@@ -369,9 +397,10 @@ class compile_ufdbguard{
 			}
 		
 		}
-		
-		$conf[]="# Artica builder on " .date('Y-m-d H:i:s');
-		$conf[]="# Engine version 1.1";
+		$this->build_progress("$this->SquidGuardIPWeb",51);
+		$conf[]="# Engine builder on " .date('Y-m-d H:i:s');
+		$conf[]="# Engine version 2.1";
+		$conf[]="# SquidGuardDenySSL = $SquidGuardDenySSL";
 		$conf[]="dbhome /var/lib/squidguard";
 		$conf[]="logdir /var/log/squid";
 		
@@ -397,11 +426,6 @@ class compile_ufdbguard{
 		
 
 		echo "Starting......: ".date("H:i:s")." ufdbguardd: Major:$major, Minor:$minor\n";
-		
-
-
-
-		
 		
 		if($major>0){if($minor>26){$ufdbguardConfig["tcpsockets"]=1;}}
 		
@@ -438,7 +462,11 @@ class compile_ufdbguard{
 		
 		if($this->Is31){
 			$this->SquidGuardIPWebSSL=str_replace("https://", "", $this->SquidGuardIPWebSSL);
-			$conf[]="redirect-https \"{$this->SquidGuardIPWebSSL}?SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u\"";
+			if($SquidGuardDenySSL==0){
+				$conf[]="redirect-https \"{$this->SquidGuardIPWebSSL}?SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u\"";
+			}else{
+				$conf[]="redirect-https \"127.0.0.1\"";
+			}
 			$conf[]="squid-version \"$squidversion\"";
 		}
 		
@@ -510,8 +538,10 @@ class compile_ufdbguard{
  		$conf[]=$BannexExtDomains;
  		$conf[]=$build_expressions_list;
  		$conf[]=$categories;
- 		$conf[]=$acls;				
+ 		$conf[]=$acls;	
+ 		$this->build_progress("{building_certificates}",52);
  		$this->BuildCertificates();
+ 		$this->build_progress("{building_rules} {done}",55);
  		return @implode("\n", $conf);
  		
 		
@@ -907,6 +937,10 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			if($ligne["localldap"]==2){
 				$c++;
 			}
+
+			if($ligne["localldap"]==3){
+				$c++;
+			}			
 		}
 		
 		if($c>0){return true;}
@@ -976,21 +1010,49 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$arrayGROUPS["AD"][]=$DN;
 				continue;
 			}
+			
+			if($ligne["localldap"]==3){
+				if(preg_match("#ExtLDAP:(.+?):(.+)#", $groupname,$re)){
+					if($GLOBALS["VERBOSE"]){writelogs("$ruleid] Type:{$ligne["localldap"]}: $groupname REMOTE LDAP SERVER={$ligne["localldap"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+					$groupname=$re[1];
+					$arrayGROUPS["EXT-LDAP"][]=base64_decode($re[2]);
+					continue;
+				}
+				continue;
+			}			
 		
 			if($GLOBALS["VERBOSE"]){writelogs("$ruleid] Type:{$ligne["localldap"]}: $groupname Is an ACTIVE DIRECTORY group -> `{$ligne["dn"]}` ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			
-			
+			$TCPClass=new IP();
 		
 			if(!$isDynamic){
 				$sql="SELECT * FROM webfilter_members WHERE enabled=1 AND groupid={$ligne["ID"]}";
 				$results2=$q->QUERY_SQL($sql);
 				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." ufdbGuard $groupname({$ligne["ID"]}) webfilter_members = ". mysql_num_rows($results2)." items\n";}
 				while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
-					if(trim($ligne2["pattern"])==null){continue;}
+					$ligne2["pattern"]=trim($ligne2["pattern"]);
+					if($ligne2["pattern"]==null){continue;}
+					if($ligne2["pattern"]=="0.0.0.0"){continue;}
+					
 					if($GLOBALS["VERBOSE"]){writelogs("$groupname {$ligne2["pattern"]}={$ligne2["membertype"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-					if($ligne2["membertype"]==0){$array[]="\tip\t{$ligne2["pattern"]}";continue;}
-					if($ligne2["membertype"]==2){$array[]="\tip\t{$ligne2["pattern"]}";continue;}
-					if($ligne2["membertype"]==1){$array[]="\tuser\t\"{$ligne2["pattern"]}\"";continue;}			
+					if($ligne2["membertype"]==0){
+							if(strpos($ligne2["pattern"], "-")==0){
+								if(!$TCPClass->isIPAddressOrRange($ligne2["pattern"])){continue;}
+							}
+							$array[]="\tip\t{$ligne2["pattern"]}";
+							continue;
+					}
+					if($ligne2["membertype"]==2){
+							if(strpos($ligne2["pattern"], "-")==0){
+								if(!$TCPClass->isIPAddressOrRange($ligne2["pattern"])){continue;}
+							}
+							$array[]="\tip\t{$ligne2["pattern"]}";
+							continue;
+					}
+					if($ligne2["membertype"]==1){
+						$array[]="\tuser\t\"{$ligne2["pattern"]}\"";
+						continue;
+					}			
 				}
 			}
 		
@@ -1107,7 +1169,30 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$GLOBALS["build_categories_uris"][$category]=$destinationfile;
 		return $destinationfile;
 	}
+
+	
+	private function parse_redirect_uri($url,$pattern=null){
+		$query=null;
+		$array=parse_url($url);
+		$port=null;
+		if(!isset($array["scheme"])){$array["scheme"]="http";}
+		if(!isset($array["path"])){$array["path"]="/";}
+		if(isset($array["port"])){$port=":{$array["port"]}";}
 		
+		if(isset($array["query"])){
+			if($array["query"]==$pattern){$pattern=null;}
+		}
+		
+		if($pattern<>null){
+			if(isset($array["query"])){$query="?{$array["query"]}&$pattern";}
+			if(!isset($array["query"])){$query="?$pattern";}
+		}else{
+			if(isset($array["query"])){$query="?{$array["query"]}";}
+		}
+		
+		return "{$array["scheme"]}://{$array["host"]}{$port}{$array["path"]}$query";
+	}
+	
 		
 	private function build_categories_paragraph($category){
 		if(!$GLOBALS["AS_ROOT"]){return;}
@@ -1193,14 +1278,20 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$categoryname=$re[1];
 		$IS_CAT_ADDED=false;
 		$array=array();
+		$BANNARTICA=array();
+		//$BANNARTICA["isp"]=true;
 		
-		$BANNARTICA["isp"]=true;
+		if(!is_file($categorypathArtica)){
+			echo "Starting......: ".date("H:i:s")." ".__LINE__."[ART] INFO `$categorypathArtica` doesn't exists\n";
+		}
+		
 		
 // ***********************************************************************************************************************************************************		
 		if($this->SquidDatabasesArticaEnable==1){
 			if(!isset($GLOBALS["ADDED_CATEGORY_TOFILE"][$categoryNameArt])){
 			if(!isset($BANNARTICA[$OrigninalCategoryName])){
 					if(is_file($categorypathArtica)){
+						echo "Starting......: ".date("H:i:s")." ".__LINE__."[ART] `$categorypathArtica` exists\n";
 						if(!is_file("$BASEArt/expressions")){@file_put_contents("$BASEArt/expressions", "\n");}
 						if(!isset($GLOBALS["UFDBART"][$categoryname])){
 							$GLOBALS["UFDBART"][$categoryname]=$categoryNameArt;
@@ -1254,7 +1345,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 					}else{ echo "Starting......: ".date("H:i:s")." [TLS] WARN category `$category` Toulouse University $main_path/$categoryname/domains no such file\n"; }
 				}else{ echo "Starting......: ".date("H:i:s")." [TLS] `$categoryNameTLSE` ( Already defined )\n"; }
 	
-			}{echo "Starting......: ".date("H:i:s")." [TLS] `$categoryNameTLSE` ufdbGuard Toulouse Databases are disabled (see SquidDatabasesUtlseEnable)\n"; }
+			}else{echo "Starting......: ".date("H:i:s")." [TLS] `$categoryNameTLSE` ufdbGuard Toulouse Databases are disabled (see SquidDatabasesUtlseEnable)\n"; }
 // ***********************************************************************************************************************************************************				
 				
 			if(!is_file("$main_path/$categoryname/domains")){
@@ -1293,12 +1384,14 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 	}
 	
 	private function BuildPersoCategories($supposed_path,$categorynamePersoBAse,$categoryname,$categorynamePerso,$RedirectUri,$OrginalCategoryNamed,$RedirectUriSSL){
+		if($this->licensed==0){return;}
+		
 		$q=new mysql_squid_builder();
 		$extLOG=null;
 		if(!$this->Is31){$extLOG=" (version <1.31)";$this->Notrefreshdomainlist=1;}
 		
 		$category_table=$q->cat_totablename($OrginalCategoryNamed);
-		$OrginalCategoryNamedKey=$this->TransFormCategoryName($OrginalCategoryNamed);
+		$OrginalCategoryNamedKey="P".$this->TransFormCategoryName($OrginalCategoryNamed);
 		
 		if(isset($GLOBALS["PERSONALCATZ"][$OrginalCategoryNamedKey])){
 			echo "Starting......: ".date("H:i:s")." ufdbGuar checking $OrginalCategoryNamedKey (PERSO) already parsed...\n";
@@ -1600,11 +1693,11 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		if($this->DansGuardianDefaultMainRule["UseExternalWebPage"]==1){
 			if(preg_match("#^http.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
-				$RedirectUriDEF=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+				$RedirectUriDEF=$this->parse_redirect_uri($this->DansGuardianDefaultMainRule["ExternalWebPage"]);
 			}
 			
 			if(preg_match("#^https.*?:#", $this->DansGuardianDefaultMainRule["ExternalWebPage"])){
-				$RedirectUriDEFSSL=$this->DansGuardianDefaultMainRule["ExternalWebPage"];
+				$RedirectUriDEFSSL=$this->parse_redirect_uri($this->DansGuardianDefaultMainRule["ExternalWebPage"]);
 			}			
 			
 		}
@@ -1629,6 +1722,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$bannedRegexP=null;
 			$category=trim($ligne["category"]);
+			echo "\n********************* $category *********************\n\n";
 			if($category==null){continue;}
 			if($category=="english_malware"){echo "Starting......: ".date("H:i:s")." [DEFAULT]: ufdbGuard build ACLS:$category skipped\n";continue;}
 			
@@ -1638,19 +1732,24 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEFAULT]: ufdbGuard build DEFAULT: ACLS:$category banned={$ligne["modeblk"]}\n";}
 			
-			if(!isset($GLOBALS["PERSONALCATZ"][$category])){echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) no such category \"$category\"\n";}else{
-				echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) category \"$category\" = {$GLOBALS["PERSONALCATZ"][$category]}\n";
+			if(isset($GLOBALS["PERSONALCATZ"]["$category"])){$GLOBALS["PERSONALCATZ"]["P$category"]=$category; }
+			
+			
+			if(!isset($GLOBALS["PERSONALCATZ"]["P$category"])){echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) no such category \"$category\"\n";}else{
+				echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) category [OK] \"$category\" = {$GLOBALS["PERSONALCATZ"]["P$category"]}\n";
 			}
 			
 			
 			if($ligne["modeblk"]==0){
-				if(isset($GLOBALS["PERSONALCATZ"][$category])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"][$category]}";}
+				if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$banns["P$category"]="!{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 				if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$banns[$category]="!{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 				if(isset($GLOBALS["UFDBART"][$category])){$banns[$category]="!{$GLOBALS["UFDBART"][$category]}";}
 			}
 			
 			if($ligne["modeblk"]==1){
-				if(isset($GLOBALS["PERSONALCATZ"][$category])){$allows[$category]="{$GLOBALS["PERSONALCATZ"][$category]}";}
+				if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){
+					echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) category ALLOWED $category\n";
+					$allows["P$category"]="{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 				if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$allows[$category]="{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 				if(isset($GLOBALS["UFDBART"][$category])){$allows[$category]="{$GLOBALS["UFDBART"][$category]}";}
 			}			
@@ -1681,13 +1780,13 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				if($GLOBALS["VERBOSE"]){echo "DEBUG: Default rule: Category: {$categoryLine["category"]}=$category blacklist=$blacklist\n";}
 				
 				if($blacklist==0){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$banns["P$category"]="!{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$banns[$category]="!{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$banns[$category]="!{$GLOBALS["UFDBART"][$category]}";}
 				}
 		
 				if($blacklist==1){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$allows[$category]="{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$allows["P$category"]="{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$allows[$category]="{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$allows[$category]="{$GLOBALS["UFDBART"][$category]}";}
 				}
@@ -1749,7 +1848,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$allowsFINAL=array();
 		if($GLOBALS["VERBOSE"]){echo "DEBUG: Default rule: BANN: ". count($banns)." items\n";}
 		$redirect_pattern="rule-id=0&SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
-		
+
 		while (list ($category, $line) = each ($banns) ){$bannsFINAL[]=$line;}
 		while (list ($category, $line) = each ($allows) ){$allowsFINAL[]=$line;}
 				
@@ -1757,7 +1856,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$arrayDEF[]="\t\"default\"$time{";
 		if($rewrite_rules<>null){$arrayDEF[]=$rewrite_rules;}
 		$arrayDEF[]="\t\tpass ".trim(@implode(" ", $allowsFINAL)." $bannedExtDomains$bannedfiles$bannedRegexP".@implode(" ", $bannsFINAL)).$endofrule;
-		$arrayDEF[]="\t\tredirect {$http_code}$RedirectUriDEF?$redirect_pattern";
+		$arrayDEF[]="\t\tredirect {$http_code}".$this->parse_redirect_uri($RedirectUriDEF,$redirect_pattern);
 		$arrayDEF[]="\t}";	
 		
 		$acls_default=@implode("\n", $arrayDEF);
@@ -1779,7 +1878,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$else=null;
 				echo "Starting......: ".date("H:i:s")." ufdbGuard rule `$groupname`\n";
 				
-				$redirect_pattern="?rule-id=$RULE_ID&SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+				$redirect_pattern="rule-id=$RULE_ID&SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
 				$RedirectUriArray=$this->build_acls_uriFromRuleID($RULE_ID);
 				$RedirectUri=$RedirectUriArray[0];
 				$RedirectUriSSL=$RedirectUriArray[1];
@@ -1801,10 +1900,11 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 						$compile_rewriterules_fromruleid=$this->compile_rewriterules_fromruleid($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"]);
 						if($compile_rewriterules_fromruleid<>null){$compile_rewriterules_fromruleid="$compile_rewriterules_fromruleid\n";}
 						$http_code=$this->http_code_fromruleid($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"]);
-						$redirect_pattern_else="?rule-id={$GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"]}&SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
+						$redirect_pattern_else="rule-id={$GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"]}&SquidGuardIPWeb=$this->SquidGuardIPWebEnc&clientaddr=%a&clientname=%n&clientuser=%i&clientgroup=%s&targetgroup=%t&url=%u";
 						$else=" else {\n$compile_rewriterules_fromruleid".
 						$this->compile_categories_fromruleid($GLOBALS["TIMESRULES"][$RULE_ID]["NEXT"]).
-						"\n\t\tredirect {$http_code}$RedirectUri$redirect_pattern_else\n\t}";
+						"\n\t\tredirect {$http_code}".
+						$this->parse_redirect_uri($RedirectUri,$redirect_pattern_else)."\n\t}";
 					}
 				}
 				
@@ -1819,7 +1919,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$array[]="\t\"$groupname\"$time{";
 				if($compile_rewriterules_fromruleid<>null){$array[]=$compile_rewriterules_fromruleid;}
 				if($compile_categories_fromruleid<>null){$array[]=$compile_categories_fromruleid;}
-				$array[]="\t\tredirect {$http_code}$RedirectUri$redirect_pattern";
+				$array[]="\t\tredirect {$http_code}".$this->parse_redirect_uri($RedirectUri,$redirect_pattern);
 				$array[]="\t}$else\n";	
 			}
 			
@@ -2044,18 +2144,18 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				
 				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." ufdbGuard build RULE:$RULE_ID : ACLS:$category banned={$blks["modeblk"]}\n";}
 				
-			if(!isset($GLOBALS["PERSONALCATZ"][$category])){echo "Starting......: ".date("H:i:s")." ufdbGuard build DEFAULT (PERSO) no such category \"$category\"\n";}else{
+			if(!isset($GLOBALS["PERSONALCATZ"][$category])){echo "Starting......: ".date("H:i:s")." ufdbGuard build $RULE_ID (PERSO) no such category \"$category\"\n";}else{
 				echo "Starting......: ".date("H:i:s")." ufdbGuard build  RULE:$RULE_ID (PERSO) category \"$category\" = {$GLOBALS["PERSONALCATZ"][$category]}\n";
 			}
 				
 				
 				if($blks["modeblk"]==0){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$banns[$category]="!{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$banns[$category]="!{$GLOBALS["UFDBART"][$category]}";}
 				}
 				if($blks["modeblk"]==1){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$allows[$category]="{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$allows[$category]="{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$allows[$category]="{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$allows[$category]="{$GLOBALS["UFDBART"][$category]}";}
 				}				
@@ -2086,13 +2186,13 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 				$category=$q->CategoryShellEscape($category);
 				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." ufdbGuard ruleid:$RULE_ID {$categoryLine["category"]} $category\n";}
 				if($blacklist==0){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$banns[$category]="!{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$banns[$category]="!{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$banns[$category]="!{$GLOBALS["UFDBART"][$category]}";}
 				}
 				
 				if($blacklist==1){
-					if(isset($GLOBALS["PERSONALCATZ"][$category])){$allows[$category]="{$GLOBALS["PERSONALCATZ"][$category]}";}
+					if(isset($GLOBALS["PERSONALCATZ"]["P$category"])){$allows[$category]="{$GLOBALS["PERSONALCATZ"]["P$category"]}";}
 					if(isset($GLOBALS["UNIVTOULOUSE"][$category])){$allows[$category]="{$GLOBALS["UNIVTOULOUSE"][$category]}";}
 					if(isset($GLOBALS["UFDBART"][$category])){$allows[$category]="{$GLOBALS["UFDBART"][$category]}";}
 				}				
@@ -2204,18 +2304,17 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard check Domains table `$tablename`\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard check Uris table `$tablename_uris`\n";}
 		ufdbguard_admin_events("$categorySource table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
-		
+
+		$sql="SELECT COUNT( * ) AS tcount FROM webfiltering_meta_urls WHERE category='$categorySource'";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+		$META_URIS=intval($ligne2["tcount"]);
 		
 		
 		if($q->TABLE_EXISTS($tablename_uris)){
 			$sql="SELECT pattern FROM $tablename_uris WHERE enabled=1 ORDER BY pattern";
 			$results = $q->QUERY_SQL($sql);
-			
 			UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} $tablename_uris...",10);
-			
-			while ($ligne = mysql_fetch_assoc($results)) {
-				$URIS[]=$ligne["pattern"];
-			}
+			while ($ligne = mysql_fetch_assoc($results)) {$URIS[]=$ligne["pattern"];}
 			
 			if(count($URIS)>0){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard $categorySource ". count($URIS)." URL(s) Items\n";}
@@ -2225,18 +2324,38 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 			
 		}
 		
+		if($META_URIS>0){
+			$f = @fopen("$main_path/urls", 'a');
+			UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} webfiltering_meta_urls...",10);
+			$results=$q->QUERY_SQL("SELECT pattern FROM webfiltering_meta_urls WHERE category='$categorySource'");
+			while ($ligne = mysql_fetch_assoc($results)) {
+				@fwrite($f, $ligne["pattern"]."\n");
+			}
+			@fclose($f);
+		}
+		
+		
+		
+		$sql="SELECT COUNT( * ) AS tcount FROM webfiltering_meta_items WHERE category='$categorySource'";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+		$META_ITEMS=intval($ligne2["tcount"]);
+		
+		
+		
 		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} $tablename...",20);
 		if(!$q->TABLE_EXISTS($tablename)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard $categorySource no such table \"$tablename\"\n";}
-			$fake[]=md5(time()+1).".biz";
-			$fake[]=md5(time()+2).".biz";
-			$fake[]=md5(time()+3).".biz";
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard create directory $main_path\n";}
-			@mkdir($main_path,0755,true);
-			@file_put_contents("$main_path/domains", @implode("\n", $fake));
-			if(!is_file("$main_path/urls")){shell_exec("/bin/touch $main_path/urls");}
-			$this->UfdbGenTable($main_path,$category);
-			return;
+				if($META_ITEMS==0){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard $categorySource no such table \"$tablename\"\n";}
+					$fake[]=md5(time()+1).".biz";
+					$fake[]=md5(time()+2).".biz";
+					$fake[]=md5(time()+3).".biz";
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard create directory $main_path\n";}
+					@mkdir($main_path,0755,true);
+					@file_put_contents("$main_path/domains", @implode("\n", $fake));
+					if(!is_file("$main_path/urls")){shell_exec("/bin/touch $main_path/urls");}
+					$this->UfdbGenTable($main_path,$category);
+					return;
+				}
 		}
 		
 		$tmpdir=$unix->TEMP_DIR();
@@ -2256,11 +2375,12 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$badDomains["info"]=true;
 		$badDomains["ee"]=true;
 		
+		if($q->TABLE_EXISTS($tablename)){
 		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{cleaning} $tablename...",30);
-		while (list ($extensions,$none) = each ($badDomains) ){
-			
-			$q->QUERY_SQL("DELETE FROM $tablename WHERE pattern='$extensions'");
-			if(!$q->ok){echo "$q->mysql_error !!! \n";}
+			while (list ($extensions,$none) = each ($badDomains) ){
+				$q->QUERY_SQL("DELETE FROM $tablename WHERE pattern='$extensions'");
+				if(!$q->ok){echo "$q->mysql_error !!! \n";}
+			}
 		}
 		
 		
@@ -2278,20 +2398,33 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		shell_exec("$chmod 0777 $tmpdir");
 		shell_exec("$chmod 0777 $tmpdir/$tablename");		
 		
-		$sql="SELECT pattern FROM $tablename WHERE enabled=1 ORDER BY pattern INTO OUTFILE '$tmpdir/$tablename/domains' LINES TERMINATED BY '\n';";
+		if($q->TABLE_EXISTS($tablename)){
+			UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} $tablename...",30);
+			$sql="SELECT pattern FROM $tablename WHERE enabled=1 ORDER BY pattern INTO OUTFILE '$tmpdir/$tablename/domains' LINES TERMINATED BY '\n';";
+			
+			$q->QUERY_SQL($sql);
+			$mysqlquerry_took=$unix->distanceOfTimeInWords($t1,time(),true);
+			$writetodisk_took=$unix->distanceOfTimeInWords($t1,time(),true);
+			if(!$q->ok){
+				if(preg_match("#writing file '(.*?)'#",$q->mysql_error,$re)){$df=$unix->find_program("df");exec("$df -h ".dirname($re[1]),$dfh);}
+				squid_admin_mysql(1,"Compilation category, MySQL error",
+				"`$q->mysql_error` aborting\n".@implode("\n",$dfh),__FILE__,__LINE__,"$categorySource");
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard Failed to compile $categorySource $q->mysql_error\n";}
+				echo $q->mysql_error."\n";
+				@shell_exec("$rm -rf $tmpdir/$tablename");
+				$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} $tablename {failed}...",110);
+				return ;
+			}
+		}
 		
-		$q->QUERY_SQL($sql);
-		$mysqlquerry_took=$unix->distanceOfTimeInWords($t1,time(),true);
-		$writetodisk_took=$unix->distanceOfTimeInWords($t1,time(),true);
-		if(!$q->ok){
-			if(preg_match("#writing file '(.*?)'#",$q->mysql_error,$re)){$df=$unix->find_program("df");exec("$df -h ".dirname($re[1]),$dfh);}
-			squid_admin_mysql(1,"Compilation category, MySQL error",
-			"`$q->mysql_error` aborting\n".@implode("\n",$dfh),__FILE__,__LINE__,"$categorySource");
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard Failed to compile $categorySource $q->mysql_error\n";}
-			echo $q->mysql_error."\n";
-			@shell_exec("$rm -rf $tmpdir/$tablename");
-			$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} $tablename {failed}...",110);
-			return ;
+		if($META_ITEMS>0){
+			UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{extracting} webfiltering_meta_items...",35);
+			$f = @fopen("$tmpdir/$tablename/domains", 'a');
+			$results=$q->QUERY_SQL("SELECT pattern FROM webfiltering_meta_items WHERE category='$categorySource'");
+			while ($ligne = mysql_fetch_assoc($results)) {
+				@fwrite($f, $ligne["pattern"]."\n");
+			}
+			@fclose($f);
 		}
 
 		
@@ -2301,6 +2434,16 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		}
 		
 		$size=@filesize("$tmpdir/$tablename/domains");
+		$items=$unix->COUNT_LINES_OF_FILE("$tmpdir/$tablename/domains");
+		if($items<10){
+			$f = @fopen("$tmpdir/$tablename/domains", 'a');
+			for($i=0;$i<10;$i++){
+				@fwrite($f, md5(microtime()).".com\n");
+			}
+			@fclose($f);
+		}
+		
+		
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard Creating $main_path\n";}
 		@mkdir($main_path,0755,true);
@@ -2318,22 +2461,29 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$this->UfdbGenTable($main_path,$category);
 		$compiledbs_took=$unix->distanceOfTimeInWords($t1,time(),true);
 		
+		$t=time();
 		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("{installing} $category took:$mysqlquerry_took...",80);
-		squid_admin_mysql(2,"Category: $category (Compilation done SQL took:$mysqlquerry_took)","Write to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FILE__,__LINE__,"global-compile");
+		$t2=time();
+		$tt=$t2-$t1;
+		if($tt>2){squid_admin_mysql(2,"Category: $category (Compilation done SQL took:$mysqlquerry_took)","Write to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FILE__,__LINE__,"global-compile");}
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("scanning disks..",90);
 		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
 		
 		$TimeReload=$unix->file_time_min("/etc/artica-postfix/pids/UfdbGuardReload.time");
-		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("Last reload since {$TimeReload}Mn",95);
+		$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("Last reload since {$TimeReload}Mn",92);
 		
 		if($TimeReload>$ufdbguardReloadTTL){
 			if($GLOBALS["OUTPUT"]){
 				if(!isset($GLOBALS["UFDB_RELOADED_TASK"])){
-					$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("Reloading service..",95);
+					$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("Reloading service..",93);
 					squid_admin_mysql(2,"Reloading Web filtering service for category $category",__FILE__,__LINE__,"global-compile");
-					system("$php5 /usr/share/artica-postfix/exec.ufdb.php --reload");
+					system("$php5 /usr/share/artica-postfix/exec.ufdb.php --reload --force");
 					$GLOBALS["UFDB_RELOADED_TASK"]=true;
+					
+					$this->UFDBGUARD_COMPILE_CATEGORY_PROGRESS("Reloading service..",95);
+					squid_admin_mysql(2,"Reloading Categories service for category $category",__FILE__,__LINE__,"global-compile");
+					system("$php5 /usr/share/artica-postfix/exec.ufdbcat.php --reload");
 				}
 			}
 		}

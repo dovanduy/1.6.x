@@ -15,7 +15,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.settings.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
-
+include_once(dirname(__FILE__).'/ressources/class.apache.certificate.php');
 
 
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
@@ -71,6 +71,7 @@ function apache_stop(){
 	if(!is_numeric($ArticaHotSpotPort)){$ArticaHotSpotPort=0;}
 	if(!is_numeric($ArticaSplashHotSpotPort)){$ArticaSplashHotSpotPort=16080;}
 	if(!is_numeric($ArticaSplashHotSpotPortSSL)){$ArticaSplashHotSpotPortSSL=16443;}
+	
 	
 
 	if(!$unix->process_exists($pid)){
@@ -263,6 +264,7 @@ function apache_config(){
 	@mkdir("/var/run/artica-apache",0755,true);
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	if(preg_match("#APACHE_RUN_GROUP#", $APACHE_SRC_GROUP)){$APACHE_SRC_GROUP="www-data";}
 	$APACHE_MODULES_PATH=$unix->APACHE_MODULES_PATH();
 
 	
@@ -276,7 +278,7 @@ function apache_config(){
 	if(!is_numeric($ArticaSplashHotSpotPort)){$ArticaSplashHotSpotPort=16080;}
 	if(!is_numeric($ArticaSplashHotSpotPortSSL)){$ArticaSplashHotSpotPortSSL=16443;}
 	$ArticaHotSpotInterface=$sock->GET_INFO("ArticaHotSpotInterface");
-	
+	$HospotHTTPServerName=trim($sock->GET_INFO("HospotHTTPServerName"));
 	
 	
 	$unix=new unix();
@@ -316,6 +318,9 @@ function apache_config(){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Run as $APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} HTTP Port: $ArticaSplashHotSpotPort SSL Port: $ArticaSplashHotSpotPortSSL\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP-FPM: $EnablePHPFPM\n";}
+	
+	$f[]="Group $APACHE_SRC_GROUP";
+	$f[]="User $APACHE_SRC_ACCOUNT";
 	$f[]="LockFile /var/run/apache2/hotspot-artica-accept.lock";
 	$f[]="PidFile /var/run/artica-apache/hotspot-apache.pid";
 	$f[]="AcceptMutex flock";
@@ -331,31 +336,46 @@ function apache_config(){
 	$f[]="ErrorDocument 403 /hotspot.php";
 	$f[]="ErrorDocument 404 /hotspot.php";
 	$f[]="ErrorDocument 500 /hotspot.php";
-	$f[]="NameVirtualHost $ipaddr:$ArticaSplashHotSpotPort";
-	$f[]="NameVirtualHost $ipaddr:$ArticaSplashHotSpotPortSSL";
-	$f[]="Listen $ipaddr:$ArticaSplashHotSpotPort";
-	$f[]="Listen $ipaddr:$ArticaSplashHotSpotPortSSL";
+	
+	$NameVirtualHost=$ipaddr;
+	if($HospotHTTPServerName<>null){$NameVirtualHost=$HospotHTTPServerName;}
+	
+	
+	
+	
+	$f[]="NameVirtualHost $NameVirtualHost:$ArticaSplashHotSpotPort";
+	$f[]="NameVirtualHost $NameVirtualHost:$ArticaSplashHotSpotPortSSL";
+	$f[]="Listen $NameVirtualHost:$ArticaSplashHotSpotPort";
+	$f[]="Listen $NameVirtualHost:$ArticaSplashHotSpotPortSSL";
 
-$f[]="<VirtualHost $ipaddr:$ArticaSplashHotSpotPort>";
-$f[]="\tServerName $ipaddr";
+$f[]="<VirtualHost $NameVirtualHost:$ArticaSplashHotSpotPort>";
+$f[]="\tServerName $NameVirtualHost";
 $f[]="\tDocumentRoot /usr/share/artica-postfix";
 $f[]="</VirtualHost>";
 
+
+$f[]="<VirtualHost $NameVirtualHost:$ArticaSplashHotSpotPortSSL>";
+$f[]="\tServerName $NameVirtualHost";
+$f[]="\tDocumentRoot /usr/share/artica-postfix";
+$f[]="\tSSLEngine on";
 $squid=new squidbee();
 $ArticaSplashHotSpotCertificate=$sock->GET_INFO("ArticaSplashHotSpotCertificate");
 $data=$squid->SaveCertificate($ArticaSplashHotSpotCertificate,false,true,false);
 
-if(preg_match("#ssl_certificate\s+(.+?);\s+ssl_certificate_key\s+(.+?);#is", $data,$re)){
-	$cert=$re[1];
-	$key=$re[2];
+if($ArticaSplashHotSpotCertificate<>null){
+	$apache=new apache_certificate($ArticaSplashHotSpotCertificate);
+	$f[]=$apache->build();
+}else{
+
+	if(preg_match("#ssl_certificate\s+(.+?);\s+ssl_certificate_key\s+(.+?);#is", $data,$re)){
+		$cert=$re[1];
+		$key=$re[2];
+		$f[]="\tSSLCertificateFile \"$cert\"";
+		$f[]="\tSSLCertificateKeyFile \"$key\"";
+	}
+
 }
 
-$f[]="<VirtualHost $ipaddr:$ArticaSplashHotSpotPortSSL>";
-$f[]="\tServerName $ipaddr";
-$f[]="\tDocumentRoot /usr/share/artica-postfix";
-	$f[]="\tSSLEngine on";
-	$f[]="\tSSLCertificateFile \"$cert\"";
-	$f[]="\tSSLCertificateKeyFile \"$key\"";
 	$f[]="\tSSLVerifyClient none";
 	$f[]="\tServerSignature Off";	
 
@@ -399,6 +419,13 @@ $f[]="</VirtualHost>";
 	$f[]="MaxRequestsPerChild  5000";
 	$f[]="MaxKeepAliveRequests 100";
 	$f[]="ServerName ".$unix->hostname_g();
+	@mkdir("/home/artica/hotspot/sessions",0755,true);
+	@chown("/home/artica/hotspot/sessions",$APACHE_SRC_ACCOUNT);
+	@chgrp("/home/artica/hotspot/sessions",$APACHE_SRC_GROUP);
+	
+	if(!is_file("/var/log/artica-wifidog.log")){@touch("/var/log/artica-wifidog.log");}
+	@chown("/var/log/artica-wifidog.log",$APACHE_SRC_ACCOUNT);
+	@chgrp("/var/log/artica-wifidog.log",$APACHE_SRC_GROUP);
 	
 
 	
@@ -425,7 +452,9 @@ $f[]="</VirtualHost>";
 
 	
 	$f[]="AddType application/x-httpd-php .php";
-	$f[]="php_value error_log \"/var/log/lighttpd/apache-hotspot-php.log\"";
+	$f[]="php_value error_log \"/var/log/artica-wifidog.log\"";
+	$f[]="php_value session.save_path \"/home/artica/hotspot/sessions\"";
+	
 	
 	$f[]="<IfModule mod_fcgid.c>";
 	$f[]="	PHP_Fix_Pathinfo_Enable 1";

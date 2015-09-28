@@ -69,7 +69,7 @@ function rule_form(){
 	$results=$q->QUERY_SQL($sql,"artica_backup");	
 	$html="
 	<span id='iptrleid'></span>
-	<div class=text-info >{ipatccount_rule_explain}</div>
+	<div class=explain >{ipatccount_rule_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td class=legend>{rule_name}:</td>
@@ -198,7 +198,7 @@ function tabs(){
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$html="<div class=text-info>{APP_IPTACOUNT_EXPLAIN}</div>
+	$html="<div class=explain>{APP_IPTACOUNT_EXPLAIN}</div>
 		<center>
 			<table style='width:99%' class=form>
 			<tr>

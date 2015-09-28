@@ -129,23 +129,32 @@ $dn=urlencode($_GET["dn"]);
 $title=$tpl->javascript_parse_text("{group name}");
 $t=$_GET["t"];
 $tt=$_GET["tt"];
-$html="
+$add_group_ou_text=$tpl->javascript_parse_text("{add_group_ou_text}");
+$add_group_ou_text=str_replace("%OU", "{$_GET["ou"]}", $add_group_ou_text);
+if($_GET["CallBackFunction"]<>null){$CallBackFunction="{$_GET["CallBackFunction"]}();";}
+if($_GET["ou"]==null){
+	$error_select_ou_first=$tpl->javascript_parse_text("{error_select_ou_first}");
+	echo "alert('$error_select_ou_first');";
+	return;
+}
 
-	var x_addgroup= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			if(document.getElementById('GroupSettings')){
-				LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=&ou=$ou_encrypted&encoded=yes&dn=$dn&t=$t&tt=$tt')
-			}
-			if(document.getElementById('organization-find')){SearchOrgs();}
-			$('#table-$t').flexReload();
-			$('#flexRT$t').flexReload();
-			$('#flexRT$tt').flexReload();
-		}
+$html="
+var x_addgroup= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	$CallBackFunction
+	if(document.getElementById('GroupSettings')){
+		LoadAjax('GroupSettings','domains.edit.group.php?LoadGroupSettings=&ou=$ou_encrypted&encoded=yes&dn=$dn&t=$t&tt=$tt')
+	}
+	if(document.getElementById('organization-find')){SearchOrgs();}
+	$('#table-$t').flexReload();
+	$('#flexRT$t').flexReload();
+	$('#flexRT$tt').flexReload();
+}
 
 
 function addgroup_js(){
-	var gp=prompt('{$_GET["ou"]}\\n$title');
+	var gp=prompt('$add_group_ou_text\\n\\n$title:');
 	if(gp){
 		var XHR = new XHRConnection();
 		XHR.appendData('addgroup',gp);
@@ -233,7 +242,7 @@ function LoadGroupAjaxSettingsPage$t(){
 	$('#GroupSettings').remove();
 	$('#MembersList').remove();
 	$('#groupprivileges').remove();
-	YahooWinS('836','$page?popup=yes&ou=$ou_encrypted&crypted=yes$main_group_config&group-id={$_GET["group-id"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn','$title');
+	YahooWinS('990','$page?popup=yes&ou=$ou_encrypted&crypted=yes$main_group_config&group-id={$_GET["group-id"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn','$title');
 	}
 	
 	function DomainEditGroupPressKey(e){
@@ -429,7 +438,7 @@ function GROUP_SIEVE_UPDATE(){
 	if($gp->Privileges_array["EnableSieveArticaScript"]==1){
 		include_once('ressources/class.sieve.inc');
 		if(!is_array($gp->members_array)){
-			echo $tpl->_ENGINE_parse_body("<span style='color:red;font-size:14px;font-weight:bold;color:red'>{ERROR_GROUP_STORE_NO_MEMBERS}</span>");
+			echo $tpl->_ENGINE_parse_body("<span style='color:#d32d2d;font-size:14px;font-weight:bold;color:#d32d2d'>{ERROR_GROUP_STORE_NO_MEMBERS}</span>");
 			return null;
 		}
 		echo "<div style='width:100%;height:200px;overflow:auto;background-color:white'>";
@@ -440,7 +449,7 @@ function GROUP_SIEVE_UPDATE(){
 			if($sieve->AddAutoScript()){
 				
 			}else{
-				$result=$tpl->_ENGINE_parse_body("{failed}:<div style='margin:4px;font-size:10px;font-weight:bold;color:red'>$sieve->error</div>");
+				$result=$tpl->_ENGINE_parse_body("{failed}:<div style='margin:4px;font-size:10px;font-weight:bold;color:#d32d2d'>$sieve->error</div>");
 			}
 			
 			echo "<div style='border:1px dotted #CCCCCC;padding:3px;margin:3px'>
@@ -484,9 +493,9 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'xxx', width : 31, sortable : false, align: 'center'},	
-		{display: '$group', name : 'group', width : 189, sortable : false, align: 'left'},	
-		{display: '$members', name : 'members', width : 63, sortable : false, align: 'center'},	
-		{display: '$description', name : 'desc', width :400, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$group</span>', name : 'group', width : 189, sortable : false, align: 'left'},	
+		{display: '<span style=font-size:18px>$members</span>', name : 'members', width : 63, sortable : false, align: 'center'},	
+		{display: '<span style=font-size:18px>$description</span>', name : 'desc', width :400, sortable : false, align: 'left'},
 		],
 	$buttons
 	searchitems : [
@@ -499,8 +508,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 770,
-	height: 303,
+	width: 814,
+	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -880,9 +889,20 @@ function GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY(){
 		}
 	}
 	$array["members"]='{members}';
-	$array["groups"]='{groups2} '.base64_decode($_GET["ou"]);
+	if($_GET["ou"]<>null){
+		$array["groups"]='{groups2} '.base64_decode($_GET["ou"]);
+	}
+	
+	if($users->SQUID_INSTALLED){
+		$array["proxy_rules"]='{proxy_rules}';
+	
+	}
+	
+	
 	if(strpos($_GET["LoadGroupSettings"], ",")>0){unset($array["groups"]);}
 	$array["privs"]="{privileges}";
+	
+	
 
 	
 	$_GET["LoadGroupSettings"]=urlencode($_GET["LoadGroupSettings"]);
@@ -890,34 +910,30 @@ function GROUP_SETTINGS_PAGE_ACTIVE_DIRECTORY(){
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
 		
 		if($num=="members"){
-			$html[]= "<li><a href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a style='font-size:20px' href=\"$page?MembersList={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		if($num=="privs"){
-			$html[]= "<li><a href=\"$page?GroupPriv={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&start=yes&dn=$dn\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li><a style='font-size:20px' href=\"$page?GroupPriv={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&start=yes&dn=$dn\"><span>$ligne</span></a></li>\n";
 			continue;			
 		}
 		
-		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
+
+		if($num=="proxy_rules"){
+			$html[]= "<li><a style='font-size:20px' href=\"domains.edit.group.proxy-rules.php?LoadGroupSettings={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		$html[]= "<li><a style='font-size:20px' href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span>$ligne</span></a></li>\n";
 	}
 	
 	if(isset($_GET["main_group_config"])){$_GET["GroupSettingsID"]=time();}
 	
 	$GroupSettingsID=null;
 	if(isset($_GET["GroupSettingsID"])){$GroupSettingsID=$_GET["GroupSettingsID"];}
-	echo "
-	<div id='main_group_config{$GroupSettingsID}' style='font-size:14px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_group_config{$GroupSettingsID}').tabs();
-			
-			
-			});
-		</script>";		
-		
+	echo build_artica_tabs($html, "main_group_config{$GroupSettingsID}");
+	
 	
 	
 			
@@ -950,36 +966,39 @@ function GROUP_SETTINGS_PAGE(){
 	
 	
 	
-			if(is_numeric($_GET["LoadGroupSettings"])){
-				$gp=new groups($_GET["LoadGroupSettings"]);
-				$array["config"]=$gp->groupName;
-				$array["members"]='{members}';
+	if(is_numeric($_GET["LoadGroupSettings"])){
+		$gp=new groups($_GET["LoadGroupSettings"]);
+		$array["config"]=$gp->groupName;
+		$array["members"]='{members}';
+		$array["options"]='{advanced_options}';
+		if($users->AsOrgAdmin){$users->AllowAddUsers=true;}
 				
+		if(!$users->AsArticaAdministrator){
+			if(!$users->AllowAddUsers){
+				if(!$users->AsOrgAdmin){writelogs("AsOrgAdmin:False",__FUNCTION__,__FILE__,__LINE__);}
+				if(!$users->AllowAddUsers){writelogs("AllowAddUsers:False",__FUNCTION__,__FILE__,__LINE__);}
+				echo "<H1>$no_priv :&laquo;". $tpl->javascript_parse_text("{AllowAddUsers}")."&raquo;</H1>";
+				return null;
+			}
+		}
 				
-				if($users->SQUID_INSTALLED){
-					$array["proxy"]='{proxy}';
-				}
-				$array["options"]='{advanced_options}';
-				
-				if($users->AsOrgAdmin){$users->AllowAddUsers=true;}
-				
-				if(!$users->AsArticaAdministrator){
-					if(!$users->AllowAddUsers){
-						if(!$users->AsOrgAdmin){writelogs("AsOrgAdmin:False",__FUNCTION__,__FILE__,__LINE__);}
-						if(!$users->AllowAddUsers){writelogs("AllowAddUsers:False",__FUNCTION__,__FILE__,__LINE__);}
-						echo "<H1>$no_priv :&laquo;". $tpl->javascript_parse_text("{AllowAddUsers}")."&raquo;</H1>";
-						return null;}
-				}
-				
-				if($users->EnableManageUsersTroughActiveDirectory){
-					unset($array["options"]);
-					unset($array["asav"]);
-					unset($array["proxy"]);
-				}
+		if($users->EnableManageUsersTroughActiveDirectory){
+			unset($array["options"]);
+		}
 	}
-	$array["groups"]='{groups2} '.base64_decode($_GET["ou"]);
-	$fontsize=13;
-	if(count($array["proxy"])<=5){$fontsize=14;}
+	if($_GET["ou"]<>null){
+		$array["groups"]='{groups2} '.base64_decode($_GET["ou"]);
+	}
+	
+	if($users->SQUID_INSTALLED){
+		$array["proxy_rules"]='{proxy_rules}';
+		
+	}
+	
+	
+	
+	$fontsize=16;
+	if(count($array)<=5){$fontsize=22;}
 	
 	while (list ($num, $ligne) = each ($array) ){
 		$ligne=$tpl->_ENGINE_parse_body($ligne);
@@ -989,24 +1008,18 @@ function GROUP_SETTINGS_PAGE(){
 			continue;
 		}
 		
+		if($num=="proxy_rules"){
+			$html[]= "<li><a href=\"domains.edit.group.proxy-rules.php?LoadGroupSettings={$_GET["LoadGroupSettings"]}&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
 		$html[]= "<li><a href=\"$page?LoadGroupSettings={$_GET["LoadGroupSettings"]}&tab=$num&ou={$_GET["ou"]}&tt={$_GET["tt"]}&ttt={$_GET["ttt"]}&dn=$dn\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 	}
 	
 	$GroupSettingsID=null;
 	if(isset($_GET["GroupSettingsID"])){$GroupSettingsID=$_GET["GroupSettingsID"];}
-	echo "
-	<div id=\"main_group_config{$GroupSettingsID}\">
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_group_config{$GroupSettingsID}').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_group_config{$GroupSettingsID}");
 	
-		
 	
 }
 
@@ -1038,7 +1051,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	if(trim($_GET["ou"])<>null){
 		if($group->ou<>$_GET["ou"]){
 			$tpl=new templates();
-			$error="<center style='border:2px solid red;padding:10px;margin:10px'><span style='font-size:13px;font-weight:bold;color:red'>Group: $num/{$_GET["ou"]}<br> {error_group_not_in_your_organization}</span></center>";
+			$error="<center style='border:2px solid red;padding:10px;margin:10px'><span style='font-size:13px;font-weight:bold;color:#d32d2d'>Group: $num/{$_GET["ou"]}<br> {error_group_not_in_your_organization}</span></center>";
 			//echo $tpl->_ENGINE_parse_body($error);
 			writelogs("ERROR: group $num from organization \"$group->ou\" is different from requested organization \"{$_GET["ou"]}\"",__FUNCTION__,__FILE__);
 			return null;
@@ -1328,7 +1341,7 @@ function MEMBERS_LIST($gid){
 	
 	
 	
-//".(MEMBERS_LIST_LIST($gid)) ."	
+$title=$tpl->javascript_parse_text("{members}");
 	
 $html="
 
@@ -1371,8 +1384,8 @@ var MemUidG$t='';
 			dataType: 'json',
 			colModel : [
 				{display: '&nbsp;', name : 'items', width : 31, sortable : false, align: 'center'},
-				{display: '$members', name : 'date', width : 456, sortable : false, align: 'left'},
-				{display: '&nbsp;', name : 'items', width : 31, sortable : false, align: 'center'},
+				{display: '<span style=font-size:18px>$members</span>', name : 'date', width : 697, sortable : false, align: 'left'},
+				{display: '<span style=font-size:18px>&nbsp;', name : 'items', width : 31, sortable : false, align: 'center'},
 				
 			],
 			searchitems : [
@@ -1381,13 +1394,13 @@ var MemUidG$t='';
 			sortname: 'GroupName',
 			sortorder: 'desc',
 			usepager: true,
-			title: '',
+			title: '<strong style=font-size:18px>$title</strong>',
 			useRp: true,
 			rp: 50,
 			rpOptions: [10, 20, 30, 50,100,200,500],
 			showTableToggleBtn: false,
-			width: 573,
-			height: 300,
+			width: 814,
+			height: 350,
 			singleSelect: true
 			
 			});   
@@ -1503,8 +1516,9 @@ function MEMBERS_LIST_LIST($gid=0){
 			$data['rows'][] = array(
 				'id' => "uidG$md",
 				'cell' => array("<span style='font-size:14px;color:$color'><img src='img/$img'></span>",
-				"<span style='font-size:14px;color:$color'><a href=\"javascript:blur();\" OnClick=\"javascript:$link\" style='font-size:14px;text-decoration:underline'>$uid</a></span>",
-				"<span style='font-size:14px;color:$color'>$delete</span>")
+				"<span style='font-size:18px;color:$color'><a href=\"javascript:blur();\" 
+						OnClick=\"javascript:$link\" style='font-size:18px;text-decoration:underline'>$uid</a></span>",
+				"<span style='font-size:18px;color:$color'>$delete</span>")
 				);			
 	}
 	
@@ -1955,7 +1969,7 @@ function GROUP_DANSGUARDIAN($gid){
     	$form="
     	<table style='width:100%'>
     	<tr>
-    	<td align='right' nowrap><strong style='font-size:13.5px'>{selected_rule}:&nbsp;</strong></td>
+    	<td align='right' nowrap><strong style='font-size:18px'>{selected_rule}:&nbsp;</strong></td>
     	<td width=70%>$field</td>
     	<td align=left><input type=button value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditGroupDansGuardianRule('$gid','$ou');\" style='width:200px'></td>
     	</tr>
@@ -2008,37 +2022,15 @@ function GROUP_PRIVILEGES_TABS($gid){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="Z"){
-			$a[]="<li><a href=\"domains.edit.group.BackupStore.php?gid=$gid&tab=$num$addon\"><span style='font-size:12px'>$ligne</span></a></li>\n";
+			$a[]="<li><a href=\"domains.edit.group.BackupStore.php?gid=$gid&tab=$num$addon\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 			continue;
 		}
-		$a[]="<li><a href=\"$page?GroupPriv=$gid&tab=$num$addon\"><span style='font-size:12px'>$ligne</span></a></li>\n";
+		$a[]="<li><a href=\"$page?GroupPriv=$gid&tab=$num$addon\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 		}
 		
-$html="
-	<div id='{$time}_priv' style='background-color:white;'>
-	<ul>
-		". implode("\n",$a). "
-	</ul>
-		</div>
-		<script>
-				$(document).ready(function(){
-					$('#{$time}_priv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			$('#{$time}_priv').tabs('option', 'fx', { opacity: 'toggle' });
-			});
-		</script>
-	
-	";
 
-		$tpl=new templates();
-    	return $tpl->_ENGINE_parse_body($html);
+echo build_artica_tabs($a, "{$time}_priv");
+
 			
 }  
 
@@ -2111,7 +2103,7 @@ function GROUP_PRIVILEGES($gid){
 			$HashPrivieleges=$ldap->_ParsePrivieleges($privs,array());
 			$organization_hidden="<input type='hidden' name='userid' value='{$_GET["userid"]}'>";
 			$title_form="{member}: &laquo;{$_GET["userid"]}";
-			$warn="<div class=text-info>{privileges_users_warning}</div>";
+			$warn="<div class=explain>{privileges_users_warning}</div>";
 		} 
 
 		if(strpos($gid, ",")>0){
@@ -2123,7 +2115,7 @@ function GROUP_PRIVILEGES($gid){
 			$hash=$gp->LoadGroupDataByDN($gid);
 			$privs=$hash["ArticaGroupPrivileges"];
 			$HashPrivieleges=$ldap->_ParsePrivieleges($privs,array());
-			$title_form="{group}: &laquo;{$hash["samaccountname"][0]}<div style='font-size:11px;padding:left:50px;margin-bottom:10px;float:right'>$gid</div>";
+			$title_form="{group}: &laquo;{$hash[0]["samaccountname"][0]}<div style='font-size:11px;padding:left:50px;margin-bottom:10px;float:right'>$gid</div>";
 			
 			
 		}
@@ -2132,54 +2124,57 @@ function GROUP_PRIVILEGES($gid){
     	$priv= new usersMenus();
     	
     	
-    	$AllowAddGroup=Field_yesno_checkbox('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
-    	$AllowAddUsers=Field_yesno_checkbox('AllowAddUsers',$HashPrivieleges["AllowAddUsers"]);
-    	$AsArticaAdministrator=Field_yesno_checkbox('AsArticaAdministrator',$HashPrivieleges["AsArticaAdministrator"]);
-    	$AllowChangeDomains=Field_yesno_checkbox('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);
-    	$AsSystemAdministrator=Field_yesno_checkbox('AsSystemAdministrator',$HashPrivieleges["AsSystemAdministrator"]);
-    	$AsSambaAdministrator=Field_yesno_checkbox('AsSambaAdministrator',$HashPrivieleges["AsSambaAdministrator"]);
-    	$AsDnsAdministrator=Field_yesno_checkbox('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);
-    	$AsQuarantineAdministrator=Field_yesno_checkbox('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);
-    	$AsMailManAdministrator=Field_yesno_checkbox('AsMailManAdministrator',$HashPrivieleges["AsMailManAdministrator"]);
-    	$AsOrgStorageAdministrator=Field_yesno_checkbox('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);
-    	$AllowManageOwnComputers=Field_yesno_checkbox('AllowManageOwnComputers',$HashPrivieleges["AllowManageOwnComputers"]);
-    	$AsOrgPostfixAdministrator=Field_yesno_checkbox('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);
-    	$AsDansGuardianGroupRule=Field_yesno_checkbox('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
-    	$AsMessagingOrg=Field_yesno_checkbox('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"],"CheckHasOrgAdmin()");
-    	$AsOrgAdmin=Field_yesno_checkbox('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"],"CheckHasOrgAdmin()");
-    	$AsInventoryAdmin=Field_yesno_checkbox('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
-    	$AsJoomlaWebMaster=Field_yesno_checkbox('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
-    	$AsVirtualBoxManager=Field_yesno_checkbox('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
-    	$OverWriteRestrictedDomains=Field_yesno_checkbox('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);
+    	$AllowAddGroup=Field_checkbox_yesno_design('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
+    	$AllowAddUsers=Field_checkbox_yesno_design('AllowAddUsers',$HashPrivieleges["AllowAddUsers"]);
+    	$AsArticaAdministrator=Field_checkbox_yesno_design('AsArticaAdministrator',$HashPrivieleges["AsArticaAdministrator"]);
+    	$AllowChangeDomains=Field_checkbox_yesno_design('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);
+    	$AsSystemAdministrator=Field_checkbox_yesno_design('AsSystemAdministrator',$HashPrivieleges["AsSystemAdministrator"]);
+    	$AsSambaAdministrator=Field_checkbox_yesno_design('AsSambaAdministrator',$HashPrivieleges["AsSambaAdministrator"]);
+    	$AsDnsAdministrator=Field_checkbox_yesno_design('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);
+    	$AsQuarantineAdministrator=Field_checkbox_yesno_design('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);
+    	$AsMailManAdministrator=Field_checkbox_yesno_design('AsMailManAdministrator',$HashPrivieleges["AsMailManAdministrator"]);
+    	$AsOrgStorageAdministrator=Field_checkbox_yesno_design('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);
+    	$AllowManageOwnComputers=Field_checkbox_yesno_design('AllowManageOwnComputers',$HashPrivieleges["AllowManageOwnComputers"]);
+    	$AsOrgPostfixAdministrator=Field_checkbox_yesno_design('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);
+    	$AsDansGuardianGroupRule=Field_checkbox_yesno_design('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
+    	$AsMessagingOrg=Field_checkbox_yesno_design('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"],"CheckHasOrgAdmin()");
+    	$AsOrgAdmin=Field_checkbox_yesno_design('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"],"CheckHasOrgAdmin()");
+    	$AsInventoryAdmin=Field_checkbox_yesno_design('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
+    	$AsJoomlaWebMaster=Field_checkbox_yesno_design('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
+    	$AsVirtualBoxManager=Field_checkbox_yesno_design('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
+    	$OverWriteRestrictedDomains=Field_checkbox_yesno_design('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);
     	
     	
-    	$AsWebMaster=Field_yesno_checkbox('AsWebMaster',$HashPrivieleges["AsWebMaster"]);
-    	$AsSystemWebMaster=Field_yesno_checkbox('AsSystemWebMaster',$HashPrivieleges["AsSystemWebMaster"]);
+    	$AsWebMaster=Field_checkbox_yesno_design('AsWebMaster',$HashPrivieleges["AsWebMaster"]);
+    	$AsSystemWebMaster=Field_checkbox_yesno_design('AsSystemWebMaster',$HashPrivieleges["AsSystemWebMaster"]);
     	
-    	$AsComplexPassword=Field_yesno_checkbox('AsComplexPassword',$HashPrivieleges["AsComplexPassword"]);
-    	$AllowAddGroup=Field_yesno_checkbox('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
-    	$RestrictNabToGroups=Field_yesno_checkbox('RestrictNabToGroups',$HashPrivieleges["RestrictNabToGroups"]);
-    	$AsDansGuardianAdministrator=Field_yesno_checkbox('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
-    	$AsWebFilterRepository=Field_yesno_checkbox('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
-    	$AsWebStatisticsAdministrator=Field_yesno_checkbox('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
-    	$AllowUserMaillog=Field_yesno_checkbox('AsWebStatisticsAdministrator',$HashPrivieleges["AllowUserMaillog"]);
-    	$AsProxyMonitor=Field_yesno_checkbox('AsProxyMonitor',$HashPrivieleges["AsProxyMonitor"]);
+    	$AsComplexPassword=Field_checkbox_yesno_design('AsComplexPassword',$HashPrivieleges["AsComplexPassword"]);
+    	$AllowAddGroup=Field_checkbox_yesno_design('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
+    	$RestrictNabToGroups=Field_checkbox_yesno_design('RestrictNabToGroups',$HashPrivieleges["RestrictNabToGroups"]);
+    	$AsDansGuardianAdministrator=Field_checkbox_yesno_design('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
+    	$AsSquidPersonalCategories=Field_checkbox_yesno_design('AsSquidPersonalCategories',$HashPrivieleges["AsSquidPersonalCategories"]);
     	
-    	$AsPostfixAdministrator=Field_yesno_checkbox('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);
-    	$AsSquidAdministrator=Field_yesno_checkbox('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);
     	
-    	$AsMailBoxAdministrator=Field_yesno_checkbox('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
-    	$AllowViewStatistics=Field_yesno_checkbox('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
-    	$AllowEditOuSecurity=Field_yesno_checkbox('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
-    	$AsHotSpotManager=Field_yesno_checkbox('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
-    	$AsOwnMailBoxBackup=Field_yesno_checkbox('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]);
-    	$AsOrgDNSAdmin=Field_yesno_checkbox('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);
-    	$ASDCHPAdmin=Field_yesno_checkbox('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
+    	$AsWebFilterRepository=Field_checkbox_yesno_design('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
+    	$AsWebStatisticsAdministrator=Field_checkbox_yesno_design('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
+    	$AllowUserMaillog=Field_checkbox_yesno_design('AsWebStatisticsAdministrator',$HashPrivieleges["AllowUserMaillog"]);
+    	$AsProxyMonitor=Field_checkbox_yesno_design('AsProxyMonitor',$HashPrivieleges["AsProxyMonitor"]);
+    	
+    	$AsPostfixAdministrator=Field_checkbox_yesno_design('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);
+    	$AsSquidAdministrator=Field_checkbox_yesno_design('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);
+    	
+    	$AsMailBoxAdministrator=Field_checkbox_yesno_design('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
+    	$AllowViewStatistics=Field_checkbox_yesno_design('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
+    	$AllowEditOuSecurity=Field_checkbox_yesno_design('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
+    	$AsHotSpotManager=Field_checkbox_yesno_design('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
+    	$AsOwnMailBoxBackup=Field_checkbox_yesno_design('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]);
+    	$AsOrgDNSAdmin=Field_checkbox_yesno_design('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);
+    	$ASDCHPAdmin=Field_checkbox_yesno_design('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
     	
     	
     	if($priv->SAMBA_INSTALLED){
     		$VirtualSambaServerColor="#B3B3B3";
-    		$VirtualSambaServerHidden="<input type='hidden' id='VirtualSambaServer', value='{$HashPrivieleges["VirtualSambaServer"]}'><span style='font-size:13.5px'>{$HashPrivieleges["VirtualSambaServer"]}</span>";
+    		$VirtualSambaServerHidden="<input type='hidden' id='VirtualSambaServer', value='{$HashPrivieleges["VirtualSambaServer"]}'><span style='font-size:18px'>{$HashPrivieleges["VirtualSambaServer"]}</span>";
     		$VirtualSambaServer=$VirtualSambaServerHidden;
     		if($EnableSambaVirtualsServers==1){
     			$q=new mysql();
@@ -2214,7 +2209,7 @@ function GROUP_PRIVILEGES($gid){
 	    				$PostfixInstances[$servername]=$servernameTEXT;
 	    			}
 	    			$VirtualPostfixFieldColor="#B3B3B3";
-	    			$VirtualPostfixHidden="<input type='hidden' id='PostfixInstance', value='{$HashPrivieleges["PostfixInstance"]}'><span style='font-size:13.5px'>{$HashPrivieleges["PostfixInstance"]}</span>";
+	    			$VirtualPostfixHidden="<input type='hidden' id='PostfixInstance', value='{$HashPrivieleges["PostfixInstance"]}'><span style='font-size:18px'>{$HashPrivieleges["PostfixInstance"]}</span>";
 	    			$VirtualPostfixField=Field_array_Hash($PostfixInstances, "PostfixInstance",$HashPrivieleges["PostfixInstance"],null,null,0,"font-size:11px");
 	    			$VirtualPostfix=$VirtualPostfixHidden;
     			}else{
@@ -2253,7 +2248,8 @@ function GROUP_PRIVILEGES($gid){
     		$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
 			$OverWriteRestrictedDomains="<img src='img/status_critical.png'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);
 			$AsDansGuardianAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
-    		$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
+			$AsSquidPersonalCategories="<img src='img/status_critical.png'>".Field_hidden('AsSquidPersonalCategories',$HashPrivieleges["AsSquidPersonalCategories"]);
+			$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
     		$AsWebStatisticsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
 			$AsPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);
 			$AsSquidAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);
@@ -2291,7 +2287,7 @@ function GROUP_PRIVILEGES($gid){
     		$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
     		$AsDansGuardianAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
     		$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
-    		
+    		$AsSquidPersonalCategories="<img src='img/status_critical.png'>".Field_hidden('AsSquidPersonalCategories',$HashPrivieleges["AsSquidPersonalCategories"]);
     	
     	}
     	if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.png'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
@@ -2318,7 +2314,7 @@ function GROUP_PRIVILEGES($gid){
 		if($priv->AllowEditOuSecurity==false){$AllowEditOuSecurity="<img src='img/status_critical.png'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);}
 		if($priv->AsWebMaster==false){$AsWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);}
 		if($priv->AsSystemWebMaster==false){$AsSystemWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsSystemWebMaster',$HashPrivieleges["AsSystemWebMaster"]);}
-		
+		if($priv->AsSquidPersonalCategories==false){$AsSquidPersonalCategories="<img src='img/status_critical.png'>".Field_hidden('AsSquidPersonalCategories',$HashPrivieleges["AsSquidPersonalCategories"]);}
 		
 		if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.png'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
 		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
@@ -2343,10 +2339,10 @@ $group_allow="&nbsp;{groups_allow}</H3><br>
 		<table>
 		
 			<tr>
-				<td align='right'><span style='font-size:13.5px'>{AllowAddUsers}:</span></td><td>$AllowAddUsers</td>
+				<td align='right'><span style='font-size:18px'>{AllowAddUsers}:</span></td><td>$AllowAddUsers</td>
 			</tr>
 			<tr>
-				<td align='right'><span style='font-size:13.5px'>{AsDansGuardianGroupRule}:</span></td><td>$AsDansGuardianGroupRule</td>
+				<td align='right'><span style='font-size:18px'>{AsDansGuardianGroupRule}:</span></td><td>$AsDansGuardianGroupRule</td>
 			</tr>			
 					
 			
@@ -2358,60 +2354,60 @@ $user_allow="&nbsp;{users_allow}</H3><br>
 					<table>
 						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowChangeAntiSpamSettings}:</span></td><td>" . Field_yesno_checkbox('AllowChangeAntiSpamSettings',$HashPrivieleges["AllowChangeAntiSpamSettings"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowChangeAntiSpamSettings}:</span></td><td>" . Field_checkbox_yesno_design('AllowChangeAntiSpamSettings',$HashPrivieleges["AllowChangeAntiSpamSettings"]) ."</td>
 						</tr>											
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowChangeUserPassword}:</span></td><td>" . Field_yesno_checkbox('AllowChangeUserPassword',$HashPrivieleges["AllowChangeUserPassword"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowChangeUserPassword}:</span></td><td>" . Field_checkbox_yesno_design('AllowChangeUserPassword',$HashPrivieleges["AllowChangeUserPassword"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsComplexPassword}:</span></td><td>$AsComplexPassword</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsComplexPassword}:</span></td><td>$AsComplexPassword</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowFetchMails}:</span></td><td>" . Field_yesno_checkbox('AllowFetchMails',$HashPrivieleges["AllowFetchMails"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowFetchMails}:</span></td><td>" . Field_checkbox_yesno_design('AllowFetchMails',$HashPrivieleges["AllowFetchMails"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowUserMaillog}:</span></td><td>" . Field_yesno_checkbox('AllowUserMaillog',$HashPrivieleges["AllowUserMaillog"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowUserMaillog}:</span></td><td>" . Field_checkbox_yesno_design('AllowUserMaillog',$HashPrivieleges["AllowUserMaillog"]) ."</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsOwnMailBoxBackup}:</span></td><td>" . Field_yesno_checkbox('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsOwnMailBoxBackup}:</span></td><td>" . Field_checkbox_yesno_design('AsOwnMailBoxBackup',$HashPrivieleges["AsOwnMailBoxBackup"]) ."</td>
 						</tr>						
 						
 						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowChangeUserKas}:</span></td><td>" . Field_yesno_checkbox('AllowChangeUserKas',$HashPrivieleges["AllowChangeUserKas"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowChangeUserKas}:</span></td><td>" . Field_checkbox_yesno_design('AllowChangeUserKas',$HashPrivieleges["AllowChangeUserKas"]) ."</td>
 						</tr>												
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowEditAliases}:</span></td><td>" . Field_yesno_checkbox('AllowEditAliases',$HashPrivieleges["AllowEditAliases"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowEditAliases}:</span></td><td>" . Field_checkbox_yesno_design('AllowEditAliases',$HashPrivieleges["AllowEditAliases"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowChangeMailBoxRules}:</span></td><td>" . Field_yesno_checkbox('AllowChangeMailBoxRules',$HashPrivieleges["AllowChangeMailBoxRules"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowChangeMailBoxRules}:</span></td><td>" . Field_checkbox_yesno_design('AllowChangeMailBoxRules',$HashPrivieleges["AllowChangeMailBoxRules"]) ."</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowSender_canonical}:</span></td><td>" . Field_yesno_checkbox('AllowSenderCanonical',$HashPrivieleges["AllowSenderCanonical"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowSender_canonical}:</span></td><td>" . Field_checkbox_yesno_design('AllowSenderCanonical',$HashPrivieleges["AllowSenderCanonical"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowOpenVPN}:</span></td><td>" . Field_yesno_checkbox('AllowOpenVPN',$HashPrivieleges["AllowOpenVPN"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowOpenVPN}:</span></td><td>" . Field_checkbox_yesno_design('AllowOpenVPN',$HashPrivieleges["AllowOpenVPN"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowDansGuardianBanned}:</span></td><td>" . Field_yesno_checkbox('AllowDansGuardianBanned',$HashPrivieleges["AllowDansGuardianBanned"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowDansGuardianBanned}:</span></td><td>" . Field_checkbox_yesno_design('AllowDansGuardianBanned',$HashPrivieleges["AllowDansGuardianBanned"]) ."</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowXapianDownload}:</span></td><td>" . Field_yesno_checkbox('AllowXapianDownload',$HashPrivieleges["AllowXapianDownload"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowXapianDownload}:</span></td><td>" . Field_checkbox_yesno_design('AllowXapianDownload',$HashPrivieleges["AllowXapianDownload"]) ."</td>
 						</tr>																									
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowManageOwnComputers}:</span></td><td>" . Field_yesno_checkbox('AllowManageOwnComputers',$HashPrivieleges["AllowManageOwnComputers"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowManageOwnComputers}:</span></td><td>" . Field_checkbox_yesno_design('AllowManageOwnComputers',$HashPrivieleges["AllowManageOwnComputers"]) ."</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsJoomlaWebMaster}:</span></td><td>" . Field_yesno_checkbox('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsJoomlaWebMaster}:</span></td><td>" . Field_checkbox_yesno_design('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]) ."</td>
 						</tr>						
 						<tr>
-						<td align='right' nowrap><span style='font-size:13.5px'>{RestrictNabToGroups}:</span></td>
+						<td align='right' nowrap><span style='font-size:18px'>{RestrictNabToGroups}:</span></td>
 						<td>$RestrictNabToGroups</td>
 						</tr>
 						
 						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AllowEditAsWbl}:</span></td><td>" . Field_yesno_checkbox('AllowEditAsWbl',$HashPrivieleges["AllowEditAsWbl"]) ."</td>
+							<td align='right' nowrap><span style='font-size:18px'>{AllowEditAsWbl}:</span></td><td>" . Field_checkbox_yesno_design('AllowEditAsWbl',$HashPrivieleges["AllowEditAsWbl"]) ."</td>
 						</tr>									
 					</table></div>";
 
@@ -2419,58 +2415,58 @@ $org_allow="&nbsp;{organization_allow}</H3><br>
 <div style='width:98%' class=form>
 <table >	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsOrgAdmin}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsOrgAdmin}:</span></td>
 		<td>$AsOrgAdmin</td>
 	</tr>
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsMessagingOrg}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsMessagingOrg}:</span></td>
 		<td>$AsMessagingOrg</td>
 	</tr>	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AllowEditOuSecurity}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AllowEditOuSecurity}:</span></td>
 		<td>$AllowEditOuSecurity</td>
 	</tr>
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsOrgPostfixAdministrator}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsOrgPostfixAdministrator}:</span></td>
 		<td>$AsOrgPostfixAdministrator</td>
 	</tr>	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsQuarantineAdministrator}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsQuarantineAdministrator}:</span></td>
 		<td>$AsQuarantineAdministrator</td>
 	</tr>
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsMailManAdministrator}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsMailManAdministrator}:</span></td>
 		<td>$AsMailManAdministrator</td>
 	</tr>	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{OverWriteRestrictedDomains}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{OverWriteRestrictedDomains}:</span></td>
 		<td>$OverWriteRestrictedDomains</td>
 	</tr>		
 	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsOrgStorageAdministrator}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsOrgStorageAdministrator}:</span></td>
 		<td>$AsOrgStorageAdministrator</td>
 	</tr>	
 
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px'>{AsWebMaster}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px'>{AsWebMaster}:</span></td>
 		<td>$AsWebMaster</td>
 	</tr>
 
 	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px;color:$VirtualSambaServerColor'>{file_sharing_server}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px;color:$VirtualSambaServerColor'>{file_sharing_server}:</span></td>
 		<td>$VirtualSambaServer<div>$VirtualSambaServerError</div></td>
 	</tr>	
 	<tr>
-		<td align='right' nowrap><span style='font-size:13.5px;color:$VirtualPostfixFieldColor'>{postfix_instance}:</span></td>
+		<td align='right' nowrap><span style='font-size:18px;color:$VirtualPostfixFieldColor'>{postfix_instance}:</span></td>
 		<td>$VirtualPostfix<div><div>$VirtualPostfixError</div></td>
 	</tr>	
 	<tr>
-		<td align='right'><span style='font-size:13.5px'>{AsOrgDNSAdmin}:</span></td><td>$AsOrgDNSAdmin</td>
+		<td align='right'><span style='font-size:18px'>{AsOrgDNSAdmin}:</span></td><td>$AsOrgDNSAdmin</td>
 	</tr>			
 	<tr>
-		<td align='right'><span style='font-size:13.5px'>{AllowChangeDomains}:</span></td><td>$AllowChangeDomains</td>
+		<td align='right'><span style='font-size:18px'>{AllowChangeDomains}:</span></td><td>$AllowChangeDomains</td>
 	</tr>	
 </table></div>					
 ";
@@ -2484,81 +2480,87 @@ $admin_allow="&nbsp;{administrators_allow}</H3><br>
 
 						
 						<tr>
-							<td colspan=2><strong style='font-size:16px'>Proxy</strong></td>						
+							<td colspan=2><strong style='font-size:24px'>Proxy</strong></td>						
 						</tr>						
 						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsSquidAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsSquidAdministrator}:</span></td>
 							<td>$AsSquidAdministrator</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsDansGuardianAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsDansGuardianAdministrator}:</span></td>
 							<td>$AsDansGuardianAdministrator</td>
-						</tr>						
+						</tr>
 						<tr>
-							<td align='right'><span style='font-size:13.5px'>{AsHotSpotManager}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsSquidPersonalCategories}:</span></td>
+							<td>$AsSquidPersonalCategories</td>
+						</tr>
+						
+						
+						<tr>
+							<td align='right'><span style='font-size:18px'>{AsHotSpotManager}:</span></td>
 							<td>$AsHotSpotManager</td>
 						</tr>
 						<tr>
-							<td align='right'><span style='font-size:13.5px'>{AsProxyMonitor}:</span></td>
+							<td align='right'><span style='font-size:18px'>{AsProxyMonitor}:</span></td>
 							<td>$AsProxyMonitor</td>
 						</tr>	
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsWebStatisticsAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsWebStatisticsAdministrator}:</span></td>
 							<td>$AsWebStatisticsAdministrator</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsWebFilterRepository}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsWebFilterRepository}:</span></td>
 							<td>$AsWebFilterRepository</td>
 						</tr>																				
 						<tr>
-							<td colspan=2><strong style='font-size:16px'>{messaging}</strong></td>						
+							<td colspan=2><strong style='font-size:24px'>{messaging}</strong></td>						
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsPostfixAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsPostfixAdministrator}:</span></td>
 							<td>$AsPostfixAdministrator</td>
 						</tr>	
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsMailBoxAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsMailBoxAdministrator}:</span></td>
 							<td>$AsMailBoxAdministrator</td>
 						</tr>	
 						<tr>
-							<td colspan=2><strong style='font-size:16px'>{system}</td>						
+							<td colspan=2><strong style='font-size:24px'>{system}</td>						
 						</tr>																				
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsArticaAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsArticaAdministrator}:</span></td>
 							<td>$AsArticaAdministrator</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsSystemAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsSystemAdministrator}:</span></td>
 							<td>$AsSystemAdministrator</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsWebMaster}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsWebMaster}:</span></td>
 							<td>$AsSystemWebMaster</td>
 						</tr>							
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{ASDCHPAdmin}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{ASDCHPAdmin}:</span></td>
 							<td>$ASDCHPAdmin</td>
 						</tr>							
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsDnsAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsDnsAdministrator}:</span></td>
 							<td>$AsDnsAdministrator</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsSambaAdministrator}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsSambaAdministrator}:</span></td>
 							<td>$AsSambaAdministrator</td>
 						</tr>						
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsInventoryAdmin}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsInventoryAdmin}:</span></td>
 							<td>$AsInventoryAdmin</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><span style='font-size:13.5px'>{AsVirtualBoxManager}:</span></td>
+							<td align='right' nowrap><span style='font-size:18px'>{AsVirtualBoxManager}:</span></td>
 							<td>$AsVirtualBoxManager</td>
 						</tr>
 						<tr>
-							<td align='right' nowrap><strong style='font-size:13.5px'>{AllowViewStatistics}:</span></td>
+							<td align='right' nowrap><strong style='font-size:18px'>{AllowViewStatistics}:</span></td>
 							<td>$AllowViewStatistics</td>
 						</tr>																					
 						</table></div>";
@@ -2573,7 +2575,7 @@ switch ($_GET["tab"]) {
 
 $t=time();
 $page=CurrentPageName();
-$BigButton=button("{apply}","EditGroupPrivileges()","16px");
+$BigButton=button("{apply}","EditGroupPrivileges()","40px");
 if($RemoveButton){$BigButton=null;}
 
 $html="
@@ -2584,11 +2586,11 @@ $html="
 	<form name='{$sufform}_priv'>
 		$organization_hidden
 		<input type='hidden' name='PrivilegesGroup' value='$gid'><br>
-		<H3>$title_form&raquo;
+		<H3 style='font-size:22px'>$title_form&raquo;
 		$g
-		
+		</h3>
 		</form>
-		<div style='text-align:right;'>$BigButton</div>
+		<div style='text-align:right;'><hr>$BigButton</div>
 
 		</div>$div2
 
@@ -2604,7 +2606,6 @@ var x_EditGroupPrivileges$t= function (obj) {
 		
 		var XHR=ParseForm('{$sufform}_priv','$page',true,false,true);
 		if(document.getElementById('groupprivileges')){document.getElementById('groupprivileges').innerHTML='';}
-		AnimateDiv('$t-div');
 		XHR.sendAndLoad('$page', 'GET',x_EditGroupPrivileges$t);
 	}
 		
@@ -2835,7 +2836,7 @@ $gpid=$_GET["gpid"];
 	<input type='hidden' id='gpid' value='$gpid'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' width=1% nowrap><strong style='font-size:13.5px'>{find_computer}:</strong></td>
+		<td valign='top' width=1% nowrap><strong style='font-size:18px'>{find_computer}:</strong></td>
 		<td valign='top'>".Field_text('find_computer',null,'width:100%')."</td>
 		<td valign='top' width=1%><input type='button' value='{search}&nbsp;&raquo;' OnClick=\"javascrit:find_computer($gpid);\" style='margin:0px'></td>
 		</tr>
@@ -2898,7 +2899,7 @@ function GROUP_SAMBA_IDENTITY(){
 	$tpl=new templates();
 	$group=new groups($_GET["gpid"]);	
 	if($group->sambaSID==null){
-		echo $tpl->_ENGINE_parse_body("<div class=text-info>{not_group_samba}</div>");
+		echo $tpl->_ENGINE_parse_body("<div class=explain>{not_group_samba}</div>");
 		return;
 	}
 	
@@ -2990,7 +2991,7 @@ $html="<div style='font-size:16px'>{MK_SAMBA_GROUP}&raquo;&nbsp;<strong>$group->
 <input type='hidden' name='gpid' id='gpid' value='{$_GET["gpid"]}'>
 <input type='hidden' name='ou' id='ou' value='{$_GET["ou"]}'>
 <input type='hidden' name='SaveGroupSamba' id='SaveGroupSamba' value='yes'>
-<div class=text-info style='font-size:16px'>$text</div>
+<div class=explain style='font-size:16px'>$text</div>
 <div style='width:98%' class=form>
 <table>
 <tr>

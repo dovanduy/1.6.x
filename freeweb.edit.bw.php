@@ -25,7 +25,7 @@ function page(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	if(!$users->APACHE_MOD_BW){
-		echo FATAL_WARNING_SHOW_128("{the_specified_module_is_not_installed}");
+		echo FATAL_ERROR_SHOW_128("{the_specified_module_is_not_installed}");
 		return;
 	}
 	

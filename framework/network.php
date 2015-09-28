@@ -331,19 +331,7 @@ function artica_ifup_content(){
 	echo "<articadatascgi>". base64_encode($datas)."</articadatascgi>";
 	
 }
-function firewall_content(){
-	$datas=@file_get_contents("/bin/artica-firewall.sh");
-	echo "<articadatascgi>". base64_encode($datas)."</articadatascgi>";
 
-}
-function firewall_apply(){
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup /usr/share/artica-postfix/exec.firewall.php --apply --period={$_GET["period"]} >/dev/null 2>&1 &");
-	
-	
-}
 
 function iptables_save(){
 	$unix=new unix();
@@ -362,7 +350,7 @@ function  reconfigure_restart_network(){
 	$nohup=$unix->find_program("nohup");
 	ToSyslog("kernel: [  Artica-Net] reconfigure Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
 	$cmd=trim("/etc/init.d/artica-ifup reconfigure");
-	shell_exec("$nohup /etc/init.d/artica-ifup reconfigure >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-ifup reconfigure --script=cmd.php/reconfigure_restart_network >/dev/null 2>&1 &");
 }
 function down_interface(){
 	$down_interface=$_GET["down-interface"];
@@ -475,47 +463,8 @@ fclose($handle);
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/conntrack.inc", 0755);
 	
 }
-function isFW(){
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$php /usr/share/artica-postfix/exec.firewall.php --build 2>&1");
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);
-	shell_exec("/bin/artica-firewall.sh");
-		
-	
-}
-function FIREWALL_RECONFIGURE(){
-	@mkdir("/usr/share/artica-postfix/ressources/logs/web",0777);
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html", "\n");
-	writelogs_framework("initialize",__FUNCTION__,__FILE__,__LINE__);
-	$unix=new unix();
-	if(isset($_GET["stay"])){
-		if($_GET["stay"]<>"no"){
-			$php5=$unix->LOCATE_PHP5_BIN();
-			writelogs_framework("initialize",__FUNCTION__,__FILE__,__LINE__);
-			
-			shell_exec("$php5 /usr/share/artica-postfix/exec.firewall.php --build >/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html 2>&1");
-			@chmod("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html",0777);
-			return;
-		}
-	}
 
-	writelogs_framework("initialize class unix",__FUNCTION__,__FILE__,__LINE__);
-	$unix=new unix();
 
-	$nohup=$unix->find_program("nohup");
-	writelogs_framework("nohup:$nohup",__FUNCTION__,__FILE__,__LINE__);
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.firewall.php --build >/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html 2>&1 &";
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html",0777);
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec(trim($cmd));
-
-	
-
-}
 
 function iptables_events(){
 	$unix=new unix();

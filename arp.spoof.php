@@ -57,7 +57,7 @@ function page(){
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$sock=new sockets();
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 	$settings=$tpl->_ENGINE_parse_body("{parameters}");
 	$delete_rule=$tpl->javascript_parse_text("{delete_rule}");
@@ -259,7 +259,7 @@ function objects_table(){
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$sock=new sockets();
 	$new_object=$tpl->_ENGINE_parse_body("{new_object}");
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 	$settings=$tpl->_ENGINE_parse_body("{parameters}");
 	$delete_object=$tpl->javascript_parse_text("{delete_object}");

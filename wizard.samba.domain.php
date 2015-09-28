@@ -331,7 +331,7 @@ function main_pdc_howto3(){
 <td valign='top'><img src='img/48-samba-pdc.png'></td>
 <td valign='top' width=99%>
 	<H5>{configuration_success}</H5>
-	<H3 style='color:red'>{use}: {$samba->main_array["global"]["workgroup"]}\administrator account</H3>
+	<H3 style='color:#d32d2d'>{use}: {$samba->main_array["global"]["workgroup"]}\administrator account</H3>
 	<p class=caption>{howto3}</p>
 	<table style='width:100%'>
 	<tr>

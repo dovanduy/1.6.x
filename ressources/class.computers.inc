@@ -348,8 +348,13 @@ function OcsPasserelle(){
 		
 		
 function Edit($source_script=null){
-	if(isset($GLOBALS["COMPUTEREDITED"][$this->uid])){writelogs("Fatal: $this->uid was already saved in this session...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
-	if($this->ComputerIP=="0.0.0.0"){writelogs("Fatal: 0.0.0.0 is not an supported IP address For $this->uid, MAC $this->ComputerMacAddress",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);echo "0.0.0.0 is not an supported IP address.\n";return;}
+	if(isset($GLOBALS["COMPUTEREDITED"][$this->uid])){
+		if($GLOBALS["VERBOSE"]){echo "Edit(): $this->uid -> ALREADY EDITED [".__LINE__."]\n";}
+		return true;
+	}
+	if($this->ComputerIP=="0.0.0.0"){
+		if($GLOBALS["VERBOSE"]){echo "Edit(): $this->ComputerIP -> NO IP DEFINED [".__LINE__."]\n";}
+		return;}
 	$upd["uid"][0]=$this->uid;
 	$uidNumber=$this->uidNumber;
 	$uidNumber_c=2 *$uidNumber+1000;
@@ -357,7 +362,11 @@ function Edit($source_script=null){
 	$group=new groups();
 	$ldap=new clladp();
 	if($ldap->ldap_host=="127.0.0.1"){
-		if(!$this->VerifyConnect()){return false;}
+		if(!$this->VerifyConnect()){
+			$this->ldap_error="Verify connect return failed\n";
+			if($GLOBALS["VERBOSE"]){echo "Edit(): Verify connect return failed -> FALSE [".__LINE__."]\n";}
+			return false;
+		}
 	}
 	$this->VerifyDefault($source_script);
 	if($this->dhcpfixed==1){$this->VolatileIPAddress=0;}
@@ -378,11 +387,14 @@ function Edit($source_script=null){
 	$upd["VolatileIPAddress"][0]=$this->VolatileIPAddress;
 	
 	$res=true;
+	if($GLOBALS["VERBOSE"]){echo "Edit(): RES -> $res [".__LINE__."]\n";}
 	$GLOBALS["COMPUTEREDITED"][$this->uid]=true;
 	
 	if(!$ldap->Ldap_modify($this->dn,$upd)){
+		$this->ldap_error="Modify DN $this->dn ERROR $ldap->ldap_last_error\n";
 		writelogs("1) Modify DN $this->dn ERROR",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		writelogs("VolatileIPAddress=$this->VolatileIPAddress",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		if($GLOBALS["VERBOSE"]){echo "Edit(): Ldap_modify($this->dn,...) -> FALSE [".__LINE__."]\n";}
 		$res=false;
 		
 	}
@@ -410,6 +422,7 @@ function Edit($source_script=null){
 	$this->ocsedit();
 	$this->EXPLODE_LDAP_ARRAY($upd);
 	$this->SaveDHCPMode();
+	if($GLOBALS["VERBOSE"]){echo "Edit(): RES -> $res [".__LINE__."]\n";}
 	return $res;
 	
 	}
@@ -467,20 +480,9 @@ function SaveDHCPMode(){
 			$dhcp->dds_domain=$this->DnsZoneName;	
 			$dhcp->hostname=$this->ComputerRealName;		
 			$dhcp->DeleteFixed();
-			$sock=new sockets();
-			$sock->getFrameWork("cmd.php?apply-dhcpd=yes");			
+	
 		}
 		
-		
-		if(!$GLOBALS["AS_ROOT"]){
-			$sock=new sockets();
-			$sock->getFrameWork("services.php?dnsmasq-reconfigure=yes");
-		}else{
-			$unix=new unix();
-			$nohup=$unix->find_program("nohup");
-			$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php >/dev/null 2>&1");
-			shell_exec($cmd);				
-		}		
 		
 		
 }
@@ -535,7 +537,10 @@ function VerifyDefault($source_script=null){
 			$u["objectclass"][]="top";
 			$u["objectclass"][]="organization";
 			$u["objectclass"][]="dcObject";
-			if(!$ldap->ldap_add($dn,$u)){echo "by$source_script\nFailed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";return null;}
+			if(!$ldap->ldap_add($dn,$u)){
+				echo "*** ldap_add($dn) ***\n";
+				echo @implode("\n", $GLOBALS["LDAP_EVENTS"]);
+				echo "\nby$source_script\nFailed\n$ldap->ldap_last_error\nLine: ".__LINE__." of ". __FILE__."\n";return null;}
 			unset($u);
 		}
 
@@ -786,7 +791,7 @@ private function uidPatternFromComputer($uid){
 	$uid=str_replace("\n ", "", $uid);
 	$uid=str_replace('\\', "", $uid);
 	$uid=str_replace('/', "", $uid);
-	$uid=str_replace('_', "", $uid);
+
 	$uid=str_replace('#', "", $uid);
 	$uid=str_replace('"', "", $uid);
 	$uid=str_replace('"', "", $uid);
@@ -841,20 +846,28 @@ function Add(){
 		}
 	}
 	if($this->uid=="$"){
+		$this->ldap_error="UID === '$' !!!??\n";
 		$this->UpdateOCSDB();
 		return;
 	}
 	$this->VerifyDefault();
 	$ldap=new clladp();
 	if($ldap->ldap_host=="127.0.0.1"){
-		if(!$this->VerifyConnect()){return false;}
+		if(!$this->VerifyConnect()){
+			$this->ldap_error="Verify Connect return failed\n";
+			return false;
+		}
 	}
 	
 	
 	$this->dn="cn=$this->uid,ou=Computer,dc=samba,dc=organizations,$ldap->suffix";
 	if($ldap->ExistsDN($this->dn)){
 		$GLOBALS["INJECT_COMPUTER_TOLDAP"][]="LDAP::$this->dn exists -> Edit()";
-		return $this->Edit();
+		$res=$this->Edit();
+		if(!$res){
+			if($GLOBALS["VERBOSE"]){echo "this->edit() RETURN FALSE [".__LINE__."]\n";}
+		}
+		return $res;
 	}
 		$group=new  groups(null);
 		$this->uid=$this->uidPatternFromComputer($this->uid);
@@ -969,6 +982,32 @@ function UpdateComputerSID(){
 		return true;		
 	
 }
+	function RemoveHost(){
+		$ldap=new clladp();
+		if($ldap->ldap_host=="127.0.0.1"){
+			if(!$this->VerifyConnect()){return false;}
+		}
+		$ldap->ldap_delete($this->dn);
+		$hash=$this->Groups_list();
+		if(is_array($hash)){
+			while (list ($num, $val) = each ($hash) ){
+				$group=new groups($num);
+				writelogs("Delete computer from $val",__CLASS__.'/'.__FUNCTION__,__FILE__);
+				$group->DeleteUserFromThisGroup($this->uid);
+			}
+		}
+		
+		if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");}
+		$sql="DELETE webfilters_nodes WHERE MAC='{$this->ComputerMacAddress}'";
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL($sql);
+		$sql="DELETE FROM webfilters_ipaddr WHERE ipaddr='$this->ComputerIP'";
+		$q->QUERY_SQL($sql);
+		
+		
+		
+	}
+
 		
 	function DeleteComputer(){
 		$ldap=new clladp();

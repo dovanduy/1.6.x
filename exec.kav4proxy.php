@@ -1,4 +1,5 @@
 <?php
+$GLOBALS["SCRIPT_SUFFIX"]="--script=".basename(__FILE__);
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["FORCE"]=false;
@@ -35,8 +36,6 @@ function build(){
 	@chmod("/tmp/Kav4proxy", 0777);
 	@chown("/tmp/Kav4Proxy", "kluser");
 	@chgrp("/tmp/Kav4Proxy", "kluser");
-	@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0777,true);
-	@chmod("/var/log/artica-postfix/ufdbguard-blocks", 0777);
 	templates();
 	}
 	
@@ -104,7 +103,7 @@ function disable_icap(){
 		$php=$unix->LOCATE_PHP5_BIN();
 		system("$php /usr/share/artica-postfix/exec.squid.php --build --force --noverifcaches");
 		progress("{restarting} {APP_SQUID}",30);
-		system("/etc/init.d/squid restart --force");
+		system("/etc/init.d/squid restart --force {$GLOBALS["SCRIPT_SUFFIX"]}");
 		progress("{restarting} Artica-status",50);
 		system("/etc/init.d/artica-status restart --force");
 		progress("{stopping} {APP_KAV4PROXY}",90);
@@ -155,7 +154,7 @@ function enable_icap(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	system("$php /usr/share/artica-postfix/exec.squid.php --build --force --noverifcaches");
 	progress("{restarting} {APP_SQUID}",70);
-	system("/etc/init.d/squid restart --force");
+	system("/etc/init.d/squid restart --force {$GLOBALS["SCRIPT_SUFFIX"]}");
 	progress("{restarting} Artica-status",80);
 	system("/etc/init.d/artica-status restart --force");
 	progress("{refresh} License",90);

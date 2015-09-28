@@ -206,6 +206,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$array["support-tool"]='{support_package}';
+	$array["stress-tool"]='Stress Tool';
 	$array["request-tool"]='{request_package}';
 	$array["website-tool"]='{website_analysis}';
 	$array["port-tool"]='{proxy_test_port}';
@@ -216,16 +217,19 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="port-tool"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.debug.port.php\" style='font-size:16px'><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.debug.port.php\" style='font-size:24px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
-
+		if($num=="stress-tool"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.siege.php\" style='font-size:24px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
 	
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:24px'><span>$ligne</span></a></li>\n");
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
 			
 	}
-	echo build_artica_tabs($html, "debug_squid_config",970)."<script>LeftDesign('debug-white-256-opac20.png');</script>";
+	echo build_artica_tabs($html, "debug_squid_config",1490)."<script>LeftDesign('debug-white-256-opac20.png');</script>";
 	
 	
 }
@@ -236,7 +240,7 @@ function support_tool(){
 	$title=$tpl->_ENGINE_parse_body("{build_support_package}");
 	$t=time();
 	$html="
-	<div class=text-info style='font-size:18px'>{build_support_package_explain}</div>
+	<div class=explain style='font-size:18px'>{build_support_package_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -305,7 +309,7 @@ function request_tool(){
 	$title=$tpl->_ENGINE_parse_body("{build_request_package}");
 	$t=time();
 	$html="
-<div class=text-info style='font-size:18px'>{build_request_package_explain}</div>
+<div class=explain style='font-size:18px'>{build_request_package_explain}</div>
 <div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -346,48 +350,49 @@ function website_tool(){
 	if(!isset($array["website-analysis"])){$array["website-analysis"]="http://www.articatech.com";}
 	
 	$html="
-	<div style='font-size:32px;margin-bottom:20px' id='title-$t'>{website_analysis}</div>
-	<div class=text-info style='font-size:18px'>{website_tool_explain}</div>	
-	<div id='report-$t' style='margin:30px'></div>
+	<div style='font-size:40px;margin-bottom:20px' id='title-$t'>{website_analysis}</div>
+	<div class=explain style='font-size:22px'>{website_tool_explain}</div>	
+	<div id='report-WebSiteAnalysis' style='margin:30px'></div>
 <div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{request}:</td>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:26px'>{request}:</td>
 			<td style='width:70%;vertical-align:middle;'>
-				". Field_text("requestfield-$t","http://www.artica.fr","font-size:22px;width:80%;margin:10px")."
+				". Field_text("requestfield-$t","http://www.artica.fr","font-size:26px;width:80%;margin:10px")."
 			</td>
 		</tr>
 		<tr>
-			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{connection_timeout}:</td>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:26px'>{connection_timeout}:</td>
 			<td style='width:70%;vertical-align:top;'>
-				". Field_text("timeout-$t","2","font-size:22px;width:95px;margin:10px")."
+				". Field_text("timeout-$t","2","font-size:26px;width:95px;margin:10px")."
 			</td>
 		</tr>
 	<tr>
-		<td class=legend style='font-size:22px'>{forward_address}:</td>
-		<td style='font-size:22px;vertical-align:middle;'>". Field_array_Hash($ips,"address-$t",$array["website-analysis-address"],"style:font-size:22px")."<td>
+		<td class=legend style='font-size:26px'>{forward_address}:</td>
+		<td style='font-size:22px;vertical-align:middle;'>". Field_array_Hash($ips,"address-$t",$array["website-analysis-address"],"style:font-size:26px")."<td>
 	</tr>													
 		<tr>
-			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{proxy_address}:</td>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:26px'>{proxy_address}:</td>
 			<td style='width:70%;vertical-align:top;'>
-				". Field_text("proxy-$t","","font-size:22px;width:80%;margin:10px")."
+				". Field_text("proxy-$t","","font-size:26px;width:80%;margin:10px")."
 			</td>
 		</tr>	
-		<tr><td colspan=2><p style='font-size:14px;text-align:right' class=text-info>{website_tool_explain_proxy}</p></td></tr>				
+		<tr><td colspan=2><p style='font-size:22px;text-align:right' class=explain >{website_tool_explain_proxy}</p></td></tr>				
 	</table>
-	<center style='margin:40px'>". button("{submit}","Submit$t()",32)."</center>
+	<center style='margin:40px'>". button("{submit}","Submit$t()",40)."</center>
 	</div>	
 <script>
 	var xSubmit$t= function (obj) {
 		var results=obj.responseText;
-		LoadAjax('report-$t','$page?website-analysis-report=yes&t=$t');
+		Loadjs('squid.debug.website.progress.php');
+		
 		
 	}
 
 
 	function Submit$t(){
 		var XHR = new XHRConnection();	
-		document.getElementById('report-$t').innerHTML='';
+		document.getElementById('report-WebSiteAnalysis').innerHTML='';
 		XHR.appendData('website-analysis',document.getElementById('requestfield-$t').value);
 		XHR.appendData('website-analysis-proxy',document.getElementById('proxy-$t').value);
 		XHR.appendData('website-analysis-timeout',document.getElementById('timeout-$t').value);
@@ -405,14 +410,14 @@ function website_tool_post(){
 	$sock=new sockets();
 	$datas=base64_encode(serialize($_POST));
 	$sock->SaveConfigFile($datas, "WebSiteAnalysis");
-	$sock->getFrameWork("squid.php?WebSiteAnalysis=yes");
+	
 	
 }
 
 function website_tool_report(){
 	
 	echo "<textarea style='width:100%;height:450px;font-family:monospace;
-	overflow:auto;font-size:13px;border:4px solid #CCCCCC;background-color:transparent' 
+	overflow:auto;font-size:16px !important;border:4px solid #CCCCCC;background-color:transparent' 
 	id='c-icap-error-page'>".@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/curl.trace")."</textarea>";
 	
 }

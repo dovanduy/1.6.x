@@ -26,14 +26,15 @@ $php=$unix->LOCATE_PHP5_BIN();
 
 echo "NETWORK CONFIGURATOR Menu\n";
 echo "---------------------------------------------\n";
-echo "Mofify network parameters........: [1]\n";
+echo "Modify network parameters........: [1]\n";
 echo "Reload/Restart Network...........: [2]\n";
-echo "Remove any Firewall rules........: [3]\n";
+echo "Stop FireWall....................: [3]\n";
 echo "DNS setup........................: [4]\n";
 echo "Remove NICs Parameters...........: [5]\n";
 echo "Rebuild network setting..........: [6]\n";
 echo "Install Broadcom driver..........: [7]\n";
 echo "Generate a new Unique identifier.: [8]\n";
+echo "Fail-Over........................: [9]\n";
 echo "Exit menu........................: [q]\n";
 echo "\n";
 
@@ -48,6 +49,7 @@ switch ($answer) {
 	case "6":REBUILD_NETWORK();break;
 	case "7":system("$php /usr/share/artica-postfix/exec.bnx2.enable.php");break;
 	case "8":new_uuid();break;
+	case "9":fail_over_menu();break;
 	case "q":die();break;
 	default:
 		;
@@ -60,6 +62,136 @@ switch ($answer) {
 
 
 }
+
+function fail_over_menu(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$clear=$unix->find_program("clear");
+	if(is_file($clear)){system("$clear");}
+	
+	echo "FAILOVER CONFIGURATOR Menu\n";
+	
+	$sock=new sockets();
+	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
+	if(count($MAIN)>1){echo "STATUS:\n"; while (list ($num, $val) = each ($MAIN) ){ echo "$num: $val\n"; } }
+	echo "---------------------------------------------\n";
+	echo "Run failover wizard.: [1]\n";
+	echo "Unlink from backup..: [2]\n";
+	echo "Exit menu...........: [q]\n";
+	
+	echo "\n";
+	
+
+	
+	$answer=trim(strtolower(fgets(STDIN)));
+	
+	switch ($answer) {
+		case "q":
+			MAIN_MENU();
+			return;
+			break;
+			
+		case "1":
+			fail_over_settings();
+			fail_over_menu();
+			return;
+			break;
+			
+		case "2":
+			system("$php /usr/share/artica-postfix/exec.failover.php --unlink");
+			echo "Press Enter key to continue:";
+			$answer = trim(strtolower(fgets(STDIN)));
+			fail_over_menu();
+			return;
+			break;			
+		
+		
+		default:
+			fail_over_menu();
+			return;
+	}
+	
+}
+
+function fail_over_settings(){
+	$unix=new unix();
+	$clear=$unix->find_program("clear");
+	if(is_file($clear)){system("$clear");}
+	$sock=new sockets();
+	$net=new networking();
+	$WgetBindIpAddress=$sock->GET_INFO("WgetBindIpAddress");
+	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
+	$eth=$MAIN["eth"];
+	$ip=new IP();
+	
+	
+	echo "This wizard will help to link this server to a backup server.\n";
+	echo "Press q letter to exit or any key to continue:";
+	$answer = trim(strtolower(fgets(STDIN)));
+	if($answer=="q"){return;}
+	if(is_file($clear)){system("$clear");}
+	if($eth==null){$eth="eth0";}
+	
+	echo "Give the main interface used by the proxy: [$eth]\n";
+	$NIC = trim(strtolower(fgets(STDIN)));
+	if($NIC==null){$NIC=$eth;}
+	$MAIN["eth"]=$NIC;
+	
+	if(!is_numeric($MAIN["ucarp_vid"])){$MAIN["ucarp_vid"]=3;}
+	
+	echo "Give the network id 1-255: [{$MAIN["ucarp_vid"]}]\n";
+	$NIC = trim(strtolower(fgets(STDIN)));
+	if($NIC==null){$NIC=$MAIN["ucarp_vid"];}
+	$MAIN["ucarp_vid"]=$NIC;	
+	
+	echo "-------------------------------------------------------------------\n";
+	$ipsrc=$MAIN["second_ipaddr"];
+	$MAIN["second_ipaddr"]=null;
+	while (!$ip->isIPAddress($MAIN["second_ipaddr"])) {
+		echo "TCP/IP:'{$MAIN["second_ipaddr"]}': false\nGive second TCP/IP address used to access to this server: [{$MAIN["second_ipaddr"]}]\nOr press 'q' to exit\n";
+		$NIC = trim(strtolower(fgets(STDIN)));
+		if($NIC==null){$NIC=$ipsrc;}
+		$MAIN["second_ipaddr"]=$NIC;
+		if($NIC=="q"){return;}
+	}
+
+	
+	echo "-------------------------------------------------------------------\n";
+	$src=$MAIN["SLAVE"];
+	$MAIN["SLAVE"]=null;
+	while (!$ip->isIPAddress($MAIN["SLAVE"])) {
+		echo "'{$MAIN["SLAVE"]}': false\nGive the IP address of the backup server: [$src]\nOr press 'q' to exit\n";
+		$NIC = trim(strtolower(fgets(STDIN)));
+		if($NIC==null){$NIC=$src;}
+		$MAIN["SLAVE"]=$NIC;
+		if($NIC=="q"){return;}
+	}
+	
+	echo "-------------------------------------------------------------------\n";
+	if(!is_numeric($MAIN["SLAVE_PORT"])){$MAIN["SLAVE_PORT"]=9000;}
+	echo "Give backup server Web console port: [{$MAIN["SLAVE_PORT"]}]\n";
+	$NIC = trim(strtolower(fgets(STDIN)));
+	if($NIC==null){$NIC=$MAIN["SLAVE_PORT"];}
+	$MAIN["SLAVE_PORT"]=$NIC;
+	
+	$nic=new system_nic($MAIN["eth"]);
+	if(!$ip->isIPAddress($nic->IPADDR)) {
+		echo "Failed to retreive IP from {$MAIN["eth"]}\n";
+		return;
+	}
+		
+	$MAIN["first_ipaddr"]=$nic->IPADDR;
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/HASettings", base64_encode(serialize($MAIN)));
+	echo "Running settings...";
+	$php=$unix->LOCATE_PHP5_BIN();
+	system("$php /usr/share/artica-postfix/exec.failover.php --register");
+	echo "Press Enter key to continue:";
+	$answer = trim(strtolower(fgets(STDIN)));
+	if(is_file($clear)){system("$clear");}
+	
+	
+}
+
 
 function new_uuid(){
 	$unix=new unix();
@@ -89,15 +221,9 @@ function ACTION_KILL_IPTABLES(){
 	echo "Enter y to confirm or any key to abort.\n";
 	$answer=trim(strtolower(fgets(STDIN)));
 	if($answer<>"y"){return;}
-	$iptables=$unix->find_program("iptables");
 	
-	shell_exec("$iptables -P INPUT ACCEPT");
-	shell_exec("$iptables -P FORWARD ACCEPT");
-	shell_exec("$iptables -P OUTPUT ACCEPT");
-	shell_exec("$iptables -t nat -F");
-	shell_exec("$iptables -t mangle -F");
-	shell_exec("$iptables -F");
-	shell_exec("$iptables -X");
+	system("/etc/init.d/firehol stop");
+	
 	echo "\nSuccess\nPress any key to exit.\n";
 	$answer = trim(strtolower(fgets(STDIN)));
 	return;		
@@ -310,7 +436,7 @@ if(!$nics->SaveNic()){
 	$resolvDatas=$resolv->build();
 	echo "94%] Saving /etc/resolv.conf\n";
 	@file_put_contents("/etc/resolv.conf", $resolvDatas);
-	echo "95%] Restarting Artica Web Console\n";
+	echo "95%] Restarting Web Console\n";
 	shell_exec2("$nohup /etc/init.d/artica-webconsole restart");
 	echo "100%] Configuration done.\n";
 	echo "Press any key to return to menu.";

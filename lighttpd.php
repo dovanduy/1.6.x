@@ -11,6 +11,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_GET["lighttpd-status"])){lighttpd_status();exit;}
 	if(isset($_GET["lighttpd-form"])){lighttpd_form();exit;}
 	if(isset($_POST["LighttpdArticaMaxProcs"])){lighttpd_save();exit;}
+	
 page();
 
 
@@ -19,7 +20,7 @@ function page(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=text-info style='font-size:14px'>{ligghtpd_perf_howto}</div>
+	<div class=explain style='font-size:14px'>{ligghtpd_perf_howto}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td style='width:50%' valign='top'>

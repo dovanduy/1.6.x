@@ -150,7 +150,7 @@ function whitelist(){
 	$q=new mysql_squid_builder();
 	//usersisp_blkwcatz
 	$add_categories=Paragraphe("64-categories-add.png", "{add_category}", "{add_category_text}","javascript:YahooWin2('770','squid.users.choose.catz.php?blk=1','{add_category}')");
-	$html="<div class=text-info style='font-size:14px'>{whitelist_categories_explain}</div>";
+	$html="<div class=explain style='font-size:14px'>{whitelist_categories_explain}</div>";
 	
 	$count_webfilters_categories_caches=$q->COUNT_ROWS("webfilters_categories_caches");
 	writelogs("webfilters_categories_caches $count_webfilters_categories_caches rows",__FUNCTION__,__FILE__,__LINE__);
@@ -204,7 +204,7 @@ function blacklist(){
 	$array_pics=$ss->array_pics;
 	$q=new mysql_squid_builder();
 	$add_categories=Paragraphe("64-categories-add.png", "{add_category}", "{add_category_text}","javascript:YahooWin2('770','squid.users.choose.catz.php','{add_category}')");
-	$html="<div class=text-info style='font-size:14px'>{banned_categories_explain}</div>";
+	$html="<div class=explain style='font-size:14px'>{banned_categories_explain}</div>";
 	
 
 	

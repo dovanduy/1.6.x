@@ -596,7 +596,7 @@ function multidomains_popup(){
 	'{multidomains_explain}','EnableVirtualDomainsInMailBoxes',$artica->EnableVirtualDomainsInMailBoxes,'{enable_disable}',650);
 
 	$html="
-	<div class=text-info style='font-size:18px'>{multidomains_text}</div>
+	<div class=explain style='font-size:18px'>{multidomains_text}</div>
 	<div class=form style='width:98%'>
 	$milter
 	</div>
@@ -1105,7 +1105,7 @@ function sasl_satus(){
 	
 	
 	$html="
-	<div class=text-info style='font-size:18px'>{SASL_STATUS_TEXT}</div>
+	<div class=explain style='font-size:18px'>{SASL_STATUS_TEXT}</div>
 	<div style='width:100%;height:300px;overflow:auto'>$t</div>";
 	
 	$tpl=new templates();
@@ -1444,7 +1444,6 @@ function antispam_popup_save(){
 	$users=new usersMenus();
 	if(!$users->MEM_HIGER_1G){
 		$sock->SET_INFO('EnableAmavisDaemon',0);
-		$sock->SET_INFO('SpamAssMilterEnabled',0);
 	}
 	
 	$sock->getFrameWork("cmd.php?SaveMaincf=yes");
@@ -1599,7 +1598,7 @@ function filter_connect_warning(){
 	$tpl=new templates();
 	$RestrictToInternalDomains=$sock->GET_INFO("RestrictToInternalDomains");
 	if($RestrictToInternalDomains==1){
-		$html="<div class=text-info>
+		$html="<div class=explain>
 		<table style='width:80%'>
 		<tr>
 		<td width=1%><img src='img/status_warning.png'></rd>
@@ -2071,8 +2070,6 @@ function tweaks(){
 		
 
 
-	$postfixStop=Paragraphe('pause-64.png','{stop_messaging}','{stop_messaging_text}',
-			"javascript:Loadjs('postfix.stop.php',true)",90);
 	//$postfix_restrictions_classes=Paragraphe('folder-64-restrictions-classes.png','{postfix_restrictions_classes}','{restriction_classes_minitext}',"javascript:Loadjs('postfix.restrictions.classes.php?js=yes')",90);
 	$events=Paragraphe('64-mailevents.png','{postfix_events}','{logs_viewer_text}',"javascript:s_PopUp('postfix.events.php?pop=true',450,400)",90);
 	//$storage=Paragraphe('folder-storage2-64.png','{storage_rules}','{storage_rules_text}',"javascript:Loadjs('postfix.storage.rules.php')",90);
@@ -2080,12 +2077,7 @@ function tweaks(){
 	
 	
 	//$main_src=Paragraphe('folder-script-database-64.png','{main_ldap}','{main_ldap_explain}',"javascript:s_PopUp(\"postfix.report.php\",500,500,true)",90);
-	$watchdog_queue=Paragraphe('folder-watch-64.png','{watchdog_queue}','{watchdog_queue_text}',"javascript:Loadjs('postfix.postqueuep.php',true)",90);
-	$postmaster=Paragraphe('postmaster-64.png','{postmaster}','{postmaster_text}',"javascript:Loadjs('postfix.postmaster.php')",90);
-	$postmaster_identity=Paragraphe('postmaster-identity.png','{postmaster_identity}','{postmaster_identity_text}',"javascript:Loadjs('postfix.postmaster-ident.php',true)",90);
-	$UnknownUsers=Paragraphe('unknown-user-64.png','{unknown_users}','{postfix_unknown_users_tinytext}',"javascript:Loadjs('postfix.luser_relay.php',true)",90);
-	$RemoveMessaging=Paragraphe('delete-64.png','{disable_messaging}','{disable_messaging_text}',
-			"javascript:Loadjs('postfix.disable.php',true)",90);
+	
 	
 	
 	

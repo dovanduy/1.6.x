@@ -102,7 +102,7 @@ function popup(){
 		<td valign='top'>
 		<div id='ScanCyrusInfos'>
 			<input type='hidden' id='ProcessNice' value='{$ini->_params["SCAN"]["ProcessNice"]}'>
-			<div class=text-info>{cyrus_scan_antivirus_text}</div>
+			<div class=explain>{cyrus_scan_antivirus_text}</div>
 			$enable<br>
 				<table style='width:100%'>
 				

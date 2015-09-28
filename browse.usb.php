@@ -96,7 +96,7 @@ function external_storage_usb_list(){
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?usb-scan-write=yes");
 	$tpl=new templates();
-	if(!file_exists('ressources/usb.scan.inc')){return $tpl->_ENGINE_parse_body("<H3 style=color:red'>{error_no_socks}</H3>");}		
+	if(!file_exists('ressources/usb.scan.inc')){return $tpl->_ENGINE_parse_body("<H3 style=color:#d32d2d'>{error_no_socks}</H3>");}		
 	include("ressources/usb.scan.inc");	
 	include_once("ressources/class.os.system.tools.inc");
 		

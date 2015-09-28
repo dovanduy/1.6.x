@@ -22,7 +22,7 @@ js();
 function title(){
 	
 	$tpl=new templates();
-
+	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_service}");
 	if(isset($_GET["onlySquid"])){
 		$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_service}");
 	}

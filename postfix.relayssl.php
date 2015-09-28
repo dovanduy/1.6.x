@@ -198,7 +198,7 @@ $intro="
 			<div id='servinfos_stunnel'></div>
 		</td>
 	</tr>
-		<tr><td colspan=2><p class=text-info>{smtps_relayhost_text}</div></td></tr>
+		<tr><td colspan=2><p class=explain>{smtps_relayhost_text}</div></td></tr>
 	</table>
 	<br>
 	
@@ -283,7 +283,7 @@ preg_match('#(.+?):(.+)#',$sasl->smtp_sasl_password_hash["[127.0.0.1]:$localport
 
 	$html="
 	<div id='sslRelayHostid'>
-		<div class=text-info>{relayhost_text}</div>
+		<div class=explain>{relayhost_text}</div>
 		<table style='width:99%' class=form>
 			<tr>
 				<td align='right' nowrap style='font-size:14px'><strong>{yserver}:&nbsp;</strong></td>
@@ -395,7 +395,7 @@ function main_stunnel_status(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	if(!$users->stunnel4_installed){
-		return $tpl->_ENGINE_parse_body("<div class=text-info style='color:red'>{stunnel_not_installed}</div>");
+		return $tpl->_ENGINE_parse_body("<div class=explain style='color:#d32d2d'>{stunnel_not_installed}</div>");
 
 	}
 		

@@ -57,7 +57,7 @@ function popup(){
 	
 	$html="
 	<div style='width:99%' class=form>		
-	<div  style='font-size:14px' class=text-info>{autofs_wizard_explain}</div>
+	<div  style='font-size:14px' class=explain>{autofs_wizard_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td width=50% align=center>$add</td>

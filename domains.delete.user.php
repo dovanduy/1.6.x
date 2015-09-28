@@ -121,7 +121,7 @@ function popup(){
 							<td width=1%>". button("{browse}","Loadjs('MembersBrowse.php?OnlyUsers=1&NOComputers=0&Zarafa=1&callback=ZarafaDCopyToPublicCallBack')")."</td>
 						</tr>	
 						<tr>
-							<td colspan=3><div class=text-info>{ZarafaCopyToPublic}</div></td>
+							<td colspan=3><div class=explain>{ZarafaCopyToPublic}</div></td>
 						<tr>											
 					</table>
 				</td>

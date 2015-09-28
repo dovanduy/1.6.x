@@ -257,7 +257,8 @@ Ceci s'applique aussi au scanner antivirus.
 [li]Si vous utilisez un antivirus, utilisez une valeur inf&eacute;rieure &agrave; 5000.[/li]
 [/ul]</urlcachenumber_text>
 <url_rules>R&egrave;gles d'URL/Domaines</url_rules>
-<violence>Sites Warez et de hacking</violence>
+<violence>Sites violents ou de l'apologie de la violence, terreur, guerre.[br]
+Peut &ecirc;tre aussi r&eacute;pertori&eacute;s les sites militaires ou de vente d'armes.</violence>
 <warez>Sites Warez.</warez>
 <warezhacking>Sites  Warez et de hacking</warezhacking>
 <weapons>Sites connexes d'armes</weapons>

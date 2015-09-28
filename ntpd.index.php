@@ -168,7 +168,7 @@ function index(){
 	
 
 	$html="
-	<div class=text-info style='font-size:16px'>{ntp_about}</div>
+	<div class=explain style='font-size:16px'>{ntp_about}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' style='width:220px'>
@@ -361,7 +361,7 @@ $choose=Field_array_Hash($i,'ntpd_servers_choosen',null,null,null,0,'font-size:1
 				
 				
 	 </table>
-	 <div class=text-info>{how_to_find_timeserver}</div><hr>
+	 <div class=explain>{how_to_find_timeserver}</div><hr>
 
 	 
 	

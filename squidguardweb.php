@@ -4,6 +4,7 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.squid.reverse.inc');
+	include_once('ressources/class.squidguard-msmtp.inc');
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -104,7 +105,7 @@ function per_category_main(){
 	$newcat[null]="{select}";
 	$html="
 	$error
-	<div style='font-size:14px' class=text-info>{ufdbguard_banned_perso_text}</div>
+	<div style='font-size:14px' class=explain>{ufdbguard_banned_perso_text}</div>
 		<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{category}:</td>
@@ -156,7 +157,7 @@ function per_category_settings(){
 	}
 	
 	$t=time();
-	$html="<div class=text-info style='font-size:18px'>$explain</div>
+	$html="<div class=explain style='font-size:18px'>$explain</div>
 	<div style='width:98%' class=form>
 	<table>
 	<tr>
@@ -279,11 +280,12 @@ function tabs(){
 		return;
 	
 	}
-	$array["remote"]='{remote_webpage}';
+	
 	$array["popup"]='{banned_page_webservice}';
 	$array["unlock"]='{unlock}';
 	$array["rules"]='{unlock_rules}';
 	$array["skins"]='{skins_rules}';
+	$array["remote"]='{remote_webpage}';
 	//$array["per-categories"]='{per_category}';
 	
 	$page=CurrentPageName();
@@ -293,25 +295,30 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="remote"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.remotepage.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.remotepage.php\">
+					<span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="service"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.service.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.service.php\">
+					<span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="rules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.rules.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.rules.php\">
+					<span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		if($num=="skins"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.skins.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.skins.php\">
+					<span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\">
+				<span style='font-size:24px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -376,22 +383,41 @@ function popup(){
 	if($users->CORP_LICENSE){$LICENSE=1;}
 	$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
 	if(strlen(trim($EnableSquidGuardHTTPService))==0){$EnableSquidGuardHTTPService=1;}
+	$EnableUfdbGuard=intval($sock->GET_INFO("EnableUfdbGuard"));
 	
 	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
 	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
 	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	$SquidGuardWebSSLCertificate=$sock->GET_INFO("SquidGuardWebSSLCertificate");
 	
+	$SquidGuardRedirectBehavior=$sock->GET_INFO("SquidGuardRedirectBehavior");
+	$SquidGuardRedirectSSLBehavior=$sock->GET_INFO("SquidGuardRedirectSSLBehavior");
+	$SquidGuardRedirectHTTPCode=intval($sock->GET_INFO("SquidGuardRedirectHTTPCode"));
+	
+	if($SquidGuardRedirectBehavior==null){$SquidGuardRedirectBehavior="url";}
+	if($SquidGuardRedirectSSLBehavior==null){$SquidGuardRedirectSSLBehavior="url";}
+	if(!is_numeric($SquidGuardRedirectHTTPCode)){$SquidGuardRedirectHTTPCode=302;}
+	
+	$HTTP_CODE[301]="{Moved_Permanently} (301)";
+	$HTTP_CODE[302]="{Moved_Temporarily} (302)";
+	$HTTP_CODE[303]="{http_code_see_other} (303)";
+	$HTTP_CODE[307]="{Moved_Temporarily} (307)";
+	
 	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
 	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
-	
+	$ALERT=null;
 	$SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
 	$fulluri=$sock->GET_INFO("SquidGuardIPWeb");
 	$SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
 	$SquidGuardWebUseExternalUri=intval($sock->GET_INFO("SquidGuardWebUseExternalUri"));
-	
-	
-	
+	$DisableSquidGuardHTTPCache=intval($sock->GET_INFO("DisableSquidGuardHTTPCache"));
+	$EnableSquidGuardHTTPCache=1;
+	if($DisableSquidGuardHTTPCache==1){$EnableSquidGuardHTTPCache=0;}
+	$SquidGuardDenySSL=intval($sock->GET_INFO("SquidGuardDenySSL"));
+	if($SquidGuardDenySSL==0){$SquidGuardSSL=1;}else{$SquidGuardSSL=0;}
+	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
+	$EnableSquidGuardMicrosoftTPL=intval($sock->GET_INFO("EnableSquidGuardMicrosoftTPL"));
+	$EnableSquidGuardSearchCategoryNone=intval($sock->GET_INFO("EnableSquidGuardSearchCategoryNone"));
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	
 	
@@ -417,69 +443,122 @@ function popup(){
 	
 	$squid_reverse=new squid_reverse();
 	$sslcertificates=$squid_reverse->ssl_certificates_list();
-	$button= button("{apply}","SaveSquidGuardHTTPService$t()",32);
+	$button= button("{apply}","SaveSquidGuardHTTPService$t()",40);
 	$p1=Paragraphe_switch_img("{enable_http_service}", 
-				"{enable_http_service_squidguard}","EnableSquidGuardHTTPService",$EnableSquidGuardHTTPService,null,626,"EnableSquidGuardHTTPService()");
+				"{enable_http_service_squidguard}","EnableSquidGuardHTTPService",
+			$EnableSquidGuardHTTPService,null,1024,"EnableSquidGuardHTTPService()");
 	if($SquidGuardWebUseExternalUri==1){
+		
+		
+		
 		$p1=Paragraphe_switch_disable("{enable_http_service}",
-				"{enable_http_service_squidguard}","EnableSquidGuardHTTPService",$EnableSquidGuardHTTPService,null,626,"EnableSquidGuardHTTPService()");
+				"<strong style='color:#d32d2d'>{service_disabled_because_external_webpage}<br></strong>{enable_http_service_squidguard}","EnableSquidGuardHTTPService",
+				$EnableSquidGuardHTTPService,null,1024,"EnableSquidGuardHTTPService()");
 		$button=null;
 	}
 	
+	if($EnableUfdbGuard==0){
+		$p1=Paragraphe_switch_disable("{enable_http_service}",
+				"<strong style='color:#d32d2d'>{webfiltering_is_disabled}</strong><br>{enable_http_service_squidguard}",
+				"EnableSquidGuardHTTPService",$EnableSquidGuardHTTPService,null,1024,"EnableSquidGuardHTTPService()");
+		
+	}
+	
+	$p4=Paragraphe_switch_img("{EnableSquidGuardSearchCategoryNone}",
+			"{EnableSquidGuardSearchCategoryNone_explain}","EnableSquidGuardSearchCategoryNone",
+			$EnableSquidGuardSearchCategoryNone,null,1024,"");
+	
+	
+	
+	
+	$p2=Paragraphe_switch_img("{webfiltering_cache_page}",
+			"{webfiltering_cache_page_explain}","EnableSquidGuardHTTPCache",
+			$EnableSquidGuardHTTPCache,null,1024,"");
+	
+	
+	$p3=Paragraphe_switch_img("{SquidTemplatesMicrosoft}",
+	"{SquidTemplatesMicrosoft_explain}",
+	"EnableSquidGuardMicrosoftTPL",$EnableSquidGuardMicrosoftTPL,null,1024);
+	
+	$redirect_behaviorA["url"]="{redirect_connexion}";
+	$redirect_behaviorA["rewrite-url"]="{rewrite_url}";
 	
 	$html="
 	<div id='EnableSquidGuardHTTPServiceDiv'>
 	<div style='width:98%' class=form>
+	
+	<div class=explain style='font-size:20px'>{ufdbguard_redirect_ssl_explain}</div>
+	
 	<table style='width:100%'>
 	<tr>
 			
 		<td style='vertical-align:top'><div id='squid-guard-http-status' style='margin-right:10px'></div></td>
-		<td colspan=2>$p1".
+		<td colspan=2>$p1".$p2.$p3.$p4.
 				Paragraphe_switch_img("{FollowExtensions}",
-				"{SquidGuardWebFollowExtensions_explain}","SquidGuardWebFollowExtensions",$SquidGuardWebFollowExtensions,null,626,"EnableSquidGuardHTTPService()").
+				"{SquidGuardWebFollowExtensions_explain}","SquidGuardWebFollowExtensions",
+						$SquidGuardWebFollowExtensions,null,1024,"EnableSquidGuardHTTPService()").
 				
 				Paragraphe_switch_img("{SquidGuardWebBlankReferer}",
-				"{SquidGuardWebBlankReferer_explain}","SquidGuardWebBlankReferer",$SquidGuardWebBlankReferer,null,626,"EnableSquidGuardHTTPService()").
-								
-				
-				
-				
-				"</td>	
+				"{SquidGuardWebBlankReferer_explain}","SquidGuardWebBlankReferer",
+						$SquidGuardWebBlankReferer,null,1024,"EnableSquidGuardHTTPService()").
+						
+					Paragraphe_switch_img("{redirect_ssl}",
+						"{ufdb_redirect_ssl_explain}","SquidGuardSSL",
+						$SquidGuardSSL,null,1024).
+			"</td>	
 							
 
 	<tr>
-		<td class=legend style='font-size:22px'>{listen_port}:</td>
-		<td>". Field_text("listen_port_squidguard",$SquidGuardApachePort,"font-size:22px;padding:3px;width:110px",null,null,null,false,"")."</td>
+		<td class=legend style='font-size:24px'>{listen_port}:</td>
+		<td>". Field_text("listen_port_squidguard",$SquidGuardApachePort,"font-size:24px;padding:3px;width:110px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:22px'>{listen_port} (SSL):</td>
-		<td>". Field_text("listen_port_squidguard_ssl",$SquidGuardApacheSSLPort,"font-size:22px;padding:3px;width:110px",null,null,null,false,"")."</td>
+		<td class=legend style='font-size:24px'>{listen_port} (SSL):</td>
+		<td>". Field_text("listen_port_squidguard_ssl",$SquidGuardApacheSSLPort,"font-size:24px;padding:3px;width:110px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:22px'>{certificate}:</td>
+		<td class=legend style='font-size:24px'>{certificate}:</td>
 		<td>". Field_array_Hash($sslcertificates,"SquidGuardWebSSLCertificate",$SquidGuardWebSSLCertificate,
-				"style:font-size:22px;padding:3px;width:75%",null,null,null,false,"")."</td>
+				"style:font-size:24px;padding:3px;width:75%",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>				
-				
-				
+	<tr>
+		<td class=legend style='font-size:24px'>{redirect_behavior}:</td>
+		<td>". Field_array_Hash($redirect_behaviorA,"SquidGuardRedirectBehavior",$SquidGuardRedirectBehavior,
+				"style:font-size:24px;padding:3px;width:75%",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:24px'>{redirect_behavior} (ssl):</td>
+		<td>". Field_array_Hash($redirect_behaviorA,"SquidGuardRedirectSSLBehavior",$SquidGuardRedirectSSLBehavior,
+				"style:font-size:24px;padding:3px;width:75%",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>
+						
+	<tr>
+		<td class=legend style='font-size:24px'>{redirect_code}:</td>
+		<td>". Field_array_Hash($HTTP_CODE,"SquidGuardRedirectHTTPCode",$SquidGuardRedirectHTTPCode,
+				"style:font-size:24px;padding:3px;width:75%",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>					
 					
 	
 	<tr>
-		<td class=legend style='font-size:22px'>{hostname}:</td>
-		<td style='font-size:14px'>". Field_text("servername_squidguard",$SquidGuardServerName,"font-size:22px;padding:3px;width:380px",null,null,null,false,"")."</td>
+		<td class=legend style='font-size:24px'>{hostname}:</td>
+		<td style='font-size:14px'>". Field_text("servername_squidguard",$SquidGuardServerName,
+				"font-size:24px;padding:3px;width:380px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:22px'>{fulluri}:</td>
-		<td style='font-size:14px'>". Field_text("fulluri","$fulluri","font-size:22px;padding:3px;width:660px",null,null,null,false,"")."</td>
+		<td class=legend style='font-size:24px'>{fulluri}:</td>
+		<td style='font-size:24px'>". Field_text("fulluri","$fulluri","font-size:22px;padding:3px;width:660px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:22px'>{fulluri} (ssl):</td>
-		<td style='font-size:14px'>". Field_text("fulluriSSL","$fulluriSSL","font-size:22px;padding:3px;width:660px",null,null,null,false,"")."</td>
+		<td class=legend style='font-size:24px'>{fulluri} (ssl):</td>
+		<td style='font-size:24px'>". Field_text("fulluriSSL","$fulluriSSL","font-size:22px;padding:3px;width:660px",null,null,null,false,"")."</td>
 		<td>&nbsp;</td>
 	</tr>				
 	<tr>
@@ -497,18 +576,26 @@ function EnableSquidGuardHTTPService(){
 	 document.getElementById('fulluriSSL').disabled=true;
 	 document.getElementById('SquidGuardWebFollowExtensions').disabled=true;
 	 document.getElementById('SquidGuardWebSSLCertificate').disabled=true;
+	 document.getElementById('EnableSquidGuardHTTPCache').disabled=true;
+	 document.getElementById('SquidGuardRedirectBehavior').disabled=true;
+	 document.getElementById('SquidGuardRedirectHTTPCode').disabled=true;
+	 document.getElementById('SquidGuardRedirectSSLBehavior').disabled=true;
 			 
-			 if(document.getElementById('EnableSquidGuardHTTPService').value==1){
-				 	document.getElementById('listen_port_squidguard').disabled=false;
-				 	document.getElementById('listen_port_squidguard_ssl').disabled=false;
-				 	document.getElementById('servername_squidguard').disabled=false;
-				 	document.getElementById('SquidGuardWebFollowExtensions').disabled=false;
-				 	document.getElementById('SquidGuardWebBlankReferer').disabled=false;
-				 	document.getElementById('SquidGuardWebSSLCertificate').disabled=false;
-			}
+	if(document.getElementById('EnableSquidGuardHTTPService').value==1){
+		document.getElementById('listen_port_squidguard').disabled=false;
+		document.getElementById('listen_port_squidguard_ssl').disabled=false;
+		document.getElementById('servername_squidguard').disabled=false;
+		document.getElementById('SquidGuardWebFollowExtensions').disabled=false;
+		document.getElementById('SquidGuardWebBlankReferer').disabled=false;
+		document.getElementById('SquidGuardWebSSLCertificate').disabled=false;
+		document.getElementById('EnableSquidGuardHTTPCache').disabled=false;
+		document.getElementById('SquidGuardRedirectBehavior').disabled=false;
+	 	document.getElementById('SquidGuardRedirectHTTPCode').disabled=false;
+	 	document.getElementById('SquidGuardRedirectSSLBehavior').disabled=false;
+	}
 			 
 			
-		}
+}
 		
 var x_SaveSquidGuardHTTPService$t=function(obj){
 	 	Loadjs('dansguardian2.compile.php');
@@ -516,6 +603,8 @@ var x_SaveSquidGuardHTTPService$t=function(obj){
 
 function SaveSquidGuardHTTPService$t(){
      var XHR = new XHRConnection();
+     
+     XHR.appendData('EnableSquidGuardMicrosoftTPL',document.getElementById('EnableSquidGuardMicrosoftTPL').value);
   	 XHR.appendData('SquidGuardWebBlankReferer',document.getElementById('SquidGuardWebBlankReferer').value);
      XHR.appendData('SquidGuardWebFollowExtensions',document.getElementById('SquidGuardWebFollowExtensions').value);
      XHR.appendData('EnableSquidGuardHTTPService',document.getElementById('EnableSquidGuardHTTPService').value);
@@ -525,6 +614,17 @@ function SaveSquidGuardHTTPService$t(){
 	 XHR.appendData('servername_squidguard',document.getElementById('servername_squidguard').value);
      XHR.appendData('fulluri',document.getElementById('fulluri').value);
      XHR.appendData('fulluriSSL',document.getElementById('fulluriSSL').value);
+     XHR.appendData('EnableSquidGuardHTTPCache',document.getElementById('EnableSquidGuardHTTPCache').value);
+     XHR.appendData('SquidGuardRedirectBehavior',document.getElementById('SquidGuardRedirectBehavior').value);
+     XHR.appendData('SquidGuardRedirectHTTPCode',document.getElementById('SquidGuardRedirectHTTPCode').value);
+     XHR.appendData('SquidGuardRedirectSSLBehavior',document.getElementById('SquidGuardRedirectSSLBehavior').value);
+     XHR.appendData('EnableSquidGuardSearchCategoryNone',document.getElementById('EnableSquidGuardSearchCategoryNone').value);
+     
+     
+     
+     XHR.appendData('SquidGuardSSL',document.getElementById('SquidGuardSSL').value);
+     
+     
      XHR.sendAndLoad('$page', 'GET',x_SaveSquidGuardHTTPService$t);     	
 }
 	
@@ -550,22 +650,36 @@ function save(){
 	}
 	
 	
+	if($_POST["EnableSquidGuardHTTPCache"]==1){
+		$sock->SET_INFO("DisableSquidGuardHTTPCache",0);
+	}else{
+		$sock->SET_INFO("DisableSquidGuardHTTPCache",1);
+	}
 	
+	if($_GET["SquidGuardSSL"]==0){
+		$sock->SET_INFO("SquidGuardDenySSL",1);
+	}else{
+		$sock->SET_INFO("SquidGuardDenySSL",0);
+	}
 	
-	
+	$sock->SET_INFO("SquidGuardServerName",$_GET["servername_squidguard"]);
 	$sock->SET_INFO("SquidGuardWebSSLCertificate",$_GET["SquidGuardWebSSLCertificate"]);
 	$sock->SET_INFO("SquidGuardWebFollowExtensions",$_GET["SquidGuardWebFollowExtensions"]);
 	$sock->SET_INFO("SquidGuardApachePort",$_GET["listen_port_squidguard"]);
 	$sock->SET_INFO("SquidGuardApacheSSLPort",$_GET["listen_port_squidguard_ssl"]);
 	$sock->SET_INFO("EnableSquidGuardHTTPService",$_GET["EnableSquidGuardHTTPService"]);
-	
 	$sock->SET_INFO("SquidGuardWebBlankReferer",$_GET["SquidGuardWebBlankReferer"]);
-	
-	
-	
+	$sock->SET_INFO("SquidGuardRedirectHTTPCode",$_GET["SquidGuardRedirectHTTPCode"]);
+	$sock->SET_INFO("SquidGuardRedirectBehavior",$_GET["SquidGuardRedirectBehavior"]);
+	$sock->SET_INFO("SquidGuardRedirectSSLBehavior",$_GET["SquidGuardRedirectSSLBehavior"]);
 	$sock->SET_INFO("SquidGuardIPWeb",$SquidGuardIPWeb);
 	$sock->SET_INFO("SquidGuardIPWebSSL",$SquidGuardIPWebSSL);
+	$sock->SET_INFO("EnableSquidGuardMicrosoftTPL", $_GET["EnableSquidGuardMicrosoftTPL"]);
+	$sock->SET_INFO("EnableSquidGuardSearchCategoryNone", $_GET["EnableSquidGuardSearchCategoryNone"]);
+	$sock->SET_INFO("EnableSquidGuardHTTPCache", $_GET["EnableSquidGuardHTTPCache"]);
 	$sock->getFrameWork("cmd.php?reload-squidguardWEB=yes");
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
+	$sock->getFrameWork("ufdbguard.php?remove-sessions-caches=yes");
 	
 	
 	
@@ -810,7 +924,7 @@ $html="<div class=form style='width:98%'>
 				"UfdbGuardHTTPAllowNoCreds",$UfdbGuardHTTPAllowNoCreds,null,996)."".
 		 Paragraphe_switch_img("{smtp_complain}", "{squidguard_smtp_complain}
 		 		<div style='text-align:right;text-decoration:underline'>
-		 			<a href=\"javascript:Blur();\" 
+		 			<a href=\"javascript:blur();\" 
 		 			OnClick=\"javascript:Loadjs('$page?smtp-parameters-js=yes')\"
 		 			style='font-size:22px'>{smtp_parameters}</a></div>
 		 		
@@ -887,7 +1001,12 @@ function SMTP_PARAMETERS_POPUP(){
 	$users=new usersMenus();
 	$t=time();
 	
+	for($i=1;$i<25;$i++){
+		$MaxError[$i]="$i {times}";
+	}
+	
 	$SquidGuardWebSMTP=unserialize(base64_decode($sock->GET_INFO("SquidGuardWebSMTP")));
+	if(!is_numeric($SquidGuardWebSMTP["MaxError"])){$SquidGuardWebSMTP["MaxError"]=5;}
 	
 $html="
 <div style='width:98%' class=form>
@@ -901,25 +1020,30 @@ $html="
 	<td>" . Field_text("smtp_server_port-$t",trim($SquidGuardWebSMTP["smtp_server_port"]),'font-size:22px;padding:3px;width:90px')."</td>
 	</tr>
 	<tr>
+		<td nowrap class=legend style='font-size:22px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text("smtp_sender-$t",trim($SquidGuardWebSMTP["smtp_sender"]),'font-size:22px;padding:3px;width:290px')."</td>
+	</tr>			
+	<tr>
 		<td nowrap class=legend style='font-size:22px'>{smtp_recipient}:</strong></td>
 		<td>" . Field_text("smtp_recipient-$t",trim($SquidGuardWebSMTP["smtp_recipient"]),'font-size:22px;padding:3px;width:290px')."</td>
 	</tr>			
 	<tr>
 	<td nowrap class=legend style='font-size:22px'>{smtp_auth_user}:</strong></td>
-	<td>" . Field_text("smtp_auth_user-$t",trim($SquidGuardWebSMTP["smtp_auth_user"]),'font-size:22px;padding:3px;width:200px')."</td>
+	<td>" . Field_text("smtp_auth_user-$t",trim($SquidGuardWebSMTP["smtp_auth_user"]),'font-size:22px;padding:3px;width:290px')."</td>
 	</tr>
 	<tr>
-	<td nowrap class=legend style='font-size:22px'>{smtp_auth_passwd}:</strong></td>
-	<td>" . Field_password("smtp_auth_passwd-$t",trim($SquidGuardWebSMTP["smtp_auth_passwd"]),'font-size:22px;padding:3px;width:200px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password("smtp_auth_passwd-$t",trim($SquidGuardWebSMTP["smtp_auth_passwd"]),'font-size:22px;padding:3px;width:290px')."</td>
 	</tr>
 	<tr>
-	<td nowrap class=legend style='font-size:22px'>{tls_enabled}:</strong></td>
-	<td>" . Field_checkbox("tls_enabled-$t",1,$SquidGuardWebSMTP["tls_enabled"])."</td>
+		<td nowrap class=legend style='font-size:22px'>{tls_enabled}:</strong></td>
+		<td>" . Field_checkbox_design("tls_enabled-$t",1,$SquidGuardWebSMTP["tls_enabled"])."</td>
 	</tr>
 	<tr>
-	<td nowrap class=legend style='font-size:22px'>{UseSSL}:</strong></td>
-	<td>" . Field_checkbox("ssl_enabled-$t",1,$SquidGuardWebSMTP["ssl_enabled"])."</td>
-	</tr>
+		<td nowrap class=legend style='font-size:22px'>{retry}:</strong></td>
+		<td>" . Field_array_Hash($MaxError,"MaxError-$t",$SquidGuardWebSMTP["MaxError"],"style:font-size:22px")."</td>
+	</tr>		
+	<tr><td align='right' colspan=2><p>&nbsp;</p></td></tr>		
 	<tr>
 	<td align='right' colspan=2>
 	
@@ -944,11 +1068,12 @@ $html="
 		var XHR = new XHRConnection();
 		var pp=encodeURIComponent(document.getElementById('smtp_auth_passwd-$t').value);
 		if(document.getElementById('tls_enabled-$t').checked){XHR.appendData('tls_enabled',1);}else {XHR.appendData('tls_enabled',0);}
-		if(document.getElementById('ssl_enabled-$t').checked){XHR.appendData('ssl_enabled',1);}else {XHR.appendData('ssl_enabled',0);}
 		XHR.appendData('smtp_server_name',document.getElementById('smtp_server_name-$t').value);
 		XHR.appendData('smtp_server_port',document.getElementById('smtp_server_port-$t').value);
 		XHR.appendData('smtp_recipient',document.getElementById('smtp_recipient-$t').value);
+		XHR.appendData('smtp_sender',document.getElementById('smtp_sender-$t').value);
 		XHR.appendData('smtp_auth_user',document.getElementById('smtp_auth_user-$t').value);
+		XHR.appendData('MaxError',document.getElementById('MaxError-$t').value);
 		XHR.appendData('smtp_auth_passwd',pp);
 		XHR.appendData('smtp_notifications','yes');
 		XHR.sendAndLoad('$page', 'POST',x_SaveArticaSMTPNotifValues$t);
@@ -1008,6 +1133,22 @@ function tests_smtp(){
 	$body[]="";
 	
 	$finalbody=@implode("\r\n", $body);
+	
+	
+	$msmtp=new squidguard_msmtp($smtp_sender,$finalbody);
+	if($msmtp->Send()){
+		echo $msmtp->logs;
+		echo "</textarea><script>";
+		echo "alert('".$tpl->javascript_parse_text("Test Message\nTo $recipient: {success}")."');</script>";
+		return;
+	}
+	
+		
+	echo $msmtp->logs."\n";
+	
+	
+	
+	
 
 	$smtp=new smtp();
 	$smtp->debug=true;

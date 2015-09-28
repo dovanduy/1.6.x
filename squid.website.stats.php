@@ -299,10 +299,7 @@ while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 $title="$domain ". $tpl->_ENGINE_parse_body('{this_month}');
 
 $width = 500; $height = 200;
-if($zoom){
-	$width=720;
-	$height=400;
-}
+
 
 $graph = new Graph($width,$height);
 $graph->SetScale('textlin');

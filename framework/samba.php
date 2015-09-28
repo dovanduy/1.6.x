@@ -34,6 +34,10 @@ if(isset($_GET["joint"])){join_ad();exit;}
 if(isset($_GET["GetNetAdsInfos"])){GetNetAdsInfos();exit;}
 if(isset($_GET["current-version"])){current_version();exit;}
 if(isset($_GET["downgrade"])){downgrade();exit;}
+if(isset($_GET["net-ads-status"])){ads_status();exit;}
+
+
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
@@ -189,6 +193,20 @@ function adsinfos(){
 }
 
 
+function ads_status(){
+	$unix=new unix();
+	$net=$unix->LOCATE_NET_BIN_PATH();
+	$array=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/KerbAuthInfos")));
+	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
+	$adminname=$array["WINDOWS_SERVER_ADMIN"];
+	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
+	shell_exec("net ads status -U $adminname%$kinitpassword >/usr/share/artica-postfix/ressources/logs/web/NET_ADS_STATUS 2>&1");
+	
+	
+	
+}
+
+
 
 function winsdat(){
 	$unix=new unix();
@@ -340,7 +358,7 @@ function netrpcinfo(){
 	$net=$unix->find_program("net");
 	$array=unserialize(base64_decode($_GET["auth"]));
 	if($array["USER"]==null){
-		$results[]="<strong style='color:red'>netrpcinfo();failed No such user !!!</strong>";
+		$results[]="<strong style='color:#d32d2d'>netrpcinfo();failed No such user !!!</strong>";
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 		return;
 	}
@@ -457,7 +475,7 @@ function wbinfo_authenticate(){
 	$wbinfo=$unix->find_program("wbinfo");
 	$array=unserialize(base64_decode($_GET["auth"]));
 	if($array["USER"]==null){
-		$results[]="<strong style='color:red'>netrpcinfo();failed No such user !!!</strong>";
+		$results[]="<strong style='color:#d32d2d'>netrpcinfo();failed No such user !!!</strong>";
 		echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
 		return;
 	}	

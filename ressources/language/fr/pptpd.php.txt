@@ -102,7 +102,7 @@ Si vous rencontrez des probl&egrave;mes d'authentification sur les postes Window
 <REPOSITORY_DEB_MIRROR_TEXT>Construit un miroir de paquetages logiciels Debian ET/OU Ubuntu pour votre r&eacute;seau local</REPOSITORY_DEB_MIRROR_TEXT>
 <REPOSITORY_DEB_MIRROR_WHY>Disposer d'un miroir local Debian/Ubuntu est avantageux. Notamment si vous installez r&eacute;guli&egrave;rement des syst&egrave;mes Linux &agrave; base Debian dans votre r&eacute;seau.[br]
 Ainsi les paquetages n&eacute;cessaires pour l'installation et la mise &agrave; jour seront alors rapatri&eacute;s depuis ce serveur et non via Internet.[br]Cela permet alors d'all&eacute;ger votre bande passante.</REPOSITORY_DEB_MIRROR_WHY>
-<requests>requ&ecirc;tes</requests>
+<requests>Requ&ecirc;tes</requests>
 <roundcube_instance>Instance RoundCube</roundcube_instance>
 <routes>Routage TCP</routes>
 <RUN_COMPILATION>Compiler...</RUN_COMPILATION>

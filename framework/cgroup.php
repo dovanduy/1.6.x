@@ -16,6 +16,8 @@ if(isset($_GET["mv-all-def-proc"])){mv_all_def_proc();exit;}
 if(isset($_GET["kill-all-procs"])){kill_proc_all();exit;}
 if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["is-cpu-rt"])){is_cpu_rt();exit;}
+if(isset($_GET["install"])){install();exit;}
+if(isset($_GET["cgconfig"])){cgconfig();exit;}
 
 
 
@@ -54,6 +56,17 @@ function ProcessExplore(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
 }
+
+function cgconfig(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.cgroups.php --build --reload-status >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
 function ProcessExploreCgroups(){
 	$unix=new unix();
 	$ps=$unix->find_program("ps");
@@ -168,6 +181,24 @@ function status() {
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
 	
 	
+}
+function install(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/cgroups.install.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/cgroups.install.progress.txt";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.cgroups.php --install-progress >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+
 }
 
 

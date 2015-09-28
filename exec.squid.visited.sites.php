@@ -24,6 +24,11 @@ include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
 
+if($argv[1]=="--bycron"){
+	visited_sites_by_cron();
+	die();
+}
+
 visited_sites();
 
 
@@ -44,10 +49,11 @@ function badCharacters($sitename){
 	
 }
 
-function visited_sites(){
 
+function visited_sites_by_cron(){
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/squid.visited_sites_rescan.pid";
+	$pidfile="/etc/artica-postfix/pids/squid.visited_sites_by_cron.pid";
+	$TimeFile="/etc/artica-postfix/settings/Daemons/exec.squid.visited.sites.php.time";
 	$pid=@file_get_contents($pidfile);
 	if($pid<100){$pid=null;}
 	$t=time();
@@ -58,7 +64,32 @@ function visited_sites(){
 		die();
 	}
 	$mypid=getmypid();
-	@file_put_contents($pidfile,$mypid);	
+	@file_put_contents($pidfile,$mypid);
+	
+	$TimeExec=$unix->file_time_min($TimeFile);
+	if($TimeExec<240){return;}
+	visited_sites(true,true);
+	
+	
+}
+
+function visited_sites($nopid=false,$bycron=false){
+
+	$unix=new unix();
+	if(!$nopid){
+		$pidfile="/etc/artica-postfix/pids/squid.visited_sites_rescan.pid";
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
+		$t=time();
+		
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
+			die();
+		}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);	
+	}
 	
 	stats_admin_events(2, "Starting table visited_sites", "",__FILE__,__LINE__);
 	progress("Starting table visited_sites",5);
@@ -74,14 +105,14 @@ function visited_sites(){
 	progress("Query done $num_rows websites to scan",10);
 	
 
-	
-	$c=0;
+		$n=0;
+		$c=0;
 		$t=0;
 		$d=0;
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$sitenameOrg=$ligne["sitename"];
 			$sitename=strtolower(trim($sitenameOrg));
-			
+			$n++;
 			if(badCharacters($sitename)){
 				$q->categorize_reaffected($sitename);
 				$sitenameOrg=mysql_escape_string2($sitenameOrg);
@@ -122,6 +153,7 @@ function visited_sites(){
 			if($cat<>null){$d++;$q->QUERY_SQL("UPDATE visited_sites SET category='$cat' WHERE `sitename`='$sitenameOrg'");if(!$q->ok){progress("Fatal",100);die();}}
 			$c++;
 			if($c>50){
+				if($bycron){if(system_is_overloaded(__FILE__)){return;} if($n>2000){break;} }
 				$t=$t+$c;
 				$purc=$t/$num_rows;
 				$purc=round($purc,2)*100;

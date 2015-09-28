@@ -100,7 +100,7 @@ function popup(){
 	
 	<div id='$t'></div>
 	<div id='title-$t'></div>
-	<div style='font-size:14px;' class=text-info>{restore_statistics_database_explain2}</div>	
+	<div style='font-size:14px;' class=explain>{restore_statistics_database_explain2}</div>	
 
 	<table style='width:99%' class=form>
 		<tr>
@@ -334,7 +334,7 @@ function restored_items(){
 	if(!$q->ok){json_error_show("$q->mysql_error",1);}
 	if(mysql_num_rows($results)==0){json_error_show("No data",1);}
 
-	$data['total'] = mysql_num_rows($results);
+	
 
 	$style="style='font-size:{$fontsize}px'";
 

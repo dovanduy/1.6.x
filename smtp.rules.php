@@ -242,7 +242,7 @@ $html="
 		<img src='img/bg_regex.png' style='padding:20px;border:1px solid #CCCCCC;margin:5px'>
 	</td>
 	<td valign='top'><div style='float:right'" . applysettings_postfix()."</div>
-	<div class=text-info>{global_smtp_rules_explain}</div>
+	<div class=explain>{global_smtp_rules_explain}</div>
 	</td>
 </tr>
 </table>
@@ -274,10 +274,10 @@ function rulesdatas(){
 	$html="
 	<input type='hidden' id='blockip_msg' value='{blockip_msg}'>
 	<hr><H6>{blockips}</H6>
-	<div class=text-info>{blockip_text}</div>
+	<div class=explain>{blockip_text}</div>
 		<div id='blockips'>" . postfix_check_client_access(). "</div>
 <hr><H6>{postfix_regex}</H6>
-	<div class=text-info>{postfix_regex_text}</div>	
+	<div class=explain>{postfix_regex_text}</div>	
 		<div id='postfix_regex'>" . postfix_regex(). "</div>
 	";
 $tpl=new templates();

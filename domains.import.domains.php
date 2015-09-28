@@ -23,7 +23,7 @@ js();
 function popup(){
 	$page=CurrentPageName();
 	$html="
-	<div class=text-info>{import_smtp_domains_explain}</div>
+	<div class=explain>{import_smtp_domains_explain}</div>
 	
 	<table style='width:100%'>
 	<tr>

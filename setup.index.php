@@ -901,7 +901,7 @@ function index(){
 	
 	// 
 $intro="
-<div class=text-info style='font-size:14px'>{setup_index_explain}</div>	
+<div class=explain style='font-size:14px'>{setup_index_explain}</div>	
 <center>
 <table style='width:565px' class=form>
 	<tbody>
@@ -1882,7 +1882,7 @@ function BuildRows($appli,$SockStatus,$internetkey,$noupgrade=false){
 	
 	if($ini->_params["NEXT"]["$internetkey"]==null){
 		writelogs("Unable to stat NEXT/$internetkey \"{$ini->_params["NEXT"]["$internetkey"]}\"",__FUNCTION__,__FILE__,__LINE__);
-		$ini->_params["NEXT"]["$internetkey"]="<div style='color:red'>{error_network}</div>";
+		$ini->_params["NEXT"]["$internetkey"]="<div style='color:#d32d2d'>{error_network}</div>";
 		$button_install=null;
 		}
 	if($internetkey=="openldap"){
@@ -2117,7 +2117,7 @@ function samba_stables_available(){
 	$current=base64_decode($sock->getFrameWork("samba.php?current-version=yes"));
 	$html[]="
 	<div style='font-size:18px;margin-bottom:20px;text-align:right'>Samba v.$current</div>
-	<div style='font-size:16px' class=text-info>{samba_old_stable_explain}</div>
+	<div style='font-size:16px' class=explain>{samba_old_stable_explain}</div>
 	<div style='width:95%;text-align:center' class=form >
 	<table style='width:100%'>
 	";

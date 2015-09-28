@@ -153,7 +153,8 @@ if($prc==100){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		$('#NGINX_MAIN_TABLE').flexReload();
+		CacheOff();
+		LoadAjaxRound('webfiltering-db-status','ufdb.categories.status.php');
 		RTMMailHide();
 	}
 	setTimeout(\"Start$time()\",1000);
@@ -174,7 +175,7 @@ function Start$time(){
 
 function Launch(){
 	$sock=new sockets();
-	$cmd="squid.php?articadb-update=yes";
+	$cmd="squid.php?articadb-update=yes&force=yes";
 	
 	if($GLOBALS["VERBOSE"]){echo "<H1>RUN $cmd</H1>";}
 	
@@ -194,7 +195,7 @@ function popup(){
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	
-	$title="{PLEASE_WAIT_UPDATING_MODULES}";
+	$title="{PLEASE_WAIT_UPDATING_DATABASES}";
 	
 	$text=$tpl->_ENGINE_parse_body($title);
 	

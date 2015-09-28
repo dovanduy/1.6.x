@@ -160,12 +160,13 @@ function upload_artica_final(){
 	
 	
 	$sock=new sockets();
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 	$content_dir=dirname(__FILE__)."/img/upload/$fileName";
 	$picture=mysql_escape_string2(@file_get_contents($content_dir));
 	@unlink($content_dir);
 	
 	if($zmd5==null){
-		echo FATAL_WARNING_SHOW_128("MD5 is null");
+		echo FATAL_ERROR_SHOW_128("MD5 is null");
 		return;
 	}
 	

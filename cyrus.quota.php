@@ -57,7 +57,7 @@ $button="	buttons : [
 	$t=time();
 	$button=null;
 	$html="
-	<div style='font-size:16px' class=text-info>{cyrquota_table_explain}</div>
+	<div style='font-size:16px' class=explain>{cyrquota_table_explain}</div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	<script>
 

@@ -67,25 +67,40 @@ function page(){
 	}
 	
 	if($AS_PEER_CERTIFICATE==1){
-		$AS_PEER_CERTIFICATE_EXPLAIN="<div class=text-info>{reverse_proxy_use_destination_server_certificate}</div>";
+		$AS_PEER_CERTIFICATE_EXPLAIN="<div class=explain style=font-size:22px>
+		{reverse_proxy_use_destination_server_certificate}</div>";
 		
 	}
 	
+	if($ligne["ssl_protocols"]==null){
+		$ligne["ssl_protocols"]="TLSv1 TLSv1.1 TLSv1.2";
+	}
+	
+	if($ligne["ssl_ciphers"]==null){
+		$ligne["ssl_ciphers"]="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";
+	}
+	
+	
 	$html[]="<div style='width:98%' class=form>$AS_PEER_CERTIFICATE_EXPLAIN";
 	$html[]="<table style='width:100%'>";
-	$html[]="<tr><td colspan=2 style='font-size:28px;padding-bottom:20px'>{port}:{$ligne["port"]} &laquo;$servername&raquo;$to</td></tr>";
+	$html[]="<tr><td colspan=2 style='font-size:40px;padding-bottom:20px'>{port}:{$ligne["port"]} &laquo;$servername&raquo;$to</td></tr>";
 	$html[]="<tr><td colspan=2>". Paragraphe_switch_img("{reverse_proxy_ssl}", "{NGINX_USE_SSL_EXPLAIN}",
-			"ssl-$t",$ligne["ssl"],null,700,"SwitchOffCertificate$t")."</td></tr>";
+			"ssl-$t",$ligne["ssl"],null,1400,"SwitchOffCertificate$t")."</td></tr>";
 	
-	$html[]=Field_list_table("certificate-$t","{certificate}",$ligne["certificate"],22,$sslcertificates,null,450);
+	$html[]=Field_list_table("certificate-$t","{certificate}",$ligne["certificate"],28,$sslcertificates,null,450);
+	$html[]=Field_text_table("ssl_protocols-$t", "{ssl_protocols}",$ligne["ssl_protocols"],28,'{ssl_protocols_text}',600);
+	$html[]=Field_text_table("ssl_ciphers-$t", "{ssl_ciphers}",$ligne["ssl_ciphers"],28,null,900);
+	$html[]="<tr><td colspan=2><p>&nbsp;</p></td></tr>";
+	
+	
 	
 	if($cache_peer_id>0){
 		
 	$html[]="<tr><td colspan=2>". Paragraphe_switch_img("{destination_use_ssl}", "{NGINX_USE_SSL_EXPLAIN2}",
-				"ssl_backend-$t",$ligne["ssl_backend"],null,700)."</td></tr>";		
+				"ssl_backend-$t",$ligne["ssl_backend"],null,1400)."</td></tr>";		
 		
 	$html[]="<tr><td colspan=2>". Paragraphe_switch_img("{SSL_CLIENT_VERIFICATION}", "{SSL_CLIENT_VERIFICATION_EXPLAIN}",
-			"ssl_client_certificate-$t",$ligne["ssl_client_certificate"],null,700)."</td></tr>";
+			"ssl_client_certificate-$t",$ligne["ssl_client_certificate"],null,1400)."</td></tr>";
 	
 	
 	
@@ -93,7 +108,7 @@ function page(){
 	}
 	
 	
-	$html[]=Field_button_table_autonome("{apply}","Submit$t",30);
+	$html[]=Field_button_table_autonome("{apply}","Submit$t",40);
 	$html[]="</table>";
 	$html[]="</div>
 <script>
@@ -119,8 +134,11 @@ function Submit$t(){
 	}	
 	
 	
-	
+	XHR.appendData('ssl_protocols',document.getElementById('ssl_protocols-$t').value);
 	XHR.appendData('certificate',document.getElementById('certificate-$t').value);
+	XHR.appendData('ssl_ciphers',document.getElementById('ssl_ciphers-$t').value);
+	
+	
 	XHR.sendAndLoad('$page', 'POST',xSubmit$t);
 }
 

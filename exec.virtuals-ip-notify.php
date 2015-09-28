@@ -1,11 +1,14 @@
-<?php
 
+<?php
+$GLOBALS["SCRIPT"]=null;
 $GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); 
 if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } 
 
+if(preg_match("#--script=(.+)#",implode(" ",$argv),$re)){$GLOBALS["SCRIPT"]=" (".$re[1].")";}
+
 $array["zdate"]=date("Y-m-d H:i:s");
-$array["subject"]="Networks was reset and reloaded.";
-$array["text"]="This is a notification warning of rebooted network";
+$array["subject"]="Networks was reset and reloaded{$GLOBALS["SCRIPT"]}";
+$array["text"]="This is a notification warning of rebooted network\n{$GLOBALS["SCRIPT"]}";
 $array["severity"]=1;
 $array["function"]="NONE";
 $array["file"]=basename(__FILE__);

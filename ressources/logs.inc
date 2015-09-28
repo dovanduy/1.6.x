@@ -36,22 +36,35 @@ function writeToFile($text,$filepath){
 	@fclose($f);
 }
 
-function writelogs_meta($text,$function,$file,$line){
+function writelogs_meta($text,$function=null,$file=null,$line=0){
 	$pid=getmypid();
 	$file=basename($file);
 	$date=date("Y-m-d H:i:s");
 	if(!isset($GLOBALS["CLIENT_META_IP"])){$GLOBALS["CLIENT_META_IP"]="127.0.0.1";}
 	$ip=$GLOBALS["CLIENT_META_IP"];
-	$filelogs="/usr/share/artica-postfix/ressources/logs/web/artica-meta-server.log";
-	writeToFile("$date [$ip][$file][$function][$line]: $text\n",$filelogs);
-	if(posix_getuid()==0){
-		writeToFile("$date [$ip][$file][$function][$line]: $text\n","/var/log/artica-meta.log");
-	}
+	$filelogs="/var/log/artica-meta.log";
+	
+	$line="$date [$pid] $file: $text  - function:$function in line:$line";
+	writeToFile("$line\n",$filelogs);
+	
+}
+function writelogs_stats($text,$function=null,$file=null,$line=0){
+	$pid=getmypid();
+	$file=basename($file);
+	$date=date("Y-m-d H:i:s");
+	if(!isset($GLOBALS["CLIENT_META_IP"])){$GLOBALS["CLIENT_META_IP"]="127.0.0.1";}
+	$ip=$GLOBALS["CLIENT_META_IP"];
+	$filelogs="/var/log/stats-appliance.log";
+
+	$line="$date [$pid] $file: $text  - function:$function in line:$line";
+	writeToFile("$line\n",$filelogs);
 
 }
 
-
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
+	
+	if(strlen($text)>2000){$text=substr($text, 0,2000);}
+	
 	$EnableWebPageDebugging=0;
 	if(!isset($GLOBALS["ARTICA"]["EVENTS"])){$GLOBALS["ARTICA"]["EVENTS"]=array();}
 	$GLOBALS["ARTICA"]["EVENTS"][]=date('H:i:s')." $text $function ". basename($file_source)." in line $line\n";

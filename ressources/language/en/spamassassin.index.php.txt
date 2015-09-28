@@ -13,7 +13,7 @@ SpamAssassin runs on a server, and filters spam before it reaches your mailbox</
 <ham>When ham message detected</ham>
 <managed_by_mimedefang>Managed by MimeDefang</managed_by_mimedefang>
 <managed_by_mimedefang_not_enabled>Should be managed by MimeDefang</managed_by_mimedefang_not_enabled>
-<plugins>Spamassassin plugins</plugins>
+<plugins>Plugins</plugins>
 <pyzor_text>Pyzor is a collaborative, networked system to detect and block spam using identifying digests of messages.[br]
 Pyzor initially started out to be merely a Python implementation of Razor.(see http://pyzor.sourceforge.net)</pyzor_text>
 <razor_text>ipul's Razor is a distributed, collaborative, spam detection and

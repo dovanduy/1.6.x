@@ -90,7 +90,7 @@ function popup(){
 	
 $html="
 	<input type='hidden' name='rule_main' value='$rule_main'>
-	<div class=text-info>{ExceptionSiteList_explain}</div>
+	<div class=explain>{ExceptionSiteList_explain}</div>
 			<center>
 			<table style='width:80%' class=form>
 					<tr>

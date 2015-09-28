@@ -40,7 +40,7 @@ function popup(){
 	$tpl=new templates();	
 	$error=base64_decode($_GET["error"]);
 	$q=new mysql();
-	$html="<div class=text-info>
+	$html="<div class=explain>
 		{mysql_error_popup_credential_text}
 		<br><code style='font-size:13px'>$error</div>
 	<center>

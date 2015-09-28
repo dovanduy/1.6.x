@@ -29,8 +29,7 @@ class dnsmasq{
 		
 		$this->configuration_file_datas=$sock->GET_INFO("DnsMasqConfigurationFile");
 		if(trim($this->configuration_file_datas)==null){
-			$sock=new sockets();
-			$this->configuration_file_datas=base64_decode($sock->getFrameWork('cmd.php?LoaddnsmasqConf=yes'));
+			$this->configuration_file_datas=$this->LoadConf();
 			writelogs("DnsMasqConfigurationFile = null -> original conf = ".strlen($this->configuration_file_datas)." bytes",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		
@@ -47,6 +46,13 @@ class dnsmasq{
 			$this->Mainunset();
 		}
 	}
+	
+	private function LoadConf(){
+		if($GLOBALS["AS_ROOT"]){return @file_get_contents("/etc/dnsmasq.conf");}
+		$sock=new sockets();
+		return base64_decode($sock->getFrameWork('cmd.php?LoaddnsmasqConf=yes'));
+	}
+	
 	
 	function ParseConf(){
 		$tpl=explode("\n",$this->configuration_file_datas);
@@ -317,14 +323,7 @@ function Parsemxhost(){
 		
 		
 		if(!$GLOBALS["AS_ROOT"]){
-			
 			$sock->SaveConfigFile($conf."\n","DnsMasqConfigurationFile");
-			if(!$OnlyReload){
-				$sock->getFrameWork("dnsmasq.php?restart=yes");
-			}else{
-				$sock->getFrameWork("dnsmasq.php?reload-hosts=yes");
-				
-			}
 		}else{
 			unset($GLOBALS["ARRAY_ADRESSES_DONE"]);
 			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Saving `/etc/dnsmasq.conf` {".__LINE__."}\n";}

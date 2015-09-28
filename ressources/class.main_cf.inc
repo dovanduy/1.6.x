@@ -1271,6 +1271,7 @@ public	function BuildMilters($asarray=false){
 		$EnableKlms=$sock->GET_INFO("EnableKlms");
 		$RemoteMilterService=trim(strtolower($sock->GET_INFO("RemoteMilterService")));
 		$MimeDefangEnabled=trim($sock->GET_INFO("MimeDefangEnabled",true));	
+		$EnableMilterRegex=intval($sock->GET_INFO("EnableMilterRegex"));
 		$nosmtpd_milters=array();
 		$smtpd_milters=array();
 		$FORCE_PROTO3=false;
@@ -1361,8 +1362,9 @@ public	function BuildMilters($asarray=false){
 				$smtpd_milters[]="unix:/var/run/kas-milter.socket";
 			}
 		}
-					
-	
+
+		
+
 	
 		if($EnableASSP==0){
 			if($user->MILTERGREYLIST_INSTALLED){
@@ -1385,7 +1387,17 @@ public	function BuildMilters($asarray=false){
 				}else{
 					writepostfixlogs("[$user->MILTERGREYLIST_INSTALLED] milter-greylist is not installed",__CLASS__.'/'.__FUNCTION__,__FILE__);
 				}
-		}			
+		}	
+
+		if(is_file("/usr/sbin/milter-regex")){
+			if($EnableMilterRegex==1){
+				$smtpd_milters[]="unix:/var/run/milter-regex/milter-regex.sock";
+				$nosmtpd_milters[]="unix:/var/run/milter-regex/milter-regex.sock";
+			}
+				
+		}
+		
+		
 				
 	//------------------------------------------------------------------------------
 			if($user->DKIMFILTER_INSTALLED){
@@ -1435,11 +1447,11 @@ public	function BuildMilters($asarray=false){
 				}
 			}
 	//------------------------------------------------------------------------------		
-			if($user->SPAMASS_MILTER_INSTALLED){
-				if($user->MimeDefangEnabled<>1){
-				if($SpamAssMilterEnabled==1){
-					$smtpd_milters[]="unix:$user->SPAMASS_MILTER_SOCKET";
-				}
+			if(is_file("/usr/sbin/spamass-milter")){
+				if ($user->EnableAmavisDaemon==0){
+					if($SpamAssMilterEnabled==1){
+						$smtpd_milters[]="unix:/var/run/spamass/spamass.sock";
+					}
 				}
 			}
 	
@@ -2262,6 +2274,7 @@ class systeminfos{
 					$this->memory_shared=$reg[4];
 					$this->memory_buffer=$reg[5];
 					$this->memory_cached=$reg[6];
+					
 				}
 			    
 				if(preg_match('#Swap:\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)#',$val,$reg)){
@@ -2274,11 +2287,7 @@ class systeminfos{
 	}
 	
 	
-	function GetCpuTemp(){
-		$sock=new sockets();
-		return trim($sock->getfile('systemtemp'));
-		
-	}
+
 	
 	function DiskUsages(){
 		$sock=new sockets();
@@ -2329,14 +2338,13 @@ class systeminfos{
 	
 	
 	function _ParseInterface($interface){
-		if(function_exists("writelogs")){writelogs("$interface",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		
 		if(preg_match("#^[0-9]+\.[0-9]+#", $interface)){return;}
 		if(!preg_match("#^[a-z0-9]+$#", $interface)){return;}
 		$array=array();
 		if($GLOBALS["AS_ROOT"]){
 			$ifconfig="ifconfig";
 			if(class_exists("unix")){$unix=new unix();$ifconfig=$unix->find_program("ifconfig");}
-			if(function_exists("writelogs")){writelogs("ifconfig $interface 2>&1",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 			exec("ifconfig $interface 2>&1",$datas);
 		}else{
 			$sock=new sockets();
@@ -3048,7 +3056,7 @@ class maincf_reports{
 		}
 		
 		function ParseInfos($key){
-			if($this->main_array[$key]==null){return "<strong style='color:red'>No datas</strong>";}
+			if($this->main_array[$key]==null){return "<strong style='color:#d32d2d'>No datas</strong>";}
 			$tbl=explode(",",$this->main_array[$key]);
 				while (list ($num, $val) = each ($tbl) ){
 					if(trim($val)==null){continue;}

@@ -115,7 +115,7 @@ if(is_array($hash["RegexRules"])){
 		";		
 		}
 		}
-}else{return "<span style='color:red'>{no_rules}</span>";}
+}else{return "<span style='color:#d32d2d'>{no_rules}</span>";}
 		
 if($count>0){
 	$html="

@@ -77,7 +77,7 @@ function tabs(){
 
 
 
-	$html=build_artica_tabs($html,'artica_backup_tabs',1200)."<script>LeftDesign('backup-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'artica_backup_tabs',1490)."<script>LeftDesign('backup-256-opac20.png');</script>";
 
 	echo $html;
 
@@ -123,7 +123,7 @@ function backup(){
 	
 	
 	
-	$html="<div class=text-info style='font-size:16px'>{BACKUPARTICA_TYPE_NAS_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:16px'>{BACKUPARTICA_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -299,7 +299,7 @@ function restore(){
 	<center id='title$t' style='font-size:28px'></center>
 	<div id='progress$t' style='width:95%;margin-top:15px'></div>
 		
-	<div class=text-info style='font-size:16px'>{RESTOREARTICA_TYPE_NAS_EXPLAIN}</div>
+	<div class=explain style='font-size:16px'>{RESTOREARTICA_TYPE_NAS_EXPLAIN}</div>
 			
 			
 	<div style='width:98%' class=form>

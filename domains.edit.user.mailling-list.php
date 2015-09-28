@@ -152,7 +152,7 @@ function USER_ALIASES_MAILING_LIST($userid){
 	$parameters=$tpl->javascript_parse_text("{parameters}");
 	$send_a_test_mail=$tpl->javascript_parse_text("{send_a_test_mail}");
 	
-	$explain=$tpl->_ENGINE_parse_body("<div style='font-size:13px' class=text-info>{aliases_mailing_text}:&nbsp;&laquo;<b>{$u->mail}&raquo;</b></div>");
+	$explain=$tpl->_ENGINE_parse_body("<div style='font-size:13px' class=explain>{aliases_mailing_text}:&nbsp;&laquo;<b>{$u->mail}&raquo;</b></div>");
 	
 	//$q=new mysql_squid_builder();
 	//$q->QUERY_SQL("ALTER TABLE `usersisp` ADD UNIQUE (`email`)");

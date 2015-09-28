@@ -132,7 +132,7 @@ $user_infos="<table style='width:100%'>
 
 
 $html="
-<div class=text-info>{warning_delete_all_users}</div>
+<div class=explain>{warning_delete_all_users}</div>
 <div id='deletion'>
 $user_infos
 </div>

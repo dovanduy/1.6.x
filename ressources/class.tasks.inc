@@ -130,8 +130,8 @@ class system_tasks{
 			$this->tasks_array[43]="{my_public_ip}";
 			$this->tasks_array[44]="{clean_files}";
 			$this->tasks_array[45]="{auth_logs}";
-			$this->tasks_array[46]="{awstats_postfix}";
-			$this->tasks_array[47]="{awstats_postfix_parser}";
+			
+			
 			$this->tasks_array[48]="{postfix_stats_days}";
 			$this->tasks_array[49]="{postfix_stats_month}";
 			$this->tasks_array[50]="{refresh_kerberos_ticket}";
@@ -164,6 +164,7 @@ class system_tasks{
 			$this->tasks_array[77]="{backup_wordpress_websites}";
 			$this->tasks_array[78]="{create_a_snapshot}";
 			$this->tasks_array[79]="{clean_logs}";
+			$this->tasks_array[80]="{send_snapshot_to_meta}";
 			
 			
 			
@@ -214,8 +215,6 @@ class system_tasks{
 			$this->tasks_explain_array[43]="{public_ip_explain}";
 			$this->tasks_explain_array[44]="{clean_files_explain}";
 			$this->tasks_explain_array[45]="{auth_logs_explain}";
-			$this->tasks_explain_array[46]="{awstats_postfix_explain}";
-			$this->tasks_explain_array[47]="{awstats_postfix_parser_explain}";
 			$this->tasks_explain_array[48]="{postfix_stats_days_explain}";
 			$this->tasks_explain_array[49]="{postfix_stats_month_explain}";
 			$this->tasks_explain_array[50]="{refresh_kerberos_ticket_explain}";
@@ -240,7 +239,7 @@ class system_tasks{
 			$this->tasks_explain_array[69]="{APP_CYRUS_BACKUP_EXPLAIN}";
 			$this->tasks_explain_array[70]="{TEXT_MEMBERS_TO_CSV}";
 			$this->tasks_explain_array[71]="{clean_zarafa_search_indexes_explain}";
-			$this->tasks_explain_array[72]="{DNSperformance_Taskexplain}";
+			
 			$this->tasks_explain_array[73]="{dashboard_stats_explain}";
 			$this->tasks_explain_array[74]="{mysql_repair_task_explain}";
 			$this->tasks_explain_array[75]="{backup_artica_settings_explain}";
@@ -248,6 +247,7 @@ class system_tasks{
 			$this->tasks_explain_array[77]="{backup_wordpress_websites}";
 			$this->tasks_explain_array[78]="{create_a_snapshot_explain}";
 			$this->tasks_explain_array[79]="{clean_logs_explain}";
+			$this->tasks_explain_array[80]="{send_snapshot_to_meta_explain}";
 			
 			
 
@@ -299,8 +299,7 @@ class system_tasks{
 			$this->tasks_processes[43]="exec.my-rbl.check.php --myip";
 			$this->tasks_processes[44]="exec.cleanfiles.php";
 			$this->tasks_processes[45]="exec.syslog-engine.php --auth-logs";
-			$this->tasks_processes[46]="exec.awstats.php --postfix"; //120
-			$this->tasks_processes[47]="exec.postfix.parse.awstats.php"; //5mn
+			
 			$this->tasks_processes[48]="exec.postfix-stats.php --days"; //5mn
 			$this->tasks_processes[49]="exec.postfix-stats.php --month"; //5mn
 			$this->tasks_processes[50]="exec.kerbauth.php --refresh-ticket"; //5mn
@@ -326,7 +325,7 @@ class system_tasks{
 			$this->tasks_processes[69]="exec.cyrus.backup.php --schedule";
 			$this->tasks_processes[70]="exec.TextToLdap.php --schedule";
 			$this->tasks_processes[71]="exec.zarafa-search.php --clean";
-			$this->tasks_processes[72]="exec.squid.watchdog.php --dns";
+			
 			$this->tasks_processes[73]="exec.loadavg.php --dns";
 			$this->tasks_processes[74]="exec.mysql.optimize.php --repair";
 			$this->tasks_processes[75]="exec.backup.artica.php";
@@ -334,7 +333,7 @@ class system_tasks{
 			$this->tasks_processes[77]="exec.wordpress-backup.php --exec";
 			$this->tasks_processes[78]="exec.backup.artica.php --snapshot";
 			$this->tasks_processes[79]="exec.clean.varlog.php";
-			
+			$this->tasks_processes[80]="exec.backup.artica.php --snapshot --force --meta-ping";
 			
 			$this->DisableTasks();
 	
@@ -347,6 +346,10 @@ private function DisableTasks(){
 	$EnableSnort=$sock->GET_INFO("EnableSnort");
 	$LXCEnabled=$sock->GET_INFO("LXCEnabled");
 	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+	
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	if(!is_numeric($EnableSnort)){$EnableSnort=0;}
 	if(!is_numeric($LXCEnabled)){$LXCEnabled=0;}
@@ -361,6 +364,7 @@ private function DisableTasks(){
 	if($EnableRemoteStatisticsAppliance==1){$ActAsASyslogClient=1;}
 	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	
+	
 	if(!$users->ZARAFA_INSTALLED){
 		$this->task_disabled[31]=true;
 	}
@@ -370,14 +374,23 @@ private function DisableTasks(){
 	//setup-center
 	$this->task_disabled[7]=true;
 	$this->task_disabled[40]=true;
-	
+	$this->task_disabled[4]=true;
 	$this->task_disabled[38]=true;
+	$this->task_disabled[46]=true;
+	$this->task_disabled[47]=true;
+	
+	
+	if($EnableIntelCeleron==1){
+		$this->task_disabled[51]=true;
+		$this->task_disabled[57]=true;
+	}
 	
 	$sock=new sockets();
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	if($SquidPerformance>2){
 		$this->task_disabled[4]=true;
+		$this->task_disabled[45]=true;
 	}
 	
 	if($MEMORY<624288){
@@ -522,10 +535,13 @@ public function CheckDefaultSchedules(){
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID,TimeText FROM system_schedules WHERE TaskType=$TaskType LIMIT 0,1","artica_backup"));
-			$ID=$ligne["ID"];
-			if($GLOBALS["VERBOSE"]){echo "TaskType $TaskType = $ID\n";}
+			$ID=intval($ligne["ID"]);
+			if($GLOBALS["VERBOSE"]){echo "TaskType $TaskType = $ID \n";}
 			
-			if(is_numeric($ID)){if($ID>0){continue;}}
+			if($ID>0){
+				if($GLOBALS["VERBOSE"]){echo "TaskType $TaskType = $ID OK\n";}
+				continue;
+			}
 			if($ligne["TimeText"]<>null){continue;}
 			
 			$sql="INSERT IGNORE INTO system_schedules (TimeDescription,TimeText,TaskType,enabled) VALUES('{$content["TimeDescription"]}','{$content["TimeText"]}','$TaskType',1)";							
@@ -534,11 +550,12 @@ public function CheckDefaultSchedules(){
 			writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 			$q->QUERY_SQL($sql,"artica_backup");
 				
-				if(!$q->ok){
-					writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-					$sock->TOP_NOTIFY("$q->mysql_error :".__FUNCTION__." File:".__FILE__);return;}
-					$c++;
-					$update=true;
+			if(!$q->ok){
+				if($GLOBALS["VERBOSE"]){echo "TaskType $TaskType = $ID $q->mysql_error\n";}
+				writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+				$sock->TOP_NOTIFY("$q->mysql_error :".__FUNCTION__." File:".__FILE__);return;}
+				$c++;
+				$update=true;
 			}
 			
 			if($update){

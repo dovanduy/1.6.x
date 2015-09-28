@@ -1,1 +1,0 @@
-../artica-install/synaip.pas

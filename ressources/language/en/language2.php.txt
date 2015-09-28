@@ -172,7 +172,7 @@ Domains available are:
 <APP_VIRTUALBOX>VirtualBox</APP_VIRTUALBOX>
 <APP_LIBGSL>Libgsl library</APP_LIBGSL>
 <AsNetworksAdministrator>Can manage servers networks</AsNetworksAdministrator>
-<not_an_fqdn>this is not an fully qualifier domain name (fqdn)</not_an_fqdn>
+<not_an_fqdn>This is not an fully qualifier domain name (fqdn)</not_an_fqdn>
 <picasaweb>Picasa, Photos replicator</picasaweb>
 <picasaweb_text>Upload photos Automatically to your Picasa Web Album.</picasaweb_text> 
 <PICASA_WEBHOWTO>This feature allow you to save your photos in a specified folder in your Home directory.[br]
@@ -203,7 +203,7 @@ If photos are successfully uploaded, there are moved to a subdirectory named "Up
 <instances>Instances</instances>
 <routed_servers>Routed servers</routed_servers>
 <postfix_multi_add_aiguilleuse_server>Add an internal SMTP instance in the routed list</postfix_multi_add_aiguilleuse_server>
-<router>router</router>
+<router>Router</router>
 <remote_users_databases>Remote users databases</remote_users_databases>
 <remote_users_databases_text>Define externals databases in order to checks aliases and email addresses</remote_users_databases>
 <remote_users_databases_howto>This section helps you to add external LDAP/Active Directory checks on the Postix Mail system.[br]
@@ -215,8 +215,8 @@ You can add several databases for each category.[br]</remote_users_databases_how
 <search_base>Search base</search_base>
 <query_filter>Query Filter</query_filter>
 <scope>Scope</scope>
-<leaf_result_attribute>leaf result attribute</leaf_result_attribute>
-<special_result_attribute>special result attribute</special_result_attribute>
+<leaf_result_attribute>Leaf result attribute</leaf_result_attribute>
+<special_result_attribute>Special result attribute</special_result_attribute>
 <alias_maps>Aliases database</alias_maps>
 <virtual_alias_maps>Virtual aliases database</virtual_alias_maps>
 <virtual_mailbox_maps>Virtual mailboxes database</virtual_mailbox_maps>
@@ -229,14 +229,14 @@ This recipient check can be done on an Active Directory server.
 give the target LDAP/Active Directory server name server or IP address and click to {browse} button</adSearchPopupHowto>
 <you_should_use_one_of_this_dn>You should use one of these DN</you_should_use_one_of_this_dn>
 <resolv_domains>Resolve SMTP domains</resolv_domains>
-<result_attribute>result attribute</result_attribute>
+<result_attribute>Result attribute</result_attribute>
 <search_remote_database>Search remote database</search_remote_database>
 <APP_MYSQLHOTCOPY>MysqlHotCopy</APP_MYSQLHOTCOPY>
-<SAMBA_LDAP_EXTERN_TEXT>THis section allows you to change the LDAP backend database to a remote one.[br]By default, Artica use it's own LDAP database in order to helps you to manage users and access control.[br]
+<SAMBA_LDAP_EXTERN_TEXT>This section allows you to change the LDAP backend database to a remote one.[br]By default, Artica use it's own LDAP database in order to helps you to manage users and access control.[br]
 You can use your own LDAP Database by setting access in this form</SAMBA_LDAP_EXTERN_TEXT>
 
 <PostFixEnableQueueInMemory>Activate move the postfix queue to memory</PostFixEnableQueueInMemory>
 <postfix_tmpfs>Postfix Queue in Memory</postfix_tmpfs>
-<postfix_tmpfs_text>set the postfix queue in your server memory instead hard disk</postfix_tmpfs_text>
+<postfix_tmpfs_text>Set the postfix queue in your server memory instead hard disk</postfix_tmpfs_text>
 <PostFixEnableQueueInMemory_text>This operation will move the queue directory to in the server memory space.[br]This operation will increase dramatically the performances but you will have a risk to loose mails if your server shutdown 
 or will be rebooted.</PostFixEnableQueueInMemory_text>

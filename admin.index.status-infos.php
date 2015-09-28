@@ -19,7 +19,8 @@ if($GLOBALS["AS_ROOT"]){
 	$users->AsAnAdministratorGeneric=true;
 	$users->AsSystemAdministrator=true;
 }
-if(!$users->AsAnAdministratorGeneric){writelogs("Redirect to users.index.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');exit;}
+//if(!$users->AsAnAdministratorGeneric){writelogs("Redirect to users.index.php",__FUNCTION__,__FILE__,__LINE__);
+//header('location:miniadm.php');exit;}
 
 if(isset($_GET["showInfos"])){showInfos_js();exit;}
 
@@ -370,7 +371,6 @@ if(!$users->PROXYTINY_APPLIANCE){
 				if($SQUIDEnable==1){
 					if(!$users->SQUID_REVERSE_APPLIANCE){
 						$f[]=left_menus_format("CATEGORIZE_A_WEBSITE","32-categories-add.png","Loadjs('squid.visited.php?add-www=yes')","ADDWEBSITE_PROXY_EXPLAIN");
-						$f[]=left_menus_format("whitelist_website","domain-whitelist-w32.png","Loadjs('squid.urlrewriteaccessdeny.php?add-www-js=yes')","whitelist_website_explain");
 						$f[]=left_menus_format("test_categories","loupe-32.png",   "Loadjs('squid.category.tests.php')",     "squid_test_categories_explain");
 					}
 				}
@@ -555,7 +555,7 @@ function showInfos_popup(){
 	<tbody>
 	<tr>
 		<td width=1% valign='top'><img src='img/$icon'></td>
-		<td width=99%' valign='top'><div class=text-info style='font-size:14px'>{$ligne["text"]}</div></td>
+		<td width=99%' valign='top'><div class=explain style='font-size:14px'>{$ligne["text"]}</div></td>
 	</tr>$link
 			<td colspan=2 align='left' style='font-size:16px;font-weight:bold'><a href=\"javascript:blur();\" OnClick=\"javascript:RemoveNotifAdmin()\"
 			style='font-size:16px;font-weight:bold;text-decoration:underline'>{ihavereaditremove}</a>

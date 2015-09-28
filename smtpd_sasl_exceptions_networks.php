@@ -198,7 +198,7 @@ function popup(){
 	
 	
 	$page=CurrentPageName();
-	$html="<div class=text-info>{smtpd_sasl_exceptions_networks_text}<br>{smtpd_sasl_exceptions_networks_explain}</div>
+	$html="<div class=explain>{smtpd_sasl_exceptions_networks_text}<br>{smtpd_sasl_exceptions_networks_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>

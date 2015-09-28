@@ -67,7 +67,7 @@ function tabs(){
 		$array["popup"]='{squid_templates_error}';
 	}
 	//$array["ocsagent"]="{APP_OCSI_LNX_CLIENT}";
-	$fontsize=18;
+	$fontsize=26;
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="skin-gene"){
 			$tab[]="<li><a href=\"squid.templates.skin.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
@@ -86,7 +86,7 @@ function tabs(){
 		$tab[]="<li><a href=\"$page?$num=yes&viatabs=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			
 	}
-	$html=build_artica_tabs($tab,'main_squid_templates-tabs',1035)."<script>LeftDesign('squid-templates-256-opac-20.png');</script>";
+	$html=build_artica_tabs($tab,'main_squid_templates-tabs',1490)."<script>LeftDesign('squid-templates-256-opac-20.png');</script>";
 	echo $html;
 	
 	
@@ -149,26 +149,35 @@ function status(){
 	$sock=new sockets();
 	$SquidTemplateSimple=$sock->GET_INFO("SquidTemplateSimple");
 	if(!is_numeric($SquidTemplateSimple)){$SquidTemplateSimple=1;}
+	$SquidTemplatesMicrosoft=$sock->GET_INFO("SquidTemplatesMicrosoft");
 	$t=time();
 	$html="
 	<div style='width:98%' class=form>
 	". Paragraphe_switch_img("{use_simple_template_mode}", 
 			"{use_simple_template_mode_squid_explain}",
-			"SquidTemplateSimple",$SquidTemplateSimple,null,800)."
-	<div style='width:100%;text-align:right;margin-top:20px'>". button("{apply}","Save$t()",26)."		
+			"SquidTemplateSimple",$SquidTemplateSimple,null,1024)."
+					
+	". Paragraphe_switch_img("{SquidTemplatesMicrosoft}", 
+			"{SquidTemplatesMicrosoft_explain}",
+			"SquidTemplatesMicrosoft",$SquidTemplatesMicrosoft,null,1024)."				
+					
+					
+	
+	<div style='width:100%;text-align:right;margin-top:20px'>". button("{apply}","Save$t()",42)."		
 					
 	</div>	
 <script>	
 var xSave$t=function(obj){
 	var results=obj.responseText;
 	if(results.length>3){alert(results);return;}
-	AnimateDiv('BodyContent');
-	LoadAjax('BodyContent','squid.templates.php?tabs=yes');
+	RefreshTab('main_squid_templates-tabs');
+	Loadjs('squid.templates.single.progress.php');
 }	    
 	
 function Save$t(){
 	var XHR = new XHRConnection();
     XHR.appendData('SquidTemplateSimple',document.getElementById('SquidTemplateSimple').value);
+    XHR.appendData('SquidTemplatesMicrosoft',document.getElementById('SquidTemplatesMicrosoft').value);
     XHR.sendAndLoad('$page', 'POST',xSave$t);          
 }
 
@@ -181,13 +190,17 @@ function Save$t(){
 function SquidTemplateSimple_save(){
 	$users=new usersMenus();
 	$sock=new sockets();
-	if(!$users->CORP_LICENSE){
-		$tpl=new templates();
-		echo $tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}",1);
-		$sock->SET_INFO("SquidTemplateSimple", 1);
+	if($_POST["SquidTemplateSimple"]==0){
+		if(!$users->CORP_LICENSE){
+			$tpl=new templates();
+			echo $tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}",1);
+			$sock->SET_INFO("SquidTemplateSimple", 1);
+		}
 	}
 	
+	$sock->SET_INFO("SquidTemplatesMicrosoft", $_POST["SquidTemplatesMicrosoft"]);
 	$sock->SET_INFO("SquidTemplateSimple", $_POST["SquidTemplateSimple"]);
+	$sock->getFrameWork("squid2.php?build-templates-background=yes");
 }
 
 
@@ -203,7 +216,7 @@ function REPLACE_POPUP(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();	
-	$html="<div class=text-info style='font-size:16px'>{SQUID_TEMPLATE_REPLACE_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:16px'>{SQUID_TEMPLATE_REPLACE_EXPLAIN}</div>
 	<div id='$t'></div>
 	<div style='font-size:22px'>{from}:</div>
 	<textarea style='width:95%;height:100px;font-family:monospace;

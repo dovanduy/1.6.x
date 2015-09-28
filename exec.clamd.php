@@ -33,6 +33,7 @@ if($argv[1]=="--force-reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 
 function restart() {
 	$unix=new unix();
+	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
@@ -45,6 +46,13 @@ function restart() {
 	build();
 	sleep(1);
 	start(true);
+	
+	$cicap=$unix->find_program("c-icap");
+	if(is_file($cicap)){
+		$CicapEnabled=intval($sock->GET_INFO("CicapEnabled"));
+		if($CicapEnabled==1){system("/etc/init.d/c-icap reload");}
+	}
+	
 
 }
 function reload_database($aspid=false){
@@ -190,14 +198,14 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 		sleep(1);
-		for($i=1;$i<5;$i++){
+		for($i=1;$i<11;$i++){
 			
 			if($unix->is_socket("/var/run/clamav/clamav.sock")){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Apply permissions on clamav.sock\n";}
 				@chmod("/var/run/clamav/clamav.sock", 0777);
 				break;
 			}else{
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting for socket... $i/4\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting for socket... $i/10 /var/run/clamav/clamav.sock\n";}
 				sleep(1);
 			}
 		}
@@ -342,6 +350,8 @@ function build(){
 		$unix->chown_func("clamav","clamav", $directory."/*");
 	
 	}
+	$ClamavTemporaryDirectory2=dirname($ClamavTemporaryDirectory);
+	@chmod($ClamavTemporaryDirectory2,0755);
 	
 	
 	$PhishingScanURLs_text="no";
@@ -359,7 +369,7 @@ function build(){
 	$f[]="FollowDirectorySymlinks false";
 	$f[]="FollowFileSymlinks false";
 	$f[]="ReadTimeout 180";
-	$f[]="MaxThreads 12";
+	$f[]="MaxThreads 50";
 	$f[]="MaxConnectionQueueLength 15";
 	$f[]="StreamMaxLength {$ClamavStreamMaxLength}M";
 	$f[]="MaxFileSize {$ClamavMaxFileSize}M";

@@ -26,6 +26,7 @@ class mysql{
 	var $TestIngConnectionPerformed=false;
 	var $SocketPath=null;
 	var $SocketName="/var/run/mysqld/mysqld.sock";
+	public $MYSQL_CMDLINES=null;
 	var $TryTCP=true;
 	var $mysql_affected_rows=0;
 	
@@ -75,9 +76,6 @@ class mysql{
 		$this->mysql_admin=trim($this->mysql_admin);	
 		$this->mysql_password=str_replace("\r", "", $this->mysql_password);
 		$this->mysql_password=trim($this->mysql_password);	
-
-		
-		
 		if(!isset($GLOBALS["TIMEZONES"])){$GLOBALS["TIMEZONES"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones"));}
 		
 		if(function_exists("date_default_timezone_set")){
@@ -100,8 +98,46 @@ class mysql{
 		if($this->mysql_server=="locahost"){$this->mysql_server="127.0.0.1";}
 		if($this->mysql_admin==null){$this->mysql_admin="root";}
 		if(!is_numeric($this->mysql_port)){$this->mysql_port=3306;}
+		
+		$ttA[]="-u $this->mysql_admin";
+		
+		if($this->mysql_password<>null){
+			$ttA[]="-p".$this->shellEscapeChars($this->mysql_password);
+		}
+		
+		if($this->mysql_server=="127.0.0.1"){
+			$ttA[]="-S $this->SocketName";
+		}else{
+			$ttA[]="--protocol=tcp --host=$this->mysql_server --port=$this->mysql_port";
+		}
+		
+		$this->MYSQL_CMDLINES=@implode(" ", $ttA);
 	
 
+	}
+	
+	private function shellEscapeChars($path){
+		$path=str_replace(" ","\ ",$path);
+		$path=str_replace('$','\$',$path);
+		$path=str_replace("&","\&",$path);
+		$path=str_replace("?","\?",$path);
+		$path=str_replace("#","\#",$path);
+		$path=str_replace("[","\[",$path);
+		$path=str_replace("]","\]",$path);
+		$path=str_replace("{","\{",$path);
+		$path=str_replace("}","\}",$path);
+		$path=str_replace("*","\*",$path);
+		$path=str_replace('"','\\"',$path);
+		$path=str_replace("'","\\'",$path);
+		$path=str_replace("(","\(",$path);
+		$path=str_replace(")","\)",$path);
+		$path=str_replace("<","\<",$path);
+		$path=str_replace(">","\>",$path);
+		$path=str_replace("!","\!",$path);
+		$path=str_replace("+","\+",$path);
+		$path=str_replace(";","\;",$path);
+		$path=str_replace("|","\|",$path);
+		return $path;
 	}
 	
 	
@@ -144,6 +180,7 @@ class mysql{
 	
 	
 	function TestingConnection($noretry=false,$called=null){
+		if(isset($GLOBALS["MYSQL1_TEST_CONNECTION_FAILED"])){return false;}
 		$class=__CLASS__;
 		$funcclass=__FUNCTION__."/".__CLASS__." in line:";
 		$this->TestIngConnectionPerformed=true;
@@ -249,6 +286,7 @@ class mysql{
     		
     		$this->mysql_error=$des;
     		$this->mysql_errornum=$errnum;
+    		$GLOBALS["MYSQL1_TEST_CONNECTION_FAILED"]=true;
 			return false;
 		}
 		
@@ -282,6 +320,12 @@ function writelogs($text=null,$function=null,$line=0){
 			return false;
 		}
 		return @mysql_fetch_array($this->QUERY_SQL("SHOW TABLE STATUS WHERE Name='$table'",$database));		
+	}
+	
+	public function HIER(){
+		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 1 DAY),'%Y-%m-%d') as tdate";
+		$ligne=mysql_fetch_array($this->QUERY_SQL($sql,"artica_backup"));
+		return $ligne["tdate"];
 	}
 	
 	
@@ -456,6 +500,7 @@ function writelogs($text=null,$function=null,$line=0){
 	}
 	
 	public function BD_CONNECT($noretry=false,$called=null){
+		if(isset($GLOBALS["MYSQL1_TEST_CONNECTION_FAILED"])){return false;}
 		if($called==null){
 			if(function_exists("debug_backtrace")){
 				$trace=@debug_backtrace();
@@ -483,6 +528,7 @@ function writelogs($text=null,$function=null,$line=0){
 	
 	
 	function QUERY_SQL($sql,$database=null,$called=null){
+		if(isset($GLOBALS["MYSQL1_TEST_CONNECTION_FAILED"])){return false;}
 		$showMysqlQuery=null;
 		$database=trim($database);
 		$databasesKnown["artica_backup"]=true;
@@ -492,7 +538,10 @@ function writelogs($text=null,$function=null,$line=0){
 		if($called==null){
 			if(function_exists("debug_backtrace")){
 				$trace=@debug_backtrace();
+				
 				if(isset($trace[1])){
+					if(!isset($trace[1]["file"])){$trace[1]["file"]="NONE";}
+					if(!isset($trace[1]["line"])){$trace[1]["line"]="NONE";}
 					$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
 				}
 			}
@@ -1287,6 +1336,24 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	}
 	
+	public function LIST_TABLES_CURL_DAY(){
+		if(isset($GLOBALS["LIST_TABLES_CURL_DAY"])){return $GLOBALS["LIST_TABLES_CURL_DAY"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'artica_events' AND table_name LIKE '%_dcurl'";
+		$results=$this->QUERY_SQL($sql,"mysql");
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#[0-9]+_dcurl$#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_CURL_DAY"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$this->TIME_FROM_HOUR_GENERIC_TABLE($ligne["c"]);
+			}
+		}
+		return $array;
+	
+	}	
+	
 	private function TIME_FROM_HOUR_GENERIC_TABLE($tablename){
 		preg_match("#([0-9]+)_[a-z]+$#", $tablename,$re);
 		$intval=$re[1];
@@ -1779,6 +1846,10 @@ function mysql_real_escape_string2($query){
 	
 	
 	FUNCTION CREATE_DATABASE($database,$nocache=false){
+		if(isset($GLOBALS["MYSQL1_TEST_CONNECTION_FAILED"])){return;}
+		if(isset($GLOBALS["CREATE_DATABASE_$database"])){return;}
+		
+		$GLOBALS["CREATE_DATABASE_$database"]=true;
 		if($GLOBALS["VERBOSE"]){echo " -> ->CREATE_DATABASE($database)<br>\n";}
 		$this->mysql_password=trim($this->mysql_password);
 		if(!$nocache){
@@ -2310,7 +2381,6 @@ function check_vps_tables(){
 }
 
 function mysql_escape_string2($line){
-	
 	$search=array("\\","\0","\n","\r","\x1a","'",'"');
 	$replace=array("\\\\","\\0","\\n","\\r","\Z","\'",'\"');
 	return str_replace($search,$replace,$line);

@@ -40,13 +40,14 @@ function popup(){
 	<div id='id-final-$t'>
 	<div id='serverkerb-$tt'></div>
 		<div style='width:98%' class=form>
+		<div style='font-size:30px;margin-bottom:20px'>{delete_all_acls}</div>
 			<table style='width:100%'>
 				<tr>
-					<td class=legend style='font-size:14px'>{delete_associated_groups}:</td>
-					<td>". Field_checkbox("DeleteGroups-$t",1,0)."</td>
+					<td class=legend style='font-size:22px'>{delete_associated_groups}:</td>
+					<td>". Field_checkbox_design("DeleteGroups-$t",1,0)."</td>
 				</tr>
 				<tr>
-					<td colspan=2 align='right'><hr>". button("{delete}","Save$tt()",16)."</td>
+					<td colspan=2 align='right'><hr>". button("{delete}","Save$tt()",28)."</td>
 				</tr>
 			</table>
 		</div>

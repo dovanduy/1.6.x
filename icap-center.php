@@ -50,7 +50,7 @@ function service_js(){
 	
 	
 	$YahooWin="YahooWin";
-	echo "$YahooWin('800','$page?service-popup=yes&t=$t&ID=$ID','$title');";
+	echo "$YahooWin('850','$page?service-popup=yes&t=$t&ID=$ID','$title');";
 	
 }
 function move_items_js(){
@@ -194,7 +194,7 @@ function tabs(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$fontsize=16;
+	$fontsize=22;
 	
 	$array["table"]="{icap_center}";
 	$array["exclude"]='AV {exclude}:Mime';
@@ -205,13 +205,13 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="exclude"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hosts.blks.php?popup=yes&blk=6\">
-					<span style='font-size:{$fontsize}'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.hosts.blks.php?popup=yes&blk=6\" style='font-size:{$fontsize}'>
+					<span>$ligne</span></a></li>\n");
 					continue;
 		}
 		
 		if($num=="exclude-www"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.wwwex.php\">
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.wwwex.php\" style='font-size:{$fontsize}'>
 							<span style='font-size:{$fontsize}'>$ligne</span></a></li>\n");
 							continue;
 		}
@@ -227,7 +227,7 @@ function tabs(){
 	
 	
 	
-	$html=build_artica_tabs($html,'main_icap_center_tabs',1050)."<script>LeftDesign('icap-center-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'main_icap_center_tabs')."<script>LeftDesign('icap-center-256-opac20.png');</script>";
 	
 	echo $html;	
 	
@@ -283,56 +283,56 @@ function service_popup(){
 	
 	
 	$html="
-		<div style='font-size:22px;margin-bottom:20px'>{$ligne["service_name"]}</div>
+		<div style='font-size:30px;margin-bottom:20px'>{$ligne["service_name"]}</div>
 		<div style='width:98%' class=form>
 		<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{service_name}:</td>
-			<td>". Field_text("service_name-$t",$ligne["service_name"],"font-size:16px;width:95%")."</td>
+			<td class=legend style='font-size:22px'>{service_name}:</td>
+			<td>". Field_text("service_name-$t",$ligne["service_name"],"font-size:22px;width:500px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{enabled}:</td>
-			<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"])."</td>
+			<td class=legend style='font-size:22px'>{enabled}:</td>
+			<td>". Field_checkbox_design("enabled-$t",1,$ligne["enabled"])."</td>
 		</tr>					
 					
 		<tr>
-			<td class=legend style='font-size:16px'>{order}:</td>
-			<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:16px;width:90px")."</td>
+			<td class=legend style='font-size:22px'>{order}:</td>
+			<td>". Field_text("zOrder-$t",$ligne["zOrder"],"font-size:22px;width:110px")."</td>
 		</tr>					
 		<tr>
-			<td class=legend style='font-size:16px'>{address}:</td>
-			<td>". Field_text("address-$t",$ligne["ipaddr"],"font-size:16px;width:95%")."</td>
+			<td class=legend style='font-size:22px'>{address}:</td>
+			<td>". Field_text("address-$t",$ligne["ipaddr"],"font-size:22px;width:95%")."</td>
 		</tr>					
 		<tr>
-			<td class=legend style='font-size:16px'>{listen_port}:</td>
-			<td>". Field_text("listenport-$t",$ligne["listenport"],"font-size:16px;width:120px")."</td>
+			<td class=legend style='font-size:22px'>{listen_port}:</td>
+			<td>". Field_text("listenport-$t",$ligne["listenport"],"font-size:22px;width:120px")."</td>
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:16px'>{icap_service_name}:</td>
-			<td>". Field_text("icap_server-$t",$ligne["icap_server"],"font-size:16px;width:80%")."</td>
+			<td class=legend style='font-size:22px'>{icap_service_name}:</td>
+			<td>". Field_text("icap_server-$t",$ligne["icap_server"],"font-size:22px;width:80%")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{type}:</td>
-			<td>". Field_array_Hash($respmod,"respmod-$t",$ligne["respmod"],"style:font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{type}:</td>
+			<td>". Field_array_Hash($respmod,"respmod-$t",$ligne["respmod"],"style:font-size:22px")."</td>
 		</tr>											
 		<tr>
-			<td class=legend style='font-size:16px'>{if_overloaded}:</td>
-			<td>". Field_array_Hash($overload,"overload-$t",$ligne["overload"],"style:font-size:16px")."</td>
+			<td class=legend style='font-size:22px'>{if_overloaded}:</td>
+			<td>". Field_array_Hash($overload,"overload-$t",$ligne["overload"],"style:font-size:22px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>X-Next-Services:</td>
+			<td class=legend style='font-size:22px'>X-Next-Services:</td>
 			<td>". Field_checkbox("routing-$t",1,$ligne["routing"])."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{bypass}:</td>
-			<td>". Field_checkbox("bypass-$t",1,$ligne["bypass"])."</td>
+			<td class=legend style='font-size:22px'>{bypass}:</td>
+			<td>". Field_checkbox_design("bypass-$t",1,$ligne["bypass"])."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{max_connections}:</td>
-			<td>". Field_text("maxconn-$t",$ligne["maxconn"],"font-size:16px;width:90px")."</td>
+			<td class=legend style='font-size:22px'>{max_connections}:</td>
+			<td>". Field_text("maxconn-$t",$ligne["maxconn"],"font-size:22px;width:110px")."</td>
 		</tr>										
 		<tr>
-			<td colspan=2 align='right'><hr>". button($btname,"Save$t()",22)."</td>
+			<td colspan=2 align='right'><hr>". button($btname,"Save$t()",32)."</td>
 		</tr>
 		</table>
 		</div>
@@ -468,18 +468,17 @@ function table(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_service', bclass: 'add', onpress : Add$t},
-	{name: '$apply', bclass: 'apply', onpress : Apply$t},
-	{name: '$reset', bclass: 'reload', onpress : reset$t},
-	{name: '$OnlyActive', bclass: 'Search', onpress : OnlyActive$t},
-	{name: '$All', bclass: 'Search', onpress : OnlyAll$t},
+	{name: '<strong style=font-size:18px>$new_service</strong>', bclass: 'add', onpress : Add$t},
+	{name: '<strong style=font-size:18px>$apply</strong>', bclass: 'apply', onpress : Apply$t},
+	{name: '<strong style=font-size:18px>$reset</strong>', bclass: 'reload', onpress : reset$t},
+	{name: '<strong style=font-size:18px>$OnlyActive</strong>', bclass: 'Search', onpress : OnlyActive$t},
+	{name: '<strong style=font-size:18px>$All</strong>', bclass: 'Search', onpress : OnlyAll$t},
 	
 	
 	
 	],";
 	
 	$html="
-	<div class=text-info style='font-size:16px'>$explain_section</div>		
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	<script>
@@ -489,15 +488,15 @@ function table(){
 	url: '$page?icap-search=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-	{display: '$order', name : 'zOrder', width : 50, sortable : true, align: 'center'},
-	{display: '$service_name', name : 'service_name', width : 381, sortable : true, align: 'left'},
-	{display: '$address', name : 'ipaddr', width : 130, sortable : true, align: 'left'},
-	{display: '$respmod', name : 'respmod', width :139, sortable : false, align: 'left'},
-	{display: '$bypass', name : 'bypass', width : 48, sortable : true, align: 'center'},
-	{display: '&nbsp;', name : 'up', width : 35, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'down', width : 35, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'del', width : 35, sortable : false, align: 'center'},
-	{display: '$status', name : 'status', width : 35, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>$order</span>', name : 'zOrder', width : 105, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>$service_name</span>', name : 'service_name', width : 528, sortable : true, align: 'left'},
+	{display: '<span style=font-size:22px>$address</span>', name : 'ipaddr', width : 163, sortable : true, align: 'left'},
+	{display: '<span style=font-size:22px>$respmod</span>', name : 'respmod', width :191, sortable : false, align: 'left'},
+	{display: '<span style=font-size:22px>$bypass</span>', name : 'bypass', width : 93, sortable : true, align: 'center'},
+	{display: '&nbsp;', name : 'up', width : 65, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'down', width : 65, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'del', width : 65, sortable : false, align: 'center'},
+	{display: '<span style=font-size:22px>$status</span>', name : 'status', width : 65, sortable : true, align: 'center'},
 	],
 	$buttons
 	searchitems : [
@@ -507,7 +506,7 @@ function table(){
 	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<strong style=font-size:30px>$title</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -624,14 +623,14 @@ function search(){
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
 	
 	
-	$fontsize=16;
+	$fontsize=22;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$CountDeMembers=0;
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$style="style='font-size:{$fontsize}px;color:$color;'";
 		$delete=imgsimple("delete-32.png",null,"Loadjs('$MyPage?service-delete-js=yes&ID={$ligne["ID"]}&t=$t');");
-		
+		$bypass="&nbsp;";
 		$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?service-js=yes&ID={$ligne["ID"]}&t=$t');\"
 		style='font-size:{$fontsize}px;color:$color;text-decoration:underline'>";
 		
@@ -641,6 +640,13 @@ function search(){
 		$down=imgsimple("arrow-down-32.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=1&t={$_GET["t"]}')");
 
 		
+		if(intval($ligne["bypass"])>0){$ligne["bypass"]=1;}
+		
+		if($ligne["bypass"]==1){
+			$bypass="<img src=img/32-green.png>";
+			
+		}
+		
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
@@ -648,11 +654,11 @@ function search(){
 						"<span $style>$js{$ligne["service_name"]}</a></span>",
 						"<span $style>{$js}{$ligne["ipaddr"]}:{$ligne["listenport"]}</span>",
 						"<span $style>$js{$ligne["respmod"]}</span>",
-						"<span $style>$js{$ligne["bypass"]}</span>",
-						"<span $style>$up</span>",
-						"<span $style>$down</span>",
-						"<span $style>$delete</span>",
-						"<span $style>". imgsimple($STATUS_ARRAY[$ligne["status"]])."</span>",
+						"<center $style>$js$bypass</center>",
+						"<center $style>$up</center>",
+						"<center $style>$down</center>",
+						"<center $style>$delete</center>",
+						"<center $style>". imgsimple($STATUS_ARRAY[$ligne["status"]])."</center>",
 						
 				)
 		);

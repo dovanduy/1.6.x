@@ -50,7 +50,7 @@ function popup(){
 
 	$html="
 	<div id='modpagespeeddiv'>
-	<div class=text-info style='margin-top:10px'>{mod_pagespeed_about}</div>
+	<div class=explain style='margin-top:10px'>{mod_pagespeed_about}</div>
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>

@@ -47,6 +47,8 @@ function uninstall(){
 	}
 	progress("{uninstalling}","Cleaning filesystem",30);
 	shell_exec("$rm -rf /opt/kaspersky/kav4proxy");
+	progress("{uninstalling}","Cleaning filesystem",35);
+	shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy");
 	progress("{uninstalling}","Cleaning filesystem",40);
 	shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy");
 	progress("{uninstalling}","Cleaning filesystem",50);
@@ -54,6 +56,8 @@ function uninstall(){
 	progress("{uninstalling}","Cleaning filesystem",60);
 	shell_exec("$rm -rf /var/run/kav4proxy");
 	shell_exec("$rm -rf /var/db/kav/databases");
+	shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy");
+	shell_exec("$rm -f /var/opt/kaspersky/applications.setup");
 	progress("{uninstalling}","Cleaning filesystem",70);
 	
 	if(is_file("/etc/artica-postfix/KASPERSKY_WEB_APPLIANCE")){@unlink("/etc/artica-postfix/KASPERSKY_WEB_APPLIANCE");}
@@ -186,10 +190,15 @@ function install(){
 	chdir('/opt/kaspersky/kav4proxy/lib/bin/setup');
 	exec('./postinstall.pl 2>&1',$results3);
 	while (list ($index, $line) = each ($results3) ){
-		progress("{installing} 5.5.88 version",$line,90);
+		progress("{installing} 5.5.88 version",$line,86);
 	}
 	
+	progress("{installing} 5.5.88 version",$line,87);
 	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1");
+	sleep(3);
+	progress("{installing} 5.5.88 version",$line,88);
+	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1");
+	progress("{installing} 5.5.88 version",$line,89);
 	shell_exec("/etc/init.d/artica-status restart --force >/dev/null 2>&1");
 	
 	progress("{installed}","Done",100);

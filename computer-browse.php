@@ -201,7 +201,12 @@ function tabs(){
 		if($num=="analyze"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"nmap.ping.php\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
-		}		
+		}	
+		if($num=="browse-networks"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"computer-browse.php?browse-networks=yes\"><span style='font-size:22px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 	}
@@ -1011,7 +1016,7 @@ function networks_tabs(){
 	}
 	
 	
-	$html=build_artica_tabs($html,'main_networks',995)."
+	$html=build_artica_tabs($html,'main_networks',1490)."
 		<script>LeftDesign('256-networks-white-opac20.png');</script>";
 	
 	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
@@ -1033,7 +1038,7 @@ function networks(){
 	$sock=new sockets();
 	$ComputersAllowNmap=$sock->GET_INFO("ComputersAllowNmap");
 	$ComputersAllowDHCPLeases=$sock->GET_INFO("ComputersAllowDHCPLeases");
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	
 	if(!is_numeric($ComputersAllowNmap)){$ComputersAllowNmap=1;}
 	if(!is_numeric($ComputersAllowDHCPLeases)){$ComputersAllowDHCPLeases=1;}
@@ -1240,7 +1245,7 @@ function artica_import_popup(){
 	$ini->loadString($sock->GET_INFO("ComputersImportArtica"));	
 	$array=$ini->_params[$_GET["ip"]];
 	$html="
-	<div class=text-info>{import_artica_computers_explain}</div>
+	<div class=explain>{import_artica_computers_explain}</div>
 	<div id='import_artica_computers'>
 		<table style='width:99%' class=form>
 			<tr>
@@ -1344,7 +1349,7 @@ function artica_import_save(){
 
 function artica_importlist_popup(){
 	$page=CurrentPageName();
-	$html="<div class=text-info style='font-size:16px'>{computer_popup_import_explain}</div>
+	$html="<div class=explain style='font-size:16px'>{computer_popup_import_explain}</div>
 	<div id='popup_import_div' class=form style='width:95%'>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:99%;height:546px;border:5px solid #8E8E8E;
@@ -1399,12 +1404,12 @@ function networkslist($noecho=1){
 	$new_network=$tpl->_ENGINE_parse_body("{add_network}");
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
 	$sock=new sockets();
-	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$EnableArpDaemon=intval($sock->GET_INFO("EnableArpDaemon"));
 	$settings=$tpl->_ENGINE_parse_body("{parameters}");
 	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
-	$import_artica_computers=$tpl->javascript_parse_text("{import_artica_computers}");
+	$computers=$tpl->javascript_parse_text("{computers}");
 	$apply_firewall_rules=$tpl->javascript_parse_text("{apply_firewall_rules}");
-	
+	$import_artica_computers=$tpl->javascript_parse_text("{import_artica_computers}");
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$html="
@@ -1416,17 +1421,16 @@ function networkslist($noecho=1){
 	dataType: 'json',
 	colModel : [
 	{display: '&nbsp;', name : 'none', width :40, sortable : true, align: 'center'},
-	{display: '$networks', name : 'mac', width :336, sortable : true, align: 'left'},
-	{display: '$enabled', name : 'enabled', width :80, sortable : true, align: 'center'},
-	{display: 'IpBand Stats', name : 'enabled', width :80, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$networks</span>', name : 'mac', width :540, sortable : true, align: 'left'},
+	{display: '<span style=font-size:18px>$enabled</span>', name : 'enabled', width :80, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>IpBand Stats</span>', name : 'enabled', width :80, sortable : true, align: 'center'},
 	],
 	
 	buttons : [
-	{name: '$new_network', bclass: 'add', onpress : NewNetwork$t},
-	{name: '$import_artica_computers', bclass: 'add', onpress : Import$t},
-	{name: '$apply_firewall_rules', bclass: 'Apply', onpress : FW$t},
+	{name: '<strong style=font-size:18px>$new_network</strong>', bclass: 'add', onpress : NewNetwork$t},
+	{name: '<strong style=font-size:18px>$apply_firewall_rules</strong>', bclass: 'Apply', onpress : FW$t},
 	{separator: true},
-	
+	{name: '<strong style=font-size:18px>$computers</strong>', bclass: 'Apply', onpress : Comp$t},
 	],
 	
 	
@@ -1436,12 +1440,12 @@ function networkslist($noecho=1){
 	sortname: 'ipaddr',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span style=font-size:18px>$networks</span>',
+	title: '<span style=font-size:30px>$networks</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: true,
 	width: '99%',
-	height: 400,
+	height: 550,
 	singleSelect: true
 	
 	});
@@ -1451,8 +1455,12 @@ function NewNetwork$t(){
 	YahooWin3(700,'$page?browse-networks-add=yes&t=flexRTNETWORKLIST','$networks');
 }
 
+function Comp$t(){
+	GotoNetworkBrowseComputers();
+}
+
 function FW$t(){
-	Loadjs('firewall.restart.php');
+	Loadjs('firehol.progress.php');
 }
 	
 function Import$t(){
@@ -1532,18 +1540,19 @@ function networks_items(){
 	$search=string_to_regex($_POST["query"]);
 	$data = array();
 	$data['page'] = 1;
-	$data['total'] = $total;
+	$data['total'] = count($hash);
 	$data['rows'] = array();
-	$results = $q->QUERY_SQL($sql,"artica_backup");
+	
 	$divstart="<span style='font-size:14px;font-weight:bold'>";
 	$divstop="</div>";
+	$c=0;
 	while (list ($num, $maks) = each ($hash)){
 		if(trim($maks)==null){continue;}
 		$ipban=0;
 		if($search<>null){if(!preg_match("#$search#", $maks)){continue;}}
 		$md5=md5($maks);
 		
-		$delete=imgtootltip('delete-32.png','{delete}',"NetworkDelete$t('" . md5($num)."')");
+		$delete=imgsimple('delete-48.png','{delete}',"NetworkDelete$t('" . md5($num)."')");
 		$sql="SELECT netinfos FROM networks_infos WHERE ipaddr='$maks'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$ligne["netinfos"]=htmlspecialchars($ligne["netinfos"]);
@@ -1558,9 +1567,9 @@ function networks_items(){
 		if(!$users->IPBAN_INSTALLED){$jsIpabn[]="document.getElementById('ipban-$md5').disabled=true;";}
 		
 		
-		$infos="<div><a href=\"javascript:blur();\"
+		$infos="<br><a href=\"javascript:blur();\"
 		OnClick=\"javascript:GlobalSystemNetInfos('$maks')\"
-		style='font-size:9px;text-decoration:underline'><i>{$ligne["netinfos"]}</i></a></div>";
+		style='font-size:16px;text-decoration:underline'><i>{$ligne["netinfos"]}</i></a>";
 		
 		if($net->DefaultNetworkList[$maks]){
 			if(!$net->Networks_disabled[$maks]){
@@ -1583,7 +1592,7 @@ function networks_items(){
 				'id' => md5($maks),
 		'cell' => array(
 				"<img src='img/folder-network-32.png'>",
-				"<div style='font-size:18px'>$maks$infos</div>",$delete, $ipbanopt
+				"<div style='font-size:26px'>$maks$infos</div>","<center>$delete</center>", $ipbanopt
 				)
 		);
 	}
@@ -1652,7 +1661,7 @@ while (list ($num, $maks) = each ($net->networklist)){
 			}else{
 				
 				$style=";text-decoration:line-through";
-				$delete="{default}&nbsp;" .texttooltip("{disabled}","{enable}","NetWorksEnable('$maks');",null,0,'font-size:12px;color:red');
+				$delete="{default}&nbsp;" .texttooltip("{disabled}","{enable}","NetWorksEnable('$maks');",null,0,'font-size:12px;color:#d32d2d');
 			}
 			
 		}

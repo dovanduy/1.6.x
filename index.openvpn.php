@@ -299,18 +299,24 @@ function js(){
 	$NETWORK_CONTROL_CENTER=$tpl->_ENGINE_parse_body('{NETWORK_CONTROL_CENTER}');
 	$page=CurrentPageName();
 	$function="LoadOpenvpn();";
-	if(isset($_GET["infront"])){$function="LoadOpenVPNv2();";}
+	if(isset($_GET["infront"])){
+		
+		$start="<script>";
+		$function="LoadOpenVPNv2();";
+		$end="</script>";
+	
+	}
 	
 	
 	$html="
-	
+	$start
 		function LoadOpenvpn(){
 			YahooWin2('705','$page?startpage=yes','$title');
 		
 		}
 		
 		function LoadOpenVPNv2(){
-			$('#BodyContent').load('$page?startpage=yes&newinterface=yes');
+			$('#network-OpenVPN').load('$page?startpage=yes&newinterface=yes');
 		}
 		
 		function StartWizard(){
@@ -499,7 +505,7 @@ function js(){
 	
 		$function
 	
-	";
+	$end";
 		
 	echo $html;
 	
@@ -669,7 +675,7 @@ function index_page(){
 	<tr>
 	<td valign='top' width=280px><div id='openvpn-status'></div></td>
 	<td valign='top'>
-	<div class=text-info style='font-size:18px'>{openvpn_whatis}</div>
+	<div class=explain style='font-size:18px'>{openvpn_whatis}</div>
 	<br>
 	<center><img src='img/OpenVPN.png'></center>
 	
@@ -694,7 +700,7 @@ function index_page(){
 function wizard(){
 	
 	$html="<H1>{WELCOME_WIZARD}</H1>
-	<div class=text-info>{WELCOME_WIZARD_TEXT}</div>
+	<div class=explain>{WELCOME_WIZARD_TEXT}</div>
 	" . RoundedLightWhite("
 	<div id='wizarddiv'>
 		<div style='text-align:right'><input type='button' OnClick=\"javascript:StartWizard()\" value='{START_WIZARD}&nbsp;&raquo;'></div>
@@ -716,7 +722,7 @@ function wizard_key(){
 		<td valign='top' width=1%><img src='img/64-key.png'></td>
 		<td valign='top'>
 		<H3>{PKI}</H3>
-		<div class=text-info>{WIZARD_STEP1}</div>
+		<div class=explain>{WIZARD_STEP1}</div>
 		</td>
 		<table style='width:100%'>
 			<tr>
@@ -857,28 +863,28 @@ $vpn->main_array["GLOBAL"]["IP_START"];
 $vpn->main_array["GLOBAL"]["IPTABLES_ETH"];
 
 if($vpn->main_array["GLOBAL"]["PUBLIC_IP"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["LISTEN_PORT"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["CLIENT_NAT_PORT"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}:{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{listen_port}:{public_ip_addr}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["IP_START"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["NETMASK"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["LISTEN_PROTO"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{protocol}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{protocol}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["IP_START"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{from_ip_address}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 if($vpn->main_array["GLOBAL"]["NETMASK"]==null){
-$status=FATAL_WARNING_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
+$status=FATAL_ERROR_SHOW_128("<strong>{MISSING_PARAMETER}</strong><hr>{MISSING_PARAMETER_TEXT}<br><strong>{netmask}</strong><p><center>".button("{settings}","Loadjs('index.openvpn.server.php')",22)."</p></center>");
 }
 $LDAP_AUTH="{no}";
 $EnableOpenVPNEndUserPage="{no}";
@@ -992,7 +998,7 @@ $mode_tap="
 					<div id='nicvpninfo' style='float:right;margin:5px;'>".ShowIPConfig($vpn->main_array["GLOBAL"]["BRIDGE_ETH"])."</div>
 				</td>
 				<td valign='top'>
-					<div class=text-info>{SERVER_MODE_TAP}</div>
+					<div class=explain>{SERVER_MODE_TAP}</div>
 				</td>
 			</tr>
 		</table>
@@ -1035,7 +1041,7 @@ if($vpn->main_array["GLOBAL"]["ENABLE_BRIDGE_MODE"]==1){
 
 
 if($vpn->main_array["GLOBAL"]["ENABLE_SERVER"]<>1){
-	$status=FATAL_WARNING_SHOW_128("<strong style='font-size:22px'>{OPENVPN_NOT_ENABLED}</strong><hr>
+	$status=FATAL_ERROR_SHOW_128("<strong style='font-size:22px'>{OPENVPN_NOT_ENABLED}</strong><hr>
 			{OPENVPN_NOT_ENABLED_TEXT}
 			<center>". button("{enable_service}","Loadjs('index.openvpn.enable.progress.php')",42)."</center>");
 }
@@ -1220,7 +1226,7 @@ function SaveCertificate(){
 function routes_settings(){
 	$list=routes_list(1);
 	$html="
-	<div class=text-info>{routes_explain}</div>
+	<div class=explain>{routes_explain}</div>
 	<table style='width:99%' class=form>
 	 <tr>
 	 	<td class=legend>{from_ip_address}:</td>
@@ -1330,29 +1336,29 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 	$CLIENT_NAT_PORT=$vpn->main_array["GLOBAL"]["CLIENT_NAT_PORT"];
 	
 	$VPN_SERVER_DHCP_MASK=$vpn->main_array["GLOBAL"]["VPN_SERVER_DHCP_MASK"];
-	if($local_ip==null){$listen_eth_ip="<span style='color:red'>{error}</span>";}
+	if($local_ip==null){$listen_eth_ip="<span style='color:#d32d2d'>{error}</span>";}
 	if($public_ip==null){$public_ip="<span style='color:white'>{error}</span>";}
 	
-	if($VPN_SERVER_IP==null){$VPN_SERVER_IP="<span style='color:red'>{error}</span>";}
-	if($VPN_DHCP_FROM==null){$VPN_DHCP_FROM="<span style='color:red'>{error}</span>";}
-	if($VPN_DHCP_TO==null){$VPN_DHCP_TO="<span style='color:red'>{error}</span>";}
-	if($VPN_SERVER_DHCP_MASK==null){$VPN_SERVER_DHCP_MASK="<span style='color:red'>{error}</span>";}
+	if($VPN_SERVER_IP==null){$VPN_SERVER_IP="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_DHCP_FROM==null){$VPN_DHCP_FROM="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_DHCP_TO==null){$VPN_DHCP_TO="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_SERVER_DHCP_MASK==null){$VPN_SERVER_DHCP_MASK="<span style='color:#d32d2d'>{error}</span>";}
 	
 	if($CLIENT_NAT_PORT==null){$CLIENT_NAT_PORT=$LISTEN_PORT;}
 	
 	
 	if($IPTABLES_ETH<>null){$VPN_SERVER_IP=$ethi[$IPTABLES_ETH];}
 	
-	if($LISTEN_PORT==null){$LISTEN_PORT="<span style='color:red'>{error}</span>";}
+	if($LISTEN_PORT==null){$LISTEN_PORT="<span style='color:#d32d2d'>{error}</span>";}
 	
 	$listen_eth="$listen_eth  (br0)<br>$listen_eth_ip";
-	if($listen_eth==null){$listen_eth="<span style='color:red'>{error}</span>";}
+	if($listen_eth==null){$listen_eth="<span style='color:#d32d2d'>{error}</span>";}
 	
 	if($DEV_TYPE=='tun'){
 		$listen_eth=" $VPN_SERVER_IP <-> tun0 iptables";
 		$VPN_DHCP_FROM=$IP_START;
 		if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$VPN_DHCP_FROM,$re)){
-		$VPN_DHCP_FROM="<span style='color:red'>{error}</span>";
+		$VPN_DHCP_FROM="<span style='color:#d32d2d'>{error}</span>";
 		}else{
 		$cdir=$ip->ip2cidr("{$re[1]}.{$re[2]}.{$re[3]}.0","{$re[1]}.{$re[2]}.{$re[3]}.255");
 		$tb=explode("/",$cdir);
@@ -1363,14 +1369,14 @@ while (list ($num, $ligne) = each ($nic->array_TCP) ){
 		}
 	}
 	
-	if($VPN_SERVER_IP==null){$VPN_SERVER_IP="<span style='color:red'>{error}</span>";}
-	if($VPN_DHCP_FROM==null){$VPN_DHCP_FROM="<span style='color:red'>{error}</span>";}
-	if($VPN_DHCP_TO==null){$VPN_DHCP_TO="<span style='color:red'>{error}</span>";}
-	if($VPN_SERVER_DHCP_MASK==null){$VPN_SERVER_DHCP_MASK="<span style='color:red'>{error}</span>";}	
+	if($VPN_SERVER_IP==null){$VPN_SERVER_IP="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_DHCP_FROM==null){$VPN_DHCP_FROM="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_DHCP_TO==null){$VPN_DHCP_TO="<span style='color:#d32d2d'>{error}</span>";}
+	if($VPN_SERVER_DHCP_MASK==null){$VPN_SERVER_DHCP_MASK="<span style='color:#d32d2d'>{error}</span>";}	
 	
 	
 	if(!preg_match('#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#',$local_ip,$re)){
-		$local_network="<span style='color:red'>{error}</span>";
+		$local_network="<span style='color:#d32d2d'>{error}</span>";
 	}else{
 		$cdir=$ip->ip2cidr("{$re[1]}.{$re[2]}.{$re[3]}.0","{$re[1]}.{$re[2]}.{$re[3]}.255");
 		$tb=explode("/",$cdir);

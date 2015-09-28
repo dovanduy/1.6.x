@@ -269,7 +269,7 @@ function packages_status(){
 	<tr>
 	<td width=1%><img src='img/16-infos.png'></td>
 		<td nowrap width=1% nowrap><strong>{num_packages_installed}:</strong></td>
-		<td nowrap align='left'><strong style='color:red'>$count</strong></td>
+		<td nowrap align='left'><strong style='color:#d32d2d'>$count</strong></td>
 	</tr>
 	</table>
 	";
@@ -299,7 +299,7 @@ function main_configapt(){
 	<tr>
 		<td width=1% nowrap' align='right'><strong>{packages_list}</strong>:</td>
 		<td>" . Field_text('search_p',null,'font-size:14px;width:95%x',null,null,null,false,"SearchPackageEnter(event)")."</td>
-		<td nowrap><span id='error' style='color:red'></span></d>
+		<td nowrap><span id='error' style='color:#d32d2d'></span></d>
 		<td>". button("{search}","SearchPackage()")."</td>
 	</tr>	
 	</table>";

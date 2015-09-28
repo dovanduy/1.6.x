@@ -53,7 +53,7 @@ function popup(){
 		$iPicScanValAR[$i]="{$i}%";
 	}
 	
-	$html="<div class=text-info style='font-size:14px' id='$t-div'>{SquidNudityScanExplain}
+	$html="<div class=explain style='font-size:14px' id='$t-div'>{SquidNudityScanExplain}
 				<div>
 					<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:s_PopUpFull('http://proxy-appliance.org/index.php?cID=319','1024','900');\"

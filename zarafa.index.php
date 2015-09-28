@@ -85,13 +85,13 @@ function popup(){
 	$adduri="&font-size=18";$adduri2="?font-size={$_GET["font-size"]}";
 	
 	//$array["popup-instances"]="{multiple_webmail}";
-	$array["popup-mailbox"]="{mailboxes}";
+	
 	$array["popup-license"]="{zarafa_license}";
 	$array["tools"]="{tools}";
 	$array["backup"]="{backup}";
 	$array["restore"]="{restore}";
 	
-	$fontsize="font-size:18px";
+	$fontsize="font-size:22px";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -144,7 +144,7 @@ function popup(){
 	$tabwidth=759;
 	if(is_numeric($_GET["tabwith"])){$tabwitdh=$_GET["tabwith"];}
 	
-	echo build_artica_tabs($html, "main_config_zarafa")."<script>QuickLinkShow('quicklinks-APP_ZARAFA');</script>";
+	echo build_artica_tabs($html, "main_config_zarafa",1490)."<script>QuickLinkShow('quicklinks-APP_ZARAFA');</script>";
 	
 	
 }
@@ -162,7 +162,7 @@ function popup_status(){
 	$ini->loadString($datas);
 	$users=new usersMenus();
 	if($users->YAFFAS_INSTALLED){
-		$yaffas="<div class=text-info>{APP_YAFFAS_TEXT}</div>";
+		$yaffas="<div class=explain>{APP_YAFFAS_TEXT}</div>";
 	}
 	if($ini->_params["APP_ZARAFA"]["master_version"]==null){unset($ini->_params["APP_ZARAFA"]["master_version"]);}
 	
@@ -180,9 +180,9 @@ function popup_status(){
 	<tr>
 		<td valign='top' width=1%><span id='zarafa-box'></span></td>
 		<td valign='top' width=99%>
-			<H3 style='font-size:22px;font-weight:bold'>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
+			<H3 style='font-size:30px;font-weight:bold'>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
 			<div id='zarafa-error' style='color:#FB0808;font-weight:bold;font-size:14px'></div>
-			<div class=text-info style='font-size:14px'>{APP_ZARAFA_TEXT}</div>$yaffas
+			<div class=explain style='font-size:18px'>{APP_ZARAFA_TEXT}</div>$yaffas
 			<table style='width:100%'>
 			<tr>
 				<td width=1%><img src='img/arrow-right-24.png'></td>
@@ -367,17 +367,17 @@ function popup_mailbox_tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="popup-orphans"){
-			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\"><span style='font-size:16px'>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\"><span style='font-size:22px'>$ligne</span></a></li>\n";
 			continue;
 		}
 
 	
 		
-		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span style='font-size:16px'>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span style='font-size:22px'>$ligne</span></a></li>\n";
 			
 		}	
 	
-	echo build_artica_tabs($html, "main_config_zarafaMBX");
+	echo build_artica_tabs($html, "main_config_zarafaMBX",1490);
 		
 	
 		
@@ -610,7 +610,7 @@ function popup_license(){
 	</center>
 	<hr>
 	
-	<div class=text-info>{ZARAFA_UPDATE_SERIAL_EXPLAIN}</div>
+	<div class=explain>{ZARAFA_UPDATE_SERIAL_EXPLAIN}</div>
 	<center>
 	<div id='zarafa-license-form'>
 	<table class=form>

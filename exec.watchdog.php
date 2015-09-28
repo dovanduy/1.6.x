@@ -28,7 +28,7 @@ $currentpid=trim(@file_get_contents($pidfile));
 if($unix->process_exists($currentpid)){die();}
 @file_put_contents($pidfile,getmypid());
 
-if($argv[1]=="--bandwith"){bandwith();die();}
+
 if($argv[1]=="--loadavg"){loadavg();die();}
 if($argv[1]=="--mem"){loadmem();die();}
 if($argv[1]=="--cpu"){loadcpu();die();}
@@ -55,36 +55,7 @@ function startprocess($APP_NAME,$cmd){
 	//$unix->send_email_events("$APP_NAME stopped","Artica tried to start it:\n".@implode("\n",$results),"system");
 
 }
-function bandwith(){
-	return;
-	$sock=new sockets();
-	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
-	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=0;}
-	if($EnableBandwithCalculation==0){return;}	
-	
-	$file="/usr/share/artica-postfix/ressources/logs/web/bandwith-mon.txt";
-	$ftime=file_time_min($file);
-	events("$ftime ". basename($file),__FUNCTION__,__LINE__);
-	if($ftime<10){return;}
-	if($GLOBALS["VERBOSE"]){echo "\n***\n/usr/share/artica-postfix/bin/bandwith.pl\n***\n";}
-	exec("/usr/share/artica-postfix/bin/bandwith.pl 2>&1",$results);
-	$text=@implode("",$results);
-	if(!preg_match("#([0-9\.,]+)#",$text,$re)){
-		events("$text unable to preg_match",__FUNCTION__,__LINE__);
-		return;
-	}
-	
-		$re[1]=str_replace(",",".",$re[1]);
-		$mbs=round($re[1],0);
-		events("$mbs MB/S bandwith",__FUNCTION__,__LINE__);
-		$sql="INSERT INTO bandwith_stats (`zDate`,`bandwith`) VALUES(NOW(),'$mbs');";
-		$q=new mysql();
-		$q->QUERY_SQL($sql,"artica_events");
-		if(!$q->ok){events("$q->mysql_error \"$sql\"",__FUNCTION__,__LINE__);}
-		@unlink($file);
-		@file_put_contents($file,$mbs);
-		@chmod($file,0770);
-	}
+
 
 function events($text,$function=null,$line=0){
 		$filename=basename(__FILE__);

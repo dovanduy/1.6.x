@@ -227,7 +227,7 @@ function SearchTable($find){
 		}
 		
 $page=CurrentPageName();
-if($breaked==true){$error="<span style='color:red'>{search_break}</span>";}
+if($breaked==true){$error="<span style='color:#d32d2d'>{search_break}</span>";}
 $count=count($hash);
 $html="
 	<br>

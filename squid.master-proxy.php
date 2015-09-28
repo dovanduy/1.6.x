@@ -94,7 +94,7 @@ function status(){
 	$ips["0.0.0.0"]="{all}";
 	
 	if($SquidAsMasterFollowxForward==1){
-		$error="<p class=text-info style='font-size:16px'>{SquidAsMasterFollowxForward_error}</p>";
+		$error="<p class=explain style='font-size:16px'>{SquidAsMasterFollowxForward_error}</p>";
 		
 	}
 	

@@ -174,7 +174,7 @@ $dansguardian="<tr>
 				</tbody>
 				
 			</table>
-			<div style='font-size:12px' class=text-info>{danseguardian_simple_intro}</div>
+			<div style='font-size:12px' class=explain>{danseguardian_simple_intro}</div>
 			<p>&nbsp;</p>
 			<span id='dansguardian-install-status'></span>
 			<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","dansguardian_install_status()")."</div>
@@ -213,7 +213,7 @@ $html="
 			</table>
 			$available31
 			
-			<div style='font-size:12px' class=text-info>{APP_SQUID_TEXT}</div>
+			<div style='font-size:12px' class=explain>{APP_SQUID_TEXT}</div>
 			<p>&nbsp;</p>
 			<span id='squid-install-status'></span>
 			<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","squid_install_status()")."</div>
@@ -244,7 +244,7 @@ $html="
 				</tbody>
 				
 			</table>
-			<div style='font-size:12px' class=text-info>{APP_KAV4PROXY_TEXT}</div>
+			<div style='font-size:12px' class=explain>{APP_KAV4PROXY_TEXT}</div>
 			<p>&nbsp;</p>
 			<span id='kav4proxy-install-status'></span>
 			<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","kav4proxy_install_status()")."</div>
@@ -276,7 +276,7 @@ $html="
 				</tbody>
 				
 			</table>
-			<div style='font-size:12px' class=text-info>{ufdbguard_simple_intro}</div>
+			<div style='font-size:12px' class=explain>{ufdbguard_simple_intro}</div>
 			<p>&nbsp;</p>
 			<span id='ufdbguard-install-status'></span>
 			<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","ufdbguard_install_status()")."</div>
@@ -308,7 +308,7 @@ $html="
 				</tbody>
 				
 			</table>
-			<div style='font-size:12px' class=text-info>{sambasquid_simple_intro}</div>
+			<div style='font-size:12px' class=explain>{sambasquid_simple_intro}</div>
 			<p>&nbsp;</p>
 			<span id='samba-install-status'></span>
 			<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","samba_install_status()")."</div>
@@ -498,7 +498,7 @@ function stables(){
 	$current=base64_decode($sock->getFrameWork("squid.php?current-version=yes"));
 	$html[]="
 	<div style='font-size:18px;margin-bottom:20px;text-align:right'>Squid-Cache v.$current</div>		
-	<div style='font-size:16px' class=text-info>{squid_old_stable_explain}</div>
+	<div style='font-size:16px' class=explain>{squid_old_stable_explain}</div>
 	<div style='width:95%;text-align:center' class=form >
 	<table style='width:100%'>		
 	";

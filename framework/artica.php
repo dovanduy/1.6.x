@@ -2,7 +2,7 @@
 
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
-
+$GLOBALS["HOSTS_PATH"]="/usr/share/artica-postfix/ressources/conf/meta/hosts";
 
 if(isset($_GET["stats-appliance-berekley"])){squid_stats_appliance_berekley();exit;}
 if(isset($_GET["exec-squid-stats-appliance-disconnect"])){squid_stats_appliance_disconnect();exit;}
@@ -27,6 +27,20 @@ if(isset($_GET["meta-sysalerts-uuid"])){artica_meta_client_sysalerts();exit;}
 if(isset($_GET["meta-smtp-uuid"])){artica_meta_client_smtp();exit;}
 if(isset($_GET["meta-snapshot-uuid"])){artica_meta_client_snapshot();exit;}
 if(isset($_GET["meta-metaclientquotasize-uuid"])){artica_meta_client_squidquotasize();exit;}
+if(isset($_GET["meta-metaclientsquidperf-uuid"])){artica_meta_client_squidperfs();exit;}
+if(isset($_GET["meta-metaclienteventsmaster-uuid"])){artica_meta_client_eventsmaster();exit;}
+if(isset($_GET["meta-metaclientSquidRealtimeev-uuid"])){artica_meta_client_squid_relatime_ev();exit;}
+if(isset($_GET["meta-metaclient-dumpsql-uuid"])){artica_meta_client_mysql_dump();exit;}
+if(isset($_GET["meta-metaclient-scan-upload-dirs"])){artica_meta_client_uploaddirs();exit;}
+if(isset($_GET["scan-categories"])){artica_meta_scan_categories();exit;}
+
+if(isset($_GET["build-meta-schedules"])){artica_meta_client_build_schedules();exit;}
+if(isset($_GET["meta-metaclient-clonesource"])){artica_meta_client_build_clone_source();exit;}
+if(isset($_GET["snapshot-import"])){snapshot_import();exit;}
+if(isset($_GET["lighttpd-reload"])){lighttpd_reload();exit;}
+
+
+
 if(isset($_GET["meta-articadaemons-uuid"])){artica_meta_client_articadaemons();exit;}
 if(isset($_GET["metaclientevents-uuid"])){artica_meta_client_metaevents2();exit;}
 
@@ -125,6 +139,26 @@ function snapshot(){
 		writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 }
+
+function snapshot_import(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/snapshot.upload.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/snapshot.upload.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"],0777);
+	@chmod($GLOBALS["LOG_FILE"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.backup.artica.php --snapshot-import >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
+
 function snapshot_sql(){
 	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/backup.artica.progress";
 	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/backup.artica.progress.txt";
@@ -213,6 +247,10 @@ function artica_meta_client_register(){
 	@touch($GLOBALS["LOGSFILES"]);
 	@chmod($GLOBALS["CACHEFILE"],0777);
 	@chmod($GLOBALS["LOGSFILES"],0777);
+	
+	$cmd=trim("$nohup /etc/init.d/squid reload --force --script=".basename(__FILE__)." >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 	
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-client.php --ping --output --progress --force >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
@@ -340,6 +378,144 @@ function artica_meta_client_squidquotasize(){
 	shell_exec($cmd);	
 }
 
+function artica_meta_client_squidperfs(){
+	$uuid=$_GET["uuid"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --squid-perfs $uuid >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+
+
+function artica_meta_client_eventsmaster(){
+	$uuid=$_GET["uuid"];
+	$BaseWorkDir="{$GLOBALS["HOSTS_PATH"]}/uploaded/$uuid/EVENT_NOTIFY_MASTER";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {return;}
+	
+	$TARGET_DIR="/home/artica-meta/$uuid/EVENT_NOTIFY_MASTER";
+	@mkdir($TARGET_DIR,0755,true);
+		
+		
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		@copy($targetFile, "$TARGET_DIR/$filename");
+		@unlink($targetFile);
+	}
+		
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --uuid-events $uuid >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+
+function artica_meta_client_build_schedules(){
+	$uuid=$_GET["uuid"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --uuid-scheduler $uuid --notify >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+function artica_meta_client_build_clone_source(){
+	$uuid=$_GET["uuid"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --uuid-clone-source $uuid --notify >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+
+function artica_meta_client_uploaddirs(){
+	$uuid=$_GET["uuid"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --purge-upload $uuid >/dev/null 2>&1 &");
+	meta_events("ARTICA_DAEMONS $cmd");
+	shell_exec($cmd);
+}
+function artica_meta_scan_categories(){
+	$uuid=$_GET["uuid"];
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-server.php --scan-categories >/dev/null 2>&1 &");
+	meta_events("SCAN_CATEGORIES $cmd");
+	shell_exec($cmd);	
+}
+
+//
+function artica_meta_client_mysql_dump(){
+	$uuid=$_GET["uuid"];
+	$BaseWorkDir="{$GLOBALS["HOSTS_PATH"]}/uploaded/$uuid";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+
+
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {return;}
+
+	$TARGET_DIR="/home/artica/squid/META_DUMP_QUEUE";
+	@mkdir($TARGET_DIR,0755,true);
+
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		@copy($targetFile, "$TARGET_DIR/$uuid-$filename");
+		@unlink($targetFile);
+	}
+
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-squid-parser.php >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+
+function artica_meta_client_squid_relatime_ev(){
+	$uuid=$_GET["uuid"];
+	$BaseWorkDir="{$GLOBALS["HOSTS_PATH"]}/uploaded/$uuid/SQUID_RELATIME_EVENTS";
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {return;}
+	
+	$TARGET_DIR="/home/artica/squid/META_EVENTS_QUEUE";
+	@mkdir($TARGET_DIR,0755,true);
+	
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		@copy($targetFile, "$TARGET_DIR/$filename");
+		@unlink($targetFile);
+	}
+	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-squid-parser.php >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
+}
+
 function artica_meta_client_articadaemons(){
 	$uuid=$_GET["uuid"];
 	$unix=new unix();
@@ -390,16 +566,30 @@ function artica_meta_server_ping_group(){
 }
 
 function artica_server_update_repo(){
+	
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/artica-meta.update.php.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/artica-meta.update.php.log";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
 	$filename=$_GET["filename"];
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$php5 /usr/share/artica-postfix/exec.nightly.php --meta-release \"/usr/share/artica-postfix/ressources/conf/upload/$filename\" >/dev/null 2>&1");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.nightly.php --meta-release \"/usr/share/artica-postfix/ressources/conf/upload/$filename\" --output >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
 }
 
 function artica_server_scan_repo(){
+	
+	
+	
 	$filename=$_GET["filename"];
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -484,4 +674,11 @@ function webfiltering_events(){
 	
 	@copy("/var/log/artica-ufdb.log","/usr/share/artica-postfix/ressources/logs/web/artica-ufdb.log");
 	@chmod(0755,"/usr/share/artica-postfix/ressources/logs/web/artica-ufdb.log");
+}
+
+function lighttpd_reload(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.lighttpd.php --reload >/dev/null 2>&1 &");
 }

@@ -14,6 +14,10 @@
 		echo "alert('$text');";
 		exit;
 	}
+	if(isset($_GET["pfx"])){pfx();exit;}
+	if(isset($_GET["delete-certificate-js"])){certificate_delete_js();exit;}
+	if(isset($_POST["delete-certificate"])){certificate_delete();exit;}
+	
 	if(isset($_GET["certificate-upload-popup"])){certificate_upload_popup();exit;}
 	if(isset($_GET["certificate-upload-js"])){certificate_upload_js();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
@@ -28,15 +32,19 @@
 	if(isset($_GET["SquidValidate"])){SquidValidate();exit;}
 	if(isset($_GET["SquidValidatePerform"])){SquidValidatePerform();exit;}
 	
+	
+	
 	if(isset($_POST["generate-key"])){generate_key();exit;}
+	if(isset($_POST["save-privkey"])){save_private_key();exit;}
 	if(isset($_GET["generate-x509"])){generate_x509();exit;}
 	if(isset($_GET["tools"])){tools();exit;}
 	if(isset($_GET["tools-main"])){tools_main();exit;}
 	
 	if(isset($_GET["x509-js"])){x509_js();exit;}
 	if(isset($_POST["delete-certificate"])){certificate_delete();exit;}
-	
-	
+	if(isset($_GET["privatekey"])){privatekey();exit;}
+	if(isset($_GET["CSR"])){csr_gen();exit;}
+	if(isset($_POST["GEN-CSR"])){csr_gen_perform();exit;}
 	
 	js();
 	
@@ -47,6 +55,8 @@ function tabs(){
 	$fontsize=20;
 	
 	$array["popup"]="{certificates_center}";
+	$array["privatekey"]="{private_key}";
+	$array["CSR"]="{CSR}";
 	
 	
 	
@@ -57,11 +67,205 @@ function tabs(){
 	
 	
 	
-	$html=build_artica_tabs($html,'main_certificates_center_tabs',975)."<script>LeftDesign('certificate-white-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'main_certificates_center_tabs',1490)."<script>LeftDesign('certificate-white-256-opac20.png');</script>";
 	
 	echo $html;
 	
 	
+}
+
+
+function pfx(){
+	
+	$CommonName=$_GET["pfx"];
+	$q=new mysql();
+	$sql="SELECT pks12  FROM sslcertificates WHERE CommonName='$CommonName'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$data=$ligne["pks12"];
+	$fsize=strlen($data);
+	writelogs_meta("$CommonName -> Send {$fsize}Bytes to client",__FUNCTION__,__FILE__,__LINE__);
+	header('Content-type: application/x-pkcs12');
+	header('Content-Transfer-Encoding: binary');
+	header("Content-Disposition: attachment; filename=\"$CommonName.pfx\"");
+	header("Pragma: public");
+	header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date dans le passé
+	header("Content-Length: ".$fsize);
+	ob_clean();
+	flush();
+	echo $data;
+	
+	
+}
+
+
+function certificate_delete_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$CommonName=$_GET["delete-certificate-js"];
+	$id=$_GET["id"];
+	$ask=$tpl->javascript_parse_text("{delete} $CommonName {certificate}\\n{delete_certificate_ask}");
+	$t=time();
+	echo "
+	var xDelete$t=function (obj) {
+	var results=obj.responseText;
+	if (results.length>3){alert(results);return;}
+	if( document.getElementById('row$id') ){ $('#row$id').remove(); return;}
+	if( document.getElementById('$id') ){ $('#$id').remove(); }
+
+}
+function Delete$t(){
+if(!confirm('$ask')){return;}
+var XHR = new XHRConnection();
+XHR.appendData('delete-certificate','$CommonName');
+XHR.sendAndLoad('$page', 'POST',xDelete$t);
+}
+Delete$t();";
+}
+function certificate_delete(){
+	$q=new mysql();
+	$commonName=$_POST["delete-certificate"];
+	$q->QUERY_SQL("DELETE FROM sslcertificates WHERE CommonName='$commonName'","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+
+}
+
+function csr_gen(){
+	
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$ligne=unserialize($sock->GET_INFO("CertificateCenterCSR"));
+	$t=time();
+	if($ligne["CountryName"]==null){$ligne["CountryName"]="US";}
+	if($ligne["stateOrProvinceName"]==null){$ligne["stateOrProvinceName"]="New York";}
+	if($ligne["localityName"]==null){$ligne["localityName"]="Brooklyn";}
+	if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
+	if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
+	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}
+	if(!is_numeric($ligne["CertificateMaxDays"])){$ligne["CertificateMaxDays"]=730;}
+	if(!is_numeric($ligne["levelenc"])){$ligne["levelenc"]=1024;}
+	$button_save=$tpl->_ENGINE_parse_body(button("{edit}", "Save$t()",30));
+	if($ligne["password"]==null){$ligne["password"]="MyPassword";}
+	
+	$sock->getFrameWork("openssl.php?copy-csr=yes");
+	$data=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/Myprivkey.csr");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/Myprivkey.csr");
+	
+	
+	$html[]="<div style='width:98%' class=form>";
+	$html[]="<table style='width:100%'>";
+	$html[]=Field_text_table("CommonName-$t","{CommonName}",$ligne["CommonName"],22,null,400);
+	$html[]=Field_text_table("CountryName-$t","{countryName}",$ligne["CountryName"],22,null,110);
+	$html[]=Field_text_table("stateOrProvinceName-$t","{stateOrProvinceName}",$ligne["stateOrProvinceName"],22,null,400);
+	$html[]=Field_text_table("localityName-$t","{localityName}",$ligne["localityName"],22,null,400);
+	$html[]=Field_text_table("OrganizationName-$t","{organizationName}",$ligne["OrganizationName"],22,null,400);
+	$html[]=Field_text_table("OrganizationalUnit-$t","{organizationalUnitName}",$ligne["OrganizationalUnit"],22,null,400);
+	$html[]=Field_text_table("emailAddress-$t","{emailAddress}",$ligne["emailAddress"],22,null,400);
+	$html[]=Field_password_table("password-$t","{password}",$ligne["password"],22,null,300);
+	$html[]=Field_button_table_autonome("{generate_csr}","Submit$t",30);
+	$html[]="</table>";
+
+	
+	$html[]="<hr>
+	<textarea
+	style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:16px !important;width:99%;height:390px' id='csr-$t'>$data</textarea>
+	";	
+	
+	
+	$html[]="</div>
+<script>
+var xSubmit$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	RefreshTab('main_certificates_center_tabs');
+	if(document.getElementById('squid_ports_popup_certificates')){
+		var id=document.getElementById('squid_ports_popup_certificates_num').value;
+		var Common=document.getElementById('CommonName-$t').value;
+		LoadAjaxSilent('squid_ports_popup_certificates','squid.ports.php?certificate-refresh=yes&default='+Common+'&t='+id);
+	}
+	
+	
+}
+	
+	
+function Submit$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('GEN-CSR','yes');
+	XHR.appendData('CommonName',encodeURIComponent(document.getElementById('CommonName-$t').value));
+	XHR.appendData('CountryName',encodeURIComponent(document.getElementById('CountryName-$t').value));
+	XHR.appendData('stateOrProvinceName',encodeURIComponent(document.getElementById('stateOrProvinceName-$t').value));
+	XHR.appendData('localityName',encodeURIComponent(document.getElementById('localityName-$t').value));
+	XHR.appendData('OrganizationName',encodeURIComponent(document.getElementById('OrganizationName-$t').value));
+	XHR.appendData('OrganizationalUnit',encodeURIComponent(document.getElementById('OrganizationalUnit-$t').value));
+	XHR.appendData('emailAddress',encodeURIComponent(document.getElementById('emailAddress-$t').value));
+	XHR.appendData('password',encodeURIComponent(document.getElementById('password-$t').value));
+	XHR.sendAndLoad('$page', 'POST',xSubmit$t);
+	}
+	
+</script>
+";
+echo $tpl->_ENGINE_parse_body(@implode("\n", $html));
+}	
+
+function csr_gen_perform(){
+	
+	while (list ($num, $ligne) = each ($_POST) ){
+		$ARRAY[$num]=url_decode_special_tool($ligne);
+	
+	}
+	
+	@file_put_contents("/usr/share/artica-postfix/ressources/conf/upload/CSR.ARRAY", serialize($ARRAY));
+	$sock=new sockets();
+	$sock->getFrameWork("openssl.php?gen-csr=yes");
+	
+}
+
+function privatekey(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$tt=time();
+	$sock=new sockets();
+	$sock->getFrameWork("openssl.php?copy-privatekey=yes");
+	$data=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/Myprivkey.key");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/Myprivkey.key");
+	$button_save=$tpl->_ENGINE_parse_body(button("{edit}", "Save$tt()",26));
+$html="
+<textarea
+	style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:16px !important;width:99%;height:390px' id='crt$tt'>$data</textarea>
+	<center style='margin:20px'>$button_save</center>
+<script>
+	var xSave$tt=function (obj) {
+	var results=obj.responseText;
+	if (results.length>3){alert(results);return;}
+	RefreshTab('main_certificates_center_tabs');
+	
+}
+function Save$tt(){
+	var XHR = new XHRConnection();
+	var pp=encodeURIComponent(document.getElementById('crt$tt').value);
+	XHR.appendData('save-privkey',pp);
+	XHR.sendAndLoad('$page', 'POST',xSave$tt);
+}
+</script>
+";
+	echo $tpl->_ENGINE_parse_body($html);
+
+
+}
+
+function save_private_key(){
+	
+	$_POST["save-privkey"]=url_decode_special_tool($_POST["save-privkey"]);
+	@file_put_contents("/usr/share/artica-postfix/ressources/conf/upload/privkey.key", $_POST["save-privkey"]);
+	$sock=new sockets();
+	$sock->getFrameWork("openssl.php?move-privkey=yes");
 }
 
 	
@@ -127,25 +331,26 @@ function popup(){
 	$delete_certificate_ask=$tpl->javascript_parse_text("{delete_certificate_ask}");
 	$buttons="
 	buttons : [
-	{name: '$new_certificate', bclass: 'Add', onpress : new_certificate$t},
+	{name: '<strong style=font-size:18px>$new_certificate</strong>', bclass: 'Add', onpress : new_certificate$t},
 	],";		
 	
 $html="
 <div style='margin-left:0px'>
-<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+<table class='TABLE_CERTIFICATE_CENTER_MAIN' style='display: none' id='TABLE_CERTIFICATE_CENTER_MAIN' style='width:100%'></table>
 </div>
 <script>
 var rowid$t='';
 function LoadTable$t(){
-$('#flexRT$t').flexigrid({
+$('#TABLE_CERTIFICATE_CENTER_MAIN').flexigrid({
 	url: '$page?items=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$hostname', name : 'CommonName', width : 237, sortable : true, align: 'left'},	
-		{display: '$Organization', name : 'Organization', width :189, sortable : true, align: 'left'},
-		{display: '$organizationalUnitName', name : 'OrganizationalUnit', width :163, sortable : true, align: 'left'},
-		{display: '$emailAddress', name : 'emailAddress', width :128, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'del', width :31, sortable : false, align: 'center'},
+		{display: '<span style=font-size:22px>$hostname</span>', name : 'CommonName', width : 350, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:22px>$Organization</span>', name : 'Organization', width :250, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$organizationalUnitName</span>', name : 'OrganizationalUnit', width :250, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$emailAddress</span>', name : 'emailAddress', width :250, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>PKCS12</span>', name : 'pcs12', width :87, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'del', width :65, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -158,7 +363,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'CommonName',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -252,25 +457,39 @@ function items(){
 	
 	if(mysql_num_rows($results)==0){json_error_show("no data",1);}
 	
-	
+	$AsProxyCertificate_text="<br><i>".$tpl->javascript_parse_text("{proxy_certificate}")."</i>";
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$AsProxyCertificate=null;
+		$color="black";
 	$zmd5=md5(serialize($ligne));
-	$delete=imgsimple("delete-24.png","","DeletSSlCertificate$t('{$ligne["CommonName"]}','$zmd5')");
-	$delete=imgsimple("delete-24.png",null,"Loadjs('miniadmin.certificates.php?delete-certificate-js={$ligne["CommonName"]}&id=$zmd5')");
+	$delete=imgsimple("delete-42.png","","DeletSSlCertificate$t('{$ligne["CommonName"]}','$zmd5')");
+	$delete=imgsimple("delete-42.png",null,"Loadjs('$MyPage?delete-certificate-js={$ligne["CommonName"]}&id=$zmd5')");
 	
 	$jsEdit="Loadjs('$MyPage?certificate-edit-js=yes&CommonName={$ligne["CommonName"]}&t=$t');";
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\"
-	style='font-size:16px;color:$color;text-decoration:underline'>";
+	style='font-size:20px;color:$color;text-decoration:underline;font-weight:bold'>";
+	
+	if($ligne["AsProxyCertificate"]==1){
+		$AsProxyCertificate=$AsProxyCertificate_text;
+	}
+	$pfx=null;
+	if($ligne["pks12"]<>null){
+		$pfx="<center><a href=\"$MyPage?pfx={$ligne["CommonName"]}\"><img src='img/pfx-42.png'></a></center>";
+		
+	}
+	
+	
 	
 	$data['rows'][] = array(
 		'id' => "$zmd5",
 		'cell' => array(
-			"<span style='font-size:16px;color:$color'>$urljs{$ligne["CommonName"]}</a></span>",
-			"<span style='font-size:16px;color:$color'>$urljs{$ligne["OrganizationName"]}</a></span>",
-			"<span style='font-size:16px;color:$color'>$urljs{$ligne["OrganizationalUnit"]}</a></span>",
-			"<span style='font-size:16px;color:$color'>$urljs{$ligne["emailAddress"]}</a></span>",
-			"<span style='font-size:16px;color:$color'>$delete</a></span>",
+			"<span style='font-size:20px;color:$color'>$urljs{$ligne["CommonName"]}</a>$AsProxyCertificate</span>",
+			"<span style='font-size:20px;color:$color'>$urljs{$ligne["OrganizationName"]}</a></span>",
+			"<span style='font-size:20px;color:$color'>$urljs{$ligne["OrganizationalUnit"]}</a></span>",
+			"<span style='font-size:20px;color:$color'>$urljs{$ligne["emailAddress"]}</a></span>",
+			"<span style='font-size:20px;color:$color'>$pfx</a></span>",
+			"<span style='font-size:20px;color:$color'><center>$delete</center></a></span>",
 			)
 		);
 	}
@@ -291,11 +510,11 @@ function certificate_edit_tabs(){
 	$array["settings"]="{settings}";
 	$array["certificates"]="{certificates}";
 	
-	$array["apache_chain"]="{apache_chain}";
-	$array["DynCert"]="{dynamic_chain}";
+	//$array["apache_chain"]="{apache_chain}";
+	//$array["DynCert"]="{dynamic_chain}";
 	$array["tools"]="{tools}";
 	
-	$fontsize=17;
+	$fontsize=22;
 	$id=md5($CommonName);
 
 	while (list ($num, $ligne) = each ($array) ){

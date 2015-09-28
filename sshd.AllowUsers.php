@@ -66,7 +66,7 @@ function new_member(){
 	$page=CurrentPageName();
 	$t=time();
 	$html="<div style='width:98%' class=form>
-	<div class=text-info style='font-size:16px'>{sshd_AllowUsers_explain}</div>
+	<div class=explain style='font-size:16px'>{sshd_AllowUsers_explain}</div>
 	<table style='width:100%'>
 			
 	".Field_text_table("username-$t", "{user2}",null,22,null,450).

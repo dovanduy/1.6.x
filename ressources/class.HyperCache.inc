@@ -41,11 +41,20 @@ class HyperCache{
 	}
 	
 	
+	public function debug($text,$function,$line){
+		
+		if(!$GLOBALS["HyperCacheDebug"]){return;}
+		events(__CLASS__."/$function:`$text [$line]");
+		
+	}
+	
+	
 	public function HyperCacheRulesMatches($URI,$allids=0){
 		if(!isset($GLOBALS["HyperCacheRules"])){$this->HyperCacheRulesLoad();}
 		$MAIN=$GLOBALS["HyperCacheRules"];
 		$OtherDomains=array();
 		if(count($MAIN)==0){
+			$this->debug("HyperCacheRulesMatches NO rules", __FUNCTION__, __LINE__);
 			if($GLOBALS["HYPER_CACHE_VERBOSE_RULES"]){echo "---------] HyperCacheRulesMatches NO rules [".__LINE__."]\n";}
 			return 0;
 		}
@@ -61,6 +70,7 @@ class HyperCache{
 			if(!is_array($OtherDomains)){$OtherDomains=array();}
 			
 			if($this->HyperCacheRulesMatchPattern($sitename,$URI)){
+				$this->debug("$sitename Matches rule id $ID ", __FUNCTION__, __LINE__);
 				if($allids==0){return $ID;}
 				if($GLOBALS["HYPER_CACHE_VERBOSE_RULES"]){echo "---------] $ID ++ [".__LINE__."]\n";}
 				$IDS[$ID]=$FileTypesArray;
@@ -70,6 +80,7 @@ class HyperCache{
 			if(count($OtherDomains)>0){
 				while (list ($domain, $ligne) = each ($OtherDomains) ){
 					if($this->HyperCacheRulesMatchPattern($domain,$URI)){
+						$this->debug("$sitename Matches rule id $ID ", __FUNCTION__, __LINE__);
 						if($allids==0){return $ID;}
 						if($GLOBALS["HYPER_CACHE_VERBOSE_RULES"]){echo "---------] $ID ++ [".__LINE__."]\n";}
 						$IDS[$ID]=$FileTypesArray;

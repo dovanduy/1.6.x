@@ -8,6 +8,7 @@ include_once(dirname(__FILE__).'/ressources/class.groups.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/ressources/class.ActiveDirectory.inc');
 include_once(dirname(__FILE__).'/ressources/class.external.ldap.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 
 if($argv[1]=="--dansguardian-status"){dansguardian_status(true);die();}
 
@@ -23,9 +24,6 @@ if(isset($_GET["status"])){status();exit;}
 
 if(isset($_GET["dansguardian-status"])){dansguardian_status();exit;}
 if(isset($_GET["groups"])){groups();exit;}
-if(isset($_GET["groups-filters"])){groups_filters();exit;}
-
-if(isset($_GET["groups-search"])){groups_search();exit;}
 if(isset($_GET["dansguardian-service-status"])){dansguardian_service_status();exit;}
 if(isset($_GET["dansguardian-service_status-nofilters"])){dansguardian_service_status_nofilters();exit;}
 
@@ -129,6 +127,7 @@ function tabs(){
 	if($EnableRemoteStatisticsAppliance==0){
 	
 		$array["acls"]='{acls}';
+		$array["bandwidth"]='{bandwidth}';
 	
 	}
 
@@ -146,7 +145,7 @@ function tabs(){
 
 	if($EnableRemoteStatisticsAppliance==0){
 		
-		$array["groups"]='{groups2}';
+		$array["groups"]='{proxy_objects}';
 		
 		
 	}
@@ -180,6 +179,13 @@ function tabs(){
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
+		if($num=="bandwidth"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.bandwith.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;			
+			
+		}
+		
+		
 		if($num=="browser-rules"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.browsers-rules.php?popup=yes\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
@@ -191,11 +197,17 @@ function tabs(){
 			
 		}
 		
+		if($num=="groups"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php?as-big=yes\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}
+		
 		if($num=="c-icap"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"c-icap.index.php?main=index\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		
-		}
+		}		
 		
 		if($num=="macros"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.macros.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
@@ -285,236 +297,10 @@ function groups(){
 
 }
 
-function groups_filters(){
-
-	$sock=new sockets();
-	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$dansguardian2_members_groups_explain=$tpl->_ENGINE_parse_body("{dansguardian2_members_groups_explain}");
-	$t=time();
-	$group=$tpl->_ENGINE_parse_body("{group}");
-	$type=$tpl->_ENGINE_parse_body("{type}");
-	$members=$tpl->_ENGINE_parse_body("{members}");
-	$delete=$tpl->_ENGINE_parse_body("{delete}");
-	$do_you_want_to_delete_this_group=$tpl->javascript_parse_text("{do_you_want_to_delete_this_group}");
-	$new_group=$tpl->_ENGINE_parse_body("{new_group}");
-	$browse=$tpl->_ENGINE_parse_body("{browse} AD");
-	if($EnableKerbAuth==1){
-		$BrowsAD="{name: '$browse', bclass: 'Search', onpress : BrowseAD},";
-	}
-
-	$buttons="
-	buttons : [
-	{name: '$new_group', bclass: 'add', onpress : AddNewDansGuardianGroup},$BrowsAD
-	],";		
-
-	$html="<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-<div class=text-info>$dansguardian2_members_groups_explain</div>
-<script>
-var rowid=0;
-$(document).ready(function(){
-$('#flexRT$t').flexigrid({
-	url: '$page?groups-search=yes&t=$t',
-	dataType: 'json',
-	colModel : [
-		{display: '$group', name : 'groupname', width : 503, sortable : true, align: 'left'},
-		{display: '$type', name : 'localldap', width : 151, sortable : true, align: 'left'},		
-		{display: '$members', name : 'members', width :57, sortable : false, align: 'center'},
-		{display: '$delete', name : 'delete', width : 48, sortable : false, align: 'center'},
-		],
-		$buttons
-	searchitems : [
-		{display: '$group', name : 'groupname'},
-		],
-	sortname: 'groupname',
-	sortorder: 'asc',
-	usepager: true,
-	title: '',
-	useRp: true,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: 831,
-	height: 350,
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
-	
-	});   
-});
-
-function BrowseAD(){
-	Loadjs('browse-ad-groups.php');
-}
-
-		function GroupsDansSearch(){
-			$('#flexRT$t').flexReload();
-		
-		}
-		
-		function AddNewDansGuardianGroup(){
-			DansGuardianEditGroup(-1)
-		
-		}
-		
-		function DansGuardianEditGroup(ID,rname){
-			YahooWin3('712','dansguardian2.edit.group.php?ID='+ID+'&t=$t','$group::'+ID+'::'+rname);
-		
-		}
-		
-	var x_DansGuardianDelGroup= function (obj) {
-		var res=obj.responseText;
-		if (res.length>3){alert(res);}
-		$('#row'+rowid).remove();
-	}		
-		
-	function DansGuardianDelGroup(ID){
-		if(confirm('$do_you_want_to_delete_this_group ?')){
-			rowid=ID;
-			var XHR = new XHRConnection();
-		    XHR.appendData('Delete-Group', ID);
-		    XHR.sendAndLoad('$page', 'POST',x_DansGuardianDelGroup); 
-		}
-	}		
-
-</script>
-";
-
-		echo $html;
-
-}
-
-function groups_search(){
-
-	$tpl=new templates();
-	$MyPage=CurrentPageName();
-	$q=new mysql_squid_builder();
-
-
-	$search='%';
-	$table="webfilter_group";
-	$page=1;
-	$FORCE_FILTER=null;
-	$total=0;
-
-	if($q->COUNT_ROWS($table)==0){
-		json_error_show("no data");
-		return ;
-	}
-	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
-	if(isset($_POST['page'])) {$page = $_POST['page'];}
-
-
-	$searchstring=string_to_flexquery();
-	
-	if($searchstring<>null){
-		
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-
-	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-		$total = $ligne["TCOUNT"];
-	}
-
-	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
 
 
 
-	$pageStart = ($page-1)*$rp;
-	if(!is_numeric($rp)){$rp=50;}
-	$limitSql = "LIMIT $pageStart, $rp";
 
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
-	$results = $q->QUERY_SQL($sql);
-	
-	if(mysql_num_rows($results)==0){json_error_show("no data");}
-
-
-	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total+1;
-	$data['rows'] = array();
-
-	if(!$q->ok){json_error_show($q->mysql_error);}
-	$localldap[0]=$tpl->_ENGINE_parse_body("{ldap_group}");
-	$localldap[1]=$tpl->_ENGINE_parse_body("{virtual_group}");
-	$localldap[2]=$tpl->_ENGINE_parse_body("{active_directory_group}");
-
-
-	while ($ligne = mysql_fetch_assoc($results)) {
-		$CountDeMembers=0;
-		$suffix=null;
-		if($GLOBALS["VERBOSE"]){print_r($ligne);}
-		$select=imgtootltip("32-parameters.png","{apply}","DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')");
-		$delete=imgtootltip("delete-24.png","{delete}","DansGuardianDelGroup('{$ligne["ID"]}')");
-		$color="black";
-		if($ligne["enabled"]==0){$color="#8a8a8a";}
-
-		if($ligne["localldap"]==1){
-			$q2=new mysql_squid_builder();
-			$sql="SELECT COUNT(ID) AS tcount FROM webfilter_members WHERE groupid={$ligne["ID"]}";
-			$ligne2=mysql_fetch_array($q2->QUERY_SQL($sql));
-			$CountDeMembers=$ligne2["tcount"];
-		}
-
-		if($ligne["localldap"]==0){
-			if($ligne["dn"]==null){
-				$gp=new groups($ligne["gpid"]);
-				$groupadd_text="(".$gp->groupName.")";
-				$CountDeMembers=$CountDeMembers+count($gp->members);
-			}
-			else{
-				if(preg_match("#ExtLdap:(.+)#", $ligne["dn"],$re)){
-					$groupadd_text="<span style='font-size:11px'>({$re[1]})</span>";
-					$ldapex=new external_ldap_search();
-					$CountDeMembers=$ldapex->CountDeMembers($re[1]);
-				}
-			}
-			
-		}
-		if($ligne["localldap"]==2){
-			$CountDeMembers="-";
-		}
-
-		$groupeTypeText=$localldap[$ligne["localldap"]];
-
-		$js="DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')";
-		$ligne["description"]=stripslashes($ligne["description"]);
-		$data['rows'][] = array(
-		'id' => $ligne['ID'],
-		'cell' => array(
-			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;color:$color;text-decoration:underline;font-weight:bold'>$suffix{$ligne["groupname"]} $groupadd_text</a>
-			<div style='font-size:10px'><i style='font-size:16px'>{$ligne["description"]}</i>",
-			"<span style='font-size:20px;color:$color;'>$groupeTypeText</span>",
-			"<span style='font-size:20px;color:$color;'>$CountDeMembers</span>",
-			"<span style='font-size:20px;color:$color;'>$delete</span>",
-		)
-		);
-	}
-
-
-	echo json_encode($data);
-
-}
-
-function groups_delete(){
-	if(!is_numeric($_POST["Delete-Group"])){return;}
-	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM webfilter_assoc_groups WHERE group_id='{$_POST["Delete-Group"]}'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-
-	$q->QUERY_SQL("DELETE FROM webfilter_members WHERE groupid='{$_POST["Delete-Group"]}'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-
-	$q->QUERY_SQL("DELETE FROM webfilter_group WHERE ID='{$_POST["Delete-Group"]}'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");
-
-}
 
 function status(){
 	$page=CurrentPageName();
@@ -593,7 +379,7 @@ function status_users(){
 function dansguardian_status($asroot=false){
 	
 	$page=CurrentPageName();
-	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
+	
 	
 	
 	
@@ -620,10 +406,10 @@ function dansguardian_status($asroot=false){
 	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
 	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
 	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
 	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
-	$EnableITChart=$sock->GET_INFO('EnableITChart');
+	
 	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
 	$EnableRDPProxy=$sock->GET_INFO("EnableRDPProxy");
 	$EnableLocalDNSMASQ=$sock->GET_INFO("EnableLocalDNSMASQ");
@@ -715,11 +501,6 @@ function dansguardian_status($asroot=false){
 	$EnableLocalDNSMASQText="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('squid.popups.php?script=dns');\"
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
-	
-	$EnableITChartPic="status_ok-grey.png";
-	$EnableITChartText="<a href=\"javascript:blur();\"
-	OnClick=\"javascript:Loadjs('ITChart.php');\"
-	style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</a>";
 	
 	$EnableHaarpText="<span style='font-size:12px;font-weight:bold;text-decoration:underline'>{disabled}</span>";
 	$picHaarp="status_ok-grey.png";
@@ -836,22 +617,7 @@ function dansguardian_status($asroot=false){
 		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";				
 	}
 	
-	if($EnableITChart==1){
-		$EnableITChartPic="status_ok.png";
-		$EnableITChartText="<a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('ITChart.php',true);\"
-		style='font-size:12px;font-weight:bold;text-decoration:underline'>{enabled}</a>";		
-	}
 	
-	
-	
-	$EnableITChartTextTR="<tr>
-				<td width=1%><span id='AdSquidStatusLeft'><img src='img/$EnableITChartPic'></span></td>
-				<td class=legend style='font-size:12px'>{IT_charter}:</td>
-				<td><div style='font-size:12px' nowrap>$EnableITChartText</td>
-				</tr>";	
-
-
 	$EnableActiveDirectoryTextTR="<tr>
 				<td width=1%><span id='AdSquidStatusLeft'><img src='img/$pic'></span></td>
 				<td class=legend style='font-size:12px'>Active Directory:</td>
@@ -1314,7 +1080,7 @@ function dansguardian_status($asroot=false){
 		$SplashScreenFinal=null;
 		$SquidBubbleModeTR=null;
 		$EnableActiveDirectoryTextTR=null;
-		$EnableITChartTextTR=null;
+		
 	}
 
 	if(!$users->APP_KHSE_INSTALLED){
@@ -1335,7 +1101,6 @@ function dansguardian_status($asroot=false){
 		$EnableRemoteStatisticsApplianceTextTR
 		$AsSquidLoadBalancerText
 		$SplashScreenFinal
-		$EnableITChartTextTR
 		$ufdb
 		$ufdbPDNS
 		$eCapClam
@@ -1543,11 +1308,6 @@ function ufdbguard_service_section(){
 				
 		}
 
-		if($num=="ufdbguard-blocked"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.blocked.events.php\" style='font-size:22px'><span>$ligne</span></a></li>\n");
-			continue;
-				
-		}
 
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:22px'><span>$ligne</span></a></li>\n");
 	}
@@ -1643,7 +1403,7 @@ function ufdbguard_service_options(){
 
 
 	$html="
-	<div class=text-info style='font-size:14px'>{ufdbguard_options_explain}</div>		
+	<div class=explain style='font-size:14px'>{ufdbguard_options_explain}</div>		
 	
 	<center><div style='width:$width'>".CompileTr3($tr)."</div></center>";
 	$tpl=new templates();
@@ -1706,7 +1466,7 @@ function dansguardian_service_status(){
 		<div style='text-align:right;width:100%'>". imgtootltip("refresh-24.png","{refresh}","RefreshDansguardianMainService()")."</div>
 	<script>
 		LoadAjax('nofilters','$page?dansguardian-service_status-nofilters=yes');
-		LoadAjax('dansguardian-statistics-status','squid.traffic.statistics.php?squid-status-stats=yes');
+		
 		UnlockPage();
 	</script>
 	
@@ -1724,7 +1484,7 @@ function dansguardian_service_status_nofilters(){
 	$okFilter=false;
 	$squid=new squidbee();
 	$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	$KAV4PROXY_INSTALLED=0;
 	$APP_UFDBGUARD_INSTALLED=0;

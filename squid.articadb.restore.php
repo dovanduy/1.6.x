@@ -32,7 +32,7 @@ function page(){
 	
 	
 	$html="<div style='width:98%' class=form>
-			<div style='font-size:18px' class=text-info>{squid_articadb_restore_explain}</div>
+			<div style='font-size:18px' class=explain>{squid_articadb_restore_explain}</div>
 			
 			<center style='margin:30px'>". button("{upload_backuped_container}",
 					"Loadjs('squid.articadb.restore.upload.php')",32)."</center>

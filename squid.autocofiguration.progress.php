@@ -82,9 +82,7 @@ function buildjs(){
 	
 	
 	$md5file=trim(md5_file($GLOBALS["LOGSFILES"]));
-	
-	echo "// CACHE FILE: {$GLOBALS["CACHEFILE"]} {$prc}%\n";
-	echo "// LOGS FILE: {$GLOBALS["LOGSFILES"]} - $md5file ". strlen($md5file)."\n";
+
 	
 if ($prc==0){
 	if(strlen($md5file)<32){
@@ -149,8 +147,7 @@ if($prc==100){
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
 		RTMMailHide();
-		javascript:AnimateDiv('BodyContent');
-		LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')
+		LoadAjaxRound('main-proxy-proxy-pac','squid.autoconfiguration.main.php?rules=yes');
 	}
 	setTimeout(\"Start$time()\",1000);
 	";	

@@ -62,7 +62,8 @@ function startx(){
 		return;
 	}
 	
-
+events("Source: $serverfrom",__LINE__);
+events("Destin: $serverto",__LINE__);
 
 	if($serverto==null){
 		if($peer_id==0){
@@ -75,10 +76,15 @@ function startx(){
 	$parse_url=parse_url($serverfrom);
 	$scheme=$parse_url["scheme"];
 	$host=$parse_url["host"];
+	events("$serverfrom: $scheme",__LINE__);
+	events("$serverfrom: $host",__LINE__);
+	
 	if($scheme=="http"){$local_port=80;}
 	if($scheme=="https"){$local_port=443;$ssl=1;}
+	if(isset($parse_url["port"])){$local_port=$parse_url["port"];}
 	if(preg_match("#(.+?):([0-9]+)#", $host,$re)){$local_port=$re[2];$host=$re[1];}
 	echo "Receive connections from port $local_port SSL=$ssl [".__LINE__."]\n";
+	events("$serverfrom:Port $local_port SSL=$ssl",__LINE__);
 	build_progress("$host Port:$local_port",10);
 	
 	$Rssl=0;
@@ -90,12 +96,22 @@ function startx(){
 	if($peer_id==0){
 		$parse_url=parse_url($serverto);
 		if(isset($parse_url["path"])){$path=$parse_url["path"]; }
+		
+		while (list ($num, $c) = each ($parse_url) ){events("$serverto: parse_url[$num]='$c'",__LINE__);}
+		
+		events("$serverto: Path='$path'",__LINE__);
+		
 		$forcedomain=null;
 		$scheme=$parse_url["scheme"];
+		events("$serverto: scheme='$scheme'",__LINE__);
+		
 		$remote_host=$parse_url["host"];
 		if($scheme=="http"){$remote_port=80;}
 		if($scheme=="https"){$remote_port=443;$Rssl=1;}
+		if(isset($parse_url["port"])){$remote_port=$parse_url["port"];}
 		if(preg_match("#(.+?):([0-9]+)#", $host,$re)){$remote_port=$re[2];$remote_host=$re[1];}
+		events("$serverto: Port='$remote_port'",__LINE__);
+		events("$serverto: Hostname='$remote_host'",__LINE__);
 		
 		if(!$IP->isIPAddress($remote_host)){
 			$forcedomain=$remote_host;
@@ -120,9 +136,9 @@ function startx(){
 		$ID=0;
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE ipaddr='$ipaddr' AND port='$remote_port'"));
 		if($ligne["ID"]==0){
-			$sql="INSERT IGNORE INTO `reverse_sources`
-			(`servername`,`ipaddr`,`port`,`ssl`,`enabled`,`forceddomain`)
-			VALUES ('$remote_host port $remote_port','$ipaddr','$remote_port',$Rssl,1,'$forcedomain')";
+			$sql="INSERT IGNORE INTO `reverse_sources` (`servername`,`ipaddr`,`port`,`ssl`,`enabled`,`forceddomain`,`remote_path`)
+			VALUES ('$remote_host port $remote_port','$ipaddr','$remote_port',$Rssl,1,'$forcedomain','$path')";
+			events("$sql",__LINE__);
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){
 				echo $q->mysql_error."\n$sql\n";
@@ -197,6 +213,8 @@ function startx(){
 }
 
 
+
+
 function preg_match_site($file){
 	
 	if(preg_match("#[0-9]+-freewebs-ssl-(.+?)\.([0-9]+)\.conf$#", trim($file),$re)){
@@ -212,7 +230,19 @@ function preg_match_site($file){
 
 	return false;
 }
-
+function events($text,$line=0){
+	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$common="/var/log/artica-postfix/nginx.wizard.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] ($line) $text\n";
+	@fwrite($h,$line);
+	@fclose($h);
+}
 
 
 

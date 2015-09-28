@@ -16,12 +16,16 @@ if(!PostFixVerifyRights()){
 
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["smtp"])){smtp();exit;}
+	
+	if(isset($_GET["smtp-instance-delete-js"])){smtp_instance_delete_js();exit;}
+	if(isset($_GET["smtp-instance-tab-js"])){smtp_instance_tab_js();exit;}
 	if(isset($_GET["smtp-instance-tab"])){smtp_instance_tab();exit;}
 	if(isset($_GET["smtp-instance-list"])){smtp_instance_list();exit;}
+	if(isset($_GET["smtp-instance-search"])){smtp_instance_search();exit;}
 	if(isset($_GET["smtp-instance-add"])){smtp_instance_add();exit;}
 	if(isset($_GET["smtp-instance-delete"])){smtp_instance_delete();exit;}
 	if(isset($_GET["smtp-instance-edit"])){smtp_instance_edit();exit;}
-	if(isset($_GET["smtp-instance-save"])){smtp_instance_save();exit;}
+	if(isset($_POST["smtp-instance-save"])){smtp_instance_save();exit;}
 	
 	if(isset($_GET["smtp-instance-cache-destinations"])){smtp_instance_cache_destinations();exit;}
 	if(isset($_GET["smtp-instance-cache-destinations-list"])){smtp_instance_cache_destinations_list();exit;}
@@ -33,33 +37,98 @@ if(!PostFixVerifyRights()){
 	
 	
 	if(isset($_GET["domains"])){domains_popup();exit;}
-	if(isset($_GET["domains-add"])){domains_add();exit;}
+	if(isset($_GET["domain-popup-add-js"])){domains_popup_add_js();exit;}
+	if(isset($_GET["domain-popup-add"])){domains_popup_add();exit;}
+	if(isset($_POST["domains-add"])){domains_add();exit;}
 	if(isset($_GET["domains-list"])){domains_list();exit;}
 	if(isset($_GET["domain-delete"])){domains_delete();exit;}
+	if(isset($_GET["domain-delete-js"])){domains_delete_js();exit;}
 
 	js();
 
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title="{domain_throttle}::{$_GET["hostname"]}/{$_GET["ou"]}";
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin3(660,'$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title');";
+	echo "YahooWin3(990,'$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title');";
 	}
+	
+function smtp_instance_tab_js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	echo "YahooWin5(850,'$page?smtp-instance-tab={$_GET["smtp-instance-tab-js"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}','{$_GET["title"]}')";
+}
+function smtp_instance_delete_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");	
+	
+	echo "
+var x_DeleteSMTPSenderInstance$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	$('#flexRT{$_GET["t"]}').flexReload();
+}	
+		
+function DeleteSMTPSenderInstance$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ou','{$_GET["ou"]}');
+	XHR.appendData('hostname','{$_GET["hostname"]}');
+	XHR.appendData('smtp-instance-delete','{$_GET["uuid"]}');
+	XHR.sendAndLoad(\"$page\", 'GET',x_DeleteSMTPSenderInstance$t);
+}	
+	
+DeleteSMTPSenderInstance$t();";
+	
+}
+function domains_popup_add_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text('{new_domain}');
+	header("content-type: application/x-javascript");
+	echo "YahooWin5(850,'$page?domain-popup-add=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}','$title')";
+}
+function domains_delete_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");
+	echo "
+var x_DeleteSMTPDomainInstance$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	$('#flexRT{$_GET["t"]}').flexReload();
+}	
+		
+function DeleteSMTPDomainInstance$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ou','{$_GET["ou"]}');
+	XHR.appendData('hostname','{$_GET["hostname"]}');
+	XHR.appendData('smtp-daemon-uuid','{$_GET["uuid"]}');
+	XHR.appendData('domain-delete','{$_GET["domain"]}');
+	XHR.sendAndLoad(\"$page\", 'GET',x_DeleteSMTPDomainInstance$t);
+}
+
+DeleteSMTPDomainInstance$t();
+";
+}
 	
 	
 function domains_add(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);	
+	$main=new maincf_multi($_POST["hostname"],$_POST["ou"]);	
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));	
-	$uuid=$_GET["smtp-daemon-uuid"];
-	$array[$uuid]["DOMAINS"][$_GET["domains-add"]]=true;
-	if(!$main->SET_BIGDATA("domain_throttle_daemons_list",base64_encode(serialize($array)))){writelogs("{$_GET["hostname"]}/{$_GET["ou"]}: error...");echo "ERROR";return;}
+	$uuid=$_POST["smtp-daemon-uuid"];
+	$array[$uuid]["DOMAINS"][$_POST["domains-add"]]=true;
+	if(!$main->SET_BIGDATA("domain_throttle_daemons_list",base64_encode(serialize($array)))){writelogs("{$_POST["hostname"]}/{$_POST["ou"]}: error...");echo "ERROR";return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-throttle=yes&instance={$_GET["hostname"]}");	
+	$sock->getFrameWork("cmd.php?postfix-throttle=yes&instance={$_POST["hostname"]}");	
 }
 
 function domains_delete(){
@@ -73,11 +142,82 @@ function domains_delete(){
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?postfix-throttle=yes&instance={$_GET["hostname"]}");		
 }
-	
-	
+
+
 function domains_popup(){
+	$t=time();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$daemon=$tpl->javascript_parse_text("{daemon}");
+	$domain=$tpl->javascript_parse_text("{domain}");
+	$destination_limit=$tpl->javascript_parse_text("{destination_limit}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$rate_delay=$tpl->javascript_parse_text("{rate_delay}");
+	$new=$tpl->javascript_parse_text("{new_domain}");
+	$about=$tpl->javascript_parse_text("{about2}");
+	$help=$tpl->javascript_parse_text("{domain_throttle_domain_explain}");
+	$title=$tpl->javascript_parse_text("{domain_throttle}");
+	$buttons="
+	buttons : [
+	{name: '$new', bclass: 'add', onpress : Add$t},
+	{name: '$about', bclass: 'Help', onpress : Help$t},
+	
+	],";
+	
+	
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	<script>
+	var memid='';
+	$('#flexRT$t').flexigrid({
+	url: '$page?domains-list=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '$domain', name : 'daemon', width : 400, sortable : true, align: 'left'},
+	{display: '$daemon', name : 'daemon', width : 400, sortable : true, align: 'left'},
+	{display: '$delete;', name : 'delete', width : 82, sortable : 111, align: 'center'},
+	],
+	$buttons
+	
+	sortname: 'domain',
+		sortorder: 'asc',
+		usepager: true,
+		title: '<span style=font-size:20px>$title</span>',
+		useRp: true,
+		rp: 50,
+		showTableToggleBtn: false,
+		width: '99%',
+		height: 350,
+		singleSelect: true,
+	});
+	
+	
+function Help$t(){
+	alert('$help');
+}
+	
+var x_smtp_daemon_add= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	$('#flexRT$t').flexReload();
+}
+	
+	
+function Add$t(){
+	Loadjs('$page?domain-popup-add-js=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t=$t');
+}
+</script>";
+	
+	echo $html;
+	
+	
+}
+	
+	
+function domains_popup_add(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
 	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);	
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));
 	if(is_array($array)){
@@ -88,52 +228,50 @@ function domains_popup(){
 		
 	}
 	
-	$field_instances=Field_array_Hash($instances_list,"smtp-daemon-uuid",null,"style:font-size:13px;padding:3px");
+	$field_instances=Field_array_Hash($instances_list,"smtp-daemon-uuid-$t",null,
+			"style:font-size:18px;padding:3px");
 	
 	
 	$html="
-	<div class=text-info>{domain_throttle_domain_explain}</div>
-	<center><table class=form>
+	<div class=explain style='font-size:16px'>{domain_throttle_domain_explain}</div>
+	<center style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{smtp_daemon_name}:</td>
+		<td class=legend style='font-size:18px'>{smtp_daemon_name}:</td>
 		<td>$field_instances</td>
-		<td class=legend>{domain}:</td>
-		<td>". Field_text("smtp_domainadd",null,"font-size:14px;padding:3px;width:120px","script:smtp_domainaddfunc_check(event)")."</td>
-		<td>". button("{add}","smtp_domainaddfunc()")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{domain}:</td>
+		<td>". Field_text("smtp_domainadd-$t",null,"font-size:18px;padding:3px;","script:smtp_domainaddfunc_check(event)")."</td>
+	</tr>
+	<tr>
+			<td colspan=2 align=right><hR>". button("{add}","smtp_domainaddfunc$t()",26)."</td>
 	</tr>
 	</table>
 	</center>
-	<div id='domain_throttle_domains_list' style='width:100%;height:220px;overflow:auto'></div>
+	
 	
 	<script>
-		var x_smtp_domainaddfunc= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshSMTPDomainList();
-			
-		}	
+var x_smtp_domainaddfunc= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;};
+	YahooWin5Hide();
+	$('#flexRT{$_GET["t"]}').flexReload();
+}	
 		
-		function smtp_domainaddfunc_check(e){
-			if(checkEnter(e)){smtp_domainaddfunc();}
-		}
+function smtp_domainaddfunc_check(e){
+	if(checkEnter(e)){smtp_domainaddfunc$t();}
+}
 		
-		function smtp_domainaddfunc(){
-			var XHR = new XHRConnection();
-			XHR.appendData('ou','{$_GET["ou"]}');
-			XHR.appendData('hostname','{$_GET["hostname"]}');
-			XHR.appendData('domains-add',document.getElementById('smtp_domainadd').value);
-			XHR.appendData('smtp-daemon-uuid',document.getElementById('smtp-daemon-uuid').value);
-			document.getElementById('domain_throttle_daemon_list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad(\"$page\", 'GET',x_smtp_domainaddfunc);
-		}
-		
-		function RefreshSMTPDomainList(){
-			LoadAjax('domain_throttle_domains_list','$page?domains-list=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
-		
-		}
-		
-		RefreshSMTPDomainList();
-	</script>	
+function smtp_domainaddfunc$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ou','{$_GET["ou"]}');
+	XHR.appendData('hostname','{$_GET["hostname"]}');
+	XHR.appendData('domains-add',document.getElementById('smtp_domainadd-$t').value);
+	XHR.appendData('smtp-daemon-uuid',document.getElementById('smtp-daemon-uuid-$t').value);
+	XHR.sendAndLoad(\"$page\", 'POST',x_smtp_domainaddfunc);
+}
+</script>	
 	
 	";
 	echo $tpl->_ENGINE_parse_body($html);			
@@ -142,210 +280,194 @@ function domains_popup(){
 	
 	
 function smtp(){
-	$page=CurrentPageName();
-	$tpl=new templates();	
-	
-	$html="
-	<div class=text-info>{domain_throttle_explain}</div>
-	<center><table class=form>
-	<tr>
-		<td class=legend>{smtp_daemon_name}:</td>
-		<td>". Field_text("smtp_daemon_name",null,"font-size:14px;padding:3px","script:smtp_daemon_add_check(event)")."</td>
-		<td>". button("{add}","smtp_daemon_add()")."</td>
-	</tr>
-	</table>
-	</center>
-	<div id='domain_throttle_daemon_list' style='width:100%;height:220px;overflow:auto'></div>
-	
-	
-	
-	<script>
-		var x_smtp_daemon_add= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshDaemonList();
-			
-		}	
-		
-		function smtp_daemon_add_check(e){
-			if(checkEnter(e)){smtp_daemon_add();}
-		}
-		
-		function smtp_daemon_add(){
-			var XHR = new XHRConnection();
-			XHR.appendData('ou','{$_GET["ou"]}');
-			XHR.appendData('hostname','{$_GET["hostname"]}');
-			XHR.appendData('smtp-instance-add',document.getElementById('smtp_daemon_name').value);
-			document.getElementById('domain_throttle_daemon_list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad(\"$page\", 'GET',x_smtp_daemon_add);
-		}
-		
-		function RefreshDaemonList(){
-			LoadAjax('domain_throttle_daemon_list','$page?smtp-instance-list=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
-		
-		}
-		
-		RefreshDaemonList();
-	</script>	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-	
+	smtp_instance_list();
 }
 
 function smtp_instance_list(){
+	$t=time();
 	$page=CurrentPageName();
+	$tpl=new templates();
+	$daemon=$tpl->javascript_parse_text("{daemon}");
+	$destination_limit=$tpl->javascript_parse_text("{destination_limit}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$rate_delay=$tpl->javascript_parse_text("{rate_delay}");
+	$new=$tpl->javascript_parse_text("{new_rule}");
+	$about=$tpl->javascript_parse_text("{about2}");
+	$help=$tpl->javascript_parse_text("{domain_throttle_domain_explain}");
+	$title=$tpl->javascript_parse_text("{domain_throttle}");
+	$buttons="
+	buttons : [
+	{name: '$new', bclass: 'add', onpress : Add$t},
+	{name: '$about', bclass: 'Help', onpress : Help$t},
+	
+	],";	
+	
+	
+$html="
+<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+<script>
+	var memid='';
+$('#flexRT$t').flexigrid({
+	url: '$page?smtp-instance-search=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '$daemon', name : 'daemon', width : 558, sortable : true, align: 'left'},
+	{display: '$destination_limit', name : 'destination_limit', width :111, sortable : true, align: 'center'},
+	{display: '$rate_delay', name : 'rate_delay', width :111, sortable : true, align: 'center'},
+	{display: '$delete;', name : 'delete', width : 86, sortable : 111, align: 'center'},
+	],
+	$buttons
+	
+	sortname: 'domain',
+	sortorder: 'asc',
+	usepager: true,
+	title: '<span style=font-size:20px>$title</span>',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 350,
+	singleSelect: true,
+});
+
+
+function Help$t(){
+	alert('$help');
+}
+
+var x_smtp_daemon_add= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	$('#flexRT$t').flexReload();
+}	
+
+		
+function Add$t(){
+	var instance=prompt('instance');
+	if(!instance){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('ou','{$_GET["ou"]}');
+	XHR.appendData('hostname','{$_GET["hostname"]}');
+	XHR.appendData('smtp-instance-add',instance);
+	XHR.sendAndLoad(\"$page\", 'GET',x_smtp_daemon_add);
+}
+	
+</script>";
+	
+echo $html;	
+	
+}
+
+function smtp_instance_search(){
+	
+	$MyPage=CurrentPageName();
 	$tpl=new templates();		
 	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);	
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));
 	
-		$html="
-		<hr>
+	if(count($array)==0){
+		json_error_show("no data");
+	}
+	
 		
-		<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th>&nbsp;</th>
-	<th>{daemon}</th>
-	<th nowrap>{destination_limit}</th>
-	<th nowrap>{rate_delay}</th>
-	<th>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-		
-	if(is_array($array)){
-		while (list ($uuid, $array_conf) = each ($array) ){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$color="#909090";
-		if($array_conf["ENABLED"]==1){$color="black";}
-		$js="<a href=\"javascript:blur();\" style='font-size:14px;text-decoration:underline;color:$color' OnClick=\"javascript:YahooWin4(650,'$page?smtp-instance-tab=$uuid&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','{$array_conf["INSTANCE_NAME"]}')\">";
-		
-		
-		
-		
-			$html=$html."<tr class=$classtr>
-						<td width=1%><img src='img/plane-32.png'></td>
-						<td><strong style='font-size:16px'>$js{$array_conf["INSTANCE_NAME"]}</a></strong></td>
-						<td width=1%  align='center'><strong style='font-size:16px;color:$color'>{$array_conf["transport_destination_concurrency_limit"]}</strong></td>
-						<td width=1%  align='center'><strong style='font-size:16px;color:$color'>{$array_conf["transport_destination_rate_delay"]}</strong></td>
-						<td width=1% align='center'>".imgtootltip("delete-24.png",'{delete}',"DeleteSMTPSenderInstance('$uuid')")."</td>
-					</tr>";					
-		
-		
-			
-		}
-	}	
+$c=0;
+while (list ($uuid, $array_conf) = each ($array) ){
+	$color="#909090";
+	$m5=md5($array_conf["INSTANCE_NAME"]);
+	$c++;
+	$MyPage=CurrentPageName();
+	if($array_conf["ENABLED"]==1){$color="black";}
+	
+	$instancename=urlencode($array_conf["INSTANCE_NAME"]);
+	$js="javascript:Loadjs('$MyPage?smtp-instance-tab-js=$uuid&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}&title=$instancename')";
+	
+	
+	
+	
+	$link="<a href=\"javascript:blur();\"
+					OnClick=\"$js\" style='font-size:20px;font-weight:bold;text-decoration:underline'>";
+	
+	$data['rows'][] = array(
+			'id' => "dom$m5",
+			'cell' => array(
+					"$link{$array_conf["INSTANCE_NAME"]}</a>",
+					"<center>$link{$array_conf["transport_destination_concurrency_limit"]}</a></center>",
+					"<center>$link{$array_conf["transport_destination_rate_delay"]}</a></center>",
+					"<center>".imgsimple('delete-32.png','{delete}',
+					"Loadjs('$MyPage?smtp-instance-delete-js=yes&uuid=$uuid&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}')")."<center>" 
+			)
+	);
+}
 
-	$html=$html."</table>
+
+if($c==0){
+	json_error_show("no data");
+}
 	
-	<script>
-		var x_DeleteSMTPSenderInstance= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshDaemonList();
-			
-		}	
-		
-		function DeleteSMTPSenderInstance(uuid){
-			var XHR = new XHRConnection();
-			XHR.appendData('ou','{$_GET["ou"]}');
-			XHR.appendData('hostname','{$_GET["hostname"]}');
-			XHR.appendData('smtp-instance-delete',uuid);
-			document.getElementById('domain_throttle_daemon_list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad(\"$page\", 'GET',x_DeleteSMTPSenderInstance);
-		}	
-	
-	</script>
-	
-	
-	";
+	$data['page'] = 1;
+	$data['total'] = $c;
+	echo json_encode($data);
+
 	
 	echo $tpl->_ENGINE_parse_body($html);		
 	
 }
 
+
+
 function domains_list(){
-	$page=CurrentPageName();
+	$MyPage=CurrentPageName();
 	$tpl=new templates();		
 	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);	
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));
 	
-		$html="
-		<hr>
-		
-		<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th>&nbsp;</th>
-	<th>{domain}</th>
-	<th>&nbsp;</th>
-	<th>{daemon}</th>
-	<th>&nbsp;</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-		
-	if(is_array($array)){
-		while (list ($uuid, $array_conf) = each ($array) ){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+	if(count($array)==0){
+		json_error_show("no data");
+	}
+	$c=0;
+	while (list ($uuid, $array_conf) = each ($array) ){
 		$color="#909090";
 		if($array_conf["ENABLED"]==1){$color="black";}		
-		$js="<a href=\"javascript:blur();\" style='font-size:14px;text-decoration:underline;color:$color' OnClick=\"javascript:YahooWin4(650,'$page?smtp-instance-edit=$uuid&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','{$array_conf["INSTANCE_NAME"]}')\">";
+
+			$js="<a href=\"javascript:blur();\" 
+			style='font-size:14px;text-decoration:underline;color:$color' 
+			OnClick=\"javascript:YahooWin4(650,'$page?smtp-instance-edit=$uuid&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','{$array_conf["INSTANCE_NAME"]}')\">";
 		
 		while (list ($domain, $none) = each ($array_conf["DOMAINS"]) ){    
-			$html=$html."<tr class=$classtr>
-						<td width=1%><img src='img/32-relayhost.png'></td>
-						<td><strong style='font-size:16px;color:$color'>$domain</strong></td>
-						<td width=1%  align='center' nowrap><strong style='font-size:16px;color:$color'><img src='img/arrow-right-32.png'></strong></td>
-						<td width=1%  align='center' nowrap><strong style='font-size:16px;color:$color'>$js{$array_conf["INSTANCE_NAME"]}</a></strong></td>
-						<td width=1% align='center' nowrap>".imgtootltip("delete-32.png",'{delete}',"DeleteSMTPDomainInstance('$uuid','$domain')")."</td>
-					</tr>";					
-			}
-		
 			
+			$c++;
+			$data['rows'][] = array(
+					'id' => "dom$m5",
+					'cell' => array(
+							"<span style='font-size:22px'>$domain</a>",
+							"<span style='font-size:22px'>{$array_conf["INSTANCE_NAME"]}</a></span>",
+							"<center>".imgsimple('delete-32.png','{delete}',
+									"Loadjs('$MyPage?domain-delete-js=yes&uuid=$uuid&domain=$domain&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}')")."<center>"
+											)
+			);
 		}
-	}	
-
-	$html=$html."</table>
+	}
+	if($c==0){
+		json_error_show("no data");
+	}
 	
-	<script>
-		var x_DeleteSMTPDomainInstance= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshSMTPDomainList();
-			
-		}	
-		
-		function DeleteSMTPDomainInstance(uuid,domain){
-			var XHR = new XHRConnection();
-			XHR.appendData('ou','{$_GET["ou"]}');
-			XHR.appendData('hostname','{$_GET["hostname"]}');
-			XHR.appendData('smtp-daemon-uuid',uuid);
-			XHR.appendData('domain-delete',domain);
-			document.getElementById('domain_throttle_domains_list').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad(\"$page\", 'GET',x_DeleteSMTPDomainInstance);
-		}	
-	
-	</script>
-	
-	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);		
+	$data['page'] = 1;
+	$data['total'] = $c;
+	echo json_encode($data);
 	
 }
 
 function smtp_instance_save(){
-	$instance=$_GET["smtp-instance-save"];
-	$main=new maincf_multi($_GET["hostname"],$_GET["ou"]);	
+	$instance=$_POST["smtp-instance-save"];
+	$main=new maincf_multi($_POST["hostname"],$_POST["ou"]);	
 	$array=unserialize(base64_decode($main->GET_BIGDATA("domain_throttle_daemons_list")));	
-	while (list ($key, $val) = each ($_GET) ){
+	while (list ($key, $val) = each ($_POST) ){
+		if(preg_match("#^Text_#", $key)){continue;}
 		$array[$instance][$key]=$val;
 	}
-	if(!$main->SET_BIGDATA("domain_throttle_daemons_list",base64_encode(serialize($array)))){writelogs("{$_GET["hostname"]}/{$_GET["ou"]}: error...");echo "ERROR";return;}
+	if(!$main->SET_BIGDATA("domain_throttle_daemons_list",base64_encode(serialize($array)))){writelogs("{$_POST["hostname"]}/{$_POST["ou"]}: error...");echo "ERROR";return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-throttle=yes&instance={$_GET["hostname"]}");	
+	$sock->getFrameWork("cmd.php?postfix-throttle=yes&instance={$_POST["hostname"]}");	
 }
 
 function smtp_instance_add(){
@@ -407,105 +529,105 @@ function smtp_instance_edit(){
 	
 
 	$html="
-	<div class=text-info>{domain_throttle_explain_edit}</div>
-	<div id='id-$uuid'>
-	<table class=form>
+	<div class=explain style='font-size:18px;margin-bottom:20px'>{domain_throttle_explain_edit}</div>
+	<div id='id-$uuid' style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{smtp_daemon_name}:<td>
-		<td>". Field_text("INSTANCE_NAME",$conf["INSTANCE_NAME"],"width:160px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{smtp_daemon_name}:<td>
+		<td>". Field_text("INSTANCE_NAME",$conf["INSTANCE_NAME"],"width:290px;font-size:18px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend>{default_process_limit}:<td>
-		<td>". Field_text("default_process_limit",$conf["default_process_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_process_limit}:<td>
+		<td>". Field_text("default_process_limit",$conf["default_process_limit"],"width:60px;font-size:18px")."</td>
 		<td>". help_icon("{default_process_limit_text}")."</td>
 	</tr>	
 
 	<tr>
-		<td class=legend>{enabled}:<td>
+		<td class=legend style='font-size:18px'>{enabled}:<td>
 		<td>". Field_checkbox("ENABLED",1,$conf["ENABLED"],"CheckEnabledInstance()")."</td>
 		<td>&nbsp;</td>
 	<tr>
 	<tr>
-		<td class=legend>{smtp_connection_cache_on_demand}:<td>
+		<td class=legend style='font-size:18px'>{smtp_connection_cache_on_demand}:<td>
 		<td>". Field_checkbox("smtp_connection_cache_on_demand",1,$conf["smtp_connection_cache_on_demand"],"CheckConnexionCache()")."</td>
 		<td>". help_icon("{smtp_connection_cache_on_demand_text}")."</td>
 	<tr>	
 	
 	<tr>
-		<td class=legend>{smtp_connection_cache_time_limit}:<td>
-		<td>". Field_text("smtp_connection_cache_time_limit",$conf["smtp_connection_cache_time_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{smtp_connection_cache_time_limit}:<td>
+		<td>". Field_text("smtp_connection_cache_time_limit",$conf["smtp_connection_cache_time_limit"],"width:60px;font-size:18px")."</td>
 		<td>". help_icon("{smtp_connection_cache_time_limit_text}")."</td>
 	<tr>
 	<tr>
-		<td class=legend>{smtp_connection_reuse_time_limit}:<td>
-		<td>". Field_text("smtp_connection_reuse_time_limit",$conf["smtp_connection_reuse_time_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{smtp_connection_reuse_time_limit}:<td>
+		<td>". Field_text("smtp_connection_reuse_time_limit",$conf["smtp_connection_reuse_time_limit"],"width:60px;font-size:18px")."</td>
 		<td>". help_icon("{smtp_connection_reuse_time_limit_text}")."</td>
 	<tr>			
 	<tr>
-		<td class=legend>{default_destination_concurrency_limit}:<td>
-		<td>". Field_text("transport_destination_concurrency_limit",$conf["transport_destination_concurrency_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_concurrency_limit}:<td>
+		<td>". Field_text("transport_destination_concurrency_limit",$conf["transport_destination_concurrency_limit"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_concurrency_limit_text}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{default_destination_rate_delay}:<td>
-		<td>". Field_text("transport_destination_rate_delay",$conf["transport_destination_rate_delay"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_rate_delay}:<td>
+		<td>". Field_text("transport_destination_rate_delay",$conf["transport_destination_rate_delay"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_rate_delay_text}")."</td>
 	</tr>
 	
 	<tr>
-		<td class=legend>{initial_destination_concurrency}:<td>
-		<td>". Field_text("transport_initial_destination_concurrency",$conf["transport_initial_destination_concurrency"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{initial_destination_concurrency}:<td>
+		<td>". Field_text("transport_initial_destination_concurrency",$conf["transport_initial_destination_concurrency"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{initial_destination_concurrency_text}")."</td>		
 	</tr>	
 	
 	<tr>
-		<td class=legend>{default_destination_concurrency_failed_cohort_limit}:<td>
-		<td>". Field_text("transport_destination_concurrency_failed_cohort_limit",$conf["transport_destination_concurrency_failed_cohort_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_concurrency_failed_cohort_limit}:<td>
+		<td>". Field_text("transport_destination_concurrency_failed_cohort_limit",$conf["transport_destination_concurrency_failed_cohort_limit"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_concurrency_failed_cohort_limit_text}")."</td>		
 	</tr>
 	<tr>
-		<td class=legend>{default_destination_concurrency_positive_feedback}:<td>
-		<td>". Field_text("transport_destination_concurrency_positive_feedback",$conf["transport_destination_concurrency_positive_feedback"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_concurrency_positive_feedback}:<td>
+		<td>". Field_text("transport_destination_concurrency_positive_feedback",$conf["transport_destination_concurrency_positive_feedback"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_concurrency_positive_feedback_text}")."</td>		
 	</tr>	
 	<tr>
-		<td class=legend>{default_destination_concurrency_negative_feedback}:<td>
-		<td>". Field_text("transport_destination_concurrency_negative_feedback",$conf["transport_destination_concurrency_negative_feedback"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_concurrency_negative_feedback}:<td>
+		<td>". Field_text("transport_destination_concurrency_negative_feedback",$conf["transport_destination_concurrency_negative_feedback"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_concurrency_negative_feedback_text}")."</td>		
 	</tr>		
 	<tr>
-		<td class=legend>{default_destination_recipient_limit}:<td>
-		<td>". Field_text("transport_destination_recipient_limit",$conf["transport_destination_recipient_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_destination_recipient_limit}:<td>
+		<td>". Field_text("transport_destination_recipient_limit",$conf["transport_destination_recipient_limit"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_destination_recipient_limit_text}")."</td>		
 	</tr>		
 	
 	<tr>
-		<td class=legend>{default_extra_recipient_limit}:<td>
-		<td>". Field_text("transport_extra_recipient_limit",$conf["transport_extra_recipient_limit"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_extra_recipient_limit}:<td>
+		<td>". Field_text("transport_extra_recipient_limit",$conf["transport_extra_recipient_limit"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_extra_recipient_limit_text}")."</td>		
 	</tr>	
 
 	<tr>
-		<td class=legend>{default_delivery_slot_loan}:<td>
-		<td>". Field_text("transport_delivery_slot_loan",$conf["transport_delivery_slot_loan"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_delivery_slot_loan}:<td>
+		<td>". Field_text("transport_delivery_slot_loan",$conf["transport_delivery_slot_loan"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_delivery_slot_loan_text}")."</td>
 	</tr>	
 		
 	<tr>
-		<td class=legend>{default_delivery_slot_cost}:<td>
-		<td>". Field_text("transport_delivery_slot_cost",$conf["transport_delivery_slot_cost"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_delivery_slot_cost}:<td>
+		<td>". Field_text("transport_delivery_slot_cost",$conf["transport_delivery_slot_cost"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_delivery_slot_cost_text}")."</td>
 	</tr>		
 	
 	<tr>
-		<td class=legend>{default_delivery_slot_discount}:<td>
-		<td>". Field_text("transport_delivery_slot_discount",$conf["transport_delivery_slot_discount"],"width:60px;font-size:13px")."</td>
+		<td class=legend style='font-size:18px'>{default_delivery_slot_discount}:<td>
+		<td>". Field_text("transport_delivery_slot_discount",$conf["transport_delivery_slot_discount"],"width:60px;font-size:18px")."</td>
 		<td width=1%>". help_icon("{default_delivery_slot_discount_text}")."</td>
 	</tr>	
 	
 	<tr>
-		<td colspan=3 align=right><hr>". button("{apply}","SaveSMTPInstanceParams()")."</td>
+		<td align=right colspan=3><hr>". button("{apply}","SaveSMTPInstanceParams()",22)."</td>
 	</tr>
 	
 	</table>
@@ -535,9 +657,9 @@ function smtp_instance_edit(){
 		var x_SaveSMTPInstanceParams= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
-			RefreshTab('main_ecluse_config');
-			RefreshTab('main_smtp_instance_edit_tab');
 			
+			RefreshTab('main_smtp_instance_edit_tab');
+			$('#flexRT{$_GET["t"]}').flexReload();
 			
 		}	
 		
@@ -546,8 +668,7 @@ function smtp_instance_edit(){
 			XHR.appendData('ou','{$_GET["ou"]}');
 			XHR.appendData('hostname','{$_GET["hostname"]}');
 			XHR.appendData('smtp-instance-save','$uuid');
-			document.getElementById('id-$uuid').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";
-			XHR.sendAndLoad(\"$page\", 'GET',x_SaveSMTPInstanceParams);
+			XHR.sendAndLoad(\"$page\", 'POST',x_SaveSMTPInstanceParams);
 		}	
 	CheckEnabledInstance();
 	CheckConnexionCache();
@@ -657,7 +778,7 @@ function smtp_instance_cache_destinations_add(){
 	<td>" . Field_text('relay_port',25,"font-size:14px;padding:3px;width:40px") . "</td>	
 	</tr>	
 	<tr>
-	<td class=legend>{MX_lookups}</td>	
+	<td class=legend style='font-size:18px'>{MX_lookups}</td>	
 	<td>" . Field_checkbox('MX_lookups','1',0)."</td>
 	</tr>
 
@@ -665,7 +786,7 @@ function smtp_instance_cache_destinations_add(){
 	<td colspan=2 align='right'><hr>". button("{add}","PostFixSaveServerCache()")."</td>
 	</tr>		
 	<tr>
-	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=text-info>{MX_lookups_text}</div></td>
+	<td align='left' colspan=2><strong{MX_lookups}</strong><br><div class=explain>{MX_lookups_text}</div></td>
 	</tr>			
 		
 	</table>
@@ -745,27 +866,14 @@ function smtp_instance_tab(){
 
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$tab[]="<li><a href=\"$page?$num={$_GET["smtp-instance-tab"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+		$tab[]="<li>
+		<a href=\"$page?$num={$_GET["smtp-instance-tab"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t={$_GET["t"]}\">
+			<span style='font-size:18px'>$ligne</span></a></li>\n";
 			
 	}
 
-	$html="
-		<div id='main_smtp_instance_edit_tab' style='background-color:white'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_smtp_instance_edit_tab').tabs();
-				});
-		</script>
 	
-	";
-		
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
+	echo build_artica_tabs($tab, "main_smtp_instance_edit_tab");
 }
 	
 
@@ -777,26 +885,17 @@ function popup(){
 
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$tab[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n";
+		$tab[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\">
+		<span style='font-size:18px'>$ligne</span></a></li>\n";
 			
 	}
-
-	$html="
-		<div id='main_ecluse_config' style='background-color:white'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_ecluse_config').tabs();
-				});
-		</script>
 	
-	";
+	
+	echo build_artica_tabs($tab, "main_ecluse_config");
+
 		
 	
-	echo $tpl->_ENGINE_parse_body($html);		
+		
 }
 function PostFixVerifyRights(){
 	$usersmenus=new usersMenus();

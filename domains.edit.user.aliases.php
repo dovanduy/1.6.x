@@ -230,7 +230,7 @@ function USER_ALIASES_FORM_ADD() {
     			</table>";
 	
 	$html = "
-<div class=text-info style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
+<div class=explain style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
 $form_add
 
 

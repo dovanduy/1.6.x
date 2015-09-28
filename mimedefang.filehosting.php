@@ -57,7 +57,7 @@ function popup(){
 	$explain=$tpl->_ENGINE_parse_body("{mimedefang_filehosting_explain}");
 	$html="
 	
-	<div class=text-info style='font-size:14px'>$explain</div>
+	<div class=explain style='font-size:14px'>$explain</div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 var mem$t='';

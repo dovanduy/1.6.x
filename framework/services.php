@@ -33,9 +33,10 @@ if(isset($_GET["reload-sshd"])){reload_sshd();exit;}
 if(isset($_GET["locales-gen"])){locales_gen();exit;}
 if(isset($_GET["locales-gen-running"])){locales_gen_running();exit;}
 if(isset($_GET["locales-gen-progress"])){locales_gen_progress();exit;}
+if(isset($_GET["vmtools_installed"])){vmtools_installed();exit;}
+if(isset($_GET["vmtools_stat"])){vmtools_stat();exit;}
 
-
-
+if(isset($_GET["phpldapadmin_install"])){phpldapadmin_install();exit;}
 if(isset($_GET["squidstats-test-nas"])){squidstats_tests_nas();exit;}
 if(isset($_GET["execute-debian-mirror-rsync"])){debian_mirror_execute_rsync();exit;}
 if(isset($_GET["recompile-postfix"])){recompile_postfix();exit;}
@@ -702,7 +703,7 @@ function mysql_optimize_db(){
 function dnsmasq_reconfigure(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php >/dev/null 2>&1");
+	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.dnsmasq.php --build >/dev/null 2>&1");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
 }
@@ -785,9 +786,17 @@ function kerbauth_tenir(){
 function kerbauth_progress(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.ad.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/squid.ad.progress.log";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], "\n");
+	@file_put_contents($GLOBALS["LOGSFILES"], "\n");
+	@chmod($GLOBALS["PROGRESS_FILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	
 	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
 	@unlink($cachefile);
-	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.kerbauth.php --build-progress >/dev/null 2>&1 &");
+	$cmd=trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.kerbauth.php --build-progress >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
@@ -878,12 +887,23 @@ function restart_lighttpd(){
 	writelogs_framework("RESTART WEB CONSOLE !",__FUNCTION__,__FILE__,__LINE__);	
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	shell_exec("/usr/share/artica-postfix/bin/artica-install --lighttpd-phpmyadmin");
-	$cmd=trim("$nohup /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &");
+	$rm=$unix->find_program("rm");
+	
+
+	$tmpfile=$unix->FILE_TEMP();
+	$SCRIPT[]="#!/bin/sh";
+	$SCRIPT[]="/usr/share/artica-postfix/bin/artica-install --lighttpd-phpmyadmin >/dev/null 2>&1";
+	$SCRIPT[]="/etc/init.d/artica-webconsole restart >/dev/null 2>&1";
+	$SCRIPT[]="/etc/init.d/artica-framework restart >/dev/null 2>&1";
+	$SCRIPT[]="$rm -f $tmpfile";
+	$SCRIPT[]="";
+	
+	@file_put_contents($tmpfile, @implode("\n", $SCRIPT));
+	@chmod($tmpfile,0755);
+	$cmd=trim("$nohup $tmpfile >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
-	$cmd=trim("$nohup /etc/init.d/artica-framework restart >/dev/null 2>&1 &");
-	shell_exec($cmd);
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	
 }
 
 function restart_webconsole_scheduled(){
@@ -1319,12 +1339,43 @@ function vmwaretoolscd(){
 	vmwaretoolsinit();
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
+	vmwaretoolsinit();
 	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress.txt";
 	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.vmwaretools.php --cd >$LOG_FILE 2>&1 &");	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
 	
 }
+
+function vmtools_installed(){
+	
+	
+	$f[]="/usr/bin/vmtoolsd";
+	$f[]="/usr/sbin/vmware-guestd";
+	$f[]="/usr/lib/vmware-tools/bin32/vmware-user-loader";
+	while (list ($key, $value) = each ($f) ){
+		if(is_file($value)){
+			echo "<articadatascgi>TRUE</articadatascgi>";
+		}
+	}
+	echo "<articadatascgi>FALSE</articadatascgi>";
+}
+
+function vmtools_stat(){
+	
+	$cmds=array("hosttime","speed","sessionid","balloon","swap","memlimit","memres","cpures","cpulimit");
+	
+	$array["status"]=exec("/usr/bin/vmware-checkvm");
+	
+	while (list ($key, $value) = each ($cmds) ){
+		
+		$array[$value]=exec("/usr/bin/vmware-toolbox-cmd stat $value 2>&1");
+	}
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/vmware.array", serialize($array));
+	
+}
+
+
 
 function vmwaretoolsinit(){
 	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress";
@@ -1364,13 +1415,18 @@ function CleanCacheMem(){
 }
 function file_descriptors_get(){
 	$unix=new unix();
+	$fileCache="/usr/share/artica-postfix/ressources/logs/web/files-descriptors";
 	$sysctl=$unix->find_program("sysctl");
 	$cmd="$sysctl fs.file-nr 2>&1";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	exec("$cmd",$results);
 	if(preg_match("#=\s+([0-9]+)\s+[0-9]+\s+([0-9]+)#", @implode("", $results),$re)){
 		$array=array("MINI"=>$re[1],"MAXI"=>$re[2]);
-		echo "<articadatascgi>". base64_encode(serialize($array))."</articadatascgi>";
+		$FINAL=serialize($array);
+		@unlink($fileCache);
+		@file_put_contents($fileCache, $FINAL);
+		@chmod($fileCache, 0777);
+		echo "<articadatascgi>". base64_encode($FINAL)."</articadatascgi>";
 	}
 }
 
@@ -1956,9 +2012,17 @@ function cache_pages(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
-	$cmd="$nohup $php /usr/share/artica-postfix/exec.cache.pages.php --force >/dev/null 2>&1 &";
+	
+	@chmod("/usr/share/artica-postfix/bin/process1",0755);
+	$cmd="$nohup /usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1 &";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	shell_exec($cmd);
+	
+	$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.interface-size.php --force >/dev/null 2>&1 &";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);	
+	shell_exec($cmd);
+	
+
 }
 
 function syslogdb_tests_nas(){
@@ -2052,7 +2116,7 @@ function restart_network(){
 	ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html", "\n");
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html",0777);
-	shell_exec("$nohup /etc/init.d/artica-ifup start >> /usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-ifup start --script=services.php/restart_network >> /usr/share/artica-postfix/ressources/logs/web/exec.virtuals-ip.php.html 2>&1 &");
 		
 	
 }
@@ -2139,7 +2203,20 @@ function locales_gen_progress(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
-
+function phpldapadmin_install(){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/phpldapadmin.status";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/phpldapadmin.txt";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], "\n");
+	@file_put_contents($GLOBALS["LOGSFILES"], "\n");
+	@chmod($GLOBALS["PROGRESS_FILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.phpldapadmin.install.php --install >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
 
 function locales_gen(){
 	$unix=new unix();

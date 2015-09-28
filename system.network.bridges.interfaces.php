@@ -340,7 +340,7 @@ function Bridge_table(){
 		}
 		$reboot_network_explain=$tpl->_ENGINE_parse_body("{interface_bridges_explain}<p>&nbsp;</p>{reboot_network_explain}");
 		$html="$error
-		<div class=text-info style='font-size:16px'>$reboot_network_explain</div>
+		<div class=explain style='font-size:16px'>$reboot_network_explain</div>
 		<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	
 		<script>
@@ -444,7 +444,7 @@ $associate_interface_explain=$tpl->_ENGINE_parse_body("{associate_interface_expl
 $associate_interface_explain=str_replace("%s", $ligne["name"], $associate_interface_explain);
 $html="
 <div style='font-size:32px;margin-bottom:20px'>$title</div>
-<div class=text-info style='font-size:16px'>$associate_interface_explain</div>
+<div class=explain style='font-size:16px'>$associate_interface_explain</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -578,7 +578,7 @@ function bridge_list(){
 		$a=$ip->parseCIDR($cdir);
 		if($a[0]==0){
 			$img="warning-panneau-24.png";
-			$cdir="<span style='color:red'>$cdir</span>";
+			$cdir="<span style='color:#d32d2d'>$cdir</span>";
 		}
 		$delete=imgsimple("delete-32.png",null,"Loadjs('$MyPage?network-bridge-delete-js={$ligne['ID']}&t=$t',true)");
 	

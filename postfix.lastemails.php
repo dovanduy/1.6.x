@@ -189,15 +189,16 @@ function list_table(){
 			if($rcpt==null){$rcpt="$unknown";}
 			
 			if($bounce_error=="Sended"){$bounce_error=$tpl->javascript_parse_text("{sended}");}
+			if($bounce_error=="Deliver"){$bounce_error=$tpl->javascript_parse_text("{sended}");}
 			
 			$js="Loadjs('$MyPage?zoom-js=yes&id={$line["id"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}')";
 			$md=md5(serialize($ligne));
 			$cells=array();
 			$cells[]="<img src='img/$country_img'>";
-			$cells[]="<span style='font-size:14px;'>$time</span>";
-			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>$mailfrom</a>";
-			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>$rcpt</a>";
-			$cells[]="<span style='font-size:11px;'><div style='$bg_color;text-transform:capitalize;font-size:14px;'>$bounce_error</div></span>";
+			$cells[]="<span style='font-size:12px;'>$time</span>";
+			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:12px;text-decoration:underline'>$mailfrom</a>";
+			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:12px;text-decoration:underline'>$rcpt</a>";
+			$cells[]="<span style='font-size:12px;'><span style='$bg_color;text-transform:capitalize;font-size:12px;'>$bounce_error</span></span>";
 			
 			
 			

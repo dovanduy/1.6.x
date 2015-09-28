@@ -80,7 +80,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div style='margin-left:-10px'>
-		<div class=text-info style='font-size:14px'>$simple_share_explain</div>
+		<div class=explain style='font-size:14px'>$simple_share_explain</div>
 		<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	</div>
 <script>

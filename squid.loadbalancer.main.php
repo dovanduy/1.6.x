@@ -598,7 +598,7 @@ function parent_config(){
 	if(strlen(trim($ligne["icp_port"]))==0){$ligne["icp_port"]=0;}
 	$options=$tpl->_ENGINE_parse_body("{options}");
 	$html="
-	<div class=text-info style='font-size:14px'>{warning_lb_icp}</div>
+	<div class=explain style='font-size:14px'>{warning_lb_icp}</div>
 	<input type='hidden' id='SquidParentOptions' name='SquidParentOptions' value=\"{$ligne["options"]}\">
 	<div id='EditSquidParentSaveID-$t'></div>
 	<table style='width:99%' class=form>
@@ -797,7 +797,7 @@ function parent_options_explain(){
 		
 	}
 	
-	$html="<div class=text-info style='font-size:14px'>{$options[$_GET["edit-proxy-parent-options-explain"]]}</div>
+	$html="<div class=explain style='font-size:14px'>{$options[$_GET["edit-proxy-parent-options-explain"]]}</div>
 	$form
 	<div style='text-align:right'><hr>
 	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",16)."</div>";

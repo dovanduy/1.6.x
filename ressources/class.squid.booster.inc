@@ -10,6 +10,7 @@ class squidbooster{
 	private $uuid=null;
 	private $DisableAnyCache=0;
 	private $SquidBoosterOnly=0;
+	private $SquidForceCacheTypes=null;
 	
 	public function squidbooster(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -29,12 +30,13 @@ class squidbooster{
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
-
+		$this->SquidForceCacheTypes=$sock->GET_INFO("SquidForceCacheTypes");
 	
 		if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
 		if(!is_numeric($this->SquidBoosterMem)){$this->SquidBoosterMem=0;}
 		if(!is_numeric($this->SquidBoosterMemK)){$this->SquidBoosterMemK=50;}
 		if($SquidCacheLevel==0){$this->DisableAnyCache=1;}
+		if($this->SquidForceCacheTypes==null){$this->SquidForceCacheTypes="aufs";}
 		
 	}	
 	
@@ -101,7 +103,7 @@ class squidbooster{
 		@mkdir("/var/squid/cache_booster",0755,true);
 		@chown("/var/squid/cache_booster","squid");
 		@chgrp('/var/squid/cache_booster',"squid");
-		return "cache_dir aufs /var/squid/cache_booster $SquidBoosterMemDIFF 16 256 max-size=1000K";
+		return "cache_dir $this->SquidForceCacheTypes /var/squid/cache_booster $SquidBoosterMemDIFF 16 256 min-size=2048 max-size=262144";
 	}	
 	
 }

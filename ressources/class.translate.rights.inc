@@ -53,6 +53,8 @@ class TranslateRights{
 			$f['AsWebMaster']=true;
 			$f['RestrictNabToGroups']=true;
 			$f['AsDansGuardianAdministrator']=true;
+			$f['AsSquidPersonalCategories']=true;
+			
 			$f['AsWebFilterRepository']=true;
 			$f['AsWebStatisticsAdministrator']=true;
 			$f['AllowUserMaillog']=true;
@@ -96,6 +98,8 @@ class TranslateRights{
 		if($priv["AsSquidAdministrator"]=="yes"){return true;}
 		if($priv["AsSambaAdministrator"]=="yes"){return true;}
 		if($priv["AsVirtualBoxManager"]=="yes"){return true;}
+		
+		
 		return false;
 	}	
 	
@@ -119,6 +123,8 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsSystemAdministrator"]=true;
 			$this->FINAL_PRIVS["AsMessagingOrg"]=true;
 			$this->FINAL_PRIVS["AsHotSpotManager"]=true;
+			$this->FINAL_PRIVS["AsSquidPersonalCategories"]=true;
+			
 			$this->Allrights();
 			$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]]=$this->FINAL_PRIVS;
 			$this->priv=$this->FINAL_PRIVS;
@@ -135,6 +141,8 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsMailBoxAdministrator"]=true;
 			$this->FINAL_PRIVS["AsArticaAdministrator"]=true;
 			$this->FINAL_PRIVS["AsSystemAdministrator"]=true;
+			$this->FINAL_PRIVS["AsSquidPersonalCategories"]=true;
+			
 			$this->Allrights();
 			$_SESSION["CLASS_TRANSLATE_RIGHTS"]["FINAL_PRIVS"][$_SESSION["uid"]]=$this->FINAL_PRIVS;
 			$this->priv=$this->FINAL_PRIVS;
@@ -251,12 +259,15 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsWebStatisticsAdministrator"]=true;
 			$this->FINAL_PRIVS["AsHotSpotManager"]=true;
 			$this->FINAL_PRIVS["AsProxyMonitor"]=true;
+			$this->FINAL_PRIVS["AsSquidPersonalCategories"]=true;
+			
 		}
 			
 		if($this->FINAL_PRIVS["AsDansGuardianAdministrator"]){
 			$this->FINAL_PRIVS["AsDansGuardianGroupRule"]=true;
 			$this->FINAL_PRIVS["AsWebStatisticsAdministrator"]=true;
 			$this->FINAL_PRIVS["AsHotSpotManager"]=true;
+			$this->FINAL_PRIVS["AsSquidPersonalCategories"]=true;
 		}
 			
 		if($this->FINAL_PRIVS["AsPostfixAdministrator"]){
@@ -267,6 +278,7 @@ class TranslateRights{
 		
 		if($this->FINAL_PRIVS["AsArticaMetaAdmin"]){
 			$this->FINAL_PRIVS["AsDansGuardianAdministrator"]=true;
+			$this->FINAL_PRIVS["AsSquidPersonalCategories"]=true;
 		
 		}
 		
@@ -281,6 +293,7 @@ class TranslateRights{
 			$this->FINAL_PRIVS["AsWebMaster"]=true;
 			$this->FINAL_PRIVS["AllowEditAliases"]=true;
 			$this->FINAL_PRIVS["AsSystemWebMaster"]=true;
+			
 			
 				
 				

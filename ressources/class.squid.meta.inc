@@ -15,7 +15,13 @@ class squid_meta{
 		@chgrp($path, "squid");
 	}
 	
+	function ToSyslog($text,$error=false){
 	
+		if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
+		if(function_exists("openlog")){openlog("monit", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}	
 	
 	private function ACLS_WHITELIST(){
 		$ipClass=new IP();
@@ -25,6 +31,8 @@ class squid_meta{
 		$FINAL_DOMS=array();
 		$q=new mysql_meta();
 		$results=$q->QUERY_SQL("SELECT * FROM squid_whitelists ORDER BY `pattern`");
+		if(!$q->ok){$this->ToSyslog("MySQL ERROR: ".__LINE__.": ".$q->mysql_error);return;}
+		
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$pattern=$ligne["pattern"];
 			if($ipClass->isIPAddressOrRange($pattern)){$IPS[$pattern]=$pattern; continue; }
@@ -50,7 +58,7 @@ class squid_meta{
 	
 	public function build_acls(){
 		$this->ACLS_WHITELIST();
-		$f[]="# --------- Artica Meta ACLs [".__CLASS__."/".__FUNCTION__."/".__LINE__."]";
+		$f[]="# --------- Meta Server ACLs [".__CLASS__."/".__FUNCTION__."/".__LINE__."]";
 		$f[]="acl ArticaMetaWhiteDoms dstdomain \"/etc/squid3/artica-meta/whitelist-domains.db\"";
 		$f[]="acl ArticaMetaWhiteIPs dst \"/etc/squid3/artica-meta/whitelist-nets.db\"";
 		$f[]="";
@@ -59,9 +67,10 @@ class squid_meta{
 	
 	
 	public function http_access(){
-		$f[]="# --------- Artica Meta rules [".__CLASS__."/".__FUNCTION__."/".__LINE__."]";
+		$f[]="# --------- Meta Server rules [".__CLASS__."/".__FUNCTION__."/".__LINE__."]";
 		$f[]="http_access allow ArticaMetaWhiteDoms";
 		$f[]="http_access allow ArticaMetaWhiteIPs";
+		
 		$f[]="";
 		return @implode("\n",$f);
 		

@@ -98,7 +98,7 @@ function sendmail_tests(){
 	</html>";
 	
 	if($mail->sendmail()){echo $tpl->_ENGINE_parse_body("<H2>{success}</H2>");return;}
-	echo "<div style='color:red'>". nl2br($mail->error_log)."</div>";
+	echo "<div style='color:#d32d2d'>". nl2br($mail->error_log)."</div>";
 	
 }
 

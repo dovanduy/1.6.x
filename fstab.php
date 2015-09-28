@@ -92,7 +92,7 @@ $html="<div style='font-size:22px;margin-bottom:30px'>$dev ( $uuid )</div>
 		<tr>
 		<td valign='top' width=1%><center><img src='img/database-connect-128.png'></center></td>
 		<td valign='top' width=99%>
-			<div id='fstab'><div class=text-info style='font-size:16px'>{CONNECT_HD_TEXT}</div>
+			<div id='fstab'><div class=explain style='font-size:16px'>{CONNECT_HD_TEXT}</div>
 				<div style='width:98%' class=form>
 				<table>
 				<tr>

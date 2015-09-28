@@ -22,6 +22,7 @@ $users=new usersMenus();
 if(!$GLOBALS["AS_ROOT"]){if(!$users->AsAnAdministratorGeneric){die();}}
 if(isset($_POST["DisableYoutubeLink"])){youtube_link_disable();exit;}
 if(isset($_GET["youtube-link"])){youtube_link();exit;}
+if(isset($_GET["remove-performance-alert"])){remove_performance_alert();exit;}
 if(isset($_GET["all"])){js();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["hour"])){hour();exit;}
@@ -96,10 +97,11 @@ function ZarafaWebAccess_wizard(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	if(!$users->ZARAFA_WEBAPP_INSTALLED){return;}
+	$create_zarafa_mailbox_text=$tpl->_ENGINE_parse_body("{create_zarafa_mailbox_text}");
 	
 	if($users->AsMailBoxAdministrator){
 		$html="<div style='margin-bottom:15px'>".Paragraphe("mailbox-add-64.png", "{new_mailbox}", 
-				"{create_zarafa_mailbox_text}",
+				$create_zarafa_mailbox_text,
 				"javascript:Loadjs('create-user.php')","go_to_section",665,132,1);
 				
 		echo $tpl->_ENGINE_parse_body($html)."</div>";	
@@ -140,84 +142,13 @@ function injectSquid(){
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
 	if(!isset($WizardStatsAppliance["SERVER"])){$WizardStatsAppliance["SERVER"]=null;}
 	
-	if($users->SQUID_INSTALLED){
-		$TOTAL_MEM_POURCENT_USED=intval(base64_decode($sock->getFrameWork("system.php?TOTAL_MEM_POURCENT_USED=yes")));
-		
-		if($TOTAL_MEM_POURCENT_USED>79){
-			if($users->KAV4PROXY_INSTALLED){
-				$kavicapserverEnabled=intval($sock->GET_INFO("kavicapserverEnabled"));
-				if($kavicapserverEnabled==1){
-					$html="<div style='margin-bottom:15px'>".
-							Paragraphe("warning64.png", "{antivirus_eat_memory}","{antivirus_eat_memory_text}",
-									"javascript:Loadjs('kav4Proxy.disable.progress.php')","go_to_section",665,132,1);
-					echo $tpl->_ENGINE_parse_body($html)."</div>";
-				}
-			}
-		}
-		
-		
-		$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
-		if($SquidUrgency==1){
-			$html="<div style='margin-bottom:15px'>".
-					Paragraphe("warning64.png", "{proxy_in_emergency_mode}","{proxy_in_emergency_mode_explain}",
-							"javascript:Loadjs('squid.urgency.php')","go_to_section",665,132,1);
-			echo $tpl->_ENGINE_parse_body($html)."</div>";
-			
-			
-		}
-		
-		
-		if($users->APP_UFDBGUARD_INSTALLED){
-			$datasUFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
-			if(!is_numeric($datasUFDB["DebugAll"])){$datasUFDB["DebugAll"]=0;}
-			if($datasUFDB["DebugAll"]==1){
-				$html="<div style='margin-bottom:15px'>".
-						Paragraphe("warning64.png", "{webfiltering_in_debug_mode}","{webfiltering_in_debug_mode_text}",
-								"javascript:Loadjs('ufdbguard.debug.php')","go_to_section",665,132,1);
-				echo $tpl->_ENGINE_parse_body($html)."</div>";
-			}
-		}
-	}
 	
 	
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
 	
-	if($MyBrowsersSetupShow==0){
-		if($users->SQUID_INSTALLED){
-			$html="<div style='margin-bottom:15px'>".
-					Paragraphe("64-info.png", "{my_browsers}","{how_to_connect_browsers}",
-							"javascript:Loadjs('squid.dashboard.php?mybrowsers-js=yes',true)","go_to_section",665,132,1);
-			echo $tpl->_ENGINE_parse_body($html)."</div>";
-		}
-		
-	}
-	
-	if($SquidDebugAcls==1){
-		if($users->SQUID_INSTALLED){
-			
-			$html="<div style='margin-bottom:15px'>".
-					Paragraphe("warning-panneau-64.png", "{acl_in_debug_mode}","{acl_in_debug_mode_explain}",
-							"javascript:Loadjs('squid.acls.options.php',true)","go_to_section",665,132,1);
-			echo $tpl->_ENGINE_parse_body($html)."</div>";
-			
-		}
-		
-	}
-	
-	if($users->KAV4PROXY_INSTALLED){
-		$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
-		if($licenseerror<>null){
-			$tpl=new templates();
-			$text=$tpl->_ENGINE_parse_body("{KAV_LICENSE_ERROR_EXPLAIN}");
-			$text=str_replace("%s", "«{$licenseerror}»", $text);
-			echo $tpl->_ENGINE_parse_body(Paragraphe("64-red.png", "Kaspersky {license_error}",$text,
-			"javascript:Loadjs('Kav4Proxy.license-manager.php',true)","go_to_section",665,132,1));
-		}
-	}
-	
-	
+
 	
 	if($DisableArticaProxyStatistics==1){
 		if($GLOBALS["VERBOSE"]){echo "<H1>DisableArticaProxyStatistics:{$DisableArticaProxyStatistics} -> return null</H1>\n";}
@@ -240,7 +171,7 @@ function injectSquid(){
 	if(!$GLOBALS["AS_ROOT"]){
 		if(is_file($cacheFile)){
 			$data=@file_get_contents($cacheFile);
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>$cacheFile exists - ".strlen($data)." bytes</span><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>$cacheFile exists - ".strlen($data)." bytes</span><br>\n";}
 			if(strlen($data)>20){
 				echo $tpl->_ENGINE_parse_body($data);
 				return;
@@ -248,7 +179,7 @@ function injectSquid(){
 		}
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>InjectSquid -></span>\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>InjectSquid -></span>\n<br>";}
 	
 	$run=false;
 	
@@ -256,21 +187,21 @@ function injectSquid(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
 	if($users->WEBSTATS_APPLIANCE){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>WEBSTATS_APPLIANCE -> RUN = TRUE</span>\n<br>";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>WEBSTATS_APPLIANCE -> RUN = TRUE</span>\n<br>";}
 		$run=true;}
 	if($users->SQUID_INSTALLED){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>SQUID_INSTALLED -> RUN = TRUE</span>\n<br>";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>SQUID_INSTALLED -> RUN = TRUE</span>\n<br>";}
 		$run=true;
 	}
 	if($users->SQUID_REVERSE_APPLIANCE){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>SQUID_REVERSE_APPLIANCE -> RUN = FALSE</span>\n<br>";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>SQUID_REVERSE_APPLIANCE -> RUN = FALSE</span>\n<br>";}
 		$run=false;}
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>run -> $run</span>\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>run -> $run</span>\n<br>";}
 	if(!$run){return;}	
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>inf -> $inf</span>\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>inf -> $inf</span>\n<br>";}
 	if($inf<>null){
-		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>inf <> Null</span>\n<br>";}
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>inf <> Null</span>\n<br>";}
 		$tpl=new templates();
 		$html="<div style='margin-bottom:15px'>".
 		Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
@@ -308,14 +239,29 @@ function license(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$sock=new sockets();
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
-	if(is_numeric($CPU_NUMBER)){
-		if($CPU_NUMBER<2){
-			
-			$html="<div style='margin-top:15px'>".
-					Paragraphe("warning-panneau-64.png", "{performance_issue}","{performance_issue_cpu_number_text}",
-							"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
-			echo $tpl->_ENGINE_parse_body($html)."</div>";
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance<3){
+		
+		if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+			$sock=new sockets();
+			$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+		}else{
+			$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+		}
+		
+		$CPU_NUMBER=$cpunum;
+		
+		
+		
+		if(is_numeric($CPU_NUMBER)){
+			if($CPU_NUMBER<2){
+				
+				$html="<div style='margin-top:15px'>".
+						Paragraphe("warning-panneau-64.png", "{performance_issue}","{performance_issue_cpu_number_text}",
+								"javascript:GoToArticaLicense()","go_to_section",665,132,1);
+				echo $tpl->_ENGINE_parse_body($html)."</div>";
+			}
 		}
 	}
 	
@@ -330,8 +276,9 @@ function license(){
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-	
+if(!$users->CORP_LICENSE){
 	if($EnableKerbAuth==1){
+		
 		$Days=86400*30;
 		$DayToLeft=30;
 		if(is_file("/usr/share/artica-postfix/ressources/class.pinglic.inc")){
@@ -340,12 +287,30 @@ function license(){
 			$seconds_diff = $EndTime - time();
 			$DayToLeft=floor($seconds_diff/3600/24);
 		}
+		
+		if($DayToLeft<1){
+			
+			$html="<div style='margin-top:15px'>".
+					Paragraphe("warning-panneau-64.png", "Active Directory",
+							"{warn_evaluation_period_end}",
+							"javascript:GoToArticaLicense()","go_to_section",755,132,1);
+		
+			echo $tpl->_ENGINE_parse_body($html)."</div>";
+			
+		}
+		
+		
+		if($DayToLeft>1){
 		$html="<div style='margin-top:15px'>".
-				Paragraphe("warning-panneau-64.png", "Active Directory","{warn_no_license_activedirectory_30days}","javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+				Paragraphe("warning-panneau-64.png", "Active Directory",
+				"{warn_no_license_activedirectory_30days}",
+				"javascript:GoToArticaLicense()","go_to_section",755,132,1);
 				$html=str_replace("%s", $DayToLeft, $html);
-		echo $tpl->_ENGINE_parse_body($html)."</div>";
+			echo $tpl->_ENGINE_parse_body($html)."</div>";
+		}
 		
 	}
+}
 	
 	
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
@@ -358,7 +323,7 @@ function license(){
 		
 	$html="<div style='margin-top:15px'>".
 	Paragraphe("license-error-64.png", "{artica_license}",$text, 
-	"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+	"javascript:GoToArticaLicense()","go_to_section",665,132,1);
 	echo $tpl->_ENGINE_parse_body($html)."</div>".Youtube();
 }
 
@@ -450,21 +415,24 @@ function Apache_frontend_Bytes_to_unit($intmin,$intmax){
 
 }
 
+function remove_performance_alert(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidPerformanceRemoveNotice", 1);
+	echo "document.getElementById('error-squid-memory-notice').innerHTML=''";
+	
+}
+
 function squid_frontend(){
 	$sock=new sockets();
+	$page=CurrentPageName();
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	$AsSeenPerformanceFeature=intval($sock->GET_INFO("AsSeenPerformanceFeature"));
+	$SquidPerformanceRemoveNotice=intval($sock->GET_INFO("SquidPerformanceRemoveNotice"));
 	if($SQUIDEnable==0){return;}
 	if($SquidPerformance<2){
-		$q=new mysql_squid_builder();
-		$TimeCache=date("YmdH");
-		$RTTTable="RTTH_$TimeCache";
-		if($q->TABLE_EXISTS($RTTTable)){
-			$addon="<div id='squid-rttrqs-status'></div>";
-			
-		}
+		$addon="<div id='squid-rttrqs-status'></div>";
 	}
 	
 	$addonUfdBcat="OnMouseOver=\"this.style.cursor='pointer'\"  OnMouseOut=\"this.style.cursor='default';\" OnClick=\"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.global.performance.php')\"";
@@ -480,12 +448,26 @@ function squid_frontend(){
 	
 	
 if($SquidPerformance==0){
-		$MEMORY=$sock->getFrameWork("cmd.php?GetTotalMemMB=yes");
-		if($MEMORY<5900){
-			$tpl=new templates();
-			echo $tpl->_ENGINE_parse_body("<p class=text-error style='padding:5px;font-size:20px;'$addonUfdBcat >{server_did_not_have_enough_memory_ufdbcat}</p>");
+		if($SquidPerformanceRemoveNotice==0){
+			
+			if($GLOBALS["AS_ROOT"]){
+				$unix=new unix();
+				$MEMORY=$unix->TOTAL_MEMORY_MB();
+			}else{
+				$MEMORY=intval($sock->getFrameWork("cmd.php?GetTotalMemMB=yes"));
+			}
+			if($MEMORY>5){
+			if($MEMORY<4500){
+				echo "<div id='error-squid-memory-notice'>".FATAL_ERROR_SHOW_128("
+				<strong style='font-size:22px'>{$MEMORY}MB/5900MB</strong>
+				<hr>
+				<a href=\"javascript:blur();\" OnClick=\"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.global.performance.php')\">{server_did_not_have_enough_memory_ufdbcat}</a>
+				<div style='text-align:right;margin-top:10px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?remove-performance-alert=yes');\" style='text-decoration:underline'>{remove_this_notice}</a></div>
+				")."</div>";
+			}
 		}
 	}
+}
 	
 	if($GLOBALS["AS_ROOT"]){
 		$unix=new unix();
@@ -505,28 +487,48 @@ if($SquidPerformance==0){
 	
 }
 
+function squid_hypercache_license(){
+	
+	$sock=new sockets();
+	$HyperCacheStoreID=intval($sock->GET_INFO("HyperCacheStoreID"));
+	$HyperCacheLicStatus=unserialize($sock->GET_INFO("HyperCacheLicStatus"));
+	if($HyperCacheStoreID==0){return;}
+	if(!isset($HyperCacheLicStatus["expired"])){return;}
+	if($HyperCacheLicStatus["expired"]==1){return;}
+	$t=time();
+	$seconds_restantes=intval($HyperCacheLicStatus["edate"])- $t;
+	$minutes_restantes=$seconds_restantes/60;
+	$heures=$minutes_restantes/60;
+	$jours=round($heures/24);
+	if($jours>31){return;}
+	$tpl=new templates();
+	$content=$tpl->_ENGINE_parse_body("{HYPERCACHE_EVAL}");
+	if($jours>0){
+		$content=str_replace("%s", $jours, $content);
+		return "<p style='font-size:16px' class=explain >$content
+			<br><br>
+			<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.artica-rules.php');\"
+			style='text-decoration:underline;float:right;margin-top:-15px'>{view_feature}</a>
+			
+		</p>";
+		
+	}
+	
+	
+	
+}
+
 function squid_frontend_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
 	$TITLE_REQUESTS=null;
+	$SQUID_RUNNING=false;
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
-	$LogsWarninStop=$sock->GET_INFO("LogsWarninStop");
-	
-	if($LogsWarninStop==1){
-		echo FATAL_ERROR_SHOW_128("<div style='font-size:20px'>{squid_logs_urgency}</div>
-				<div style='text-align:right;font-size:22px;text-align:right;text-decoration:underline;margin-top:20px'>
-					<a href=\"javascript:Loadjs('system.log.emergency.php')\">{squid_logs_urgency_section}</a>
-				</div>
-				
-				");
-		
-	}
-	
-	
+
 	$squid5mn=unserialize(base64_decode($sock->getFrameWork("squid.php?5mncounter=yes")));
-	//$realMemory=unserialize(base64_decode($sock->getFrameWork("services.php?realMemory=yes")));
 	$CounterInfos=unserialize(base64_decode($sock->getFrameWork("squid.php?CounterInfos=yes")));
 	$StorageCapacity=unserialize(base64_decode($sock->getFrameWork("squid.php?StorageCapacity=yes")));
 	$SquidMonitorParms=unserialize(base64_decode($sock->GET_INFO("SquidMonitorParms")));
@@ -562,6 +564,7 @@ function squid_frontend_status(){
 	}
 	
 	$CACHES_RATES=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOTAL_CACHED"));
+	$CACHED_AVG=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/CACHED_AVG");
 	$TOTALS_NOT_CACHED=intval($CACHES_RATES["TOTALS_NOT_CACHED"]);
 	$TOTALS_CACHED=intval($CACHES_RATES["TOTALS_CACHED"]);
 	$TOTALS_DOWNLOAD=$TOTALS_NOT_CACHED+$TOTALS_CACHED;
@@ -574,12 +577,14 @@ function squid_frontend_status(){
 	}
 	
 	
+	
 	$Status_cache="&nbsp;|&nbsp;{downloaded} ".FormatBytes($TOTALS_DOWNLOAD/1024).
 	"&nbsp;|&nbsp;{cached}:".FormatBytes($TOTALS_CACHED/1024).$TOTALS_NOT_CACHED_TEXT;
 	
-	$RATE=($TOTALS_CACHED/$TOTALS_DOWNLOAD)*100;
-	$RATE=round($RATE,1);
-	$TITLE_RATE="&nbsp;|&nbsp;{cache_rate} <strong>{$RATE}%</strong>";
+	
+	$RATE=round($CACHED_AVG,2);
+	$TITLE_RATE="&nbsp;|&nbsp;{cache_rate} {$RATE}%";
+	
 	
 	
 	if(!is_numeric($server_all_kbytes_in)){$server_all_kbytes_in=1000;}
@@ -613,81 +618,29 @@ function squid_frontend_status(){
 	$server_all_kbytes_in_text=$tpl->javascript_parse_text("{server_all_kbytes_in}");
 	$server_all_kbytes_out_text=$tpl->javascript_parse_text("{server_all_kbytes_out}");
 	$active_requests=$tpl->javascript_parse_text("{active_requests}");
-	$proxy_status=$tpl->javascript_parse_text("{proxy_status}");
+	$proxy_status=$tpl->javascript_parse_text("{proxy_service}");
 	$second=$tpl->javascript_parse_text("{second}");
 	$requests=$tpl->javascript_parse_text("{requests}");
 	
+	$StatusDevSHMPerc=intval($sock->GET_INFO("StatusDevSHMPerc"));
 	
-$countStorages=count($StorageCapacity);
-for($i=0;$i<$countStorages;$i++){
-	$tS[]="<div id='squid-s{$i}-$t' style='width:160px; height:100px'>";
-	$js[]=" var s{$i} = new JustGage({
-		id: 'squid-s{$i}-$t',
-		value: {$StorageCapacity[$i]},
-		min: 0,
-		max: 100,
-		title: 'Storage Capacity Kid ". ($i+1)."',
-		label: '%',
-		levelColorsGradient: true
-	});      ";
-	
-}
-		$storages=CompileTr4($tS,true,null,true);
-		$ini=new Bs_IniHandler();
-		$color="black";
-		$ini->loadFile("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
-		if($ini->_params["SQUID"]["running"]==0){
-			$color="#d32d2d";
-			$status="{stopped}";
-		}else{
-			
-			if($ini->_params["SQUID"]["master_time"]){
-				$status2=" {running} {since} ".distanceOfTimeInWords($ini->_params["SQUID"]["master_time"],time());
-			}
-		}
-	
-$version=@file_get_contents("/usr/share/artica-postfix/ressources/databases/SQUID.version");	
-if($version<>null){$version=" v.$version";}
-
-if($SquidCacheLevel==0){
-	$nocache=" <span style='color:#d32d2d'>{no_cached_sites_warn}</span>";
-}
-$squi1_text=$tpl->javascript_parse_text("{monitor}");
-$squi1_onmouse="OnMouseOver=\"javascript:AffBulle('$squi1_text');this.style.cursor='pointer'\" OnMouseOut=\"javascript:HideBulle();this.style.cursor='default'\"";
-$squi1_onClick="OnClick=\"javascript:Loadjs('squid.task.monitor.php')\"";
-		
-	echo $tpl->_ENGINE_parse_body("
-<table  style='width:99%' >
-	<tr>
-		<td colspan=4 style='font-size:22px'>
-			<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:LoadAjax('BodyContent','squid.caches.status.php?tabs=yes')\" 
-			style='text-decoration:underline;color:$color'>$proxy_status $status $version</a>
-			$TITLE_RATE$TITLE_USERS$TITLE_REQUESTS$TITLE_COMPUTERS
-			<br>
-			<div style='font-size:11px'><i>$status2$nocache$Status_cache</i></div>
-		</td>
-	</tr>
-	<tr>
-			<td valign='top' width=25%>
-				<div id='squid-1-$t' style='width:160px; height:100px' $squi1_onmouse $squi1_onClick></div>
-			
-			</td>
-			<td valign='top' width=25%><div id='squid-2-$t' style='width:170px; height:100px'></div></td>
-			<td valign='top' width=25%><div id='squid-3-$t' style='width:170px; height:100px'></div></td>
-			<td valign='top' width=25%><div id='squid-4-$t' style='width:170px; height:100px'></div></td>
-	</tr>
-	
-</table>$storages
-			
-"."<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjaxTiny('squid-front-end-status','$page?squid-front-end-status=yes');")."</div>
-<script>
+$JAUGES_SCRIPT="
 var g = new JustGage({
 	id: 'squid-1-$t',
 	value: {$squid5mn["cpu_usage"]},
 	min: 0.1,
 	max: 100,
 	title: 'Proxy CPU Usage',
+	label: '%',
+	levelColorsGradient: true
+});
+
+var g0 = new JustGage({
+	id: 'devshm',
+	value: $StatusDevSHMPerc,
+	min: 0,
+	max: 100,
+	title: 'Shared Memory',
 	label: '%',
 	levelColorsGradient: true
 });
@@ -711,21 +664,107 @@ var g3 = new JustGage({
 	label: 'KB',
 	levelColorsGradient: true
 	});
-var g4 = new JustGage({
-	id: 'squid-4-$t',
-	value: {$squid5mn["server.all.kbytes_out"]},
-	min: 0,
-	max: $server_all_kbytes_out,
-	title: '$server_all_kbytes_out_text',
-	label: 'KB',
-	levelColorsGradient: true
-});
+";	
+	
+$countStorages=count($StorageCapacity);
+for($i=0;$i<$countStorages;$i++){
+	$tS[]="<div id='squid-s{$i}-$t' style='width:160px; height:100px'>";
+	$js[]=" var s{$i} = new JustGage({
+		id: 'squid-s{$i}-$t',
+		value: {$StorageCapacity[$i]},
+		min: 0,
+		max: 100,
+		title: 'Storage Capacity Kid ". ($i+1)."',
+		label: '%',
+		levelColorsGradient: true
+	});      ";
+	
+}
+		$storages=CompileTr4($tS,true,null,true);
+		
+		if(!is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){
+			$sock->getFrameWork("cmd.php?squid-ini-status=yes");
+			
+		}
+		
+		$ini=new Bs_IniHandler();
+		$color="black";
+		$ini->loadFile("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
+		if($ini->_params["SQUID"]["running"]==0){
+			$color="#d32d2d";
+			$status=$tpl->_ENGINE_parse_body("{stopped}");
+		}else{
+			$SQUID_RUNNING=true;
+			if($ini->_params["SQUID"]["master_time"]){
+				$status="{running}";
+				$status2="<span style='color:#47A447'>{running} {since} ".distanceOfTimeInWords($ini->_params["SQUID"]["master_time"],time())."</span>";
+			}
+		}
+	
+$version=@file_get_contents("/usr/share/artica-postfix/ressources/databases/SQUID.version");	
+if($version<>null){$version=" v.$version";}
+
+if($SquidCacheLevel==0){
+	$nocache=" <span style='color:#d32d2d'>{no_cached_sites_warn}</span>";
+}
+$squi1_text=$tpl->javascript_parse_text("{monitor}");
+$squi1_onmouse="OnMouseOver=\"javascript:AffBulle('$squi1_text');this.style.cursor='pointer'\" OnMouseOut=\"javascript:HideBulle();this.style.cursor='default'\"";
+$squi1_onClick="OnClick=\"javascript:Loadjs('squid.task.monitor.php')\"";
+$start_js=null;
+if(!$SQUID_RUNNING){
+	$storages=null;
+	$JAUGES_SCRIPT=null;
+	$js=array();
+	
+	$start_js=$tpl->_ENGINE_parse_body("<center style='font-size:28px;color:$color;width:98%;margin-top:15px' class=form>
+			<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.start.progress.php');\"
+			style='margin-top:20px'>
+			<p>{start_proxy_service}</p>
+			<img src='img/start-256.png'>
+			</a>
+			</center>");
+	
+}
+
+		$squid_hypercache_license=squid_hypercache_license();
+	echo $tpl->_ENGINE_parse_body("
+			<div id='all-squid-warnings'></div>
+			
+			$squid_hypercache_license
+<table  style='width:99%' >
+	<tr>
+		<td colspan=4 style='font-size:22px'>
+			<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:LoadAjax('BodyContent','squid.caches.status.php?tabs=yes')\" 
+			style='text-decoration:underline;color:$color'>$proxy_status <span style='font-size:16px'>($status)</span></a>
+			$TITLE_RATE$TITLE_USERS$TITLE_REQUESTS$TITLE_COMPUTERS
+			<br>
+			<div style='font-size:11px'><i>$status2&nbsp;|&nbsp;$version$nocache$Status_cache</i></div>
+			$start_js
+		</td>
+	</tr>
+	<tr>
+			<td valign='top' width=25%><div id='squid-1-$t' style='width:160px; height:100px' $squi1_onmouse $squi1_onClick></div></td>
+			<td valign='top' width=25%><div id='devshm' style='width:170px; height:100px'></div></td>
+			<td valign='top' width=25%><div id='squid-2-$t' style='width:170px; height:100px'></div></td>
+			<td valign='top' width=25%><div id='squid-3-$t' style='width:170px; height:100px'></div></td>
+			
+	</tr>
+	
+</table>$storages
+			
+"."<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjaxTiny('squid-front-end-status','$page?squid-front-end-status=yes');")."</div>
+<script>
+$JAUGES_SCRIPT
 ".@implode("\n", $js)."
 if(document.getElementById('squid-rttrqs-status')){
 	LoadAjaxSilent('squid-rttrqs-status','admin.index.loadavg.squidrtt.php');
 }
-
-	</script>
+			
+LoadAjaxSilent('all-squid-warnings','admin.index.squid.warning.php');			
+			
+</script>
 	");	
 	
 	
@@ -821,7 +860,7 @@ function apache_status(){
 echo $tpl->_ENGINE_parse_body("
 <table  style='width:70%' >
 <tr><td colspan=4 style='font-size:18px'>
-		<a href=\"javascript:Blur();\" OnClick=\"javascript:QuickLinkSystems('section_freeweb')\"
+		<a href=\"javascript:blur();\" OnClick=\"javascript:QuickLinkSystems('section_freeweb')\"
 		style='text-decoration:underline'>$apache_status</a><br><div style='font-size:14px;margin-top:10px'>{running_since} {$HASH["UPTIME"]}</div></td></tr>
 <tr>
 <td valign='top'><div id='apache-total-traffic-$t' style='width:160px; height:100px'></div></td>
@@ -986,8 +1025,7 @@ function tabs(){
 	
 	$sock=new sockets();
 	$users=new usersMenus();
-	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
-	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}
+
 	
 	
 writelogs("Checking milter-greylist",__FUNCTION__,__FILE__,__LINE__);	
@@ -1030,107 +1068,7 @@ writelogs("Checking milter-greylist",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
 	
-// --------------------------------------------------------------------------------------	
-
-	if($users->SQUID_INSTALLED){
-		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
-		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-		if($SQUIDEnable==1){
-			writelogs("Checking squid perf",__FUNCTION__,__FILE__,__LINE__);	
-			$cachedTXT=$tpl->_ENGINE_parse_body("{cached}");
-			$NOTcachedTXT=$tpl->_ENGINE_parse_body("{not_cached}");
-			$today=$tpl->_ENGINE_parse_body("{today}");
-			$sql="SELECT SUM( size ) as tsize, cached FROM squid_cache_perfs WHERE DATE_FORMAT( zDate, '%Y-%m-%d' ) = DATE_FORMAT( NOW( ) , '%Y-%m-%d' ) GROUP BY cached LIMIT 0 , 30";
-			$results=$q->QUERY_SQL($sql,"artica_events");
-			if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				
-				if($ligne["cached"]==1){$cached_size=$ligne["tsize"];}
-				if($ligne["cached"]==0){$not_cached_size=$ligne["tsize"];}
-			}
-				writelogs("Cached: $cached_size not cached: $not_cached_size bytes",__FUNCTION__,__FILE__,__LINE__);
-			
-			if(($cached_size>0) &&  ($not_cached_size>0)){
-				
-				
-				$sum=$cached_size+$not_cached_size;
-				$pourcent=round(($cached_size/$sum)*100);
-				$title=$tpl->_ENGINE_parse_body("{cache_performance} $pourcent%");
-				$gp=new artica_graphs(dirname(__FILE__)."/ressources/logs/web/squid.cache.perf.today.png",0);
-				$gp->xdata[]=$cached_size;
-				$gp->ydata[]="$cachedTXT ".FormatBytes($cached_size/1024);	
-				$gp->xdata[]=$not_cached_size;
-				$gp->ydata[]="$NOTcachedTXT ".FormatBytes($not_cached_size/1024);					
-				$gp->width=300;
-				$gp->height=120;
-				$gp->PieExplode=5;
-				$gp->PieLegendHide=true;
-				$gp->ViewValues=false;
-				$gp->x_title=null;
-				$gp->pie();	
-				
-				if(is_file("ressources/logs/web/squid.cache.perf.today.png")){	
-					echo "<div onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\" onmouseover=\"javascript:this.className='paragraphe_over';
-					this.style.cursor='pointer';\" id=\"6ce2f4832d82c6ebaf5dfbfa1444ed58910\" OnClick=\"javascript:Loadjs('squid.cache.perf.stats.php')\" class=\"paragraphe\" style=\"width: 300px; min-height: 112px; cursor: default;\">
-					<h3 style='text-transform: none;margin-bottom:5px'>$title</h3>
-					<div style='font-size:11px;margin-top:-8px'>$today: $cachedTXT: ".FormatBytes($cached_size/1024)." - $NOTcachedTXT ".FormatBytes($not_cached_size/1024)."</div>
-					<img src='ressources/logs/web/squid.cache.perf.today.png'>
-					</div>";
-				}else{
-					writelogs("ressources/logs/web/squid.cache.perf.today.png no such file",__FUNCTION__,__FILE__,__LINE__);
-				}			
-			
-			}
-			
-		}
-	}
 	
-// --------------------------------------------------------------------------------------	
-
-	if($EnableBandwithCalculation==1){
-		$targetedfile="ressources/logs/".basename(__FILE__).".bandwithm.png";
-		$sql="SELECT DATE_FORMAT(zDate,'%H') as tdate,AVG(download) as tbandwith FROM speedtests 
-		WHERE DATE_FORMAT(zDate,'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d') 
-		GROUP BY DATE_FORMAT(zDate,'%H')
-		ORDER BY zDate";
-		$results=$q->QUERY_SQL($sql,"artica_events");
-		if(mysql_num_rows($results)>1){
-			$xtitle=$tpl->javascript_parse_text("{hours}");
-			$maintitle=$tpl->javascript_parse_text("{today}: {bandwith}");
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-					$size=round($ligne["tbandwith"],0);
-					$gp->xdata[]=$ligne["thour"];
-					$gp->ydata[]=$ligne["tdate"];
-					$c++;
-					
-				}
-			
-			if(is_file($targetedfile)){@unlink($targetedfile);}
-			
-			$gp->width=300;
-			$gp->height=120;
-			$gp->filename="$targetedfile";
-			$gp->y_title=null;
-			$gp->x_title=$xtitle;
-			$gp->title=null;
-			$gp->margin0=true;
-			$gp->Fillcolor="blue@0.9";
-			$gp->color="146497";
-			$tpl=new templates();
-			$gp->line_green();	
-			if(is_file($targetedfile)){		
-				echo "<center><div onmouseout=\"javascript:this.className='paragraphe';this.style.cursor='default';\" 
-				onmouseover=\"javascript:this.className='paragraphe_over';this.style.cursor='pointer';\" 
-				id=\"". md5(time())."\" OnClick=\"javascript:Loadjs('bandwith.stats.php')\" 
-				class=\"paragraphe\" style=\"width: 300px; min-height: 112px; cursor: default;\">
-				<h3 style='text-transform: none;margin-bottom:5px'>$maintitle</h3>
-				<img src='$targetedfile'>
-				</div></center>";	
-			}
-			
-		}
-	}
-// --------------------------------------------------------------------------------------		
 
 	
 echo "</center>
@@ -1565,7 +1503,7 @@ function NightlyNotifs(){
 	if($nightlybin>$versionbin){
 		$tpl=new templates();
 		$html="<div style='margin-bottom:15px'>".
-				Paragraphe("download-info-64.png", "{NEW_NIGHTLYBUILD}: $nightly"
+				Paragraphe("download-64.png", "{NEW_NIGHTLYBUILD}: $nightly"
 				,"{NEW_NIGHTLYBUILD_TEXT}",
 				"javascript:Loadjs('artica.update.php?js=yes')","go_to_section",665,132,1);
 		$html=$tpl->_ENGINE_parse_body($html)."</div>";
@@ -1602,7 +1540,7 @@ function OfficialRelease(){
 	if($nightlybin>$versionbin){
 		$tpl=new templates();
 		$html="<div style='margin-bottom:15px'>".
-				Paragraphe("download-info-64.png", "{NEW_RELEASE}: $Lastest"
+				Paragraphe("download-64.png", "{NEW_RELEASE}: $Lastest"
 						,"{NEW_RELEASE_TEXT}",
 						"javascript:Loadjs('artica.update.php?js=yes')","go_to_section",665,132,1);
 		$html=$tpl->_ENGINE_parse_body($html)."</div>";
@@ -1727,7 +1665,7 @@ function cpustats(){
 	$highcharts->AxisFontsize="12px";
 	$highcharts->yAxisTtitle="{cpu}";
 	if(!isset($_GET["uuid"])){
-		$highcharts->subtitle="<a href=\"javascript:Loadjs('system.cpustats.php')\" style='text-decoration:underline'>{more_details}</a>";
+		$highcharts->subtitle="<a href=\"statistics.index.php\" style='text-decoration:underline'>{more_details}</a>";
 	}
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix=date("H")."h";
@@ -1745,9 +1683,6 @@ function graph1(){
 		$workingdir="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/{$_GET["uuid"]}";
 	}
 	
-		$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdate, 
-		MINUTE(zDate) as `time`,AVG(loadavg) as value FROM `sys_loadvg` GROUP BY `time` ,tdate
-		HAVING tdate=DATE_FORMAT(NOW(),'%Y-%m-%d %H') ORDER BY `time`";
 		
 		$title="{server_load_this_hour}";
 		$timetext="{minutes}";
@@ -1839,7 +1774,7 @@ function graph6(){
 	$highcharts->xAxis_labels=false;
 	$highcharts->LegendPrefix=$tpl->_ENGINE_parse_body("{".date('F') ."} {day}:");
 	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("{hits}");
-	$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();
 	

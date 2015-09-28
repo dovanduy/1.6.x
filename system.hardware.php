@@ -96,7 +96,7 @@ $table="
 	<table style='width:100%' align=center>
 	<tr>
 		<td valign='top'>
-		<h5>{hardware_info}</H5><div class=text-info>{hardware_info_text}</div>
+		<h5>{hardware_info}</H5><div class=explain>{hardware_info_text}</div>
 		<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 		<tbody>
 <thead class='thead'>
@@ -225,7 +225,7 @@ function GetSysDate(){
 		
 	</td>
 	<td valign='top'><H5>{clocks}</h5>
-	<div class=text-info>{clocks_text}</div>
+	<div class=explain>{clocks_text}</div>
 		<table style='width:100%'>
 		<tr>
 			<td nowrap align='right'><strong>{system_clock}:</td>

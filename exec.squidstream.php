@@ -1003,7 +1003,7 @@ function start($nopid=false){
 	}
 
 	start_vc_scheduler(true);
-	shell_exec("/etc/init.d/squid reload");
+	shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
 		
 	
 }

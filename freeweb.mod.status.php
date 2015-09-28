@@ -37,7 +37,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$apache_mod_status_add_explain=$tpl->javascript_parse_text("{apache_mod_status_add_explain}");
-	$html="<div class=text-info style='margin-bottom:10px'>{apache_mod_status_allow_explain}</div>
+	$html="<div class=explain style='margin-bottom:10px'>{apache_mod_status_allow_explain}</div>
 	<div id='mod-status-list' style='height:250px;overflow:auto'></div>
 	
 	<script>

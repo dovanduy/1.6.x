@@ -47,7 +47,7 @@ $domainz['$mydomain']='$mydomain';
 
 $html="
 <div id='$t'>
-<div class=text-info style='font-size:13px'>{myorigin_text}</div>
+<div class=explain style='font-size:13px'>{myorigin_text}</div>
 <table style='width:99%' class=form>
 <tr>
 	<td class=legend style='font-size:16px'>myorigin:</td>

@@ -30,10 +30,6 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
-	$array["transparent"]="{transparent_mode}";
-	$array["ssl"]="{decrypt_ssl}";
-	$array["network_rules"]="{network_rules}";
-	
 	$array["mikrotik"]="Mikrotik";
 	$array["wccpl3"]="{WCCP_LAYER3}";
 	

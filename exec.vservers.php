@@ -200,7 +200,7 @@ function uninstall_bridge(){
 		echo2("Starting......: ".date("H:i:s")." VPS server: reconfigure network (debian mode)");
 		$datas=$nets->root_build_debian_config();
 		@file_put_contents("/etc/network/interfaces",$datas);	
-		$unix->NETWORK_DEBIAN_RESTART();
+		$unix->NETWORK_DEBIAN_RESTART(__FILE__,__FUNCTION__);
 		return;	
 	}
 	echo2("Starting......: ".date("H:i:s")." VPS server: reconfigure network (redhat mode)");
@@ -299,7 +299,7 @@ function install_bridge(){
 	shell_exec2("$ifconfig $LXCINterface 0.0.0.0 up");
 	
 	if($users->AS_DEBIAN_FAMILY){
-		$unix->NETWORK_DEBIAN_RESTART();
+		$unix->NETWORK_DEBIAN_RESTART(__FILE__,__FUNCTION__);
 	}else{
 		$unix->NETWORK_REDHAT_RESTART();
 	}
@@ -377,7 +377,7 @@ function CheckBridge($breth,$noloop=false,$restart_interfaces=false){
 		
 	if($found){return true;}
 	shell_exec("$brctl addbr $breth");
-	if($restart_interfaces){$unix->NETWORK_DEBIAN_RESTART();CheckLxcMaster();}
+	if($restart_interfaces){$unix->NETWORK_DEBIAN_RESTART(__FILE__,__FUNCTION__);CheckLxcMaster();}
 	echo2("Starting......: ".date("H:i:s")." VPS server: Adding $breth");
 	if(!$noloop){return CheckBridge($breth,true);}
 	

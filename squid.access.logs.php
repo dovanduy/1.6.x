@@ -6,7 +6,7 @@
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.tcpip.inc');
-
+	include_once(dirname(__FILE__)."/ressources/class.stats-appliance.inc");
 	
 	
 	$user=new usersMenus();
@@ -40,15 +40,7 @@ function tabs_all(){
 	if($SquidAsMasterLogChilds==1){$AsMaster=false;}
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
-	$array["events-squidaccess"]='{realtime_requests}';
 	
-	if($AsMaster){
-		$array["events-masteraccess"]='{realtime_requests} {master}';
-	
-	}
-	if($SquidPerformance<2){
-		$array["today-squidaccess"]='{today}';
-	}
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
 	$array["events-ziproxy"]='{compressor_requests}';

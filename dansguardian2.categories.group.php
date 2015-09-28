@@ -208,6 +208,7 @@ function category_rule_save(){
 			AND webfilter_ruleid='$MainRuleID' AND `blacklist`='$modeblk'"));
 	if(strlen(trim($ligne["zmd5"]))==0){
 		$md5=md5("$webfilter_blkid$MainRuleID$modeblk");
+		$q->QUERY_SQL("DELETE FROM webfilter_blklnk WHERE `zmd5`='$md5'");
 		$sql="INSERT IGNORE INTO webfilter_blklnk (`zmd5`,`webfilter_blkid`,`webfilter_ruleid`,`blacklist`)
 		VALUES ('$md5','$webfilter_blkid','$MainRuleID','$modeblk');		
 		";
@@ -337,9 +338,9 @@ function category_group_save(){
 function category_group_delete(){
 	$ID=$_POST["delete-category-group"];
 	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM `webfilter_blkcnt` WHERE webfilter_blkid=$ID");
+	$q->QUERY_SQL("DELETE FROM `webfilter_blkcnt` WHERE webfilter_blkid='$ID'");
 	if(!$q->ok){echo $q->mysql_error;}
-	$q->QUERY_SQL("DELETE FROM `webfilter_blklnk` WHERE webfilter_blkid=$ID");
+	$q->QUERY_SQL("DELETE FROM `webfilter_blklnk` WHERE webfilter_blkid='$ID'");
 	if(!$q->ok){echo $q->mysql_error;}
 	$q->QUERY_SQL("DELETE FROM `webfilter_blkgp` WHERE ID=$ID");
 	if(!$q->ok){echo $q->mysql_error;}

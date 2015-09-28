@@ -189,6 +189,7 @@ function scannetworks(){
 	if(!is_numeric($ComputersAllowNmap)){$ComputersAllowNmap=1;}
 	if(!is_numeric($NmapRotateMinutes)){$NmapRotateMinutes=60;}
 	if($NmapRotateMinutes<5){$NmapRotateMinutes=5;}
+	$NmapFastScan=intval($sock->GET_INFO("NmapFastScan"));
 	if($ComputersAllowNmap==0){return;}
 	if(!$GLOBALS["VERBOSE"]){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
@@ -214,6 +215,15 @@ function scannetworks(){
 	while (list ($num, $maks) = each ($net->networklist)){if(trim($maks)==null){continue;}$hash[$maks]=$maks;}	
 	while (list ($num, $maks) = each ($hash)){if(!$net->Networks_disabled[$maks]){if($GLOBALS["VERBOSE"]){echo "Network: $maks OK\n";}$cdir[]=$maks;}}
 	if(count($cdir)==0){if($GLOBALS["VERBOSE"]){echo "No network, aborting...";}return;}
+	
+	if($NmapFastScan==1){
+		while (list ($num, $maks) = each ($cdir)){
+			arp_scanner($maks,true);
+		}
+		return;
+	}
+	
+	
 	$cmd=$unix->NMAP_CMDLINE(trim(@implode(" ", $cdir)), "/etc/artica-postfix/nmap.map")." 2>&1";
 
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
@@ -244,6 +254,98 @@ function nmap_scan_pingnet_progress($text,$pourc){
 }
 
 
+function arp_scanner($net,$insert=false){
+	if(!is_file("/usr/bin/arp-scan")){
+		if(!isset($GLOBALS["DEBIAN_INSTALL_PACKAGE_ARP_SCAN"])){
+			$unix=new unix();
+			$unix->DEBIAN_INSTALL_PACKAGE("arp-scan");
+			$GLOBALS["DEBIAN_INSTALL_PACKAGE_ARP_SCAN"]=true;
+		}
+		if(!is_file("/usr/bin/arp-scan")){return array();}
+	}
+	exec("/usr/bin/arp-scan --quiet --retry=1 $net 2>&1",$results);
+	$MAIN=array();
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#^([0-9]+).([0-9]+).([0-9]+).([0-9]+)\s+(.+?)\s+(.+)#", $line,$re)){continue;}
+		$ipaddr="{$re[1]}.{$re[2]}.{$re[3]}.{$re[4]}";
+		$mac=$re[5];
+		$vendor=$re[6];
+		echo "Found $ipaddr -> $mac ( $vendor )\n";
+		$date=date("Y-m-d H:i:s");
+		$GLOBALS[$mac]["IP"]=$ipaddr;
+		$GLOBALS[$mac]["MACHINE_TYPE"]=$vendor;
+		
+		$MAIN[]="('$ipaddr','$mac','$vendor','$date')";
+	}
+	
+	if(!$insert){return $MAIN;}
+	if(count($MAIN)==0){return;}
+	
+	
+	while (list ($mac, $array) = each ($MAIN)){
+		
+	$cmp=new computers();
+	$uid=$cmp->ComputerIDFromMAC($mac);
+	$array["HOSTNAME"]=gethostbyname($array["IP"]);
+	$ipaddr=$array["IP"];
+	if(preg_match("#^[0-9\.]+$#", $array["HOSTNAME"])){$array["HOSTNAME"]=null;}
+	
+	
+	if($uid<>null){
+			if($GLOBALS["VERBOSE"]){echo "$mac = $uid\n";}
+			$cmp=new computers($uid);
+				
+			$ldap_ipaddr=$cmp->ComputerIP;
+			$ComputerRealName=$cmp->ComputerRealName;
+			if($GLOBALS["VERBOSE"]){echo "$mac = $uid\nLDAP:$ldap_ipaddr<>NMAP:$ipaddr\nLDAP CMP:$ComputerRealName<>NMAP:{$array["HOSTNAME"]}";}
+			
+			if($array["HOSTNAME"]<>null){
+				$EXPECTED_UID=strtoupper($array["HOSTNAME"])."$";
+				if($EXPECTED_UID<>$uid){
+					$RAISON[]="UID: $uid is different from $EXPECTED_UID";
+					nmap_logs("EDIT UID: $mac:[{$array["HOSTNAME"]}] ($ipaddr)",@implode("\n", $array)."\n".@implode("\n", $RAISON),$uid);
+					$cmp->update_uid($EXPECTED_UID);
+				}
+			}
+			
+			
+			if($ldap_ipaddr<>$ipaddr){
+				writelogs("Change $ldap_ipaddr -> to $ipaddr for  $cmp->uid",__FUNCTION__,__FILE__,__LINE__);
+				$RAISON[]="LDAP IP ADDR: $ldap_ipaddr is different from $ipaddr";
+				$RAISON[]="DN: $cmp->dn";
+				$RAISON[]="UID: $cmp->uid";
+				$RAISON[]="MAC: $cmp->ComputerMacAddress";
+				if(!$cmp->update_ipaddr($ipaddr)){$RAISON[]="ERROR:$cmp->ldap_last_error";}
+				nmap_logs("EDIT IP: $mac:[{$array["HOSTNAME"]}] ($ipaddr)",@implode("\n", $array)."\n".@implode("\n", $RAISON),$uid);
+		
+			}
+	
+				
+			continue;		
+				
+			}
+			
+		if($array["HOSTNAME"]<>null){$uid="{$array["HOSTNAME"]}$";}else{continue;}
+		
+		
+		nmap_logs("ADD NEW: $mac:[{$array["HOSTNAME"]}] ($ipaddr)",@implode("\n", $array)."\n".@implode("\n", $RAISON),"$uid");
+		$cmp=new computers();
+		$cmp->ComputerIP=$ipaddr;
+		$cmp->ComputerMacAddress=$mac;
+		$cmp->uid="$uid";
+		$cmp->ComputerRunning=1;
+		$cmp->ComputerMachineType=$array["MACHINE_TYPE"];
+		$cmp->Add();
+			
+	}
+	
+	
+	
+}
+
+
 function nmap_scan_pingnet(){
 	nmap_scan_pingnet_progress("{ping_networks}",5);
 	$unix=new unix();
@@ -251,7 +353,8 @@ function nmap_scan_pingnet(){
 	$nmap=$unix->find_program("nmap");
 	$nohup=$unix->find_program("nohup");
 	$NmapTimeOutPing=intval($sock->GET_INFO("NmapTimeOutPing"));
-	if($NmapTimeOutPing==0){$NmapTimeOutPing=15;}
+	$NmapFastScan=intval($sock->GET_INFO("NmapFastScan"));
+	if($NmapTimeOutPing==0){$NmapTimeOutPing=30;}
 	$MaxTime=10;
 	$net=new networkscanner();
 	while (list ($num, $maks) = each ($net->networklist)){if(trim($maks)==null){continue;}$hash[$maks]=$maks;}
@@ -264,41 +367,65 @@ function nmap_scan_pingnet(){
 	$NmapTimeOutPing++;
 	$prc=10;
 	
+	
+	
+	nmap_scan_pingnet_progress("{fast_scan}: $NmapFastScan",6);
+	
+	
+	
+	
 	while (list ($num, $cd) = each ($cdir)){
 		$prc=$prc+5;
 		if($prc>99){$prc=99;}
 		nmap_scan_pingnet_progress("Scanning Network $cd",$prc);
-		system("$nohup $nmap -T4 -sP -oX $TMP $cd >/dev/null 2>&1 &");
+		$CONTINUE=true;
 		
-		for($i=1;$i<$NmapTimeOutPing;$i++){
+		
+		if($NmapFastScan==1){
+			nmap_scan_pingnet_progress("$cd -> arp-scan",$prc);
+			$f1=arp_scanner($cdir);
+			if(count($f1)>0){
+				while (list ($num, $line) = each ($f1)){$f[]=$line;}
+				$CONTINUE=false;
+			}
+		}
+		
+		if($CONTINUE){
+			echo "$nmap -T4 -sP -oX $TMP $cd\n";
+			system("$nohup $nmap -T4 -sP -oX $TMP $cd >/dev/null 2>&1 &");
+			
+			for($i=1;$i<$NmapTimeOutPing;$i++){
+				$pid=$unix->PIDOF("$nmap");
+				if(!$unix->process_exists($pid)){break;}
+				echo "Waiting scanner PID $pid $i/$NmapTimeOutPing\n";
+				sleep(1);
+				
+			}
 			$pid=$unix->PIDOF("$nmap");
-			if(!$unix->process_exists($pid)){break;}
-			echo "Waiting scanner PID $pid $i/$NmapTimeOutPing\n";
-			sleep(1);
+			if($unix->process_exists($pid)){
+				echo "Timed-Out scanner PID $pid\n";
+				nmap_scan_pingnet_progress("$cd Timed Out!!",$prc);
+				sleep(3);
+				$unix->KILL_PROCESS($pid,9);
+				continue;
+			}
 			
-		}
-		$pid=$unix->PIDOF("$nmap");
-		if($unix->process_exists($pid)){
-			echo "Timed-Out scanner PID $pid\n";
-			nmap_scan_pingnet_progress("$cd Timed Out!!",$prc);
-			sleep(3);
-			$unix->KILL_PROCESS($pid,9);
-			continue;
-		}
-		
-		
-		$date=date("Y-m-d H:i:s");
-		$xmlstr=@file_get_contents($TMP);
-		@unlink($TMP);
-		$XMLZ = new SimpleXMLElement($xmlstr);
-		
-		foreach ($XMLZ->host as $Hostz) {
-			$ipaddr=$Hostz->address[0]["addr"][0];
-			$mac=$Hostz->address[1]["addr"][0];
-			$vendor=$Hostz->address[1]["vendor"][0];
-			$f[]="('$ipaddr','$mac','$vendor','$date')";
 			
+			$date=date("Y-m-d H:i:s");
+			$xmlstr=@file_get_contents($TMP);
+			@unlink($TMP);
+			$XMLZ = new SimpleXMLElement($xmlstr);
+			
+			foreach ($XMLZ->host as $Hostz) {
+				$ipaddr=mysql_escape_string2($Hostz->address[0]["addr"][0]);
+				$mac=mysql_escape_string2($Hostz->address[1]["addr"][0]);
+				$vendor=mysql_escape_string2($Hostz->address[1]["vendor"][0]);
+				$f[]="('$ipaddr','$mac','$vendor','$date')";
+				
+			}
+		
 		}
+		
 	}
 	$prc=$prc+5;
 	if($prc>99){$prc=99;}

@@ -211,7 +211,7 @@ class template_simple{
 		$this->TemplateConfig=unserialize($sock->GET_INFO("TemplateConfig"));
 		
 		if(!isset($this->TemplateConfig[$this->lang][$this->TEMPLATE_NAME])){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>Load default content</span><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>Load default content</span><br>\n";}
 			$this->defaultContent();
 			return;
 		}
@@ -320,6 +320,42 @@ class template_simple{
 				<p>Generated %T by %h (%s)</p>
 				<!-- %c -->
 				</div>";
+				
+				$f=array();
+				$GLOBALS["XTPL_SQUID_DEFAULT"][$lang]["ERR_PARANOID"]["TITLE"]="ERROR: Banned access";
+				$f[]="<div id=\"titles\">";
+				$f[]="<h1>Banned Access</h1>";
+				$f[]="<h2>The requested URL could not be retrieved</h2>";
+				$f[]="</div>";
+				$f[]="<hr>";
+				$f[]="	";
+				$f[]="<div id=\"content\">";
+				$f[]="<p>The following error was encountered while trying to retrieve the URL: <a href=\"%U\">%U</a></p>";
+				$f[]="	";
+				$f[]="<blockquote id=\"error\">";
+				$f[]="<p><b>Paranoid mode, banned access to <q>%H</q></b></p>";
+				$f[]="</blockquote>";
+				$f[]="	";
+				$f[]="<p>Error returned:</p>";
+				$f[]="<blockquote id=\"data\">";
+				$f[]="<pre>- Too many blocking operations - </pre>";
+				$f[]="</blockquote>";
+				$f[]="	";
+				$f[]="<p>This means that too many events has been blocked for your computer or this web site.</p>";
+				$f[]="<p>Please contact your Administrator to fix this issue..</p>";
+				$f[]="	";
+				$f[]="<p>Your cache administrator is <a href=\"mailto:%w%W\">%w</a>.</p>";
+				$f[]="<br>";
+				$f[]="</div>";
+				$f[]="	";
+				$f[]="<hr>";
+				$f[]="<div id=\"footer\">";
+				$f[]="<p>Generated %T by %h (%s)</p>";
+				$f[]="<!-- %c -->";
+				$f[]="</div>";
+				$GLOBALS["XTPL_SQUID_DEFAULT"][$lang]["ERR_PARANOID"]["BODY"]=@implode("\n", $f);				
+				
+				
 		}
 		
 	}
@@ -331,10 +367,11 @@ class template_simple{
 		}
 		
 
+
+
 		
-		
-		$this->TITLE=trim($GLOBALS["XTPL_SQUID_DEFAULT"][$this->lang][$this->TEMPLATE_NAME]["TITLE"]);
-		$this->BODY=trim($GLOBALS["XTPL_SQUID_DEFAULT"][$this->lang][$this->TEMPLATE_NAME]["BODY"]);
+		$this->TITLE=utf8_encode(trim($GLOBALS["XTPL_SQUID_DEFAULT"][$this->lang][$this->TEMPLATE_NAME]["TITLE"]));
+		$this->BODY=utf8_encode(trim($GLOBALS["XTPL_SQUID_DEFAULT"][$this->lang][$this->TEMPLATE_NAME]["BODY"]));
 		
 	}
 	
@@ -355,8 +392,8 @@ class template_simple{
 			$MAINDEF=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db"));
 			$this->BODY=$MAINDEF[$this->lang][$this->TEMPLATE_NAME]["BODY"];
 		}
-		$this->TemplateConfig[$this->lang][$this->TEMPLATE_NAME]["TITLE"]=$this->TITLE;
-		$this->TemplateConfig[$this->lang][$this->TEMPLATE_NAME]["BODY"]=$this->BODY;
+		$this->TemplateConfig[$this->lang][$this->TEMPLATE_NAME]["TITLE"]=utf8_encode($this->TITLE);
+		$this->TemplateConfig[$this->lang][$this->TEMPLATE_NAME]["BODY"]=utf8_encode($this->BODY);
 		$sock=new sockets();
 		$sock->SaveConfigFile(serialize($this->TemplateConfig),"TemplateConfig");
 		$sock->getFrameWork("squid.php?single-templates=yes");
@@ -364,6 +401,7 @@ class template_simple{
 	
 	
 	public function TemplatesDesign(){
+		
 		$FOOTER=null;
 	if(!isset($GLOBALS["CORP_LICENSE"])){
 		$users=new usersMenus();
@@ -371,6 +409,13 @@ class template_simple{
 	}
 	
 	$sock=new sockets();
+	if(!isset($GLOBALS["MICROSOFT_TEMPL"])){
+		$GLOBALS["MICROSOFT_TEMPL"]=intval($sock->GET_INFO("SquidTemplatesMicrosoft"));
+	}
+	
+	if($GLOBALS["MICROSOFT_TEMPL"]==1){
+		return $this->microsoft_template();
+	}
 	
 	$SquidHTTPTemplateLogoEnable=intval($sock->GET_INFO("SquidHTTPTemplateLogoEnable"));
 	
@@ -615,6 +660,447 @@ class template_simple{
 	$f[]="-->";
 	$f[]="</html>";
 	return @implode("\n", $f);
+	}
+	
+	function microsoft_template(){
+		if(!isset($GLOBALS["ARTICA_VERSION"])){$GLOBALS["ARTICA_VERSION"]=@file_get_contents("/usr/share/artica-postfix/VERSION");}
+		if(!isset($GLOBALS["CORP_LICENSE"])){
+			$users=new usersMenus();
+			$GLOBALS["CORP_LICENSE"]=$users->CORP_LICENSE;
+		}
+		
+		if(!$GLOBALS["CORP_LICENSE"]){
+			$FOOTER="
+			<UL class=\"tasks\" id=\"cantDisplayTasks\">
+			<LI id=\"task1-1\">You using Artica Proxy Appliance v{$GLOBALS["ARTICA_VERSION"]} in Community mode.</LI>
+			<LI id=\"task1-1\">Visit our  <a href=\"http://artica-proxy.com\">website</a> for technical informations or to purchase an Entreprise Edition License</LI>
+			</UL>";
+
+		}
+		
+		$title=$this->TITLE;
+		$title=str_replace("ERROR:", "",$title);
+		$title=str_replace("ERREUR:", "",$title);
+		$content=$this->BODY;
+		
+		$title=utf8_decode($title);
+		$content=utf8_decode($content);
+		
+			$f[]="<!DOCTYPE HTML>";
+			$f[]="<HTML>";
+			$f[]="<HEAD>";
+			$f[]="<META content=\"IE=11.0000\" http-equiv=\"X-UA-Compatible\">";
+			$f[]="<META http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">         ";
+			$f[]="<title>$title</title>";
+			$f[]="<style type=\"text/css\">     ";
+			$f[]="body {";
+			$f[]="    background-repeat: repeat-x;";
+			$f[]="    background-color: white;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\", \"arial\";";
+			$f[]="    margin: 0em;";
+			$f[]="    color: #575757;";
+			$f[]="}";
+			$f[]="H1,H2,HR{
+					display:none;
+					
+					}";
+			$f[]="";
+			$f[]=".mainContent {";
+			$f[]="    margin-top: 80px;";
+			$f[]="    width: 700px;";
+			$f[]="    margin-left: 120px;";
+			$f[]="    margin-right: 120px;";
+			$f[]="}";
+			$f[]="";
+			$f[]="";
+			$f[]="";
+			$f[]=".title {";
+			$f[]="    color: #2778ec;";
+			$f[]="    font-size: 38pt;";
+			$f[]="    font-weight: 300;";
+			$f[]="    vertical-align: bottom;";
+			$f[]="    margin-bottom: 20px;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\";";
+			$f[]="    position: relative;";
+			$f[]="}";
+			$f[]="";
+			$f[]=".taskSection {";
+			$f[]="    margin-top: 20px;";
+			$f[]="    margin-bottom: 40px;";
+			$f[]="    position: relative;";
+			$f[]="}";
+			$f[]="";
+			$f[]=".tasks {";
+			$f[]="    color: #000000;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\";";
+			$f[]="    font-weight: 200;";
+			$f[]="    font-size: 12pt;";
+			$f[]="    padding-top: 5px;";
+			$f[]="}";
+			$f[]="blockquote {";
+			$f[]="    color: #000000;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\";";
+			$f[]="    font-weight: 200;";
+			$f[]="    font-size: 12pt;";
+			$f[]="    margin-top: -10px;";
+			$f[]="}";
+			$f[]="";
+			$f[]="P,pre {";
+			$f[]="    color: #000000;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\";";
+			$f[]="    font-weight: 200;";
+			$f[]="    font-size: 12pt;";
+			$f[]="    padding-top: 5px;";
+			$f[]="}";
+			$f[]="#footer p {";
+			$f[]="    color: #CCCCCC;";
+			$f[]="    font-family: \"Segoe UI\", \"verdana\";";
+			$f[]="    font-weight: normal;";
+			$f[]="    font-size: 10pt;";
+			$f[]="    padding-top: 5px;";
+			$f[]="}";
+			
+			$f[]="li {";
+			$f[]="    margin-top: 8px;";
+			$f[]="}";
+			$f[]="";
+			$f[]=".diagnoseButton {";
+			$f[]="    outline: none;";
+			$f[]="    font-size: 9pt;";
+			$f[]="}";
+			$f[]="</style>";
+			$f[]="";
+			$f[]="";
+			$f[]="";
+
+			$f[]="        ";
+			$f[]="<SCRIPT language=\"javascript\" type=\"text/javascript\">";
+			$f[]="";
+			$f[]="function isExternalUrlSafeForNavigation(urlStr)";
+			$f[]="{";
+			$f[]="var regEx = new RegExp(\"^(http(s?)|ftp|file)://\", \"i\");";
+			$f[]="return regEx.exec(urlStr);";
+			$f[]="}";
+			$f[]="function clickRefresh()";
+			$f[]="{";
+			$f[]="var location = window.location.href;";
+			$f[]="var poundIndex = location.indexOf('#');";
+			$f[]="if (poundIndex != -1 && poundIndex+1 < location.length && isExternalUrlSafeForNavigation(location.substring(poundIndex+1)))";
+			$f[]="{";
+			$f[]="window.location.replace(location.substring(poundIndex+1));";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function navCancelInit()";
+			$f[]="{";
+			$f[]="var location = window.location.href;";
+			$f[]="var poundIndex = location.indexOf('#');";
+			$f[]="if (poundIndex != -1 && poundIndex+1 < location.length && isExternalUrlSafeForNavigation(location.substring(poundIndex+1)))";
+			$f[]="{";
+			$f[]="var bElement = document.createElement(\"A\");";
+			$f[]="bElement.innerText = L_REFRESH_TEXT;";
+			$f[]="bElement.href = 'javascript:clickRefresh()';";
+			$f[]="navCancelContainer.appendChild(bElement);";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="var textNode = document.createTextNode(L_RELOAD_TEXT);";
+			$f[]="navCancelContainer.appendChild(textNode);";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function expandCollapse(elem, changeImage)";
+			$f[]="{";
+			$f[]="if (document.getElementById)";
+			$f[]="{";
+			$f[]="ecBlock = document.getElementById(elem);";
+			$f[]="if (ecBlock != undefined && ecBlock != null)";
+			$f[]="{";
+			$f[]="if (changeImage)";
+			$f[]="{";
+			$f[]="elemImage = document.getElementById(elem + \"Image\");";
+			$f[]="}";
+			$f[]="if (!changeImage || (elemImage != undefined && elemImage != null))";
+			$f[]="{";
+			$f[]="if (ecBlock.currentStyle.display == \"none\" || ecBlock.currentStyle.display == null || ecBlock.currentStyle.display == \"\")";
+			$f[]="{";
+			$f[]="ecBlock.style.display = \"block\";";
+			$f[]="if (changeImage)";
+			$f[]="{";
+			$f[]="elemImage.src = \"up.png\";";
+			$f[]="}";
+			$f[]="}";
+			$f[]="else if (ecBlock.currentStyle.display == \"block\")";
+			$f[]="{";
+			$f[]="ecBlock.style.display = \"none\";";
+			$f[]="if (changeImage)";
+			$f[]="{";
+			$f[]="elemImage.src = \"down.png\";";
+			$f[]="}";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="ecBlock.style.display = \"block\";";
+			$f[]="if (changeImage)";
+			$f[]="{";
+			$f[]="elemImage.src = \"up.png\";";
+			$f[]="}";
+			$f[]="}";
+			$f[]="}";
+			$f[]="}";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function initHomepage()";
+			$f[]="{";
+			$f[]="DocURL=document.location.href;";
+			$f[]="var poundIndex = DocURL.indexOf('#');";
+			$f[]="if (poundIndex != -1 && poundIndex+1 < location.length && isExternalUrlSafeForNavigation(location.substring(poundIndex+1)))";
+			$f[]="{";
+			$f[]="protocolIndex=DocURL.indexOf(\"://\", 4);";
+			$f[]="serverIndex=DocURL.indexOf(\"/\", protocolIndex + 3);";
+			$f[]="BeginURL=DocURL.indexOf(\"#\",1) + 1;";
+			$f[]="urlresult=DocURL.substring(BeginURL, serverIndex);";
+			$f[]="if (protocolIndex - BeginURL > 7)";
+			$f[]="urlresult=\"\";";
+			$f[]="displayresult=DocURL.substring(protocolIndex + 3, serverIndex);";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="displayresult = \"\";";
+			$f[]="urlresult = \"\";";
+			$f[]="}";
+			$f[]="var aElement = document.createElement(\"A\");";
+			$f[]="aElement.innerText = displayresult;";
+			$f[]="aElement.href = urlresult;";
+			$f[]="homepageContainer.appendChild(aElement);";
+			$f[]="}";
+			$f[]="function initConnectionStatus()";
+			$f[]="{";
+			$f[]="if (navigator.onLine)";
+			$f[]="{";
+			$f[]="checkConnection.innerText = L_CONNECTION_ON_TEXT;";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="checkConnection.innerText = L_CONNECTION_OFF_TEXT;";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function initGoBack()";
+			$f[]="{";
+			$f[]="if (history.length < 1)";
+			$f[]="{";
+			$f[]="var textNode = document.createTextNode(L_GOBACK_TEXT);";
+			$f[]="goBackContainer.appendChild(textNode);";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="var bElement = document.createElement(\"A\");";
+			$f[]="bElement.innerText = L_GOBACK_TEXT ;";
+			$f[]="bElement.href = \"javascript:history.back();\";";
+			$f[]="goBackContainer.appendChild(bElement);";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function initMoreInfo(infoBlockID)";
+			$f[]="{";
+			$f[]="var bElement = document.createElement(\"A\");";
+			$f[]="bElement.innerText = L_MOREINFO_TEXT;";
+			$f[]="bElement.href = \"javascript:expandCollapse(\'infoBlockID\', true);\";";
+			$f[]="moreInfoContainer.appendChild(bElement);";
+			$f[]="}";
+			$f[]="function initOfflineUser(offlineUserID)";
+			$f[]="{";
+			$f[]="var bElement = document.createElement(\"A\");";
+			$f[]="bElement.innerText = L_OFFLINE_USERS_TEXT;";
+			$f[]="bElement.href = \"javascript:expandCollapse('offlineUserID', true);\";";
+			$f[]="offlineUserContainer.appendChild(bElement);";
+			$f[]="}";
+			$f[]="function initUnframeContent()";
+			$f[]="{";
+			$f[]="var location = window.location.href;";
+			$f[]="var poundIndex = location.indexOf('#');";
+			$f[]="if (poundIndex != -1 && poundIndex+1 < location.length && isExternalUrlSafeForNavigation(location.substring(poundIndex+1)))";
+			$f[]="{";
+			$f[]="document.getElementById(\"whatToDoIntro\").style.display=\"\";";
+			$f[]="document.getElementById(\"whatToDoBody\").style.display=\"\";";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function removeNoScriptElements() {";
+			$f[]="var noScriptElements = document.getElementsByTagName(\"noscript\");";
+			$f[]="for (var i = noScriptElements.length - 1; i >= 0; i--)";
+			$f[]="{";
+			$f[]="var bElement = noScriptElements[i];";
+			$f[]="if (bElement !== undefined && bElement !== null)";
+			$f[]="{";
+			$f[]="bElement.removeNode(true);";
+			$f[]="}";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function makeNewWindow()";
+			$f[]="{";
+			$f[]="var location = window.location.href;";
+			$f[]="var poundIndex = location.indexOf('#');";
+			$f[]="if (poundIndex != -1 && poundIndex+1 < location.length && isExternalUrlSafeForNavigation(location.substring(poundIndex+1)))";
+			$f[]="{";
+			$f[]="window.open(location.substring(poundIndex+1));";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function setTabInfo(tabInfoBlockID)";
+			$f[]="{";
+			$f[]="var bPrevElement = document.getElementById(\"tabInfoTextID\");";
+			$f[]="var bPrevImage = document.getElementById(\"tabInfoBlockIDImage\");";
+			$f[]="if (bPrevElement != null)";
+			$f[]="{";
+			$f[]="tabInfoContainer.removeChild(bPrevElement);";
+			$f[]="}";
+			$f[]="if (bPrevImage != null)";
+			$f[]="{";
+			$f[]="tabImageContainer.removeChild(bPrevImage);";
+			$f[]="}";
+			$f[]="var bElement = document.createElement(\"A\");";
+			$f[]="var bImageElement = document.createElement(\"IMG\");";
+			$f[]="var ecBlock = document.getElementById(tabInfoBlockID);";
+			$f[]="if ((ecBlock != undefined && ecBlock != null) &&";
+			$f[]="(ecBlock.currentStyle.display == \"none\" || ecBlock.currentStyle.display == null || ecBlock.currentStyle.display == \"\"))";
+			$f[]="{";
+			$f[]="bElement.innerText = L_SHOW_HOTKEYS_TEXT;";
+			$f[]="bImageElement.alt = L_SHOW_HOTKEYS_TEXT;";
+			$f[]="bImageElement.src=\"down.png\";";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="bElement.innerText = L_HIDE_HOTKEYS_TEXT;";
+			$f[]="bImageElement.alt = L_HIDE_HOTKEYS_TEXT;";
+			$f[]="bImageElement.src=\"up.png\";";
+			$f[]="}";
+			$f[]="bElement.id = \"tabInfoTextID\";";
+			$f[]="bElement.href = \"javascript:expandCollapse(\'tabInfoBlockID\', false); setTabInfo('tabInfoBlockID');\";";
+			$f[]="bImageElement.id=\"tabInfoBlockIDImage\";";
+			$f[]="bImageElement.border=\"0\";";
+			$f[]="bImageElement.className=\"actionIcon\";";
+			$f[]="tabInfoContainer.appendChild(bElement);";
+			$f[]="tabImageContainer.appendChild(bImageElement);";
+			$f[]="}";
+			$f[]="function launchInternetOptions()";
+			$f[]="{";
+			$f[]="window.external.msLaunchInternetOptions();";
+			$f[]="}";
+			$f[]="function diagnoseConnection()";
+			$f[]="{";
+			$f[]="window.external.DiagnoseConnection();";
+			$f[]="}";
+			$f[]="function diagnoseConnectionAndRefresh()";
+			$f[]="{";
+			$f[]="window.external.DiagnoseConnection();";
+			$f[]="if (navigator.onLine)";
+			$f[]="{";
+			$f[]="clickRefresh();";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function getInfo()";
+			$f[]="{";
+			$f[]="checkConnection();";
+			$f[]="if (document.addEventListener)";
+			$f[]="{";
+			$f[]="addEventListener(\"offline\", reportConnectionEvent, false);";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="attachEvent(\"onoffline\", reportConnectionEvent);";
+			$f[]="}";
+			$f[]="document.body.ononline = reportConnectionEvent;";
+			$f[]="document.body.onoffline = reportConnectionEvent;";
+			$f[]="}";
+			$f[]="function checkConnection()";
+			$f[]="{";
+			$f[]="var newHeading = document.getElementById(\"mainTitle\");";
+			$f[]="var notConnectedTasks = document.getElementById(\"notConnectedTasks\");";
+			$f[]="var cantDisplayTasks = document.getElementById(\"cantDisplayTasks\");";
+			$f[]="}";
+			$f[]="function reportConnectionEvent(e)";
+			$f[]="{";
+			$f[]="if (!e) e = window.event;";
+			$f[]="if ('online' == e.type)";
+			$f[]="{";
+			$f[]="setTimeout ( \"clickRefresh()\", 1000 );";
+			$f[]="}";
+			$f[]="else if ('offline' == e.type)";
+			$f[]="{";
+			$f[]="checkConnection();";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="checkConnection();";
+			$f[]="}";
+			$f[]="}";
+			$f[]="function addURL()";
+			$f[]="{";
+			$f[]="var urlResult = \"\";";
+			$f[]="var DocURL = document.location.href;";
+			$f[]="var urlPlaceholder = document.getElementById(\"webpage\");";
+			$f[]="var beginIndex = DocURL.indexOf('#') + 1;";
+			$f[]="if (DocURL.indexOf(\"file://\", beginIndex) == -1)";
+			$f[]="{";
+			$f[]="var protocolEndIndex = DocURL.indexOf(\"://\", beginIndex);";
+			$f[]="var endIndex=DocURL.indexOf(\"/\", protocolEndIndex + 3);";
+			$f[]="urlResult = DocURL.substring(beginIndex, endIndex);";
+			$f[]="}";
+			$f[]="urlPlaceholder.innerText = urlResult + \" \";";
+			$f[]="}";
+			$f[]="function addDomainName()";
+			$f[]="{";
+			$f[]="var domainNamePlaceholder = document.getElementById(\"DomainName\");";
+			$f[]="domainNamePlaceholder.innerText = findValue(\"DomainName=\") + \" \";";
+			$f[]="}";
+			$f[]="function addProxyDetail()";
+			$f[]="{";
+			$f[]="var proxyDetailPlaceholder = document.getElementById(\"ProxyDetail\");";
+			$f[]="proxyDetailPlaceholder.innerText = findValue(\"ProxyDetail=\");";
+			$f[]="}";
+			$f[]="function findValue(key)";
+			$f[]="{";
+			$f[]="var value = '';";
+			$f[]="DocQuery = document.location.search;";
+			$f[]="BeginString = DocQuery.indexOf(key);";
+			$f[]="if (BeginString > 0)";
+			$f[]="{";
+			$f[]="BeginString += key.length;";
+			$f[]="EndString = Math.max(0, Math.min(DocQuery.indexOf(\"&\", BeginString), DocQuery.indexOf(\"#\", BeginString)));";
+			$f[]="if (EndString > 0)";
+			$f[]="{";
+			$f[]="value = DocQuery.substring(BeginString, EndString);";
+			$f[]="}";
+			$f[]="else";
+			$f[]="{";
+			$f[]="value = DocQuery.substring(BeginString);";
+			$f[]="}";
+			$f[]="}";
+			$f[]="return value;";
+			$f[]="}";
+			$f[]="function isHTTPS(cantDisplayTasks)";
+			$f[]="{";
+			$f[]="var DocURL = document.location.href;";
+			$f[]="var poundIndex = DocURL.indexOf('#');";
+			$f[]="var protocolIndex = DocURL.indexOf(\"https://\", poundIndex);";
+			$f[]="if (protocolIndex>poundIndex)";
+			$f[]="{";
+			$f[]="var bElement = document.createElement(\"li\");";
+			$f[]="bElement.textContent = L_TLS_SSL_TEXT;";
+			$f[]="cantDisplayTasks.appendChild(bElement);";
+			$f[]="}";
+			$f[]="}";
+			$f[]="";
+			$f[]="</SCRIPT>";
+			$f[]="     ";
+			$f[]="<META name=\"GENERATOR\" content=\"MSHTML 11.00.9600.17801\"></HEAD>     ";
+			$f[]="<BODY onload=\"javascript:getInfo();\">";
+			$f[]="<DIV class=\"mainContent\" id=\"contentContainer\">";
+			$f[]="<DIV class=\"title\" id=\"mainTitle\">$title</DIV>";
+			$f[]="<DIV class=\"taskSection\" id=\"taskSection\">";
+			$f[]="$content $FOOTER</DIV>";
+			$f[]="</DIV>";
+			$f[]="</BODY>";
+			$f[]="</HTML>";
+			return @implode("\n", $f);
+		
+		
 	}
 	
 }

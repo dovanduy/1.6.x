@@ -177,7 +177,7 @@ function popup(){
 	";
 	
 	$html="
-	<div class=text-info>{SID_EXPLAIN}</div>
+	<div class=explain>{SID_EXPLAIN}</div>
 	<br>
 	<div id='formsambasid'>
 	$form

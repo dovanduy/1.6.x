@@ -215,7 +215,7 @@ if($t<2){
 	$html_tables=@implode("\n",$tables);
 	
 	$html="
-	<div class=text-info>{LVM_CONVERT_DEV_EXPLAIN}</div>
+	<div class=explain>{LVM_CONVERT_DEV_EXPLAIN}</div>
 	<hr>
 	$html_tables
 	
@@ -379,7 +379,7 @@ function lvcreate_popup(){
 	$free=FormatBytes($array["FREE"]);	
 	
 	
-	$html="<div class=text-info>{lvcreate_explain}</div>
+	$html="<div class=explain>{lvcreate_explain}</div>
 	<p>&nbsp;</p>
 	<div style='font-size:18px'><i>{$_GET["vg"]}&nbsp;$size ($free {free})</i></div>
 	<div style='font-size:16px'>
@@ -470,7 +470,7 @@ function vgservice_popup(){
 	if($users->LXC_INSTALLED){$services["lxc"]="{APP_LXC}";}
 	$groupnamemd=md5($vg);
 	$vgservices=unserialize(base64_decode($sock->GET_INFO("vgservices")));
-	$html="<div class=text-info>{affect_vg_to_service_explain}</div>
+	$html="<div class=explain>{affect_vg_to_service_explain}</div>
 	<table class=form style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{service}:</td>

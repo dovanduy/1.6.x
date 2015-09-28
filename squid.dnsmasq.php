@@ -51,7 +51,7 @@ function popup(){
 	$html="
 	
 	<div id='$t-animate'></div>
-	<div id='$t' class=text-info style='font-size:14px'>{dns_cache_explain}</div>
+	<div id='$t' class=explain style='font-size:14px'>{dns_cache_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%' >
 	<tr>

@@ -197,7 +197,7 @@ function watchdog_params(){
 	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
 	
 	if(!is_numeric($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
-	if(!is_numeric($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
+	if(!is_numeric($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=0;}
 	
 
 	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
@@ -216,7 +216,7 @@ function watchdog_params(){
 	
 	
 	
-	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=0;}
 	if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 	if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
 	if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
@@ -224,7 +224,7 @@ function watchdog_params(){
 	
 	
 	
-	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=0;}
 	if(!is_numeric($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 	if(!is_numeric($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
 	if(!is_numeric($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
@@ -657,7 +657,7 @@ function all_services_status_build(){
 	$tr[]=$APP_SQUID_DB;
 	$tr[]=$APP_FTP_PROXY;
 	
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
 	
@@ -755,10 +755,10 @@ function features(){
 	$UfdbEnabledCentral=$sock->GET_INFO('UfdbEnabledCentral');
 	$AntivirusEnabledCentral=$sock->GET_INFO('AntivirusEnabledCentral');
 	$EnableKerbAuthCentral=$sock->GET_INFO('EnableKerbAuthCentral');
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$DnsFilterCentral=$sock->GET_INFO('DnsFilterCentral');
 	$SquidBubbleMode=$sock->GET_INFO('SquidBubbleMode');
-	$EnableITChart=$sock->GET_INFO('EnableITChart');
+	
 	$CicapEnabled=$sock->GET_INFO("CicapEnabled");
 
 		
@@ -796,7 +796,7 @@ function features(){
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($kavicapserverEnabled)){$kavicapserverEnabled=0;}
 	if(!is_numeric($SquidBubbleMode)){$SquidBubbleMode=0;}
-	if(!is_numeric($EnableITChart)){$EnableITChart=0;}
+	
 	if(!is_numeric($EnableHaarp)){$EnableHaarp=0;}	
 	if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
@@ -845,9 +845,7 @@ function features(){
 	$ARRAY["EnableHaarp"]["EXPL"]="{APP_HAARP_EXPLAIN}";
 	$ARRAY["EnableHaarp"]["ICON"]=$INTEGER[$EnableHaarp];	
 
-	$ARRAY["SquidBubbleMode"]["TITLE"]="{IT_charter}";
-	$ARRAY["SquidBubbleMode"]["EXPL"]="{IT_charter_explain}";
-	$ARRAY["SquidBubbleMode"]["ICON"]=$INTEGER[$EnableITChart];	
+
 	
 	$ARRAY["isNGnx"]["TITLE"]="{squid_reverse_proxy}";
 	$ARRAY["isNGnx"]["EXPL"]="{nginx_benefits}";

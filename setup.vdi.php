@@ -33,7 +33,7 @@ if($users->LinuxDistriCode<>"DEBIAN"){
 $html="
 <div style='background-image:url(img/vdi-bg.png);background-repeat:no-repeat;height:500px;width:100%'>
 <H1>{virtual_desktop_infr}</H1>
-<div class=text-info>{HOWTO_INSTALL_VDI}</div>
+<div class=explain>{HOWTO_INSTALL_VDI}</div>
 
 <center style='margin:20px'>$button</center>
 

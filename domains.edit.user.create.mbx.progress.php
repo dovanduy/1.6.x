@@ -121,6 +121,7 @@ if($prc==100){
 		$('#progress-$t').progressbar({ value: $prc });
 		LayersTabsAllAfter();
 		RTMMailHide();
+		YahooUserHide();
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	

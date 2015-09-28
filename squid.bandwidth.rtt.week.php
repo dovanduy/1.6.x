@@ -15,7 +15,7 @@ if(function_exists("posix_getuid")){
 
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.html.pages.inc');
-include_once('class.highcharts.inc');
+include_once('ressources/class.highcharts.inc');
 include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 
@@ -143,7 +143,7 @@ function showlist(){
 
 	$data = array();
 	$data['page'] = 1;
-	$data['total'] = mysql_num_rows($results);
+	$data['total'] = $total;
 	$data['rows'] = array();
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}

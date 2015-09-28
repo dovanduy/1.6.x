@@ -54,42 +54,42 @@ function tabs(){
 	$page=CurrentPageName();
 	$array["status"]='{status}';
 	$array["popup"]='{proxy_parents}';
-	$array["popup-ntlm"]='{APP_CNTLM_PARENT}';
-	$array["master"]='{master_proxy}';
-	$array["zipproxy"]='{http_compression}';
+	//$array["popup-ntlm"]='{APP_CNTLM_PARENT}';
+	//$array["master"]='{master_proxy}';
+	//$array["zipproxy"]='{http_compression}';
 	
+	$fontsize=22;
 	
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="caches"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.php?byQuicklinks=yes\" 
+					style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 		
-		if($num=="master"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-proxy.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
-			continue;
-		
-		}	
 		
 		if($num=="popup-ntlm"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-ntlm.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-ntlm.php?byQuicklinks=yes\" 
+					style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		
 		}		
 
 		if($num=="zipproxy"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.zipproxy.php\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.zipproxy.php\" 
+					style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		
 		}		
 	
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" 
+				style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_squid_prents_tabs",1100);
+	echo build_artica_tabs($html, "main_squid_prents_tabs",1490);
 	
 	
 	
@@ -222,7 +222,7 @@ function parent_js(){
 	}
 	
 	
-	echo "YahooWin4('700','$page?edit-proxy-parent=$ID&t={$_GET["t"]}','$title');";
+	echo "YahooWin4('750','$page?edit-proxy-parent=$ID&t={$_GET["t"]}','$title');";
 	
 }
 
@@ -271,7 +271,7 @@ function parent_tab(){
 	
 	if($ID>0){
 		$q=new mysql();
-		$sql="SELECT servername FROM squid_parents WHERE ID=$ID";
+		$sql="SELECT server_type,servername FROM squid_parents WHERE ID=$ID";
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$title=$ligne["servername"];
 	}
@@ -279,6 +279,12 @@ function parent_tab(){
 	$array["popup"]=$title;
 	
 	if($ID>0){
+		
+		if($ligne["server_type"]=="wancompress"){
+			$array["wancompress"]="{cache_settings}";
+			
+		}
+		
 		$array["optionslist"]="{options}";
 		
 	}
@@ -286,9 +292,14 @@ function parent_tab(){
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 	
-		
+		if($num=="wancompress"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.parent.proxy.wancompress.php?ID=$ID&t={$_GET["t"]}\"
+			style='font-size:20px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
 	
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?edit-proxy-parent-$num=$ID&t={$_GET["t"]}\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?edit-proxy-parent-$num=$ID&t={$_GET["t"]}\" 
+		style='font-size:20px'><span>$ligne</span></a></li>\n");
 	}
 	
 	echo build_artica_tabs($html, "main_squid_prents_tabs_$ID");	
@@ -360,16 +371,22 @@ function parent_delete(){
 }
 
 function parent_save(){
+	
+	
+	
+	
 	$ID=$_GET["ID"];
 	if(strlen(trim($_GET["icp_port"]))==null){$_GET["icp_port"]=0;}
-	$sql_add="INSERT INTO squid_parents (servername,server_port,server_type,icp_port)
-	VALUES('{$_GET["servername"]}','{$_GET["server_port"]}','{$_GET["server_type"]}','{$_GET["icp_port"]}')";
+	$sql_add="INSERT INTO squid_parents (servername,server_port,server_type,icp_port,local_port)
+	VALUES('{$_GET["servername"]}','{$_GET["server_port"]}','{$_GET["server_type"]}','{$_GET["icp_port"]}',
+	'{$_GET["local_port"]}')";
 	
 	$sql_edit="UPDATE squid_parents SET 
 		servername='{$_GET["servername"]}',
 		server_port='{$_GET["server_port"]}',
 		server_type='{$_GET["server_type"]}',
 		icp_port='{$_GET["icp_port"]}',
+		local_port='{$_GET["local_port"]}',
 		weight='{$_GET["weight"]}',
 		zOrder='{$_GET["weight"]}'
 		WHERE ID=$ID";
@@ -383,11 +400,25 @@ function parent_save(){
 		if(!$q->ok){echo "$q->mysql_error\n$sql";}
 	}
 	
+	if(!$q->FIELD_EXISTS("squid_parents", "local_port","artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE `squid_parents` ADD `local_port` smallint(5) NOT NULL DEFAULT '0'","artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	
+	
 	if(!$q->FIELD_EXISTS("squid_parents", "weight", "artica_backup")){
 		$sql="ALTER TABLE `squid_parents` ADD `weight` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `weight` )";
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo "$q->mysql_error\n$sql";}
 	}	
+	if(!$q->FIELD_EXISTS("squid_parents", "WanProxyMemory", "artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE `squid_parents` ADD `WanProxyMemory` SMALLINT(10) NOT NULL DEFAULT '256'", "artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	if(!$q->FIELD_EXISTS("squid_parents", "WanProxyCache", "artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE `squid_parents` ADD `WanProxyCache` SMALLINT(10) NOT NULL DEFAULT '1'", "artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
 	
 	
 	$sql=$sql_add;
@@ -405,9 +436,9 @@ function status(){
 	if(!is_numeric($t)){$t=time();}
 	
 	$EnableParentProxy=intval($sock->GET_INFO("EnableParentProxy"));
-	$p=Paragraphe_switch_img("{enable_squid_parent}", "{EnableParentProxy_explain}","EnableParentProxy",$EnableParentProxy,null,600);
-	$p1=Paragraphe_switch_img("{prefer_direct}", "{squid_prefer_direct}","prefer_direct",$squid->prefer_direct,null,600);
-	$p2=Paragraphe_switch_img("{nonhierarchical_direct}", "{squid_nonhierarchical_direct}","nonhierarchical_direct",$squid->nonhierarchical_direct,null,600);
+	$p=Paragraphe_switch_img("{enable_squid_parent}", "{EnableParentProxy_explain}","EnableParentProxy",$EnableParentProxy,null,1095);
+	$p1=Paragraphe_switch_img("{prefer_direct}", "{squid_prefer_direct}","prefer_direct",$squid->prefer_direct,null,1095);
+	$p2=Paragraphe_switch_img("{nonhierarchical_direct}", "{squid_nonhierarchical_direct}","nonhierarchical_direct",$squid->nonhierarchical_direct,null,1095);
 	
 	
 	$arrayParams["on"]="{enabled}";
@@ -420,30 +451,23 @@ function status(){
 	<div class=form style='width:95%'>
 		<table style='width:100%'>
 			<tr>
-			<td>$p</td>
+			<td colspan=2>$p</td>
 			</tr>
 			<tr>
-			<td>$p1</td>
+			<td colspan=2>$p1</td>
 			</tr>
 			<tr>			
-			<td>$p2</td>
+			<td colspan=2>$p2</td>
 			</tr>
 			<tr>			
-			<td style='padding-left:80px'>
-				<h3 style='font-size:16px;color:black;text-transform:capitalize';margin-top:15px>x-Forwarded-For</h3>
-				<div style='font-size:14px'>{x-Forwarded-For_explain}</div>
-				<table style='width:99%'>
-					<tr>
-						<td class=legend style='font-size:16px'>x-Forwarded-For:</td>
-						<td>". Field_array_Hash($arrayParams,"x-Forwarded-For-$t",$squid->forwarded_for,null,null,0,"font-size:16px")."</td>
-					</tr>
-				</table>
-			</td>
+			<tr>
+				<td class=legend style='font-size:24px;font-weight:bolder'>". texttooltip("x-Forwarded-For","{x-Forwarded-For_explain}").":</td>
+				<td>". Field_array_Hash($arrayParams,"x-Forwarded-For-$t",$squid->forwarded_for,null,null,0,"font-size:24px")."</td>
 			</tr>
 		<tr>			
 			
 			<tr>			
-			<td align='right'><hr>". button("{apply}","Save$t()",22)."</td>
+			<td align='right' colspan=2><hr>". button("{apply}","Save$t()",40)."</td>
 			</tr>
 		</table>
 	</div>
@@ -492,29 +516,29 @@ function popup(){
 	if(isset($_GET["t"])){ $t=$_GET["t"]; }
 	if(!is_numeric($t)){$t=time();}
 	
-	$servername_width=343;
+	$servername_width=424;
 	
 	if(isset($_GET["browser"])){
 		$browser_uri="&browser=yes&callback={$_GET["callback"]}";
 		$ASBROWSER=true;
-		$servername_width=269;
+		$servername_width=343;
 	}
 	
 	
-	if(!$ASBROWSER){$display[]="{display: '$status', name : 'icon', width :75, sortable : true, align: 'center'}";}
+	if(!$ASBROWSER){$display[]="{display: '<span style=font-size:18px>$status</span>', name : 'icon', width :110, sortable : true, align: 'center'}";}
 	if($ASBROWSER){$display[]="{display: '&nbsp;', name : 'icon', width :75, sortable : true, align: 'center'}";}
-	$display[]="{display: '$servername', name : 'servername', width :$servername_width, sortable : true, align: 'left'}";
-	$display[]="{display: '$listen_port', name : 'server_port', width : 84, sortable : true, align: 'center'}";
-	$display[]="{display: '$server_type', name : 'server_type', width : 103, sortable : true, align: 'center'}";
+	$display[]="{display: '<span style=font-size:18px>$servername</span>', name : 'servername', width :$servername_width, sortable : true, align: 'left'}";
+	$display[]="{display: '<span style=font-size:18px>$listen_port</span>', name : 'server_port', width : 175, sortable : true, align: 'center'}";
+	$display[]="{display: '<span style=font-size:18px>$server_type</span>', name : 'server_type', width : 193, sortable : true, align: 'center'}";
 	if(!$ASBROWSER){
-		$display[]="{display: '$enabled', name : 'enabled', width : 50, sortable : true, align: 'center'}";
-		$display[]="{display: '&nbsp;', name : 'zOrder', width : 50, sortable : true, align: 'center'}";
-		$display[]="{display: '&nbsp;', name : 'down', width : 50, sortable : false, align: 'center'}";
-		$display[]="{display: '$delete', name : 'delete', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '<span style=font-size:18px>$enabled</span>', name : 'enabled', width : 110, sortable : true, align: 'center'}";
+		$display[]="{display: '&nbsp;', name : '<span style=font-size:18px>zOrder', width : 50, sortable : true, align: 'center'}";
+		$display[]="{display: '&nbsp;', name : '<span style=font-size:18px>down', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '<span style=font-size:18px>$delete</span>', name : 'delete', width : 110, sortable : false, align: 'center'}";
 	}
 	if($ASBROWSER){
-		$display[]="{display: '$select', name : 'enabled', width : 50, sortable : false, align: 'center'}";
-		$display[]="{display: '$delete', name : 'delete', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '<span style=font-size:18px>$select</span>', name : 'enabled', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '<span style=font-size:18px>$delete</span>', name : 'delete', width : 50, sortable : false, align: 'center'}";
 	}
 	
 $html="
@@ -531,8 +555,8 @@ $('#flexRT$t').flexigrid({
 		],
 		
 buttons : [
-		{name: '$add_a_parent_proxy', bclass: 'add', onpress : add_a_parent_proxy},
-		{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
+		{name: '<strong style=font-size:18px>$add_a_parent_proxy</strong>', bclass: 'add', onpress : add_a_parent_proxy},
+		{name: '<strong style=font-size:18px>$apply_params</strong>', bclass: 'apply', onpress : SquidBuildNow$t},
 		],			
 	
 	searchitems : [
@@ -570,6 +594,7 @@ function popup_list(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	$MyPage=CurrentPageName();
+	$users=new usersMenus();
 	$q=new mysql();
 	$squid=new squidbee();
 	$sock=new sockets();
@@ -672,7 +697,7 @@ function popup_list(){
 		if($GLOBALS["VERBOSE"]){echo "<H3>STATUS_KEY = $STATUS_KEY</H3>\n";}
 		
 		if(is_numeric($STATUS[$STATUS_KEY]["FETCHES"])){
-			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$STATUS_KEY]["FETCHES"]).")</span>";
+			$fetches="<span style='font-size:18px'>($fetchesWord: ". FormatNumber($STATUS[$STATUS_KEY]["FETCHES"]).")</span>";
 		}
 		
 		if(!$ASBROWSER){
@@ -725,7 +750,7 @@ function popup_list(){
 		
 		$ahref="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('$MyPage?parent-js=yes&ID={$ligne["ID"]}&t=$t');\"
-		style='font-size:18px;text-decoration:underline;font-weight:bold;color:$color'>";
+		style='font-size:22px;text-decoration:underline;font-weight:bold;color:$color'>";
 		
 		$delete="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('$MyPage?parent-delete-js=yes&ID={$ligne["ID"]}&t=$t');\">
@@ -744,21 +769,30 @@ function popup_list(){
 		
 		$STATUS[$STATUS_KEY]["STATUS"]=$tpl->_ENGINE_parse_body($STATUS[$STATUS_KEY]["STATUS"]);
 		
+		$server_type=$ligne["server_type"];
+		if($server_type=="wancompress"){
+			$explainadd=$tpl->_ENGINE_parse_body("<br><span style='font-size:18px'>{forward_to_port}:127.0.0.1:{$ligne["local_port"]}&nbsp;</span>");
+			if(!$users->WANPROXY){
+				$explainadd=$tpl->_ENGINE_parse_body("<br><span style='font-size:18px;color:#d32d2d'>{wanproxy_not_installed}</span><br>");
+			}
+			
+		}
+		
 		$CELLS=array();
-		$CELLS[]="<img src='img/$img'><br>{$STATUS[$STATUS_KEY]["STATUS"]}";
-		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["servername"]}</a>$domainsInfos$options</div>";
-		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_port"]}</a></div>";
-		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_type"]}</a></div>";
-		$CELLS[]=$enabled;
+		$CELLS[]="<center><img src='img/$img'><br><span style='font-size:18px'>{$STATUS[$STATUS_KEY]["STATUS"]}</span></center>";
+		$CELLS[]="$ahref{$ligne["servername"]}</a>$explainadd$domainsInfos$options";
+		$CELLS[]="$ahref{$ligne["server_port"]}</a>";
+		$CELLS[]="$ahref{$ligne["server_type"]}</a>";
+		$CELLS[]="<center>$enabled</center>";
 		
 		
 		if(!$ASBROWSER){
 			
-			$CELLS[]=$up;
-			$CELLS[]=$down;
+			$CELLS[]="<center>$up</center>";
+			$CELLS[]="<center>$down</center>";
 			
 		}
-		$CELLS[]=$delete;
+		$CELLS[]="<center>$delete</center>";
 		
 		
 		
@@ -784,6 +818,7 @@ function parent_config(){
 	$array_type["parent"]="parent";
 	$array_type["sibling"]="sibling";
 	$array_type["multicast"]="multicast";
+	$array_type["wancompress"]="WAN Compressor";
 	$q=new mysql();
 	$sql="SELECT * FROM squid_parents WHERE ID=$ID";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -802,40 +837,51 @@ function parent_config(){
 	
 	<input type='hidden' id='SquidParentOptions' name='SquidParentOptions' value=\"{$ligne["options"]}\">
 	<div id='EditSquidParentSaveID'>
+	
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:18px'>{hostname}:</td>
-		<td>". Field_text("servername",$ligne["servername"],"font-size:18px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{enabled}:</td>
+		<td>". Field_checkbox_design("enabled-$t",1,$ligne["enabled"],"Enabled$t()")."</td>
+		<td>&nbsp;</td>
+	</tr>
+					
+	
+	<tr>
+		<td class=legend style='font-size:22px'>{hostname}:</td>
+		<td>". Field_text("servername",$ligne["servername"],"font-size:22px;padding:3px;width:320px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"],"Enabled$t()")."</td>
-		<td>&nbsp;</td>
-	</tr>				
-	<tr>
-		<td class=legend style='font-size:18px'>{weight}:</td>
-		<td>". Field_text("weight-$t",$ligne["weight"],"font-size:18px;padding:3px;width:90px")."</td>
-		<td>&nbsp;</td>
-	</tr>				
-	<tr>
-		<td class=legend style='font-size:18px'>{listen_port}:</td>
-		<td>". Field_text("server_port",$ligne["server_port"],"font-size:18px;padding:3px;width:90px")."</td>
+		<td class=legend style='font-size:22px'>{listen_port}:</td>
+		<td>". Field_text("server_port",$ligne["server_port"],"font-size:22px;padding:3px;width:110px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{icp_port}:</td>
-		<td>". Field_text("icp_port",$ligne["icp_port"],"font-size:18px;padding:3px;width:90px")."</td>
-		<td>". help_icon("{icp_port_explain}")."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{server_type}","{squid_parent_sibling_how_to}").":</td>
+		<td>". Field_array_Hash($array_type,"server_type",$ligne["server_type"],"ServerTypeCheck()",null,0,"font-size:22px")."</td>
+	</tr>								
+	<tr>
+		<td class=legend style='font-size:22px'>{weight}:</td>
+		<td>". Field_text("weight-$t",$ligne["weight"],"font-size:22px;padding:3px;width:110px")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+
+	<tr>
+		<td class=legend style='font-size:22px'>{local_port}:</td>
+		<td>". Field_text("local_port",$ligne["local_port"],"font-size:22px;padding:3px;width:110px")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+				
+				
+	<tr>
+		<td class=legend style='font-size:22px'>". texttooltip("{icp_port}","{icp_port_explain}").":</td>
+		<td>". Field_text("icp_port",$ligne["icp_port"],"font-size:22px;padding:3px;width:110px")."</td>
+		<td></td>
 	</tr>	
-	<tr>
-		<td class=legend style='font-size:18px'>{server_type}:</td>
-		<td>". Field_array_Hash($array_type,"server_type",$ligne["server_type"],null,null,0,"font-size:18px")."</td>
-		<td>". help_icon("{squid_parent_sibling_how_to}")."</td>
-	</tr>
+
 	<tr>
 	
-		<td colspan=3 align='right'><hr>". button("$button","EditSquidParentSave$t()",26)."
+		<td colspan=3 align='right'><hr>". button("$button","EditSquidParentSave$t()",30)."
 	</td>
 	
 	</table>
@@ -863,12 +909,14 @@ function EditSquidParentSave$t(){
 	XHR.appendData('server_type',document.getElementById('server_type').value);
 	XHR.appendData('weight',document.getElementById('weight-$t').value);
 	XHR.appendData('icp_port',document.getElementById('icp_port').value);
+	XHR.appendData('local_port',document.getElementById('local_port').value);
 	XHR.appendData('enabled',document.getElementById('enabled-$t').value);
 	XHR.sendAndLoad('$page', 'GET',xEditSquidParentSave$t);			
 }	
 
 function Enabled$t(){
 	document.getElementById('servername').disabled=true;
+	document.getElementById('local_port').disabled=true;
 	document.getElementById('server_port').disabled=true;
 	document.getElementById('server_type').disabled=true;
 	document.getElementById('weight-$t').disabled=true;
@@ -881,7 +929,21 @@ function Enabled$t(){
 		document.getElementById('icp_port').disabled=false;	
 	}
 }
+
+function ServerTypeCheck(){
+	document.getElementById('icp_port').disabled=false;
+	document.getElementById('local_port').disabled=true;
+	var wancompress=document.getElementById('server_type').value;
+	if(wancompress=='wancompress'){
+		document.getElementById('local_port').disabled=false;
+		document.getElementById('icp_port').disabled=true;
+	
+	}
+	
+}
+
  Enabled$t();
+ ServerTypeCheck();
 </script>
 	";
 	
@@ -1097,7 +1159,7 @@ function parent_options_explain(){
 	}
 	
 	$explain=parent_option_explain_text($_GET["edit-proxy-parent-options-explain"]);
-	$html="<div class=text-info style='font-size:16px'>$explain</div>
+	$html="<div class=explain style='font-size:16px'>$explain</div>
 	$form
 	<div style='text-align:right'><hr>
 	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",22)."</div>";

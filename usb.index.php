@@ -138,7 +138,7 @@ function automount_popup(){
 	$page=CurrentPageName();
 	$md5=md5($uuid.time());
 	$html="
-	<div class=text-info>{automount_explain_text}</div>
+	<div class=explain>{automount_explain_text}</div>
 	<div id='autofs_div'>
 	<table style='width:99%' class=form>
 	<tr>

@@ -1,165 +1,187 @@
 #!/usr/bin/php -q
 <?php
-
-$GLOBALS["VERBOSE"]=false;
-if($argv[1]=="--verbose"){
-	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-}
-if($argv[1]=="--cached"){
-	ini_set('display_errors', 1);	
-	ini_set('html_errors',0);ini_set('display_errors', 1);
-	ini_set('error_reporting', E_ALL);
-	$GLOBALS["MYPID"]=getmypid();
-	$GLOBALS["VERBOSE"]=true;
-	berekley_db_cached($argv[2]);
-	berekley_db_notcached($argv[2]);
-	
-	die();
-}
-
-
-function shutdown() {
-	$error = error_get_last();
-	$type=trim($error["type"]);
-	$message= trim($error["message"]);
-	if($message==null){return;}
-	$file = $error["file"];
-	$line = $error["line"];
-	if(function_exists("openlog")){openlog("artica-status", LOG_PID , LOG_SYSLOG);}
-	if(function_exists("syslog")){ syslog(true, "$file: Fatal, stopped with error $type $message line $line");}
-	if(function_exists("closelog")){closelog();}
-	
-}
+if(isset($argv[1])){if($argv[1]=="--bycron"){die();}}
 register_shutdown_function('shutdown');
-
-
-
 include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 include_once(dirname(__FILE__)."/ressources/class.realtime-buildsql.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
+include_once(dirname(__FILE__)."/ressources/class.influx.inc");
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
+include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
+include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+include_once(dirname(__FILE__).'/framework/class.unix.inc');
+include_once(dirname(__FILE__).'/framework/frame.class.inc');
+include_once(dirname(__FILE__).'/framework/class.settings.inc');
 $GLOBALS["COUNT"]=0;
-$GLOBALS["VERSION"]="15Nov2014";
+$GLOBALS["VERSION"]="18Janv2015";
 $GLOBALS["UserAuthDB_path"]="/var/log/squid/UserAuthDB.db";
 $GLOBALS["ACT_AS_REVERSE"]=false;
 $GLOBALS["NO_DISK"]=false;
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["DEBUG_USERAGENT"]=false;
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
 $GLOBALS["LOG_HOSTNAME"]=false;
+$GLOBALS["REMOTE_PROXY_NAME"]=null;
+$GLOBALS["DEBUG_USERS"]=false;
 $GLOBALS["COUNT_WAKEUP"]=0;
 $GLOBALS["COUNT_RQS"]["TIME"]=time();
 $GLOBALS["DisableLogFileDaemonCategories"]=0;
 $GLOBALS["ACCEPTED_REQUESTS"]=0;
 $GLOBALS["DEBUG_CACHES"]=false;
 $GLOBALS["REFUSED_REQUESTS"]=0;
+$GLOBALS["DEBUG_MEM"]=false;
+$GLOBALS["DEBUG_INFLUX"]=false;
 $GLOBALS["COUNT_HASH_TABLE"]=0;
+$GLOBALS["WAKEUP_LOGS"]=0;
 $GLOBALS["KEYUSERS"]=array();
 $GLOBALS["CACHE_SQL"]=array();
 $timezones=@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones");
 $GLOBALS["LogFileDeamonLogDir"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDeamonLogDir");
+$GLOBALS["ResolvIPStatistics"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/ResolvIPStatistics"));
 if($GLOBALS["LogFileDeamonLogDir"]==null){$GLOBALS["LogFileDeamonLogDir"]="/home/artica/squid/realtime-events";}
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="{$GLOBALS["ARTICALOGDIR"]}"; } }
+if(!isset($GLOBALS["NoCompressStatisticsByHour"])){$GLOBALS["NoCompressStatisticsByHour"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/NoCompressStatisticsByHour"));}
 
 
+
+
+if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+$pid=getmypid();
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+@mkdir("/etc/artica-postfix/pids",0755,true);
+@mkdir($GLOBALS["LogFileDeamonLogDir"],0755,true);
+$pid=@file_get_contents($pidfile);
 
 
 if($timezones<>null){@date_default_timezone_set($timezones);}
 parseconfig();
-CheckDirs();
-
-error_reporting(0);
-//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
 
-if($argv[1]=="--no-disk"){$GLOBALS["NO_DISK"]=true;}
-if($argv[1]=="--dump-mac"){print_r(unserialize(@file_get_contents("/etc/squid3/usersMacs.db")));exit;}
 $logthis=array();
 if($GLOBALS["VERBOSE"]){$logthis[]="Verbosed";}
 if($GLOBALS["ACT_AS_REVERSE"]){$logthis[]=" Act as reverse...";}
 $GLOBALS["MYPID"]=getmypid();
-events("Starting PID: {$GLOBALS["MYPID"]} - TimeZone: $timezones,  version: {$GLOBALS["VERSION"]}, ".@implode(", ", $logthis) ." ({$argv[1]})");
+events("Starting PID: {$GLOBALS["MYPID"]} - TimeZone: $timezones,  version: {$GLOBALS["VERSION"]}, ".@implode(", ", $logthis));
 if($GLOBALS["DisableLogFileDaemonCategories"]==1){events("Starting: WILL NOT USE Categories detection feature..."); }
 if($GLOBALS["DisableLogFileDaemonCategories"]==0){events("Starting: USING Categories detection feature..."); }
+if($GLOBALS["EnableArticaMetaClient"]==1){events("Starting: USING Meta Web management console..."); }
+if($GLOBALS["EnableArticaMetaClient"]==1){events("Starting: Dump events each {$GLOBALS["LogFileDaemonMaxEvents"]} rows..."); }
+$GLOBALS["MYSQL_CATZ"]=new mysql_catz();
+$GLOBALS["SQUID_FAMILY_CLASS"]=new squid_familysite();
+$GLOBALS["COUNT_RQS_TIME"]=0;
 $GLOBALS["COUNT_RQS"]=0;
 $GLOBALS["PURGED"]=0;
-events("Starting PID: waiting connections...");
-$DCOUNT=0;
 
+
+$unix=new unix();
+$GLOBALS["MYHOSTNAME"]=$unix->hostname_g();
+events("Starting PID: Resolv IP domains.................: {$GLOBALS["ResolvIPStatistics"]}");
+events("Starting PID: waiting connections... Meta Client: {$GLOBALS["EnableArticaMetaClient"]}");
+events("Starting PID: Compress statistics In realtime...: {$GLOBALS["NoCompressStatisticsByHour"]}");
+$DCOUNT=0;
+$GLOBALS["REQS"]=array();
 @file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid", time());
 
-$pipe = fopen("php://stdin", "r");
-$buffer=null;
 
+squid_admin_mysql(2, "Starting Squid Tail Daemon PID {$GLOBALS["MYPID"]}", null,__FILE__,__LINE__);
+
+//$pipe = fopen("php://stdin", "r");
+$buffer=null;
+$pipe = fopen("php://stdin", "r");
 while(!feof($pipe)){
-	$buffer= trim(fgets($pipe));
-	$GLOBALS["COUNT_RQS"]=$GLOBALS["COUNT_RQS"]+1;
+	$buffer .= fgets($pipe, 4096);
+	try {
+		if($GLOBALS["VERBOSE"]){events(" - > `$buffer`");}
+		Parseline($buffer);
+	} catch (Exception $e) {
+		events("Fatal error on buffer $buffer");
+	}
+
+	$buffer=null;
+}
+
+function Parseline($buffer){
 	
+	
+	if(!isset($GLOBALS["CACHE_TAIL_TIME"])){$GLOBALS["CACHE_TAIL_TIME"]=time();}
+	
+	$cacheTailTime=tool_time_sec($GLOBALS["CACHE_TAIL_TIME"]);
+	
+	if($cacheTailTime>6){
+		@unlink("/etc/artica-postfix/cache-tail.time");
+		@file_put_contents("/etc/artica-postfix/cache-tail.time", time());
+		$GLOBALS["CACHE_TAIL_TIME"]=time();
+	}
+	
+	
+	
+
+	if($GLOBALS["COUNT_RQS"]==0){$GLOBALS["COUNT_RQS"]=1;}
+	$ctrqs=intval($GLOBALS["COUNT_RQS"]);
+	$ctrqs++;
+	$GLOBALS["COUNT_RQS"]=$ctrqs;
+	if($GLOBALS["COUNT_RQS_TIME"]==0){$GLOBALS["COUNT_RQS_TIME"]=time();}
+	if($GLOBALS["COUNT_RQS_TIME"]>0){if(tool_time_sec($GLOBALS["COUNT_RQS_TIME"])>15){CleanReQsMin();} }
 	if($GLOBALS["VERBOSE"]){events( __LINE__." {$GLOBALS["COUNT_RQS"]} connexions");}
 
 	if(strpos($buffer, "TCP_DENIED/403")>0){
 		if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }
 		$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
-		continue;
+		return true;
 	}
 	
-	Wakeup();
-	
-	if(strpos($buffer, "NONE:HIER_NONE")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
-	if(strpos($buffer, "error:invalid-request")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+	if(isset($GLOBALS["LOGACCESS_TIME"])){CachedUserMemDump();}
+	if(strpos($buffer, ":::HEAD:::")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return;}
+	if(strpos($buffer, "NONE:HIER_NONE")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return;}
+	if(strpos($buffer, "error:invalid-request")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return;}
 	if(strpos("NONE error:", $buffer)>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return; }
 	if(strpos($buffer, "GET cache_object")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+	if(strpos($buffer, "cache_object://")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
 	
-	
-	$F=substr($buffer, 0,1);
-
-	
-	if($F=="L"){
-		$GLOBALS["WAKEUP_LOGS"]=$GLOBALS["WAKEUP_LOGS"]+1;
-		$buffer=substr($buffer, 1,strlen($buffer));
-		
-		
+	$GLOBALS["WAKEUP_LOGS"]=$GLOBALS["WAKEUP_LOGS"]+1;
+	$currentMin=date("Y-m-d H:i:00");
+		if(!isset($GLOBALS["REQS"][date("YmdHi")])){
+			$GLOBALS["REQS"][$currentMin]=1;
+		}else{
+			$GLOBALS["REQS"][$currentMin]=$GLOBALS["REQS"][$currentMin]+1;
+		}
+		if(count($GLOBALS["REQS"][$currentMin])>15){CleanReQsMin();}
 		
 		if( $GLOBALS["WAKEUP_LOGS"]>50 ){
+			if(!isset($GLOBALS["BEREKLEY_MEMORY_STATS"])){$GLOBALS["BEREKLEY_MEMORY_STATS"]=0;}
 			events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
 			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
-			"- {$GLOBALS["COUNT_RQS"]} connexions received "
+			"- {$GLOBALS["COUNT_RQS"]}".
+			"- ".round($GLOBALS["BYTES_WRITE"]/1024,2)." Ko written in logs"
 			);
 			$GLOBALS["WAKEUP_LOGS"]=0;
 		}		
 		
 		
-		
-		if(strpos($buffer, "TCP_MISS/000")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
-		if(strpos($buffer, "TCP_DENIED:")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
-		if(strpos($buffer, "RELEASE -1")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
-		if(strpos($buffer, "RELEASE 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
-		if(strpos($buffer, "SWAPOUT 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		if(strpos($buffer, "TAG_NONE:HIER_NONE")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+		if(strpos($buffer, "TCP_MISS/000")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+		if(strpos($buffer, "TCP_DENIED:")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+		if(strpos($buffer, "RELEASE -1")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+		if(strpos($buffer, "RELEASE 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+		if(strpos($buffer, "SWAPOUT 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
 		
 		if($GLOBALS["VERBOSE"]){$time_start = microtime(true);}
 		
 		ParseSizeBuffer($buffer);
 		if($GLOBALS["VERBOSE"]){$time_end = microtime(true);$time_calc = $time_end - $time_start;}
 		if($GLOBALS["VERBOSE"]){events("ParseSizeBuffer = {$time_calc}ms");}
-		
-		
 		$buffer=null;
-		Wakeup();
-		continue;
-	}
-	
-	
-	
-	if(is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.shutdown")){
-		events("Stopping loop PID:".getmypid());
-		@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.shutdown");
-		break;
-	}
-	
-	$buffer=null;
+		
+		
+
 }
 
+events("Stopping PID:".getmypid()." After $DCOUNT event(s) berekley_memory_dump()");
+berekley_memory_dump(true);
 if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid")){@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid");}
-events("Stopping PID:".getmypid()." After $DCOUNT event(s)");
-empty_TableHash();
+events("Stopping PID:".getmypid()." Stopped()");
+die();
 
 
 function CheckDirs(){
@@ -171,8 +193,8 @@ function CheckDirs(){
 	$f[]="/var/log/squid/mysql-rtterrors";
 	$f[]="/var/log/squid/mysql-UserAgents";
 	$f[]="/var/log/squid/mysql-computers";
-	$f[]="/var/log/squid/ufdbguard-blocks";
 	$f[]="/var/log/squid/squid_admin_mysql";
+	$f[]="/var/log/squid/cached-stats";
 	
 	while (list ($num, $directory) = each ($f)){
 		if(!is_dir($directory)){@mkdir($directory,0755,true);}
@@ -184,32 +206,19 @@ function CheckDirs(){
 	
 }
 
-
-function Wakeup(){
-	$GLOBALS["COUNT_WAKEUP"]=$GLOBALS["COUNT_WAKEUP"]+1;
-	if($GLOBALS["COUNT_WAKEUP"]>10){
-		$GLOBALS["MYPID"]=getmypid();
-		if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid")){@file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid", $GLOBALS["MYPID"]); }
-		$GLOBALS["COUNT_WAKEUP"]=0;
-		$Array["PURGED"]=$GLOBALS["PURGED"];
-		$Array["COUNT_RQS"]=$GLOBALS["COUNT_RQS"];
-		@file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.state", serialize($Array));
-	}
-	
-	if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.wakeup")){return;}
-	
-	@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.wakeup");
-	@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.status");
-	@touch("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.status");
-	events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
-			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
-			"- {$GLOBALS["COUNT_RQS"]} connexions received "
-	);
-	
-	empty_TableHash();
-		
-	
+function CleanReQsMin(){
+	if($GLOBALS["NoCompressStatisticsByHour"]==0){return;}
+	$q=new influx();
+	$array["fields"]["RQS"]=intval($GLOBALS["COUNT_RQS"]);
+	$array["fields"]["ZDATE"]=time();
+	$array["tags"]["proxyname"]=$GLOBALS["REMOTE_PROXY_NAME"];
+	$q->insert("proxy_requests", $array);
+	$GLOBALS["COUNT_RQS"]=0;
+	$GLOBALS["COUNT_RQS_TIME"]=time();
 }
+
+
+
 
 
 function parseconfig(){
@@ -220,6 +229,12 @@ function parseconfig(){
 	$GLOBALS["squidRemostatisticsPort"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/squidRemostatisticsPort"));
 	$GLOBALS["squidRemostatisticsUser"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/squidRemostatisticsUser"));
 	$GLOBALS["squidRemostatisticsPassword"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/squidRemostatisticsPassword"));
+	$GLOBALS["EnableArticaMetaClient"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableArticaMetaClient"));
+	$GLOBALS["LogFileDaemonMaxEvents"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/LogFileDaemonMaxEvents"));
+	$GLOBALS["UserAgentsStatistics"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UserAgentsStatistics"));
+	
+	if($GLOBALS["LogFileDaemonMaxEvents"]==0){$GLOBALS["LogFileDaemonMaxEvents"]=500;}
+	if($GLOBALS["LogFileDaemonMaxMin"]==0){$GLOBALS["LogFileDaemonMaxMin"]=1;}
 	
 	
 	if(!is_file("/etc/artica-postfix/settings/Daemons/DisableLogFileDaemonMySQL")){
@@ -229,131 +244,10 @@ function parseconfig(){
 	}
 	
 	
+	
+	if(is_file("/etc/squid3/EnableArticaMetaClient_ON")){$GLOBALS["EnableArticaMetaClient"]=1;}
 	ConfigUfdcat();
 	
-	
-}
-
-
-
-function berekley_db(){
-	
-	$date=date("YW");
-	$GLOBALS["DBPATH"]="/var/log/squid/{$date}_QUOTASIZE.db";
-	$GLOBALS["DBSIZE"]="/var/log/squid/{$date}_size.db";
-	
-	
-	if(!is_file($GLOBALS["DBSIZE"])){
-		try {
-			events("berekley_db:: Creating {$GLOBALS["DBSIZE"]} database");
-			$db_desttmp = @dba_open($GLOBALS["DBSIZE"], "c","db4");
-			
-		}
-		catch (Exception $e) {
-			$error=$e->getMessage();
-			events("berekley_db::FATAL ERROR $error on {$GLOBALS["DBPATH"]}");
-	
-		}
-		@dba_close($db_desttmp);
-	
-	}
-	
-	
-	if(!is_file($GLOBALS["UserAuthDB_path"])){
-		try {
-			events("berekley_db:: Creating {$GLOBALS["UserAuthDB_path"]} database");
-			$db_desttmp = @dba_open($GLOBALS["UserAuthDB_path"], "c","db4");
-		}
-		catch (Exception $e) {
-			$error=$e->getMessage();
-			events("berekley_db::FATAL ERROR $error");
-	
-		}
-		@dba_close($db_desttmp);
-		
-	}
-	
-	
-	if(!is_file($GLOBALS["DBPATH"])){
-	
-		try {
-			events("berekley_db:: Creating {$GLOBALS["DBPATH"]} database");
-			$db_desttmp = @dba_open($GLOBALS["DBPATH"], "c","db4");
-		}
-		catch (Exception $e) {
-			$error=$e->getMessage();
-			events("berekley_db::FATAL ERROR $error");
-	
-		}
-	
-		if(!$db_desttmp){events("berekley_db: FATAL ERROR, unable to create database {$GLOBALS["DBPATH"]}");}
-		@dba_close($db_desttmp);
-		@chmod($GLOBALS["DBPATH"], 0777);
-	}
-	
-	
-}
-
-function UserAuthDB($mac,$ipaddr,$uid,$hostname,$UserAgent){
-	$keymd5=md5("$mac$ipaddr$uid$hostname$UserAgent");
-	if($mac<>null){$keymd5=md5("$mac$uid$UserAgent");}
-	
-	if(isset($GLOBALS["UserAuthDB"][$keymd5])){return;}
-	$array["MAC"]=$mac;
-	$array["IPADDR"]=$ipaddr;
-	$array["uid"]=$uid;
-	$array["hostname"]=$hostname;
-	$array["UserAgent"]=$UserAgent;
-	
-	$db_con = @dba_open($GLOBALS["UserAuthDB_path"], "c","db4");
-	if(!$db_con){
-		events("UserAuthDB:: FATAL!!!::{$GLOBALS["UserAuthDB_path"]}, unable to open");
-		return false;
-	}
-	
-	
-	if(!@dba_exists($keymd5,$db_con)){
-		@dba_replace($keymd5,serialize($array),$db_con);
-		$GLOBALS["UserAuthDB"][$keymd5]=true;
-	}else{
-		$GLOBALS["UserAuthDB"][$keymd5]=true;
-	}
-	@dba_close($db_con);
-}
-
-function clean_mac($MAC){
-	$f=explode(":",$MAC);
-	while (list ($index, $line) = each ($f) ){
-
-		if(strlen($line)>2){
-			$line=substr($line, strlen($line)-2,2);
-			$f[$index]=$line;
-			continue;
-		}
-	}
-
-
-	return @implode(":", $MAC);
-}
-
-function berekley_db_create($db_path){
-	if(is_file($db_path)){return true;}
-	if(!is_file($db_path)){
-		try {
-			events("berekley_db_create:: Creating $db_path database");
-			$db_desttmp = @dba_open($db_path, "c","db4");
-			@dba_close($db_con);
-				
-		}
-		catch (Exception $e) {
-			$error=$e->getMessage();
-			events("berekley_db_create::FATAL ERROR $error on $db_path");
-			@dba_close($db_con);
-			return;
-		}
-	
-	}
-	return true;
 	
 }
 
@@ -364,18 +258,62 @@ function berekley_db_create($db_path){
 
 function berekley_add($key,$value){
 	if(!is_numeric($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
-	$db_path="{$GLOBALS["LogFileDeamonLogDir"]}/".date("YmdHi").".".$GLOBALS["MYPID"]."_realtime.db";
-	if(!berekley_db_create($db_path)){return;}
-	$db_con = @dba_open($db_path, "c","db4");
-	if(!$db_con){
-		events("berekley_db_size:: FATAL!!!::$db_path, unable to open");
-		return false;
+	$KeyDate=date("YmdHi");
+	$GLOBALS["BEREKLEY_MEMORY"][$KeyDate][$key]=$value;
+	
+	$CountDB=count($GLOBALS["BEREKLEY_MEMORY"]);
+	$count=count($GLOBALS["BEREKLEY_MEMORY"][$KeyDate]);
+	$GLOBALS["BEREKLEY_MEMORY_STATS"]=$count;
+	
+	
+	
+	if($CountDB>1){
+		berekley_memory_dump();
 	}
-	dba_replace($key,$value,$db_con);
+	
+	if($count>$GLOBALS["LogFileDaemonMaxEvents"]){
+		berekley_memory_dump();
+		
+	}
+	
+	return;
+	
+}
+
+function berekley_memory_dump_tofile($TimeFile,$array){
+	$t1=rtt_microtime_float();
+	$db_path="{$GLOBALS["LogFileDeamonLogDir"]}/$TimeFile.$t1.".$GLOBALS["MYPID"]."_realARRAY.array";
+	events("DUMP $db_path (".count($array).") events");
+	@file_put_contents($db_path, serialize($array));
+	if(is_file($db_path)){return true;}
+	return false;
 	
 }
 
 
+
+function berekley_memory_dump($force=false){
+	if(!isset($GLOBALS["BEREKLEY_MEMORY"])){$GLOBALS["BEREKLEY_MEMORY"]=array();return;}
+	if(count($GLOBALS["BEREKLEY_MEMORY"])==0){return;}
+	
+	reset($GLOBALS["BEREKLEY_MEMORY"]);
+	$currentTime=date("YmdHi");
+	
+	$sum=0;
+	
+	
+	
+	while (list ($TimeFile, $rows) = each ($GLOBALS["BEREKLEY_MEMORY"]) ){
+		$countOfRows=count($rows);
+		if(!$force){if($TimeFile==$currentTime){if($countOfRows<$GLOBALS["LogFileDaemonMaxEvents"]){continue;}}}
+		if(!berekley_memory_dump_tofile($TimeFile,$rows)){continue;}
+		$sum=$sum+count($rows);
+		unset($GLOBALS["BEREKLEY_MEMORY"][$TimeFile]);
+	}
+	
+	
+
+}
 
 
 
@@ -419,10 +357,6 @@ function ConfigUfdcat(){
 		return;
 	}
 	
-	
-
-	
-	
 	if(is_file("/etc/artica-postfix/settings/Daemons/SquidPerformance")){
 		$GLOBALS["SquidPerformance"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
 		if($GLOBALS["SquidPerformance"]>0){$GLOBALS["DisableLogFileDaemonCategories"]=1;}
@@ -431,23 +365,26 @@ function ConfigUfdcat(){
 	
 	if(!is_file("/etc/artica-postfix/settings/Daemons/SquidPerformance")){
 		$GLOBALS["DisableLogFileDaemonCategories"]=1;
-	
 	}
 	
 }
 
 
 function ParseSizeBuffer($buffer){
+	$proxyname=null;
 	if(!class_exists("class.logfile_daemon.inc")){include_once("/usr/share/artica-postfix/ressources/class.logfile_daemon.inc"); }
 	$re=explode(":::", $buffer);
-	
-	
+	if(preg_match("#^.*?\):\s+(.+)#", trim($re[0]),$rz)){$re[0]=$rz[1];}
+	if($GLOBALS["VERBOSE"]){events($buffer);}
+	if($GLOBALS["VERBOSE"]){events("ITEM: MAC......: {$re[0]} [".__LINE__."]");}
 	$mac=trim(strtolower($re[0]));
 	if($mac=="-"){$mac==null;}
 	$mac=str_replace("-", ":", $mac);
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	$ipaddr=trim($re[1]);
+	if(!isset($GLOBALS["USER_MEM"])){$GLOBALS["USER_MEM"]=0;}
 	
+
 	// uid
 	$uid=$re[2];
 	$uid2=$re[3];
@@ -472,15 +409,20 @@ function ParseSizeBuffer($buffer){
 	$UserAgent=urldecode($re[11]);
 	$Forwarded=$re[12];
 	$sitename=trim($re[13]);
-	$hostname=$re[14];
+	$hostname=trim($re[14]);
 	$response_time=$re[15];
-	$MimeType=$re[16];
+	$MimeType=trim($re[16]);
+	$sni=trim($re[17]);
+	$proxyname=trim($re[18]);
+	$OUGROUP=trim($re[19]);
 	
-	$uid=str_replace("%20", " ", $uid);
+	$uid=trim(strtolower(str_replace("%20", " ", $uid)));
 	$uid=str_replace("%25", "-", $uid);
 	if($uid=="-"){$uid=null;}
 	$Forwarded=str_replace("%25", "", $Forwarded);
 	//events("MimeType: ......: $MimeType");
+	if($sni=="-"){$sni=null;}
+	
 
 	
 	if(strpos($uid, '$')>0){
@@ -489,6 +431,20 @@ function ParseSizeBuffer($buffer){
 		}
 	}
 	
+	if($sni<>null){
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){$sitename=$sni;}
+	}
+	if($proxyname<>null){
+		if(preg_match("#proxyname=(.+)#", $proxyname,$re)){
+			$GLOBALS["REMOTE_PROXY_NAME"]=$re[1];
+		}
+	}else{
+		$GLOBALS["REMOTE_PROXY_NAME"]=$GLOBALS["MYHOSTNAME"];
+	}
+	
+	
+	
+	$GLOBALS["REMOTE_PROXY_NAME"]=str_replace("proxyname=", "", $GLOBALS["REMOTE_PROXY_NAME"]);
 	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $uid)){$uid=null;}
 	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $ipaddr)){
 		eventsfailed("***** WRONG LINE ipaddr:$ipaddr column 13 ". @implode(" | ", $re)."*****");
@@ -501,14 +457,14 @@ function ParseSizeBuffer($buffer){
 		if(isset($h["host"])){$sitename=$h["host"]; }
 		
 		if($sitename=="-"){
-			eventsfailed("***** WRONG SITENAME $sitename column 13 ". @implode(" | ", $re)."*****");
+			eventsfailed("***** WRONG SITENAME \"$sitename\" column 13 ". @implode(" | ", $re)."*****");
 			eventsfailed("$buffer");
 			eventsfailed("*");
 			$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
 			return;
 		}
 		if($sitename==null){
-			eventsfailed("***** WRONG SITENAME $sitename column 13 ". @implode(" | ", $re)."*****");
+			eventsfailed("***** WRONG SITENAME \"$sitename\" column 13 ". @implode(" | ", $re)."*****");
 			eventsfailed("$buffer");
 			eventsfailed("*");
 			$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
@@ -527,6 +483,13 @@ function ParseSizeBuffer($buffer){
 		if($GLOBALS["VERBOSE"]){ events("127.0.0.1 -> uid = null -> SKIP"); }
 		return;
 	}
+	
+	if($GLOBALS["ResolvIPStatistics"]==1){
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){
+			$sitename=xRESOLV($sitename);
+		}
+	}
+	
 	
 	if($Forwarded=="unknown"){$Forwarded=null;}
 	if($Forwarded=="-"){$Forwarded=null;}
@@ -552,7 +515,7 @@ function ParseSizeBuffer($buffer){
 	if(preg_match("#([0-9:a-z]+)$#", $mac,$z)){$mac=$z[1];}
 	
 	
-	
+	if($SIZE==0){return;}
 	
 	if($GLOBALS["VERBOSE"]){
 		
@@ -567,12 +530,10 @@ function ParseSizeBuffer($buffer){
 		events("ITEM: UserAgent.: $UserAgent");
 		events("ITEM: Forwarded.: $Forwarded");
 		events("ITEM: SiteName..: $sitename");
+		events("ITEM: ProxyName.: {$GLOBALS["REMOTE_PROXY_NAME"]}");
+		
 	}
-	if($UserAgent<>null){
-		UserAuthDB($mac,$ipaddr,$uid,$hostname,$UserAgent);
-	}else{
-		events("No UserAgents in $buffer");
-	}
+	
 	
 	
 	
@@ -580,178 +541,380 @@ function ParseSizeBuffer($buffer){
 	
 	$arrayURI=parse_url($uri);
 	$sitename=$arrayURI["host"];
+	
+	
+	
+	
 	if(strpos($sitename, ":")){
 		$xtr=explode(":",$sitename);
 		$sitename=$xtr[0];
 		if(preg_match("#^www\.(.+)#", $sitename,$rz)){$sitename=$rz[1];}
 	}
 	
+//	$uid=UID_MEM_CACHE($uid,$mac,$ipaddr);
+	
 	$TimeCache=date("YmdH");
-	if(!isset($GLOBALS["FAMLILYSITE"][$sitename])){
-		$fam=new squid_familysite();
-		$GLOBALS["FAMLILYSITE"][$sitename]=$fam->GetFamilySites($sitename);
-	}
-	$FamilySite=$GLOBALS["FAMLILYSITE"][$sitename];
-	$TablePrimaireHour="squidhour_".$TimeCache;
-	$TableSizeHours="sizehour_".$TimeCache;
-	$TableCacheHours="cachehour_".$TimeCache;
-	$tableYoutube="youtubehours_".$TimeCache;
-	$tableSearchWords="searchwords_".$TimeCache;
-	$tableQuotaTemp="quotatemp_".$TimeCache;
-	$category=null;
-	
-	if($GLOBALS["DisableLogFileDaemonCategories"]==0){
-		if($GLOBALS["VERBOSE"]){$time_start = microtime(true);}
-		$category=ufdbcat($sitename);
-		if($GLOBALS["VERBOSE"]){$time_end = microtime(true);$time_calc = $time_end - $time_start;}
-		if($GLOBALS["VERBOSE"]){events("$sitename = $category {$time_calc}ms");}
-	
-	}
 	$logfile_daemon=new logfile_daemon();
 	$cached=$logfile_daemon->CACHEDORNOT($SquidCode);
+	if($GLOBALS["DEBUG_MEM"]){events("RTT: $sitename - $SquidCode = $cached");}
+	
+	//events("$SIZE - $sitename: $SquidCode cached:$cached");
+	
 	$SearchWords=$logfile_daemon->SearchWords($uri);
 	$GLOBALS["ACCEPTED_REQUESTS"]=$GLOBALS["ACCEPTED_REQUESTS"]+1;
+	if(!isset($GLOBALS["CATEGORIES"][$sitename])){$GLOBALS["CATEGORIES"][$sitename]=$GLOBALS["MYSQL_CATZ"]->GET_CATEGORIES($sitename);}
 	
 	$MAIN["TIMESTAMP"]=time();
 	$MAIN["URI"]=$uri;
 	$MAIN["sitename"]=$sitename;
-	$MAIN["SIZE"]=$SIZE;
+	$familysite=$GLOBALS["SQUID_FAMILY_CLASS"]->GetFamilySites($sitename);
+	$category=$GLOBALS["CATEGORIES"][$sitename];
+	
+	$MAIN["SIZE"]=intval($SIZE);
 	$MAIN["CACHED"]=$cached;
-	$MAIN["IPADDR"]=$ipaddr;
-	$MAIN["CATEGORY"]=$category;
-	$MAIN["MIMETYPE"]=$MimeType;
-	$MAIN["FAMILYSITE"]=$GLOBALS["FAMLILYSITE"][$sitename];
-	$MAIN["MAC"]=$mac;
-	$MAIN["UID"]=$uid;
-	$MAIN["USERAGENT"]=$UserAgent;
-	$MAIN["SQUID_CODE"]=$SquidCode;
-	$MAIN["RESPONSE_TIME"]=$response_time;
-	$MAIN["PROTO"]=$proto;
-	$MAIN["HTTP_CODE"]=$code_error;
-	if($hostname<>null){$MAIN["HOSTNAME"]=$hostname;}
-	if(is_array($SearchWords)){
-		$MAIN["WORDS"]=$SearchWords["WORDS"];
+	
+	if($GLOBALS["UserAgentsStatistics"]==1){UserAgentsStatistics($UserAgent,$mac,$uid,$SIZE);}else{
+		if($GLOBALS["DEBUG_USERAGENT"]){events("UserAgentsStatistics is disabled...");}
 	}
+	CachedSizeMem($cached,$SIZE);
+	CachedUserMem($sitename,$SIZE,$mac,$uid,$ipaddr,$category,$familysite,$OUGROUP);
+}
+
+
+
+function writeCompresslogs($filename,$line){
 	
-	$md5=md5(serialize($MAIN));
-	berekley_add($md5,base64_encode(serialize($MAIN)));
+	$GLOBALS["BYTES_WRITE"]=intval($GLOBALS["BYTES_WRITE"])+strlen($line);
 	
-	return;
-	
-	if(!isset($GLOBALS["RTTCREATED"][$TimeCache])){
-		events("Creating RTTH_$TimeCache table...");
-		if(create_tables($TimeCache)){
-			$GLOBALS["RTTCREATED"][$TimeCache]=true;
+	$f = @fopen($filename, 'a');
+	@fwrite($f, "$line\n");
+	@fclose($f);	
+}
+
+
+
+
+
+
+function tool_time_sec($last_time){
+	if($last_time==0){return 0;}
+	$data1 = $last_time;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return $difference;
+}
+
+function UserAgentsStatisticsMemDump(){
+	$time=$GLOBALS["CACHEDUserAgentsStatistics"]["TIME"];
+	$xtime=tool_time_sec($GLOBALS["CACHEDUserAgentsStatistics"]["TIME"]);
+	if($GLOBALS["DEBUG_MEM"]){events("CACHEDUserAgentsStatistics: {$xtime}s/10 ".count($GLOBALS["CACHEDUserAgentsStatistics"])." elemnt(s)");}
+	if($xtime<10){return;}
+
+	$MAIN=$GLOBALS["CACHEDUserAgentsStatistics"];
+	$q=new influx();
+	while (list ($KEYMD5, $ARRAY) = each ($MAIN)){
+		if(!isset($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["USERAGENT"])){continue;}
+		$PROXYNAME=$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["PROXYNAME"];
+		$USERAGENT=$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["USERAGENT"];
+		$UID=$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["UID"];
+		$MAC=$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["MAC"];
+		$SIZE=intval($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["SIZE"]);
+		$RQS=intval($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["RQS"]);
+		$line=time().":::$USERAGENT:::$UID:::$MAC:::$SIZE:::$RQS:::$PROXYNAME";
+		
+		if($GLOBALS["NoCompressStatisticsByHour"]==0){
+			writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/USERAGENTS",$line);
+			unset($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]);
+			continue;
 		}
+		
+		
+		
+		$zArray=array();
+		$zArray["tags"]["USERAGENT"]=$USERAGENT;
+		$zArray["tags"]["UID"]=$UID;
+		$zArray["tags"]["MAC"]=$MAC;
+		$zArray["fields"]["SIZE"]=$SIZE;
+		$zArray["fields"]["RQS"]=$RQS;
+		$zArray["tags"]["proxyname"]=$PROXYNAME;
+		$zArray["fields"]["ZDATE"]=time();
+		if($GLOBALS["DEBUG_MEM"]){events("INSERT - {$zArray["tags"]["USERAGENT"]} {$zArray["fields"]["SIZE"]}Bytes {$zArray["fields"]["RQS"]}rqs [".__LINE__."]");}
+		$q->insert("useragents", $zArray);
+		unset($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]);
+
+	}
+	$GLOBALS["CACHEDUserAgentsStatistics"]=array();
+	$GLOBALS["CACHEDUserAgentsStatistics"]["TIME"]=time();
+
+
+}
+
+
+function UserAgentsStatistics($UserAgent,$mac,$uid,$SIZE){
+	if(strlen(trim($UserAgent))<2){return;}
+	if(intval($SIZE)==0){return;}
+	$KEYMD5=md5("$UserAgent$mac$uid{$GLOBALS["REMOTE_PROXY_NAME"]}");
+	if(!isset($GLOBALS["CACHEDUserAgentsStatistics"]["TIME"])){$GLOBALS["CACHEDUserAgentsStatistics"]["TIME"]=time();}
+	
+	
+	if(!isset($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["TIME"])){
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["TIME"]=time();
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["SIZE"]=intval($SIZE);
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["UID"]=$uid;
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["RQS"]=1;
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["USERAGENT"]=$UserAgent;
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["MAC"]=$mac;
+		$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["PROXYNAME"]=$GLOBALS["REMOTE_PROXY_NAME"];
+		if($GLOBALS["DEBUG_USERAGENT"]){events("USERAGENT++: $UserAgent $SIZE [1]  [$KEYMD5]");}
+		UserAgentsStatisticsMemDump();
+		return;
 	}
 	
-	$sql="INSERT IGNORE INTO `squidlogs`.`RTTH_$TimeCache` (`xtime`,`sitename`,`ipaddr`,`uid`,`MAC`,`size`) VALUES('$xtime','$FamilySite','$ipaddr','$uid','$mac','$SIZE')";
-	if($GLOBALS["VERBOSE"]){$time_start = microtime(true);}
-	if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array( "TABLE"=>"RTTH_$TimeCache","CMD"=>$sql))); }
+	$oldsize=intval($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["SIZE"]);
+	$oldsize=$oldsize+$SIZE;
+	$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["SIZE"]=$oldsize;
 	
-	if($GLOBALS["VERBOSE"]){$time_end = microtime(true);$time_calc = $time_end - $time_start;}
-	if($GLOBALS["VERBOSE"]){events("RTTH_$TimeCache {$time_calc}ms DisableLogFileDaemonMySQL={$GLOBALS["DisableLogFileDaemonMySQL"]}");}
+	$oldrqs=intval($GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["RQS"]);
+	$oldrqs++;
+	$GLOBALS["CACHEDUserAgentsStatistics"][$KEYMD5]["RQS"]=$oldrqs;
+	if($GLOBALS["DEBUG_USERAGENT"]){events("USERAGENT: $UserAgent $oldsize [$oldrqs] [$KEYMD5]");}
+	UserAgentsStatisticsMemDump();
+	
+	
+}
+
+
+function CachedUserMem($sitename,$SIZE,$mac,$uid,$ipaddr,$category,$familysite,$OUGROUP){
+	if(!isset($GLOBALS["CACHEDUSersMemTime"]["TIME"])){$GLOBALS["CACHEDUSersMemTime"]["TIME"]=time();}
+	$KEYMD5=md5("$sitename,$mac,$uid,$ipaddr,$familysite,{$GLOBALS["REMOTE_PROXY_NAME"]}");
+	
+	if($GLOBALS["DEBUG_MEM"]){events("[$KEYMD5]: $sitename,$SIZE,$mac,$uid,$ipaddr,$category,$familysite");}
+	
+	
+	if($OUGROUP<>null){
+		$OUGROUPTR=explode(",",$OUGROUP);
+		$ADGROUP=$OUGROUPTR[0];
+		$ORGA=$OUGROUPTR[1];
+	}
 	
 	
 	
+	if(!isset($GLOBALS["LOGACCESS_TIME"])){
+		$GLOBALS["LOGACCESS_TIME"]=time();
+	}
+	
+	$KEYMD5_USER=md5("$mac$uid$ipaddr");
+	
+	if(!isset($GLOBALS["USERRTT"][$KEYMD5_USER]["TIME"])){
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["TIME"]=time();
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["USERID"]=$uid;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["IPADDR"]=$ipaddr;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["MAC"]=$mac;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["PROXYNAME"]=$GLOBALS["REMOTE_PROXY_NAME"];
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["RQS"]=1;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["GROUP"]=$ADGROUP;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["ORG"]=$ORGA;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["SIZE"]=intval($SIZE);
+	}else{
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["RQS"]=$GLOBALS["USERRTT"][$KEYMD5_USER]["RQS"]+1;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["SIZE"]=$GLOBALS["USERRTT"][$KEYMD5_USER]["SIZE"]+intval($SIZE);
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["GROUP"]=$ADGROUP;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["ORG"]=$ORGA;
+		$GLOBALS["USERRTT"][$KEYMD5_USER]["TIME"]=time();
+	}
 	
 	
+	if(!isset($GLOBALS["CACHEDUSersMem"][$KEYMD5]["TIME"])){
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["TIME"]=time();
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["CATEGORY"]=$category;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["SITE"]=$sitename;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["SIZE"]=intval($SIZE);
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["FAM"]=$familysite;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["RQS"]=1;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["USERID"]=$uid;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["IPADDR"]=$ipaddr;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["MAC"]=$mac;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["GROUP"]=$ADGROUP;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["ORG"]=$ORGA;
+		$GLOBALS["CACHEDUSersMem"][$KEYMD5]["PROXYNAME"]=$GLOBALS["REMOTE_PROXY_NAME"];
+		if($GLOBALS["DEBUG_MEM"]){events("[$KEYMD5]: $sitename/$ipaddr NEW {$SIZE}bytes  1rqs");}
+		return;
+	}
 	
-	$uri=xmysql_escape_string2($uri);
-		
-		
-	if(!isset($GLOBALS["CODE_TO_STRING"][$code_error])){$GLOBALS["CODE_TO_STRING"][$code_error]=$logfile_daemon->codeToString($code_error); }
+	$oldsize=intval($GLOBALS["CACHEDUSersMem"][$KEYMD5]["SIZE"]);
+	$oldsize=$oldsize+$SIZE;
+	$GLOBALS["CACHEDUSersMem"][$KEYMD5]["SIZE"]=$oldsize;
+	$GLOBALS["CACHEDUSersMem"][$KEYMD5]["GROUP"]=$ADGROUP;
+	$GLOBALS["CACHEDUSersMem"][$KEYMD5]["ORG"]=$ORGA;
 	
-		
-	$zMD5=md5("$uri$xtime$mac$ipaddr");
-	$TYPE=$GLOBALS["CODE_TO_STRING"][$code_error];
-	$cached=$GLOBALS["CACHEDX"][$SquidCode];
-	$UserAgent=xmysql_escape_string2($UserAgent);
-		
+	$oldrqs=intval($GLOBALS["CACHEDUSersMem"][$KEYMD5]["RQS"]);
+	$oldrqs++;
+	$GLOBALS["CACHEDUSersMem"][$KEYMD5]["RQS"]=$oldrqs;
+	if($GLOBALS["DEBUG_MEM"]){events("[$KEYMD5]: $sitename/$ipaddr EDIT {$oldsize}bytes  {$oldrqs}rqs");}
+	
+	CachedUserMemDump();
+	
+}
+
+function CachedUserMemDump(){
+	
 	
 
+	$xtime=tool_time_sec($GLOBALS["LOGACCESS_TIME"]);
+	if($xtime<10){return;}
+	$c=0;
+	$MAIN=$GLOBALS["CACHEDUSersMem"];
+	$q=new influx();
+	$xRQS=0;
+	while (list ($KEYMD5, $ARRAY) = each ($MAIN)){
+		$zArray=array();
+		$zArray2=array();
+		if(!isset($GLOBALS["CACHEDUSersMem"][$KEYMD5]["SITE"])){
+			unset($GLOBALS["CACHEDUSersMem"][$KEYMD5]);
+			continue;
+		}
+		
+		$CATEGORY=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["CATEGORY"];
+		$USERID=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["USERID"];
+		$IPADDR=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["IPADDR"];
+		$MAC=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["MAC"];
+		$SIZE=intval($GLOBALS["CACHEDUSersMem"][$KEYMD5]["SIZE"]);
+		$SITE=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["SITE"];
+		$FAM=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["FAM"];
+		$RQS=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["RQS"];
+		$PROXYNAME=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["PROXYNAME"];
+		$GROUP=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["GROUP"];
+		$ORGA=$GLOBALS["CACHEDUSersMem"][$KEYMD5]["ORGA"];
+		
+		if($MAC==null){$MAC="00:00:00:00:00:00";}
+		if($USERID==null){$USERID="none";}
 		
 		
-	if($GLOBALS["VERBOSE"]){$time_start = microtime(true);}
-	$sql="INSERT IGNORE INTO `$TableSizeHours` (`zDate`,`size`,`cached`) VALUES ('$logzdate','$SIZE','$cached')";
-	if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array("TimeCache"=>$TimeCache,"TABLE"=>$TableSizeHours,"CMD"=>$sql)));}
-	if($GLOBALS["VERBOSE"]){$time_end = microtime(true);$time_calc = $time_end - $time_start;}
-	if($GLOBALS["VERBOSE"]){events("$TableSizeHours = {$time_calc}ms");}
+		
+		$xRQS=$xRQS+$RQS;
+		$line=time().":::$CATEGORY:::$USERID:::$IPADDR:::$MAC:::$SIZE:::$SITE:::$FAM:::$RQS:::$PROXYNAME:::$GROUP:::$ORGA";
+		$c++;
+		if($GLOBALS["NoCompressStatisticsByHour"]==0){
+			writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/ACCESS_LOG",$line);
+			unset($GLOBALS["CACHEDUSersMem"][$KEYMD5]);
+			continue;
+		}
+		
+		$zArray["tags"]["GROUP"]=$GROUP;
+		$zArray["tags"]["ORGA"]=$ORGA;
+		$zArray["tags"]["CATEGORY"]=$CATEGORY;
+		$zArray["tags"]["USERID"]=$USERID;
+		$zArray["tags"]["IPADDR"]=$IPADDR;
+		$zArray["tags"]["MAC"]=$MAC;
+		$zArray["fields"]["SIZE"]=$SIZE;
+		$zArray["tags"]["SITE"]=$SITE;
+		$zArray["tags"]["FAMILYSITE"]=$FAM;
+		$zArray["fields"]["ZDATE"]=time();
+		$zArray["fields"]["RQS"]=$RQS;
+		$zArray["tags"]["proxyname"]=$PROXYNAME;
+		if($GLOBALS["DEBUG_MEM"]){events("INSERT - [$KEYMD5] {$zArray["tags"]["IPADDR"]} - {$zArray["tags"]["FAMILYSITE"]} - {$zArray["fields"]["SIZE"]}bytes {$zArray["fields"]["RQS"]}rqs [".__LINE__."]");}
 		
 		
-	$sql="INSERT IGNORE INTO `$tableQuotaTemp` (`xtime`,`keyr`,`ipaddr`,`familysite`,`servername`,`uid`,`MAC`,`size`) VALUES 
-	('$logzdate','$zMD5','$ipaddr','$FamilySite','$FamilySite','$uid','$mac','$SIZE')";
-	if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array("TimeCache"=>$TimeCache,"TABLE"=>$tableQuotaTemp,"CMD"=>$sql)));}
+		
+		$q->insert("access_log", $zArray);
+		unset($GLOBALS["CACHEDUSersMem"][$KEYMD5]);
+		
+		
+	}
 	
-	$sql="INSERT IGNORE INTO `$TablePrimaireHour` (`sitename`,`uri`,`TYPE`,`REASON`,`CLIENT`,`hostname`,`zDate`,`zMD5`,`uid`,`QuerySize`,`cached`,`MAC`,`category`) VALUES ('$sitename','$uri','$TYPE','$TYPE','$ipaddr','$hostname','$logzdate','$zMD5','$uid','$SIZE','$cached','$mac','$category')";
-	if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array( "TABLE"=>$TablePrimaireHour,"CMD"=>$sql))); }
-		
-	$sql="INSERT IGNORE INTO `$TableCacheHours` (`zDate`,`size`,`cached`,`familysite`) VALUES ('$logzdate','$SIZE','$cached','$FamilySite')";
-	if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array("TimeCache"=>$TimeCache,"TABLE"=>$TableCacheHours,"CMD"=>$sql)));}
-		
-	if(strpos(" $uri", "youtube")>0){
-		$VIDEOID=$logfile_daemon->GetYoutubeID($uri);
-		if($VIDEOID<>null){
-			$sql="INSERT IGNORE INTO `$tableYoutube` (`zDate`,`ipaddr`,`hostname`,`uid`,`MAC` ,`account`,`youtubeid`) VALUES ('$logzdate','$ipaddr','','$uid','$mac','0','$VIDEOID')";
-			events_youtube($sql);
-			if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array("TimeCache"=>$TimeCache,"TABLE"=>$tableYoutube,"CMD"=>$sql)));}
+	if(count($GLOBALS["USERRTT"])>0){
+		while (list ($KEYMD5, $ARRAY) = each ($GLOBALS["USERRTT"])){
+			$USERID=$GLOBALS["USERRTT"][$KEYMD5]["USERID"];
+			$IPADDR=$GLOBALS["USERRTT"][$KEYMD5]["IPADDR"];
+			$MAC=$GLOBALS["USERRTT"][$KEYMD5]["MAC"];
+			$SIZE=intval($GLOBALS["USERRTT"][$KEYMD5]["SIZE"]);
+			$RQS=$GLOBALS["USERRTT"][$KEYMD5]["RQS"];
+			$PROXYNAME=$GLOBALS["USERRTT"][$KEYMD5]["PROXYNAME"];
+			$GROUP=$GLOBALS["USERRTT"][$KEYMD5]["GROUP"];
+			$ORGA=$GLOBALS["USERRTT"][$KEYMD5]["ORGA"];
+			$line=time().":::$USERID:::$IPADDR:::$MAC:::$SIZE:::$RQS:::$PROXYNAME::$GROUP:::$ORGA";
+			writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/USERS_LOG",$line);
+			unset($GLOBALS["USERRTT"][$KEYMD5]);
 		}
 	}
-		
-		
-		
-	if(is_array($SearchWords)){
-		$words=xmysql_escape_string2($SearchWords["WORDS"]);
-		$sql="INSERT IGNORE INTO `$tableSearchWords` (`zmd5`,`sitename`,`zDate`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words`) VALUES ('$zMD5','$sitename','$logzdate','$ipaddr','$hostname','$uid','$mac','0','$FamilySite','$words')";
-		if(!SEND_MYSQL($sql)){@file_put_contents("/var/log/squid/mysql-rtterrors/".md5($sql), serialize(array("TimeCache"=>$TimeCache,"TABLE"=>$tableYoutube,"CMD"=>$sql)));}
-	}
-		
-		
-		
 	
+	events("CachedUserMemDump:: Saving $c/$xRQS requests time={$xtime}s");
+	$GLOBALS["CACHEDUSersMemTime"]=array();
+	$GLOBALS["USERRTT"]=array();
+	$GLOBALS["LOGACCESS_TIME"]=time();
+
 	
-	if(count($GLOBALS["CACHE_SQL"])>2){ 
-		events("CACHE_SQL = ".count($GLOBALS["CACHE_SQL"]." seems 2 minutes"));
-		empty_TableHash();
-	}
-	
-	
-	
-	
-	
-	$dd=date("Hi");
-	if(count($GLOBALS["CACHE_SQL"][$dd])>1000){
-		events("CACHE_SQL[$dd] = ".count($GLOBALS["CACHE_SQL"][$dd]));
-		empty_TableHash();
-	}
-		
-	return;
-	
-	
-	
-	$GLOBALS["RTTHASH"][$SUFFIX_DATE][]=array(
-			"TIME"=>$xtime,
-			"MAC"=>$mac,
-			"IPADDR"=>$ipaddr,
-			"SIZE"=>$SIZE,
-			"SQUID_CODE"=>$SquidCode,
-			"HTTP_CODE"=>$code_error,
-			"UID"=>$uid,
-			"URI"=>$uri,
-			"USERAGENT"=>$UserAgent,
-			"SITENAME"=>$sitename,
-			"HOSTNAME"=>$hostname,
-			"RESPONSE_TIME"=>$response_time
-			);
-	
-	$GLOBALS["ACCEPTED_REQUESTS"]=$GLOBALS["ACCEPTED_REQUESTS"]+1;
-	if(count($GLOBALS["RTTHASH"][$SUFFIX_DATE])>50){
-		if($GLOBALS["VERBOSE"]){events("-> empty_TableHash()");}
-		empty_TableHash();
-	}
-	
-	if($GLOBALS["VERBOSE"]){events("---------------------- DONE ----------------------");}
 }
+
+
+
+
+function CachedSizeMem($cached,$SIZE){
+	
+	
+	$line=time().";{$GLOBALS["REMOTE_PROXY_NAME"]};$SIZE;";
+	writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/MAIN_SIZE",$line);
+	
+	if($cached==0){
+		$line=time().";{$GLOBALS["REMOTE_PROXY_NAME"]};$SIZE;";
+		writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/NO_CACHED",$line);
+		return;
+	}
+	
+	$line=time().";{$GLOBALS["REMOTE_PROXY_NAME"]};$SIZE;";
+	writeCompresslogs("{$GLOBALS["LogFileDeamonLogDir"]}/CACHED",$line);
+	
+
+}
+
+function xRESOLV($sitename){
+	if(!isset($GLOBALS["xRESOLV"])){$GLOBALS["xRESOLV"]=array();}
+	if(count($GLOBALS["xRESOLV"])>20000){$GLOBALS["xRESOLV"]=array();}
+	if(isset($GLOBALS["xRESOLV"][$sitename])){return $GLOBALS["xRESOLV"][$sitename];}
+	
+	$GLOBALS["xRESOLV"][$sitename]=gethostbyaddr($sitename);
+	events("$sitename === {$GLOBALS["xRESOLV"][$sitename]}");
+}
+
+
+
+function tool_time_min($timeFrom){
+	$data1 = $timeFrom;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
+}
+
+function UID_SET_CACHE($uid=null,$mac=null,$ipaddr=null){
+	$GLOBALS["IPADDR_TO_UID_MEM"][date("YmdH")][$ipaddr]=$uid;
+	IPADDR_TO_UID_MEM_CLEAN();
+	return $uid;
+}
+
+function UID_MEM_CACHE($uid=null,$mac=null,$ipaddr=null){
+	$uid=trim(strtolower($uid));
+	if($uid<>null){return UID_SET_CACHE($uid,null,$ipaddr);}
+	if($ipaddr==null){return $uid;}
+	
+	if(isset($GLOBALS["IPADDR_TO_UID_MEM"][date("YmdH")][$ipaddr])){
+		if($GLOBALS["IPADDR_TO_UID_MEM"][date("YmdH")][$ipaddr]<>null){return $GLOBALS["IPADDR_TO_UID_MEM"][date("YmdH")][$ipaddr];}
+	}
+	return $uid;
+}
+
+function IPADDR_TO_UID_MEM_CLEAN(){
+	if(count($GLOBALS["IPADDR_TO_UID_MEM"])==1){return;}
+	$currentKey=date("YmdH");
+	$array=$GLOBALS["IPADDR_TO_UID_MEM"];
+	while (list ($num, $line) = each ($array)){
+		if($num==$currentKey){continue;}
+		unset($GLOBALS["IPADDR_TO_UID_MEM"][$num]);
+	}
+}
+
+
 
 function events($text){
 	if(trim($text)==null){return;}
@@ -762,7 +925,7 @@ function events($text){
 	$size=@filesize($logFile);
 	if($size>9000000){@unlink($logFile);}
 	$f = @fopen($logFile, 'a');
-	@fwrite($f, "$date:[".basename(__FILE__)."] $pid `$text`\n");
+	@fwrite($f, "$date:[REALTIME_LOGS] $pid `$text`\n");
 	@fclose($f);
 }
 function events_youtube($text){
@@ -790,43 +953,7 @@ function eventsfailed($text){
 	@fclose($f);	
 }
 
-function empty_TableHash(){
-	
-	$Dir="/var/log/squid/mysql-rthash";
-	if(count($GLOBALS["RTTHASH"])>0){
-		reset($GLOBALS["RTTHASH"]);
-		while (list ($xtime, $rows) = each ($GLOBALS["RTTHASH"]) ){
-			$rand=rand(5, 90000);
-			if(count($rows)>0){
-				$GLOBALS["PURGED"]=$GLOBALS["PURGED"]+count($rows);
-				events("Purge RTTHASH: $xtime = ".count($rows)." elements - purged {$GLOBALS["PURGED"]} elements");
-				@file_put_contents("$Dir/hash.$xtime.".microtime(true).".$rand.sql",serialize($GLOBALS["RTTHASH"]));
-			}
-			
-		}
-	}
-	
-	$Dir="/var/log/squid/mysql-squid-queue";
-	
-	if(count($GLOBALS["CACHE_SQL"])>0){
-		reset($GLOBALS["CACHE_SQL"]);
-		while (list ($xtime, $rows) = each ($GLOBALS["CACHE_SQL"]) ){
-			$GLOBALS["PURGED"]=$GLOBALS["PURGED"]+count($rows);
-			$rand=rand(5, 90000);
-			events("Purge CACHE_SQL: $xtime = ".count($rows)." elements - purged {$GLOBALS["PURGED"]} elements");
-			@file_put_contents("$Dir/$xtime.".microtime(true).".$rand.sql",serialize($rows));
-		}
-	}
-	
-	
-	
-	
-	
-	$GLOBALS["CACHE_SQL"]=array();
-	$GLOBALS["RTTHASH"]=array();
-	
-	
-}
+
 
 
 
@@ -841,6 +968,18 @@ function xmysql_escape_string2($line){
 function microtime_float(){
 	list($usec, $sec) = explode(" ", microtime());
 	return ((float)$usec + (float)$sec);
+}
+
+
+function rtt_microtime_float(){
+	list($usec, $sec) = explode(" ", microtime());
+	return ((float)$usec + (float)$sec);
+}
+
+
+
+function rtt_microtime_ms($start){
+	return  round(rtt_microtime_float() - $start,3);
 }
 
 function ufdbcat($sitename){
@@ -932,14 +1071,12 @@ function _xTransArray(){
 	$trans["category_housing_accessories"]="housing/accessories";
 	$trans["category_housing_doityourself"]="housing/doityourself";
 	$trans["category_housing_builders"]="housing/builders";
-	$trans["category_housing_reale_state"]="housing/reale_state";
 	$trans["category_humanitarian"]="humanitarian";
 	$trans["category_imagehosting"]="imagehosting";
 	$trans["category_industry"]="industry";
 	$trans["category_internal"]="internal";
 	$trans["category_isp"]="isp";
 	$trans["category_smalladds"]="smalladds";
-	$trans["category_stockexchnage"]="stockexchange";
 	$trans["category_jobsearch"]="jobsearch";
 	$trans["category_jobtraining"]="jobtraining";
 	$trans["category_justice"]="justice";
@@ -982,7 +1119,7 @@ function _xTransArray(){
 	$trans["category_redirector"]="redirector";
 	$trans["category_religion"]="religion";
 	$trans["category_remote_control"]="remote-control";
-	$trans["category_ringtones"]="ringtones";
+	
 	$trans["category_sciences"]="sciences";
 	$trans["category_science_astronomy"]="science/astronomy";
 	$trans["category_science_computing"]="science/computing";
@@ -1038,17 +1175,127 @@ function tablename_tocat($tablename){
 		
 }
 
-function create_tables($TimeCache){
 
-	REALTIME_RTTH($TimeCache);
-	REALTIME_squidhour($TimeCache);
-	REALTIME_cachehour($TimeCache);
-	REALTIME_sizehour($TimeCache);
-	REALTIME_youtubehours($TimeCache);
-	REALTIME_quotatemp($TimeCache);
-	REALTIME_searchwords($TimeCache);
-	return true;
-	
+function shutdown() {
+	$error = error_get_last();
+	$type=trim($error["type"]);
+	$message= trim($error["message"]);
+	if($message==null){return;}
+	$file = $error["file"];
+	$line = $error["line"];
+	if(function_exists("openlog")){openlog("artica-status", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog(true, "$file: Fatal, stopped with error $type $message line $line");}
+	if(function_exists("closelog")){closelog();}
+
 }
 
+function AccountDecode($path){
+	if(strpos($path, "%")==0){return $path;}
+	$path=str_replace("%C3%C2§","ç",$path);
+	$path=str_replace("%5C","\\",$path);
+	$path=str_replace("%20"," ",$path);
+	$path=str_replace("%0A","\n",$path);
+	$path=str_replace("%C2£","£",$path);
+	$path=str_replace("%C2§","§",$path);
+	$path=str_replace("%C3§","ç",$path);
+	$path=str_replace("%E2%82%AC","€",$path);
+	$path=str_replace("%C3%89","É",$path);
+	$path=str_replace("%C3%A9","é",$path);
+	$path=str_replace("%C3%A0","à",$path);
+	$path=str_replace("%C3%AA","ê",$path);
+	$path=str_replace("%C3%B9","ù",$path);
+	$path=str_replace("%C3%A8","è",$path);
+	$path=str_replace("%C3%A2","â",$path);
+	$path=str_replace("%C3%B4","ô",$path);
+	$path=str_replace("%C3%AE","î",$path);
+	$path=str_replace("%E9","é",$path);
+	$path=str_replace("%E0","à",$path);
+	$path=str_replace("%F9","ù",$path);
+	$path=str_replace("%20"," ",$path);
+	$path=str_replace("%E8","è",$path);
+	$path=str_replace("%E7","ç",$path);
+	$path=str_replace("%26","&",$path);
+	$path=str_replace("%FC","ü",$path);
+	$path=str_replace("%2F","/",$path);
+	$path=str_replace("%F6","ö",$path);
+	$path=str_replace("%EB","ë",$path);
+	$path=str_replace("%EF","ï",$path);
+	$path=str_replace("%EE","î",$path);
+	$path=str_replace("%EA","ê",$path);
+	$path=str_replace("%E2","â",$path);
+	$path=str_replace("%FB","û",$path);
+	$path=str_replace("%u20AC","€",$path);
+	$path=str_replace("%u2014","–",$path);
+	$path=str_replace("%u2013","—",$path);
+	$path=str_replace("%24","$",$path);
+	$path=str_replace("%21","!",$path);
+	$path=str_replace("%23","#",$path);
+	$path=str_replace("%2C",",",$path);
+	$path=str_replace("%7E",'~',$path);
+	$path=str_replace("%22",'"',$path);
+	$path=str_replace("%25",'%',$path);
+	$path=str_replace("%27","'",$path);
+	$path=str_replace("%F8","ø",$path);
+	$path=str_replace("%2C",",",$path);
+	$path=str_replace("%3A",":",$path);
+	$path=str_replace("%A1","¡",$path);
+	$path=str_replace("%A7","§",$path);
+	$path=str_replace("%B2","²",$path);
+	$path=str_replace("%3B",";",$path);
+	$path=str_replace("%3C","<",$path);
+	$path=str_replace("%3E",">",$path);
+	$path=str_replace("%B5","µ",$path);
+	$path=str_replace("%B0","°",$path);
+	$path=str_replace("%7C","|",$path);
+	$path=str_replace("%5E","^",$path);
+	$path=str_replace("%60","`",$path);
+	$path=str_replace("%25","%",$path);
+	$path=str_replace("%A3","£",$path);
+	$path=str_replace("%3D","=",$path);
+	$path=str_replace("%3F","?",$path);
+	$path=str_replace("%3F","€",$path);
+	$path=str_replace("%28","(",$path);
+	$path=str_replace("%29",")",$path);
+	$path=str_replace("%5B","[",$path);
+	$path=str_replace("%5D","]",$path);
+	$path=str_replace("%7B","{",$path);
+	$path=str_replace("%7D","}",$path);
+	$path=str_replace("%2B","+",$path);
+	$path=str_replace("%40","@",$path);
+	$path=str_replace("%09","\t",$path);
+	$path=str_replace("%u0430","а",$path);
+	$path=str_replace("%u0431","б",$path);
+	$path=str_replace("%u0432","в",$path);
+	$path=str_replace("%u0433","г",$path);
+	$path=str_replace("%u0434","д",$path);
+	$path=str_replace("%u0435","е",$path);
+	$path=str_replace("%u0451","ё",$path);
+	$path=str_replace("%u0436","ж",$path);
+	$path=str_replace("%u0437","з",$path);
+	$path=str_replace("%u0438","и",$path);
+	$path=str_replace("%u0439","й",$path);
+	$path=str_replace("%u043A","к",$path);
+	$path=str_replace("%u043B","л",$path);
+	$path=str_replace("%u043C","м",$path);
+	$path=str_replace("%u043D","н",$path);
+	$path=str_replace("%u043E","о",$path);
+	$path=str_replace("%u043F","п",$path);
+	$path=str_replace("%u0440","р",$path);
+	$path=str_replace("%u0441","с",$path);
+	$path=str_replace("%u0442","т",$path);
+	$path=str_replace("%u0443","у",$path);
+	$path=str_replace("%u0444","ф",$path);
+	$path=str_replace("%u0445","х",$path);
+	$path=str_replace("%u0446","ц",$path);
+	$path=str_replace("%u0447","ч",$path);
+	$path=str_replace("%u0448","ш",$path);
+	$path=str_replace("%u0449","щ",$path);
+	$path=str_replace("%u044A","ъ",$path);
+	$path=str_replace("%u044B","ы",$path);
+	$path=str_replace("%u044C","ь",$path);
+	$path=str_replace("%u044D","э",$path);
+	$path=str_replace("%u044E","ю",$path);
+	$path=str_replace("%u044F","я",$path);
+	return $path;
+}
 ?>

@@ -20,12 +20,18 @@ foreach (glob("{$GLOBALS["SOURCEDIR"]}/zcp-*.tar.gz") as $filename) {
 	
 function processtgz($filepath){
 	$filename=basename($filepath);
-	if(preg_match("#zcp-([0-9\.]+)-([0-9]+)-([a-z]+)-([0-9\.]+)-(.+?)-free#",$filename,$re)){
+	if(preg_match("#zcp-([0-9\.]+)-([0-9]+)-([a-z]+)-([0-9\.]+)-(.+?)-(free|opensource|supported)#",$filename,$re)){
 	}else{
-		echo "No match $filename\n";
+		echo "No \"$filename\" matches #zcp-([0-9\.]+)-([0-9]+)-([a-z]+)-([0-9\.]+)-(.+?)-(free|opensource|supported)#\n";
 		return;
 	}
+	
+	$filenameToDir=str_replace(".tar.gz", "", $filename);
+	
+	
+	
 	$originalFileName=str_replace("-free.tar.gz","",$filename);
+	$originalFileName=str_replace("-opensource.tar.gz","",$filename);
 	$proc=$re[5];
 	$procOrg=$re[5];
 	if($proc=="i586"){$proc="i386";}
@@ -92,11 +98,18 @@ function processtgz($filepath){
 	echo "extracting $filename tar -xf $filepath -C $TargetDir\n";
 	shell_exec("tar -xf $filepath -C $TargetDir");
 	
-	echo "Search dir $TargetDir/$originalFileName\n";
-	if(is_dir("$TargetDir/$originalFileName")){
+	$SourceDirectory="$TargetDir/$originalFileName";
+	
+	
+	echo "Search in $TargetDir/$filenameToDir ?\n";
+	if(is_dir("$TargetDir/$filenameToDir")){
+		$SourceDirectory="$TargetDir/$filenameToDir";
 		
-		$TargetDir="$TargetDir/$originalFileName";
 	}
+	
+	
+	echo "Search dir $SourceDirectory\n";
+	if(is_dir($SourceDirectory)){$TargetDir=$SourceDirectory;}
 	
 	
 
@@ -110,7 +123,7 @@ function processtgz($filepath){
 		@unlink($debfile);
 		
 	}	
-	echo "Search $TargetDir/*.rpm\n";
+	echo "Search $TargetDir/*.deb\n";
 	foreach (glob("$TargetDir/*.deb") as $debfile) {
 		echo "extracting $debfile\n";
 		shell_exec("dpkg-deb -x $debfile $TargetDirBuild/");

@@ -26,7 +26,7 @@ class amavis_maillog_buffer{
 		if(preg_match("#\)\s+Passed CLEAN,.+?\[(.+?)\].+?<(.*?)>.+?<(.+?)>.+?\s+Queue-ID:\s+(.+?),.+?size:\s+([0-9]+)#",$buffer,$re)){$maillog_tools->amavis_spam($re[4],$re[1],$re[2],$re[3],$re[5],"Sended");return true;}
 		if(preg_match("#smtp.+?status=deferred.+?connect.+?\[127\.0\.0\.1\]:10024: Connection refused#",$buffer,$re)){$maillog_tools->AmavisConfigErrorInPostfix($buffer);return true;}
 
-		if(preg_match("#amavis\[.*?]: Net::Server: Accept failed with [0-9]+ tries left: Invalid argument",$buffer,$re)){
+		if(preg_match("#amavis\[.*?]: Net::Server: Accept failed with [0-9]+ tries left: Invalid argument#",$buffer,$re)){
 			$timefile="/etc/artica-postfix/croned.1/amavis.net.server.error";
 			$this->events("Net::Server: Accept failed",__LINE__);
 			if($this->file_time_min($timefile)>3){

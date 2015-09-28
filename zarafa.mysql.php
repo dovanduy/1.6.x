@@ -53,7 +53,7 @@ function page(){
 	
 	
 	$html="
-	<div class=text-info id='zarafa_mysql_tuning_text'>{zarafa_mysql_tuning_text}</div>
+	<div class=explain id='zarafa_mysql_tuning_text'>{zarafa_mysql_tuning_text}</div>
 	
 	<table style='width:99%' class=form>
 	<tR>

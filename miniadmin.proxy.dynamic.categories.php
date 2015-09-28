@@ -204,7 +204,7 @@ function category_section(){
 	}
 	$category_explain=category_explain($_GET["category"]);
 	
-	echo "<div class=text-info style='margin:20px;font-size:18px'>$category_explain</div>".$boot->SearchFormGen("pattern,zDate","category-search","&category=$categoryenc",$OPTIONS);
+	echo "<div class=explain style='margin:20px;font-size:18px'>$category_explain</div>".$boot->SearchFormGen("pattern,zDate","category-search","&category=$categoryenc",$OPTIONS);
 
 
 }

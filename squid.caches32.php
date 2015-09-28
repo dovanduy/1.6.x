@@ -87,7 +87,15 @@ function page(){
 		$globalCachesize_text=FormatBytes($globalCachesizeTOT);
 		
 		$sock=new sockets();
-		$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+		
+		if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+			$sock=new sockets();
+			$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+		}else{
+			$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+		}
+		
+		$CPU_NUMBER=$cpunum;
 		if(!is_numeric($CPUS)){$CPUS=$CPU_NUMBER;}
 		
 		$reindex_caches_warn=$tpl->javascript_parse_text("{reindex_caches_warn}");
@@ -135,7 +143,7 @@ function page(){
 		
 		
 		</table>
-		<div class=text-info style='margin-top:10px'>{squid32_caches_explain}</div>";
+		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>";
 		
 		if($DisableAnyCache==1){$toolbox=null;}
 		
@@ -316,7 +324,16 @@ function smp_js(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+		$sock=new sockets();
+		$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+	}else{
+		$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+	}
+	
+	$CPU_NUMBER=$cpunum;
+	
 	$squid_worker_license_explain=$tpl->javascript_parse_text("{squid_worker_license_explain}");
 	$squid_worker_activate_explain=$tpl->javascript_parse_text("{squid_worker_activate_explain}");
 	if(!$users->CORP_LICENSE){
@@ -373,7 +390,16 @@ function license_explain(){
 	$users=new usersMenus();
 	if($users->CORP_LICENSE){die();}
 	$sock=new sockets();
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+	
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+		$sock=new sockets();
+		$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+	}else{
+		$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+	}
+	
+	$CPU_NUMBER=$cpunum;
 	
 	
 	if($CPU_NUMBER<2){return;}
@@ -393,7 +419,7 @@ function license_explain(){
 		</td>
 	</tr>
 	<tr>
-		<td style='font-size:14px' colspan=2 align='right'><a href=\"javascript:Loadjs('artica.license.php');\" 
+		<td style='font-size:14px' colspan=2 align='right'><a href=\"javascript:GoToArticaLicense();\" 
 		style='font-size:14px;text-decoration:underline;font-weight:bold'>&laquo;&nbsp;Artica license&nbsp;&raquo;</a></td>
 	</tr>
 	</table>	
@@ -810,7 +836,7 @@ function add_new_disk_popup(){
 		<td>&nbsp;</td>
 		</tr>";
 		
-		if($squid->CACHE_TYPE==null){$squid->CACHE_TYPE="diskd";}
+		if($squid->CACHE_TYPE==null){$squid->CACHE_TYPE="aufs";}
 		
 		$type=$tpl->_ENGINE_parse_body(Field_array_Hash($caches_types,"cache_type-$t",
 		$squid->CACHE_TYPE,"CheckCachesTypes()",null,0,"font-size:16px;padding:3px"));
@@ -843,7 +869,7 @@ function add_new_disk_popup(){
 		<td colspan=4>
 					
 					<input type='hidden' id='$t-mem' value='$SquidBoosterMem'>
-					<div class=text-info style='font-size:13px'>{warn_calculate_nothdsize}</div></td>		
+					<div class=explain style='font-size:13px'>{warn_calculate_nothdsize}</div></td>		
 
 		<tr>
 			<td class=legend nowrap style='font-size:16px'>{cache_dir_level1}:</td>

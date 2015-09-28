@@ -1,1 +1,0 @@
-../artica-install/synsock.pas

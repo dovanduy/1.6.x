@@ -214,7 +214,7 @@ $page=CurrentPageName();
 		<table style='width:100%'>
 		<tr>	
 			<td valign='top' width=1%><img src='img/64-infos.png'></td>
-			<td valign='top'><p style='color:red;font-size:13px;font-weight:bold'>{RestoreFromRsyncPath_warn}</p></td>
+			<td valign='top'><p style='color:#d32d2d;font-size:13px;font-weight:bold'>{RestoreFromRsyncPath_warn}</p></td>
 		</tr>
 		<tr>	
 			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:LaunchInmportNow('$path');\" value='{RestoreFromRsyncPathNow}&nbsp;&raquo;'></td>

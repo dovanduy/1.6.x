@@ -1,9 +1,9 @@
 #!/usr/bin/php
 <?php
 include_once("/usr/share/artica-postfix/ressources/class.radius.auth.inc");
-include_once("/usr/share/artica-postfix/ressources/external_acl_squid_ldap.php");
+//include_once("/usr/share/artica-postfix/ressources/external_acl_squid_ldap.php");
 
-//error_reporting(0);
+error_reporting(0);
 if(preg_match("#--verbose#", @implode(" ", $argv))){
 	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);error_reporting(1);
 	error_reporting(1);

@@ -37,7 +37,7 @@ function js(){
 	$title=$tpl->_ENGINE_parse_body("{save_network_settings}");
 	$please_wait_building_network=$tpl->javascript_parse_text("{please_wait_building_network}");
 	$please_wait_restarting_network=$tpl->javascript_parse_text("{please_wait_restarting_network}");
-	
+	$success=$tpl->javascript_parse_text("{save_network_settings} - {done} -");
 	
 	
 	@unlink(dirname(__FILE__)."/ressources/logs/web/squid.status.html");
@@ -87,12 +87,18 @@ function js(){
 		if(document.getElementById('tabs_listnics2')){
 			RefreshTab('tabs_listnics2');
 		}
+		
+		if(document.getElementById('nics-infos-system')){
+			LoadAjaxRound('nics-infos-system','admin.dashboard.system.php?nics-infos=yes');
+		}
+		
+		document.getElementById('title-$t').innerHTML='$success';
 	
 	}
 	
 	function ApplyNetworkFinalShow1$t(){
 		LoadAjax('ApplyNetWorkFinal-$t','$page?ApplyNetWorkFinal-tests=yes&t=$t$OnlyRoutes');
-		ApplyNetworkFinalShow$t();
+		
 	}
 	
 	
@@ -117,7 +123,7 @@ function popup(){
 	if(isset($_GET["OnlyRoutes"])){$OnlyRoutes="&OnlyRoutes=yes";}
 	$title=$tpl->_ENGINE_parse_body("{PLEASE_WAIT_COMPILING_NETWORK_SCRIPT}");
 	$html="
-	<center style='font-size:16px;margin:10px'><div id='title-$t'>$title</div></center>
+	<center style='font-size:16px;margin:10px'><div id='title-$t' style='font-size:30px'>$title</div></center>
 	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;' id='functi-restart-$t'>
 	</div>
 	
@@ -187,7 +193,7 @@ function procedure3(){
 	
 	$html= "
 	<div id='procedure4-$t'>
-	<div class=text-info style='font-size:16px'>{init_script_net_explain}</div>
+	<div class=explain style='font-size:18px;margin-bottom:20px'>{init_script_net_explain}</div>
 	<center><hr style='border:1px solid'>". button($button,"ApplyNetWorkFinal$t()",22)."</center>
 	
 		<textarea style='margin-top:5px;font-family:Courier New;
@@ -325,8 +331,8 @@ function ApplyNetWorkFinal_tests(){
 echo "
 <textarea style='margin-top:5px;font-family:Courier New; font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E; overflow:auto;font-size:11px' id='procedure3-text$t'>$datas</textarea>
 <script>
-TIMER$t=1;
-RefreshTab('tabs_listnics2');	
+	TIMER$t=1;
+	finish$t();
 </script>";
 	
 }

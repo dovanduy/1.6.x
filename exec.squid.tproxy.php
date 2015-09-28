@@ -66,9 +66,9 @@ function script_startfile(){
 	$sh[]=script_endfile();
 	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
 	@chmod("/etc/init.d/tproxy",0755);
-	build_progress("Installing default script...",40);
+	build_progress("{installing_default_script}...",40);
 	script_install();
-	build_progress("Default script...{done}",50);
+	build_progress("{installing_default_script}...{done}",50);
 	
 }
 

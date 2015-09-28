@@ -15,6 +15,7 @@ include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 $GLOBALS["SINGLE_DEBUG"]=false;
 $GLOBALS["BY_SOCKET_FAILED"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["PROGRESS"]=false;
 $GLOBALS["BY_FRAMEWORK"]=null;
 $GLOBALS["BY_WIZARD"]=false;
 $GLOBALS["CMDLINE"]=implode(" ",$argv);
@@ -25,6 +26,7 @@ if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--socketfailed#",implode(" ",$argv))){$GLOBALS["BY_SOCKET_FAILED"]=true;}
 if(preg_match("#--framework=(.+?)$#",implode(" ",$argv),$re)){$GLOBALS["BY_FRAMEWORK"]=$re[1];}
 if(preg_match("#--bywizard#",implode(" ",$argv),$re)){$GLOBALS["BY_WIZARD"]=true;}
+if(preg_match("#--progress#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;$GLOBALS["BY_FRAMEWORK"]="Manual";$GLOBALS["PROGRESS"]=true;$GLOBALS["BY_WIZARD"]=true;}
 
 if($argv[1]=="--start"){SERVICE_START();die(0);}
 if($argv[1]=="--ttl"){SERVICE_TTL();die(0);}
@@ -73,6 +75,19 @@ function PID_NUM(){
 	return $pid;
 	
 }
+function build_progress($pourc,$text){
+	if(!$GLOBALS["PROGRESS"]){return;}
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/mysql.restart.progress";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	sleep(1);
+
+}
+
 
 function restart_reco(){
 	$unix=new unix();
@@ -199,7 +214,7 @@ function WATCHDOG_MYSQL(){
 	if(!$unix->is_socket($socket)){
 		mysql_admin_mysql(0,"$socket, no such file, restarting MySQL service", null,__FILE__,__LINE__);
 		system_admin_events("$socket, no such file, restarting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
-		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
+		shell_exec("/etc/init.d/mysql start >/dev/null 2>&1");
 		return;
 	}
 	
@@ -207,7 +222,7 @@ function WATCHDOG_MYSQL(){
 	if(!$unix->process_exists($MYSQLPid)){
 		mysql_admin_mysql(0,"Error, MySQL service is not running", null,__FILE__,__LINE__);
 		system_admin_events("Error, \"MySQL service is not running\", Starting MySQL service", __FUNCTION__, __FILE__, __LINE__, "mysql");
-		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
+		shell_exec("/etc/init.d/mysql start >/dev/null 2>&1");
 		return;
 	}
 	$RunningScince=$unix->PROCCESS_TIME_MIN($MYSQLPid);
@@ -348,9 +363,12 @@ function SERVICE_RESTART(){
 	$time=$unix->PROCESS_TTL($pid);
 	mysql_admin_mysql(0, "Restarting MySQL server running since {$time}Mn by=[{$GLOBALS["BY_FRAMEWORK"]}]...",__FILE__,__LINE__);
 	
-	
+	build_progress("10", "{stopping_service}");
 	SERVICE_STOP(true);
-	SERVICE_START(false,true);
+	build_progress(50, "{starting_service}");
+	if(SERVICE_START(false,true)){
+		build_progress(100, "{done}");
+	}
 	
 }
 
@@ -608,7 +626,7 @@ if($EnableMysqlFeatures==0){
    if($unix->is_socket("/var/run/mysqld/mysqld.sock")){@unlink("/var/run/mysqld/mysqld.sock");}
    if(is_file('/var/run/mysqld/mysqld.err')){@unlink('/var/run/mysqld/mysqld.err');}
    if(is_file("/var/run/mysqld/mysqld.pid")){$unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld/mysqld.pid");}
-  
+   @chmod("/var/run/mysqld", 0777);
    
 
    if($MysqlRemoveidbLogs==1){
@@ -646,8 +664,12 @@ if($EnableMysqlFeatures==0){
 	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
 	
 	$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
+	$SquidPerformance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
 	
+	if($SquidPerformance>2){$MEMORY=524288;}
 	if($AsCategoriesAppliance==1){$MEMORY=620288;}
+	
+	build_progress(60, "{starting_service} Memory: {$MEMORY}KB");
 	
 	if($MEMORY<624288){
 		$GetStartedValues=GetStartedValues();
@@ -658,7 +680,7 @@ if($EnableMysqlFeatures==0){
 		if($GetStartedValues["--sort-buffer-size"]){ $cmd2[]="--sort-buffer-size=64k";}
 		if($GetStartedValues["--read-buffer-size"]){ $cmd2[]="--read-buffer-size=256k";}
 		if($GetStartedValues["--read-rnd-buffer-size"]){ $cmd2[]="--read-rnd-buffer-size=128k";}
-		if($GetStartedValues["--net-buffer-length"]){ $cmd2[]="--net-buffer-length=2k";}
+		if($GetStartedValues["--net-buffer-length"]){ $cmd2[]="--net-buffer-length=256k";}
 		if($GetStartedValues["--thread-stack"]){ $cmd2[]="--thread-stack=192k";}
 		if($GetStartedValues["--thread-cache-size"]){ $cmd2[]="--thread-cache-size=128";}
 		if($GetStartedValues["--thread-concurrency"]){ $cmd2[]="--thread-concurrency=10";}
@@ -667,17 +689,14 @@ if($EnableMysqlFeatures==0){
 		if($GetStartedValues["--tmp-table-size"]){ $cmd2[]="--tmp-table-size=16M";}
 		if($GetStartedValues["--table-cache"]){ $cmd2[]="--table-cache=64";}
 		if($GetStartedValues["--query-cache-limit"]){ $cmd2[]="--query-cache-limit=4M";}
-		if($GetStartedValues["--query-cache-size"]){ $cmd2[]="--query-cache-size=32M";}
-		if($GetStartedValues["--max-connections"]){ $cmd2[]="--max-connections=50";}
+		if($GetStartedValues["--query-cache-size"]){ $cmd2[]="--query-cache-size=12M";}
+		if($GetStartedValues["--max-connections"]){ $cmd2[]="--max-connections=60";}
 		if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$cmd2[]="--innodb=OFF";}
 		
 		echo "Starting......: ".date("H:i:s")." MySQL ". count($cmd2)." forced option(s)\n";
 	}
 
 
-
-
-   
    if(is_file($MySQLLOgErrorPath)){@unlink($MySQLLOgErrorPath);}
 	$cmds[]=$mysqlbin;
 	if($MEMORY<624288){$cmds[]="--no-defaults --user=mysql";}
@@ -702,7 +721,7 @@ if($EnableMysqlFeatures==0){
 	while (list ($num, $ligne) = each ($cmds) ){
 		echo "Starting......: ".date("H:i:s")." MySQL Option: $ligne\n";
 	}
-	
+	build_progress(70, "{starting_service}....");
 	echo "Starting......: ".date("H:i:s")." MySQL Starting daemon, please wait\n";
 	writelogs("Starting MySQL $cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
@@ -717,6 +736,7 @@ if($EnableMysqlFeatures==0){
    			echo "Starting......: ".date("H:i:s")." MySQL Checks daemon running...\n";
    			break;
    		}
+   		build_progress(80, "{starting_service}....($i/6)");
    		echo "Starting......: ".date("H:i:s")." MySQL Checks daemon, please wait ($i/6)\n";
    		sleep(1);
    }
@@ -725,15 +745,17 @@ if($EnableMysqlFeatures==0){
    if(!$unix->process_exists($pid)){
    	echo "Starting......: ".date("H:i:s")." MySQL failed\n";
    	echo "Starting......: ".date("H:i:s")." $cmd\n";
+   	build_progress(110, "{failed}....");
    	system_admin_events("Failed to start MySQL server", __FUNCTION__, __FILE__, __LINE__, "services");
    	$php5=$unix->LOCATE_PHP5_BIN();
    	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.mysql.build.php >/dev/null 2>&1 &");
+   	return;
    	
-   	
-   }else{
+   }
    	
    	for($i=0;$i<4;$i++){
    		echo "Starting......: ".date("H:i:s")." MySQL Checks mysqld.sock waiting $i/3\n";
+   		build_progress(85, "MySQL Checks mysqld.sock waiting $i/3");
    		if($unix->is_socket("/var/run/mysqld/mysqld.sock")){break;}
    		sleep(1);
    	}
@@ -745,9 +767,10 @@ if($EnableMysqlFeatures==0){
    	mysql_admin_mysql(1,"Success to start MySQL Server with new pid $pid", null,__FILE__,__LINE__);
    	echo "Starting......: ".date("H:i:s")." MySQL Success pid $pid\n";
    	$q=new mysql_squid_builder();
+   	build_progress(90, "MySQL Checks....");
    	$q->MEMORY_TABLES_RESTORE();
-   	
-   }
+   	return true;
+   
 
    
 }

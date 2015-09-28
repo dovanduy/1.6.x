@@ -260,16 +260,40 @@ function settings_popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$SessionCache=intval($sock->GET_INFO("ProxyPacCacheTime"));
+	$ProxyPacLockScript=intval($sock->GET_INFO("ProxyPacLockScript"));
+	$ProxyPacLockScriptContent=$sock->GET_INFO("ProxyPacLockScriptContent");
 	if($SessionCache==0){$SessionCache=10;}
+	$DenyDnsResolve=intval($sock->GET_INFO("DenyDnsResolve"));
 	$t=time();
 	$html="
 	<div style='font-size:26px;margin-bottom:26px'>{settings}</div>		
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{cache_time}:</td>
-		<td style='font-size:18px'>". Field_text("ProxyPacCacheTime",$SessionCache,"font-size:18px;width:120px;explain={ProxyPacCacheTime_explain};")."&nbsp;{minutes}</td>			
+		<td class=legend style='font-size:18px;vertical-align:middle' >{cache_time}:</td>
+		<td style='font-size:18px;vertical-align:middle'>". Field_text("ProxyPacCacheTime",$SessionCache,"font-size:18px;width:120px;explain={ProxyPacCacheTime_explain};")."&nbsp;{minutes}</td>			
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px;vertical-align:middle' >". texttooltip("{do_not_resolv_ipaddr_wpad}","{do_not_resolv_ipaddr_wpad_ex}").":</td>
+		<td style='font-size:18px;vertical-align:middle'>". 
+		Field_checkbox_design("DenyDnsResolve",1,$DenyDnsResolve)."</td>			
+	</tr>				
+				
+				
+	<tr>
+		<td class=legend style='font-size:18px;vertical-align:middle' >{lock_script_with_this_script}:</td>
+		<td style='font-size:18px;vertical-align:middle'>". 
+		Field_checkbox_design("ProxyPacLockScript",1,$ProxyPacLockScript,"ProxyPacLockScriptCheck()")."</td>			
+	</tr>					
+
+				
+<tr><td colspan=2 ><textarea id='text$t' style='font-family:Courier New;
+		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;
+		overflow:auto;font-size:16px !important;width:99%;height:390px'>$ProxyPacLockScriptContent</textarea>
+		</center>
+	</td>
+	</tr>				
+				
 	<tr><td colspan=2 align='right'><hr>". button("{apply}","Save$t()",26)."</td></tr>	
 	</table>		
 	</div>
@@ -282,8 +306,31 @@ var xSave$t= function (obj) {
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('ProxyPacCacheTime', document.getElementById('ProxyPacCacheTime').value);
+	var pp=encodeURIComponent(document.getElementById('text$t').value);
+	XHR.appendData('ProxyPacLockScriptContent',pp);
+	if(document.getElementById('ProxyPacLockScript').checked){
+		XHR.appendData('ProxyPacLockScript',1);
+	}else{
+		XHR.appendData('ProxyPacLockScript',0);
+	}
+	
+	if(document.getElementById('DenyDnsResolve').checked){
+		XHR.appendData('DenyDnsResolve',1);
+	}else{
+		XHR.appendData('DenyDnsResolve',0);
+	}	
+	
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
+
+function ProxyPacLockScriptCheck(){
+	document.getElementById('text$t').disabled=true;
+	if(document.getElementById('ProxyPacLockScript').checked){
+		document.getElementById('text$t').disabled=false;
+	}
+}
+ProxyPacLockScriptCheck();
 </script>			
 			
 ";
@@ -292,7 +339,12 @@ function Save$t(){
 }
 function settings_save(){
 	$sock=new sockets();
+	$_POST["ProxyPacLockScriptContent"]=url_decode_special_tool($_POST["ProxyPacLockScriptContent"]);
 	$sock->SET_INFO("ProxyPacCacheTime", $_POST["ProxyPacCacheTime"]);
+	$sock->SET_INFO("ProxyPacLockScript", $_POST["ProxyPacLockScript"]);
+	$sock->SET_INFO("DenyDnsResolve", $_POST["DenyDnsResolve"]);
+	
+	$sock->SaveConfigFile($_POST["ProxyPacLockScriptContent"], "ProxyPacLockScriptContent");
 }
 
 function events_script_js(){
@@ -423,7 +475,7 @@ function settings_js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->javascript_parse_text("{settings}");
-	echo "YahooWin2(653,'$page?settings-popup=yes','$title',true)";
+	echo "YahooWin2(890,'$page?settings-popup=yes','$title',true)";
 }
 
 function rules_js(){
@@ -503,7 +555,7 @@ function rules_tabs(){
 	$t=$_GET["t"];
 	$ID=$_GET["ID"];
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID\" style='font-size:17px'><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -540,10 +592,9 @@ function rules_destination(){
 	$q=new mysql_squid_builder();
 	if(!$q->FIELD_EXISTS("wpad_destination_rules", "rulename")){$q->CheckTables(null,true);}
 	
-	
 	$buttons="
 	buttons : [
-	{name: '$new_rule', bclass: 'add', onpress : NewRule$tt},
+	{name: '<strong style=font-size:18px>$new_rule</strong>', bclass: 'add', onpress : NewRule$tt},
 	],";
 	
 $html="
@@ -573,7 +624,7 @@ function Start$tt(){
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 450,
+	height: 500,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -705,12 +756,12 @@ function explainArule($ID,$color="black"){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$gpid=$ligne["gpid"];
 		$not=null;
-		$GroupName=$ligne["GroupName"];
+		$GroupName=utf8_encode($ligne["GroupName"]);
 		$negation=$ligne["negation"];
 		if($negation==1){$not="{not} ";}
 		$link="Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=$gpid&table-org=table-items-{$_GET["t"]}',true);";
 		$GroupType=$q->acl_GroupType[$ligne["GroupType"]];
-		$f[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$link\" style='font-size:12px;color:$color;text-decoration:underline'>$not{$GroupName} ($GroupType)</a>";
+		$f[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$link\" style='font-size:18px;color:$color;text-decoration:underline'>$not{$GroupName} ($GroupType)</a>";
 		
 	}
 	
@@ -718,7 +769,7 @@ function explainArule($ID,$color="black"){
 	$sql="SELECT * FROM `wpad_destination` WHERE aclid=$ID ORDER BY zorder";
 	$q=new mysql_squid_builder();
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){$g[]= "</a><br><span style='color:#C52B06;font-size:12px;color:$color;text-decoration:none'>$q->mysql_error<br>\n$sql</span>";}
+	if(!$q->ok){$g[]= "</a><br><span style='color:#C52B06;font-size:18px;color:$color;text-decoration:none'>$q->mysql_error<br>\n$sql</span>";}
 	
 	if(mysql_num_rows($results)>0){
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -742,7 +793,7 @@ function explainArule($ID,$color="black"){
 	
 	if($GLOBALS['VERBOSE']){echo "\n<HR>$sql</hr>\n";}
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){return "</a><br><span style='color:#C52B06;font-size:12px;text-decoration:none'>$q->mysql_error<br>\n$sql</span>";}
+	if(!$q->ok){return "</a><br><span style='color:#C52B06;font-size:18px;text-decoration:none'>$q->mysql_error<br>\n$sql</span>";}
 	
 	$hi=array();
 	if($dntlhstname==1){
@@ -761,7 +812,7 @@ function explainArule($ID,$color="black"){
 		$link="Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=$gpid&table-org=table-items-{$_GET["t"]}',true);";
 		$GroupType=$q->acl_GroupType[$ligne["GroupType"]];
 		$h[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$link\" 
-		style='font-size:12px;text-decoration:underline;color:$color'>$not{$GroupName} ($GroupType)</a>";
+		style='font-size:18px;text-decoration:underline;color:$color'>$not{$GroupName} ($GroupType)</a>";
 	
 	}	
 	
@@ -769,7 +820,7 @@ function explainArule($ID,$color="black"){
 	if(count($h)==0){$h[]="{none}";}
 	
 	
-	return "</a><br><span style='color:$color'>{if_a_computer_matches} ".@implode("&nbsp;{and}&nbsp;", $f).
+	return "</a><br><span style='color:$color;font-size:18px'>{if_a_computer_matches} ".@implode("&nbsp;{and}&nbsp;", $f).
 	"<br>{then_set_proxy_parameters} ".@implode("&nbsp;{or}&nbsp;", $g).
 	"<br>". @implode("&nbsp;{or}&nbsp;", $hi)." {and_do_not_use_proxy_for} ".@implode("&nbsp;{or}&nbsp;", $h)."</span>";
 	
@@ -814,17 +865,14 @@ function rules_options(){
 	<table style='width:100%' >
 	<tbody>
 	<tr>
-	<td class=legend style='font-size:18px'>{dnot_proxy_localnames}:</td>
-	<td>". Field_checkbox("dntlhstname-$ttt", 1,$ligne["dntlhstname"])."</td>
+	<td class=legend style='font-size:18px'>". texttooltip("{dnot_proxy_localnames}","{dnot_proxy_localnames_explain}").":</td>
+	<td>". Field_checkbox_design("dntlhstname-$ttt", 1,$ligne["dntlhstname"])."</td>
 	</tr>
-	<tr><td colspan=2><p class=text-info>{dnot_proxy_localnames_explain}</p></td></tr>	
-			
-			
 	<tr>
-	<td class=legend style='font-size:18px'>{dnot_proxy_lisResolvable}:</td>
-	<td>". Field_checkbox("isResolvable-$ttt", 1,$ligne["isResolvable"])."</td>
+	<td class=legend style='font-size:18px'>". texttooltip("{dnot_proxy_lisResolvable}","{dnot_proxy_lisResolvable_explain}").":</td>
+	<td>". Field_checkbox_design("isResolvable-$ttt", 1,$ligne["isResolvable"])."</td>
 	</tr>			
-	<tr><td colspan=2><p class=text-info>{dnot_proxy_lisResolvable_explain}</p></td></tr>	
+	
 	<tr>
 		<td colspan=2 align='right'><hr>". button($button,"SaveR$ttt()",22)."</td>
 	</tr>
@@ -922,7 +970,7 @@ function rules_destination_popup(){
 	<tbody>
 	<tr>
 		<td class=legend style='font-size:18px'>{enabled}:</td>
-		<td>". Field_checkbox("enabled-$ttt", 1,$ligne["enabled"])."</td>
+		<td>". Field_checkbox_design("enabled-$ttt", 1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px'>{order}:</td>
@@ -944,7 +992,7 @@ function rules_destination_popup(){
 		</td>
 	</tr>
 	<tr>
-		<td colspan=2><div class=text-info style='font-size:16px'>{wpad_destination_rules_proxy_explain}</span>
+		<td colspan=2><div class=explain style='font-size:16px'>{wpad_destination_rules_proxy_explain}</span>
 	</tr>
 	<tr>
 		<td colspan=2>
@@ -1040,7 +1088,7 @@ function rules_destination_form2(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();
 	$type=$_GET["type"];
-	echo "<div class=text-info style='font-size:16px'>
+	echo "<div class=explain style='font-size:16px'>
 			<span style='font-weight:bold'>".$tpl->_ENGINE_parse_body($q->PROXY_PAC_TYPES[$type])."</span><br>
 			".$tpl->_ENGINE_parse_body($q->PROXY_PAC_TYPES_EXPLAIN[$type])."</div>";
 	
@@ -1675,7 +1723,7 @@ function events(){
 	{name: '$rebuild_tables', bclass: 'Delz', onpress : RebuildTables$t},
 	],";
 	
-	
+	$title=$tpl->javascript_parse_text("{autoconfiguration}: {events}");
 	$buttons=null;
 	$zDate=$tpl->javascript_parse_text("{zDate}");
 	
@@ -1684,13 +1732,7 @@ function events(){
 	$hostname=$tpl->javascript_parse_text("{hostname}");
 	$html="
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	
-
-
-
-
-	
-	<script>
+<script>
 $(document).ready(function(){
 	$('#flexRT$t').flexigrid({
 	url: '$page?events-search=yes&t=$t',
@@ -1713,12 +1755,12 @@ $(document).ready(function(){
 		sortname: 'zDate',
 		sortorder: 'desc',
 		usepager: true,
-		title: '',
+		title: '<span style=font-size:30px>$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
 		width: '99%',
-		height: 450,
+		height: 550,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200]
 	});
@@ -1735,6 +1777,20 @@ $(document).ready(function(){
 function rules(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	
+	$q=new mysql_squid_builder();
+	if($q->COUNT_ROWS("wpad_rules")==0){
+	
+		$html="<div style='width:95%' class=form>
+				<center style='margin:20px'>". button("{autoconfiguration_wizard}","Loadjs('squid.autocofiguration.wizard.php')",40)."
+				</center>
+				";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+	
+	
 	$t=time();
 	$rulename=$tpl->javascript_parse_text("{rulename}");
 	$items=$tpl->_ENGINE_parse_body("{items}");
@@ -1744,14 +1800,16 @@ function rules(){
 	$rebuild_tables=$tpl->javascript_parse_text("{rebuild_tables}");
 	$parameters=$tpl->javascript_parse_text("{parameters}");
 	$empty_cache=$tpl->javascript_parse_text("{empy_cache}");
+	$all_rules_lost=$tpl->javascript_parse_text("{all_rules_lost}!");
 	$buttons="
 	buttons : [
-	{name: '$new_rule', bclass: 'add', onpress : NewRule$t},
-	{name: '$rebuild_tables', bclass: 'Delz', onpress : RebuildTables$t},
-	{name: '$parameters', bclass: 'Settings', onpress : Settings$t},
-	{name: '$empty_cache', bclass: 'Delz', onpress : Empty$t},
+	{name: '<strong style=font-size:18px>$new_rule</strong>', bclass: 'add', onpress : NewRule$t},
+	{name: '<strong style=font-size:18px>$rebuild_tables</strong>', bclass: 'Delz', onpress : RebuildTables$t},
+	{name: '<strong style=font-size:18px>$parameters</strong>', bclass: 'Settings', onpress : Settings$t},
+	{name: '<strong style=font-size:18px>$empty_cache</strong>', bclass: 'Delz', onpress : Empty$t},
 	],";		
 		
+	$title=$tpl->javascript_parse_text("{autoconfiguration}");
 	
 	
 	
@@ -1766,7 +1824,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'zorder', width :31, sortable : true, align: 'center'},
-		{display: '$rulename', name : 'rulename', width : 586, sortable : false, align: 'left'},	
+		{display: '<strong style=font-size:18px>$rulename</strong>', name : 'rulename', width : 1064, sortable : false, align: 'left'},	
 		{display: '&nbsp;', name : 'enable', width :45, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'up', width :45, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'down', width : 45, sortable : true, align: 'center'},
@@ -1779,12 +1837,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zorder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 450,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -1802,7 +1860,7 @@ function Settings$t(){
 	}
 	
 	function RebuildTables$t(){
-		if(!confirm('$rebuild_tables ?')){return;}
+		if(!confirm('$rebuild_tables ?\\n$all_rules_lost')){return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('rebuild-tables', 'yes');
 		XHR.sendAndLoad('$page', 'POST',xNewRule$t);		
@@ -2134,12 +2192,12 @@ function events_search(){
 	$data['rows'][] = array(
 	'id' => $ligne['ID'],
 		'cell' => array(
-					"<span style='font-size:14px;font-weight:normal;color:$color'>$script</span>",
-					"<span style='font-size:14px;font-weight:normal;color:$color'>{$ligne["zDate"]}</span>",
-					"<span style='font-size:14px;font-weight:normal;color:$color'>$ruleid</span>",
-					"<span style='font-size:14px;font-weight:normal;color:$color'>{$ligne["hostname"]}</span>",
-					"<span style='font-size:14px;font-weight:normal;color:$color'>{$ligne["ipaddr"]}</span>",
-					"<span style='font-size:14px;font-weight:normal;color:$color'>{$ligne["browser"]}</span>",)
+					"<span style='font-size:18px;font-weight:normal;color:$color'>$script</span>",
+					"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["zDate"]}</span>",
+					"<span style='font-size:18px;font-weight:normal;color:$color'>$ruleid</span>",
+					"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["hostname"]}</span>",
+					"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["ipaddr"]}</span>",
+					"<span style='font-size:18px;font-weight:normal;color:$color'>{$ligne["browser"]}</span>",)
 	);
 	}
 	
@@ -2150,6 +2208,7 @@ function rules_search(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
+	$sock=new sockets();
 	
 	$t=$_GET["t"];
 	$search='%';
@@ -2194,7 +2253,7 @@ function rules_search(){
 	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}	
 	if(mysql_num_rows($results)==0){json_error_show("no rule");}
 	
-	
+	$ProxyPacLockScript=intval($sock->GET_INFO("ProxyPacLockScript"));
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
@@ -2202,23 +2261,24 @@ function rules_search(){
 		$md5=md5($ligne["ID"]);
 		$ligne["rulename"]=utf8_encode($ligne["rulename"]);
 		$delete=imgtootltip("delete-32.png","{delete} Rule:{$ligne["rulename"]}","RuleDelete$t('{$ligne["ID"]}')");
-		$enable=Field_checkbox($md5,1,$ligne["enabled"],"RuleEnable$t('{$ligne["ID"]}','$md5')");	
+		$enable=Field_checkbox_design($md5,1,$ligne["enabled"],"RuleEnable$t('{$ligne["ID"]}','$md5')");	
 		$js="Loadjs('$MyPage?rule-js=yes&ID={$ligne["ID"]}&t=$t');";
 		
 		$up=imgsimple("arrow-up-32.png",null,"MoveObjectLinks$t('{$ligne["ID"]}','up')");
 		$down=imgsimple("arrow-down-32.png",null,"MoveObjectLinks$t('{$ligne["ID"]}','down')");
 		if($ligne["enabled"]==0){$color="#A8A5A5";}
+		if($ProxyPacLockScript==1){$color="#A8A5A5";}
 		$explainArule=$tpl->_ENGINE_parse_body(explainArule($ligne["ID"],$color));
 		
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-				"<span style='font-size:16px;font-weight:bold;color:$color'><a href=\"javascript:blur();\"
+				"<span style='font-size:18px;font-weight:bold;color:$color'><a href=\"javascript:blur();\"
 				OnClick=\"javascript:MoveObjectLinksAsk$t('{$ligne['ID']}','{$ligne["zorder"]}')\"
-				style='font-size:16px;font-weight:bold;text-decoration:underline'
+				style='font-size:18px;font-weight:bold;text-decoration:underline'
 				>[{$ligne["zorder"]}]</a></span>",
 			"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" 
-			style='font-size:18px;color:$color;text-decoration:underline'>".utf8_encode($ligne["rulename"])."</span>$explainArule",
+			style='font-size:22px;color:$color;text-decoration:underline'>".utf8_encode($ligne["rulename"])."</span>$explainArule",
 			$enable,$up,$down,$delete )
 		);
 	}
@@ -2463,7 +2523,9 @@ function rules_destination_search(){
 						OnClick=\"javascript:MoveRuleDestinationAsk$tt('$mkey','{$ligne["zorder"]}')\"
 						$style><span style='text-decoration:underline'>
 						[{$ligne["zorder"]}]</span></a></span>",
-						"<span $style><a href=\"javascript:blur();\" OnClick=\"$js\" $style><span style='text-decoration:underline'>$rulename</span></a></span><div style='font-size:12px'>$Explain</div>",
+						"<span $style><a href=\"javascript:blur();\" OnClick=\"$js\" $style>
+							<span style='text-decoration:underline'>$rulename</span></a></span>
+							<div style='font-size:12px'>$Explain</div>",
 						"<span style='font-size:16px;font-weight:bold'>$up</span>",
 						"<span style='font-size:16px;font-weight:bold'>$down</span>",
 						$delete)
@@ -2482,7 +2544,7 @@ function rules_destination_explain($SQLligne){
 	if(isset($q->PROXY_PAC_TYPES[$xtype])){
 		$xtype=$tpl->_ENGINE_parse_body($q->PROXY_PAC_TYPES[$xtype]);
 	}else{
-		$xtype="<span style='color:red'>!! $xtype</span>";
+		$xtype="<span style='color:#d32d2d'>!! $xtype</span>";
 	}
 	
 	$destinations=array();

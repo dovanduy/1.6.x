@@ -275,7 +275,7 @@ function database_infos(){
 		$add_contact_icon=null;
 		$synonym=null;
 		$infos_plus="&nbsp;{merged_database}";
-		$explain_plus="<div class=text-info>{merged_database_explain}</div>";
+		$explain_plus="<div class=explain>{merged_database_explain}</div>";
 	}
 	
 	$html="

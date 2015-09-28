@@ -466,7 +466,7 @@ $html="$ZarafaEnableServerWarning
 		</tr>						
 			<tr>
 				<td class=legend style='font-size:12px'>{ZarafaStoreOutside}:</td>
-				<td>". Field_checkbox("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaFields()")."</td>
+				<td>". Field_checkbox_design("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaFields()")."</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:12px'>{attachments_path}:</td>
@@ -497,12 +497,12 @@ $html="$ZarafaEnableServerWarning
 			<td colspan=2><H3 style='font-size:18px;color:black;margin-bottom:10px;margin-bottom:10px'>{other_settings}</H3></td></tr>
 			<tr>
 				<td class=legend style='font-size:12px'>{user_safe_mode}:</td>
-				<td width=1%>". Field_checkbox("ZarafaUserSafeMode",1,$ZarafaUserSafeMode)."</td>
+				<td width=1%>". Field_checkbox_design("ZarafaUserSafeMode",1,$ZarafaUserSafeMode)."</td>
 				<td width=1%>". help_icon("{user_safe_mode_text}")."</td>
 			</tr>
 						<tr>
 				<td class=legend style='font-size:14px'>{ZarafaAllowToReinstall}:</td>
-				<td>". Field_checkbox("ZarafaAllowToReinstall",1,$ZarafaAllowToReinstall)."</td>
+				<td>". Field_checkbox_design("ZarafaAllowToReinstall",1,$ZarafaAllowToReinstall)."</td>
 			</tr>
 			</table>	
 			
@@ -606,7 +606,7 @@ function DbAttachConverter_popup(){
 	if($ZarafaStoreOutside<>1){echo "<script>YahooWinHide();</script>";return;}
 	
 	$html="
-	<div class=text-info id='zarafa_store_outside_div'>{zarafa_store_outside_text}</div>
+	<div class=explain id='zarafa_store_outside_div'>{zarafa_store_outside_text}</div>
 	<center style='margin:10px'>". button("{run}","DbAttachConverterPerform()")."</center>
 	
 	<script>
@@ -804,17 +804,17 @@ $ZarafaUserSafeMode_warn
 	<table style='width:99%' class=form>
 		<tr>
 			<td class=legend style='font-size:14px'>{ZarafaEnableServer}:</td>
-			<td><strong style='font-size:14px'>". Field_checkbox("ZarafaEnableServer", 1,$ZarafaEnableServer,"")."</td>
+			<td><strong style='font-size:14px'>". Field_checkbox_design("ZarafaEnableServer", 1,$ZarafaEnableServer,"")."</td>
 			<td>&nbsp;</td>
 		</tr>
 			<tr>
 				<td class=legend style='font-size:14px'>{user_safe_mode}:</td>
-				<td width=1%>". Field_checkbox("ZarafaUserSafeMode",1,$ZarafaUserSafeMode)."</td>
+				<td width=1%>". Field_checkbox_design("ZarafaUserSafeMode",1,$ZarafaUserSafeMode)."</td>
 				<td width=1%>". help_icon("{user_safe_mode_text}")."</td>
 			</tr>
 			<tr>
 				<td class=legend style='font-size:14px'>{ZarafaAllowToReinstall}:</td>
-				<td>". Field_checkbox("ZarafaAllowToReinstall",1,$ZarafaAllowToReinstall)."</td>
+				<td>". Field_checkbox_design("ZarafaAllowToReinstall",1,$ZarafaAllowToReinstall)."</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:14px'>{log_level}:</td>
@@ -822,7 +822,7 @@ $ZarafaUserSafeMode_warn
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:14px'>{security_logging}:</td>
-				<td>". Field_checkbox("ZarafaEnableSecurityLogging",1,$ZarafaEnableSecurityLogging)."</td>
+				<td>". Field_checkbox_design("ZarafaEnableSecurityLogging",1,$ZarafaEnableSecurityLogging)."</td>
 			</tr>			
 			
 			
@@ -858,7 +858,7 @@ $ZarafaUserSafeMode_warn
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{enable_ssl} (237):</td>
-		<td><strong style='font-size:14px'>". Field_checkbox("ZarafaMAPISSLEnabled", 1,$ZarafaMAPISSLEnabled,"")."</strong></td>
+		<td><strong style='font-size:14px'>". Field_checkbox_design("ZarafaMAPISSLEnabled", 1,$ZarafaMAPISSLEnabled,"")."</strong></td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr><td colspan=3 align='right'><hr></td></tr>
@@ -867,7 +867,7 @@ $ZarafaUserSafeMode_warn
 		</tr>						
 			<tr>
 				<td class=legend style='font-size:14px'>{ZarafaStoreOutside}:</td>
-				<td>". Field_checkbox("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaATTCH()")."</td>
+				<td>". Field_checkbox_design("ZarafaStoreOutside",1,$ZarafaStoreOutside,"CheckZarafaATTCH()")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
@@ -1115,7 +1115,7 @@ $html="
 			</tr>			
 			<tr>
 				<td class=legend style='font-size:18px'>{disable_pop3}:</td>
-				<td><strong style='font-size:18px'>". Field_checkbox("Zarafa7Pop3Disable", 1,$Zarafa7Pop3Disable,"CheckZarafaFieldsPOP3()")."</td>
+				<td><strong style='font-size:18px'>". Field_checkbox_design("Zarafa7Pop3Disable", 1,$Zarafa7Pop3Disable,"CheckZarafaFieldsPOP3()")."</td>
 			</tr>						
 			<tr>
 				<td class=legend style='font-size:18px'>{pop3_port}:</td>
@@ -1123,7 +1123,7 @@ $html="
 			</tr>		
 			<tr>
 				<td class=legend style='font-size:18px'>{enable_pop3s}:</td>
-				<td><strong style='font-size:18px'>". Field_checkbox("ZarafaPop3sEnable", 1,$ZarafaPop3sEnable,"CheckZarafaFieldsPOP3S()")."</td>
+				<td><strong style='font-size:18px'>". Field_checkbox_design("ZarafaPop3sEnable", 1,$ZarafaPop3sEnable,"CheckZarafaFieldsPOP3S()")."</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:18px'>{pop3s_port}:</td>
@@ -1134,7 +1134,7 @@ $html="
 
 			<tr>
 				<td class=legend style='font-size:18px'>{disable_imap}:</td>
-				<td><strong style='font-size:18px'>". Field_checkbox("Zarafa7IMAPDisable", 1,$Zarafa7IMAPDisable,"CheckZarafaFieldsIMAP()")."</td>
+				<td><strong style='font-size:18px'>". Field_checkbox_design("Zarafa7IMAPDisable", 1,$Zarafa7IMAPDisable,"CheckZarafaFieldsIMAP()")."</td>
 			</tr>				
 			<tr>
 				<td class=legend style='font-size:18px'>{imap_port}:</td>
@@ -1143,7 +1143,7 @@ $html="
 
 			<tr>
 				<td class=legend style='font-size:18px'>{enable_imaps}:</td>
-				<td><strong style='font-size:13px'>". Field_checkbox("ZarafaIMAPsEnable", 1,$ZarafaIMAPsEnable,"CheckZarafaFieldsIMAPS()")."</td>
+				<td><strong style='font-size:13px'>". Field_checkbox_design("ZarafaIMAPsEnable", 1,$ZarafaIMAPsEnable,"CheckZarafaFieldsIMAPS()")."</td>
 			</tr>	
 			<tr>
 				<td class=legend style='font-size:18px'>{imaps_port}:</td>

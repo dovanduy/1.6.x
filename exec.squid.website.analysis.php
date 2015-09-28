@@ -11,12 +11,24 @@
 	
 start();
 
-
+function build_progress($text,$pourc){
+	echo $text."\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid.debug.website.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	
+}
 
 function start(){
 	$sock=new sockets();
 	$array=unserialize(base64_decode($sock->GET_INFO("WebSiteAnalysis")));
 	if(!isset($array["website-analysis"])){$array["website-analysis"]="http://www.articatech.com";}
+	
+	build_progress("{website_analysis}:", 20);
+	
+	echo "Website: {$array["website-analysis"]}\n";
 	
 	if(!is_numeric($array["website-analysis-timeout"])){$array["website-analysis-timeout"]=2;}
 	
@@ -28,7 +40,7 @@ function start(){
 	
 	
 	$CMDS[]=$curl;
-	$CMDS[]="--show-error --verbose --trace-time --trace-ascii /usr/share/artica-postfix/ressources/logs/web/curl.trace";
+	$CMDS[]="--show-error --trace-time --trace-ascii /usr/share/artica-postfix/ressources/logs/web/curl.trace";
 	$CMDS[]="--connect-timeout {$array["website-analysis-timeout"]}";
 	$urls=parse_url($array["website-analysis"]);
 	
@@ -49,7 +61,9 @@ function start(){
 	$CMDS[]="{$array["website-analysis"]}";
 	
 	$cmd=@implode(" ", $CMDS);
-	shell_exec($cmd);
+	build_progress("{website_analysis}: {connecting}", 50);
+	system($cmd);
+	build_progress("{website_analysis}: {done}", 100);
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/curl.trace",0755);
 	
 }

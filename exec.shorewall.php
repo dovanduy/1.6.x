@@ -854,7 +854,7 @@ function build_rules_groups($IN=0,$ruleid,$type="port"){
 	AND `fw_objects_lnk`.`INOUT`=$IN
 	AND `fw_objects_lnk`.`ruleid`=$ruleid";
 	$q=new mysql_shorewall();
-	if(!$q->ok){echo "<strong style='color:red'>$q->mysql_error</strong>\n";}
+	if(!$q->ok){echo "<strong style='color:#d32d2d'>$q->mysql_error</strong>\n";}
 	$results = $q->QUERY_SQL($sql);
 	
 	if(mysql_num_rows($results)==0){

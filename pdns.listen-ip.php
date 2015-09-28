@@ -54,7 +54,7 @@ function tabs(){
 	
 	
 	echo $tpl->_ENGINE_parse_body("
-	<div style='font-size:14px' class=text-info>{pdns_listen_ip_explain}</div>")."
+	<div style='font-size:14px' class=explain>{pdns_listen_ip_explain}</div>")."
 	<div id=main_config_pdns_lip>
 		<ul>". implode("\n",$html)."</ul>
 	</div>
@@ -112,7 +112,7 @@ buttons : [
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 830,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]

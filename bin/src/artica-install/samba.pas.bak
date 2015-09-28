@@ -176,7 +176,7 @@ var
   time:string;
   ldap_string:string;
   mds:string;
-  KerbAuthDisableNsswitch:integer;
+  KerbAuthDisableNsswitch,SquidPerformance,nsswitchEnableLdap,nsswitchEnableWinbind:integer;
   compat_string:string;
 begin
    compat_string:='compat';
@@ -193,6 +193,9 @@ end;
 
 if not TryStrToInt(SYS.GET_INFO('DisableWinbindd'),DisableWinbindd) then DisableWinbindd:=0;
 if not TryStrToInt(SYS.GET_INFO('KerbAuthDisableNsswitch'),KerbAuthDisableNsswitch) then KerbAuthDisableNsswitch:=0;
+if not TryStrToInt(SYS.GET_INFO('SquidPerformance'),SquidPerformance) then SquidPerformance:=0;
+if not TryStrToInt(SYS.GET_INFO('nsswitchEnableLdap'),nsswitchEnableLdap) then nsswitchEnableLdap:=0;
+if not TryStrToInt(SYS.GET_INFO('nsswitchEnableWinbind'),nsswitchEnableWinbind) then nsswitchEnableWinbind:=0;
 
 
 
@@ -204,6 +207,7 @@ if FileExists(SMBD_PATH()) then begin
    logs.Debuglogs('Starting......: LinkWinbindToSytem........: '+IntToStr(LinkWinbindToSytem));
    logs.Debuglogs('Starting......: EnableSambaActiveDirectory: '+IntToStr(EnableSambaActiveDirectory));
    logs.Debuglogs('Starting......: KerbAuthDisableNsswitch: '+IntToStr(KerbAuthDisableNsswitch));
+   logs.Debuglogs('Starting......: SquidPerformance: '+IntToStr(SquidPerformance));
 
 
 
@@ -234,6 +238,11 @@ time:=logs.DateTimeNowSQL();
 
 
 ldap_string:=' ldap';
+if(SquidPerformance>2) then   ldap_string:=' files';
+if nsswitchEnableLdap=0 then  ldap_string:=' files';
+if nsswitchEnableWinbind=0 then  winbind:='';
+
+
 ForceDirectories('/etc/samba/nsswitch.save');
 fpsystem('/bin/cp /etc/nsswitch.conf /etc/samba/nsswitch.save/nsswitch.conf.'+logs.MD5FromString(time)+'.bak');
 
@@ -1126,8 +1135,9 @@ end;
 //##############################################################################
 function Tsamba.lib_pam_ldap_path():string;
 begin
-if FileExists('/lib/x86_64-linux-gnu/security/pam_ldap.so') then exit ('/lib/x86_64-linux-gnu/security/pam_ldap.so');
+
 if FileExists('/lib/security/pam_ldap.so') then exit('/lib/security/pam_ldap.so');
+if FileExists('/lib/x86_64-linux-gnu/security/pam_ldap.so') then exit ('/lib/x86_64-linux-gnu/security/pam_ldap.so');
 end;
 //##############################################################################
 function Tsamba.lib_nss_ldap_path():string;
@@ -1415,37 +1425,6 @@ begin
       List.LoadFromFile(path);
       result:=List.Text;
       List.Free;
-end;
-//##############################################################################
-procedure Tsamba.ETC_LDAP_CONF_SET_VALUE(key:string;value:string);
-var
-   RegExpr:TRegExpr;
-   list:TstringList;
-   i:Integer;
-   found:boolean;
-begin
-    found:=false;
-    list:=TstringList.Create();
-    RegExpr:=TRegExpr.Create;
-    if FileExists('/etc/ldap.conf') then list.LoadFromFile('/etc/ldap.conf');
-    RegExpr.Expression:='^'+key+'\s+(.+)';
-    for i:=0 to list.Count-1 do begin
-          if RegExpr.Exec(list.Strings[i]) then begin
-              logs.Debuglogs('ETC_LDAP_CONF_SET_VALUE:: (modify) key ' + key+'="'+value+'"');
-              list.Strings[i]:=key + ' ' + value;
-              found:=true;
-              break;
-          end;
-    
-    end;
-    if not found then begin
-     list.Add(key + ' ' + value);
-     logs.Debuglogs('ETC_LDAP_CONF_SET_VALUE:: (Add new) key' + key+'="'+value+'"');
-    end;
-    list.SaveToFile('/etc/ldap.conf');
-
-    list.Free;
-    RegExpr.free;
 end;
 //##############################################################################
 function Tsamba.SMB_CONF_GET_VALUE(masterkey:string;key:string):string;

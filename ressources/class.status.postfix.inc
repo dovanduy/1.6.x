@@ -17,29 +17,46 @@ function postfix_increment_func($array){
 	$array[]="postfix_logger";
 	$array[]="opendkim";
 	$array[]="milter_greylist";
+	$array[]="milter_greylist_updates";
 	$array[]="postfix_schedules";
+	$array[]="policyd_weight";
+	$array[]="milter_regex";
+	$array[]="spamassassin_milter";
+	$array[]="spamassassin";
+	$array[]="roundcube";
 	return $array;
 }
 
 function postfix_schedules(){
+	$ASPOST=true;
 	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
 	$EnableStopPostfix=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableStopPostfix"));
-	if($DisableMessaging==1){return;}
-	if($EnableStopPostfix==1){return;}
+	if($DisableMessaging==1){$ASPOST=false;}
+	if($EnableStopPostfix==1){$ASPOST=false;}
 	
-	$BASEDIR="/usr/share/artica-postfix";
-	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.postfix-stats.php.STATS_hourly_cnx_to_daily_cnx.time");
-	if($time_file>59){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.postfix-stats.php --hourly-cnx >/dev/null 2>&1 &");
-	}
-	
-	if(_milter_greylist_enabled()==1){
-		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.postfix.miltergrey.stats.php.MiltergreyList_days.time");
-		if($time_file>59){
-			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.postfix.miltergrey.stats.php >/dev/null 2>&1 &");
+	if($ASPOST){
+		if(!is_file("/etc/cron.d/artica-pflogsumm-hourly")){
+			Popuplate_cron_make("artica-pflogsumm-hourly","59 * * * *","exec.pflogsumm.php");
+			$CRON_RELOAD=true;
+		}
+		
+		if(!is_file("/etc/cron.d/artica-rotate-postfix")){
+			Popuplate_cron_make("artica-rotate-postfix","5 0 * * *","exec.logrotate.postfix.php");
+			$CRON_RELOAD=true;
+		}
+		
+		
+	}else{
+		if(is_file("/etc/cron.d/artica-pflogsumm-hourly")){
+			@unlink("/etc/cron.d/artica-pflogsumm-hourly");
+			$CRON_RELOAD=true;
 		}
 	}
-			
+	
+	if($CRON_RELOAD){shell_exec("/etc/init.d/cron reload");}
+	
+	
+	
 	
 	
 }
@@ -50,8 +67,101 @@ function iredmail_pid(){
 	return $GLOBALS["CLASS_UNIX"]->PIDOF("python.*?/opt/iRedAPD/iredapd");
 }
 
+function milter_greylist_updates(){
+	$EnableBandwithCalculation=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB"));
+	$BandwithCalculationSchedule=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB"));
+
+	if($EnableBandwithCalculation==0){
+		if(is_file("/etc/cron.d/artica-miltergreylist")){
+			@unlink("/etc/cron.d/artica-miltergreylist");
+			shell_exec("/etc/init.d/cron reload");
+			return;
+		}
+	}
+
+	$schedules[1]="0 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 * * *";
+	$schedules[2]="0 2,4,6,8,10,12,14,16,18,20,22 * * *";
+	$schedules[4]="0 4,8,12,16,20 * * *";
+	$schedules[8]="0 8,16 * * *";
+	$schedules[24]="0 1 * * *";
+	$schedule=$schedules[$BandwithCalculationSchedule];
+
+	
+	
+	$GLOBALS["CLASS_UNIX"]->Popuplate_cron_make("artica-miltergreylist",$schedule,"exec.milter-greylist.update.php");
+	shell_exec("/etc/init.d/cron reload");
+}
+
+//========================================================================================================================================================
+function policyd_weight(){
+	if(!is_file("/usr/share/artica-postfix/bin/artica-install")){return;}
+	$EnablePolicydWeight=trim($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePolicydWeight"));
+	if($EnablePolicydWeight==null){$EnablePolicydWeight=0;}
+
+	$l[]="[POLICYD_WEIGHT]";
+	$l[]="service_name=APP_POLICYD_WEIGHT";
+	$l[]="service_cmd=policydw";
+	$l[]="family=postfix";
+	$l[]="master_version=".GetVersionOf("policydw");
+	$l[]="service_disabled=$EnablePolicydWeight";
+	$l[]="watchdog_features=1";
+	//$l[]="remove_cmd=--pureftpd-remove";
+
+	if($EnablePolicydWeight==0){
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}
+
+	$pid_path=$GLOBALS["CLASS_UNIX"]->POLICYD_WEIGHT_GET("PIDFILE");
+	
+	events("PID Path: $pid_path",__FUNCTION__,__LINE__);
+	
+	
+	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
+	events("master_pid: $master_pid",__FUNCTION__,__LINE__);
+
+	$l[]="watchdog_features=1";
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		$unix=new unix();
+		$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("policyd-weight \(");
+		events("PIDOF_PATTERN: $master_pid",__FUNCTION__,__LINE__);
+	}
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		events("Not running: $master_pid",__FUNCTION__,__LINE__);
+		
+		if(!is_file("/etc/init.d/policyd-weight")){
+			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --policyd-weight");
+			
+		}
+		
+		shell_exec2("/etc/init.d/policyd-weight start");
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		
+	}
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+
+}
+//========================================================================================================================================================
+
+
+
 function _milter_greylist_enabled(){
-	if(!$GLOBALS["CLASS_USERS"]->MILTERGREYLIST_INSTALLED){return 0;}
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/MilterGreyListEnabled")){@file_put_contents("/etc/artica-postfix/settings/Daemons/MilterGreyListEnabled", 1); }
+	if(!is_file("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB")){@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableMilterGreylistExternalDB", 1); }
+	
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("milter-greylist");
+	if(!is_file($bin)){return 0;}
+	
+	
 	$EnablePostfixMultiInstance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance");
 	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MilterGreyListEnabled");
 	$EnableASSP=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('EnableASSP');
@@ -63,6 +173,21 @@ function _milter_greylist_enabled(){
 	if($GLOBALS["VERBOSE"]){echo "DEBUG: enabled: $enabled\n";}
 	
 	return $enabled;
+}
+
+function milter_greylist_version(){
+	if(isset($GLOBALS["milter_greylist_version"])){return $GLOBALS["milter_greylist_version"];}
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("milter-greylist");
+	exec("$bin -r 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#^milter-greylist-([0-9a-z\.]+)#",$line,$re)){continue;}
+		$GLOBALS["milter_greylist_version"]=$re[1];
+	}
+	
+	return $GLOBALS["milter_greylist_version"];
+	
 }
 
 function milter_greylist(){
@@ -84,26 +209,36 @@ function milter_greylist(){
 	if($GLOBALS["VERBOSE"]){echo "DEBUG: ->LOCATE_MILTER_GREYLIST_PID()= master pid: $master_pid\n";}
 	$l[]="[MILTER_GREYLIST]";
 	$l[]="service_name=APP_MILTERGREYLIST";
-	$l[]="master_version=".GetVersionOf("milter-greylist");
+	$l[]="master_version=".milter_greylist_version();
 	$l[]="service_cmd=/etc/init.d/milter-greylist";
 	$l[]="service_disabled=$enabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
 	$l[]="remove_cmd=--milter-grelist-remove";
 	$l[]="family=postfix";
-
+	
+	
+	
+	@chown("/var/run/milter-greylist/milter-greylist.sock","postfix");
+	@chgrp("/var/run/milter-greylist/milter-greylist.sock", "postfix");
+	@chmod("/var/run/milter-greylist/milter-greylist.sock", 0777);
 
 	$dirname=dirname(__FILE__);
 	if($EnablePostfixMultiInstance==1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --startall >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --startall >/dev/null 2>&1 &");
 		return;
 	}
 
 	if($enabled==0){return implode("\n",$l);return;}
+	
+	if(!is_file("/etc/init.d/milter-greylist")){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $dirname/exec.initslapd.php --milter-greylist >/dev/null 2>&1 &");
+	}
+	
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
-			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --start-single >/dev/null 2>&1 &");
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --start-single >/dev/null 2>&1 &");
 		}
 		$l[]="running=0";
 		$l[]="installed=1\n";
@@ -125,6 +260,53 @@ function milter_greylist(){
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
 
+	return implode("\n",$l);return;
+
+}
+
+
+
+function milter_regex_pid(){
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file("/var/run/milter-regex.pid");
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
+	$binpath=$GLOBALS["CLASS_UNIX"]->find_program('milter-regex');
+	return $GLOBALS["CLASS_UNIX"]->PIDOF($binpath);
+}
+
+function milter_regex(){
+	$binpath=$GLOBALS["CLASS_UNIX"]->find_program('milter-regex');
+	if($binpath==null){if($GLOBALS["VERBOSE"]){echo "postconf no such binary.\n";}return;}
+	
+	$EnableMilterRegex=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableMilterRegex");
+	if(!is_numeric($EnableMilterRegex)){$EnableMilterRegex=1;}
+
+	$l[]="[milter_regex]";
+	$l[]="service_name=milter_regex";
+	$l[]="service_cmd=/etc/init.d/milter-regex";
+	$l[]="master_version=2.0.0";
+	$l[]="service_disabled=$EnableMilterRegex";
+	$l[]="family=network";
+	$l[]="watchdog_features=1";
+	if($EnableMilterRegex==0){return implode("\n",$l);return;}
+	$master_pid=milter_regex_pid();
+	ToSyslog("Scanning Postfix Milter-regex watchdog PID: $master_pid");
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			if(!is_file("/etc/init.d/milter-regex")){
+				shell_exec2("{$GLOBALS["PHP5"]} {$GLOBALS["BASE_ROOT"]}/exec.initslapd.php --milter-regex >/dev/null 2>&1");
+			}
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} /etc/init.d/milter-regex start >/dev/null 2>&1 &");
+
+		}
+	}
+	
+	@chmod("/var/run/milter-regex/milter-regex.sock",0755);
+	@chown("/var/run/milter-regex/milter-regex.sock","postfix");
+	@chgrp("/var/run/milter-regex/milter-regex.sock","postfix");
+	
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
 	return implode("\n",$l);return;
 
 }
@@ -349,3 +531,246 @@ function opendkim(){
 }
 //========================================================================================================================================================
 
+function spamassassin_milter_version(){
+	if(isset($GLOBALS["spamassassin_milter_version"])){return $GLOBALS["spamassassin_milter_version"];}
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("spamass-milter");
+	exec("$bin -h 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#Version\s+([0-9\.]+)#",$line,$re)){continue;}
+		$GLOBALS["spamassassin_milter_version"]=$re[1];
+	}
+	
+	return $GLOBALS["spamassassin_milter_version"];	
+	
+}
+
+function spamassassin_milter(){
+	$bin_path=$GLOBALS["CLASS_UNIX"]->find_program("spamass-milter");
+	$SpamAssMilterEnabled=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SpamAssMilterEnabled"));
+	
+	if($GLOBALS["CLASS_USERS"]->AMAVIS_INSTALLED){
+		$EnableAmavisDaemon=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableAmavisDaemon"));
+		if($EnableAmavisDaemon==1){$SpamAssMilterEnabled=0;}
+	}
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$SpamAssMilterEnabled=0;}
+	
+	
+	if($bin_path==null){return null;}
+	$pid_path="/var/run/spamass/spamass.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+
+	$l[]="[SPAMASS_MILTER]";
+	$l[]="service_name=APP_SPAMASS_MILTER";
+	$l[]="master_version=".spamassassin_milter_version();
+	$l[]="service_cmd=/etc/init.d/spamass-milter";
+	$l[]="service_disabled=$SpamAssMilterEnabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="family=postfix";
+
+	$mem=$GLOBALS["CLASS_UNIX"]->TOTAL_MEMORY_MB();
+	
+
+	if($SpamAssMilterEnabled==0){
+		if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/spamass-milter stop");}
+		return implode("\n",$l);
+	}
+
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			postfix_admin_mysql(0, "Spamassassin Milter service not running action=Start", null,__FILE__,__LINE__);
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} /etc/init.d/spamass-milter start >/dev/null 2>&1 &");
+			
+		}
+		
+		$l[]="";return implode("\n",$l);
+		return;
+	}
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	return implode("\n",$l);return;
+
+}
+//========================================================================================================================================================
+function spamassassin_version(){
+	if(isset($GLOBALS["spamassassin_version"])){return $GLOBALS["spamassassin_version"];}
+	$bin=$GLOBALS["CLASS_UNIX"]->find_program("spamd");
+	exec("$bin -h 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#SpamAssassin Server version\s+([0-9\.]+)#",$line,$re)){continue;}
+		$GLOBALS["spamassassin_version"]=$re[1];
+	}
+
+	return $GLOBALS["spamassassin_version"];
+
+}
+
+
+function spamassassin(){
+	$bin_path=$GLOBALS["CLASS_UNIX"]->find_program("spamd");
+	$SpamAssMilterEnabled=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SpamAssMilterEnabled"));
+
+	if($GLOBALS["CLASS_USERS"]->AMAVIS_INSTALLED){
+		$EnableAmavisDaemon=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableAmavisDaemon"));
+		if($EnableAmavisDaemon==1){$SpamAssMilterEnabled=0;}
+	}
+
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$SpamAssMilterEnabled=0;}
+
+	
+	if($bin_path==null){return null;}
+	$pid_path="/var/run/spamd.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+
+	$l[]="[SPAMASSASSIN]";
+	$l[]="service_name=APP_SPAMASSASSIN";
+	$l[]="master_version=".spamassassin_version();
+	$l[]="service_cmd=/etc/init.d/spamassassin";
+	$l[]="service_disabled=$SpamAssMilterEnabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+	$l[]="family=postfix";
+	
+	
+	if($SpamAssMilterEnabled==1){
+		if(!is_file("/etc/cron.d/artica-sa-update")){
+			Popuplate_cron_make("artica-sa-update","15 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22 * * *","exec.spamassassin.php --sa-update-check");
+			shell_exec("/etc/init.d/cron reload");
+			return;
+		}
+	}else{
+		if(is_file("/etc/cron.d/artica-sa-update")){
+			@unlink("/etc/cron.d/artica-sa-update");
+			shell_exec("/etc/init.d/cron reload");
+		}
+	}
+	
+	
+
+	if($SpamAssMilterEnabled==0){$l[]="";return implode("\n",$l);return;}
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+		postfix_admin_mysql(0, "Spamassassin Daemon service not running action=Start", null,__FILE__,__LINE__);
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} /etc/init.d/spamassassin start >/dev/null 2>&1 &");
+		}
+		$l[]="";
+		return implode("\n",$l);
+		
+	}
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	return implode("\n",$l);return;
+
+}
+//========================================================================================================================================================
+function roundcube_pid(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file('/var/run/roundcube-apache/apache.pid');
+	if($unix->process_exists($pid)){return $pid;}
+	$apache2ctl=$unix->LOCATE_APACHE_CTL();
+	return $unix->PIDOF_PATTERN($apache2ctl." -f.*?apache-roundcube.conf");
+}
+function roundcube_version(){
+
+	if(isset($GLOBALS["RC_VERSION"])){$GLOBALS["RC_VERSION"];}
+	$f=explode("\n",@file_get_contents("/usr/share/roundcube/program/include/iniset.php"));
+	while (list ($num, $ligne) = each ($f) ){
+		$ligne=trim($ligne);
+		if(!preg_match("#RCMAIL_VERSION.*?([0-9\.]+)#", $ligne,$re)){continue;}
+
+		$GLOBALS["RC_VERSION"]= trim($re[1]);
+		return $GLOBALS["RC_VERSION"];
+	}
+
+}
+
+function roundcube_folders(){
+	if(is_file('/usr/share/roundcubemail/index.php')){return '/usr/share/roundcubemail';}
+	if(is_file('/usr/share/roundcube/index.php')){return '/usr/share/roundcube';}
+	if(is_file('/var/lib/roundcube/index.php')){return '/var/lib/roundcube';}
+}
+
+//========================================================================================================================================================
+function roundcube(){
+	
+	$INSTALLED=FALSE;
+	$folder=roundcube_folders();
+	if(is_dir($folder)){
+		if(is_file("$folder/index.php")){$INSTALLED=true;}
+	}
+	
+	
+	if(!$INSTALLED){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}
+		$l[]="";
+		$l[]="[ROUNDCUBE]";
+		$l[]="service_name=APP_ROUNDCUBE";
+		$l[]="installed=0";
+		$l[]="service_disabled=0";
+		return implode("\n",$l);
+	}
+
+	$users=new settings_inc();
+	if(!$GLOBALS["CLASS_USERS"]->POSTFIX_INSTALLED){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." postfix not installed\n";}
+		$l[]="";
+		$l[]="[ROUNDCUBE]";
+		$l[]="service_name=APP_ROUNDCUBE";
+		$l[]="installed=0";
+		$l[]="service_disabled=0";
+		return implode("\n",$l);
+	}
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/RoundCubeHTTPEngineEnabled")){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/RoundCubeHTTPEngineEnabled", 1);
+	}
+
+	if(!is_file("/etc/artica-postfix/settings/Daemons/RoundCubeAutoCreateuser")){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/RoundCubeAutoCreateuser", 1);
+	}
+	
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("RoundCubeHTTPEngineEnabled");
+	if(!is_numeric($enabled)){$enabled=0;}
+	$pid_path="/var/run/roundcube-apache/apache.pid";
+	$master_pid=roundcube_pid();
+
+
+	$l[]="";
+	$l[]="[ROUNDCUBE]";
+	$l[]="service_name=APP_ROUNDCUBE";
+	$l[]="master_version=".roundcube_version();
+	$l[]="service_cmd=/etc/init.d/roundcube";
+	$l[]="service_disabled=$enabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="installed=1";
+	$l[]="family=mailbox";
+	//$l[]="remove_cmd=--samba-remove";
+
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if($GLOBALS["VERBOSE"]){echo "PID {$re[1]} Not exists\n";}
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.roundcube.php --restart >/dev/null 2>&1 &");
+		$l[]="running=0\ninstalled=1";
+		$l[]="";
+		return implode("\n",$l);
+	}
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+}
+//========================================================================================================================================================

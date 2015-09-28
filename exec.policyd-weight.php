@@ -255,7 +255,7 @@ function CheckSpamassassinMilter(){
 	if(!is_numeric($EnableAmavisDaemon)){$EnableAmavisDaemon=0;}
 	if(!$users->AMAVIS_INSTALLED){$EnableAmavisDaemon=0;}
 	
-	if($EnableAmavisDaemon==1){$sock->SET_INFO("SpamAssMilterEnabled", 0);$SpamAssMilterEnabled=0;}
+	
 	
 	$unix=new unix();
 	$postfixbin=$unix->find_program("postfix");

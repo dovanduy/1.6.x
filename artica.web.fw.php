@@ -28,7 +28,7 @@ function add_js(){
 	$page=CurrentPageName();
 	$t=$_GET["t"];
 	$title=$tpl->javascript_parse_text("{new_item}");
-	echo "YahooWin('450','$page?add-popup=yes&t=$t','$title')";	
+	echo "YahooWin('750','$page?add-popup=yes&t=$t','$title')";	
 	
 }
 
@@ -40,14 +40,14 @@ function add_popup(){
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend nowrap style='font-size:18px'>{tcp_address}:</td>
-			<td >" . field_ipv4("ipaddr-$t",null,"font-size:18px",false,"SaveCK$t(event)")."</td>
+			<td class=legend nowrap style='font-size:22px'>{tcp_address}:</td>
+			<td >" . field_ipv4("ipaddr-$t",null,"font-size:22px",false,"SaveCK$t(event)")."</td>
 		</tr>
 		<tr>
-			<td class=legend nowrap style='font-size:18px'>{networks}:</td>
-			<td>" . field_ipv4("cdir-$t",null,"font-size:18px",false,"SaveCK$t(event)")."</td>
+			<td class=legend nowrap style='font-size:22px'>{networks}:</td>
+			<td>" . field_ipv4("cdir-$t",null,"font-size:22px",false,"SaveCK$t(event)")."</td>
 		</tr>
-			<td colspan=2 align='right'><hr>". button("{add}","Save$t()",22)."</td>
+			<td colspan=2 align='right'><hr>". button("{add}","Save$t()",30)."</td>
 		</tr>
 	</table>
 	</form>
@@ -56,7 +56,6 @@ var xSave$t= function (obj) {
 	var res=obj.responseText;
 	if (res.length>3){alert(res);return;}
 	$('#flexRT{$_GET["t"]}').flexReload();
-	ExecuteByClassName('SearchFunction');
 	YahooWinHide();
 }
 function SaveCK$t(e){
@@ -112,13 +111,14 @@ function iptables_table(){
 	$new=$tpl->javascript_parse_text("{new_item}");
 	$item=$tpl->javascript_parse_text("{item}");
 	$enabled=$tpl->javascript_parse_text("{enabled}");
-	$LIGHTTPD_IP_ACCESS_TEXT=$tpl->_ENGINE_parse_body("{LIGHTTPD_IP_ACCESS_TEXT}");
+	$LIGHTTPD_IP_ACCESS_TEXT=$tpl->javascript_parse_text("{LIGHTTPD_IP_ACCESS_TEXT}");
 	$delete=$tpl->javascript_parse_text("{delete}");
 	$apply=$tpl->javascript_parse_text("{apply}");
+	$about=$tpl->javascript_parse_text("{about2}");
 	
 $t=time();
 $html="
-<div class=text-info style='font-size:16px'>$LIGHTTPD_IP_ACCESS_TEXT</div>
+
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 <script>
 	function LoadTable$t(){
@@ -127,13 +127,14 @@ $html="
 		dataType: 'json',
 		colModel : [
 		{display: '&nbsp;', name : 'ID', width :70, sortable : true, align: 'center'},
-		{display: '$item', name : 'pattern', width : 389, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$item</span>', name : 'pattern', width : 389, sortable : true, align: 'left'},
 		{display: '$delete', name : 'del', width : 70, sortable : false, align: 'center'},
 	
 		],
 		buttons : [
-		{name: '$new', bclass: 'add', onpress : NewRule$t},
-		{name: '$apply', bclass: 'Apply', onpress : Apply$t},
+		{name: '<strong style=font-size:22px>$new</strong>', bclass: 'add', onpress : NewRule$t},
+		{name: '<strong style=font-size:22px>$apply</strong>', bclass: 'Apply', onpress : Apply$t},
+		{name: '<strong style=font-size:22px>$about</strong>', bclass: 'Help', onpress : About$t},
 	
 		],
 		searchitems : [
@@ -142,7 +143,7 @@ $html="
 		sortname: 'pattern',
 		sortorder: 'asc',
 		usepager: true,
-		title: '<div style=\"font-size:16px\">$title</div>',
+		title: '<div style=\"font-size:30px\">$title</div>',
 		useRp: true,
 		rp: 15,
 		showTableToggleBtn: false,
@@ -152,11 +153,16 @@ $html="
 	
 	});
 }
+
+function About$t(){
+	alert('$LIGHTTPD_IP_ACCESS_TEXT');
+}
+
 var xRuleGroupUpDown$t= function (obj) {
 	var res=obj.responseText;
 	if(res.length>3){alert(res);return;}
 	$('#flexRT$t').flexReload();
-	ExecuteByClassName('SearchFunction');
+	
 }
 	
 
@@ -169,7 +175,7 @@ function Delete$t(ID){
 }
 	
 function Apply$t(){
-	Loadjs('firewall.restart.php');
+	Loadjs('artica.webinterface.restart.php');
 }
 
 function NewRule$t() {
@@ -234,9 +240,9 @@ function rules(){
 		$data['rows'][] = array(
 				'id' => "{$ligne["ID"]}",
 				'cell' => array(
-						"<div style='font-size:22px;font-weight:bold;color:$color;margin-top:10px'>{$ligne["ID"]}</span>",
-						"<div style='font-size:22px;font-weight:bold;color:$color;margin-top:10px'>{$ligne["pattern"]}</a>",
-						"<div>$delete</div>")
+						"<span style='font-size:28px;font-weight:bold;color:$color'>{$ligne["ID"]}</span>",
+						"<span style='font-size:28px;font-weight:bold;color:$color;margin-top:10px'>{$ligne["pattern"]}</span>",
+						"<center>$delete</center>")
 		);
 	}
 

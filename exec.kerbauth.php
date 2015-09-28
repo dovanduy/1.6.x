@@ -5,6 +5,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.samba.kerb.inc');
+include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 $GLOBALS["CHECKS"]=false;
 $GLOBALS["FORCE"]=false;
@@ -52,7 +53,8 @@ if($argv[1]=='--resolv'){PatchResolvConf($argv[2]);exit;}
 if($argv[1]=='--build-progress'){$GLOBALS["WRITEPROGRESS"]=true;build_progress();exit;}
 if($argv[1]=='--users'){GetUsersNumber();exit;}
 if($argv[1]=='--pinglic'){pinglic();exit;}
-
+if($argv[1]=='--krb5conf'){krb5conf();exit;}
+if($argv[1]=='--mskt'){run_msktutils();exit;}
 
 
 
@@ -81,10 +83,8 @@ function refresh_ticket($nopid=false){
 		}
 	}
 	
-	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
-	if(!is_numeric($EnableKerberosAuthentication)){$EnableKerberosAuthentication=0;}
-	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}			
+	$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+			
 	if($EnableKerbAuth==0){system_admin_events("EnableKerbAuth is disabled, aborting",__FUNCTION__,__FILE__,__LINE__);return;}
 	if(!$users->SAMBA_INSTALLED){system_admin_events("Samba is not installed, aborting",__FUNCTION__,__FILE__,__LINE__);return;}
 	
@@ -155,7 +155,12 @@ function sync_time($aspid=false){
 	if(isset($GLOBALS[__FUNCTION__])){return;}
 	$unix=new unix();
 	
-	$sock=new sockets();	
+	
+	$sock=new sockets();
+	$NtpdateAD=intval($sock->GET_INFO("NtpdateAD"));
+	if($NtpdateAD==0){return;}
+	
+	
 	$function=__FUNCTION__;
 	if($aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
@@ -181,18 +186,18 @@ function sync_time($aspid=false){
 	$hwclock=$unix->find_program("hwclock");
 	
 	
-	if(!is_file($ntpdate)){progress_logs(20,"{sync_time}","$function, ntpdate no such binary Line:".__LINE__."");return;}
-	progress_logs(20,"{sync_time}","$function, sync the time with the Active Directory $hostname [$ipaddr]...");
+	if(!is_file($ntpdate)){progress_logs(20,"{sync_time_ad}","$function, ntpdate no such binary Line:".__LINE__."");return;}
+	progress_logs(20,"{sync_time_ad}","$function, sync the time with the Active Directory $hostname [$ipaddr]...");
 	if($ipaddr<>null){$cmd="$ntpdate -u $ipaddr";}else{$cmd="$ntpdate -u $hostname";}
-	if($GLOBALS["VERBOSE"]){progress_logs(20,"{sync_time}","$cmd line:".__LINE__."");}
+	if($GLOBALS["VERBOSE"]){progress_logs(20,"{sync_time_ad}","$cmd line:".__LINE__."");}
 	exec($cmd." 2>&1",$results);
 	while (list ($num, $a) = each ($results) ){
 		$unix->ToSyslog($a,false,"ntpd");
-		progress_logs(20,"{sync_time}","$function, $a Line:".__LINE__."");
+		progress_logs(20,"{sync_time_ad}","$function, $a Line:".__LINE__."");
 	}
 	
 	if(is_file($hwclock)){
-		progress_logs(20,"{sync_time}","$function, sync the Hardware time with $hwclock");
+		progress_logs(20,"{sync_time_ad}","$function, sync the Hardware time with $hwclock");
 		shell_exec("$hwclock --systohc");
 	}
 
@@ -221,8 +226,7 @@ function krb5conf($progress=0){
 	$enctype=null;
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
-	if(!is_numeric($EnableKerberosAuthentication)){$EnableKerberosAuthentication=0;}
+
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}		
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
 	if($array["WINDOWS_SERVER_TYPE"]==null){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}	
@@ -233,8 +237,11 @@ function krb5conf($progress=0){
 	$domaindow=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
 	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
+	$ipaddr=trim($array["ADNETIPADDR"]);
 	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
+	
+
 
 	
 	progress_logs($progress,"{kerberaus_authentication}","$function, Active Directory hostname `$hostname`");
@@ -267,62 +274,90 @@ function krb5conf($progress=0){
 		
 	}
 	
-	$dns_lookup_realm="no";
-	$dns_lookup_kdc="no";
-	$default_keytab_name=null;
+	$dns_lookup_realm="yes";
+	$dns_lookup_kdc="yes";
 	$default_realm=$domainUp;
 	$realms=$domainUp;
 	$default_domain=$domainUp;
-	$default_keytab_name="/etc/krb5.keytab";
 	
-	if($EnableKerberosAuthentication==1){
-		$dns_lookup_realm="no";
-		$dns_lookup_kdc="no";
-		
-	}
+	
+
 	//allow_weak_crypto = true ?? -> 
 	$hostname_up=strtoupper($hostname);
-	$f[]=" [logging]";
-	$f[]=" default = FILE:/var/log/krb5libs.log";
-	$f[]=" kdc = FILE:/var/log/krb5kdc.log";
-	$f[]=" admin_server = FILE:/var/log/kadmind.log";
+	$f[]="[logging]";
+	$f[]="\tdefault = FILE:/var/log/krb5libs.log";
+	$f[]="\tkdc = FILE:/var/log/krb5kdc.log";
+	$f[]="\tadmin_server = FILE:/var/log/kadmind.log";
 	$f[]="";
 	$f[]="[libdefaults]";
-	$f[]=" default_realm = $default_realm";
-	$f[]=" dns_lookup_realm = $dns_lookup_realm";
-	$f[]=" dns_lookup_kdc = $dns_lookup_kdc";
-	$f[]=" allow_weak_crypto = true";
-	$f[]=" ticket_lifetime = 24h";
-	$f[]=" forwardable = yes";
-	if($default_keytab_name<>null){$f[]="default_keytab_name = $default_keytab_name";}
+	$f[]="\tdefault_keytab_name = /etc/squid3/PROXY.keytab";
+	$f[]="\tdefault_realm = $default_realm";
+	$f[]="\tdns_lookup_realm = $dns_lookup_realm";
+	$f[]="\tdns_lookup_kdc = $dns_lookup_kdc";
+	$f[]="\tallow_weak_crypto = true";
+	$f[]="\tticket_lifetime = 24h";
+	$f[]="\tforwardable = true";
+	$f[]="\tproxiable = true";
+	$f[]="\tfcc-mit-ticketflags = true";
+	$f[]="\tccache_type = true";
+	
+	
+	$conf[]="\tdefault_ccache_name = FILE:/etc/kerberos/tickets/krb5cc_%{euid}";
+	
 	$f[]="";
 	progress_logs($progress,"{kerberaus_authentication}","$function, ". count($t)." lines for default_tgs_enctypes");
 	if( count($t)>0){
 		$f[]=@implode("\n", $t);
 	}
+	
+	
+	$IPClass=new IP();
+	
+	
 	$f[]="[realms]";
-	$f[]=" $realms = {";
-	$f[]="  kdc = $hostname";
-	$f[]="  admin_server = $hostname";
-	if($default_domain<>null){$f[]="  default_domain = $domainUp";}
-	$f[]=" }";
+	$f[]="\t$realms = {";
+	$f[]="\t\tkdc = $hostname:88";
+	if($IPClass->isValid($ipaddr)){
+		//$f[]="\t\tkdc=$ipaddr:88";
+	}
+	
+	if(count($array["Controllers"])>0){
+		while (list ($md5, $array2) = each ($array["Controllers"]) ){
+			$kdc_hostname=$array2["hostname"];
+			$kdc_ipaddr=$array2["ipaddr"];
+			$UseIPaddr=$array2["UseIPaddr"];
+			if($UseIPaddr==1){
+				$f[]="\t\tkdc = $kdc_ipaddr:88";
+			}else{
+				$f[]="\t\tkdc = $kdc_hostname:88";
+			}
+		}
+	}
+	
+	$f[]="\t\tadmin_server = $hostname:749";
+	if($default_domain<>null){$f[]="\t\tdefault_domain = $domaindow";}
+	$f[]="\t}";
 	$f[]="";
 	$f[]="[domain_realm]";
-	$f[]=" .$domaindow = $domainUp";
-	$f[]=" $domaindow = $domainUp";
+	$f[]="\t.$domaindow = $domainUp";
+	$f[]="\t$domaindow = $domainUp";
 	
 	$f[]="";
-	if($EnableKerberosAuthentication==0){
-		$f[]="[appdefaults]";
-		$f[]=" pam = {";
-		$f[]="   debug = false";
-		$f[]="   ticket_lifetime = 36000";
-		$f[]="   renew_lifetime = 36000";
-		$f[]="   forwardable = true";
-		$f[]="   krb4_convert = false";
-		$f[]="}";
-		$f[]="";
-	}	
+	$f[]="[appdefaults]";
+	$f[]="\tpam = {";
+	$f[]="\t\tdebug = false";
+	$f[]="\t\tticket_lifetime = 36000";
+	$f[]="\t\trenew_lifetime = 36000";
+	$f[]="\t\tforwardable = true";
+	$f[]="\tkrb4_convert = false";
+	$f[]="\t}";
+	$f[]="";
+		
+	
+	
+	
+	$conf[]="";
+	@mkdir("/etc/kerberos/tickets",0755,true);
 	@file_put_contents("/etc/krb.conf", @implode("\n", $f));
 	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/krb.conf done");
 	@file_put_contents("/etc/krb5.conf", @implode("\n", $f));
@@ -370,8 +405,11 @@ function krb5conf($progress=0){
 	$progress=$progress+1;
 	
 	progress_logs($progress,"{kerberaus_authentication}","Running Linit() from line:".__LINE__);
-	RunKinit("{$array["WINDOWS_SERVER_ADMIN"]}@$domainUp",$array["WINDOWS_SERVER_PASS"],$progress);
+	if(!RunKinit("{$array["WINDOWS_SERVER_ADMIN"]}@$domainUp",$array["WINDOWS_SERVER_PASS"],$progress)){
+		return false;
+	}
 	progress_logs($progress,"{kerberaus_authentication}",__FUNCTION__."() done from line:".__LINE__);
+	return true;
 }
 
 function check_msktutil(){
@@ -432,7 +470,7 @@ function run_msktutils(){
 	if(is_file("/usr/sbin/msktutil")){@chmod("/usr/sbin/msktutil",0755);}
 	$msktutil=$unix->find_program("msktutil");
 	$function=__FUNCTION__;
-	
+	$klist=$unix->find_program("klist");
 	
 	if(!is_file($msktutil)){
 		if(is_file("/home/artica/mskutils.tar.gz.old")){
@@ -450,6 +488,7 @@ function run_msktutils(){
 	if(!isset($array["COMPUTER_BRANCH"])){$array["COMPUTER_BRANCH"]="CN=Computers";}
 	$myFullHostname=$unix->hostname_g();
 	$myNetBiosName=$unix->hostname_simple();
+	$ActiveDirectorySquidHTTPHostname=$sock->GET_INFO("ActiveDirectorySquidHTTPHostname");
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
@@ -460,7 +499,7 @@ function run_msktutils(){
 	$kdestroy=$unix->find_program("kdestroy");
 	
 	$domain_controller=$hostname;
-	if($ipaddr<>null){$domain_controller=$ipaddr;}
+	
 	
 	$enctypes=null;
 	if( $array["WINDOWS_SERVER_TYPE"]=="WIN_2008AES"){
@@ -469,26 +508,101 @@ function run_msktutils(){
 	$msktutil_version=msktutil_version();
 	progress_logs(20,"{join_activedirectory_domain}","$function, msktutil version 0.$msktutil_version");
 	
+// msktutil -c -b "CN=COMPUTERS" 
+//-s HTTP/squid.demo.local 
+//-k /etc/squid3/PROXY.keytab 
+//--computer-name squid-http --upn HTTP/squid.demo.local --server dc2008demo.demo.local --verbose --enctypes 28	
+	$myNetBiosName=strtolower($myNetBiosName);
+	$myFullHostname=strtolower($myFullHostname);
+	if($ActiveDirectorySquidHTTPHostname<>null){$myFullHostname=strtolower($ActiveDirectorySquidHTTPHostname);}
+	
 	$f[]="$msktutil -c -b \"{$array["COMPUTER_BRANCH"]}\"";
-	$f[]="-s HTTP/$myFullHostname -h $myFullHostname -k /etc/krb5.keytab";
-	$f[]="--computer-name $myNetBiosName --upn HTTP/$myFullHostname --server $domain_controller $enctypes";
+	$f[]="-s HTTP/$myFullHostname";
+	$f[]="-k /etc/squid3/PROXY.keytab";
+	$f[]="--computer-name $myNetBiosName-k";
+	$f[]="--upn HTTP/$myFullHostname";
+	$f[]="--server $domain_controller";
 	$f[]="--verbose";
-	if($msktutil_version==4){
-		//$f[]="--user-creds-only";
+	$f[]="$enctypes";
+	
+	
+	$IpClass=new IP();
+	echo "$domain_controller as IP address $ipaddr\n";
+	if($IpClass->isValid($ipaddr)){
+		echo "$domain_controller as IP address $ipaddr -> /etc/hosts\n";
+		$unix->create_EtcHosts($domain_controller, $ipaddr);
 	}
 	
-	
+	$MSKTUTIL_SUCCESS=true;
 	$cmdline=@implode(" ", $f);
 	progress_logs(20,"{join_activedirectory_domain}","$function,`$cmdline`");
 	exec("$cmdline 2>&1",$results);
-	while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");}
+	while (list ($num, $a) = each ($results) ){
+		if(trim($a)==null){continue;}
+		progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");
+		if(preg_match("#Is your kerberos ticket expired#i", $a)){
+			progress_logs(20,"{join_activedirectory_domain} kerberos failed","$function,`$cmdline`");
+			echo "###################################################################\n";
+			echo "######################### MKTUTILS FAILED #########################\n";
+			echo "###################################################################\n";
+			$MSKTUTIL_SUCCESS=false;
+			break;
+		}
 	
-	if($msktutil_version==4){
-		$cmdline="$msktutil --auto-update --verbose --computer-name $myNetBiosName --server $domain_controller";
-		exec("$cmdline 2>&1",$results);
-		while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");}
 	}
-			
+	
+	if(!$MSKTUTIL_SUCCESS){
+		$net=$unix->find_program("net");
+		echo "###################################################################\n";
+		echo "######################### ALTERNATIVE KEYTAB ######################\n";
+		echo "###################################################################\n";
+		$f=array();
+		$f[]="#!/bin/sh";
+		$f[]="PATH=/bin:/usr/bin:/sbin:/usr/sbin";
+		$f[]="export KRB5_KTNAME=FILE:/etc/squid3/PROXY.keytab";
+		$f[]="$net ads keytab CREATE";
+		$f[]="$net ads keytab ADD HTTP";
+		$f[]="unset KRB5_KTNAME\n";
+		@file_put_contents("/tmp/netads.sh", @implode("\n", $f));
+		@chmod("/tmp/netads.sh", 0755);
+		system("/tmp/netads.sh");
+		@unlink("/tmp/netads.sh");
+	}
+	
+	
+	exec("$klist -k /etc/squid3/PROXY.keytab -t 2>&1",$klist_results);
+	@chmod("/etc/squid3/PROXY.keytab", 0755);
+	@chown("/etc/squid3/PROXY.keytab","squid");
+	@chgrp("/etc/squid3/PROXY.keytab","squid");
+	
+	
+	$SUCCESS=false;
+	while (list ($num, $a) = each ($klist_results) ){
+		
+		if(preg_match("#$myNetBiosName-k#", $a)){
+			echo "$a [SUCCESS]\n";
+			$SUCCESS=true;
+		}
+		
+	}
+	
+	$cmdline="$msktutil --auto-update --verbose --computer-name $myNetBiosName-k --server $domain_controller";
+	$CRON[]="#!/bin/sh";
+	$CRON[]="exec $cmdline";
+	$CRON[]="";
+	@file_put_contents("/etc/cron.daily/msktutil", @implode("\n", $CRON));
+	chmod("/etc/cron.daily/msktutil",0755);
+	chown("/etc/cron.daily/msktutil","root");
+	
+	if($SUCCESS){
+		if($msktutil_version==4){
+			exec("$cmdline 2>&1",$results);
+			while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");}
+		}
+	}
+	
+return true;
+	
 	
 	
 }
@@ -515,31 +629,16 @@ function progress_logs($percent,$title,$log=null,$line=0){
 		}
 	}
 	$log="{$percent}%  $date : $log $function";
-	if($GLOBALS["VERBOSE"]){echo "$log\n";}
+	echo "$log\n";
 	if(!$GLOBALS["WRITEPROGRESS"]){return;}
-	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
-	if($percent==-1){@unlink($cachefile);return;}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid.ad.progress";
 	
-	if($GLOBALS["LAST_PROGRESS"]==$percent){
-		$GLOBALS["LOGS"][]=$log;
-		return;
-		
-	}
-	
-	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status"));
-	$array["PRC"]=$percent;
-	$array["TITLE"]=$title;
-	if(count($GLOBALS["LOGS"])>0){
-		while (list ($num, $a) = each ($GLOBALS["LOGS"]) ){
-			$array["LOGS"][]=$a;
-		}
-		$GLOBALS["LOGS"]=array();
-	}
-	
-	$array["LOGS"][]=$log;
+	$array["POURC"]=$percent;
+	$array["TEXT"]=$title;
 	@file_put_contents($cachefile, serialize($array));
-	@chmod($cachefile, 0755);
-	$GLOBALS["LAST_PROGRESS"]=$percent;
+	@chmod($cachefile,0755);
+	
+	
 	
 }
 
@@ -559,7 +658,7 @@ function build_progress(){
 	}
 		
 	
-	build(5);
+	if(!build(5)){return;}
 	progress_logs(66,"NssSwitch","Building nsswitch.... on line ".__LINE__);
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch --verbose  2>&1",$results2);
 	while (list ($index, $line) = each ($results2) ){
@@ -568,15 +667,15 @@ function build_progress(){
 	
 	$php=$unix->LOCATE_PHP5_BIN();
 	if(is_file($unix->LOCATE_SQUID_BIN())){
-		progress_logs(68,"Reconfiguring Squid-cache","...");
+		progress_logs(68,"{reconfiguring_proxy_service}","...");
 		$results2=array();
 		exec("$php /usr/share/artica-postfix/exec.squid.php --build --force --progress-activedirectory=68 2>&1",$results2);
 		while (list ($index, $line) = each ($results2) ){
 			progress_logs(68,"Reconfiguring Squid-cache",$line);
 		}
 		$results2=array();
-		progress_logs(69,"Restarting Squid-cache","...");
-		system("/etc/init.d/squid restart --force --script=". basename(__FILE__));
+		progress_logs(69,"{reloading_proxy_service}","...");
+		system("/etc/init.d/squid reload --force --script=". basename(__FILE__));
 		
 		
 	}
@@ -601,17 +700,11 @@ function build($nopid=false){
 	$sock=new sockets();
 	$function=__FUNCTION__;
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
-	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
+
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-	if($EnableKerberosAuthentication==1){
-		progress_logs(100,"{finish}","Kerberos, disabled");
-		progress_logs(20,"{join_activedirectory_domain}","Kerberos, disabled");
-		build_kerberos(20);
-		return;}
+
 	if($EnableKerbAuth==0){
-		progress_logs(100,"{finish}","Auth Winbindd, disabled");
-		progress_logs(20,"{join_activedirectory_domain}","Auth Winbindd, disabled");
+		progress_logs(110,"{authentication_via_activedirectory_is_disabled}","{authentication_via_activedirectory_is_disabled}");
 		if(is_file("/etc/monit/conf.d/winbindd.monitrc")){@unlink("/etc/monit/conf.d/winbindd.monitrc");}
 		return;
 	}
@@ -642,6 +735,8 @@ function build($nopid=false){
 		}
 	
 	}
+	
+	
 	pinglic(true);
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
@@ -694,6 +789,7 @@ function build($nopid=false){
 	$domaindow=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$kinitpassword=$array["WINDOWS_SERVER_PASS"];
 	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
+	
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	
 	$UseADAsNameServer=$sock->GET_INFO("UseADAsNameServer");
@@ -718,9 +814,15 @@ function build($nopid=false){
 	progress_logs(9,"{apply_settings} Synchronize time","Synchronize time"." in line ".__LINE__);
 	sync_time();
 	progress_logs(10,"{apply_settings} Check kerb5","Check kerb5..in line ".__LINE__);
-	krb5conf(12);
+	if(!krb5conf(12)){
+		progress_logs(110,"{apply_settings} Check kerb5 {failed}","Check kerb5..in line ".__LINE__);
+		return;
+	}
 	progress_logs(15,"{apply_settings} Check mskt","Check msktutils in line ".__LINE__);
-	run_msktutils();
+	if(!run_msktutils()){
+		progress_logs(110,"{apply_settings} Check mskt {failed}","Check mskt..in line ".__LINE__);
+		return;
+	}
 	progress_logs(15,"{apply_settings} netbin","netbin -> $netbin in line ".__LINE__);
 	if(is_file($netbin)){
 		try {
@@ -732,21 +834,13 @@ function build($nopid=false){
 	}
 
 	
+
 	
-	progress_logs(20,"{apply_settings} [kdb5_util] {please_wait} {about} 2 {minutes}","[kdb5_util] -> $kdb5_util {please_wait}");
-	if(is_file("$kdb5_util")){
-		progress_logs(20,"{apply_settings} [kdb5_util] {please_wait} {about} 2 {minutes}","[kdb5_util] Running: $kdb5_util create -r $domainUp -s -P xxxxxx");
-		$cmd="$kdb5_util create -r $domainUp -s -P $kinitpassword";
-		$results=array();
-		exec($cmd,$results);
-		while (list ($num, $a) = each ($results) ){progress_logs(20,"{apply_settings} [kdb5_util]","[kdb5_util] -> $a");}
-	}
-	
-	progress_logs(20,"{apply_settings} [kadmin_bin]",$kadmin_bin);
-	progress_logs(20,"{apply_settings} [netbin]", $netbin);
+	progress_logs(19,"{apply_settings} [kadmin_bin]",$kadmin_bin);
+	progress_logs(19,"{apply_settings} [netbin]", $netbin);
 	if(is_file("$netbin")){
 		progress_logs(20,"{join_activedirectory_domain}","netbin -> JOIN_ACTIVEDIRECTORY() ");
-		JOIN_ACTIVEDIRECTORY();
+		JOIN_ACTIVEDIRECTORY(); // 29%
 	
 	}
 	progress_logs(51,"{restarting_winbind} 1","winbind_priv();");
@@ -761,7 +855,7 @@ function build($nopid=false){
 	}
 	progress_logs(65,"{restarting_winbind}","winbind_priv();");
 	system("/etc/init.d/winbind restart --force");
-
+	return true;
 
 
 }
@@ -839,6 +933,7 @@ function JOIN_ACTIVEDIRECTORY(){
 	$domain_lower=strtolower($array["WINDOWS_DNS_SUFFIX"]);
 	$adminpassword=$array["WINDOWS_SERVER_PASS"];
 	$adminpassword=$unix->shellEscapeChars($adminpassword);
+	$GLOBALS["ADMIN_PASS_FOR_LOGS"]=$adminpassword;
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];
 	$workgroup=$array["ADNETBIOSDOMAIN"];
@@ -1099,7 +1194,11 @@ if(!$JOINEDRES){
 	progress_logs(20,"{join_activedirectory_domain}","[$adminname]: checks nsswitch");
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){progress_logs(50,"{join_activedirectory_domain}","[$adminname]: $line");}
-	
+	$sock=new sockets();
+	$sock->SET_INFO("KerbAuthWatchEv", 0);
+	$sock->SET_INFO("ActiveDirectoryEmergency", 0);
+	$sock->SET_INFO("ActiveDirectoryEmergencyReboot", 0);
+	$sock->SET_INFO("ActiveDirectoryEmergencyNone", 0);
 
 }
 
@@ -1259,7 +1358,7 @@ function RunKinit($username,$password,$progress=1){
 		$cmd="$echo \"$password\"|$kinit {$username} 2>&1";
 		progress_logs($progress,"{kerberaus_authentication}","$cmd");
 		progress_logs($progress,"{kerberaus_authentication}","$function, kinit `$username`");
-		exec("$echo \"$password\"|$kinit {$username} 2>&1",$res);
+		exec("$echo $password|$kinit {$username} 2>&1",$res);
 		while (list ($num, $a) = each ($res) ){	
 			if(preg_match("#Password for#",$a,$re)){unset($res[$num]);}
 			progress_logs($progress,"{kerberaus_authentication}","$a");
@@ -1273,6 +1372,8 @@ function RunKinit($username,$password,$progress=1){
 		progress_logs($progress,"{kerberaus_authentication}",$klist);
 		exec("$klist 2>&1",$res);
 	}
+	
+	
 
 while (list ($num, $a) = each ($res) ){	
 		progress_logs($progress,"{kerberaus_authentication}","$a");
@@ -1284,6 +1385,7 @@ while (list ($num, $a) = each ($res) ){
 	
 
 		progress_logs($progress,"{kerberaus_authentication}","DONE LINE: ".__LINE__);	
+  return true;
 }
 
 function echo2($content){
@@ -1458,7 +1560,7 @@ function SAMBA_OUTPUT_ERRORS($prefix,$line){
 	}	
 	
 	
-	
+	$line=str_replace($GLOBALS["ADMIN_PASS_FOR_LOGS"],"****",$line);
 	progress_logs(20,"{join_activedirectory_domain}","$prefix $line");
 }
 
@@ -1853,6 +1955,18 @@ function winbindd_monit(){
 		progress_logs(20,"{join_activedirectory_domain}","winbindd monit: restarting monit");
 		shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");
 }
+
+function build_progress_disconnect($text,$pourc){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/squid.ad.disconnect.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+
+}
+
+
 function disconnect(){
 	$unix=new unix();	
 	$user=new settings_inc();
@@ -1873,27 +1987,46 @@ function disconnect(){
 	$adminpassword=str_replace("'", "", $adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	
+	$kdb5_util=$unix->find_program("kdb5_util");
 	
 	$function=__FUNCTION__;
+	
+	
+	
 	if(!is_file($netbin)){progress_logs(100,"{join_activedirectory_domain}"," net, no such binary");return;}
 	if(!$user->SAMBA_INSTALLED){progress_logs(100,"{join_activedirectory_domain}"," Samba, no such software");return;}	
-	exec("$netbin ads keytab flush 2>&1",$results);
-	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
-	exec("$kdestroy 2>&1",$results);
 	
+	build_progress_disconnect("Flush Keytab...",5);
+	exec("$netbin ads keytab flush 2>&1",$results);
+	build_progress_disconnect("Leave Active Directory...",10);
+	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
+	build_progress_disconnect("Destroy Kerberos ticket",10);
+	exec("$kdestroy 2>&1",$results);
+	build_progress_disconnect("Destroy Kerberos ticket",15);
+	system("$kdb5_util -r $domainUp  -P $adminpassword destroy -f");
+	build_progress_disconnect("Destroy Kerberos ticket",20);
+	@unlink("/etc/squid3/PROXY.keytab");
 	
 	squid_admin_mysql(0, "Active directory disconnected", "An order as been sent to disconnect Active Directory",__FILE__,__LINE__);
-	$unix->send_email_events("Active directory disconnected", "An order as been sent to disconnect Active Directory", "activedirectory");
+	build_progress_disconnect("Stamp to not use Active Directory",50);
 	$sock->SET_INFO("EnableKerbAuth", 0);
+	@unlink("/etc/cron.d/artica-ads-watchdog");
+	@unlink("/etc/cron.daily/msktutil");
+	
+	
+	build_progress_disconnect("Remove the system from Active Directory",70);
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
+	build_progress_disconnect("Restarting SMB Engine",70);
 	exec("/etc/init.d/artica-postfix restart samba 2>&1",$results);	
+	
 	while (list ($num, $ligne) = each ($results) ){
+		echo "Leave......: $ligne\n";
 		progress_logs(90,"{join_activedirectory_domain}","Leave......: $ligne");
 	}	
-	
+	build_progress_disconnect("{reconfiguring_proxy_service}",80);
 	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
-	progress_logs(100,"{join_activedirectory_domain}","Leave......: $ligne");
+	system("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
+	build_progress_disconnect("{done}",100);
 }
 
 

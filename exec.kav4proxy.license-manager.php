@@ -48,6 +48,7 @@ function install_key($keyfile){
 		die();
 	}
 	$sock=new sockets();
+	$nohup=$unix->find_program("nohup");
 	$sock->SET_INFO("kavicapserverEnabled", 1);
 	@unlink("/etc/artica-postfix/kav4proxy-licensemanager");
 	@unlink("/etc/artica-postfix/kav4proxy-licensemanager-i");
@@ -64,10 +65,13 @@ function install_key($keyfile){
 	shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -i >/etc/artica-postfix/kav4proxy-licensemanager-i 2>&1");
 	
 	progress("{stopping_service}",60);
+	echo "/etc/init.d/kav4proxy stop\n";
 	system("/etc/init.d/kav4proxy stop");
 	
 	progress("{starting_service}",60);
-	system("/etc/init.d/kav4proxy start");
+	echo "/etc/init.d/kav4proxy start\n";
+	system("$nohup /etc/init.d/kav4proxy start >/dev/null 2>&1 &");
+	system("$nohup /etc/init.d/artica-status restart --force >/dev/null 2>&1 &");
 	
 	
 	progress("{launch_updates}",70);
@@ -77,7 +81,7 @@ function install_key($keyfile){
 	progress("{launch_updates}",80);
 	shell_exec("$nohup /usr/share/artica-postfix/exec.keepup2date.php --update --force >/dev/null 2>&1 &");
 	sleep(3);
-	progress("{installed}",100);
+	progress("{success}",100);
 	
 }
 

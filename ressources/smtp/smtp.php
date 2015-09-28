@@ -260,7 +260,7 @@
 				$this->PARSE_ERROR($greeting);
 				if($this->DETECTED_ERROR($greeting)){
 					$this->errors[]="ERROR DETECTED IN GREETING...\"".trim($greeting);
-					$this->events("ERROR DETECTED IN GREETING...\"".trim($greeting)."\"", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
+					if($this->debug){$this->events("ERROR DETECTED IN GREETING...\"".trim($greeting)."\"", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);}
 					return false;
 				}
 				
@@ -589,7 +589,7 @@
 					$line    = fgets($this->connection, 512);
 					if(trim($line)==null){$loops++;continue;}
 					$RESULTS=$line;
-					//$this->events("Receive: \"$line\"", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
+					if($this->debug){$this->events("RECEIVE:: \"$line\"", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);}
 					$this->ERROR_SOCK_ARRAY[]=$line;
 					$return .= $line;
 					$loops++;

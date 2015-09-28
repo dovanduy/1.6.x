@@ -41,7 +41,7 @@ function popup(){
 	$t=time();
 	
 	$html="
-	<div style='font-size:14px' class=text-info id='$t'>{mailboxes_backups_text_admin}</div>
+	<div style='font-size:14px' class=explain id='$t'>{mailboxes_backups_text_admin}</div>
 	<table style='width:99%' class=form>
 	<tr>
 	<td colspan=2>

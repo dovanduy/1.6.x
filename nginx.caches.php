@@ -49,7 +49,7 @@ function cache_js(){
 	}
 
 	$title=$tpl->javascript_parse_text($title);
-	echo "YahooWin4(800,'$page?cache-popup&ID=$ID','$title')";
+	echo "YahooWin4(900,'$page?cache-popup&ID=$ID','$title')";
 
 }
 
@@ -142,7 +142,7 @@ function cache_popup(){
 	
 	
 	
-	$fontsize=18;
+	$fontsize=22;
 	
 	$html[]="<div style='width:100%;font-size:28px;margin-bottom:20px'>$title</div>";
 	$html[]="<div style='width:98%' class=form>";
@@ -198,7 +198,9 @@ function cache_save(){
 	if($_POST["ID"]==0){$sql=$sqlZ[0];}else{$sql=$sqlZ[1];}
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error."\n$sql\n";}
+	if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}
+	$sock=new sockets();
+	$sock->getFrameWork("nginx.php?build-main=yes");
 	
 }
 
@@ -338,8 +340,8 @@ function table(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_cache', bclass: 'add', onpress : New$t},
-	{name: '$apply_parameters', bclass: 'apply', onpress :  apply_parameters$t},
+	{name: '<strong style=font-size:20px>$new_cache</strong>', bclass: 'add', onpress : New$t},
+	{name: '<strong style=font-size:20px>$apply_parameters</strong>', bclass: 'apply', onpress :  apply_parameters$t},
 	
 	
 	
@@ -354,10 +356,10 @@ function BuildTable$t(){
 	url: '$page?list=yes&t=$t',
 		dataType: 'json',
 			colModel : [
-			{display: '$name', name : 'keys_zone', width :166, sortable : true, align: 'left'},
-			{display: '$directory', name : 'directory', width :465, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$name</span>', name : 'keys_zone', width :284, sortable : true, align: 'left'},
+			{display: '<span style=font-size:18px>$directory</span>', name : 'directory', width :602, sortable : false, align: 'left'},
 			
-			{display: '$maxsize', name : 'maxsize', width :135, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$maxsize</span>', name : 'maxsize', width :220, sortable : false, align: 'left'},
 			{display: '&nbsp;', name : 'up', width :78, sortable : false, align: 'center'},
 			{display: '&nbsp;', name : 'down', width :78, sortable : false, align: 'center'},
 
@@ -427,7 +429,8 @@ function cache_delete(){
 
 	$sock=new sockets();
 	$sock->getFrameWork("nginx.php?delete-cache=".urlencode(base64_decode($directory)));
-
+	$sock=new sockets();
+	$sock->getFrameWork("nginx.php?build-main=yes");
 }
 
 function list_items(){
@@ -525,13 +528,13 @@ function list_items(){
 		$data['rows'][] = array(
 					'id' => $ligne['categorykey'],
 					'cell' => array(
-							"<span style='font-size:18px;font-weight:bold;padding-top:8px'>$keys_zone</span>",
+							"<span style='font-size:22px;font-weight:bold;padding-top:8px'>$keys_zone</span>",
 							"<a href=\"javascript:blur();\"
-							style='font-size:18px;font-weight:bold;text-decoration:underline'
+							style='font-size:22px;font-weight:bold;text-decoration:underline'
 							OnClick=\"javascript:$jsedit\">{$ligne["directory"]}</a>",
-							"<span style='font-size:18px;font-weight:bold'>$CurrentSizeText/{$ligne["max_size"]}G</span>",	
-							$purge,
-							$delete
+							"<span style='font-size:22px;font-weight:bold'>$CurrentSizeText/{$ligne["max_size"]}G</span>",	
+							"<center>$purge</center>",
+							"<center>$delete</center>"
 							)
 			);			
 	}

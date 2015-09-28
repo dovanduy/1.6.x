@@ -155,7 +155,7 @@ $trans["news"]="lefigaro.fr";
 $trans["passwords"]="lastpass.com";
 $trans["phishing"]="vvvwpaypal.com";
 $trans["photo"]="photographevents.biz";
-$trans["pictures"]="picnik.com";
+$trans["photo"]="picnik.com";
 $trans["pictureslib"]="deviantart.com";
 $trans["politic"]="quebecpolitique.com";
 $trans["porn"]="youporn.com";
@@ -170,7 +170,7 @@ $trans["recreation/wellness"]="fitness-news.org";
 $trans["redirector"]="tinyurl.com";
 $trans["religion"]="catholic.org.hk";
 $trans["remote-control"]="teamviewer.com";
-$trans["ringtones"]="mobijoy.com";
+
 $trans["sciences"]="afnor.org";
 $trans["science/astronomy"]="thalesaleniaspace-astronomy.com";
 $trans["science/computing"]="ibm.com";

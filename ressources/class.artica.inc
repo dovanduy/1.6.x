@@ -78,11 +78,7 @@ class artica_general{
 		$hash=$this->ldapClass->ArticaDatas();
 		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->ArticaDatas() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->LoadProxySettings();
-		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->LoadProxySettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		$this->__loadArticaSettings();
-		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->__loadArticaSettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		$this->__loadArticaSettings2();
-		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->__loadArticaSettings2() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+
 		if(isset($hash["ArticaGlobalSettings"])){$file=$hash["ArticaGlobalSettings"];}
 		if(isset($hash["ArticaFilterEnabled"])){$this->ArticaFilterEnabled=$hash["ArticaFilterEnabled"];}
 		if(isset($hash["OBMEnabled"])){$this->OBMEnabled=$hash["OBMEnabled"];}
@@ -102,7 +98,7 @@ class artica_general{
 	
 	function LoadOnDisk(){
 
-			$this->ArticaVersion=$this->sock->getfile('artica_version');
+			$this->ArticaVersion=@file_get_contents("/usr/share/artica-posfix/VERSION");
 			$this->RoundCubeHTTPEngineEnabled=$this->sock->GET_INFO("RoundCubeHTTPEngineEnabled");
 			$this->EnableAmavisDaemon=$this->sock->GET_INFO("EnableAmavisDaemon");			
 			$this->RoundCubeLightHTTPD=$this->sock->GET_INFO("RoundCubeLightHTTPD");
@@ -140,35 +136,7 @@ class artica_general{
 
 	
 	
-	function __loadArticaSettings2(){
-		if(!function_exists("ldap_connect")){return array();}
-		$ldap=new clladp();
-		if(!$ldap->UseLdap){return null;}
-		if($ldap->ldapFailed){return null;}
-		$upd=array();
-		$dn="cn=artica-settings2,cn=artica,$ldap->suffix";
-		if(!$ldap->ExistsDN($dn)){
-			writelogs("$dn doesn't exists, create it....",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			$upd["objectClass"][]="top";
-			$upd["objectClass"][]="ArticaSettings3";
-			$upd["cn"][]="artica-settings2";
-			$upd["MaxTempLogFilesDay"][]="3";
-			if(!$ldap->ldap_add($dn,$upd)){
-				$ldap->ldap_close();
-			}
-		}
-			
-		$sr =@ldap_read($ldap->ldap_connection,"cn=artica-settings2,cn=artica,$ldap->suffix",'objectClass=ArticaSettings3');
-		if ($sr) {
-			$hash=ldap_get_entries($ldap->ldap_connection,$sr);
-			$this->MaxTempLogFilesDay=$hash[0][strtolower("MaxTempLogFilesDay")][0];
-			if(isset($hash[0][strtolower("ArticaPerformancesSettings")][0])){$this->ArticaPerformancesSettings=$hash[0][strtolower("ArticaPerformancesSettings")][0];}
-			$ldap->ldap_close();
-		}
-		
-		if($this->ArticaPerformancesSettings==null){$this->ArticaPerformancesSettings="#";}
-		
-		}
+
 		
 	function DynList(){
 		$dn="cn=dynlist,cn=artica";
@@ -176,104 +144,7 @@ class artica_general{
 		
 	}
 	
-	
-	function __loadArticaSettings(){
-		if(!function_exists("ldap_connect")){return array();}
-		$ldap=new clladp();
-		if(!$ldap->UseLdap){return null;}
-		if($ldap->ldapFailed){return null;}
-		$upd=array();
-		$dn="cn=artica-settings,cn=artica,$ldap->suffix";
-		if(!$ldap->ExistsDN($dn)){
-			if(isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::$dn doesn't exists, create it....in ".__FILE__." line ". __LINE__);}
-			$upd["objectClass"][]="top";
-			$upd["objectClass"][]="ArticaSettings2";
-			$upd["cn"][]="artica-settings";
-			$upd["MysqlMaxEventsLogs"][]="200000";
-			$upd["ApacheArticaEnabled"][]="0";
-			$upd["ArticaFirstWizard"][]="0";
-			$upd["DkimFilterEnabled"][]="0";
-			$upd["ArticaUsbBackupKeyID"][]="NONE";
-			
-			if(!$ldap->ldap_add($dn,$upd)){
-				$ldap->ldap_close();
-				if(isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::unable to create $dn ".__FILE__." line ". __LINE__);}
-				return ;
-			}
-			
-		}
-		$sock=new sockets();
-		$this->NmapScanEnabled=$sock->GET_INFO("NmapScanEnabled");
-		$this->ArticaUsbBackupKeyID=$sock->GET_INFO("ArticaUsbBackupKeyID");
-		$this->ApacheArticaEnabled=$sock->GET_INFO("ApacheArticaEnabled");
-		
-		$CurrentPageName=CurrentPageName();
-		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::reading cn=artica-settings,cn=artica,$ldap->suffix ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		$sr =@ldap_read($ldap->ldap_connection,"cn=artica-settings,cn=artica,$ldap->suffix",'objectClass=ArticaSettings2');
-		if ($sr) {
-			$hash=ldap_get_entries($ldap->ldap_connection,$sr);
-			
-			
-			
-			$this->MysqlMaxEventsLogs=$hash[0][strtolower("MysqlMaxEventsLogs")][0];
-			if(isset($hash[0][strtolower("lighttpConfig")][0])){$this->lighttpConfig=$hash[0][strtolower("lighttpConfig")][0];}
-			if(isset($hash[0][strtolower("ApacheConfig")][0])){$this->ApacheConfig=$hash[0][strtolower("ApacheConfig")][0];}
-			$this->ArticaFirstWizard=$hash[0][strtolower("ArticaFirstWizard")][0];
-			
-			
-			if(isset($hash[0][strtolower("spfmilterEnabled")][0])){$this->spfmilterEnabled=$hash[0][strtolower("spfmilterEnabled")][0];}
-			if(isset($hash[0][strtolower("EnableSyslogMysql")][0])){$this->EnableSyslogMysql=$hash[0][strtolower("EnableSyslogMysql")][0];}
-			$this->DkimFilterEnabled=$hash[0][strtolower("DkimFilterEnabled")][0];
-		
-			if(isset($hash[0][strtolower("EnableMonitorix")][0])){$this->EnableMonitorix=$hash[0][strtolower("EnableMonitorix")][0];}
-			if(isset($hash[0][strtolower("LighttpdUseLdap")][0])){$this->LighttpdUseLdap=$hash[0][strtolower("LighttpdUseLdap")][0];}
-			if(isset($hash[0][strtolower("EnableFDMFetch")][0])){$this->EnableFDMFetch=$hash[0][strtolower("EnableFDMFetch")][0];}
-			if(isset($hash[0][strtolower("P3ScanEnabled")][0])){$this->P3ScanEnabled=$hash[0][strtolower("P3ScanEnabled")][0];}
-			if(isset($hash[0][strtolower("EnableMilterBogom")][0])){$this->EnableMilterBogom=$hash[0][strtolower("EnableMilterBogom")][0];}
-			if(isset($hash[0][strtolower("EnableMysqlFeatures")][0])){$this->EnableMysqlFeatures=$hash[0][strtolower("EnableMysqlFeatures")][0];}
-			if(isset($hash[0][strtolower("EnableCollectdDaemon")][0])){$this->EnableCollectdDaemon=$hash[0][strtolower("EnableCollectdDaemon")][0];}
-			
-			
-			if($this->ClamavMilterEnabled==null){$this->ClamavMilterEnabled=0;}
-			if($this->SpamAssMilterEnabled==null){$this->SpamAssMilterEnabled=0;}			
-			if($this->spfmilterEnabled==null){$this->spfmilterEnabled=0;}
-			if($this->EnableSyslogMysql==null){$this->EnableSyslogMysql=1;}
-			if($this->DkimFilterEnabled==null){$this->DkimFilterEnabled=0;}
-			if($this->NmapScanEnabled==null){$this->NmapScanEnabled=0;}
-			if($this->RoundCubeHTTPEngineEnabled==null){$this->RoundCubeHTTPEngineEnabled=0;}
-			if($this->RoundCubeConfigurationFile==null){$this->RoundCubeConfigurationFile="#";}
-			if($this->RoundCubeLightHTTPD==null){$this->RoundCubeLightHTTPD="#";}	
-			if($this->RoundCubeArticaConfigurationFile==null){$this->RoundCubeArticaConfigurationFile="NONE";}
-			if($this->EnableMonitorix==null){$this->EnableMonitorix="0";}
-			if($this->LighttpdUseLdap==null){$this->LighttpdUseLdap="0";}
-			if($this->EnableFDMFetch==null){$this->EnableFDMFetch="0";}
-			if($this->MasterCFEnabled==null){$this->MasterCFEnabled="0";}
-			if($this->P3ScanEnabled==null){$this->P3ScanEnabled="0";}
-			if($this->EnableFetchmail==null){$this->EnableFetchmail="0";}
-			if($this->MaxTempLogFilesDay==null){$this->MaxTempLogFilesDay=3;}
-			if($this->sTunnel4enabled==null){$this->sTunnel4enabled=0;}
-			if($this->EnableMilterBogom==null){$this->EnableMilterBogom=0;}
-			if($this->EnableMysqlFeatures==null){$this->EnableMysqlFeatures=1;}
-			if($this->MysqlServerName==null){$this->MysqlServerName="127.0.0.1";}
-			if($this->EnableVirtualDomainsInMailBoxes==null){$this->EnableVirtualDomainsInMailBoxes="0";}
-			if($this->EnableCollectdDaemon==null){$this->EnableCollectdDaemon="0";}
-			if($this->EnableMilterSpyDaemon==null){$this->EnableMilterSpyDaemon="0";}
-			if($this->EnableAmavisDaemon==null){$this->EnableAmavisDaemon="0";}
-			$ldap->ldap_close();
-			if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::reading cn=artica-settings,cn=artica,$ldap->suffix done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-			
 
-		}
-		
-	}
-	
-	
-
-	
-	
-		
-
-	
 	
 	function LoadProxySettings(){
 		$ini=new Bs_IniHandler();
@@ -389,7 +260,7 @@ class artica_general{
 		$sock->SET_INFO('EnableRemoteAddressBook',$this->EnableRemoteAddressBook);
 		$sock->SET_INFO('EnablePerUserRemoteAddressBook',$this->EnablePerUserRemoteAddressBook);
 		$sock->SET_INFO("EnableNonEncryptedLdapSession",$this->EnableNonEncryptedLdapSession);
-		$sock->SET_INFO('SpamAssMilterEnabled',$this->SpamAssMilterEnabled);
+		
 		$sock->SET_INFO('EnableArticaAsGateway',$this->EnableArticaAsGateway);
 		$sock->SET_INFO('EnableDHCPServer',$this->EnableDHCPServer);
 		$sock->SET_INFO('EnableFetchmail',$this->EnableFetchmail);

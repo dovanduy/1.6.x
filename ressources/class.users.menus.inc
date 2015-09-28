@@ -33,6 +33,7 @@ class usersMenus {
 	public $menus;
 	public $main_left_menus=array();
 	public $menusright;
+	public $WANPROXY=FALSE;
 	public $toplinks;
 	public $priv;
 	public $MAIN_CONSOLE_PORT=9000;
@@ -42,6 +43,7 @@ class usersMenus {
 	public $AsSystemAdministrator=false;
 	public $AsArticaMetaAdmin=false;
 	public $AsDansGuardianAdministrator=false;
+	public $AsSquidPersonalCategories=false;
 	public $AsWebFilterRepository=false;	
 	public $AsOrgStorageAdministrator=false;
 	public $AllowXapianDownload=false;
@@ -173,6 +175,7 @@ class usersMenus {
 	For more information, see
 	http://www.maani.us/xml_charts/index.php?menu=License
 	*/
+	public $STATS_APPLIANCE=null;
 	public $WEBSTATS_APPLIANCE=null;
 	public $ChangeAutoInterface=null;
 	public $KASPERSKY_WEB_APPLIANCE=false;
@@ -594,9 +597,15 @@ class usersMenus {
 	public $WORDPRESS_APPLIANCE=false;
 	public $l7FILTER_INSTALLED=false;
 	public $WEBSECURIZE=false;
+	public $BAMSIGHT=false;
 	public $LANWANSAT=false;
 	public $SENSORS_INSTALLED=false;
 	public $SS5_INSTALLED=false;
+	public $HYPERCACHE_STOREID=false;
+	public $FIREHOL=false;
+	public $XEN_HOST=false;
+	public $HYPERV_HOST=false;
+	public $INFLUXDB=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -781,6 +790,11 @@ class usersMenus {
 			if(isset($_GLOBAL["SYNCTHING_INSTALLED"])){$this->SYNCTHING_INSTALLED=$_GLOBAL["SYNCTHING_INSTALLED"];}
 			if(isset($_GLOBAL["SENSORS_INSTALLED"])){$this->SENSORS_INSTALLED=$_GLOBAL["SENSORS_INSTALLED"];}
 			if(isset($_GLOBAL["SS5_INSTALLED"])){$this->SS5_INSTALLED=$_GLOBAL["SS5_INSTALLED"];}
+			if(isset($_GLOBAL["HYPERCACHE_STOREID"])){$this->HYPERCACHE_STOREID=$_GLOBAL["HYPERCACHE_STOREID"];}
+			if(isset($_GLOBAL["INFLUXDB"])){$this->INFLUXDB=$_GLOBAL["INFLUXDB"];}
+			if(isset($_GLOBAL["STATS_APPLIANCE"])){$this->STATS_APPLIANCE=$_GLOBAL["STATS_APPLIANCE"];}
+			if(isset($_GLOBAL["WANPROXY"])){$this->WANPROXY=$_GLOBAL["WANPROXY"];}
+			
 			
 			
 			
@@ -894,10 +908,14 @@ class usersMenus {
 			if(isset($_GLOBAL["CONNTRACK_INSTALLED"])){$this->CONNTRACK_INSTALLED=$_GLOBAL["CONNTRACK_INSTALLED"];}
 			if(isset($_GLOBAL["l7FILTER_INSTALLED"])){$this->l7FILTER_INSTALLED=$_GLOBAL["l7FILTER_INSTALLED"];}
 			if(isset($_GLOBAL["WEBSECURIZE"])){$this->WEBSECURIZE=$_GLOBAL["WEBSECURIZE"];}
+			if(isset($_GLOBAL["BAMSIGHT"])){$this->BAMSIGHT=$_GLOBAL["BAMSIGHT"];}
+			
 			if(isset($_GLOBAL["LANWANSAT"])){$this->LANWANSAT=$_GLOBAL["LANWANSAT"];}
+			if(isset($_GLOBAL["FIREHOL"])){$this->FIREHOL=$_GLOBAL["FIREHOL"];}
+			if(isset($_GLOBAL["XEN_HOST"])){$this->XEN_HOST=$_GLOBAL["XEN_HOST"];}
+			if(isset($_GLOBAL["HYPERV_HOST"])){$this->HYPERV_HOST=$_GLOBAL["HYPERV_HOST"];}
 			
-			
-			
+
 			
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
 			$this->fdm_installed=$_GLOBAL["fdm_installed"];
@@ -1236,6 +1254,29 @@ class usersMenus {
 				}
 				$priv=$this->_ParsePrivieleges();
 				$this->priv=$this->_TranslateRights($priv);			
+			}else{
+				$this->AsSystemAdministrator=true;
+				$this->AsInventoryAdmin=true;
+				$this->AsAnAdministratorGeneric=true;
+				$this->AsPostfixAdministrator=true;
+				$this->AsSambaAdministrator=true;
+				$this->AsWebMaster=true;
+				$this->AsSquidAdministrator=true;
+				$this->AsArticaMetaAdmin=true;
+				$this->AsDansGuardianAdministrator=true;
+				$this->AsSquidPersonalCategories=true;
+				$this->AsArticaAdministrator=true;
+				$this->AsDebianSystem=true;
+				$this->AsArticaAdministrator=true;
+				if($this->WEBSECURIZE){$GLOBALS["CHANGE_TEMPLATE"]="Websecurize";};
+				if($this->BAMSIGHT){$GLOBALS["CHANGE_TEMPLATE"]="BamSight";};
+				if($this->LANWANSAT){$GLOBALS["CHANGE_TEMPLATE"]="LanWanSAT";};
+			}
+			
+			if(isset($_SESSION["uid"])){
+				if($_SESSION["uid"]==-100){
+					$this->AsSquidPersonalCategories=true;
+				}
 			}
 			
 			
@@ -1247,6 +1288,9 @@ class usersMenus {
 				$this->NicRoleArray["DHCP"]="{APP_DHCP}";
 			
 			}
+			
+			
+			
 		
 	}
 	

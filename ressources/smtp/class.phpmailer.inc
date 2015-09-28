@@ -356,7 +356,6 @@ class PHPMailer {
       $this->ContentType = 'text/plain';
     }
   }
-
   /**
    * Sets Mailer to send message using SMTP.
    * @return void
@@ -703,11 +702,16 @@ class PHPMailer {
     require_once $this->PluginDir . 'class.smtp.php';
     $bad_rcpt = array();
 
+    if(function_exists("build_progress")){build_progress(41,"{connecting}");}
     if(!$this->SmtpConnect()) {
+    	if(function_exists("build_progress")){build_progress(45,"{connecting} {failed}");}
       throw new phpmailerException($this->Lang('smtp_connect_failed'), self::STOP_CRITICAL);
     }
     $smtp_from = ($this->Sender == '') ? $this->From : $this->Sender;
+    
+    if(function_exists("build_progress")){build_progress(50,"{sending}: From");}
     if(!$this->smtp->Mail($smtp_from)) {
+    	if(function_exists("build_progress")){build_progress(55,"{sending}: From {failed}");}
       throw new phpmailerException($this->Lang('from_failed') . $smtp_from, self::STOP_CRITICAL);
     }
 
@@ -754,6 +758,7 @@ class PHPMailer {
       $badaddresses = implode(', ', $bad_rcpt);
       throw new phpmailerException($this->Lang('recipients_failed') . $badaddresses);
     }
+    if(function_exists("build_progress")){build_progress(60,"{sending}: DATA");}
     if(!$this->smtp->Data($header . $body)) {
       throw new phpmailerException($this->Lang('data_not_accepted'), self::STOP_CRITICAL);
     }
@@ -773,6 +778,11 @@ class PHPMailer {
   public function SmtpConnect() {
     if(is_null($this->smtp)) {
       $this->smtp = new SMTPMailer();
+      if(isset($GLOBALS["PROGRESS"])){
+      	if($GLOBALS["PROGRESS"]){
+      		$this->smtp->do_debug=10;
+      	}
+      }
       if($GLOBALS["VERBOSE"]){$this->smtp->do_debug=10;}
     }
 
@@ -822,8 +832,10 @@ class PHPMailer {
 
           $connection = true;
           if ($this->SMTPAuth) {
+          	if(function_exists("build_progress")){build_progress(45,"{authenticate}");}
             if (!$this->smtp->Authenticate($this->Username, $this->Password)) {
-              throw new phpmailerException($this->Lang('authenticate'));
+            	if(function_exists("build_progress")){build_progress(45,"{authenticate} {failed}");}
+              	throw new phpmailerException($this->Lang('authenticate'));
             }
           }
         }
@@ -1922,6 +1934,11 @@ class PHPMailer {
     if ($this->Mailer == 'smtp' and !is_null($this->smtp)) {
       $lasterror = $this->smtp->getError();
       if (!empty($lasterror) and array_key_exists('smtp_msg', $lasterror)) {
+      	if(isset($GLOBALS["PROGRESS"])){
+      		if($GLOBALS["PROGRESS"]){
+      			echo $this->Lang('smtp_error') . $lasterror['smtp_msg']."\n";
+      		}
+      	}
         $msg .= '<p>' . $this->Lang('smtp_error') . $lasterror['smtp_msg'] . "</p>\n";
       }
     }
@@ -2330,6 +2347,11 @@ class PHPMailer {
 
 class phpmailerException extends Exception {
   public function errorMessage() {
+  	if(isset($GLOBALS["PROGRESS"])){
+  		if($GLOBALS["PROGRESS"]){
+  			echo $this->getMessage()."\n";
+  		}
+  	}
     $errorMsg = '<strong>' . $this->getMessage() . "</strong><br />\n";
     return $errorMsg;
   }

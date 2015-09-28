@@ -72,6 +72,7 @@ function popup(){
 	$proxy_child=$tpl->_ENGINE_parse_body("{proxy_child}");
 	$delete_this_child=$tpl->javascript_parse_text("{delete_this_child}");
 	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
+	
 	$tt=$_GET["tt"];
 	$t=time();		
 
@@ -81,18 +82,18 @@ function popup(){
 var tmp$t='';
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?proxies-list=yes&t=$t',
+	url: '$page?proxies-list=yes&t=$t&ID={$_GET["ID"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'isnull', width : 50, sortable : false, align: 'center'},
-		{display: 'Proxys', name : 'ipsrc', width : 440, sortable : true, align: 'left'},
-		{display: '$enabled', name : 'enabled', width : 80, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>Proxys</span>', name : 'ipsrc', width : 622, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$enabled</span>', name : 'enabled', width : 80, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 52, sortable : true, align: 'center'},
 		
 	],
 buttons : [
-	{name: '$new_proxy', bclass: 'add', onpress : AddProxyChild},
-	{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
+	{name: '<strong style=font-size:18px>$new_proxy</strong>', bclass: 'add', onpress : AddProxyChild},
+	{separator: true},{name: '<strong style=font-size:18px>$apply_params</strong>', bclass: 'apply', onpress : SquidBuildNow$t},
 
 		],	
 	searchitems : [
@@ -101,7 +102,7 @@ buttons : [
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$proxy_child',
+	title: '',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -116,7 +117,7 @@ buttons : [
 	}
 	
 function AddProxyChild(){
-	YahooWin5('450','$page?add-proxy=yes&t=$t','$new_proxy');
+	YahooWin5('750','$page?add-proxy=yes&t=$t&portid={$_GET["ID"]}','$new_proxy');
 
 }
 
@@ -166,8 +167,7 @@ function proxies_enabled(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");	
+
 }
 
 function proxies_delete(){
@@ -175,8 +175,7 @@ function proxies_delete(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");	
+
 }
 
 function proxies_list(){
@@ -189,6 +188,12 @@ function proxies_list(){
 	
 	$search='%';
 	$table="squid_balancers";
+	
+	if(!$q->FIELD_EXISTS("squid_balancers", "portid","artica_backup")){
+		$q->QUERY_SQL("ALTER TABLE `squid_balancers` ADD `portid` INT(100) NOT NULL DEFAULT '0',ADD INDEX( `portid` )","artica_backup");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	
 	$FORCE_FILTER=null;
 	$page=1;
 
@@ -206,12 +211,12 @@ function proxies_list(){
 	$searchstring=string_to_flexquery();
 
 	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE portid='{$_GET["ID"]}' $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE portid='{$_GET["ID"]}' $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
 	}
@@ -223,7 +228,7 @@ function proxies_list(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	$sql="SELECT *  FROM `$table` WHERE portid='{$_GET["ID"]}' $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -253,9 +258,9 @@ function proxies_list(){
 	$data['rows'][] = array(
 		'id' => "TSC{$ligne['ID']}",
 		'cell' => array(
-				"<img src='img/$icon'>",
-				"<div style='font-size:22px;color:$color;margin-top:4px'>{$ligne['ipsrc']}</div>",
-		"<div style='margin-top:4px'>$disable</div>","$delete")
+				"<center><img src='img/$icon'></center>",
+				"<span style='font-size:26px;color:$color;margin-top:4px'>{$ligne['ipsrc']}</span>",
+		"<center style='margin-top:4px'>$disable</center>","$delete")
 		);
 	}
 	
@@ -274,11 +279,11 @@ function proxies_add_popup(){
 	<div id='$t' style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{source}:</td>
-		<td>". field_ipv4("ipsrc-$t", null,"font-size:18px",false,"ChildEventAddCK$t(event)")."</td>
+		<td class=legend style='font-size:26px'>{source}:</td>
+		<td>". field_ipv4("ipsrc-$t", null,"font-size:26px",false,"ChildEventAddCK$t(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align=right><hr>". button("{add}","ChildEventAdd$t()","22px")."</td>
+		<td colspan=2 align=right><hr>". button("{add}","ChildEventAdd$t()","32px")."</td>
 	</tr>
 	</table>
 	<script>
@@ -292,6 +297,7 @@ function proxies_add_popup(){
 
 		function ChildEventAdd$t(){
 			var XHR = new XHRConnection();
+			XHR.appendData('portid','{$_GET["portid"]}');
 			XHR.appendData('ipsrc',document.getElementById('ipsrc-$t').value);
 			XHR.sendAndLoad('$page', 'POST',x_ChildEventAdd$t);
 		}
@@ -308,12 +314,11 @@ function proxies_add_popup(){
 }
 
 function proxies_add(){
-	$sql="INSERT IGNORE INTO squid_balancers (ipsrc,enabled) VALUES ('{$_POST["ipsrc"]}',1)";
+	$sql="INSERT IGNORE INTO squid_balancers (ipsrc,enabled,portid) VALUES ('{$_POST["ipsrc"]}',1,'{$_POST["portid"]}')";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+
 }
 
 

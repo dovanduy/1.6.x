@@ -559,6 +559,7 @@ function TreeAddNewOrganisation(){
 	$ldap->AddOrganization($ou);
 	if($ldap->ldap_last_error<>null){
 		if($ldap->ldap_last_error_num<>68){
+			echo "\n****************************************\nAdding Organization \"{$ou}\"\n********************\n";
 			echo $ldap->ldap_last_error;
 			exit;
 		}

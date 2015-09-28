@@ -122,7 +122,7 @@ function popup(){
 	
 	
 	$html="
-	<div class=text-info>{vfs_modules_disabled_text}</div>
+	<div class=explain>{vfs_modules_disabled_text}</div>
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>$kav</TD>

@@ -74,7 +74,7 @@ function daemon_settings(){
 		}}
 	
 		if($notifyVirHTTPServer==true){
-			$color="color:red;font-weight:bolder";
+			$color="color:#d32d2d;font-weight:bolder";
 		}
 	
 	

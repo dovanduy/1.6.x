@@ -429,13 +429,13 @@ function freshclam_page(){
 	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{enable_service}:</td>
+		<td class=legend style='font-size:18px'>{enable_service}:</td>
 		<td>" . Field_checkbox("EnableFreshClam", 1,$EnableFreshClam,"EnableFreshClamCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{MaxAttempts}:</td>
-		<td>" . Field_text('MaxAttempts',$clam->freshclam_array["MaxAttempts"],'width:90px;font-size:14px')."</td>
+		<td class=legend style='font-size:18px'>{MaxAttempts}:</td>
+		<td>" . Field_text('MaxAttempts',$clam->freshclam_array["MaxAttempts"],'width:150px;font-size:18px')."</td>
 		<td>" . help_icon('{MaxAttempts_text}')."</td>
 	</tr>
 	<tr>

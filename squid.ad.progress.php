@@ -1,491 +1,223 @@
 <?php
+
+$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.ad.progress";
+$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/squid.ad.progress.log";
+
 if(isset($_GET["verbose"])){
 	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
 	ini_set('error_append_string',null);
+	$GLOBALS["VERBOSE"]=true;
 }
 
 	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.main_cf.inc');
-	include_once('ressources/class.main_cf_filtering.inc');
-	include_once('ressources/class.milter.greylist.inc');
-	include_once('ressources/class.policyd-weight.inc');						
+						
 	
 	
 
 if(isset($_GET["popup"])){popup();exit;}
-
-if(isset($_GET["start"])){start();exit;}
-if(isset($_GET["progress"])){progress();exit;}
-
-if(isset($_GET["nsswitch"])){compile_nsswitch();exit;}
-if(isset($_GET["ApplyWhiteList"])){compile_whitelist();exit;}
-if(isset($_GET["connect-ad"])){connect_ad();exit;}
-if(isset($_GET["restart-winbind"])){restart_winbind();exit;}
-if(isset($_GET["compile-squid"])){compile_squid();exit;}
-if(isset($_GET["compile-pdns"])){compile_pdns();exit;}
-if(isset($_GET["compile-end-1"])){compile_end_1();exit;}
-if(isset($_GET["compile-end-2"])){compile_end_2();exit;}
-if(isset($_GET["compile-end-finish"])){compile_end_finish();exit;}
-if(isset($_GET["compile-end"])){compile_end();exit;}
-if(isset($_POST["FILLLOG"])){FILLLOG();exit;}
+if(isset($_GET["build-js"])){buildjs();exit;}
+if(isset($_POST["Filllogs"])){Filllogs();exit;}
 js();
+
+function title(){
+	
+	$tpl=new templates();
+	$sock=new sockets();
+	return $tpl->_ENGINE_parse_body("{join_activedirectory_domain}");
+}
+
+
+function suffix(){
+	$reconfigure=null;
+	$onlySquid=null;
+	$ApplyConfToo=null;
+	
+	return null;
+	
+}
 
 
 function js(){
-	$page=CurrentPageName();
-	$tpl=new templates();
 	
-	$users=new usersMenus();
-	if(!$users->AsSquidAdministrator){
-		$error=$tpl->_ENGINE_parse_body("{ERROR_NO_PRIVS}");
-		echo "alert('$error')";
-		die();
-	}
 	
-	$sock=new sockets();
-	$users=new usersMenus();
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
-
-	if($EnableWebProxyStatsAppliance==1){
-		echo "Loadjs('squid.compile.php')";
-		return;
-	}
 	
-	if(isset($_GET["onlywhitelist"])){
-		$extension="&onlywhitelist=yes";
-	}
 	header("content-type: application/x-javascript");
-	$title=$tpl->_ENGINE_parse_body('{active_directory_connection}');
-	
-	$ask=$tpl->javascript_parse_text("{connect_to_ad_ask}");
-	
-	$t=time();
-	$html="
-	function AdConnect$t(){	
-		RTMMail(900,'$page?popup=yes&t=$t','$title');
-	}
-	
-	function AdAsk$t(){
-		if(!confirm('$ask')){return;}
-		AdConnect$t();
-	}
-	
-	AdAsk$t();
-	";
-	
-
-	echo $html;
-	}
-	
-function popup(){
+	$tpl=new templates();
+	$page=CurrentPageName();
 	$t=time();
 	$tpl=new templates();
-	$page=CurrentPageName();
-	$pleasewait=$tpl->_ENGINE_parse_body("{please_wait}");
-	$html="
-	<div id='title-$t' style='font-size:18px;font-weight:bold;margin:20px'></div>
-	<div id='progress-$t'></div>
-	<center>
-	<textarea style='margin-top:5px;font-family:Courier New;
-	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
-	id='textarea-$t'></textarea>
-	</center>
-	
-	<script>
-		$('#progress-$t').progressbar({ value: 5 });
-		Loadjs('$page?start=yes&t=$t');
-	</script>
-	
-	";
-	
-	echo $html;
-	
-	
-	
-}
-
-function start(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$t=$_GET["t"];
-	$sock=new sockets();
-	header("content-type: application/x-javascript");
-	
-	$sock->getFrameWork("services.php?kerbauth-progress=yes");
-	$filesize=0;
-	echo "Loadjs('$page?progress=yes&t=$t&filesize=$filesize');";
-	
-}
-
-function progress(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$t=$_GET["t"];
-	$sock=new sockets();
-	header("content-type: application/x-javascript");
-	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
-	$array=unserialize(@file_get_contents($cachefile));
-	$pleasewait=$tpl->_ENGINE_parse_body("{please_wait}");
-	$CurrentRows=count($array["LOGS"]);
-	$lastRows=$_GET["CurrentRows"];
-	$tt=time();
-	
-	echo "function Z$tt(){
-			Loadjs('$page?progress=yes&t=$t&CurrentRows=$CurrentRows&lastrows=$lastRows');
-	}\n";
-	
-	if(!is_array($array)){
-		
-		echo "
-		function F$tt(){	
-			if(!RTMMailOpen() ){return;}
-			document.getElementById('title-$t').innerHTML='$pleasewait';
-			setTimeout('Z$tt()',1500);	
-		}
-		
-		F$tt();";
-		return;
+	$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
+	if($_GET["ask"]=="yes"){
+		$warn="if(!confirm('$compile_squid_ask')){return;}";
 	}
 	
-	
-	
-	$title=$tpl->javascript_parse_text($array["TITLE"]);
-	$prc=$array["PRC"];
-	
-	if($prc>=100){
-		echo "
-		var xF$tt= function (obj) {
-			if(!RTMMailOpen() ){return;}
-			var results=obj.responseText;
-			if(results.length>3){
-				document.getElementById('textarea-$t').value=results;
-			}
-		}
-		
-		function F$tt(){
-			if(!RTMMailOpen() ){return;}
-			var XHR = new XHRConnection();
-			document.getElementById('title-$t').innerHTML='$title';
-			$('#progress-$t').progressbar({ value: 100 });
-			XHR.appendData('FILLLOG','yes');
-			XHR.appendData('t','$t');
-			XHR.setLockOff();
-			XHR.sendAndLoad('$page', 'POST',xF$tt);
-		}
-		
-		F$tt();";
-		return;
-	}
-	
-	
-	if($CurrentRows>$lastRows){
-		echo "
-		function F$tt(){
-			if(!RTMMailOpen() ){return;}
-			document.getElementById('title-$t').innerHTML='$title $pleasewait...';
-			$('#progress-$t').progressbar({ value: $prc });
-			setTimeout('Z$tt()',1500);
-		}
-		
-		F$tt();";
-		return;		
-		
-	}
-	
-	
-echo "
-	var xF$tt= function (obj) {
-		if(!RTMMailOpen() ){return;}
-		var results=obj.responseText;
-		if(results.length>3){
-			document.getElementById('textarea-$t').value=results;
-		}
-		setTimeout('Z$tt()',1500);
+	if(isset($_GET["CheckCaches"])){
+		$warn=$tpl->javascript_parse_text("{check_caches_warning}");
+		$warn="if(!confirm('$warn')){return;}";
 		
 	}	
 	
-	function F$tt(){
-		if(!RTMMailOpen() ){return;}
-		var XHR = new XHRConnection();
+	$suffix=suffix();
+	$title=title();
+	
+	echo "
+	function Start$t(){	
+		$warn
+		YahooWinHide();
+		RTMMail('800','$page?popup=yes$suffix','$title');
+	}
+	Start$t();";
+	
+	
+}
+
+
+function buildjs(){
+	$t=$_GET["t"];
+	$time=time();
+	$MEPOST=0;
+
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array=unserialize(@file_get_contents($GLOBALS["CACHEFILE"]));
+	$prc=intval($array["POURC"]);
+	$title=$tpl->javascript_parse_text($array["TEXT"]);
+	
+	
+	
+	$md5file=trim(md5_file($GLOBALS["LOGSFILES"]));
+	
+	echo "// CACHE FILE: {$GLOBALS["CACHEFILE"]} {$prc}%\n";
+	echo "// LOGS FILE: {$GLOBALS["LOGSFILES"]} - $md5file ". strlen($md5file)."\n";
+	
+if ($prc==0){
+	if(strlen($md5file)<32){
+	echo "
+	// PRC = $prc ; md5file=$md5file
+	function Start$time(){
+			if(!RTMMailOpen()){return;}
+			Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}');
+	}
+	setTimeout(\"Start$time()\",1000);";
+	
+	
+	return;
+	}
+}
+
+
+if($md5file<>$_GET["md5file"]){
+	echo "
+	var xStart$time= function (obj) {
+		if(!document.getElementById('text-$t')){return;}
+		var res=obj.responseText;
+		if (res.length>3){
+			document.getElementById('text-$t').value=res;
+		}		
+		Loadjs('$page?build-js=yes&t=$t&md5file=$md5file');
+	}		
+	
+	function Start$time(){
+		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		XHR.appendData('FILLLOG','yes');
-		XHR.appendData('t','$t');
+		var XHR = new XHRConnection();
+		XHR.appendData('Filllogs', 'yes');
+		XHR.appendData('t', '$t');
 		XHR.setLockOff();
-		XHR.sendAndLoad('$page', 'POST',xF$tt);
+		XHR.sendAndLoad('$page', 'POST',xStart$time,false); 
 	}
+	setTimeout(\"Start$time()\",1000);";
+	return;
+}
 
-F$tt();";	
-	
-	
+if($prc>100){
+	echo "
+	function Start$time(){
+		if(!RTMMailOpen()){return;}
+		document.getElementById('title-$t').innerHTML='$title';
+		document.getElementById('title-$t').style.border='1px solid #C60000';
+		document.getElementById('title-$t').style.color='#C60000';
+		$('#progress-$t').progressbar({ value: 100 });
+	}
+	setTimeout(\"Start$time()\",1000);
+	";
+	return;	
 	
 }
 
-function FILLLOG(){
-	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
-	$array=unserialize(@file_get_contents($cachefile));
-	krsort($array["LOGS"]);
-	echo @implode("\n", $array["LOGS"]);
-}
-	
-	
-function popup_old(){
-	$users=new usersMenus();
-	$tpl=new templates();
-	$page=CurrentPageName();
-	$t=time();
-	if(!$users->AsSquidAdministrator){
-		$error=$tpl->_ENGINE_parse_body("{ERROR_NO_PRIVS}");
-		echo "<H3>$error<H3>";
-		die();
-	}
-	
-	
-	$html="
-	<div class=text-info>{APPLY_SETTINGS_SQUID}</div>
-	<table style='width:100%'>
-	<tr>
-		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div></td>
-		<td width=99%>
-			<div id='Status$t'></div>	
-		</td>
-	</tr>
-	</table>
-	<br>
-	<div id='textlogs' style='width:99%;height:120px;overflow:auto'></div>
-	
-	<script>
-	function StartCompileSquid$t(){
-		setTimeout('nsswitch$t()',1000);
-	}
-
-	function finish$t(){
-		ChangeStatusSQUID(100);
-		document.getElementById('wait_image').innerHTML='&nbsp;';
-		document.getElementById('wait_image').innerHTML='&nbsp;';
-		LoadAjax('div-poubelle','CacheOff.php?cache=yes');
-		if(document.getElementById('squid_main_config')){RefreshTab('squid_main_config');}
-		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
-		if(document.getElementById('TEMPLATE_LEFT_MENUS')){ RefreshLeftMenu();}
-		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
-		if(document.getElementById('squid_hotspot')){RefreshTab('squid_hotspot');;}
-		if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
-		if(document.getElementById('main_dansguardian_mainrules')){RefreshTab('main_dansguardian_mainrules');}
-		if(document.getElementById('main_adker_tabs')){RefreshTab('main_adker_tabs');}
+if($prc==100){
+	echo "
+	function Start$time(){
+		if(!RTMMailOpen()){return;}
+		document.getElementById('title-$t').innerHTML='$title';
+		$('#progress-$t').progressbar({ value: $prc });
+		RefreshTab('main_adker_tabs');
 		RTMMailHide();
 	}
-	
-	function nsswitch$t(){
-		ChangeStatusSQUID(10);
-		LoadAjaxSilent('textlogs','$page?nsswitch=yes&t=$t');
-		}
-		
-	function ApplyWhiteList(){
-		ChangeStatusSQUID(52);
-		LoadAjaxSilent('textlogs','$page?ApplyWhiteList=yes&t=$t');
-		}		
-		
-
-	function StartCompileWhitelist$t(){
-		setTimeout('ApplyWhiteList()',1000);
-	}
-		
-	var x_ChangeStatusSQUID= function (obj) {
-		var tempvalue=obj.responseText;
-		if(document.getElementById('progression_postfix_compile')){
-			document.getElementById('progression_postfix_compile').innerHTML=tempvalue;
-		}
-	}		
-		
-		
-	function ChangeStatusSQUID(number){
-		$('#Status$t').progressbar({ value: number });
-	}
-
-	$('#Status$t').progressbar({ value: 2 });
-	StartCompileSquid$t();
-	</script>
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html,"postfix.index.php");
-}
-function compile_nsswitch(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();
-	$sock=new sockets();
-
-	$t=$_GET["t"];
-	$script="
-	<div id='compile_nsswitch'></div>
-	<script>
-	ChangeStatusSQUID(50);
-	LoadAjaxSilent('compile_nsswitch','$page?connect-ad=yes&t=$t');
-	</script>
-	";
-
-	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{apply_parameters_to_the_system}</strong></div>").$script;
-	$sock->getFrameWork("services.php?nsswitch-tenir=yes");
-
-}
-
-function connect_ad(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();
-	$sock=new sockets();
-	
-	$t=$_GET["t"];
-	$script="
-	<div id='restart_winbind'></div>
-	<script>
-		ChangeStatusSQUID(50);
-		LoadAjaxSilent('restart_winbind','$page?restart-winbind=yes&t=$t');
-	</script>
+	setTimeout(\"Start$time()\",1000);
 	";	
-	
-	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{join_activedirectory_domain}</strong></div>").$script;
-	$sock->getFrameWork("services.php?kerbauth-tenir=yes&MyCURLTIMEOUT=300");
-
-}
-function restart_winbind(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();
-	$sock=new sockets();
-	$t=$_GET["t"];
-	$script="
-	<div id='compile_squid'></div>
-	<script>
-	ChangeStatusSQUID(70);
-	LoadAjaxSilent('compile_squid','$page?compile-squid=yes&t=$t');
-	</script>
-	";
-
-	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{restarting_winbind}</strong></div>").$script;
-	$sock->getFrameWork("services.php?restart-winbind-tenir=yes&MyCURLTIMEOUT=300");
-
+	return;	
 }
 
-
-function compile_squid(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();
-	$sock=new sockets();
-	$t=$_GET["t"];
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}	
-
-	
-	$text="{apply config}&nbsp;{success}";
-	if($EnableWebProxyStatsAppliance==0){
-		$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300";
-		$sock->getFrameWork($cmd);	
+echo "	
+function Start$time(){
+		if(!RTMMailOpen()){return;}
+		document.getElementById('title-$t').innerHTML='$title';
+		$('#progress-$t').progressbar({ value: $prc });
+		Loadjs('$page?build-js=yes&t=$t&md5file={$_GET["md5file"]}');
 	}
-	
-	if($EnableWebProxyStatsAppliance==1){
-		$sock->getFrameWork("squid.php?notify-remote-proxy=yes");
-		$tpl=new templates();
-		$text="{proxy_clients_was_notified}";
-		
-	}
-	
-	$script="
-	<script>
-		finish$t();
-	</script>
-	";	
-	
-	echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:16px'>{APP_SQUID}:$text</strong></div>").$script;
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
-	
+	setTimeout(\"Start$time()\",1500);
+";
 }
 
-function compile_end_1(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();	
-	$t=$_GET["t"];
-	$text=$tpl->_ENGINE_parse_body("{please_wait_empty_console_cache}");
-	$script="
-	<div id='compile_end-2$t'>$text</div>
-	<script>
-		
-		ChangeStatusSQUID(92);
-		LoadAjaxSilent('compile_end-2$t','$page?compile-end-2=yes&t=$t');
-	</script>
-	";	
+function Launch(){
+	$sock=new sockets();
+	$cmd="services.php?kerbauth-progress=yes";
 	
-	echo $script;	
+	if($GLOBALS["VERBOSE"]){echo "<H1>RUN $cmd</H1>";}
 	
+	writelogs("launch $cmd",__FUNCTION__,__FILE__,__LINE__);
+	$sock->getFrameWork($cmd);
 }
-function compile_end_2(){
+
+
+function popup(){
 	$tpl=new templates();
-	$users=new usersMenus();
 	$page=CurrentPageName();
-	$sock=new sockets();
+	Launch();
 	$t=$_GET["t"];
-	$text=$tpl->_ENGINE_parse_body("{please_wait_restarting_artica_status}....");
-	$script="
-	<div id='compile_end-3$t'>$text</div>
-	<script>
-		ChangeStatusSQUID(92);
-		LoadAjaxSilent('compile_end-3$t','$page?compile-end-finish=yes&t=$t');
-	</script>
-	";
-
-	echo $script;
-	$sock->getFrameWork("cmd.php?restart-artica-status");
-	sleep(1);
-}
-
-
-function compile_end_finish(){
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();	
-	$t=$_GET["t"];
-	$text=$tpl->_ENGINE_parse_body("{please_wait_refresh_web_pages}");
-	$script="
-	<div id='compile_end-2$t'>$text</div>
-	<script>
-		CacheOff();
-		finish$t();
-	</script>
-	";	
+	if(!is_numeric($t)){$t=time();}
+	$title="{join_activedirectory_domain}";
+	$text=$tpl->_ENGINE_parse_body($title);
 	
-	echo $script;		
+	
+	
+$html="
+<center id='title-$t' style='font-size:18px;margin-bottom:20px'>$text</center>
+<div id='progress-$t' style='height:50px'></div>
+<p>&nbsp;</p>
+<textarea style='margin-top:5px;font-family:Courier New;
+font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
+overflow:auto;font-size:11px' id='text-$t'></textarea>
+	
+<script>
+function Step1$t(){
+	$('#progress-$t').progressbar({ value: 1 });
+	Loadjs('$page?build-js=yes&t=$t&md5file=0');
+}
+$('#progress-$t').progressbar({ value: 1 });
+setTimeout(\"Step1$t()\",1000);
+
+</script>
+";
+echo $html;	
+}
+
+function Filllogs(){
+	$t=explode("\n",@file_get_contents($GLOBALS["LOGSFILES"]));
+	krsort($t);
+	echo @implode("\n", $t);
 	
 }
-
-
-function compile_end(){	
-		$tpl=new templates();
-		$page=CurrentPageName();	
-		$t=$_GET["t"];
-	$script="
-	<div id='compile_header_check'></div>
-	<script>
-		finish$t();
-	</script>
-	";				
-		
-	echo $tpl->_ENGINE_parse_body("<strong style='font-size:16px'>{success}</strong>").$script;
-		
-}
-
-
-
-
-
-
-?>

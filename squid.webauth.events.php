@@ -69,11 +69,11 @@ function popup(){
 
 	$buttons="
 	buttons : [
-	{name: '$empty', bclass: 'Delz', onpress : EmptyEvents},
-	{name: 'Warn', bclass: 'Warn', onpress :  Warn$t},
-	{name: 'Info', bclass: 'Help', onpress :  info$t},
-	{name: 'Crit.', bclass: 'Err', onpress :  Err$t},
-	{name: '$all', bclass: 'Statok', onpress :  All$t},
+	{name: '<strong style=font-size:18px>$empty</strong>', bclass: 'Delz', onpress : EmptyEvents},
+	{name: '<strong style=font-size:18px>Warn</strong>', bclass: 'Warn', onpress :  Warn$t},
+	{name: '<strong style=font-size:18px>Info</strong>', bclass: 'Help', onpress :  info$t},
+	{name: '<strong style=font-size:18px>Crit.</strong>', bclass: 'Err', onpress :  Err$t},
+	{name: '<strong style=font-size:18px>$all</strong>', bclass: 'Statok', onpress :  All$t},
 	
 	
 
@@ -88,9 +88,9 @@ function BuildTable$t(){
 		dataType: 'json',
 		colModel : [
 		{display: '', name : 'severity', width :31, sortable : true, align: 'center'},
-		{display: '$date', name : 'zDate', width :127, sortable : true, align: 'left'},
-		{display: '$events', name : 'subject', width : $TB2_WIDTH, sortable : false, align: 'left'},
-		{display: '$daemon', name : 'filename', width :145, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$date</span>', name : 'zDate', width :150, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$events</span>', name : 'subject', width : 1074, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$daemon</span>', name : 'filename', width :145, sortable : true, align: 'left'},
 		],
 		$buttons
 	
@@ -230,9 +230,11 @@ function events_table(){
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
-						"<img src='img/$severity_icon'>",
+						"<center><img src='img/$severity_icon'></center>",
 						
-						$ligne["zDate"],$text,$ligne["filename"] )
+						"<span style='font-size:16px'>{$ligne["zDate"]}</span>",
+						"<span style='font-size:16px'>$text</span>",
+						"<span style='font-size:16px'>{$ligne["filename"]}</span>")
 		);
 	}
 

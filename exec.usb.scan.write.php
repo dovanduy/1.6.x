@@ -28,5 +28,8 @@ if($GLOBALS["VERBOSE"]){echo "Verbosed !!!\n";}
 $usb=new usbscan();
 $datas=$usb->disks_list();
 @file_put_contents("/usr/share/artica-postfix/ressources/usb.scan.inc", $datas);
+@unlink("/usr/share/artica-postfix/ressources/usb.scan.serialize");
+@file_put_contents("/usr/share/artica-postfix/ressources/usb.scan.serialize", @serialize($usb->SERIALIZED));
 @chmod("/usr/share/artica-postfix/ressources/usb.scan.inc",0755);
+@chmod("/usr/share/artica-postfix/ressources/usb.scan.serialize",0755);
 include_once("/usr/share/artica-postfix/ressources/usb.scan.inc");

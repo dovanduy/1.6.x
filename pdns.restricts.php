@@ -73,7 +73,7 @@ function table(){
 	$new_entry=$tpl->_ENGINE_parse_body("{new_allowed_address}");
 	$t=time();
 	$address=$tpl->_ENGINE_parse_body("{address}");
-	$restriction=$tpl->javascript_parse_text("{restriction}");
+	$restriction=$tpl->javascript_parse_text("{parameters}");
 	$addText=$tpl->javascript_parse_text("{pdns_restrict_explain}");
 	
 	
@@ -113,7 +113,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 845,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]

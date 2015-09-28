@@ -370,7 +370,7 @@ if($language==null){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT *  FROM phraselists_weigthed WHERE zmd5='{$_GET["zmd5"]}'"));
 	$html="
 	<div id='$t'>
-	<div class=text-info>{weighted_dans_explain}</div>
+	<div class=explain>{weighted_dans_explain}</div>
 	<textarea id='$t-words' name='$t-words' style='height:50px;width:100%;border:2px solid #CCCCCC;font-size:16px;font-weight:bold;font-family:Courier New'>{$ligne["pattern"]}</textarea>
 	<div style='widh:100%;text-align:right;margin-top:10px'>
 		<table>

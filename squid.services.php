@@ -48,61 +48,56 @@ function page(){
 	$button_reload=button("{reload}","Loadjs('squid.reload.php');",32);
 	$button_restart=button("{restart}","Loadjs('squid.restart.php');",32);
 	$button_purge=button("DNS: {purge}","Loadjs('squid.dns.status.php?purge-js');",32);
+	$button_squid_logrotate_perform=button("{rotate}","Loadjs('squid.rotate.progress.php');",32);
+	
+	
+	
+	$sock=new sockets();
+	$SquidSimpleConfig=$sock->GET_INFO("SquidSimpleConfig");
+	if(!is_numeric($SquidSimpleConfig)){$SquidSimpleConfig=1;}
+	
 	
 	
 	$tr[]="
-	<div style='font-size:32px'>Proxy: {services_operations}</div>
-	";
-	
-	$tr[]="<center style='margin-top:30px'>
+	<div style='font-size:42px'>Proxy: {services_operations}</div>";
+	$tr[]="<center style='margin-top:15px'>
 	<table style='width:100%'>
 	<tr>
-	<td style='text-align:center'>$button_purge</td>
+		<td style='text-align:right;height:130px' style='width:1%'>$button_reload</td>
+		<td style='font-size:16px;text-align:left'><br>{reload_squid_explain}</td>
 	</tr>
-	<tr>
-	<td style='font-size:16px;text-align:center'><br>{purgedns_squid_explain}</td>
-	</tr>
-	</table>
-	</center><hr>
-	";	
-	
-$tr[]="<center style='margin-top:30px'>
-	<table style='width:100%'>
-	<tr>
-	<td style='text-align:center'>$button_reload</td>
-	</tr>
-	<tr>
-	<td style='font-size:16px;text-align:center'><br>{reload_squid_explain}</td>
-	</tr>
-	</table>
-	</center><hr>
 	";
 		
 	
 	$tr[]="
-	<center style='margin-top:30px'>
-	<table style='width:100%'>
+	
 	<tr>
-		<td style='text-align:center'>$button_reconfigure</td>
-	</tr>
+		<td style='text-align:right;height:130px'>$button_reconfigure</td>
+		<td style='font-size:16px;text-align:left'><br>{reconfigure_squid_explain}</td>
+	</tr>";
+	
+	$tr[]="
+	
 	<tr>
-		<td style='font-size:16px;text-align:center'><br>{reconfigure_squid_explain}</td>
+	<td style='text-align:right;height:130px'>$button_restart</td>
+	<td style='font-size:16px;text-align:left'><br>{restart_squid_explain}</td>
 	</tr>
-	</table>
-	</center><hr>
 	";
 	
 	$tr[]="
-	<center style='margin-top:30px'>
-	<table style='width:100%'>
+	
 	<tr>
-	<td style='text-align:center'>$button_restart</td>
+	<td style='text-align:right;height:130px'>$button_squid_logrotate_perform</td>
+	<td style='font-size:16px;text-align:left'><br>{squid_logrotate_perform}</td>
 	</tr>
+	
+	";	
+	
+	$tr[]="
 	<tr>
-	<td style='font-size:16px;text-align:center'><br>{restart_squid_explain}</td>
+	<td style='text-align:right;height:130px'>$button_purge</td>
+	<td style='font-size:16px;text-align:left'><br>{purgedns_squid_explain}</td>
 	</tr>
-	</table>
-	</center><hr>
 	";
 	
 	echo $tpl->_ENGINE_parse_body(@implode("\n", $tr));

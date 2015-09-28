@@ -50,7 +50,7 @@ function popup(){
 	$tpl=new templates();
 	$group=$tpl->_ENGINE_parse_body("{group}");
 	$html="
-	<div class=text-info style='margin-bottom:10px'>{Kav4ProxyGroupsHowto}</div>
+	<div class=explain style='margin-bottom:10px'>{Kav4ProxyGroupsHowto}</div>
 	<center>
 	<table style='width:80%' class=form>
 	<tr>
@@ -877,7 +877,7 @@ function ExcludeMimeType(){
 		$page=CurrentPageName();	
 	
 	$html="
-	<div class=text-info>{ExcludeMimeTypeKavExplain}</div>
+	<div class=explain>{ExcludeMimeTypeKavExplain}</div>
 	
 	<div id='ExcludeMimeTypeGroupdiv' style='height:350px;overflow:auto'></div>
 	
@@ -901,7 +901,7 @@ function ExcludeURL(){
 		$page=CurrentPageName();	
 	
 	$html="
-	<div class=text-info>{ExcludeURLExplain}</div>
+	<div class=explain>{ExcludeURLExplain}</div>
 	
 	<div id='ExcludeURLTypeGroupdiv' style='height:350px;overflow:auto'></div>
 	
@@ -925,7 +925,7 @@ function ClientURI(){
 		$page=CurrentPageName();	
 	
 	$html="
-	<div class=text-info>{ClientURI_text}</div>
+	<div class=explain>{ClientURI_text}</div>
 	
 	<div id='ClientURIGroupdiv' style='height:350px;overflow:auto'></div>
 	
@@ -950,7 +950,7 @@ function ClientIP(){
 		$page=CurrentPageName();	
 	
 	$html="
-	<div class=text-info>{ClientIP_text}</div>
+	<div class=explain>{ClientIP_text}</div>
 	
 	<div id='ClientIPGroupdiv' style='height:350px;overflow:auto'></div>
 	

@@ -69,27 +69,67 @@ function xenable(){
 
 function test_sensors(){
 	$unix=new unix();
+	$q=new mysql();
+	$sock=new sockets();
 	$cachefile="/usr/share/artica-postfix/ressources/logs/web/sensors.array";
 	$pidtime="/etc/artica-postfix/pids/exec.lm-sensors.php.time";
-	$time=$unix->file_time_min($pidtime);
-	if($time<15){
-		if($GLOBALS["VERBOSE"]){echo "Current {$time}Mn, require 15Mn...\n";}
-	}
 	
-	$sock=new sockets();
 	$LMSensorsEnable=intval($sock->GET_INFO("LMSensorsEnable"));
 	if($LMSensorsEnable==0){
+		if(is_file("/etc/cron.d/lm-sensors")){@unlink("/etc/cron.d/lm-sensors");}
 		@unlink($cachefile);
 		return;
+	}
+	
+	if(!is_file("/etc/cron.d/lm-sensors")){
+		$nice=$unix->EXEC_NICE();
+		$php5=$unix->LOCATE_PHP5_BIN();
+		$me=__FILE__;
+		$cmdline=trim("$nice $php5 $me --test --cron");
+		$f[]="MAILTO=\"\"";
+		$f[]="0,15,30,45 * * * *  root $cmdline >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/lm-sensors", @implode("\n", $f));
+	
+	}
+	
+	if(!$GLOBALS["FORCE"]){
+		$time=$unix->file_time_min($pidtime);
+		if($time<15){
+			events("Current {$time}Mn, require 15Mn...",__FUNCTION__,__LINE__);
+			return;
+		}
 	}
 	
 	@unlink($pidtime);
 	@file_put_contents($pidtime, time());
 	
 	$sensors=$unix->find_program("sensors");
+	events("Running sensors...",__FUNCTION__,__LINE__);
 	exec("$sensors 2>&1",$results);
 	
+	
+	$CurrentDay=date("Ymd");
+	
+	if(!$q->TABLE_EXISTS("{$CurrentDay}_sensors", "artica_events")){
+		
+		$sql="CREATE TABLE IF NOT EXISTS `{$CurrentDay}_sensors` (
+		`adaptater` varchar(90) NOT NULL,
+		`zkey` varchar(90) NOT NULL,
+		`percent` FLOAT,
+		`zDate` DATETIME,
+		KEY `adaptater` (`adaptater`),
+		KEY `zDate` (`zDate`),
+		KEY `zkey` (`zkey`),
+		KEY `percent` (`percent`)
+		
+		) ENGINE=MYISAM;";
+		$q->QUERY_SQL($sql,"artica_events");
+	}
+	
+	$rows=array();
 	while (list ($path, $val) = each ($results) ){
+		$HIGH=null;
 		if(preg_match("#Adapter:(.*)#i", $val,$re)){
 			$adaptater=trim($re[1]);
 		}
@@ -105,12 +145,14 @@ function test_sensors(){
 				$CRIT=$re[1];
 			}
 			if($HIGH==null){$HIGH=$CRIT;}
+			$xtime=date("Y-m-d H:i:s");
 			$ARRAY[$adaptater][$KEY]["TEMP"]=$TEMP;
 			$ARRAY[$adaptater][$KEY]["HIGH"]=$HIGH;
 			$ARRAY[$adaptater][$KEY]["CRIT"]=$CRIT;
 			$percent=$TEMP/$CRIT;
 			$percent=$percent*100;
 			$ARRAY[$adaptater][$KEY]["PERC"]=round($percent,2);
+			$rows[]="('$adaptater','$KEY','$xtime','$percent')";
 			
 			if($ARRAY[$adaptater][$KEY]["PERC"]>90){
 				squid_admin_mysql(0, "Warning {$ARRAY[$adaptater][$KEY]["PERC"]}% of temperature reached!", 
@@ -125,9 +167,30 @@ function test_sensors(){
 		
 	}
 	
+if(count($rows)>0){
+	$sql="INSERT IGNORE INTO `{$CurrentDay}_sensors` (`adaptater`,`zkey`,`zDate`,`percent`) VALUES ".
+	@implode(",", $rows);
+	$q->QUERY_SQL($sql,"artica_events");
+}
+	
+events("Saving /usr/share/artica-postfix/ressources/logs/web/sensors.array",__FUNCTION__,__LINE__);	
 @file_put_contents("/usr/share/artica-postfix/ressources/logs/web/sensors.array", serialize($ARRAY));
 @chmod("/usr/share/artica-postfix/ressources/logs/web/sensors.array", 0755);
 	
 	
 }
+function events($text,$function=null,$line=0){
+	if($GLOBALS["VERBOSE"]){
+		echo "$function:: $text (L.$line)\n";
+		return;
+	}
+	$filename=basename(__FILE__);
+	$classunix=dirname(__FILE__)."/framework/class.unix.inc";
+		if(!isset($GLOBALS["CLASS_UNIX"])){
+		if(!is_file($classunix)){$classunix="/opt/artica-agent/usr/share/artica-agent/ressources/class.unix.inc";}
+				include_once($classunix);
+				$GLOBALS["CLASS_UNIX"]=new unix();
+	}
 
+	$GLOBALS["CLASS_UNIX"]->events("$filename $function:: $text (L.$line)","/var/log/artica-status.log");
+	}

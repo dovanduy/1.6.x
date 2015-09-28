@@ -24,7 +24,14 @@ function page(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
 
+	if($EnableIntelCeleron==1){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{ERROR_FEATURE_CELERON}"));
+		return;
+		
+		
+	}
 	
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if($SquidPerformance>2){
@@ -32,12 +39,13 @@ function page(){
 		return;
 		
 	}
-	
-	
-	
+	$NTOPNgSize=intval($sock->GET_INFO("NTOPNgSize")*1024);
+	if($NTOPNgSize>0){
+		$NTOPNgSizeText="(".FormatBytes($NTOPNgSize).")";
+	}
 	
 	$html="
-	<div style='font-size:28px;margin-bottom:30px'>{APP_NTOPNG}</div>
+	<div style='font-size:30px;margin-bottom:30px'>{APP_NTOPNG} $NTOPNgSizeText</div>
 	<div style='width:98%' class=form>		
 	<table style='width:100%'>
 		<tr>
@@ -62,11 +70,15 @@ function params(){
 	$t=time();
 	$arrayConf=unserialize(base64_decode($sock->GET_INFO("ntopng")));
 	
+	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
 	if(!is_numeric($arrayConf["ENABLE_LOGIN"])){$arrayConf["ENABLE_LOGIN"]=0;}
 	if(!is_numeric($arrayConf["MAX_DAYS"])){$arrayConf["MAX_DAYS"]=30;}
+	if(!is_numeric($arrayConf["MAX_SIZE"])){$arrayConf["MAX_SIZE"]=5000;}
+	
+	
 	
 	$DisableNetDiscover=intval($sock->GET_INFO("DisableNetDiscover"));	
 	if($DisableNetDiscover==0){$DisableNetDiscover=1;}else{$DisableNetDiscover=0;}
@@ -82,15 +94,19 @@ function params(){
 	$days[15]="15 {days}";
 	$days[30]="1 {month}";
 	
-
-	
+	$maxsizes[500]="500MB";
+	$maxsizes[1000]="1GB";
+	$maxsizes[5000]="5GB";
+	$maxsizes[10000]="10GB";
+	$maxsizes[50000]="50GB";
 	
 	if($Enablentopng==1){
-		$button=button("{disable_service}","Loadjs('system.ntopng.disable.php')",28);
+		$button="<div style='margin-top:20px;text-align:right;width:100%'>".button("{disable_service}","Loadjs('system.ntopng.disable.php')",28)."</div>";
 		
 	}
 	
-	$enable=Paragraphe_switch_img("{enable_ntopng}", "{enable_ntopng_text}","Enablentopng",$Enablentopng,null,490);
+	$enable=Paragraphe_switch_img("{enable_ntopng}", "{enable_ntopng_text}","Enablentopng",
+			$Enablentopng,null,850);
 	$DisableBWMng=intval($sock->GET_INFO("DisableBWMng"));
 	
 	$INSTALLED=$sock->getFrameWork("system.php?ntopng-installed=yes");
@@ -101,16 +117,13 @@ function params(){
 	}
 	$xDisableBWMng=1;
 	if($DisableBWMng==1){$xDisableBWMng=0;}
-	$enable2=Paragraphe_switch_img("{enable_BWMng}", "{enable_BWMng_text}","DisableBWMng",$xDisableBWMng,null,490);
-	$enable3=Paragraphe_switch_img("{enable_NetDiscover}", "{enable_NetDiscover_text}","DisableNetDiscover",$DisableNetDiscover,null,490);
 	
 	$html="$error
-	$enable3
-	$enable2
 	$enable 
 	<div style='margin-top:5px;width:100%;text-align:right'>$button</div>		
 	<br>".
-	Paragraphe_switch_img("{enable_login}", "{enable_login_ntopng_explain}","ENABLE_LOGIN",$arrayConf["ENABLE_LOGIN"],null,490).
+	Paragraphe_switch_img("{enable_login}", "{enable_login_ntopng_explain}",
+			"ENABLE_LOGIN",$arrayConf["ENABLE_LOGIN"],null,850).
 	"<table style='width:100%'>
 		<tr>
 			<td valign='middle' class=legend style='font-size:22px'>{listen_port}:</td>
@@ -122,9 +135,9 @@ function params(){
 			style='font-size:22px;text-decoration:underline'
 			target=_new>http://{$_SERVER["SERVER_ADDR"]}:{$arrayConf["HTTP_PORT"]}</a></td>
 		</tr>
-		".Field_list_table("MAX_DAYS", "{retention_days}", $arrayConf["MAX_DAYS"],22,$days)."				
+		".Field_list_table("MAX_SIZE", "{max_size}", $arrayConf["MAX_SIZE"],22,$maxsizes)."				
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",28)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",42)."</td>
 		</tr>
 	</table>
 <script>
@@ -136,12 +149,9 @@ var xSave$t= function (obj) {
 	
 	function Save$t(){
 		var XHR = new XHRConnection();
-		
-		XHR.appendData('DisableNetDiscover',document.getElementById('DisableNetDiscover').value);
-		XHR.appendData('DisableBWMng',document.getElementById('DisableBWMng').value);
 		if(document.getElementById('Enablentopng')){XHR.appendData('Enablentopng',document.getElementById('Enablentopng').value);}
 		XHR.appendData('ENABLE_LOGIN',document.getElementById('ENABLE_LOGIN').value);
-		XHR.appendData('MAX_DAYS',document.getElementById('MAX_DAYS').value);
+		XHR.appendData('MAX_SIZE',document.getElementById('MAX_SIZE').value);
 		XHR.appendData('HTTP_PORT',document.getElementById('HTTP_PORT').value);
 		XHR.sendAndLoad('$page', 'POST',xSave$t);	
 	
@@ -164,17 +174,7 @@ function save(){
 		$sock->getFrameWork("system.php?ntopng-restart=yes");
 	}
 	
-	if(isset($_POST["DisableBWMng"])){
-		if($_POST["DisableBWMng"]==0){$sock->SET_INFO("DisableBWMng",1);}
-		if($_POST["DisableBWMng"]==1){$sock->SET_INFO("DisableBWMng",0);}
-	}
-	if(isset($_POST["DisableNetDiscover"])){
-		if($_POST["DisableNetDiscover"]==0){$sock->SET_INFO("DisableNetDiscover",1);}
-		if($_POST["DisableNetDiscover"]==1){$sock->SET_INFO("DisableNetDiscover",0);}	
-		$sock->SET_INFO("NetDiscoverSaved",1);
-		$sock=new sockets();
-		$sock->getFrameWork("system.php?NetDiscover-restart=yes");
-	}
+
 	
 }
 function status(){
@@ -183,9 +183,7 @@ function status(){
 	$ini->loadString(base64_decode($sock->getFrameWork("system.php?ntopng-status=yes")));
 	$page=CurrentPageName();
 	$tpl=new templates();
-	
-	$serv[]=DAEMON_STATUS_ROUND("APP_NETDISCOVER",$ini,null,0);
-	$serv[]=DAEMON_STATUS_ROUND("APP_BMWNG",$ini,null,0);
+
 	$serv[]=DAEMON_STATUS_ROUND("APP_NTOPNG",$ini,null,0);
 	$serv[]=DAEMON_STATUS_ROUND("APP_REDIS_SERVER",$ini,null,0);
 	$serv[]="<div style='text-align:right;margin-top:20px'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('APP_NTOPNG_STATUS','$page?status=yes',true);")."</div>";

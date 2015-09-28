@@ -29,6 +29,15 @@ function status(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$EnableSquidRemoteMySQL=intval($sock->GET_INFO("EnableSquidRemoteMySQL"));
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	
+	if(isset($WizardStatsAppliance["AS_DISCONNECTED"])){
+		if($WizardStatsAppliance["AS_DISCONNECTED"]==1){
+		$EnableSquidRemoteMySQL=1;
+		}
+	}
+	
+	
 	$EnableRemoteSyslogStatsAppliance=intval($sock->GET_INFO("EnableRemoteSyslogStatsAppliance"));
 	
 	if($EnableSquidRemoteMySQL==1){
@@ -50,7 +59,7 @@ function status(){
 		
 		$html="
 		<div style='font-size:42px'>{webproxy_statistics_appliance}</div>
-		<div class=text-info style='font-size:18px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
+		<div class=explain style='font-size:18px' id='STATISTICS_APPLIANCE_EXPLAIN_DIV'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
 		<div style='width:98%' class=form>		
 		<table style='width:100%'>
 		<tr>
@@ -90,7 +99,7 @@ function status(){
 	}else{
 		$html="
 		<div style='font-size:26px'>{webproxy_statistics_appliance}</div>
-		<div class=text-info style='font-size:18px'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
+		<div class=explain style='font-size:18px'>{STATISTICS_APPLIANCE_EXPLAIN}</div>
 		<center style='width:100%'>
 		<center style='margin:50px;width:70%' class=form>
 				<p>&nbsp;</p>

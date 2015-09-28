@@ -39,9 +39,7 @@ public
     procedure   Save_processes();
     procedure   Save_processes_watchdog();
     function    FCRON_VERSION():string;
-    procedure   WATCHDOG_START();
     function    WATCHDOG_PID_NUM():string;
-    procedure   STOP_WATCHDOG();
     function    STATUS():string;
     procedure   quarantine_report_schedules();
 
@@ -106,103 +104,6 @@ begin
      result:=pid;
 end;
 //##############################################################################
-
-procedure tcron.WATCHDOG_START();
-var
-   l:TstringList;
-   pid:string;
-   parms:string;
-   count:integer;
-begin
-  exit;
-  pid:=WATCHDOG_PID_NUM();
-  count:=0;
-   if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: artica-postfix daemon watchdog (fcron) is already running using PID ' + pid + '...');
-      exit;
-   end;
-  fpsystem('/bin/rm -rf /etc/artica-cron/spool_watchdog/*');
-  forceDirectories('/etc/artica-cron/spool_watchdog');
-  l:=Tstringlist.Create;
-  l.Add('fcrontabs=/etc/artica-cron/spool_watchdog');
-  l.Add('pidfile=/etc/artica-cron/artica-watchdog.pid');
-  l.Add('fifofile=/etc/artica-cron/artica-watchdog.fifo');
-  l.Add('fcronallow=/etc/artica-cron/artica-watchdog.allow');
-  l.Add('fcrondeny=/etc/artica-cron/artica-watchdog.deny');
-  l.Add('shell=/bin/sh');
-  l.SaveToFile('/etc/artica-cron/artica-watchdog.conf');
-  l.SaveToFile('/etc/artica-cron/watchdog.conf');
-  l.free;
-
-  fpsystem('/bin/chown root:root /etc/artica-cron/watchdog.conf');
-  fpsystem('/bin/chown -R root:root /etc/artica-cron/spool_watchdog');
-  fpsystem('/bin/chmod 644 /etc/artica-cron/artica-watchdog.conf');
-
-
-
-  parms:=artica_path + '/bin/artica-cron --background --savetime 1800 --maxserial 10 --firstsleep 10 --queuelen 20 --configfile /etc/artica-cron/artica-watchdog.conf';
-  Save_processes_watchdog();
-  logs.DebugLogs('Starting......: artica-postfix daemon watchdog (fcron)');
-  logs.OutputCmd(parms);
-  logs.DebugLogs('tcron.WATCHDOG_START(): delete root config');
-  logs.DeleteFile('/etc/artica-cron/spool_watchdog/root');
-
-  while not SYS.PROCESS_EXIST(WATCHDOG_PID_NUM()) do begin
-        sleep(500);
-        count:=count+1;
-        logs.DebugLogs('tcron.START(): wait sequence ' + intToStr(count));
-        if count>20 then begin
-            logs.DebugLogs('Starting......: artica-postfix daemon watchdog (fcron) failed...');
-            logs.DebugLogs('Starting......: '+parms);
-            exit;
-        end;
-  end;
-  logs.DebugLogs('Starting......: Installing watchdog crontab');
-  fpsystem('/bin/chmod 644 /etc/artica-cron/artica-watchdog.conf');
-  fpsystem('/bin/chmod 644 /etc/artica-cron/watchdog.conf');
-  fpsystem('/bin/chown root:root /etc/artica-cron/artica-watchdog.conf');
-  fpsystem(artica_path + '/bin/fcrontab -z root -c /etc/artica-cron/watchdog.conf >/tmp/watchdog.tmp');
-  logs.DebugLogs('Starting......: artica-postfix daemon watchdog ' + logs.ReadFromFile('/tmp/watchdog.tmp'));
-  logs.Syslogs('Success starting artica-cron watchdog daemon...');
-  logs.DebugLogs('Starting......: artica-postfix daemon watchdog (fcron) success...');
-  fpsystem('/usr/share/artica-postfix/bin/fcronsighup /etc/artica-cron/artica-cron.conf');
-  fpsystem('/usr/share/artica-postfix/bin/fcronsighup /etc/artica-cron/artica-watchdog.conf');
-  SYS.THREAD_COMMAND_SET(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.c-icap.php --maint-schedule');
-end;
-//##############################################################################
-procedure tcron.STOP_WATCHDOG();
-var
-   pid:string;
-   count:integer;
-begin
-pid:=PID_NUM();
-count:=0;
-if SYS.PROCESS_EXIST(WATCHDOG_PID_NUM()) then begin
-   writeln('Stopping artica-cron watchdog (fcron).: ' + pid + ' PID..');
-   fpsystem('/bin/kill ' + pid);
-end;
-  while SYS.PROCESS_EXIST(WATCHDOG_PID_NUM()) do begin
-        sleep(100);
-        count:=count+1;
-        if count>20 then begin
-            fpsystem('/bin/kill -9 ' + WATCHDOG_PID_NUM());
-            break;
-        end;
-  end;
-pid:=SYS.AllPidsByPatternInPath('bin/artica-cron --background');
-if length(pid)>0 then begin
-   writeln('Stopping artica-cron watchdog (fcron).: '+ pid + '...');
-   fpsystem('/bin/kill ' + pid);
-end;
-
-logs.Syslogs('Stopping artica-cron watchdog (fcron).: success...');
-writeln('Stopping artica-cron watchdog (fcron).: success...');
-logs.NOTIFICATION('[ARTICA]:('+sys.HOSTNAME_g()+') Artica watchdog daemon was stopped !!','','system');
-end;
-
-//#############################################################################
-
-
 procedure tcron.STOP();
 var
    pid:string;
@@ -456,7 +357,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/cron.mysql-databases.php','artica-cron-mysqldb');
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/exec.vacationtime.php','artica-cron-vacation');
       SYS.CRON_CREATE_SCHEDULE('@hourly',cmdnice+php5bin+ ' ' +artica_path+'/exec.quotaroot.php --quota-check','artica-cron-quotas');
-      SYS.CRON_CREATE_SCHEDULE('@hourly',artica_path+'/bin/process1 --force -123456','process1-hourly');
+      SYS.CRON_CREATE_SCHEDULE('@hourly',artica_path+'/bin/process1 --force -123456','artica-process1-hourly');
 
 
      // ################  SQUID

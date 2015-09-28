@@ -104,7 +104,7 @@ function id_sender(){
 		$notify_class_protocol=$notify_class["notify_class_protocol"];
 	
 	
-	$html="<div class=text-info>{POSTFIX_SMTP_NOTIFICATIONS_TEXT}</div>
+	$html="<div class=explain>{POSTFIX_SMTP_NOTIFICATIONS_TEXT}</div>
 	<div id='ffm1notif'>
 	<table style='width:99%' class=form>	
 	<tr>
@@ -292,7 +292,7 @@ function templates_postfix_form(){
 	}
 	$html="
 		<div id='ffm1notif2'>
-		<div class=text-info>{{$template}}</div>
+		<div class=explain>{{$template}}</div>
 		<table style='width:99%' class=form>
 		<tr>
 			<td class=legend>Charset:</td>

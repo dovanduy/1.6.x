@@ -33,7 +33,7 @@ function js_smtpd_client_restrictions_save(){
 
 function smtpd_client_restrictions_popup(){
 	
-	
+
 	$sock=new sockets();
 	$users=new usersMenus();
 	$EnablePostfixAntispamPack_value=$sock->GET_INFO('EnablePostfixAntispamPack');	
@@ -67,7 +67,7 @@ function smtpd_client_restrictions_popup(){
 	if(!$users->POSTFIX_PCRE_COMPLIANCE){
 		$EnableGenericrDNSClients=0;
 		$EnableGenericrDNSClientsDisabled=1;
-		$EnableGenericrDNSClientsDisabledText="<br><i><span style='color:red;font-size:11px'>{EnableGenericrDNSClientsDisabledText}</span></i>";
+		$EnableGenericrDNSClientsDisabledText="<br><i><span style='color:#d32d2d;font-size:11px'>{EnableGenericrDNSClientsDisabledText}</span></i>";
 	}
 	
 	$t=time();
@@ -77,21 +77,21 @@ $html="
 
 
 
-	<div class=text-info style='font-size:18px'>{smtpd_client_restrictions_text}</div>
+	<div class=explain style='font-size:18px'>{smtpd_client_restrictions_text}</div>
 	<input type='hidden' id='EnableGenericrDNSClientsDisabled' value='$EnableGenericrDNSClientsDisabled'>
 	<div id='smtpd_client_restrictions_div' style='width:98%' class=form>
 	
-	".Paragraphe_switch_img("{disable_vrfy_command}", "{disable_vrfy_command_text}","disable_vrfy_command-$t",$disable_vrfy_command,null,900)."
-	".Paragraphe_switch_img("{reject_unknown_client_hostname}", "{reject_unknown_client_hostname_text}","reject_unknown_client_hostname-$t",$reject_unknown_client_hostname,null,900)."
-	".Paragraphe_switch_img("{reject_unknown_reverse_client_hostname}", "{reject_unknown_reverse_client_hostname_text}","reject_unknown_reverse_client_hostname-$t",$reject_unknown_reverse_client_hostname,null,900)."
-	".Paragraphe_switch_img("{reject_unknown_sender_domain}", "{reject_unknown_sender_domain_text}","reject_unknown_sender_domain-$t",$reject_unknown_sender_domain,null,900)."
-	".Paragraphe_switch_img("{reject_invalid_hostname}", "{reject_invalid_hostname_text}","reject_invalid_hostname-$t",$reject_invalid_hostname,null,900)."
-	".Paragraphe_switch_img("{reject_non_fqdn_sender}", "{reject_non_fqdn_sender_text}","reject_non_fqdn_sender-$t",$reject_non_fqdn_sender,null,900)."
-	".Paragraphe_switch_img("{reject_forged_mails}", "{reject_forged_mails_text}","reject_forged_mails-$t",$reject_forged_mails,null,900)."
-	".Paragraphe_switch_img("{EnablePostfixAntispamPack}", "{EnablePostfixAntispamPack_text}","EnablePostfixAntispamPack-$t",$EnablePostfixAntispamPack_value,null,900)."
-	".Paragraphe_switch_img("{EnableGenericrDNSClients}", "{EnableGenericrDNSClients_text}","EnableGenericrDNSClients-$t",$EnableGenericrDNSClients,null,900)."
-	".Paragraphe_switch_img("{EnablePostfixInternalDomainsCheck}", "{EnablePostfixInternalDomainsCheck_text}","EnablePostfixInternalDomainsCheck-$t",$EnablePostfixInternalDomainsCheck,null,900)."
-	".Paragraphe_switch_img("{RestrictToInternalDomains}", "{RestrictToInternalDomains_text}","RestrictToInternalDomains-$t",$RestrictToInternalDomains,null,900)."
+	".Paragraphe_switch_img("{disable_vrfy_command}", "{disable_vrfy_command_text}","disable_vrfy_command-$t",$disable_vrfy_command,null,1400)."
+	".Paragraphe_switch_img("{reject_unknown_client_hostname}", "{reject_unknown_client_hostname_text}","reject_unknown_client_hostname-$t",$reject_unknown_client_hostname,null,1400)."
+	".Paragraphe_switch_img("{reject_unknown_reverse_client_hostname}", "{reject_unknown_reverse_client_hostname_text}","reject_unknown_reverse_client_hostname-$t",$reject_unknown_reverse_client_hostname,null,1400)."
+	".Paragraphe_switch_img("{reject_unknown_sender_domain}", "{reject_unknown_sender_domain_text}","reject_unknown_sender_domain-$t",$reject_unknown_sender_domain,null,1400)."
+	".Paragraphe_switch_img("{reject_invalid_hostname}", "{reject_invalid_hostname_text}","reject_invalid_hostname-$t",$reject_invalid_hostname,null,1400)."
+	".Paragraphe_switch_img("{reject_non_fqdn_sender}", "{reject_non_fqdn_sender_text}","reject_non_fqdn_sender-$t",$reject_non_fqdn_sender,null,1400)."
+	".Paragraphe_switch_img("{reject_forged_mails}", "{reject_forged_mails_text}","reject_forged_mails-$t",$reject_forged_mails,null,1400)."
+	".Paragraphe_switch_img("{EnablePostfixAntispamPack}", "{EnablePostfixAntispamPack_text}","EnablePostfixAntispamPack-$t",$EnablePostfixAntispamPack_value,null,1400)."
+	".Paragraphe_switch_img("{EnableGenericrDNSClients}", "{EnableGenericrDNSClients_text}","EnableGenericrDNSClients-$t",$EnableGenericrDNSClients,null,1400)."
+	".Paragraphe_switch_img("{EnablePostfixInternalDomainsCheck}", "{EnablePostfixInternalDomainsCheck_text}","EnablePostfixInternalDomainsCheck-$t",$EnablePostfixInternalDomainsCheck,null,1400)."
+	".Paragraphe_switch_img("{RestrictToInternalDomains}", "{RestrictToInternalDomains_text}","RestrictToInternalDomains-$t",$RestrictToInternalDomains,null,1400)."
 			
 	
 						
@@ -99,7 +99,7 @@ $html="
 	</div>
 
 	<div style='width:100%;text-align:right'><hr>
-	". button("{apply}","Save$t()",26)."
+	". button("{apply}","Save$t()",45)."
 	
 	</div>
 <script>

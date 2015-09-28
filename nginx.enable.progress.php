@@ -157,6 +157,7 @@ if($prc==100){
 		AnimateDiv('BodyContent');
 		AjaxTopMenu('template-top-menus','admin.top.menus.php');
 		LoadAjax('BodyContent','nginx.main.php');
+		LoadAjaxTiny('account-identity','admin.top.menus.php?account-identity=yes');
 		RTMMailHide();
 	}
 	setTimeout(\"Start$time()\",1000);

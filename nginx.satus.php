@@ -83,24 +83,27 @@ function MAIN_STATUS_MIDDLE(){
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
 	$p1=Paragraphe_switch_img("{enable_reverse_proxy_service}", "{enable_reverse_proxy_service_explain}",
-			"EnableNginx-$t",$EnableNginx,null,820);
+			"EnableNginx-$t",$EnableNginx,null,1072);
 	
-	$p2=Paragraphe_switch_img("{enable_reverse_imap_proxy_service}", "{enable_reverse_imap_proxy_service_explain}",
-			"EnableNginxMail-$t",$EnableNginxMail,null,820);	
+	$p2=Paragraphe_switch_disable("{enable_reverse_imap_proxy_service}", "{enable_reverse_imap_proxy_service_explain}",
+			"EnableNginxMail-$t",$EnableNginxMail,null,1072);	
 	
 	$p3=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}",
-			"EnableFreeWeb-$t",$EnableFreeWeb,null,820);
+			"EnableFreeWeb-$t",$EnableFreeWeb,null,1072);
 	
 	
 	if($users->SQUID_INSTALLED){
 		$p4=Paragraphe_switch_img("{enable_squid_service}",
 				"{enable_squid_service_explain}<br>{enable_squid_service_text}","SQUIDEnable-$t",$SQUIDEnable
-			,null,820);
+			,null,1072);
 	
 	}
 	
-	$html="$p1<br>$p2<br>$p3<br>$p4<hr>
-	<div style='text-align:right;width:98%'>". button("{apply}","Save$t()",32)."</div>
+	$p2="<br>$p2";
+	$p2=null;
+	
+	$html="$p1<br>$p3<br>$p4$p2<hr>
+	<div style='text-align:right;width:98%'>". button("{apply}","Save$t()",40)."</div>
 	<script>
 			
 	var xSave$t=function (obj) {
@@ -112,7 +115,9 @@ function MAIN_STATUS_MIDDLE(){
 			var XHR = new XHRConnection();
     		XHR.appendData('EnableFreeWeb',document.getElementById('EnableFreeWeb-$t').value);
     		XHR.appendData('EnableNginx',document.getElementById('EnableNginx-$t').value);
-    		XHR.appendData('EnableNginxMail',document.getElementById('EnableNginxMail-$t').value);
+    		if(document.getElementById('EnableNginxMail-$t')){
+    			XHR.appendData('EnableNginxMail',document.getElementById('EnableNginxMail-$t').value);
+    		}
     		if(document.getElementById('SQUIDEnable-$t')){
     			XHR.appendData('SQUIDEnable',document.getElementById('SQUIDEnable-$t').value);
     		}
@@ -129,7 +134,9 @@ function MAIN_STATUS_MIDDLE(){
 function MAIN_STATUS_NGINX_SAVE(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableFreeWeb",$_POST["EnableFreeWeb"]);
-	$sock->SET_INFO("EnableNginxMail",$_POST["EnableNginxMail"]);
+	if(isset($_POST["EnableNginxMail"])){
+		$sock->SET_INFO("EnableNginxMail",$_POST["EnableNginxMail"]);
+	}
 	$sock->SET_INFO("EnableNginx",$_POST["EnableNginx"]);
 	if(isset($_POST["SQUIDEnable"])){
 		$sock->SET_INFO("SQUIDEnable",$_POST["SQUIDEnable"]);

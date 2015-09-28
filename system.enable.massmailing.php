@@ -102,7 +102,7 @@ function popup_not_installed(){
 	
 	$html="
 	
-	<center style='font-size:16px;color:red'>{APP_EMAILRELAY_NOT_INSTALLED}</center>
+	<center style='font-size:16px;color:#d32d2d'>{APP_EMAILRELAY_NOT_INSTALLED}</center>
 	
 	";
 	

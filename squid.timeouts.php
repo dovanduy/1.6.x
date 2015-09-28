@@ -48,6 +48,8 @@ function popup(){
 	$DisableTCPEn=intval($sock->GET_INFO("DisableTCPEn"));
 	$DisableTCPWindowScaling=intval($sock->GET_INFO("DisableTCPWindowScaling"));
 	$SquidUploadTimeouts=intval($sock->GET_INFO("SquidUploadTimeouts"));
+	$SquidSimpleConfig=$sock->GET_INFO("SquidSimpleConfig");
+	if(!is_numeric($SquidSimpleConfig)){$SquidSimpleConfig=1;}
 
 	$t=time();
 	
@@ -196,6 +198,24 @@ function popup(){
 	}	
 	
 	function SquidUploadTimeouts$t(){
+		var SquidSimpleConfig=$SquidSimpleConfig;
+		
+		if(SquidSimpleConfig==1){
+			document.getElementById('dead_peer_timeout-$t').disabled=true;
+			document.getElementById('dns_timeout-$t').disabled=true;
+			document.getElementById('connect_timeout-$t').disabled=true;
+			document.getElementById('peer_connect_timeout-$t').disabled=true;
+			document.getElementById('client_lifetime-$t').disabled=true;
+			document.getElementById('read_timeout-$t').disabled=true;
+			document.getElementById('persistent_request_timeout-$t').disabled=true;
+			document.getElementById('incoming_rate-$t').disabled=true;
+			document.getElementById('pconn_timeout-$t').disabled=true;
+			document.getElementById('forward_max_tries-$t').disabled=true;
+			document.getElementById('forward_timeout-$t').disabled=true;
+			return;
+		}
+		
+		
 		document.getElementById('read_timeout-$t').disabled=false;
 		document.getElementById('pconn_timeout-$t').disabled=false;
 		document.getElementById('persistent_request_timeout-$t').disabled=false;

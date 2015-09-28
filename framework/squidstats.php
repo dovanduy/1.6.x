@@ -96,19 +96,9 @@ function alldays(){
 	shell_exec($cmdline);
 }
 function category_uid(){
-	$unix=new unix();
-	$uid=$_GET["category-uid"];
-	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.websites_uid.php --websites-uid-categorize \"$uid\" >/dev/null 2>&1 &";
-	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmdline);	
+
 }
-function table_members_time(){
-	$unix=new unix();
-	$xtime=$_GET["xtime"];
-	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.members.hours.php --bytime $xtime >/dev/null 2>&1 &";
-	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmdline);	
-}
+
 
 function table_categorize_time(){
 	$unix=new unix();

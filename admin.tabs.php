@@ -209,7 +209,7 @@ function admin_system(){
 	
 	$users=new usersMenus();
 	$browse=Buildicon64("DEF_ICO_BROWSE_COMP");
-	$disks=Paragraphe("64-hd.png",'{internal_hard_drives}','{internal_hard_drives_text}',"javascript:Loadjs('system.internal.disks.php');","{internal_hard_drives_text}");
+	
 	
 	//$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{designs_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
 	$memdump=Paragraphe("stats-64.png",'{processes_memory}','{processes_memory_text}',"javascript:LoadMemDump();","{processes_memory_text}");
@@ -263,8 +263,7 @@ function admin_system(){
 	$mysql_settings=$tpl->_ENGINE_parse_body("{mysql_settings}");
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 			"javascript:Loadjs('artica.settings.php?js=yes&func-webinterface=yes');");
-	$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
-			"javascript:Loadjs('artica.settings.php?js=yes&func-NotificationsInterface=yes');");
+	
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 			"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
 	
@@ -272,7 +271,7 @@ function admin_system(){
 	$logs=Paragraphe("scan-64.png","{logs_cleaning}","{logs_cleaning_text}",
 			"javascript:Loadjs('artica.settings.php?js=yes&func-LogsInterface=yes');");
 	//$mysql=Paragraphe("folder-64-backup.png","{mysql_settings}","{mysql_settings_text}","javascript:MysqlInterface();","$mysql_settings");
-	$perfs=Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
+	
 	
 	
 	
@@ -285,11 +284,10 @@ function admin_system(){
 	
 	$tr[]=$FROMISO;
 	$tr[]=$memdump;
-	$tr[]=$perfs;
 	$tr[]=$artica_events;
 	$tr[]=$logs;
 	
-	$tr[]=$disks;
+	
 	$tr[]=$browse;
 	$tr[]=$backup;
 	

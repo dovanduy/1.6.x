@@ -25,7 +25,7 @@ if(!isset($_GET["page"])){$index_page='index';}else{$index_page=$_GET["page"];}
 $page=dirname(__FILE__). "/ressources/logs/awstats.$index_page.tmp";
 
 if(!file_exists($page)){
-	$html="$error<p style='font-weight:bold;color:red;font-size:14px;border:1px dotted #CCCCCC;padding:10px;marging:10px'>
+	$html="$error<p style='font-weight:bold;color:#d32d2d;font-size:14px;border:1px dotted #CCCCCC;padding:10px;marging:10px'>
 	{error_unable_to_find_path}:<br>$page<br>
 	{infos_awstats_must_generate}
 	<br><br><br>

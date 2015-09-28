@@ -15,6 +15,7 @@
 
 $usersmenus=new usersMenus();
 if($usersmenus->AsPostfixAdministrator==false){echo "alert('NO RIGHTS');";die();}
+if(isset($_GET["graph3"])){graph3();exit;}
 if(isset($_GET["PostfixLoadeMailsQueue"])){echo PostfixLoadeMailsQueue();exit;}
 if(isset($_GET["MailID"])){MailID();exit;}
 if(isset($_GET["PostQueueF"])){PostQueueF();exit();}
@@ -319,31 +320,31 @@ function queue_settings(){
 	if($bounce_queue_lifetime==null){$bounce_queue_lifetime="5d";}
 	if($maximal_queue_lifetime==null){$maximal_queue_lifetime="5d";}	
 $html="
-<div id='div-queue-parms'>
-	<table style='width:99.5%' class=form>
+<div id='div-queue-parms' style='width:98%' class=form>
+	<table style='width:100%'>
 			<tr>
-				<td class=legend>{minimal_backoff_time}:</td>
-				<td>". Field_text("minimal_backoff_time",$minimal_backoff_time,"width:90px;padding:3px;font-size:13px")."</td>
+				<td class=legend style='font-size:22px'>{minimal_backoff_time}:</td>
+				<td>". Field_text("minimal_backoff_time",$minimal_backoff_time,"width:90px;padding:3px;font-size:22px")."</td>
 				<td width=1%>". help_icon("{minimal_backoff_time_text}")."</td>
 			</tr>			
 			<tr>
-				<td class=legend>{maximal_backoff_time}:</td>
-				<td>". Field_text("maximal_backoff_time",$maximal_backoff_time,"width:90px;padding:3px;font-size:13px")."</td>
+				<td class=legend style='font-size:22px'>{maximal_backoff_time}:</td>
+				<td>". Field_text("maximal_backoff_time",$maximal_backoff_time,"width:90px;padding:3px;font-size:22px")."</td>
 				<td width=1%>". help_icon("{maximal_backoff_time_text}")."</td>
 			</tr>
 			<tr>
-				<td class=legend>{bounce_queue_lifetime}:</td>
-				<td>". Field_text("bounce_queue_lifetime",$bounce_queue_lifetime,"width:90px;padding:3px;font-size:13px")."</td>
+				<td class=legend style='font-size:22px'>{bounce_queue_lifetime}:</td>
+				<td>". Field_text("bounce_queue_lifetime",$bounce_queue_lifetime,"width:90px;padding:3px;font-size:22px")."</td>
 				<td width=1%>". help_icon("{bounce_queue_lifetime_text}")."</td>
 			</tr>
 			<tr>
-				<td class=legend valign='top' nowrap>{maximal_queue_lifetime}&nbsp;:</strong></td>
-				<td>". Field_text("maximal_queue_lifetime",$maximal_queue_lifetime,"width:90px;padding:3px;font-size:13px")."</td>
+				<td class=legend valign='top' nowrap style='font-size:22px'>{maximal_queue_lifetime}&nbsp;:</strong></td>
+				<td>". Field_text("maximal_queue_lifetime",$maximal_queue_lifetime,"width:90px;padding:3px;font-size:22px")."</td>
 				<td width=1%>". help_icon("{maximal_queue_lifetime_text}")."</td>
 			</tr>
 			<tr>
 				<td colspan=3 align='right'>
-					<hr>". button("{apply}","SaveQueueSettings()")."</td>
+					<hr>". button("{apply}","SaveQueueSettings()",32)."</td>
 			</tr>	
 	</table>
 	
@@ -365,7 +366,7 @@ $html="
 			XHR.appendData('maximal_backoff_time',document.getElementById('maximal_backoff_time').value);
 			XHR.appendData('bounce_queue_lifetime',document.getElementById('bounce_queue_lifetime').value);
 			XHR.appendData('maximal_queue_lifetime',document.getElementById('maximal_queue_lifetime').value);
-			document.getElementById('div-queue-parms').innerHTML='<center><img src=img/wait_verybig.gif></center>';
+			
 			XHR.sendAndLoad('$page', 'GET',x_SaveQueueSettings);	
 			}	
 	
@@ -404,18 +405,20 @@ function status(){
 	$tot=$ligne["tcount"];
 	$tot_size=$ligne["tsize"]/1024;
 	$tot_size=FormatBytes($tot_size);	
+	$PieData=array();
+	$t=time();
+	$PieDiv=null;
+	$Piejs=null;
 	
 $table[]="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
-		<th>{mails}</th>
-		<th>{errors}</th>
+		<th style='font-size:32px;font-weight:bold'>{mails}</th>
+		<th style='font-size:32px;font-weight:bold'>{errors}</th>
 	</tr>
 </thead>
 <tbody class='tbody'>";		
 	
-	$filename="postqueue.status.$hostname.png";
-	$gp=new artica_graphs(dirname(__FILE__)."/ressources/logs/web/$filename",50);
 	$sql="SELECT COUNT(context) as tcount,context FROM postqueue WHERE instance='$hostname' GROUP BY context ORDER BY tcount DESC";
 	$results=$q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){$table[]="<tr><td>". $q->mysql_error."</td></tr>";}
@@ -429,11 +432,11 @@ $table[]="<table cellspacing='0' cellpadding='0' border='0' class='tableView' st
 		$style=" style='text-decoration:underline' ";
 	$table[]="
 	<tr class=$classtr>
-			<td style='font-size:14px;font-weight:bold' width=1% align='center'><a href=\"javascript:blur()\" OnClick=\"javascript:$js\">{$ligne["tcount"]}</a></td>
-			<td style='font-size:14px;font-weight:bold' nowrap width=99%><a href=\"javascript:blur()\" OnClick=\"javascript:$js\" $style>{$ligne["context"]}</a></td>
+			<td style='font-size:32px;font-weight:bold' width=1% align='center'><a href=\"javascript:blur()\" OnClick=\"javascript:$js\">{$ligne["tcount"]}</a></td>
+			<td style='font-size:32px;font-weight:bold' nowrap width=99%><a href=\"javascript:blur()\" OnClick=\"javascript:$js\" $style>{$ligne["context"]}</a></td>
 		</tr>
 	";		
-		
+		$PieData[$tpl->javascript_parse_text($ligne["context"])]=$ligne["tcount"];
 		$gp->xdata[]=$ligne["tcount"];
 		$gp->ydata[]=$tpl->javascript_parse_text($ligne["context"]);			
 
@@ -443,26 +446,28 @@ $table[]="<table cellspacing='0' cellpadding='0' border='0' class='tableView' st
 	$table[]="</table>";
 	$table_finale=@implode("\n",$table);
 	$time=time();
-	if($rowscount>0){
-		$gp->width=350;
-		$gp->height=450;
-		$gp->ViewValues=false;
-		$gp->x_title="{errors}";
-		$gp->pie();	
 	
-		if(count($gp->xdata)>1){
-			$img="<center><img src='ressources/logs/web/$filename?time=$time'></center>";
+	$title="$tot {mails}, $tot_size";
+	
+	$title_bas64=urlencode(base64_encode($title));
+	if(count($PieData)>0){
+		$PieDiv="<div id='graph3-$t' style='width:99%;height:550px'></div>";
+		$PieDataENC=urlencode(base64_encode(serialize($PieData)));
+		$Piejs="
+		function FHour$t(){
+			AnimateDiv('graph3-$t');
+			Loadjs('$page?graph3=yes&container=graph3-$t&t=$t&title=$title_bas64&data=$PieDataENC',true);
 		}
+		FHour$t();";
 	}
 	
 	$html="
-	<center style='font-size:16px'>$tot {mails}, $tot_size</center>
+	
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>	
-			$img
-			<hr>
-			$table_finale
+			<center style='font-size:32px'>$tot {mails}, $tot_size</center>
+			$PieDiv
 		</td>
 		<td valign='top'>
 			$pause_queue
@@ -470,6 +475,7 @@ $table[]="<table cellspacing='0' cellpadding='0' border='0' class='tableView' st
 			$repro_queue
 		</td>
 	</tr>
+	<tr><td colspan=2>$table_finale</td></tr>
 	</table>
 	
 	<script>
@@ -494,7 +500,7 @@ var x_PostQueueFF= function (obj) {
 		YahooWin4(850,'$page?postqueue-context='+zcontext+'&hostname=$hostname',context);
 	
 	}
-	
+$Piejs	
 	
 </script>	
 	";
@@ -522,9 +528,7 @@ function popup_js(){
 	}
 	
 	function StartIndexInLine(){
-		document.getElementById('BodyContent').innerHTML='<center><img src=img/wait_verybig.gif></center>';
-		$('#BodyContent').load('$page?popup=yes&hostname={$_GET["hostname"]}$fontsize');
-		QuickLinkShow('quicklinks-queue_management');
+		LoadAjaxRound('postfix-queues-dashboard','$page?popup=yes&hostname={$_GET["hostname"]}$fontsize');
 	
 	}	
 	
@@ -563,7 +567,7 @@ $queue=$_GET["show-queue"];
 var X_PostCatDelete= function (obj) {
 	var results=obj.responseText;
 	if(results.length>2){alert(results);}
-	YahooWin2Hide();
+	$('#$this->FlexID').flexReload();
 	RefreshTab('queue_monitor'); 
 	}	
 	
@@ -600,7 +604,7 @@ function popup_postqueue(){
 	$page=CurrentPageName();
 	
 	$html="
-		<div class=text-info>{postqueue_list_explain}</div>
+		<div class=explain>{postqueue_list_explain}</div>
 		<div id='postqueue-details-form' style='margin:5px'></div>
 		<div id='postqueue-details' style='heigth:550px;overflow:auto'></div>
 		
@@ -868,9 +872,12 @@ function popup_postqueue_details_form(){
 function popup_message(){
 	include_once(dirname(__FILE__).'/ressources/class.mime.parser.inc');
 	include_once(dirname(__FILE__).'/ressources/rfc822_addresses.php');
-	$messageid=$_GET["popup-message"];
+	$messageid=$_GET["message-id"];
 	$sock=new sockets();
-	$datas=$sock->getfile("view_queue_file:$messageid");
+	$sock->getFrameWork("postfix.php?postcat-q=$messageid");
+	
+	$datas=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/postcat-$messageid.txt");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/postcat-$messageid.txt");
 	
 	if(preg_match('#\*\*\* ENVELOPE RECORDS.+?\*\*\*(.+?)\s+\*\*\*\s+MESSAGE CONTENTS#is',$datas,$re)){
 		$table_content=$re[1];
@@ -1039,36 +1046,29 @@ function popup_tabs(){
 	$array["details"]="{emails}";
 	$array["params"]="{parameters}";
 	$array["banned"]="{banned_domains}";
-	$array["smtp_queues"]='{smtp_queues}';
+	//$array["smtp_queues"]='{smtp_queues}';
+	
+	$_GET["font-size"]=26;
+	
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
 	$tpl=new templates();
 	$page=CurrentPageName();
-
+	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="details"){
+			$ligne=$tpl->_ENGINE_parse_body("$ligne");
+			$html[]= "<li><a href=\"postfix.queue.monitoring.details.php?hostname={$_GET["hostname"]}\" style='$fontsize'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
 		$ligne=$tpl->_ENGINE_parse_body("$ligne");
-		$html[]= "<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}\"><span>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}\" style='$fontsize'><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	echo "
-	<div id=queue_monitor style='width:100%;height:750px;overflow:auto;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#queue_monitor').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "queue_monitor",1490);
 	
 }
 
@@ -1340,6 +1340,30 @@ function PostfixDeleteMailsQeue(){
 	$datas=$sock->getfile('PostfixDeleteMailsQeue:'.$PostfixDeleteMailsQeue);	
 	
 }
+function graph3(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$t=time();
+	$title=base64_decode($_GET["title"]);
+	$PieData=unserialize(base64_decode($_GET["data"]));
+	
+	
+	$timetext="{hour}";
 
+
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{messages} ";
+	$highcharts->Title=null;
+	echo $highcharts->BuildChart();
+
+
+
+}
 
 

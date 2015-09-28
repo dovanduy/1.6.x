@@ -31,21 +31,38 @@ function page(){
 	$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
 	$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
 	$AllowSquidGoogle=intval($sock->GET_INFO("AllowSquidGoogle"));
+	$AllowSquidOtherProtocols=intval($sock->GET_INFO("AllowSquidOtherProtocols"));
+	$AllowSquidHSTS=intval($sock->GET_INFO("AllowSquidHSTS"));
+	$SquidAllowSmartPhones=intval($sock->GET_INFO("SquidAllowSmartPhones"));
+	
+	$MobilesPhones=Paragraphe_switch_img("{AllowSmartphonesRuleText}", "{AllowSmartphonesRuleExplain}",
+			"SquidAllowSmartPhones",
+			$SquidAllowSmartPhones,null,1400);
 	
 	$DropBox=Paragraphe_switch_img("{AllowSquidDropBox}", "{AllowSquidDropBox_explain}","AllowSquidDropBox",
-			$AllowSquidDropBox,null,650);
+			$AllowSquidDropBox,null,1400);
 	
 	$skype=Paragraphe_switch_img("{AllowSquidSkype}", "{AllowSquidSkype_explain}","AllowSquidSkype",
-			$AllowSquidSkype,null,650);	
+			$AllowSquidSkype,null,1400);	
 	
 	$office=Paragraphe_switch_img("{AllowSquidOffice365}", "{AllowSquidOffice365_explain}","AllowSquidOffice365",
-			$AllowSquidOffice365,null,650);
+			$AllowSquidOffice365,null,1400);
 	
 	$Google=Paragraphe_switch_img("{AllowSquidGoogle}", "{AllowSquidGoogle_explain}","AllowSquidGoogle",
-			$AllowSquidGoogle,null,650);
+			$AllowSquidGoogle,null,1400);
+	
+	
+	
+	$QuicProto=Paragraphe_switch_img("{AllowSquidOtherProtocols}", "{AllowSquidOtherProtocols_explain}","AllowSquidOtherProtocols",
+			$AllowSquidOtherProtocols,null,1400);
+	
+	$HSTS=Paragraphe_switch_img("{AllowSquidHSTS}", "{AllowSquidHSTS_explain}","AllowSquidHSTS",
+			$AllowSquidHSTS,null,1400);
 	
 	
 	$html="<div style='width:98%' class=form>
+	$MobilesPhones
+	<p>&nbsp</p>	
 	$DropBox
 	<p>&nbsp</p>	
 	$skype	
@@ -53,7 +70,11 @@ function page(){
 	$office
 	<p>&nbsp</p>		
 	$Google	
-	<div style='width:100%;text-align:right'><hr>".button("{apply}","Save$t()",24)."</div>
+	<p>&nbsp</p>		
+	$QuicProto	
+	<p>&nbsp</p>		
+	$HSTS			
+	<div style='width:100%;text-align:right'><hr>".button("{apply}","Save$t()",40)."</div>
 	<script>
 var xSave$t= function (obj) {
 	var res=obj.responseText;
@@ -69,6 +90,10 @@ function Save$t(){
 	XHR.appendData('AllowSquidSkype',  document.getElementById('AllowSquidSkype').value);
 	XHR.appendData('AllowSquidOffice365',  document.getElementById('AllowSquidOffice365').value);
 	XHR.appendData('AllowSquidGoogle',  document.getElementById('AllowSquidGoogle').value);
+	XHR.appendData('SquidAllowSmartPhones',  document.getElementById('SquidAllowSmartPhones').value);
+	XHR.appendData('AllowSquidHSTS',  document.getElementById('AllowSquidHSTS').value);
+	XHR.appendData('AllowSquidOtherProtocols',  document.getElementById('AllowSquidOtherProtocols').value);
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }		
 </script>

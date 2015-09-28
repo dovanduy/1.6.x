@@ -99,9 +99,9 @@ function squid_transparent_exe(){
 	build_progress("{building_settings}",30);
 	$php=$unix->LOCATE_PHP5_BIN();
 	system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
-	build_progress("{restarting_service}",50);
-	system("$php /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force");
+	build_progress("{reloading_service}",50);
+	system("$php /usr/share/artica-postfix/exec.squid.watchdog.php --reload --force");
 	build_progress("{apply_firewall_rules}",90);
-	system("$php /usr/share/artica-postfix/exec.squid.transparent.php --force");
+	system("/etc/init.d/firehol restart");
 	build_progress("{done}",100);
 }

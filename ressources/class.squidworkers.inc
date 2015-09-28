@@ -12,6 +12,7 @@ class squidworkers{
 	private $SquidBoosterMemK;
 	private $DisableAnyCache=0;
 	private $SquidBoosterMem=0;
+	private $SquidForceCacheTypes=null;
 	
 	private $SquidCachesMount=array();
 	public $CPU_FINAL=0;
@@ -27,6 +28,8 @@ class squidworkers{
 		if(preg_match("#^3\.3\.#", $this->SQUID_VERSION)){$this->IS_32=true;}
 		$this->uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");
 		$this->SquidCachesMount=unserialize(base64_decode($sock->GET_INFO("SquidCachesMount")));
+		$this->SquidForceCacheTypes=$sock->GET_INFO("SquidForceCacheTypes");
+		if($this->SquidForceCacheTypes==null){$this->SquidForceCacheTypes="aufs";}
 		$this->FillSettings();
 		$this->store_dir_minsize_calc();
 	}
@@ -74,6 +77,8 @@ class squidworkers{
 		if($this->SquidBoosterMem>0){
 			$this->SquidBoosterMemK=$this->SquidBoosterMemK*1024;
 			$this->store_dir_minsize="min-size=$this->SquidBoosterMemK";
+		}else{
+			$this->store_dir_minsize="min-size=2048";
 		}		
 	}
 	
@@ -144,12 +149,7 @@ class squidworkers{
 				continue;
 			}
 		
-			if($cache_list[$num]["cache_type"]=="rock"){
-				$mxsize=$this->cache_list[$num]["cache_maxsize"]*1000;
-				$mxsize=$mxsize*1024;
-				//$conf=$conf."cache_dir {$this->cache_list[$num]["cache_type"]} $num {$this->cache_list[$num]["cache_size"]} max-size=32768\n";
-				continue;
-			}
+			if($cache_list[$num]["cache_type"]=="rock"){continue;}
 			
 			
 			$num=str_replace(" ", "_", $num);
@@ -456,7 +456,7 @@ class squidworkers{
 		
 		$MemDIFF=$mountedram-10;
 		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index] : Return a cache of {$MemDIFF}M\n";}
-		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir aufs $Dir $MemDIFF 16 256";
+		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir $this->SquidForceCacheTypes $Dir $MemDIFF 16 256";
 		return "cache_dir aufs $Dir $MemDIFF 16 256";		
 		
 	}

@@ -180,7 +180,7 @@ function form1($error=null){
 	if($ini->_params["MURDER_BACKEND"]["artica_port"]==null){$ini->_params["MURDER_BACKEND"]["artica_port"]=9000;}
 	if($ini->_params["MURDER_BACKEND"]["username"]==null){$ini->_params["MURDER_BACKEND"]["username"]="admin";}
 	
-	if($error<>null){$error="<hr><code style='color:red'>$error</code>";}
+	if($error<>null){$error="<hr><code style='color:#d32d2d'>$error</code>";}
 	
 	$TEXT="<p style='font-size:12px;font-weight:bold'>{CYRUS_MURDER_CONNECT_BACKEND_EXPLAIN}$error</p>
 	
@@ -214,7 +214,7 @@ function form2($error){
 	
 	$html="
 	<div id='murderlink'>
-	<div style='font-size:12px;font-weight:bold;border-bottom:1px solid #CCCCCC;color:red'>$error</div>
+	<div style='font-size:12px;font-weight:bold;border-bottom:1px solid #CCCCCC;color:#d32d2d'>$error</div>
 	<p style='font-size:12px'>{MURDER_VERIFY_DONE}</p>
 	<p style='font-size:12px'>{MURDER_VERIFY_GO}</p>
 	<div style='width:100%;text-align:right'><input type='button' OnClick=\"javascript:MurderLink();\" value='{murder_link_now}&nbsp;&raquo;'></div>

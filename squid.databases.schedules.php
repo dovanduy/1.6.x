@@ -41,14 +41,7 @@ if(isset($_GET["Addefaults"])){Addefaults();exit;}
 
 page();
 
-function compile_settings_js(){
-	header("content-type: application/x-javascript");
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$title=$tpl->_ENGINE_parse_body("{compile_settings}");
-	echo "YahooWin6('905','$page?compile-settings-popup=yes','$title')";
-	
-}
+
 
 function task_run_js(){
 	$t=time();
@@ -94,17 +87,7 @@ function Addefaults(){
 }
 
 
-function compile_settings_popup(){
-	$page=CurrentPageName();
-	$tpl=new templates();	
-	$sock=new sockets();
-	$t=time();
-	$html="
-	<center style='font-size:18px' id='$t-center'>{please_wait}...<p>&nbsp;</p><p>&nbsp;</p></center><div id='$t' style='margin-bottom:20px'></div>
-	<script>LoadAjax('$t','$page?compile-settings-perform=yes&t=$t');</script>
-	";
-	echo $tpl->_ENGINE_parse_body($html);
-}
+
 function compile_settings_perform(){
 	$sock=new sockets();
 	$t=$_GET["t"];
@@ -313,7 +296,7 @@ function AddNewSchedule_explain(){
 	$q=new mysql_squid_builder();
 	if(!isset($q->tasks_explain_array[$_GET["explainthis"]])){return;}
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{$q->tasks_explain_array[$_GET["explainthis"]]}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{$q->tasks_explain_array[$_GET["explainthis"]]}</div>");
 }
 
 function AddNewSchedule_enable(){
@@ -370,20 +353,15 @@ function page(){
 		$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');	
 		$events=$tpl->_ENGINE_parse_body("{events}");
 		$title="$CountTasks $tasks $CountEvents $events";
-		$explain_div="<div class=text-info style='font-size:13px'>$explain</div>";
-		$add_def_button="{name: '$add_default', bclass: 'Reconf', onpress : Addefaults$t},";
+		$explain_div="<div class=explain style='font-size:13px'>$explain</div>";
+		$add_def_button="{name: '<strong style=font-size:18px>$add_default</strong>', bclass: 'Reconf', onpress : Addefaults$t},";
 	}else{
 		$title=$tpl->_ENGINE_parse_body($qS->tasks_array[$_GET["TaskType"]]);
 	}
 	
 	
 	$html="
-	$explain_div
-
-
-	
-	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	
+<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 <script>
 var rowSquidTask='';
 function flexigridStarter$t(){
@@ -392,17 +370,17 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'ID', width : 32, sortable : true, align: 'center'},
-		{display: '$task', name : 'TaskType', width : 217, sortable : false, align: 'left'},
-		{display: '$description', name : 'TimeDescription', width : 410, sortable : false, align: 'left'},
-		{display: '$run', name : 'run', width : 32, sortable : false, align: 'left'},
-		{display: '$events', name : 'run1', width : 32, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'enable', width : 32, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'}
+		{display: '$task', name : 'TaskType', width : 431, sortable : false, align: 'left'},
+		{display: '$description', name : 'TimeDescription', width : 524, sortable : false, align: 'left'},
+		{display: '$run', name : 'run', width : 55, sortable : false, align: 'left'},
+		{display: '$events', name : 'run1', width : 55, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'enable', width : 55, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 55, sortable : false, align: 'center'}
 	],
 buttons : [
-	{name: '$new_schedule', bclass: 'add', onpress : AddNewSchedule},
-	{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},
-	{name: '$compile_settings', bclass: 'Reconf', onpress : CompileSettings$t},
+	{name: '<strong style=font-size:18px>$new_schedule</strong>', bclass: 'add', onpress : AddNewSchedule},
+	{name: '<strong style=font-size:18px>$parameters</strong>', bclass: 'Settings', onpress : Parmaeters$t},
+	{name: '<strong style=font-size:18px>$compile_settings</strong>', bclass: 'Reconf', onpress : CompileSettings$t},
 	$add_def_button
 	
 		],	
@@ -412,12 +390,12 @@ buttons : [
 	sortname: 'ID',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:32px>$title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
 	width: '100%',
-	height: 350,
+	height: 500,
 	singleSelect: true
 	
 	});   
@@ -429,7 +407,7 @@ buttons : [
 	}
 	
 	function CompileSettings$t(){
-		Loadjs('$page?compile-settings-js=yes');
+		Loadjs('squid.databases.schedules.progress.php');
 	}
 	
 	function SquidCrontaskUpdateTable(){
@@ -589,15 +567,15 @@ function search(){
 		$jstaskexplain=$tpl->javascript_parse_text($q->tasks_array[$ligne["TaskType"]]);
 		$ligne["TaskType"]=$tpl->_ENGINE_parse_body($q->tasks_array[$ligne["TaskType"]]);
 		
-		if($GLOBALS["VERBOSE"]){echo "<li style='font-size:16px;'><strong>{$ligne['ID']} {$ligne["TaskType"]} {$ligne["TimeDescription"]} Enabled={$ligne["enabled"]}</strong></li>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<li style='font-size:18px;'><strong>{$ligne['ID']} {$ligne["TaskType"]} {$ligne["TimeDescription"]} Enabled={$ligne["enabled"]}</strong></li>\n";}
 		$enable=Field_checkbox($md5, 1,$ligne["enabled"],"SquidTaskEnable('$md5',{$ligne['ID']})");
-		$delete=imgtootltip("delete-24.png","{delete} {$ligne['ID']}","SquidTaskDelete('{$ligne['ID']}')");
+		$delete=imgsimple("delete-32.png","{delete} {$ligne['ID']}","SquidTaskDelete('{$ligne['ID']}')");
 		
 		
 		
-		$run_icon="24-run.png";
+		$run_icon="32-run.png";
 		if(isset($CheckRunningTasks[$ligne['ID']])){$run_icon="preloader.gif";}
-		$run=$tpl->_ENGINE_parse_body(imgtootltip($run_icon,"{run} {$ligne['ID']}","SquidTaskRun('{$ligne['ID']}','$jstaskexplain')"));;
+		$run=$tpl->_ENGINE_parse_body(imgsimple($run_icon,"{run} {$ligne['ID']}","SquidTaskRun('{$ligne['ID']}','$jstaskexplain')"));;
 		
 		
 		
@@ -607,14 +585,14 @@ function search(){
 		$tablename="TaskSq{$ligne['ID']}";
 		
 		if(!$q2->TABLE_EXISTS($tablename, "artica_events")){
-			$events=imgsimple("delete_disabled.png");
+			$events="&nbsp;";
 		}else{
 		
 			$evs=$q2->COUNT_ROWS($tablename,  "artica_events");
 			
 			
 			if($evs>0){
-				$events=imgsimple("events-24.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}&table=$tablename')");
+				$events=imgsimple("events-32.png","{events} {$ligne['ID']}","Loadjs('squid.update.events.php?taskid={$ligne['ID']}&table=$tablename')");
 			}
 		
 		}
@@ -629,17 +607,20 @@ function search(){
 		
 		
 		$sincerun=null;
-		$span="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?AddNewSchedule-js=yes&ID={$ligne['ID']}');\"
-		 style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";
+		$span="<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('$MyPage?AddNewSchedule-js=yes&ID={$ligne['ID']}');\"
+		 style='font-size:18px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$ligne["TimeDescription"]=utf8_encode($ligne["TimeDescription"]);
 		if(isset($CheckRunningTasks[$ligne['ID']])){$sincerun="<br><i>{$CheckRunningTasks[$ligne['ID']]}</i>";}
 		//rowSquidTask
 	$data['rows'][] = array(
 		'id' => "SquidTask".$ligne['ID'],
 		'cell' => array("$span{$ligne['ID']}</a>",
-		"$span"."[".$TaskType."]&nbsp;{$ligne["TaskType"]}</a>","$span{$ligne["TimeDescription"]}</a>$sincerun",$run,$events,
+		"$span"."[".$TaskType."]&nbsp;{$ligne["TaskType"]}</a>",
+		"$span{$ligne["TimeDescription"]}</a>$sincerun",
+		"<center>$run</center>","<center>$events</center>",
 		
-		"<div style='margin-top:5px'>$enable</div>",$delete )
+		"<center style='margin-top:5px'>$enable</center>",$delete )
 		);
 	}
 	

@@ -96,7 +96,7 @@ function item_popup(){
 		$bt="{save}";
 	}
 	$pattern=$tpl->javascript_parse_text("{pattern}");
-	$html="<div class=text-info style='font-size:18px'>{smtp_generic_maps_text}</div>
+	$html="<div class=explain style='font-size:18px'>{smtp_generic_maps_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>

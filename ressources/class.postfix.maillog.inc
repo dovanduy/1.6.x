@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__)."/class.maillog.tools.inc");
 class postfix_maillog_buffer{
 	var $buffer=null;
 	
@@ -12,14 +12,48 @@ class postfix_maillog_buffer{
 		if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
 		if(!isset($GLOBALS["MYSQL_POSTFIX"])){$GLOBALS["MYSQL_POSTFIX"]=new mysql_postfix_builder();}
 		if(!isset($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance");}
+		if(!isset($GLOBALS["maillog_tools"])){$GLOBALS["maillog_tools"]=new maillog_tools();}
+		
 		if(!is_numeric($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=0;}
 	}
 	
 	public function parse(){
+		$this->CheckDirs();
 		$buffer=$this->buffer;
 		if(preg_match("#refreshing the Postfix mail system#i", $buffer)){return true;}
 		if(preg_match("#reload -- version .*?, configuration#i", $buffer)){return true;}
 		
+		
+		if(preg_match("#postfix\/(lmtp|smtp).*?:(.+?):\s+to=<(.+?)>.*?relay.*?status=deferred.*?unable to verify user#",$buffer,$re)){
+			$messageid=$re[1];
+			$recipient=$re[2];
+			$cause="Mailbox Unavailable";
+			$this->routed_info($messageid,null,$recipient,null,null,$cause);
+			return true;
+		}
+		
+		if(preg_match("#postfix\/(lmtp|smtp).*?:(.+?):\s+to=<(.+?)>.*?relay.*?status=bounced.*?User does not exist#",$buffer,$re)){
+			$messageid=$re[1];
+			$recipient=$re[2];
+			$cause="Mailbox Unavailable";
+			$this->routed_info($messageid,null,$recipient,null,null,$cause);
+			return true;
+		}
+		if(preg_match("#postfix\/(lmtp|smtp).*?:(.+?):\s+to=<(.+?)>.*?relay.*?status=sent#",$buffer,$re)){
+			$messageid=$re[1];
+			$recipient=$re[2];
+			$cause="Sended";
+			$this->routed_info($messageid,null,$recipient,null,null,$cause);
+			return true;
+		}
+		
+		
+		
+		
+		if(preg_match("#NOQUEUE: reject: RCPT from unknown\[(.+?)\]: 503 5.5.0.*?Client host rejected: Improper use of SMTP command pipelining; from=<(.*?)> to=<(.*?)>#",$buffer,$re)){
+			$this->connection_failed("Non-SMTP",$re[2],$re[3],null,$re[1]);
+			return true;
+		}
 		
 		if(preg_match("#(.*?):\s+to=<(.*?)>,\s+relay=(.+?)\[(.*?)\]:.*?,\s+delay=([0-9\.]+),\s+delays=#",$buffer,$re)){	
 			$messageid=$re[1];
@@ -28,15 +62,32 @@ class postfix_maillog_buffer{
 			$ipaddr=$re[4];
 			$delay=$re[5]*1000;
 			$this->routed($messageid,$recipient,$hostname,$ipaddr,$delay);
-			
-		}	
+			return true;
+		}
+
+		
+		
+		if(preg_match("#cleanup\[.*?:\s+([0-9A-Z]+):\s+redirect: header Subject:.*?from (.+?)\[(.+?)\]; from=<(.*?)> to=<(.*?)>.*?:\s+(.+)#",$buffer,$re)){
+			$messageid=$re[1];
+			$hostname=$re[3];
+			$ipaddr=$re[2];
+			$recipient=$re[2];
+			$sender=$re[4];
+			$recipient=$re[5];
+			$cause=trim($re[6]);
+			$this->routed_info($messageid,$sender,$recipient,$hostname,$ipaddr,$cause);
+			return true;
+		}
+	
+		
+		
 		
 		if(preg_match("#:\s+(.+?):\s+from=<(.*?)>,\s+size=([0-9]+)#",$buffer,$re)){	
 			$messageid=$re[1];
 			$mailfrom=$re[2];
 			$size=$re[3];
 			$this->routed_from($messageid,$mailfrom,$size);
-			
+			return true;
 		}	
 		
 		if(preg_match("#:\s+(.+?):\s+client=(.+?)\[(.+?)\]#",$buffer,$re)){	
@@ -44,7 +95,7 @@ class postfix_maillog_buffer{
 			$hostname=$re[2];
 			$ipaddr=$re[3];
 			$this->routed_cnx($messageid,$hostname,$ipaddr);
-			
+			return true;
 		}	
 // ----------------------------------------------------------------- Create Postfix user -----------------------------------------		
 		if(preg_match("#parameter mail_owner: unknown user name value: postfix#i",$buffer)){
@@ -510,45 +561,73 @@ class postfix_maillog_buffer{
 	
 	}
 	
-	private function routed($messageid,$recipient,$hostname,$ipaddr,$delay){
-		$fam=new familysite();
-		$date=date("Ymd");
-		$GLOBALS["MYSQL_POSTFIX"]->BuildDaySentTable("{$date}_sent");
-		$domain=$fam->GetFamilySites($recipient);
-		$zmd5=md5("$messageid,$recipient,$hostname,$ipaddr");
-		$zDate=date("Y-m-d H:i:s");
-		$hour=date("H");
-		$sql=" INSERT IGNORE INTO `{$date}_sent` (`zmd5`,`zDate`,`hour`,`messageid`,`mailto`,`domainto`,`hostname`,`ipaddr`,`mailtime`)
-		VALUES ('$zmd5','$zDate','$hour','$messageid','$recipient','$domain','$hostname','$ipaddr','$delay')";
-		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);
+
+
+	private function ToSyslog($text){
+		$LOG_SEV=LOG_INFO;
+		if(function_exists("openlog")){openlog(basename(__FILE__), LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}
+	
+	
+	private function CheckDirs(){
+		@mkdir("/home/artica/postfix/postfix/logger",0755,true);
 		
 	}
 	
+
+
+	private function routed($messageid,$recipient,$hostname,$ipaddr,$delay){
+		
+		$ARRAY["MESSAGE_ID"]=$messageid;
+		$ARRAY["RECIPIENT"]=$recipient;
+		$ARRAY["HOSTNAME"]=$hostname;
+		$ARRAY["IPADDR"]=$ipaddr;
+		$ARRAY["DELAY"]=$delay;
+		$ARRAY["SENT"]=1;
+		$GLOBALS["maillog_tools"]->berkleydb_relatime_write($messageid,$ARRAY);
+		return;
+
+		
+	}
+	
+	private function routed_info($messageid,$sender,$recipient,$hostname,$ipaddr,$cause){
+		$ARRAY["MESSAGE_ID"]=$messageid;
+		$ARRAY["RECIPIENT"]=$recipient;
+		$ARRAY["HOSTNAME"]=$hostname;
+		$ARRAY["IPADDR"]=$ipaddr;
+		$ARRAY["FROM"]=$sender;
+		$cause=str_replace("'", "`", $cause);
+		$ARRAY["REJECTED"]=$cause;
+		$GLOBALS["maillog_tools"]->berkleydb_relatime_write($messageid,$ARRAY);
+	}
+	
+	
+	private function connection_failed($reject,$from=null,$to=null,$hostname=null,$ipaddr=null){
+		if($hostname==null){$hostname=$ipaddr;}
+		$GLOBALS["maillog_tools"]->event_message_reject_hostname($reject,$from=null,$to=null,$hostname);
+	}
+	
 	private function routed_from($messageid,$mailfrom,$size){
-		$fam=new familysite();
-		$date=date("Ymd");
-		$GLOBALS["MYSQL_POSTFIX"]->BuildDayFromTable("{$date}_rec");
-		$domain=$fam->GetFamilySites($mailfrom);
-		$zmd5=md5("$messageid,$mailfrom,$size");
-		$zDate=date("Y-m-d H:i:s");
-		$hour=date("H");
-		$sql=" INSERT IGNORE INTO `{$date}_rec` (`zmd5`,`zDate`,`hour`,`messageid`,`mailfrom`,`domainfrom`,`mailsize`)
-		VALUES ('$zmd5','$zDate','$hour','$messageid','$mailfrom','$domain','$size')";
-		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);
+		
+		$ARRAY["MESSAGE_ID"]=$messageid;
+		$ARRAY["FROM"]=$mailfrom;
+		$ARRAY["SIZE"]=$size;
+		$GLOBALS["maillog_tools"]->berkleydb_relatime_write($messageid,$ARRAY);
+		return;
+	
 
 	}
 	
 	private function routed_cnx($messageid,$hostname,$ipaddr){
-		$fam=new familysite();
-		$date=date("Ymd");
-		$GLOBALS["MYSQL_POSTFIX"]->BuildDayConnectTable("{$date}_con");
-		$domain=$fam->GetFamilySites($hostname);
-		$zmd5=md5("$messageid,$hostname,$ipaddr");
-		$zDate=date("Y-m-d H:i:s");
-		$hour=date("H");
-		$sql=" INSERT IGNORE INTO `{$date}_con` (`zmd5`,`zDate`,`hour`,`messageid`,`hostname`,`domain`,`ipaddr`)
-		VALUES ('$zmd5','$zDate','$hour','$messageid','$hostname','$domain','$ipaddr')";
-		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);		
+		
+		$ARRAY["MESSAGE_ID"]=$messageid;
+		$ARRAY["HOSTNAME"]=$hostname;
+		$ARRAY["IPADDR"]=$ipaddr;
+		$GLOBALS["maillog_tools"]->berkleydb_relatime_write($messageid,$ARRAY);
+		return;
+
 	
 	}
 	
@@ -582,7 +661,7 @@ class postfix_maillog_buffer{
 			if($EnableAmavisDaemon==1){$SpamAssMilterEnabled=0;}
 		}
 
-		if($mem<1500){$SpamAssMilterEnabled=0;}
+		
 		
 		$this->email_events("spamassin-milter socket error: $socket","Postfix claim \"$buffer\", Artica will reload Postfix and compile new Postfix settings",'postfix');
 		if($SpamAssMilterEnabled==1){

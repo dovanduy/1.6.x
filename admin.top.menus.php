@@ -21,11 +21,18 @@ $postfixadded=false;
 $AsSquid=false;
 $DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
 if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;$ActAsSMTPGatewayStatistics=0;}
+$sock=new sockets();
 
 if($_SESSION["uid"]<>null){
-	if($users->AsAnAdministratorGeneric){
-		$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","ConfigureYourserver()");
-	}
+	
+		$RESPONSE=trim($sock->getFrameWork("squid.php?idsSQUIDAppliance=yes"));
+		if($RESPONSE=="TRUE"){
+			$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","GoToIndex()");
+		}
+		else{
+			$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","ConfigureYourserver()");
+		}
+	
 }
 
 $AllowSquid=false;
@@ -36,43 +43,98 @@ $EnableNginx=intval($sock->GET_INFO("EnableNginx"));
 $EnableFreeWeb=intval($sock->GET_INFO("EnableFreeWeb"));
 $EnableNginxMail=intval($sock->GET_INFO("EnableNginxMail"));
 $SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
 $users=new usersMenus();
 if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 $AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
 if($AsCategoriesAppliance==1){$SQUIDEnable=0;}
 $AsMetaServer=intval($sock->GET_INFO("AsMetaServer"));
 if($AsMetaServer==1){$sock->SET_INFO("EnableArticaMetaServer",1);}
+$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+
+$AS_STATS=false;
+
 $action=false;
 if($users->SQUID_INSTALLED){
 	$AsSquid=true;
+	$AS_STATS=true;
+}else{
+	if($EnableIntelCeleron==1){$AS_STATS=false;}
+	$EnableIntelCeleron=0;
 }
 
+if($EnableIntelCeleron==1){$AS_STATS=false;}
+
+if($users->STATS_APPLIANCE){
+	$AS_STATS=true;
+	$users->SQUID_INSTALLED=false;
+}
+
+
+
+if(!$users->AsWebStatisticsAdministrator){$AS_STATS=false;}
+$NGINX_ADDED=false;
+$EVENTS_ADDED=false;
 if($SQUIDEnable==1){
 	if($users->SQUID_INSTALLED){
 		$AsSquid=true;
-		if($AllowSquid){
-			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{PROXY_SERVICE}","MessagesTopshowMessageDisplay('quicklinks_proxy');");
-			$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
-			$tr[]=BuildIcons("eye-32-w.png","eye-32-w.png","{events}","LoadAjax('BodyContent','squid.eye.php');");
-			$action=true;
-			if($users->KAV4PROXY_INSTALLED){
-				$tr[]=BuildIcons("Kaspersky-32-white.png","Kaspersky-32-white.png","{APP_KAV4PROXY}","LoadAjax('BodyContent','kav4proxy.php?inline=yes');");
-			}
-		}
-	}
-
-
-
-
-}
-
-if($SQUIDEnable==0){
-	if($users->NGINX_INSTALLED){
-		if($EnableNginx==1){
-			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","Reverse Proxy","AnimateDiv('BodyContent');LoadAjax('BodyContent','nginx.main.php');");
+		
+		if(AsSquidPersonalCategoriesOnly()){
+			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{your_categories}","GotoYourcategories();");
 			
 		}
 		
+		
+		if($AllowSquid){
+			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{your_proxy}","LoadMainDashProxy();");
+			
+			if($EnableNginx==1){
+				if($users->NGINX_INSTALLED){
+					if($users->AsWebMaster){
+						$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","Reverse Proxy","GotoReverseProxy();");
+						$NGINX_ADDED=true;
+					}
+			
+				}
+			}
+			
+			$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
+			
+			$action=true;
+		}
+		
+		if($users->AsWebStatisticsAdministrator){
+			$tr[]=BuildIcons("eye-32-w.png","eye-32-w.png","{events}","GotoMainLogs()");
+			$EVENTS_ADDED=true;
+			
+		}
+	}
+}
+if(!$NGINX_ADDED){
+	if($EnableNginx==1){
+		if($users->NGINX_INSTALLED){
+			if($users->AsWebMaster){
+				$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","Reverse Proxy","GotoReverseProxy();");
+				$NGINX_ADDED=true;
+			}
+				
+		}
+	}
+}
+
+
+if($AS_STATS){
+	$tr[]=BuildIcons("statistics-32-white.png","statistics-32-white.png","{statistics}","MessagesTopshowMessageDisplay('quicklinks_statistics_options');");
+	if(!$EVENTS_ADDED){
+		if($users->AsWebStatisticsAdministrator){
+			$tr[]=BuildIcons("eye-32-w.png","eye-32-w.png","{events}","GotoMainLogs()");
+		}
+	}
+	
+}
+
+
+if($SQUIDEnable==0){
 		if($AsCategoriesAppliance==1){
 			$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{APP_UFDBCAT}","AnimateDiv('BodyContent');
 					LoadAjax('BodyContent','ufdbcat.php');");
@@ -82,20 +144,16 @@ if($SQUIDEnable==0){
 		}
 	}
 	
-}
+
 
 
 if($users->POSTFIX_INSTALLED){
 	$postfixadded=true;
-	$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","MessagesTopshowMessageDisplay('quicklinks_postfix');");
-	$tr[]=BuildIcons("mail-secu-32.png","mail-secu-32.png","{security}","MessagesTopshowMessageDisplay('quicklinks_postfix_secu');");
+	$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","GoToMessaging();");
+	$tr[]=BuildIcons("eye-32-w.png","eye-32-w.png","{events}","GotoPostfixMainLogs()");
+	//$tr[]=BuildIcons("mail-secu-32.png","mail-secu-32.png","{security}","MessagesTopshowMessageDisplay('quicklinks_postfix_secu');");
 }
 
-if($ActAsSMTPGatewayStatistics==1){
-	if(!$postfixadded){
-		$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","MessagesTopshowMessageDisplay('quicklinks_postfix');");
-	}
-}
 
 
 if(!$users->AsArticaAdministrator){
@@ -114,11 +172,8 @@ if(!$action){
 				
 				
 if($users->AsSystemAdministrator){
-	$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));
-	if($hostname==null){$hostname=$users->hostname;}
-	$x=explode(".",$hostname);
-	$netbiosname=$x[0];
-	$tr[]=BuildIcons("top-48-mycomp-tr.png","top-48-mycomp.png",$netbiosname,"MessagesTopshowMessageDisplay('quicklinks_section_server')");
+	$tr[]=BuildIcons("top-48-mycomp-tr.png","top-48-mycomp.png","{system}",
+			"GoToSystem()");
 	//$tr[]=BuildIcons("32-settings-white-tr.png","32-settings-white.png","{advanced_options}","Loadjs('admin.left.php?old-menu=yes')");
 	//$tr[]=BuildIcons("32-cd-scan-white-tr.png","32-cd-scan-white.png","{install_upgrade_new_softwares}","Loadjs('setup.index.php?js=yes')");
 	//$tr[]=BuildIcons("services-32-white-tr.png","services-32-white.png","{display_running_services}","Loadjs('admin.index.services.status.php?js=yes')");
@@ -130,7 +185,20 @@ if($users->AsArticaMetaAdmin){
 		$ProductName="Artica";
 		$ProductNamef=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/ProducName.conf";
 		if(is_file($ProductNamef)){$ProductName=trim(@file_get_contents($ProductNamef));}
-		$tr[]=BuildIcons("management-console-32.png","management-console-32.png","$ProductName Meta","LoadAjax('BodyContent','artica-meta.start.php');");
+		$tr[]=BuildIcons("management-console-32.png","management-console-32.png","$ProductName Meta","GoToMeta();");
+	}
+}
+
+
+if($users->AsSystemAdministrator){
+	$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+	if($EnableArticaHotSpot==0){
+		if(intval($sock->getFrameWork("firehol.php?is-installed=yes"))==1){
+			$FireHolConfigured=intval($sock->GET_INFO("FireHolConfigured"));
+			if($FireHolConfigured==1){
+				$tr[]=BuildIcons("firewall-32-white.png","firewall-32-white.png","FireWall","GotoFirewall()");
+			}
+		}
 	}
 }
 				
@@ -162,14 +230,19 @@ if(!$AsSquid){
 
 }
 
-				
-if($users->AsSystemAdministrator){
-	$tr[]=BuildIcons("network-white-32.png","network-white-32.png","{networks}","MessagesTopshowMessageDisplay('quicklinks_section_networks');");
-}
 
 if($_SESSION["uid"]<>null){
 	if($users->AsAnAdministratorGeneric){
-		$tr[]=BuildIcons("users-white-32.png","users-white-32.png","{members}","MessagesTopshowMessageDisplay('quicklinks_members');");
+		$ldap=new clladp();
+		if($ldap->IsKerbAuth()){
+			$tr[]=BuildIcons("windows-white-32.png","windows-white-32.png","AD {members}","GotoMembersSearch()");
+		}else{
+			if($EnableIntelCeleron==0){
+				$tr[]=BuildIcons("users-white-32.png","users-white-32.png","{local_members}","GotoMembersSearch()");
+			}
+		}
+		
+		$tr[]=BuildIcons("members-settings-32-white.png","members-settings-32-white.png","{members_settings}","MessagesTopshowMessageDisplay('quicklinks_members');");
 	}
 }
 
@@ -238,6 +311,20 @@ $html[]= "</tr></table>
 ";
 $datas=@implode("\n", $html);
 echo $datas;
+
+
+function AsSquidPersonalCategoriesOnly(){
+	if($_SESSION["uid"]==-100){return false;}
+	$users=new usersMenus();
+	if($users->AsAnAdministratorGeneric){return false;}
+	if($users->AsWebStatisticsAdministrator){return false;}
+	if($users->AsSquidAdministrator){return false;}
+	if($users->AsDansGuardianAdministrator){return false;}
+	if($users->AsSystemAdministrator){return false;}
+	if($users->AsProxyMonitor){return false;}
+	if($users->AsSquidPersonalCategories){return true;}
+}
+
 
 function update_white_32_tr(){
 	
@@ -371,7 +458,7 @@ function account_identity(){
 	$uid=$_SESSION["uid"];
 	if($_SESSION["uid"]==-100){
 		$uid=$ldap->ldap_admin;
-		
+		if($uid==null){$uid="Manager";}
 	}
 	
 	if($uid==null){

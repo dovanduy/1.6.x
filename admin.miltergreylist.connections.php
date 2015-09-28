@@ -16,6 +16,7 @@
 	
 	
 	if(isset($_GET["today"])){page();exit;}
+	if(isset($_GET["NOW"])){page(true);exit;}
 	if(isset($_GET["month"])){page_month();exit;}
 	if(isset($_GET["hier"])){page_hier();exit;}
 
@@ -36,6 +37,10 @@ function tabs(){
 	
 	$table_month="mgreym_".date("Ym");
 	$table_hier=$table="mgreym_".date("Ymd",$hier);
+	
+	if($q->TABLE_EXISTS("MGREY_RTT")){
+		$array["NOW"]='{this_hour}';
+	}
 	
 	$array["today"]='{today}';
 	if($q->TABLE_EXISTS($table_month)){
@@ -274,9 +279,11 @@ function page_hier(){
 
 
 
-function page(){
+function page($NOW=false){
 	
 $table="mgreyd_".date("Ymd");
+
+if($NOW){$NOW_Q="&now=yes";$table="MGREY_RTT";}
 	
 	$t=time();
 	$page=CurrentPageName();
@@ -326,7 +333,7 @@ $table="mgreyd_".date("Ymd");
 	var memid$t='';
 	$(document).ready(function(){
 	$('#flexRT$t').flexigrid({
-	url: '$page?list-table=yes&hostname=$hostname&ou={$_GET["ou"]}&t=$t',
+	url: '$page?list-table=yes&hostname=$hostname&ou={$_GET["ou"]}&t=$t{$NOW_Q}',
 	dataType: 'json',
 	colModel : [
 	
@@ -495,7 +502,7 @@ function list_month(){
 }
 
 function list_table(){
-
+	$Now=false;
 	$MyPage=CurrentPageName();
 	$page=1;
 	$tpl=new templates();
@@ -505,6 +512,11 @@ function list_table(){
 	if(isset($_GET["hier"])){
 		$hier=strtotime($q->HIER()." 00:00:00");
 		$table="mgreyd_".date("Ymd",$hier);
+	}
+	
+	if(isset($_GET["now"])){
+		$Now=true;
+		$table="MGREY_RTT";
 	}
 	
 	
@@ -582,9 +594,14 @@ function list_table(){
 			$style="background-color:#DD1212;color:#FFFFFF;margin:-5px;padding:5px;font-weight:bold;text-transform:capitalize;font-size:14px;";
 		}		
 		
+		if($Now){$ligne["hits"]=1;}
+		$text_hour="{$ligne["zhour"]}h";
+		if($Now){$text_hour=date("H:i:s",strtotime($ligne["ztime"]));}
+		
+		
 		$md=md5(serialize($ligne));
 		$cells=array();
-		$cells[]="<span style='font-size:14px;'>{$ligne["zhour"]}h</span>";
+		$cells[]="<span style='font-size:14px;'>$text_hour</span>";
 		$cells[]="<span style='font-size:14px;'>{$ligne["hits"]}</span>";
 		$cells[]="<span style='font-size:14px;'>{$ligne["senderhost"]}</span>";
 		$cells[]="<span style='font-size:14px;'>{$ligne["mailfrom"]}</span>";

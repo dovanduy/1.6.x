@@ -20,7 +20,7 @@ function js(){
 	$tpl=new templates();
 	$title="IPv6";
 	
-	echo "YahooWin3(550,'$page?popup=yes','$title')";
+	echo "YahooWin3(900,'$page?popup=yes','$title')";
 	
 	
 	
@@ -40,12 +40,12 @@ function popup(){
 	<div id='EnableipV6Div'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' width=1%><img src='img/ipv6-128.png'></td>
+		
 		<td valign='top'>
 			<div style='width:98%' class=form>
-			". Paragraphe_switch_img("{enable_ipv6}", "{enable_ipv6_text}","EnableipV6",$EnableipV6,null,350).
+			". Paragraphe_switch_img("{enable_ipv6}", "{enable_ipv6_text}","EnableipV6",$EnableipV6,null,850).
 			"<hr>
-			<div style='text-align:right'>". button("{apply}","EnableipV6Save()","18px")."</div>
+			<div style='text-align:right'>". button("{apply}","EnableipV6Save()","32")."</div>
 			</div>
 		</td>
 	</tr>

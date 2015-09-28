@@ -13,8 +13,36 @@ function create_package_squid($t){
 	shell_exec("tar -xf /tmp/anthony-icons.tar.gz -C /usr/share/squid3/icons/");
 	shell_exec("/bin/chown -R squid:squid /usr/share/squid3/icons/");
 	echo "Removing /root/squid-builder\n";
+	
+	if(is_file("/root/hypercache/64bits/hypercache-plugin")){
+		@unlink("/lib/squid3/hypercache-plugin");
+		@copy("/root/hypercache/64bits/hypercache-plugin", "/lib/squid3/hypercache-plugin");
+		@chmod("/lib/squid3/hypercache-plugin", 0755);
+	}
+	
+	@unlink("/etc/squid3/squid.conf");
+	@unlink("/etc/squid3/acls_center.conf");
+	@unlink("/etc/squid3/ChildsProxy.conf");
+	@unlink("/etc/squid3/external_acls.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_auth.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_deny.conf");
+	@unlink("/etc/squid3/icap.conf");
+	@unlink("/etc/squid3/mime.conf");
+	@unlink("/etc/squid3/ufdbGuard.conf");
+	@unlink("/etc/squid3/wccp.conf");
+	@unlink("/etc/squid3/cachemgr.conf");
+	@unlink("/etc/squid3/dangerous_extensions.conf");
+	@unlink("/etc/squid3/freewebs.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_deny_cache.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_url_rewrite.conf");
+	@unlink("/etc/squid3/listen_ports.conf");
+	@unlink("/etc/squid3/refresh_patterns.conf");
+	@unlink("/etc/squid3/ssl.conf");
+	@unlink("/etc/squid3/url_rewrite_access.conf");
+	
 	sleep(1);
 	shell_exec("/bin/rm -rf /root/squid-builder");
+	@unlink("/etc/squid3/squid.conf");
 	mkdir("/root/squid-builder/usr/share/squid3",0755,true);
 	mkdir("/root/squid-builder/usr/lib",0755,true);
 	mkdir("/root/squid-builder/usr/lib32",0755,true);
@@ -30,6 +58,7 @@ function create_package_squid($t){
 	mkdir("/root/squid-builder/usr/share/nmap",0755,true);
 	mkdir("/root/squid-builder/usr/share/squid27",0755,true);
 	mkdir("/root/squid-builder/usr/share/man/man8",0755,true);
+	mkdir("/root/squid-builder/usr/share/perl5",0755,true);
 	mkdir("/root/squid-builder/usr/lib/squid27",0755,true);
 	mkdir("/root/squid-builder/etc/squid27",0755,true);
 	mkdir("/root/squid-builder/etc/streamcache",0755,true);
@@ -40,19 +69,20 @@ function create_package_squid($t){
 	mkdir("/root/squid-builder/usr/share/man/man1",0755,true);
 	mkdir("/root/squid-builder/usr/lib/c_icap",0755,true);
 	mkdir("/root/squid-builder/opt/ufdbcat",0755,true);
+	mkdir("/root/squid-builder/usr/local/sbin",0755,true);
 
-	shell_exec("$cp -rf /usr/share/squid3/* /root/squid-builder/usr/share/squid3/");
-	shell_exec("$cp -rf /etc/squid3/* /root/squid-builder/etc/squid3/");
-	shell_exec("$cp -rf /lib/squid3/* /root/squid-builder/lib/squid3/");
-	shell_exec("$cp -rf /usr/share/squid-langpack/* /root/squid-builder/usr/share/squid-langpack/");
-	shell_exec("$cp -rf /usr/sbin/squid /root/squid-builder/usr/sbin/squid");
-	shell_exec("$cp -rf /usr/bin/purge /root/squid-builder/usr/bin/purge");
-	shell_exec("$cp -rf /usr/bin/squidclient /root/squid-builder/usr/bin/squidclient");
-	shell_exec("$cp -rf /usr/bin/mysar /root/squid-builder/usr/bin/mysar");
-	shell_exec("$cp -rf /usr/sbin/vnstatd /root/squid-builder/usr/sbin/vnstatd");
-	shell_exec("$cp -rf /usr/bin/pactester /root/squid-builder/usr/bin/pactester");
-	shell_exec("$cp -rf /usr/lib/libpacparser.so.1 /root/squid-builder/usr/lib/libpacparser.so.1");
-	shell_exec("$cp -rf /usr/share/sarg/images/* /root/squid-builder/usr/share/sarg/images/");
+	shell_exec("$cp -rfd /usr/share/squid3/* /root/squid-builder/usr/share/squid3/");
+	shell_exec("$cp -rfd /etc/squid3/* /root/squid-builder/etc/squid3/");
+	shell_exec("$cp -rfd /lib/squid3/* /root/squid-builder/lib/squid3/");
+	shell_exec("$cp -rfd /usr/share/squid-langpack/* /root/squid-builder/usr/share/squid-langpack/");
+	shell_exec("$cp -rfd /usr/sbin/squid /root/squid-builder/usr/sbin/squid");
+	shell_exec("$cp -rfd /usr/bin/purge /root/squid-builder/usr/bin/purge");
+	shell_exec("$cp -rfd /usr/bin/squidclient /root/squid-builder/usr/bin/squidclient");
+	shell_exec("$cp -rfd /usr/bin/mysar /root/squid-builder/usr/bin/mysar");
+	shell_exec("$cp -rfd /usr/sbin/vnstatd /root/squid-builder/usr/sbin/vnstatd");
+	shell_exec("$cp -rfd /usr/bin/pactester /root/squid-builder/usr/bin/pactester");
+	shell_exec("$cp -rfd /usr/lib/libpacparser.so.1 /root/squid-builder/usr/lib/libpacparser.so.1");
+	shell_exec("$cp -rfd /usr/share/sarg/images/* /root/squid-builder/usr/share/sarg/images/");
 	shell_exec("$cp -rfd /opt/kaspersky/﻿KasperskyUpdateUtility/* /root/squid-builder/opt/kaspersky/﻿KasperskyUpdateUtility/");
 
 	shell_exec("$cp -fd /usr/bin/nping /root/squid-builder/usr/bin/");
@@ -70,6 +100,9 @@ function create_package_squid($t){
 	shell_exec("$cp -fd /usr/share/nmap/nmap-services /root/squid-builder/usr/bin/");
 	shell_exec("$cp -fd /usr/share/nmap/nmap.xsl /root/squid-builder/usr/bin/");
 	shell_exec("$cp -fd /usr/share/nmap/nse_main.lua /root/squid-builder/usr/bin/");
+	
+	//shell_exec("$cp -fd /usr/local/sbin/haproxy /root/squid-builder/usr/local/sbin/haproxy");
+	//shell_exec("$cp -fd /usr/local/sbin/haproxy-systemd-wrapper /root/squid-builder/usr/local/sbin/haproxy-systemd-wrapper");
 	shell_exec("$cp -rfd /usr/share/nmap/* /root/squid-builder/usr/share/nmap/");
 
 	shell_exec("$cp -rfd /usr/include/libecap/common/* /root/squid-builder/usr/include/libecap/common/");
@@ -77,17 +110,28 @@ function create_package_squid($t){
 	shell_exec("$cp -rfd /usr/include/libecap/host/* /root/squid-builder/usr/include/libecap/host/");
 	shell_exec("$cp -rfd /usr/include/jasper/* /root/squid-builder/usr/include/jasper/");
 
-	shell_exec("$cp -fd /usr/lib/libecap.so.2.0.0 /root/squid-builder/usr/lib/libecap.so.2.0.0");
-	shell_exec("$cp -fd /usr/lib/libecap.so.2 /root/squid-builder/usr/lib/libecap.so.2");
+	//shell_exec("$cp -fd /usr/lib/libecap.so.2.0.0 /root/squid-builder/usr/lib/libecap.so.2.0.0");
+	//shell_exec("$cp -fd /usr/lib/libecap.so.2 /root/squid-builder/usr/lib/libecap.so.2");
+
+	shell_exec("$cp -fd /usr/lib/libecap.so.3.0.0 /root/squid-builder/usr/lib/libecap.so.3.0.0");
+	shell_exec("$cp -fd /usr/lib/libecap.so.3 /root/squid-builder/usr/lib/libecap.so.3");
 	shell_exec("$cp -fd /usr/lib/libecap.so /root/squid-builder/usr/lib/libecap.so");
 	shell_exec("$cp -fd /usr/lib/libecap.la /root/squid-builder/usr/lib/libecap.la");
+	
+	shell_exec("$cp -fd /usr/lib/ecap_clamav_adapter.so /root/squid-builder/usr/lib/ecap_clamav_adapter.so");
+	shell_exec("$cp -fd /usr/lib/ecap_clamav_adapter.la /root/squid-builder/usr/lib/ecap_clamav_adapter.la");
+	shell_exec("$cp -fd /usr/lib/ecap_clamav_adapter.a /root/squid-builder/usr/lib/ecap_clamav_adapter.a");
+	
+	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.so /root/squid-builder/usr/lib/ecap_adapter_gzip.so");
+	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.la /root/squid-builder/usr/lib/ecap_adapter_gzip.la");
+	shell_exec("$cp -fd /usr/lib/ecap_adapter_gzip.a /root/squid-builder/usr/lib/ecap_adapter_gzip.a");
 
 	shell_exec("$cp -fd /usr/lib/libgif.so.6.0.1 /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/libgif.so.6 /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/libgif.so /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/libgif.la /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/libgif.a /root/squid-builder/usr/lib/");
-
+	shell_exec("$cp -fd /root/wanproxy/programs/wanproxy/wanproxy /root/squid-builder/usr/bin/wanproxy");
 	shell_exec("$cp -fd /usr/include/gif_lib.h /root/squid-builder/usr/include/");
 	shell_exec("$cp -fd /usr/lib/libgif.a /root/squid-builder/usr/lib/");
 	shell_exec("$cp -fd /usr/lib/libgif.la /root/squid-builder/usr/lib/");
@@ -123,7 +167,9 @@ function create_package_squid($t){
 	shell_exec("$cp -fd /etc/miniupnpd/netfilter/ip6tables_removeall.sh /root/squid-builder/etc/miniupnpd/netfilter/");
 	shell_exec("$cp -fd /etc/miniupnpd/miniupnpd.conf /root/squid-builder/etc/miniupnpd/");
 	shell_exec("$cp -fd /usr/share/man/man8/miniupnpd.8 /root/squid-builder/usr/share/man/man8/");
-
+	shell_exec("$cp -fd /usr/share/perl5/SquidAnalyzer.pm /root/squid-builder/usr/share/perl5/SquidAnalyzer.pm");
+	
+	
 	
 	shell_exec("$cp -rfd /usr/lib/c_icap/* /root/squid-builder/usr/lib/c_icap/");
 	shell_exec("$cp -rfd /usr/share/squid27/* /root/squid-builder/usr/share/squid27/");
@@ -154,7 +200,8 @@ function create_package_squid($t){
 	//$f[]="/usr/lib/libicapapi.so.3.0.1";
 	//$f[]="/usr/lib/libicapapi.so.3.0.2";
 	//$f[]="/usr/lib/libicapapi.so.3.0.3";
-	$f[]="/usr/lib/libicapapi.so.3.0.4";
+	//$f[]="/usr/lib/libicapapi.so.3.0.4";
+	$f[]="/usr/lib/libicapapi.so.3.0.5";
 	$f[]="/usr/lib/libicapapi.so.3";
 	$f[]="/usr/bin/ufdbguardd";
 	$f[]="/usr/bin/ufdbgclient";
@@ -207,6 +254,8 @@ function create_package_squid($t){
 	$f[]="/var/lib/ss5";
 	$f[]="/usr/sbin/ss5";
 	$f[]="/usr/sbin/ss5srv";
+	$f[]="/usr/local/bin/krake";
+	$f[]="/usr/bin/squid-analyzer";
 
 	//  mkdir -p /var/spool/squid27/cache && mkdir /var/spool/squid27/logs && chown -R nobody:nobody /var/spool/squid27 && squid27 -z
 	// pour démarer squid27 : /usr/sbin/squid27
@@ -249,6 +298,26 @@ function create_package_squid($t){
 	*/
 
 	//ldconfig -n /usr/lib/conntrack-tools
+	
+	@unlink("/etc/squid3/squid.conf");
+	@unlink("/etc/squid3/acls_center.conf");
+	@unlink("/etc/squid3/ChildsProxy.conf");
+	@unlink("/etc/squid3/external_acls.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_auth.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_deny.conf");
+	@unlink("/etc/squid3/icap.conf");
+	@unlink("/etc/squid3/mime.conf");
+	@unlink("/etc/squid3/ufdbGuard.conf");
+	@unlink("/etc/squid3/wccp.conf");
+	@unlink("/etc/squid3/cachemgr.conf");
+	@unlink("/etc/squid3/dangerous_extensions.conf");
+	@unlink("/etc/squid3/freewebs.conf");	 
+	@unlink("/etc/squid3/GlobalAccessManager_deny_cache.conf");
+	@unlink("/etc/squid3/GlobalAccessManager_url_rewrite.conf");
+	@unlink("/etc/squid3/listen_ports.conf");
+	@unlink("/etc/squid3/refresh_patterns.conf");
+	@unlink("/etc/squid3/ssl.conf");
+	@unlink("/etc/squid3/url_rewrite_access.conf");
 
 	while (list ($num, $ligne) = each ($f) ){
 		if(is_dir($ligne)){
@@ -355,8 +424,12 @@ function c_icap_array(){
 	//$f[]="/usr/lib/libicapapi.so.3.0.1";
 	//$f[]="/usr/lib/libicapapi.so.3.0.2";
 	//$f[]="/usr/lib/libicapapi.so.3.0.3";
-	$f[]="/usr/lib/libicapapi.so.3.0.4";
-	$f[]="/usr/lib/libicapapi.so.3";
+	//$f[]="/usr/lib/libicapapi.so.3.0.4";
+	//$f[]="/usr/lib/libicapapi.so.3";
+	
+	$f[]="/usr/lib/libicapapi.so.4.0.1";
+	$f[]="/usr/lib/libicapapi.so.4";
+	
 	$f[]="/usr/share/c_icap/templates/srv_content_filtering/en/BLOCK";
 	$f[]="/usr/share/c_icap/templates/srv_url_check/en/DENY";
 	$f[]="/usr/share/c_icap/templates/virus_scan/en/VIR_MODE_HEAD";

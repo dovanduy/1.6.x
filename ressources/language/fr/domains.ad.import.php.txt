@@ -7,7 +7,7 @@
 <cls>Ne pouvait pas &ecirc;tre lier au serveur d'Annuaire Active Directory.</cls>
 <connected>Connexion r&eacute;ussie</connected>
 <err_unkown>Avertissement si incapable d'ouvrir une session</err_unkown>
-<failed>&Eacute;chec</failed>
+<failed>%C3%89chec de l'op&eacute;ration</failed>
 <iar>Droits d'acc&egrave;s insuffisants.</iar>
 <importation_completed>T&acirc;che d'importation achev&eacute;e</importation_completed>
 <import_ad_title>Importation de Membres Active Directory</import_ad_title>

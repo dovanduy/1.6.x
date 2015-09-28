@@ -262,7 +262,7 @@ function enable_form(){
 	$EnableIpBlocks,null,350);
 	
 	$html="
-	<div class=text-info style='font-size:14px',>{ipblocks_explain}</div>
+	<div class=explain style='font-size:14px',>{ipblocks_explain}</div>
 	<div id='EnableIpBlocksDiv' class=form style='width:95%'>
 		$p
 	

@@ -118,6 +118,17 @@ function LinkAddAclItem(){
 var x_LinkAclRuleGpid{$_GET["aclid"]}= function (obj) {
 	var res=obj.responseText;
 	if(res.length>3){alert(res);return;}
+	
+	if(document.getElementById('GLOBAL_SSL_CENTER_ID')){
+		$('#'+document.getElementById('GLOBAL_SSL_CENTER_ID').value).flexReload();
+	}
+	if(document.getElementById('SSL_RULES_GROUPS_ID')){
+		
+		$('#'+document.getElementById('SSL_RULES_GROUPS_ID').value).flexReload();
+	}	
+	
+	
+	
 	$('#table-items-$t').flexReload();
 	$('#table-$t').flexReload();
 	ExecuteByClassName('SearchFunction');

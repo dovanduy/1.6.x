@@ -62,7 +62,7 @@ function enable_feature(){
 function about(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:16px'>{samba_virtual_explain}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{samba_virtual_explain}</div>");
 }
 
 

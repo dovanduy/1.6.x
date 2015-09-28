@@ -58,22 +58,16 @@ function restart(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/exec.monit.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/exec.monit.progress.txt";
 
-	$cmd="$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &";
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec($cmd);
-	
-	if(isset($_GET["enabled"])){
-		if($_GET["enabled"]==0){
-			$cmd="$nohup /etc/init.d/apache2 restart >/dev/null 2>&1 &";
-			shell_exec($cmd);
-			$cmd="$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &";
-			shell_exec($cmd);		
-			$cmd="$nohup /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &";
-			shell_exec($cmd);				
-		}
-	}
-	
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	system("$nohup $php5 /usr/share/artica-postfix/exec.monit.php --restart >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 }
 
 function delete_cache(){

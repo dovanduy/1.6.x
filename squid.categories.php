@@ -761,7 +761,7 @@ function MoveCategory_popup(){
 	
 	$html="
 	<div id='move-category-div'>
-	<div class=text-info>{move_category_explain}</div>
+	<div class=explain>{move_category_explain}</div>
 	<table style='width:99%' class=form>
 		<tbody>
 			<tr>
@@ -1059,7 +1059,7 @@ function test_category_perform(){
 		
 	}
 	$found=$tpl->_ENGINE_parse_body("{found}");
-	echo "<div style='width:95%:padding-left:50px;padding-top:20px' class=text-info><div style='font-size:18px'>$found</div><table>".@implode("\n", $categoryText)."</table></div>";
+	echo "<div style='width:95%:padding-left:50px;padding-top:20px' class=explain><div style='font-size:18px'>$found</div><table>".@implode("\n", $categoryText)."</table></div>";
 	
 }
 

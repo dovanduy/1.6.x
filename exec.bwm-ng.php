@@ -1,4 +1,5 @@
 <?php
+die(); // disabled on 2015-02-14
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;

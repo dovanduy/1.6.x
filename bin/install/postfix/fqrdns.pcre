@@ -1,14 +1,16 @@
 # Postfix PCRE bot spam killer
 # 
-# Updated 3/26/2012
+# Updated 8/2/2015
 #
 # The following set of regular expressions attempt to stop bot spam connections
 # by matching the FQrDNS name of the sending IP against known consumerish rDNS
 # patterns or other rDNS patterns likely to be sources of bot spam and not legit  
 # email.  This methodology is not without error, but time has proven it to be very
 # accurate.  If it blocks a sender you know to be legit and from whom you need to 
-# receive mail I recommend whitelisting that source instead of removing a PCRE below
-# as a means to solve the problem.
+# receive mail I recommend whitelisting that source instead of removing an expression
+# below as a means to solve the problem.  The expressions are POSIX regular
+# expressions and can be used with either the PCRE or REGEXP table type.  The PCRE
+# engine is typically faster. 
 # 
 # This file is provided AS IS with no WARRANTY.  It is free software, without attribute
 # or copyright, and without license.  As such, you are completely free to use it 
@@ -19,7 +21,7 @@
 # Save this file as /etc/postfix/fqrdns.pcre
 # Add to main.cf
 #
-# smtpd_client_restrictions
+# smtpd_client_restrictions =
 #	...
 #	check_reverse_client_hostname_access pcre:/etc/postfix/fqrdns.pcre
 # 	...
@@ -31,7 +33,7 @@
 # use the "everything under smtp_recipient_restrictions" style of main.cf add this
 # toward the very top of your restrictions list, with your IP whitelist first, such as:
 #
-# smtpd_recipient_restrictions
+# smtpd_recipient_restrictions =
 #	permit_mynetworks
 #	permit_sasl_authenticated
 #	reject_unauth_destination
@@ -51,8 +53,13 @@
 /^([0-9]{1,3}\.){3}[0-9]{1,3}$/         DUNNO
 
 #+++++ dynamic.regexp +++++
-if /[0-9]{4}|[0-9]+[^0-9]+[0-9]+|dhcp|dynamic|pppoe/
-if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp/
+if /[0-9]{4}|[0-9]+[^0-9]+[0-9]+|dhcp|dynamic|pppoe|wireless/
+if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp|wireless/
+/^out-[a-z]{2}-[12]?[0-9]{1,2}\.wireless\.telus\.com$/	REJECT	Dynamic - Please relay via ISP (telus.com)
+/^host[0-9]{1,3}-[0-9]{1,3}-dynamic\.[0-9]{1,3}-[0-9]{1,2}-r\.retail\.telecomitalia\.it$/	REJECT  Dynamic - Please relay via ISP (telecomitalia.it)
+/^adsl\.viettel\.vn$/					REJECT  Dynamic - Please relay via ISP (vietel.com.vn)
+/^([0-9]{1,3}-){3}[0-9]{1,3}\.pool\.nctc\.com$/		REJECT  Dynamic - Please relay via ISP (nctc.com)
+/^([0-9]{1,3}-){2}pool\.dsl\.gol\.net\.gy$/		REJECT  Dynamic - Please relay via ISP (gol.net.gy)
 /^host-[-.0-9]+\.cable\.dynamic\.kbtelecom\.net$/	REJECT  Dynamic - Please relay via ISP (kbtelecom.net)
 /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.dynamic\.isp\.telekom\.rs$/ REJECT Dynamic - Please relay via ISP (telekom.rs)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.dynamic\.isp\.telekom\.rs$/	REJECT  Dynamic - Please relay via ISP (telekom.rs)
@@ -71,6 +78,7 @@ if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp/
 /^([12]?[0-9]{1,2}-){3}[0-9]{1,3}-dhcp.[a-z]{2,5}\.[a-z]{2}\.atlanticbb\.net/	REJECT	Dynamic - Please relay via ISP (atlanticbb.net)
 /^ppp([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.pppoe\.avangarddsl\.ru$/	REJECT	Dynamic - Please relay via ISP (avangarddsl.ru)
 /^([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.dynamic\.avangarddsl\.ru$/	REJECT	Dynamic - Please relay via ISP (avangarddsl.ru)
+/^pppoe\.([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.dynamic\.avangarddsl\.ru$/      REJECT  Dynamic - Please relay via ISP (avangarddsl.ru)
 /\.dynamic\.barak-online\.net$/		REJECT	Dynamic - Please relay via ISP (barak-online.net)
 /^([12]?[0-9]{1,2}\.){4}biu-dynamic\.barak-online\.net$/	REJECT	Dynamic - Please relay via ISP (barak-online.net)
 /^[a-z][12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.dyn\.bashtel\.ru$/	REJECT	Dynamic - Please relay via ISP (bashtel.ru)
@@ -147,6 +155,7 @@ if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp/
 /^([12]?[0-9]{1,2}\.){4}dynamic\.(adsl|dialup)\.gvt\.net\.br$/		REJECT	Dynamic - Please relay via ISP (gvt.net.br)
 /^([12]?[0-9]{1,2}\.){4}dyn-cm-pool[0-9]{1,3}\.pool\.hargray\.net$/	REJECT	Dynamic - Please relay via ISP (hargray.net)
 /\.dynamic\.hinet\.net$/		REJECT	Dynamic - Please relay via ISP (hinet.net)
+/\.dynamic-ip\.hinet\.net$/             REJECT  Dynamic - Please relay via ISP (hinet.net)
 /\.dynamic\.i-san\.net$/		REJECT	Dynamic - Please relay via ISP (i-san.net)
 /^ip(-[12]?[0-9]{1,2}){4}\.dialup\.ice\.no$/	REJECT	Dynamic - Please relay via ISP (ice.no)
 /\.dyn\.idknet\.com$/			REJECT	Dynamic - Please relay via ISP (idknet.com)
@@ -272,15 +281,13 @@ if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp/
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){2}\.dial\.terra\.cl$/	REJECT	Dynamic - Please relay via ISP (terra.cl)
 /\.(dynamic|dhcp)\.tfn\.net\.tw$/	REJECT	Dynamic - Please relay via ISP (tfn.net.tw)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){2}\.adsl\.din\.tie\.cl$/	REJECT	Dynamic - Please relay via ISP (tie.cl)
-/^dyn(-[12]?[0-9]{1,2}){4}\.ppp\.tiscali\.fr$/	REJECT	Dynamic - Please relay via ISP (tiscali.fr)
-/^ppp(-[12]?[0-9]{1,2}){4}\.dialup\.tiscali\.it$/	REJECT	Dynamic - Please relay via ISP (tiscali.it)
-/^dynamic-adsl(-[12]?[0-9]{1,2}){4}\.clienti\.tiscali\.it$/	REJECT	Dynamic - Please relay via ISP (tiscali.it)
 /^host-[12]?[0-9]{1,2}\.[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){2}\.dynamic\.totalbb\.net\.tw$/	REJECT	Dynamic - Please relay via ISP (totalbb.net.tw)
 /^([12]?[0-9]{1,2}\.){4}adsl\.dynamic\.totbb\.net$/	REJECT	Dynamic - Please relay via ISP (totbb.net)
 /\.dhcp\.adsl\.tpnet\.pl$/		REJECT	Dynamic - Please relay via ISP (tpnet.pl)
 /^([12]?[0-9]{1,2}\.){4}dyn\.net-[0-9]\.pppoe\.[a-z]{3,8}\.tsua\.net$/	REJECT	Dynamic - Please relay via ISP (tsua.net)
 /^([12]?[0-9]{1,2}\.){4}dynamic\.ttn\.net$/	REJECT	Dynamic - Please relay via ISP (ttn.net)
 /^dsl\.dynamic[0-9]{4,12}\.ttnet\.net\.tr$/	REJECT	Dynamic - Please relay via ISP (ttnet.net.tr)
+/^78\.186\.[0-9]+\.[0-9]+\.dynamic\.ttnet\.com\.tr$/  	REJECT  Dynamic - Please relay via ISP (ttnet.com.tr) 
 /^adsl-([12]?[0-9]{1,2}\.){2}[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.dynamic\.tttmaxnet\.com$/	REJECT	Dynamic - Please relay via ISP (tttmaxnet.com)
 /^mx-ll-([12]?[0-9]{1,2}\.){2}[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.dynamic\.tttmaxnet\.com$/	REJECT	Dynamic - Please relay via ISP (tttmaxnet.com)
 /^adsl-pool-([12]?[0-9]{1,2}\.){2}[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.dynamic\.tttmaxnet\.com$/	REJECT	Dynamic - Please relay via ISP (tttmaxnet.com)
@@ -302,7 +309,7 @@ if /^doc|cable|dhcp|dial|din|dsl|dyn|pool|ppp/
 /^ppp-ekm-dsl-([12]?[0-9]{1,2}\.){4}dynamic\.vsnl\.net\.in$/	REJECT	Dynamic - Please relay via ISP (vsnl.net.in)
 /^([a-z]{3}-){2}bbcs-dynip(-[12]?[0-9]{1,2})\.vtx\.ch$/	REJECT	Dynamic - Please relay via ISP (vtx.ch)
 /^[a-z]{4}-catv-dynip(-[12]?[0-9]{1,2})\.vtx\.ch$/	REJECT	Dynamic - Please relay via ISP (vtx.ch)
-/^dyn(amic)?\.(casa|rabat)[1-3]?(-[12]?[0-9]{1,2}){4}\.wanamaroc\.com$/	REJECT	Dynamic - Please relay via ISP (wanamaroc.com)
+/^dyn(amic)?\.(casap?|rabat)[1-3]?(-[12]?[0-9]{1,2}){4}\.wanamaroc\.com$/	REJECT	Dynamic - Please relay via ISP (wanamaroc.com)
 /^[0-2]?[0-9]{2}(-[0-2][0-9]{2}){3}\-dynamic-pool-adsl\.wbt\.ru$/	REJECT	Dynamic - Please relay via ISP (wbt.ru)
 /^([12]?[0-9]{1,2}\.){4}dynamic\.cable\.websud\.ch$/	REJECT	Dynamic - Please relay via ISP (websud.ch)
 /^[a-z]([12]?[0-9]{1,2}\.){4}dynamic\.ip\.windstream\.net$/	REJECT	Dynamic - Please relay via ISP (windstream.net)
@@ -373,6 +380,7 @@ if /^stat|business\.|corp|[\.-](sta(ic)?|ded)|[\.-]fixed/
 /^stat(-[12]?[0-9]{1,2}){2}\.e-sky\.ru$/	PREPEND X-GenericStaticHELO: (e-sky.ru)
 /^host(-[12]?[0-9]{1,2}){4}\.sta\.embarqnow\.net$/	REJECT	Generic - Please relay via ISP (embarqnow.net)
 /^static(-[12]?[0-9]{1,2}){4}\.entelnet\.bo$/	PREPEND X-GenericStaticHELO: (entelnet.bo)
+/^static-adsl([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.une\.net\.co$/	PREPEND	X-GenericStaticHELO: (une.net.co)
 /^static-adsl([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.epm\.net\.co$/	PREPEND X-GenericStaticHELO: (epm.net.co)
 /^static-epm[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.epm\.net\.co$/	PREPEND X-GenericStaticHELO: (epm.net.co)
 /^static-static-adsl[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.epm\.net\.co$/	PREPEND X-GenericStaticHELO: (epm.net.co)
@@ -454,6 +462,7 @@ if /^stat|business\.|corp|[\.-](sta(ic)?|ded)|[\.-]fixed/
 /^mx-ll-([12]?[0-9]{1,2}\.){2}[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.static\.tttmaxnet\.com$/	PREPEND X-GenericStaticHELO: (tttmaxnet.com)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.static\.twtelecom\.net$/	PREPEND X-GenericStaticHELO: (twtelecom.net)
 /^static\.customer(-[12]?[0-9]{1,2}){4}\.uninet-ide\.com\.mx$/	PREPEND X-GenericStaticHELO: (uninet-ide.com.mx)
+/^customer(-[12]?[0-9]{1,2}){4}-sta\.uninet-ide\.com\.mx$/	PREPEND	X-GenericStaticHELO: (uninet-ide.com.mx)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){1,3}\.static\.vega-ua\.net$/	PREPEND X-GenericStaticHELO: (vega-ua.net)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.adsl\.sta\.[a-z]{2,12}\.velton\.ua$/	PREPEND X-GenericStaticHELO: (velton.ua)
 /^static(-[12]?[0-9]{1,2}){4}\.[a-z]{2,12}[0-9]{0,3}\.(dsl-w|east|fios)\.verizon\.net$/	PREPEND X-GenericStaticHELO: (verizon.net)
@@ -478,10 +487,8 @@ endif
 /^host([12]?[0-9]{1,2}\.){4}conversent\.net$/	REJECT	Generic - Please relay via ISP (conversent.net)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){2}\elekta\.lt$/	REJECT	Generic - Please relay via ISP (elekta.lt)
 /^adsl(-[12]?[0-9]{1,2}){4}\.eunet\.rs$/	REJECT	Generic - Please relay via ISP (eunet.rs)
-/^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.goodline\.info$/	REJECT	Generic - Please relay via ISP (goodline.info)
 /^adsl(-[12]?[0-9]{1,2}){4}\.monradsl\.monornet\.hu$/	REJECT	Generic - Please relay via ISP (monornet.hu)
 /^mobile(-[0-9]{3}){4}\.mycingular\.net$/	REJECT	Generic - Please relay via ISP (mycingular.net)
-/^broadband(-[12]?[0-9]{1,2}){4}\.nationalcablenetworks\.ru$/	REJECT	Generic - Please relay via ISP (nationalcablenetworks.ru)
 /^as42959(-[12]?[0-9]{1,2}){4}\.mol\.net\.ua$/	REJECT	Generic - Please relay via ISP (mol.net.ua)
 /^host(-[12]?[0-9]{1,2}){4}\.nettelecom\.ro$/	REJECT	Generic - Please relay via ISP (nettelecom.ro)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.serverpronto\.com$/	REJECT	Generic - Please relay via ISP (serverpronto.com)
@@ -506,6 +513,7 @@ endif
 /\.setup$/			REJECT	Generic - Please relay via ISP
 /[a-z-][0-9]+$/			REJECT	Generic - Please relay via ISP
 if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
+/^cust-.+\.adsl\.scarlet\.nl$/                  REJECT  Generic - Please relay via ISP (scarlet.nl)
 /^user(-[12]?[0-9]{1,2}){4}\.play-internet\.pl$/	REJECT	Generic - Please relay via ISP (play-internet.pl)
 /^([012]?[0-9]{1,3}){4}\.[a-z-]{4,60}\.vectranet\.pl$/	REJECT  Generic - Please relay via ISP (vectranet.pl)
 /^([12]?[0-9]{1,2}\.){3}[12]?[0-9]{1,2}\.cable\.012\.net\.il$/	REJECT	Generic - Please relay via ISP (012.net.il)
@@ -687,6 +695,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.adslgp\.cegetel\.net$/	REJECT	Generic - Please relay via ISP (cegetel.net)
 /^public-gprs[1-9][0-9]{3,5}\.centertel\.pl$/		REJECT	Generic - Please relay via ISP (centertel.pl)
 /^public[1-9][0-9]{3,5}\.xdsl\.centertel\.pl$/		REJECT	Generic - Please relay via ISP (centertel.pl)
+/^public[0-9]{1,5}\.cdma\.centertel\.pl$/	REJECT	Dynamic - Please relay via ISP (centertel.pl)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.stat\.centurytel\.net$/	REJECT	Generic - Please relay via ISP (centurytel.net)
 /^d[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){2}\.home[0-9]?\.cgocable\.net$/	REJECT	Generic - Please relay via ISP (cgocable.net)
 /^[0-9]{12}\.chello\.fr$/		REJECT	Generic - Please relay via ISP (chello.fr)
@@ -713,7 +722,6 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^user(-[12]?[0-9]{1,2}){4}\.citynetwireless\.net$/	REJECT	Generic - Please relay via ISP (citynetwireless.net)
 /^([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.citynsk\.ru$/	REJECT	Generic - Please relay via ISP (citynsk.ru)
 /^adsl-solo(-[12]?[0-9]{1,2}){4}\.claranet\.co\.uk$/	REJECT	Generic - Please relay via ISP (claranet.co.uk)
-/^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.3g\.claro\.net\.br$/	REJECT	Generic - Please relay via ISP (claro.net.br)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.3g\.claro\.net\.br$/	REJECT	Generic - Please relay via ISP (claro.net.br)
 /^([12]?[0-9]{1,2}\.){4}clarocom\.net$/	REJECT	Generic - Please relay via ISP (clarocom.net)
 /^([12]?[0-9]{1,2}\.){2}classcom\.pl$/		REJECT	Generic - Please relay via ISP (classcom.pl)
@@ -1161,6 +1169,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.multi\.net\.pk$/	REJECT	Generic - Please relay via ISP (multi.net.pk)
 /^mvx(-[12]?[0-9]{1,2}){4}\.mundivox\.com$/	REJECT	Generic - Please relay via ISP (mundivox.com)
 /^cm[0-9]{3,7}\.red([12]?[0-9]{1,2}-[12]?[0-9]{1,2})?\.mundo-r\.com$/	REJECT	Generic - Please relay via ISP (mundo-r.com)
+/^([0-9]{1,3}\.){4}dynamic\.mundo-r\.com$/	REJECT  Generic - Please relay via ISP (mundo-r.com)
 /^([12]?[0-9]{1,2}\.){4}mx-net\.cz$/	REJECT	Generic - Please relay via ISP (mx-net.cz)
 /^ab[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.mxc\.ru$/	REJECT	Generic - Please relay via ISP (mxc.ru)
 /^adsl(-[12]?[0-9]{1,2}){2}\.myt\.mu$/	REJECT	Generic - Please relay via ISP (myt.mu)
@@ -1367,7 +1376,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^([12]?[0-9]{1,2}\.){4}gervasova-tl\.rmt\.ru$/	REJECT	Generic - Please relay via ISP (rmt.ru)
 /^([12]?[0-9]{1,2}\.){4}saturn-ht\.rmt\.ru$/	REJECT	Generic - Please relay via ISP (rmt.ru)
 /^clnt([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.pppoe\.rnl\.ru$/	REJECT	Generic - Please relay via ISP (rnl.ru)
-/^([12]?[0-9]{1,2}\.){4}robi\.com\.mk$/		REJECT	Generic - Please relay via ISP (robi.com.mk
+/^([12]?[0-9]{1,2}\.){4}robi\.com\.mk$/		REJECT	Generic - Please relay via ISP (robi.com.mk)
 /^([12]?[0-9]{1,2}\.){4}adsl-[a-z]{2,4}\.net\.rol\.ru$/	REJECT	Generic - Please relay via ISP (rol.ru)
 /^client-ip(-[12]?[0-9]{1,2}){4}\.romexnet\.ro$/	REJECT	Generic - Please relay via ISP (romexnet.ro)
 /^adsl[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.romtelecom\.net$/	REJECT	Generic - Please relay via ISP (romtelecom.net)
@@ -1525,6 +1534,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^dsl(-[12]?[0-9]{1,2}){3}\.telkomadsl\.co\.za$/	REJECT	Generic - Please relay via ISP (telkomadsl.co.za)
 /^ipa([12]?[0-9]{1,2}\.){4}tellas\.gr$/	REJECT	Generic - Please relay via ISP (tellas.gr)
 /^ipa([12]?[0-9]{1,2}\.){2,3}tellas\.gr$/	REJECT	Generic - Please relay via ISP (tellas.gr)
+/^adsl-([0-9]{1,3}\.){4}tellas\.gr$/		REJECT  Generic - Please relay via ISP (tellas.gr)
 /^cust(-[12]?[0-9]{1,2}){2}\.telecall\.ru$/	REJECT	Generic - Please relay via ISP (telecall.ru)
 /^host([12]?[0-9]{1,2}\.){4}telmex\.net\.ar$/	REJECT	Generic - Please relay via ISP (telmex.net.ar)
 /^host[12]?[0-9]{1,2}\.([12]?[0-9]{1,2}-){2}[12]?[0-9]{1,2}\.telmex\.net\.ar$/		REJECT	Generic - Please relay via ISP (telmex.net.ar)
@@ -1552,6 +1562,8 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^ppp(-[12]?[0-9]{1,2}){4}\.dialup\.tiscali\.it$/	REJECT	Generic - Please relay via ISP (tiscali.it)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.b2b\.tiscali\.it$/	REJECT	Generic - Please relay via ISP (tiscali.it)
 /^[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.(dsl\.)?ip\.tiscali\.nl$/	REJECT	Generic - Please relay via ISP (tiscali.nl)
+/^dyn(-[12]?[0-9]{1,2}){4}\.ppp\.tiscali\.fr$/	REJECT	Dynamic - Please relay via ISP (tiscali.fr)
+/^dynamic-adsl(-[12]?[0-9]{1,2}){4}\.clienti\.tiscali\.it$/	REJECT	Dynamic - Please relay via ISP (tiscali.it)
 /^ppp[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.tis-dialog\.ru$/	REJECT	Generic - Please relay vis ISP (tis-dialog.ru)
 /^ipv4(-[12]?[0-9]{1,2}){4}\.tkom\.cz$/	REJECT	Generic - Please relay via ISP (tkom.cz)
 /^([12]?[0-9]{1,2}-){3}[12]?[0-9]{1,2}\.tktelekom\.pl$/	REJECT	Generic - Please relay via ISP (tktelekom.pl)
@@ -1624,6 +1636,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^haw(-[12]?[0-9]{1,2}){4}\.vel\.net$/	REJECT	Generic - Please relay via ISP (vel.net)
 /^node[12]?[0-9]{1,2}(-[12]?[0-9]{1,2}){3}\.bb\.velocitytech\.net$/	REJECT	Generic - Please relay via ISP (velocitytech.net)
 /^[0-9]{4,12}\.user\.veloxzone\.com\.br$/	REJECT	Generic - Please relay via ISP (veloxzone.com.br)
+/^([0-9]{1,3}-){3}[0-9]{1,3}\.user\.veloxzone\.com\.br$/       REJECT  Generic - Please relay via ISP (veloxzone.com.br)
 /^pool(-[12]?[0-9]{1,2}){4}\.[a-z]{2,10}[0-9]{0,4}\.(east|dsl-w|fios)\.verizon\.net$/	REJECT	Generic - Please relay via ISP (verizon.net)
 /^i[0-9a-f]{8}\.versanet\.de$/			REJECT	Generic - Please relay via ISP (versanet.de)
 /^unlabelled(-[12]?[0-9]{1,2}){4}\.versatel\.net$/	REJECT	Generic - Please relay via ISP (versatel.net)
@@ -1646,6 +1659,7 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^[12]?[0-9]{1,2}-[0-2][0-9]{2}(adsl|ppp)\.vntc\.ru$/	REJECT	Generic - Please relay via ISP (vntc.ru)
 /^([12]?[0-9]{1,2}-){4}[ux]?dsl\.vntc\.ru$/	REJECT	Generic - Please relay via ISP (vntc.ru)
 /^vc(-[12]?[0-9]{1,2}){4}\.3g\.vodacom\.co\.za$/	REJECT	Generic - Please relay via ISP (vodacom.co.za)
+/^vc-nat-gp-s(-[0-9]{1,3}){4}\.umts\.vodacom\.co\.za$/	REJECT  Generic - Please relay via ISP (vodacom.co.za)
 /^([12]?[0-9]{1,2}\.){4}rev\.vodafone\.pt$/	REJECT	Generic - Please relay via ISP (vodaphone.pt)
 /^ip\.([12]?[0-9]{1,2}\.){4}stat\.volia\.net$/	REJECT	Generic - Please relay via ISP (volia.net)
 /^shpd(-[12]?[0-9]{1,2}){4}\.vologda\.ru$/	REJECT	Generic - Please relay via ISP (vologda.ru)
@@ -1663,7 +1677,10 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^pc(-[12]?[0-9]{1,2}){4}\.cm\.vtr\.net$/	REJECT	Generic - Please relay via ISP (vtr.net)
 /^[a-z-]{4,15}(-[12]?[0-9]{1,2}){4}\.w[12]?[0-9]{1,2}-[12]?[0-9]{1,2}\.abo\.wanadoo\.fr$/	REJECT	Generic - Please relay via ISP (wanadoo.fr)
 /^aclermont-ferrand(-[12]?[0-9]{1,2}){4}\.w81-251\.abo\.wanadoo\.fr$/	REJECT	Generic - Please relay via ISP (wanadoo.fr)
-/^adsl-dc-[0-9]{4,6}\.adsl\.wanadoo\.nl$/	REJECT	Generic - Please relay via ISP (wanadoo.nl)
+/^adsl-dc-[0-9a-f]{4,6}\.adsl\.online\.nl$/	REJECT	Generic - Please relay via ISP (online.nl)
+/^pc(-[12]?[0-9]{1,2}){4}\.euro-net\.pl$/	REJECT	Generic - Please relay via ISP (euro-net.pl)
+/^ip(-[12]?[0-9]{1,2}){4}\.net\.upcbroadband\.cz$/	REJECT	Generic - Please relay via ISP (net.upcbroadband.cz)
+/^[012]?[0-9]{2}(-[012]?[0-9]{1,2}){3,4}\.baf\.movistar\.cl$/	REJECT	Generic - Please relay via ISP (movistar.cl)
 /^wana(-[12]?[0-9]{1,2}){4}\.wanamaroc\.com$/	REJECT	Generic - Please relay via ISP (wanaroc.com)
 /^([12]?[0-9]{1,2}\.){4}wbol\.warnerbros\.com$/	REJECT	Generic - Please relay via ISP (warnerbros.com)
 /^client(-[12]?[0-9]{1,2}){4}\.warrennet\.org$/	REJECT	Generic - Please relay via ISP (warrennet.org)
@@ -1709,3 +1726,4 @@ if /cable|dsl|[0-9a-f]{4}|[0-9][^0-9]+[0-9]/
 /^([12]?[0-9]{1,2}\.){4}users\.zona\.ba$/	REJECT	Generic - Please relay via ISP (zona.ba)
 /^[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}-[0-9]{1,3}\.optolan\.net\.ua$/	REJECT  Generic - Please relay via ISP (optolan.net.ua)
 endif
+

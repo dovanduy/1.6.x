@@ -48,8 +48,8 @@ function tabs(){
 	$EnableNginxMail=intval($sock->GET_INFO("EnableNginxMail"));
 	if($EnableNginx==0){
 		
-		echo FATAL_WARNING_SHOW_128("
-		<center style='margin:30px'>". button("{enable_reverse_proxy_service}","Loadjs('$page?EnableNginx=yes')",50)."</center>");
+		echo FATAL_ERROR_SHOW_128("
+		<center style='margin:50px'>". button("{enable_reverse_proxy_service}","Loadjs('$page?EnableNginx=yes')",50)."</center>");
 		return;
 		
 	}
@@ -61,6 +61,7 @@ function tabs(){
 	if($EnableNginxMail==1){
 		$array["mail"]='{mail}';
 	}
+
 	$array["events"]='{events}';
 	$array["watchdog"]="{watchdog}";
 	
@@ -69,7 +70,7 @@ function tabs(){
 	
 
 
-	$fontsize=18;
+	$fontsize=26;
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="status"){
@@ -86,6 +87,7 @@ function tabs(){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.www.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
 		
 		if($num=="mail"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.mail.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
@@ -122,6 +124,6 @@ function tabs(){
 	$t=time();
 	//
 
-	echo build_artica_tabs($tab, "main_artica_nginx",1200)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
+	echo build_artica_tabs($tab, "main_artica_nginx",1490)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
 
 }

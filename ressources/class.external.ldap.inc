@@ -75,7 +75,7 @@ class external_ldap_search{
 		$pattern=str_replace("%u", "*", $this->ldap_filter_group);
 		$sr =@ldap_search($this->ldap_connection,$DN,$pattern,array(),null,2);
 		
-		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>CountDeMembers:: $DN,$pattern -> $MemberAttribute</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>CountDeMembers:: $DN,$pattern -> $MemberAttribute</strong><br>\n";}
 		
 
 		
@@ -128,7 +128,7 @@ class external_ldap_search{
 	
 		}else{
 			$error=ldap_err2str(ldap_err2str(ldap_errno($this->ldap_connection)));
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>find_ldap_items_groups:: $error $pattern</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>find_ldap_items_groups:: $error $pattern</strong><br>\n";}
 			writelogs("find_ldap_items_groups:: Error for $search",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		return $res;
@@ -523,7 +523,7 @@ class external_ldap_search{
 	public function DNinfos($dn){
 		$f=array();
 		if(!$this->connect()){
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}Connection failed</strong><br>\n";}
 			return array();
 		}
 		$searchFilter="(objectClass=*)";
@@ -534,31 +534,31 @@ class external_ldap_search{
 	public function SearchOuSimple($dn=null){
 		$func=__CLASS__."/".__FUNCTION__."::";
 		if(!$this->connect()){
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}Connection failed</strong><br>\n";}
 			return array();
 		}
 		if($dn==null){$dn=$this->KerbAuthInfos["LDAP_SUFFIX"];}
 		$searchFilter="(|(objectClass=organizationalUnit)(objectClass=container))";
 		
 		$filter=array();
-		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}$dn -$searchFilter</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}$dn -$searchFilter</strong><br>\n";}
 		$sr =@ldap_list($this->ldap_connection,$dn,"$searchFilter",$filter);
 		if (!$sr) {
 			if(is_numeric(ldap_errno($this->ldap_connection))){
 				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
 				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}`$error` ($errstr)</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}`$error` ($errstr)</strong><br>\n";}
 			return array();
 		}
 		$hash=ldap_get_entries($this->ldap_connection,$sr);
-		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$hash["count"]} items</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func} {$hash["count"]} items</strong><br>\n";}
 		
 		$FINAL=array();
 		if(!is_array($hash)){return array();}
 		for($i=0;$i<$hash["count"];$i++){
 			$tempar=$hash[$i];
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$tempar["dn"]}</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func} {$tempar["dn"]}</strong><br>\n";}
 			$dn=$tempar["dn"];
 			$objectClass=array();
 			for($z=0;$z<$tempar["objectclass"]["count"];$z++){
@@ -582,7 +582,7 @@ class external_ldap_search{
 	public function searchGroupSimple($dn=null,$search=null){
 		$func=__CLASS__."/".__FUNCTION__."::";
 		if(!$this->connect()){
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}Connection failed</strong><br>\n";}
 			return array();
 		}
 		if($dn==null){$dn=$this->KerbAuthInfos["LDAP_SUFFIX"];}
@@ -591,24 +591,24 @@ class external_ldap_search{
 			$searchFilter="(objectClass=group)";
 		}
 		$filter=array();
-		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}$dn -$searchFilter</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}$dn -$searchFilter</strong><br>\n";}
 		$sr =@ldap_search($this->ldap_connection,$dn,"$searchFilter",$filter);
 		if (!$sr) {
 			if(is_numeric(ldap_errno($this->ldap_connection))){
 				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
 				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			}
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}`$error` ($errstr)</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func}`$error` ($errstr)</strong><br>\n";}
 			return array();
 		}
 		$hash=ldap_get_entries($this->ldap_connection,$sr);
 		
-		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$hash["count"]} items</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func} {$hash["count"]} items</strong><br>\n";}
 		$FINAL=array();
 		if(!is_array($hash)){return array();}
 		for($i=0;$i<$hash["count"];$i++){
 			$tempar=$hash[$i];
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$tempar["dn"]}</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>{$func} {$tempar["dn"]}</strong><br>\n";}
 			
 			$dn=$tempar["dn"];
 			if(isset($tempar["samaccountname"])){
@@ -1536,7 +1536,7 @@ class external_ldap_search{
 			return false;
 		}
 		$this->UserConnected=$Username;
-		if($GLOBALS['VERBOSE']){echo "<strong style='color:red'>Bind as $Username/{$this->KerbAuthInfos["WINDOWS_SERVER_PASS"]}</strong><br>\n";}
+		if($GLOBALS['VERBOSE']){echo "<strong style='color:#d32d2d'>Bind as $Username/{$this->KerbAuthInfos["WINDOWS_SERVER_PASS"]}</strong><br>\n";}
 		$bind=ldap_bind($this->ldap_connection, $Username, $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
 		
 		if(!$bind){

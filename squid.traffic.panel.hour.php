@@ -343,7 +343,7 @@ function users_usually(){
 	
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){
-		echo "<hr><code>$sql</code><hr><strong style='color:red'>$q->mysql_error</strong>";
+		echo "<hr><code>$sql</code><hr><strong style='color:#d32d2d'>$q->mysql_error</strong>";
 	}
 	
 	

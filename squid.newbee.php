@@ -555,21 +555,7 @@ function js_enable_disable_squid($echo=false){
 	if($echo){$start="EnableDisableSQUID();";}
 	$html="
 	function EnableDisableSQUID(){
-		YahooWin('500','$page?EnableDisableMain=yes','$title');
-	}
-	
-var x_SaveEnableSquidGLobal=function (obj) {
-		RTMMailHide();
-		YahooWinHide();
-		CacheOff();
-		
-	}		
-	
-	function SaveEnableSquidGLobal(){
-		var XHR = new XHRConnection();
-    	XHR.appendData('SaveEnableSquidGLobal',document.getElementById('MAINSQUIDEnableSAVE').value);
- 		AnimateDiv('EnableETDisableSquidDiv');
-    	XHR.sendAndLoad('$page', 'GET',x_SaveEnableSquidGLobal);
+		YahooWin('950','$page?EnableDisableMain=yes','$title');
 	}
 	$start
 ";
@@ -731,21 +717,39 @@ return $tpl->_ENGINE_parse_body($html,'squid.index.php');
 
 function main_enableETDisable(){
 	
-	
+	$page=CurrentPageName();
 	$sock=new sockets();
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
-	$field=Paragraphe_switch_img("{enable_squid_service}","{enable_squid_service_explain}","MAINSQUIDEnableSAVE",$SQUIDEnable,null,350);
+	$field=Paragraphe_switch_img("{enable_squid_service}",
+			"{enable_squid_service_explain}","MAINSQUIDEnableSAVE",$SQUIDEnable,null,890);
 	
 	
 	$html="
-	<div id='EnableETDisableSquidDiv'>
-	<div class=text-info style='font-size:14px'>{enable_squid_service_text}</div>
+	<div id='EnableETDisableSquidDiv' style='width:98%' class=form>
+	<div class=explain style='font-size:26px;margin-bottom:20px'>{enable_squid_service_text}</div>
 	
 	$field
-	<div style='text-align:right'><hr>". button("{apply}", "SaveEnableSquidGLobal()",16)."</div>
+	<div style='text-align:right'><hr>". button("{apply}", "SaveEnableSquidGLobal()",38)."</div>
 	</div>
+<script>
+	
+var x_SaveEnableSquidGLobal=function (obj) {
+		RTMMailHide();
+		YahooWinHide();
+		CacheOff();
+		GoToIndex();
+		
+	}		
+	
+	function SaveEnableSquidGLobal(){
+		var XHR = new XHRConnection();
+    	XHR.appendData('SaveEnableSquidGLobal',document.getElementById('MAINSQUIDEnableSAVE').value);
+ 		AnimateDiv('EnableETDisableSquidDiv');
+    	XHR.sendAndLoad('$page', 'GET',x_SaveEnableSquidGLobal);
+	}
+</script>
 	
 	";
 	
@@ -1028,7 +1032,7 @@ function dansguardian_build_stats(){
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body("
 	<center>
-	<div style='font-size:22px;color:red'>{success}</div>
+	<div style='font-size:22px;color:#d32d2d'>{success}</div>
 	</center>
 	");
 }
@@ -1401,7 +1405,8 @@ function transparent_HTTP(){
 	
 	$squid=new squidbee();
 	
-	
+	$SquidSimpleConfig=$sock->GET_INFO("SquidSimpleConfig");
+	if(!is_numeric($SquidSimpleConfig)){$SquidSimpleConfig=1;}
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
 	$SquidTransparentMixed=$sock->GET_INFO("SquidTransparentMixed");
 	$SquidClientDSTPassThru=intval($sock->GET_INFO("SquidClientDSTPassThru"));
@@ -1535,7 +1540,7 @@ function transparent_HTTP(){
 	<td valign=top width=99%>
 	<div id='squid_transparentdiv'></div>
 		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div>
-			<div class=text-info style='font-size:18px'>{transparent_mode_explain}</div>
+			<div class=explain style='font-size:18px'>{transparent_mode_explain}</div>
 			<center><img src='img/$image' style='margin:5px'></center>
 		<table style='width:99%' class=form>
 			<tr>
@@ -1554,12 +1559,12 @@ function transparent_HTTP(){
 					
 			<tr>
 				<td class=legend style='font-size:14px'>{KernelSendRedirects}:</td>
-				<td>". Field_checkbox("KernelSendRedirects", 1,$KernelSendRedirects)."</td>
+				<td>". Field_checkbox_design("KernelSendRedirects", 1,$KernelSendRedirects)."</td>
 				<td>". help_icon("{KernelSendRedirects_explain}")."</td>
 			</tr>
 			<tr>
 				<td class=legend style='font-size:14px'>{SquidClientDSTPassThru}:</td>
-				<td>". Field_checkbox("SquidClientDSTPassThru", 1,$SquidClientDSTPassThru)."</td>
+				<td>". Field_checkbox_design("SquidClientDSTPassThru", 1,$SquidClientDSTPassThru)."</td>
 				<td>". help_icon("{SquidClientDSTPassThru_explain}")."</td>
 			</tr>			
 			
@@ -1617,7 +1622,16 @@ function transparent_HTTP(){
 		XHR.appendData('KernelSendRedirects',KernelSendRedirects);
 		XHR.appendData('SquidClientDSTPassThru',SquidClientDSTPassThru);
 		XHR.sendAndLoad('$page', 'GET',x_SaveTransparentProxy);		
-		}	
+		}
+
+	function CheckSSIMP(){
+		var SquidSimpleConfig=$SquidSimpleConfig;
+		document.getElementById('SquidClientDSTPassThru').disabled=true;
+		if(SquidSimpleConfig==0){
+			document.getElementById('SquidClientDSTPassThru').disabled=false;
+		}
+	
+	}
 	
 
 	LoadAjax('squid-nat-status','$page?squid-nat-status=yes',false);
@@ -1814,7 +1828,7 @@ if(is_array($ip->array_TCP)){
 		}
 	}
 
-	$transparent="<div style='position:absolute;top:120px;left:90px'><strong style='color:red'>{transparent_mode}</strong></div>";
+	$transparent="<div style='position:absolute;top:120px;left:90px'><strong style='color:#d32d2d'>{transparent_mode}</strong></div>";
 	
 	$gayteway="
 	
@@ -1927,7 +1941,7 @@ function changecache_popup_content(){
 	<img src='img/idrive-96.png' align='left' style='margin:5px'>
 	</td>
 	<td valign='top'>
-	<div class=text-info>{change_main_cache_path_explain}</div>
+	<div class=explain>{change_main_cache_path_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend>{from}:</td>

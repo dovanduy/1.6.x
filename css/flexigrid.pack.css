@@ -179,6 +179,9 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .import {
   background: url("/img/16-import.png") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .link {
+  background: url("/css/images-flexigrid/link.png") no-repeat scroll left center transparent;
+}
 
 
 

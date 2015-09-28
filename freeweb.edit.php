@@ -308,7 +308,7 @@ $final=CompileTr4($tr);
 $groupware_text=$tpl->_ENGINE_parse_body($groupware_text);
 $freeweb_groupware_explain=$tpl->_ENGINE_parse_body("{freeweb_groupware_explain}");
 $html="
-<div class=text-info style='font-size:18px'>$freeweb_groupware_explain</div>
+<div class=explain style='font-size:18px'>$freeweb_groupware_explain</div>
 $groupware_text
 <center>
 $final
@@ -1166,7 +1166,7 @@ function popup(){
 	if($groupwarelink<>null){
 		
 		$explain="
-		<div class=text-info>$groupwares_textintro:<br><strong style='font-size:14px'>
+		<div class=explain>$groupwares_textintro:<br><strong style='font-size:14px'>
 			<a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$groupwarelink',1024,768)\" style='text-decoration:underline;font-weight:bold;color:#969696'>$groupwarelink</a></strong></div>		
 		";
 		

@@ -368,6 +368,14 @@ function build($OnlySingle=false){
 	$f[]="";
 	$f[]="http {";
 	$f[]="\tinclude /etc/nginx/mime.types;";
+	
+	$f[]="\tlog_format  awc_log";
+	$f[]="\t\t'[\$server_name] \$remote_addr - \$remote_user [\$time_local] \$request '";
+	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
+	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\" [\$upstream_cache_status]';";
+	$f[]="";	
+	
+	
 	$f[]="\tlimit_conn_zone \$binary_remote_addr zone=LimitCnx:10m;";
 	$q=new mysql_squid_builder();
 	$results=$q->QUERY_SQL("SELECT LimitReqs,servername FROM reverse_www WHERE LimitReqs > 0");
@@ -383,13 +391,14 @@ function build($OnlySingle=false){
 	
 	$nginxClass=new nginx();
 	if($nginxClass->IsSubstitutions()){
-		$f[]="\tsubs_filter_types text/html text/css text/xml;";
+		//$f[]="\tsubs_filter_types text/html text/css text/xml;";
 	}
 	
 
 	
 	
 	@mkdir($Tempdir,0775,true);
+	@mkdir("/home/nginx/tmp",0755,true);
 	$f[]="\tlimit_conn_log_level info;";
 	$f[]="\tclient_body_temp_path $Tempdir 1 2;";
 	$f[]="\tclient_header_timeout 5s;";
@@ -411,6 +420,8 @@ function build($OnlySingle=false){
 	$f[]="\tserver_names_hash_max_size 512;";
 	$f[]="\tvariables_hash_max_size 512;";
 	$f[]="\tvariables_hash_bucket_size 128;";
+	
+
 	
 	$f[]="\tfastcgi_buffers 8 16k;";
 	$f[]="\tfastcgi_buffer_size 32k;";
@@ -492,7 +503,7 @@ function build($OnlySingle=false){
 	$f[]="\tproxy_connect_timeout 60s;";
 	$f[]="\tproxy_send_timeout 60s;";
 	$f[]="\tproxy_read_timeout 150s;";
-	$f[]="\tproxy_buffer_size 128k;";
+	$f[]="\tproxy_buffer_size 64k;";
 	$f[]="\tproxy_buffers 16384 128k;";
 	$f[]="\tproxy_busy_buffers_size 256k;";
 	$f[]="\tproxy_temp_file_write_size 128k;";
@@ -501,17 +512,6 @@ function build($OnlySingle=false){
 	$f[]="";
 	$f[]="$upstreams_servers";
 	
-	$f[]="\tlog_format  aws_log";
-	$f[]="\t\t'\$remote_addr - \$remote_user [\$time_local] \$request '";
-	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
-	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\" [\$upstream_cache_status]';";
-	$f[]="";	
-	
-	$f[]="\tlog_format  awc_log";
-	$f[]="\t\t'[\$server_name] \$remote_addr - \$remote_user [\$time_local] \$request '";
-	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
-	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\" [\$upstream_cache_status]';";
-	$f[]="";	
 	
 	$f[]="\tinclude /etc/nginx/sites-enabled/*.conf;";
 	$f[]="\tinclude /etc/nginx/local-sites/*.conf;";
@@ -1071,18 +1071,15 @@ function build_default($aspid=false){
 	$unix=new unix();
 	$hostname=$unix->hostname_g();
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Hostname $hostname\n";}
-	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
+	
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	
 	@unlink("/etc/nginx/conf.d/default.conf");
 	
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
-	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
 	
-	if($EnableArticaInNGINX==1){
-		build_default_asArtica();
-		return;
-	}
+	
+
 	
 	if($EnableFreeWeb==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Hostname $hostname FreeWeb is disabled\n";}
@@ -1359,6 +1356,8 @@ function restart(){
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	
+	
 
 	nginx_admin_mysql(1, "Restart reverse-proxy service [action=info]", null,__FILE__,__LINE__);
 	stop(true);
@@ -1401,7 +1400,10 @@ function start($aspid=false){
 	}
 	
 	$php=$unix->LOCATE_PHP5_BIN();
-	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
+	$SquidAllow80Port=intval($sock->GET_INFO("SquidAllow80Port"));
+	
+	
 	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, is Wordpress Appliance\n";}
 		$sock->SET_INFO("EnableNginx",1);
@@ -1416,13 +1418,17 @@ function start($aspid=false){
 	
 	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service \"EnableNginx\" = $EnableNginx\n";}
-	
+	if($SquidAllow80Port==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service disabled (SquidAllow80Port)\n";}
+		return;
+	}
 	
 	if($EnableNginx==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service disabled\n";}
 		return;
 	}
 	GHOSTS_PID();
+	@mkdir("/home/nginx/tmp",0755,true);
 	@mkdir("/var/log/nginx",0755,true);
 	$nohup=$unix->find_program("nohup");
 	$fuser=$unix->find_program("fuser");
@@ -1431,40 +1437,8 @@ function start($aspid=false){
 	$FUSERS=array();
 	
 	
-	exec("$fuser 80/tcp 2>&1",$results);
-	while (list ($key, $line) = each ($results) ){
-			if($GLOBALS["VERBOSE"]){echo "fuser: ->\"$line\"\n";}
-			if(preg_match("#tcp:\s+(.+)#", $line,$re)){$FUSERS=explode(" ",$re[1]);}
-	}
-	
-	
-	
-	if(count($FUSERS)>0){
-		while (list ($key, $pid) = each ($FUSERS) ){
-			$pid=trim($pid);
-			if(!is_numeric($pid)){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing $pid PID that listens 80\n";}
-			unix_system_kill_force($pid);
-		}
-		
-	}
-	
-	exec("$fuser 443/tcp 2>&1",$results);
-	while (list ($key, $line) = each ($results) ){
-		if($GLOBALS["VERBOSE"]){echo "fuser: ->\"$line\"\n";}
-		if(preg_match("#tcp:\s+(.+)#", $line,$re)){$FUSERS=explode(" ",$re[1]);}
-	}
-	
-	if(count($FUSERS)>0){
-		while (list ($key, $pid) = each ($FUSERS) ){
-			$pid=trim($pid);
-			if(!is_numeric($pid)){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing $pid PID that listens 443\n";}
-			unix_system_kill_force($pid);
-		}
-	
-	}	
-	
+	$unix->KILL_PROCESSES_BY_PORT(80);
+	$unix->KILL_PROCESSES_BY_PORT(443);
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	
@@ -1482,10 +1456,9 @@ function start($aspid=false){
 	
 	nginx_mime_types();
 	
-	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
-	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
+
 	@unlink("/etc/nginx/conf.d/default.conf");
-	if($EnableArticaInNGINX==1){build_default_asArtica();}
+	
 		
 	
 	$cmd="$nginx -c /etc/nginx/nginx.conf";
@@ -1546,6 +1519,7 @@ $f[]="    image/x-ms-bmp                        bmp;";
 $f[]="    image/svg+xml                         svg svgz;";
 $f[]="    image/webp                            webp;";
 $f[]="";
+$f[]="    application/octet-stream				ovf ova xva hdx;";
 $f[]="    application/java-archive              jar war ear;";
 $f[]="    application/mac-binhex40              hqx;";
 $f[]="    application/msword                    doc;";
@@ -2530,7 +2504,8 @@ function parse_memory(){
 	
 	
 	$python=$unix->find_program("python");
-	exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
+	$nice=$unix->EXEC_NICE();
+	exec("{$nice}$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
 	$FOUND=false;
 	while (list ($index, $line) = each ($results)){
 		$line=trim($line);

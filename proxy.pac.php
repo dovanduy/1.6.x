@@ -26,6 +26,7 @@ function LoadIncludes(){
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");	
+	include_once(dirname(__FILE__)."/ressources/class.familysites.inc");	
 	
 }
 
@@ -82,15 +83,23 @@ function proxy_pac(){
 		if(!class_exists("sockets")){ LoadIncludes();}
 		$sock=new sockets();
 		$SessionCache=intval($sock->GET_INFO("ProxyPacCacheTime"));
+		$ProxyPacLockScript=intval($sock->GET_INFO("ProxyPacLockScript"));
 		if($SessionCache==0){$SessionCache=10;}
 		$_SESSION["PROXY_PAC_CACHE"]=$SessionCache;
+		$_SESSION["PROXY_PAC_LOCK"]=$ProxyPacLockScript;
 	}
 	else{
 		$SessionCache=intval($_SESSION["PROXY_PAC_CACHE"]);
+		$ProxyPacLockScript=intval($_SESSION["PROXY_PAC_LOCK"]);
 	}
 	
 	
-	
+	if($ProxyPacLockScript==1){
+		$ProxyPacLockScriptContent=@file_get_contents("/etc/artica-postfix/settings/Daemons/ProxyPacLockScriptContent");
+		header("Content-Length: ".filesize($ProxyPacLockScriptContent) );
+		echo $ProxyPacLockScriptContent."\n";
+		return;
+	}
 	
 	if(intval($SessionCache==0)){$SessionCache=10;}
 	if(!is_numeric($GLOBALS["PROXY_PAC_DEBUG"])){$GLOBALS["PROXY_PAC_DEBUG"]=0;}
@@ -149,6 +158,7 @@ function proxy_pac(){
 	$date=date("Y-m-d H:i:s");
 	$md5=md5("$date$IPADDR$HTTP_USER_AGENT");
 	$HTTP_USER_AGENT=mysql_escape_string2($HTTP_USER_AGENT);
+	$DenyDnsResolve=intval($sock->GET_INFO("DenyDnsResolve"));
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$rulename=$ligne["rulename"];
@@ -164,7 +174,11 @@ function proxy_pac(){
 		$f[]="function FindProxyForURL(url, host) {";
 		$f[]="\turl = url.toLowerCase();";
 		$f[]="\thost = host.toLowerCase();";
-		$f[]="\tvar hostIP = dnsResolve(host);";
+		if($DenyDnsResolve==0){
+			$f[]="\tvar hostIP = dnsResolve(host);";
+		}else{
+			$f[]="\tvar hostIP = host;";
+		}
 		$f[]="\tvar myip=myIpAddress();";
 		$f[]="\tvar DestPort=GetPort(url);";
 		$f[]="\tvar PROTO='';";
@@ -172,7 +186,7 @@ function proxy_pac(){
 		$f[]="\tif (url.substring(0, 5) == 'http:' ){ PROTO='HTTP'; }";
 		$f[]="\tif (url.substring(0, 6) == 'https:' ){ PROTO='HTTPS'; }";
 		$f[]="\tif (url.substring(0, 4) == 'ftp:' ){ PROTO='FTP'; }";
-		$f[]="\tif ( isInNet(hostIP, \"127.0.0.1\", \"255.255.255.255\") ) { return \"DIRECT\";}";
+		
 		
 		pack_debug("$rulename/$ID building build_whitelist($ID)",__FUNCTION__,__LINE__);
 		$f[]=build_whitelist($ID);
@@ -372,6 +386,11 @@ function client_matches($ID){
 		if($negation==1){$not=true;}
 		pack_debug("Checks $GroupName Group Type:\"{$ligne["GroupType"]}\" negation=\"$negation\"",__FUNCTION__,__LINE__);
 		
+		if($ligne["GroupType"]=="dstdomain"){
+			$matches=true;
+			continue;
+		}
+		
 		
 		if($ligne["GroupType"]=="all"){
 				if($not==false){
@@ -482,6 +501,9 @@ function matches_srcdomain($gpid,$negation){
 function matches_src($gpid,$negation){
 	$ip=new IP();
 	$q=new mysql_squid_builder();
+	
+	pack_debug("Checks \"$gpid\" Negation \"{$negation}\"",__FUNCTION__,__LINE__);
+	
 	$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND enabled=1";
 	$results = $q->QUERY_SQL($sql);
 	$exclam=null;
@@ -612,9 +634,9 @@ function build_whitelist($ID){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM wpad_rules WHERE ID='$ID'"));
 	$dntlhstname=$ligne["dntlhstname"];
 	$isResolvable=$ligne["isResolvable"];
+	$f=array();
 	
-	
-	if($dntlhstname==1){ $f[]="\tif (isPlainHostName(host) ) { return \"DIRECT\"; }"; }
+	if($dntlhstname==1){ $f[]="\tif ( isPlainHostName(host) ) { return \"DIRECT\"; }"; }
 	if($isResolvable==1){ $f[]="\tif( isResolvable(host) ) { return \"DIRECT\"; }"; }
 	
 	
@@ -631,13 +653,13 @@ function build_whitelist($ID){
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){
 		pack_debug("Fatal !! $ID $q->mysql_error",__FILE__,__LINE__);
-		return null;
+		@implode("\n", $f);
 	}
 	
 	$CountObjects=mysql_num_rows($results);
 	if($CountObjects==0){
 		pack_debug("Rule:[$ID] No whitelist groups set",__FUNCTION__,__LINE__);
-		return null;
+		return @implode("\n", $f);
 	}
 	
 	pack_debug("Rule:[$ID] $CountObjects Object(s)",__FUNCTION__,__LINE__);
@@ -683,6 +705,7 @@ function build_whitelist_port($gpid,$negation){
 
 function build_whitelist_dstdomain($gpid,$negation){
 	$q=new mysql_squid_builder();
+	$fam=new familysite();
 	$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND enabled=1";
 	$results = $q->QUERY_SQL($sql);
 	$exclam=null;
@@ -691,8 +714,28 @@ function build_whitelist_dstdomain($gpid,$negation){
 	if($negation==1){$exclam="!";}
 	$f=array();
 	while ($ligne = mysql_fetch_assoc($results)) {
-		$pattern=$ligne["pattern"];
-		if(substr($ligne["pattern"], 0,1)<>'.'){$ligne["pattern"]=".{$ligne["pattern"]}";}
+		$pattern=trim(strtolower($ligne["pattern"]));
+		$Family=$fam->GetFamilySites($pattern);
+		pack_debug("Group::[$gpid] Item: \"$pattern\" -> $Family",__FUNCTION__,__LINE__);
+		
+		
+		if(strpos(" $pattern", "*")>0){
+			if(preg_match("#^\^(.+)#", $ligne["pattern"],$re)){$pattern=$re[1];}
+			$f[]="\tif( shExpMatch(host ,\"$pattern\") ){ return \"DIRECT\";}";
+			continue;
+		}
+		
+		if(preg_match("#^\^(.+)#", $ligne["pattern"],$re)){
+			$f[]="\tif( {$exclam}dnsDomainIs(host, \"{$re[1]}\") ){  return \"DIRECT\"; }";
+			continue;
+		}
+		if($Family==$ligne["pattern"]){
+			if(!preg_match("#^\.#", $ligne["pattern"])){
+				$f[]="\tif( {$exclam}dnsDomainIs(host, \".{$ligne["pattern"]}\") ){  return \"DIRECT\"; }";
+				continue;
+			}
+		}
+		
 		$f[]="\tif( {$exclam}dnsDomainIs(host, \"{$ligne["pattern"]}\") ){  return \"DIRECT\"; }";
 	}
 	return @implode("\n", $f);
@@ -788,14 +831,14 @@ function build_whitelist_src($gpid,$negation){
 				continue;
 			}
 			if($netmask==null){$netmask="255.255.255.0";}
-			$f[]="\tif( {$exclam}isInNet(hostIP, \"$ipaddr\", \"$netmask\") ){ return \"DIRECT\";}";
+			$f[]="\tif( {$exclam}isInNet(myip, \"$ipaddr\", \"$netmask\") ){ return \"DIRECT\";}";
 			continue;
 		}		
 
 
 		if ($ip->isIPAddress($pattern)){
 			if($GLOBALS["VERBOSE"]){$f[]="// --- $pattern -> isIPAddress(TRUE) [".__LINE__."]";}
-			$f[]="\tif( {$exclam}isInNet(hostIP, \"$pattern\", \"255.255.255.255\") ){ return \"DIRECT\";}";
+			$f[]="\tif( {$exclam}isInNet(myip, \"$pattern\", \"255.255.255.255\") ){ return \"DIRECT\";}";
 			continue;
 		}
 
@@ -829,11 +872,11 @@ function build_whitelist_srcdomain($gpid,$negation){
 		
 		if(substr($pattern, 0,1)=='.'){
 			if(strpos($pattern, "*")>0){
-				$f[]="\tif( shExpMatch(host ,\"$pattern\") { return \"DIRECT\";}";
+				$f[]="\tif( shExpMatch(host ,\"$pattern\") ) { return \"DIRECT\";}";
 				continue;
 			}
 			
-			$f[]="\tif( dnsDomainIs(host ,\"$pattern\") { return \"DIRECT\";}";
+			$f[]="\tif( dnsDomainIs(host ,\"$pattern\") ){ return \"DIRECT\";}";
 			continue;
 			
 		}
@@ -947,7 +990,7 @@ function build_proxies($ID){
 			$g[]="PROXY {$ligne["proxyserver"]}:{$ligne["proxyport"]};";
 		}
 	
-	$g[]="DIRECT";
+	
 	if(count($g)==0){return "\n\treturn \"DIRECT\";";}
 	return "\n\treturn \"".@implode(" ", $g)."\";";
 }

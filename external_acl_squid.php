@@ -1,15 +1,25 @@
 #!/usr/bin/php -q
 <?php
+$GLOBALS["VERBOSE"]=false;
+$GLOBALS["KAV4PROXY_NOSESSION"]=true;
+if(!isset($GLOBALS["ARTICALOGDIR"])){
+		$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); 
+		if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } 
+}
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
-  //ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-  error_reporting(0);
+include_once(dirname(__FILE__) ."/framework/class.unix.inc");
+
+  ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+  error_reporting(E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR);
   $GLOBALS["SplashScreenURI"]=null;
+  
   $GLOBALS["PID"]=getmypid();
+  $GLOBALS["SPLASH_DEBUG"]=false;
+  $GLOBALS["SPLASH"]=false;
   $GLOBALS["STARTIME"]=time();
   $GLOBALS["MACTUIDONLY"]=false;
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
-  $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashDebug");
   $GLOBALS["DEBUG_LEVEL"]=0;
   $GLOBALS["EnableArticaHotSpot"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableArticaHotSpot"));
   if(!is_numeric($GLOBALS["EnableArticaHotSpot"])){$GLOBALS["EnableArticaHotSpot"]=0;}
@@ -27,7 +37,7 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/session.cache"));
   
   
-  WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; EnableArticaHotSpot={$GLOBALS["EnableArticaHotSpot"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
+  WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]};");
   if($argv[1]=="--mactouid"){$GLOBALS["MACTUIDONLY"]=true;}
   if($argv[1]=="--splash"){
   	$GLOBALS["SPLASH"]=true;
@@ -37,7 +47,7 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("[Q] initialised...");}
   }
   
-  
+  if($argv[1]=="--mactohotspot"){$GLOBALS["EnableArticaHotSpot"]=1;}
   
   
   
@@ -48,6 +58,7 @@ while (!feof(STDIN)) {
  	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url);}
  	$array=parseURL($url);
  	$SplashScreenURI=$GLOBALS["SplashScreenURI"];
+ 	if(!isset($GLOBALS["SPLASH_DEBUG"])){$GLOBALS["SPLASH_DEBUG"]=false;}
  	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url." str:".strlen($url)." LOGIN:{$array["LOGIN"]},IPADDR:{$array["IPADDR"]} MAC:{$array["MAC"]} HOST:{$array["HOST"]} URI:{$array["URI"]}");}
  	
 	if($GLOBALS["SPLASH_DEBUG"]){
@@ -93,20 +104,27 @@ while (!feof(STDIN)) {
  		}
  		
  		$uid=trim(GetMacToUid($array["IPADDR"]));
+ 		if($uid==$array["IPADDR"]){$uid=null;}
+ 		
  		
  		if($uid<>null){
  			fwrite(STDOUT, "OK user=$uid\n");
  			continue;
  		}
- 		
- 		
- 		
- 		
- 		fwrite(STDOUT, "OK user={$array["IPADDR"]}\n");
+ 		fwrite(STDOUT, "OK\n");
  		continue;
  	} 	
  	
- 	
+ 	if($GLOBALS["EnableArticaHotSpot"]==1){
+ 		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("ASK: {$array["MAC"]} = ?");}
+ 		$uid=GetMacToUidHotSpot($array["MAC"],$array["IPADDR"]);
+ 		if($uid<>null){
+ 			fwrite(STDOUT, "OK user=$uid\n");
+ 			continue;
+ 		}
+ 		fwrite(STDOUT, "OK\n");
+ 		continue;
+ 	}	
  	
   	if(CheckQuota($array)){fwrite(STDOUT, "OK\n");}else{WLOG("ERR \"Out of quota\"");fwrite(STDOUT, "ERR message=\"Out Of Quota\"\n");}
  }
@@ -129,6 +147,69 @@ function CleanSessions(){
 		}
 	}
 	@file_put_contents("/etc/squid3/session.cache", serialize($GLOBALS["SESSIONS"]));
+}
+
+
+function GetMacToUidHotSpot_MEM($MAC,$IPADDR,$MD5Key){
+	if(!isset($GLOBALS["HOTSPOT"][$MD5Key])){return null;}
+	if(!isset($GLOBALS["HOTSPOT"][$MD5Key]["UID"])){return null;}
+	$timeSave=$GLOBALS["HOTSPOT"][$MD5Key]["TIME"];
+	if($timeSave==0){return null;}
+	if(tool_time_min($timeSave)>15){return null;}
+	
+	if(isset($GLOBALS["HOTSPOT"][$MD5Key][$MAC])){
+		return $GLOBALS["HOTSPOT"][$MD5Key]["UID"];
+	}
+	
+	
+	if(isset($GLOBALS["HOTSPOT"][$MD5Key][$IPADDR])){
+		return $GLOBALS["HOTSPOT"][$MD5Key]["UID"];
+	}
+	
+	
+	
+}
+
+function SetMacToUidHotSpot_MEM($MAC,$IPADDR,$MD5Key,$UID){
+	if(count($GLOBALS["HOTSPOT"])>2500){$GLOBALS["HOTSPOT"]=array();}
+	$GLOBALS["HOTSPOT"][$MD5Key][$MAC]=true;
+	$GLOBALS["HOTSPOT"][$MD5Key]["UID"]=$UID;
+	$GLOBALS["HOTSPOT"][$MD5Key]["TIME"]=time();
+	$GLOBALS["HOTSPOT"][$MD5Key][$IPADDR]=true;
+	return $UID;
+}
+
+
+function GetMacToUidHotSpot($MAC,$IPADDR){
+	
+	
+	
+	
+	$MD5Key=md5("$MAC$IPADDR");
+	
+	$uid=GetMacToUidHotSpot_MEM($MAC,$IPADDR,$MD5Key);
+	if($uid<>null){return null;}
+	if($MAC=="00:00:00:00:00:00"){$MAC=null;}
+	if($IPADDR=="127.0.0.1"){$IPADDR=null;}
+	
+	if($MAC<>null){
+		if(!isset($GLOBALS["CLASS_SQUID_MYSQL"])){$GLOBALS["CLASS_SQUID_MYSQL"]=new mysql_squid_builder();}
+		$sql="SELECT uid FROM hotspot_sessions WHERE MAC='$MAC'";
+		$ligne=mysql_fetch_array($GLOBALS["CLASS_SQUID_MYSQL"]->QUERY_SQL($sql));
+		if($ligne["uid"]<>null){
+			return SetMacToUidHotSpot_MEM($MAC,$IPADDR,$MD5Key,$ligne["uid"]);
+		}
+	}
+	
+	if($IPADDR<>null){
+		if(!isset($GLOBALS["CLASS_SQUID_MYSQL"])){$GLOBALS["CLASS_SQUID_MYSQL"]=new mysql_squid_builder();}
+		$sql="SELECT uid FROM hotspot_sessions WHERE ipaddr='$IPADDR'";
+		$ligne=mysql_fetch_array($GLOBALS["CLASS_SQUID_MYSQL"]->QUERY_SQL($sql));
+		if($ligne["uid"]<>null){
+			return SetMacToUidHotSpot_MEM($MAC,$IPADDR,$MD5Key,$ligne["uid"]);
+		}
+	}
+	return null;
 }
 
 function parseURL($url){
@@ -297,12 +378,22 @@ function GetMacToUid($mac){
 		unset($GLOBALS["GetMacToUidMD5"]);
 		unset($GLOBALS["GetMacToUid"]);
 		unset($GLOBALS["USERSDB"]);
+		unset($GLOBALS["UID_FROM_MAC"]);
+		unset($GLOBALS["UID_FROM_IP"]);
 		@unlink($filereload);
 	}
+	if(isset($GLOBALS["GetMacToUidTIME"])){
+		if(tool_time_min($GLOBALS["GetMacToUidTIME"])>5){
+			unset($GLOBALS["GetMacToUidMD5"]);
+			unset($GLOBALS["GetMacToUid"]);
+			unset($GLOBALS["USERSDB"]);
+			unset($GLOBALS["UID_FROM_MAC"]);
+			unset($GLOBALS["UID_FROM_IP"]);
+			$GLOBALS["GetMacToUidTIME"]=time();
+		}
+	}
 	
-	
-	
-	
+	WLOG("Reloading MACToUid helper configuration");
 	$uid=$GLOBALS["Q"]->MacToUid($mac);
 	if($uid<>null){return $uid;}
 	
@@ -349,8 +440,18 @@ function GetMacToUid($mac){
 	
 	$GLOBALS["GetMacToUid"]=unserialize(@file_get_contents("/etc/squid3/MacToUid.ini"));
 	$GLOBALS["GetMacToUidMD5"]=md5_file("/etc/squid3/MacToUid.ini");
+	$GLOBALS["GetMacToUidTIME"]=time();
+	
 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("DISK: $mac =`{$GLOBALS["GetMacToUid"][$mac]}`");}
 	if(isset($GLOBALS["GetMacToUid"][$mac])){return $GLOBALS["GetMacToUid"][$mac];}
+}
+function tool_time_min($timeFrom){
+	$data1 = $timeFrom;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
 }
 
 

@@ -107,6 +107,7 @@ if($prc>100){
 	";
 	return;	
 	
+
 }
 
 if($prc==100){
@@ -116,7 +117,11 @@ if($prc==100){
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
 		LayersTabsAllAfter();
+		CacheOff();
 		RTMMailHide();
+		LoadAjaxRound('vmware-tools-section','VMWareTools.php?popup=yes');
+		LoadAjaxRound('vmware-client','VMWareTools.php');
+		
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	
@@ -150,12 +155,8 @@ function popup(){
 	$restart=null;
 	$suffix=suffix();
 	
-	if($_GET["CD"]==1){
-		$sock->getFrameWork("services.php?vmwaretoolscd=yes");
 	
-	}else{
-		$sock->getFrameWork("services.php?vmwaretoolspath=".base64_encode($_GET["path"]));
-	}
+	$sock->getFrameWork("services.php?vmwaretoolscd=yes");
 	
 	
 	

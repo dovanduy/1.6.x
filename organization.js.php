@@ -23,13 +23,11 @@ function add_ou(){
 	header("content-type: application/x-javascript");
 $html="
 
-var xTreeAddNewOrganisation$t = function (obj) {
+var xCreate$t = function (obj) {
 	var response=obj.responseText;
-	if(response){alert(response);}
-
-	if(document.getElementById('TEMPLATE_LEFT_MENUS')){LoadAjax('TEMPLATE_LEFT_MENUS','admin.tabs.php?left-menus=yes',true);}
-	if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
+	if(response){alert(response);return;}
 	YahooWinHide();
+	YahooWin5Hide();
 	 
 
 
@@ -42,18 +40,17 @@ var xTreeAddNewOrganisation$t = function (obj) {
 	}
 }
 
-function TreeAddNewOrganisation$t(){
-	var texte=document.getElementById('$add_new_organisation_text').value
-	var org=prompt(texte,'');
+function Create$t(){
+	var org=prompt('$add_new_organisation_text');
 	if(org){
 		var XHR = new XHRConnection();
 		XHR.appendData('TreeAddNewOrganisation',org);
-		XHR.sendAndLoad('domains.php', 'GET',xTreeAddNewOrganisation$t);
+		XHR.sendAndLoad('domains.php', 'GET',xCreate$t);
 	}
 
 }
 
-TreeAddNewOrganisation$t();
+Create$t();
 ";
 
 echo $html;

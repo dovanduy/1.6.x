@@ -37,7 +37,7 @@ function manual_update(){
 	$html="
 	<H2>{manual_install}</H2>
 	<div style='font-size:16px;font-weight:bold'>{your_system}: ". $sock->getFrameWork("system.php?system-text=yes")."</div>
-	<div class=text-info style='font-size:16px'>{snmpd_manual_install_text}</div>
+	<div class=explain style='font-size:16px'>{snmpd_manual_install_text}</div>
 	<center>
 	<table style='width:80%'>
 	<tr>

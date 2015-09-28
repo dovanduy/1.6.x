@@ -36,13 +36,13 @@ function page(){
 	$sock=new sockets();
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if($SquidPerformance>1){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{artica_statistics_disabled}"));
 		return;
 	}
 	
 	$t=time();
 	$html="<div style='font-size:26px;margin-bottom:20px'>{APP_LOGGERS}</div>
-	<div style='font-size:16px' class=text-info>{APP_LOGGERS_SQUID_EXPLAIN}</div>
+	<div style='font-size:16px' class=explain>{APP_LOGGERS_SQUID_EXPLAIN}</div>
 	<div id='logger-status'></div>
 	
 			

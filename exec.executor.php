@@ -353,16 +353,8 @@ function group5(){
 	if($GLOBALS["VIRTUALBOX_INSTALLED"]){$array["exec.virtualbox.php --maintenance"]="exec.virtualbox.php --maintenance";}
 	if($GLOBALS["KAV4PROXY_INSTALLED"]){$array["exec.kaspersky-update-logs.php --av-uris"];}
 	
-	if($GLOBALS["CGROUPS_INSTALLED"]){
-		$cgroupsEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("cgroupsEnabled");
-		if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
-		if($cgroupsEnabled==1){$array["exec.cgroups.php --stats"];}
-	}
 	
-	
-	
-	$array["exec.admin.status.postfix.flow.php"]="exec.admin.status.postfix.flow.php";
-	$array["exec.admin.smtp.flow.status.php"]="exec.admin.smtp.flow.status.php";
+
 
 	
 	if($GLOBALS["OPENVPN_INSTALLED"]){
@@ -451,7 +443,7 @@ function group30(){
 
 		
 	if($GLOBALS["DRUPAL7_INSTALLED"]){$array[]="exec.freeweb.php --drupal-cron";}
-	if($GLOBALS["SPAMASSASSIN_INSTALLED"]){	$array[]="exec.spamassassin.php --sa-update-check";}
+
 	
 	
 	
@@ -488,7 +480,7 @@ function group10(){
 	
 	if($GLOBALS["OCS_INSTALLED"]){$array[]="exec.ocsweb.php --injection";	}
 	if($GLOBALS["AUDITD_INSTALLED"]){$array[]="exec.auditd.php --import";}
-	if($GLOBALS["SQUID_INSTALLED"]){$array[]="exec.dansguardian.last.php";}
+	
 	if($GLOBALS["EnableArticaWatchDog"]==1){$array2[]="artica-install --startall";}
 	if($GLOBALS["ZARAFA_INSTALLED"]){$array[]="exec.zarafa.adbookldap.php --all";	}
 
@@ -736,7 +728,6 @@ function group120(){
 	if($GLOBALS["POSTFIX_INSTALLED"]){
 		$array[]="exec.smtp.export.users.php --sync";
 		$array[]="exec.quarantine-clean.php";
-		$array[]="exec.awstats.php --cleanlogs";
 		$array[]="exec.postfix.finder.php --logrotate";
 	}
 	
@@ -798,7 +789,7 @@ function mailarchives(){
 
 
 
-function events($text,$function,$line=0){
+function events($text=null,$function=null,$line=0){
 		$l=new debuglogs();
 		$filename=basename(__FILE__);
 		$l->events("$filename $function:: $text (L.$line)","/var/log/artica-postfix/executor-daemon.log");

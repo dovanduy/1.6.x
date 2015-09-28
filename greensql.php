@@ -78,7 +78,7 @@ function status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 
-	$html="<div class=text-info>{APP_GREENSQL_ABOUT}</div>
+	$html="<div class=explain>{APP_GREENSQL_ABOUT}</div>
 	<div id='greesql-status'></div></td>
 	<script>
 		LoadAjax('greesql-status','$page?greensql-status=yes');

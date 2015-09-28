@@ -57,7 +57,7 @@ The ldapsam:trusted optimization has been developed as a performance optimizatio
 which emulate Windows file servers under the Linux operating system.[br]
 Thus, Windows-based users within a heterogeneous network are provided with safe and transparent access to data stored on Linux file servers.[br]
 Kaspersky Anti-Virus is easily integrated with the Samba Server and does not require the Samba Server or parts of the operating system to be re-compiled.</kav4samba_about>
-<kavsamba_licence_text>Upload the *.key file about Kaspersky For Samba server in order to update the licence</kavsamba_licence_text>
+<kavsamba_licence_text>Upload the *.key file about Kaspersky For Samba server in order to update the license</kavsamba_licence_text>
 <kav_events>Events</kav_events>
 <local master>local master</local master>
 <local master_text>This  option allows your server to try and become a local master browser on a subnet.

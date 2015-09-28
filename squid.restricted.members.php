@@ -218,7 +218,7 @@ function items(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM $table WHERE $FORCE $searchstring $ORDER $limitSql";	
-	if($GLOBALS["VERBOSE"]){echo "<p style='color:red'>$sql</p>";}
+	if($GLOBALS["VERBOSE"]){echo "<p style='color:#d32d2d'>$sql</p>";}
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
 	

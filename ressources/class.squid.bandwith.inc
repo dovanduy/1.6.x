@@ -1,7 +1,7 @@
 <?php
 include_once(dirname(__FILE__).'/class.mysql.inc');
 include_once(dirname(__FILE__).'/class.cron.inc');
-
+include_once(dirname(__FILE__).'/class.tcpip.inc');
 class squid_bandwith_builder{
 	var $rules_array=array();
 	var $delay_pools=array();
@@ -13,17 +13,47 @@ class squid_bandwith_builder{
 	var $rules_explain=array();
 	var $delay_is_acls=array();
 	var $additionalsAcls=array();
+	private $ok=false;
+	private $SquidDisableAllFilters=0;
+	private $SquidUrgency=0;
+	private $EnableSquidBandWidthGlobal=0;
 	var $AS_ROOT=false;
 	
-	function squid_bandwith_builder(){
+	function squid_bandwith_builder($noload=false){
 		$this->AS_ROOT=$GLOBALS["AS_ROOT"];
-		$this->loadRules();
+		if(!$noload){
+			
+			$sock=new sockets();
+			$this->SquidDisableAllFilters=intval($sock->GET_INFO("SquidDisableAllFilters"));
+			$this->SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+			$this->EnableSquidBandWidthGlobal=intval($sock->GET_INFO("EnableSquidBandWidthGlobal"));
+			
+			
+			
+			$this->loadRules();
+		}
 		
 		
 	}
 	
+	private function build_progress_bandwidth($text,$pourc){
+		$echotext=$text;
+		$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+		echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
+		$cachefile="/usr/share/artica-postfix/ressources/logs/squid.bandwww.progress";
+		$array["POURC"]=$pourc;
+		$array["TEXT"]=$text;
+		@file_put_contents($cachefile, serialize($array));
+		@chmod($cachefile,0755);
+	}
+	
 	function loadrules(){
+		if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {reconfigure}",51);}
+		
+		
 		$sql="SELECT * FROM squid_pools WHERE enable=1";
+		$sock=new sockets();
+		
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
@@ -31,52 +61,245 @@ class squid_bandwith_builder{
 			return;
 		}
 		
+		if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {reconfigure}",55);}
 		$this->delay_pools="delay_pools ".mysql_num_rows($results);
 		if($GLOBALS["VERBOSE"]){echo "$sql -> $this->delay_pools element(s)\n";}
 		
 		$count=0;
+		if($this->EnableSquidBandWidthGlobal==1){$count=1;}
+		
+		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$delay_class=$this->get_delay_class($ligne);
+			if($delay_class==0){continue;}
 			$count=$count+1;
 			$this->rules_array[$count]=$ligne["ID"];
 			$this->rules_name[$count]=$ligne["rulename"];
-			$this->delay_class[]="delay_class $count {$ligne["rule_class"]}";
-			if($ligne["rule_class"]==1){
-				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]}";
-				continue;
-			}
-			if($ligne["rule_class"]==2){
-				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} -1/-1 {$ligne["total_users"]}";
-				continue;
-			}
 			
-			if($ligne["rule_class"]==3){
-				$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} -1/-1 {$ligne["total_users"]}";
-				continue;
-			}
-			
-			
-			$this->delay_parameters[]="delay_parameters $count {$ligne["total_net"]} {$ligne["total_users"]}";
+			$this->delay_class[]="delay_class $count $delay_class";
+			$this->delay_parameters[]=$this->get_delay_parameters($count,$delay_class,$ligne);
 		}
+		if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {reconfigure}",60);}
+	}
+	
+	public function get_delay_class($ligne){
+		$delay=0;
+		$total_net_max=intval($ligne["total_net_max"]);
+		$total_computer_max=intval($ligne["total_computer_max"]);
+		$total_user_max=intval($ligne["total_user_max"]);
+		
+		
+		$total_net_band=intval($ligne["total_net_band"]);
+		$total_computer_band=intval($ligne["total_computer_band"]);
+		$total_user_band=intval($ligne["total_user_band"]);
+		$total_member_band=intval($ligne["total_member_band"]);
+		
+		$total_user_enabled=intval($ligne["total_user_enabled"]);
+		$total_net_enabled=intval($ligne["total_net_enabled"]);
+		$total_computer_enabled=intval($ligne["total_computer_enabled"]);
+		$total_member_enabled=intval($ligne["total_member_enabled"]);
+		
+		
+		if($total_net_enabled==1){
+			if($total_net_band>0){
+				$delay=1;
+			}
+		}
+		if($total_computer_enabled==1){
+			if($total_computer_band>0){
+				$delay=2;
+			}
+		}
+
+		if($total_user_enabled==1){
+			if($total_user_band>0){
+				$delay=3;
+			}
+		}
+		
+		if($total_member_enabled==1){
+			if($total_member_band>0){
+				$delay=4;
+			}
+		}		
+
+		return $delay;
+		
+	}
+	
+	public function get_delay_parameters($count,$delay_class,$ligne){
+		$total_net_max=intval($ligne["total_net_max"]);
+		$total_computer_max=intval($ligne["total_computer_max"]);
+		$total_user_max=intval($ligne["total_user_max"]);
+		$total_member_max=intval($ligne["total_member_max"]);
+		
+		
+		$total_net_band=intval($ligne["total_net_band"]);
+		$total_computer_band=intval($ligne["total_computer_band"]);
+		$total_user_band=intval($ligne["total_user_band"]);
+		$total_member_band=intval($ligne["total_member_band"]);
+		
+		if($total_net_band==0){$total_net_band="-1";}
+		if($total_net_max==0){$total_net_max=$total_net_band;}else{$total_net_max=$total_net_max/1024;}
+		
+		if($total_computer_band==0){$total_computer_band="-1";}
+		if($total_computer_max==0){$total_computer_max=$total_computer_band;}else{$total_computer_max=$total_computer_max/1024;}	
+
+		
+		if($total_user_band==0){$total_user_band="-1";}
+		if($total_user_max==0){$total_user_max=$total_user_band;}else{$total_user_max=$total_user_max/1024;}			
+		
+		if($total_member_band==0){$total_member_band="-1";}		
+		if($total_member_max==0){$total_member_max=$total_member_band;}else{$total_member_max=$total_member_max/1024;}	
+		
+		if($delay_class==1){
+			return "delay_parameters $count $total_net_band/$total_net_max";
+		}
+		if($delay_class==2){
+			return "delay_parameters $count $total_net_band/$total_net_max $total_computer_band/$total_computer_max";
+		}
+		
+		if($delay_class==3){
+			return "delay_parameters $count $total_net_band/$total_net_max $total_computer_band/$total_computer_max $total_user_band/$total_user_max";
+		}
+				
+		if($delay_class==4){
+			return "delay_parameters $count $total_net_band/$total_net_max $total_computer_band/$total_computer_max $total_user_band/$total_user_max $total_member_band/$total_member_max";
+		}		
 	}
 	
 	
-	
+	private function GlobalRules(){
+		$q=new mysql_squid_builder();
+		$sql="CREATE TABLE IF NOT EXISTS `limit_bdwww` ( `website` VARCHAR( 128 ) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;";
+		$q->QUERY_SQL($sql);
+		
+		if($q->COUNT_ROWS("limit_bdwww")==0){
+			$f["ea.com"]=true;
+			$f["eamobile.com"]=true;
+			$f["microsoft.com"]=true;
+			$f["apple.com"]=true;
+			$f["playfirst.com"]=true;
+			$f["msecnd.net"]=true;
+			$f["windowsupdate.com"]=true;
+			$f["122.56.115.0/24"]=true; // googlevideos example.
+			$f["216.58.208.0/24"]=true; // video.googleuserscontent.com
+			$f["googlevideo.com"]=true;
+			$f["youtube.com"]=true;
+			$f["steamcommunity.com"]=true;
+			$f["steampowered.com"]=true;
+			$f["facebook.com"]=true;
+			$f["steamstatic.com"]=true;
+			$f["^video.googleusercontent.com"]=true;
+			
+			while (list ($www, $pool_id) = each ($f) ){
+				$q->QUERY_SQL("INSERT IGNORE INTO `limit_bdwww` (website) VALUES ('$www')");
+				if(!$q->ok){
+					echo "$q->mysql_error\n";
+					$this->ok=false;
+					return;
+				}
+			}
+			
+		}
+		$acls=new squid_acls();
+		$sql="SELECT * FROM limit_bdwww";
+		$results=$q->QUERY_SQL($sql);
+		$TCP=new IP();
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$www=trim($ligne["website"]);
+			if($www==null){continue;}
+			if($TCP->isIPAddressOrRange($www)){
+				$LimitBDWIP[]="acl LimitBDWIP dst $www";
+				continue;
+			}
+			$clean_dstdomains[]=$www;
+		}
+		
+		
+		
+		
+		
+		$clean_dstdomains=$acls->clean_dstdomains($clean_dstdomains);
+		if(count($clean_dstdomains)>0){
+			while (list ($index, $www) = each ($clean_dstdomains) ){
+				$LimitBDWDOM[]="acl LimitBDWDOM dstdomain $www";
+			}
+		}
+			
+		
+		
+		
+		if(count($LimitBDWDOM)>0){
+			$FIN[]=@implode("\n", $LimitBDWDOM);
+		}
+		if(count($LimitBDWIP)>0){
+			$FIN[]=@implode("\n", $LimitBDWIP);
+		}
+		$FIN[]="delay_pools 1";
+		$FIN[]="delay_class 1 1";
+		if(count($LimitBDWDOM)>0){
+			$FIN[]="delay_access 1 allow LimitBDWDOM";
+		}
+		if(count($LimitBDWIP)>0){
+			$FIN[]="delay_access 1 allow LimitBDWIP";
+		}
+		$FIN[]="delay_access 1 deny all";
+		
+		$sock=new sockets();
+		$BDWWizard=unserialize($sock->GET_INFO("BDWWizard"));
+		$BDW_FINAL=$BDWWizard["BDW_FINAL"];
+		
+		$FIN[]="delay_parameters 1 $BDW_FINAL/$BDW_FINAL";
+		$this->ok=true;
+		return @implode("\n", $FIN);
+	}
 	
 	
 	function compile(){
+		$conf=array();
+		$conf[]="";
+		$conf[]="#--------- Bandwith limitations (".__CLASS__."/".__FUNCTION__."()/".__LINE__.")";
+		
+		if($this->SquidUrgency==1){
+			if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {emergency}",110);}
+			$conf[]="# SquidUrgency =1, NO RULES!";
+			@file_put_contents("/etc/squid3/acls_bandwidth.conf", @implode("\n", $conf));
+			return;
+		}
+		if($this->SquidDisableAllFilters==1){
+			if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {emergency}",110);}
+			$conf[]="# SquidDisableAllFilters =1, NO RULES!";
+			@file_put_contents("/etc/squid3/acls_bandwidth.conf", @implode("\n", $conf));
+			return;
+		}
+		
+		
+		if($this->EnableSquidBandWidthGlobal==1){
+			if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} GlobalRules",60);}
+			$conf[]=$this->GlobalRules();
+			if(!$this->ok){return false;}
+		}
+		
 		$logprix=__CLASS__."/".__FUNCTION__;
 		if(count($this->rules_array)==0){
+			$conf[]="# NO RULES after compilation (".__CLASS__."/".__FUNCTION__."()/".__LINE__.")";
+			@file_put_contents("/etc/squid3/acls_bandwidth.conf", @implode("\n", $conf));
 			if($GLOBALS["VERBOSE"]){echo "rules_array 0 element (die())\n";}
-			return;}
+			if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} {done}",95);}
+			return true;
+		}
 	
 		
 		while (list ($index, $pool_id) = each ($this->rules_array) ){
 			if($index=="0"){
 				if($GLOBALS["VERBOSE"]){echo "$logprix: Index is 0 -> continue;\n";}
-				continue;}
+				continue;
+			}
 			if($index==null){
 				if($GLOBALS["VERBOSE"]){echo "$logprix: Index is null -> continue\n";}
-				continue;}
+				continue;
+			}
 			if($GLOBALS["VERBOSE"]){echo "$logprix: Checks Acls poolid=$pool_id index=$index\n";}
 			$this->delay_is_acls[$index]=false;
 			$this->squid_groups($pool_id,$index);
@@ -109,8 +332,9 @@ class squid_bandwith_builder{
 			$conf[]="delay_initial_bucket_level 50";
 			$conf[]="";
 		}
-		return @implode("\n",$conf);
-		
+		if(function_exists("build_progress_bandwidth")){build_progress_bandwidth("{limit_rate} acls_bandwidth.conf {done}",95);}
+		@file_put_contents("/etc/squid3/acls_bandwidth.conf", @implode("\n", $conf));
+		return true;
 
 	}
 	

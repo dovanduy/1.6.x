@@ -11,7 +11,7 @@ echo "
 
 <body>
 
-<center style='font-size:32px;font-family:Arial;font-weight;bold;color:red;padding-top:150px'>Access Denied</center>
+<center style='font-size:32px;font-family:Arial;font-weight;bold;color:#d32d2d;padding-top:150px'>Access Denied</center>
 </body>
 </html>
 ";

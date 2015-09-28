@@ -145,7 +145,7 @@ function showlist(){
 
 	$data = array();
 	$data['page'] = 1;
-	$data['total'] = mysql_num_rows($results);
+	$data['total'] = $total;
 	$data['rows'] = array();
 
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}

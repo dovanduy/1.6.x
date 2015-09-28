@@ -1093,7 +1093,7 @@ if fileExists(dspam.BIN_PATH()) then begin
       if EnableMysql=1 then begin
          AMAVISD_SETCONFIG('dspam',SYS.LOCATE_DSPAM());
          spamassassin.DSPAM_PATCH();
-         spamassassin.RAZOR_INIT();
+
 
          dspam.SET_CONFIG();
          fpsystem('chmod u-s,a+rx ' + SYS.LOCATE_DSPAM());
@@ -1108,10 +1108,6 @@ end else begin
 
 end;
 
-spamassassin.DEFAULT_SETTINGS();
-if not FileExists( spamassassin.SPAMASSASSIN_BIN_PATH()) then begin
-   fpsystem('/usr/share/artica-postfix/bin/artica-make APP_SPAMASSASSIN');
-end;
 
 logs.OutputCmd('/bin/chmod 755 /usr/local/etc/amavisd.conf');
 CleanCacheDatabases();

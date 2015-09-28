@@ -390,6 +390,7 @@ For example, if you using Artica has an SMTP outgoing engine or to perform mass-
  This is why the update progress should take time to updated to 100%</artica_update_categories_howto>
 <AsComplexPassword>Must use complex password</AsComplexPassword>
 <AsDansGuardianAdministrator>Can Manage Web filtering categories and categories repository</AsDansGuardianAdministrator>
+<AsSquidPersonalCategories>Can Manage Personal categories</AsSquidPersonalCategories>
 <AsWebFilterRepository>Can manage Proxy categories repository service</AsWebFilterRepository>
 <AsWebMaster>Can manage Web services such has Websites and Web applications</AsWebMaster>
 <AsWebStatisticsAdministrator>Can View all Web statistics (Proxy & url filtering)</AsWebStatisticsAdministrator>
@@ -1983,6 +1984,11 @@ You have to define task the period in minutes.
 <persistante_connection>Persistante connection</persistante_connection>
 <personal_category>Personal category</personal_category>
 <phishing_uris>Phishing URIs</phishing_uris>
+<PhishTank_about>PhishTank is a community anti-phishing Web site where anyone can go to submit suspected 
+phishes, track the status of their submissions and help verify others submissions.[br]
+Unlike other anti-phishing efforts that may come to mind, PhishTank is totally free to use and open to access.
+</PhishTank_about>
+<PhishTank_enable>Activate PhishTank database</PhishTank_enable>
 <php5MemoryLimit>Max PHP memory</php5MemoryLimit>
 <php5PostMaxSize>Max POST size</php5PostMaxSize>
 <php5UploadMaxFileSize>Max upload file size</php5UploadMaxFileSize>

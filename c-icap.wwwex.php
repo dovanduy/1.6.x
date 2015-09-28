@@ -33,9 +33,9 @@ function popup(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_entry', bclass: 'Add', onpress : NewGItem$t},
-	{name: '$compile_rules', bclass: 'Reconf', onpress : GitemReconf$t},
-	{name: '$online_help', bclass: 'Help', onpress : ItemHelp$t},
+	{name: '<strong style=font-size:18px>$new_entry</strong>', bclass: 'Add', onpress : NewGItem$t},
+	{name: '<strong style=font-size:18px>$compile_rules</strong>', bclass: 'Reconf', onpress : GitemReconf$t},
+	{name: '<strong style=font-size:18px>$online_help</strong>', bclass: 'Help', onpress : ItemHelp$t},
 	
 	],	";
 	
@@ -52,8 +52,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?items=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$items', name : 'websitename', width :563, sortable : true, align: 'left'},	
-		{display: '$delete', name : 'action', width :31, sortable : false, align: 'center'},
+		{display: '<strong style=font-size:18px>$items</strong>', name : 'websitename', width :563, sortable : true, align: 'left'},	
+		{display: '<strong style=font-size:18px>$delete</strong>', name : 'action', width :97, sortable : false, align: 'center'},
 
 	],
 	$buttons
@@ -66,12 +66,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'websitename',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: $TB_HEIGHT,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 	
@@ -82,7 +82,7 @@ function ItemHelp$t(){
 	s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=318','1024','900');
 }
 function GitemReconf$t(){
-	Loadjs('squid.restart.php?onlySquid=yes');
+	Loadjs('squid.ecap.progress.php');
 }
 
 var x_Delete$t=function(obj){
@@ -192,7 +192,7 @@ function items(){
 	$zmd5=md5($ligne["websitename"]);
 
 	
-	$delete=imgsimple("delete-24.png","","Delete$t('{$ligne["websitename"]}','$zmd5')");
+	$delete=imgsimple("delete-32.png","","Delete$t('{$ligne["websitename"]}','$zmd5')");
 	
 	
 	
@@ -200,8 +200,8 @@ function items(){
 	$data['rows'][] = array(
 		'id' => "$zmd5",
 		'cell' => array(
-			"<span style='font-size:16px;color:$color'>$urljs{$ligne["websitename"]}</a></span>",
-			"<span style='font-size:16px;color:$color'>$delete</a></span>",
+			"<span style='font-size:26px;color:$color'>$urljs{$ligne["websitename"]}</a></span>",
+			"<center style='font-size:16px;color:$color'>$delete</a></center>",
 			)
 		);
 	}

@@ -166,7 +166,7 @@ Tous les conteneurs et r&egrave;gles pare-feu associ&eacute;es seront d&eacute;t
 <result_attribute>result attribute</result_attribute>
 <retypepassword>Retaper le mot de passe</retypepassword>
 <routed_servers>serveurs rout&eacute;s</routed_servers>
-<router>routeur</router>
+<router>Routeur</router>
 <SAMBA_LDAP_EXTERN_TEXT>Cette section vous permet de modifier les coordonn&eacute;es du serveur LDAP pour la v&eacute;rifications des utilisateurs.[br]
 Par d&eacute;faut, Artica utilise son propre serveur LDAP afin de vous aider &agrave; administrer les utilisateurs et leur acc&egrave;s.[br]Vous pouvez ici utiliser vos propres param&egrave;tres LDAP.</SAMBA_LDAP_EXTERN_TEXT>
 <schedule_task>T&acirc;che de programmation</schedule_task>
@@ -194,7 +194,7 @@ Par d&eacute;faut, Artica utilise son propre serveur LDAP afin de vous aider &ag
 <template-virus-recipient>mod&egrave;le de Notification de Spam destinataire</template-virus-recipient>
 <template-virus-sender>mod&egrave;le de Notification de virus &eacute;metteur</template-virus-sender>
 <THIS_PAGE_NOT_EXISTS>Cette page n'existe pas</THIS_PAGE_NOT_EXISTS>
-<top10_hits>Top 10 des requ&ecirc;tes</top10_hits>
+<top10_hits>Palmar&egrave;s des requ&ecirc;tes</top10_hits>
 <transport>Transport</transport>
 <UFDBGUARD_SSL_OPTS>Am&eacute;liorez le niveau de protection contre le phishing, les proxies et sites webs utilisant des certificats SSL non conformes.[br]
 Dans ce cas, un site l&eacute;gitime utilisant une addresse IP dans le lien web ou un certificat non conforme sera interdit.</UFDBGUARD_SSL_OPTS>
@@ -203,7 +203,7 @@ Dans ce cas, un site l&eacute;gitime utilisant une addresse IP dans le lien web 
 <update_type>Type de mise &agrave; jour</update_type>
 <UseDynamicIpService>Activer le service IP dynamique</UseDynamicIpService>
 <useOpenDNS>Activation du service OpenDNS</useOpenDNS>
-<versions>versions</versions>
+<versions>Versions</versions>
 <VIEW_WEBSITE_INFOS_TEXT>Voir les informations du site web et les diff&eacute;rents acc&egrave;s aux modules.</VIEW_WEBSITE_INFOS_TEXT>
 <virtual_alias_maps>Base d'aliases virtuels</virtual_alias_maps>
 <virtual_mailbox_maps>Base de bo&icirc;tes aux lettres virtuelles</virtual_mailbox_maps>

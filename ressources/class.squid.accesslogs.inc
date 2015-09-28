@@ -90,17 +90,7 @@ class accesslogs{
 		
 		
 		
-	
-		if($this->stats){
-			if(!$boostrap){
-			$uri=str_replace($host, "<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite=$host&day=$today');\"
-				style='text-decoration:underline;color:$color'>$host</a>", $uri);
-			}
-			
-			
-			
-		}
+
 		
 		$spanON="<span style='color:$color'>";
 		$spanOFF="</span>";

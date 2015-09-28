@@ -173,7 +173,7 @@ function remote_site_tabs(){
 
 function remote_site_edit(){
 	$siteid=$_GET["siteid"];
-	$explain="<div class=text-info>{ADD_REMOTE_SITES_VPN_TEXT}</div>";
+	$explain="<div class=explain>{ADD_REMOTE_SITES_VPN_TEXT}</div>";
 	$page=CurrentPageName();
 	$openvpn=new openvpn();
 	$IP_START=$openvpn->main_array["GLOBAL"]["IP_START"];
@@ -554,7 +554,7 @@ function remote_site_routes(){
 	$siteid=$_GET["siteid"];
 
 	$html="
-	<div class=text-info>{openvpn_remotesites_routes_explain}</div>
+	<div class=explain>{openvpn_remotesites_routes_explain}</div>
 	<center>
 		<table style='width:80%' class=form>
 		<tr>

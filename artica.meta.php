@@ -67,8 +67,8 @@ function login(){
 			
 	$html="
 	<div id='artica-join-div'>
-	<div class=text-info>{ArticaMetaSerial}</div>
-	<div style='font-size:16px;text-align:right;margin-bottom:15px'>Artica Meta:<a href='$meta->ArticaMetaHostname'><u>$meta->ArticaMetaHostname</u></a></div>
+	<div class=explain>{ArticaMetaSerial}</div>
+	<div style='font-size:16px;text-align:right;margin-bottom:15px'>Meta Server:<a href='$meta->ArticaMetaHostname'><u>$meta->ArticaMetaHostname</u></a></div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{remove_from_index_page}:</td>
@@ -233,7 +233,7 @@ function inscription(){
 	
 	$html="
 	<div id='artica-meta-form-inscr'>
-	<div class=text-info>{artica-meta-create-account-text}</div>
+	<div class=explain>{artica-meta-create-account-text}</div>
 	<div style='font-size:16px;font-weight:bold'>{create_an_account}</div>
 	<table style='width:100%'>
 	<tr>

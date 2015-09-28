@@ -31,11 +31,11 @@ function tabs(){
 	$array["squid-memory"]='{memory}';
 	$array["peristent_cnx"]="{persistent_connections}";
 	$array["performance-reports"]="{performance_reports}";
-	$array["logger"]="{artica_logger}";
+	//$array["logger"]="{artica_logger}";
 	
 	
 	
-	$fontsize="18";
+	$fontsize="22";
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="logger"){
@@ -64,7 +64,7 @@ function tabs(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 					
 	}
-		echo build_artica_tabs($html, "squid_main_performance",1100)."";
+		echo build_artica_tabs($html, "squid_main_performance",1492)."";
 
 
 }
@@ -76,24 +76,44 @@ function performance(){
 	$sock=new sockets();
 	$sock->SET_INFO("AsSeenPerformanceFeature",1);
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$SquidUsersNumber=intval($sock->GET_INFO("SquidUsersNumber"));
 	$t=time();
 	
 	$array[0]="{full_features}";
 	$array[1]="{no_categories}";
 	$array[2]="{no_statistics}";
 	$array[3]="{minimal_features}";
-	$html="<div style='font-size:26px'>{global_performance}</div>
-	<div class=text-info style='font-size:18px'>{artica_squid_performance_text}</div>	
-	<div class=text-info style='font-size:18px' id='explain-$t'></div>	
+	
+	$arrayUsers[0]="{not_defined}";
+	$arrayUsers[49]="{less_than_50}";
+	$arrayUsers[500]="{between_100_to_500}";
+	$arrayUsers[1000]="{between_500_to_1000}";
+	$arrayUsers[1500]="{up_to_1000}";
+	
+	
+	$html="<div style='font-size:42px;margin-bottom:20px'>{performance_level}</div>
+	<div class=explain style='font-size:18px'>{artica_squid_performance_text}</div>	
+	
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td style='font-size:22px'>{performance_level}:</td>
-		<td>". Field_array_Hash($array, "SquidPerformance-$t",$SquidPerformance,"Choose$t()",null,0,"font-size:22px")."</td>
+		<td style='font-size:32px'>{features}:</td>
+		<td>". Field_array_Hash($array, "SquidPerformance-$t",$SquidPerformance,"Choose$t()",null,0,"font-size:32px;width:781px")."</td>
 	</tr>
-	<tr><td colspan=2 align='right'><hr>". button("{apply}", "Save$t()",32)."</td>
+	<tr><td colspan=2><div class=explain style='font-size:14px' id='explain-$t'></div></td>
 	</tr>
-	</table>		
+	<tr style='height:75px'><td colspan=2 align='right'>&nbsp;</td></tr>	
+	<tr>
+		<td style='font-size:32px'>{users}:</td>
+		<td>". Field_array_Hash($arrayUsers, "SquidUsersNumber-$t",$SquidUsersNumber,"blur()",null,0,"font-size:32px;width:781px")."</td>
+	</tr>
+	<tr><td colspan=2><div class=explain style='font-size:14px'>{SquidUsersNumber_explain}</div></td>			
+				
+	<tr><td colspan=2 align='right'><hr>". button("{apply}", "Save$t()",48)."</td>
+	</tr>
+	</table>	
+	
+	
 	</div>		
 	<script>
 		var xSave$t= function (obj) {
@@ -108,6 +128,7 @@ function performance(){
 	function Save$t(){
 		var XHR = new XHRConnection();
 		XHR.appendData('SquidPerformance',document.getElementById('SquidPerformance-$t').value);
+		XHR.appendData('SquidUsersNumber',document.getElementById('SquidUsersNumber-$t').value);
 		XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
 	
@@ -135,9 +156,14 @@ function explain_this(){
 function SquidPerformance(){
 	$sock=new sockets();
 	$sock->SET_INFO("SquidPerformance", $_POST["SquidPerformance"]);
+	$sock->SET_INFO("SquidUsersNumber", $_POST["SquidUsersNumber"]);
 	$sock->getFrameWork("system.php?restart-all-extrn-scvcs=yes");
+	$sock->getFrameWork("system.php?ChangePerformance=yes");
 	$sock->getFrameWork("cmd.php?reload-ufdbguard=yes");
 	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	
+	
+	
 }
 

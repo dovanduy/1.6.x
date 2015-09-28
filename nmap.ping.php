@@ -28,11 +28,12 @@ function table(){
 		$MAC=$tpl->javascript_parse_text("{MAC}");
 		$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
 		$title=$tpl->_ENGINE_parse_body("{nmap_scan_ping_title}");
+		$proxy_alias=$tpl->javascript_parse_text("{proxy_alias}");
 		$tt=time();
 		$buttons="
 		buttons : [
-		{name: '$new_text', bclass: 'add', onpress : NewRule$tt},
-		{name: '$analyze', bclass: 'Reconf', onpress : Apply$tt},
+		{name: '<strong style=font-size:18px>$new_text</strong>', bclass: 'add', onpress : NewRule$tt},
+		{name: '<strong style=font-size:18px>$analyze</strong>', bclass: 'Reconf', onpress : Apply$tt},
 	
 		],";
 	
@@ -45,10 +46,11 @@ $html="
 		dataType: 'json',
 		colModel : [
 	
-		{display: '$ipaddr', name : 'ipaddr', width :250, sortable : true, align: 'left'},
-		{display: '$MAC', name : 'MAC', width : 250, sortable : true, align: 'left'},
-		{display: '$vendor', name : 'vendor', width : 231, sortable : true, align: 'left'},
-		{display: '$infos', name : 'infos', width : 367, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$ipaddr</span>', name : 'ipaddr', width :250, sortable : true, align: 'left'},
+		{display: '<span style=font-size:20px>$MAC</span>', name : 'MAC', width : 250, sortable : true, align: 'left'},
+		{display: '<span style=font-size:20px>$vendor</span>', name : 'vendor', width : 231, sortable : true, align: 'left'},
+		{display: '<span style=font-size:20px>$infos</span>', name : 'infos', width : 367, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$proxy_alias</span>', name : 'proxy_alias', width : 286, sortable : false, align: 'left'},
 		],
 		$buttons
 		searchitems : [
@@ -59,7 +61,7 @@ $html="
 		sortname: 'ipaddr',
 		sortorder: 'asc',
 		usepager: true,
-		title: '$title',
+		title: '<span style=font-size:30px>$title</span>',
 		useRp: false,
 		rp: 50,
 		showTableToggleBtn: false,
@@ -141,7 +143,7 @@ function items(){
 	
 	
 	
-		$fontsize="18px";
+		$fontsize="26px";
 		$data = array();
 		$data['page'] = 1;
 		$data['total'] = mysql_num_rows($results);
@@ -151,6 +153,7 @@ function items(){
 		$computer=new computers();
 		$tpl=new templates();
 		$dhcpfixed=$tpl->_ENGINE_parse_body("{dhcpfixed}");
+		$q2=new mysql_squid_builder();
 	while ($ligne = mysql_fetch_assoc($results)) {
 			$ipaddr=$ligne["ipaddr"];
 			$infoZ=array();
@@ -212,16 +215,42 @@ function items(){
 				
 				
 			}
-
+			$macenc=urlencode($mac);
+			$proxy_alias=$q2->UID_FROM_MAC($mac);
+			if($proxy_alias<>null){
+				$proxy_alias="
+				<a href=\"javascript:blur();\"
+				style=\"text-decoration:underline\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$macenc');\"
+				>$proxy_alias</a>";
+				
+			}
 			
+			
+			
+			if($proxy_alias==null){
+				$proxy_alias=$q2->UID_FROM_IP($ipaddr);
+			
+			}
+			if($proxy_alias==null){
+				
+				$proxy_alias="<center>
+					<a href=\"javascript:blur();\" 
+					OnClick=\"javascript:Loadjs('squid.nodes.php?link-user-js=yes&MAC=$macenc&ipaddr=$ipaddr',true)\"
+					><img src='img/32-plus.png'></a></center>";
+				
+			}
 			
 			
 			$data['rows'][] = array(
 			'id' => md5(serialize($ligne)),
-			'cell' => array("<span style='font-size:18px'>$ipaddr</span>",
-			"<span style='font-size:18px'>$jslink$mac</a></span>",
-			"<span style='font-size:18px'>$vendor</span>",
-			"<span style='font-size:12px'>$infos</span>" )
+			'cell' => array("<span style='font-size:26px'>$ipaddr</span>",
+			"<span style='font-size:26px'>$jslink$mac</a></span>",
+			"<span style='font-size:26px'>$vendor</span>",
+			"<span style='font-size:18px'>$infos</span>",
+			"<span style='font-size:26px'>$proxy_alias</span>",
+
+					)
 		);
 	}
 	

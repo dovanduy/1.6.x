@@ -16,7 +16,7 @@ Il fournit les fonctionnalit&eacute;s obligatoires offertes par les clients de m
 <AccountLess3Carac>les comptes inf&eacute;rieurs a 4 carct&egrave;res</AccountLess3Carac>
 <account_already_exists>Le compte existe d&eacute;j&agrave;</account_already_exists>
 <account_name>parametres du compte</account_name>
-<ACLS>listes de contr&ocirc;le d'acc&egrave;s</ACLS>
+<ACLS>Listes de contr&ocirc;le d\'acc&egrave;s</ACLS>
 <acls_directory>Administrer les permissions sur ce r&eacute;pertoire (ACL)</acls_directory>
 <acls_get_error>Impossible de r&eacute;cup&eacute;rer les informations des listes d'acc&egrave;s, v&eacute;rifiez que le disque dur qui h&eacute;berge ce r&eacute;pertoire/fichier est bien activ&eacute; avec les ACLs ou v&eacute;rifiez si les outils getfacl/setfacl sont correctement install&eacute;s.</acls_get_error>
 <ACLS_SUPPORT>support des ACLs</ACLS_SUPPORT>
@@ -212,7 +212,7 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_server>Ajouter un serveur</add_server>
 <add_server_domain>Ajouter un serveur ou un domaine</add_server_domain>
 <add_single_ip>Nouvelle adresse unique</add_single_ip>
-<add_spamassassin_header_txt>Un oersonnalisation des ent&ecirc;tes peut &ecirc;tre ajout&eacute;e en fonction des types de d&eacute;tection (Spam,bon, tous).[br]
+<add_spamassassin_header_txt>Une personnalisation des ent&ecirc;tes peut &ecirc;tre ajout&eacute;e en fonction des types de d&eacute;tection (Spam,bon, tous).[br]
 Les ent&ecirc;tes commencent par X-Spam-[br]
 exemples[br]
 [li]Flag _YESNOCAPS_[/li]
@@ -308,7 +308,7 @@ Si un ordinateur d&eacute;passe la limite des X &eacute;v&eacute;nements, Artica
 <antispam_text>D&eacute;finition des param&egrave;tres anti-spam afin de bloquer les messages ind&eacute;sirables</antispam_text>
 <antispam_user_rules>Vos param&egrave;tres Anti-Spam</antispam_user_rules>
 <antispam_user_rules_text>D&eacute;finir les actions a utilis&eacute;e quand un SPAM est d&eacute;tect&eacute;.</antispam_user_rules_text>
-<antivirus>antivirus</antivirus>
+<antivirus>Antivirus</antivirus>
 <antivirus daemon>D&eacute;mon antivirus</antivirus daemon>
 <antivirus settings>Param&egrave;tres Antivirus</antivirus settings>
 <antivirus_database>Base de donn&eacute;es antivirus</antivirus_database>
@@ -600,7 +600,7 @@ Si vous activez cette fonctionnalit&eacute;, vous serez en mesure de partager vo
 <APP_SPF_TEXT>SPF permet aux propri&eacute;taires de noms de domaines d'indiquer dans leurs registres DNS quelles adresses IP ont le droit d'envoyer des courriers provenant de leurs domaines. Cela emp&ecirc;che les spammeurs de manipuler le Return-Path.</APP_SPF_TEXT>
 <APP_SPF_TINY_TEXT>SPF est un syst&egrave;me de validation des messages pr&eacute;venant des spams par usurpation d'identit&eacute;s</APP_SPF_TINY_TEXT>
 <APP_SQLGREY>Politique de serveur SaqlGrey</APP_SQLGREY>
-<APP_SQUID>Cache proxy Squid</APP_SQUID>
+<APP_SQUID>Service Proxy</APP_SQUID>
 <APP_SQUIDCLAMAV>Antivirus ClamAV pour Proxy</APP_SQUIDCLAMAV>
 <APP_SQUIDGUARD>filtrage web squidGuard</APP_SQUIDGUARD>
 <APP_SQUIDGUARD_HTTP>Service HTTP SquidGuard</APP_SQUIDGUARD_HTTP>
@@ -1218,7 +1218,7 @@ Vous pouvez ajouter des privil&egrave;ges de groupe afin d'autoriser certains ut
 <database_entries_number>Nombre d'entr&eacute;es dans la base de donn&eacute;es</database_entries_number>
 <database_name>Nom de la base de donn&eacute;es</database_name>
 <date>date</date>
-<date_from>Date de d&eacute;part</date_from>
+<date_from>Date de d&eacute;but</date_from>
 <date_to>Date de fin</date_to>
 <day>jour</day>
 <days>Jours</days>
@@ -2328,7 +2328,7 @@ Avec Artica et un acc&egrave;s &agrave; l'interface web (Master), n'importe qui 
 <list>liste</list>
 <listen_http_port>Port d'&eacute;coute HTTP</listen_http_port>
 <listen_ip>Adresse IP d'&eacute;coute</listen_ip>
-<listen_port>port d'&eacute;coute</listen_port>
+<listen_port>Port d'&eacute;coute</listen_port>
 <listen_ssl_port>Port d'&eacute;coute SSL</listen_ssl_port>
 <listing_content>Parcours du contenu</listing_content>
 <list_mailboxes>Liste de boites aux lettres</list_mailboxes>
@@ -3472,7 +3472,7 @@ Ces r&egrave;gles v&eacute;rifient l'adresse TCP/IP des serveurs/clients distant
 Vous pouvez activer la fonctionnalit&eacute; RBL RHSBL afin d'&eacute;viter les spams</SectionSecurityRulesExplain>
 <SectionSecurityRulesExplainTitle>Section de r&egrave;gles de s&eacute;curit&eacute;</SectionSecurityRulesExplainTitle>
 <Secure_channel_TLS>Tunnel s&eacute;curis&eacute; TLS</Secure_channel_TLS>
-<security_access>s&eacute;curit&eacute; d'Acc&egrave;s</security_access>
+<security_access>S&eacute;curit&eacute; d`acc&egrave;s</security_access>
 <security_analyze>Analyse de s&eacute;curit&eacute;</security_analyze>
 <security_classes>classes de restrictions de s&eacute;curit&eacute;</security_classes>
 <SECURITY_MODULES>Modules de s&eacute;curit&eacute;</SECURITY_MODULES>
@@ -3609,7 +3609,7 @@ Renvoie le message &agrave; l'exp&eacute;diteur, l'enveloppant dans une forme &l
 <simulation_mode_explain>Le mode simulation va changer chaque destinataire par l'adresse eMail stipul&eacute;e dans le champs ci-dessous.[br]Dans ce cas, vous pouvez envoyer l'envoi en masse en toute confiance afin de tester le processus d'&eacute;mission avant l'envoi d&eacute;finitif.</simulation_mode_explain>
 <since>Depuis</since>
 <single_ip>Adresse IP simple</single_ip>
-<size>taille</size>
+<size>Taille</size>
 <size_of_message>Taille du message</size_of_message>
 <skipped>ignor&eacute;(s)</skipped>
 <skipsize>ne pas faire attention &agrave; la taille</skipsize>
@@ -3944,13 +3944,12 @@ La raison est que certains sites FTP distants v&eacute;rifient la validit&eacute
 [li]R&eacute;f&eacute;rence &agrave; tout le r&eacute;seau 172.16.1.0: [b]172.16.1.0/24[/b][/li]
 [li]R&eacute;f&eacute;rence &agrave; une adresse unique 172.16.1.25: [b]172.16.1.25/32[/b][/li]
 [li]R&eacute;f&eacute;rence &agrave; une adresse unique172.16.1.25: [b]172.16.1.25[/b][/li]
-[li]R&eacute;f&eacute;rence &agrave; une tranche d'adresse  172.16.1.25-172.16.1.35 :[b]172.16.1.25-172.16.1.35/32[/b][/li]
 [/ul]</SQUID_NETWORK_HELP>
 <squid_net_calc_mask>Calcul du nombre de bits</squid_net_calc_mask>
 <squid_net_settings>Param&egrave;tres Proxy</squid_net_settings>
 <squid_net_simple>Configuration r&eacute;seau simple</squid_net_simple>
 <SQUID_NEWVERSION>Nouvelle version du Proxy web SQUID</SQUID_NEWVERSION>
-<SQUID_NEWVERSION_TEXT>Une nouvelle version du proxy Internet SQUID est disponible. Il est conseill&eacute; de la mettre &agrave; jour.</SQUID_NEWVERSION_TEXT>
+<SQUID_NEWVERSION_TEXT>Une nouvelle version du proxy Web est disponible. Il est conseill&eacute; de la mettre &agrave; jour.</SQUID_NEWVERSION_TEXT>
 <SQUID_NOT_COMPILED_NTLM_RUN_RECONFIGURE>Le proxy principale (SQUID) n'est pas compil&eacute; avec la directive NTLM, si vous voulez utiliser l'authentification &agrave; travers un domaine NT, vous devez mettre &agrave; jour SQUID.[br]
 Cliquez sur le bouton ci-dessous afin d'ordonner cette op&eacute;ration.</SQUID_NOT_COMPILED_NTLM_RUN_RECONFIGURE>
 <squid_parent_options>Options des serveurs proxy distants</squid_parent_options>
@@ -3972,8 +3971,8 @@ Trois valeurs possible :[ul]
 <squid_status>&Eacute;tat de Squid</squid_status>
 <squid_templates_error>Mod&egrave;les d'erreurs</squid_templates_error>
 <squid_templates_error_text>Modification des pages HTML lorsque Squid &eacute;met une erreur r&eacute;seau ou autre &agrave; vos utilisateurs</squid_templates_error_text>
-<SQUID_TOP_HITS_STAT_EXPLAIN>Vous trouverez ici le top 50 des pages les plus visit&eacute;es par vos utilisateurs</SQUID_TOP_HITS_STAT_EXPLAIN>
-<SQUID_TOP_USERS_STAT_EXPLAIN>Vous trouverez ici le top 50 des utilisateurs qui utilisent le plus ce site web. Et ce, depuis le d&eacute;but de l'enregistrement des &eacute;v&egrave;nements.</SQUID_TOP_USERS_STAT_EXPLAIN>
+<SQUID_TOP_HITS_STAT_EXPLAIN>Vous trouverez ici le palmar&egrave;s 50 des pages les plus visit&eacute;es par vos utilisateurs</SQUID_TOP_HITS_STAT_EXPLAIN>
+<SQUID_TOP_USERS_STAT_EXPLAIN>Vous trouverez ici le palmar&egrave;s 50 des utilisateurs qui utilisent le plus ce site web. Et ce, depuis le d&eacute;but de l'enregistrement des &eacute;v&egrave;nements.</SQUID_TOP_USERS_STAT_EXPLAIN>
 <srv_artica>Services d'Artica</srv_artica>
 <srv_kav_mail>Antivirus Kaspersky pour Postfix</srv_kav_mail>
 <srv_postfix>&Eacute;tat des services Postfix</srv_postfix>
@@ -4108,7 +4107,7 @@ Si vous d&eacute;sactivez cette option, Artica utilisera uniquement un cache de 
 <task_q1>Donn&eacute;e un nom &agrave; la t&acirc;che</task_q1>
 <task_success_check_mailbox>Ex&eacute;cution effectu&eacute;e, consultez la bo&icirc;te aux lettres...</task_success_check_mailbox>
 <tcp_address>Adresse TCP</tcp_address>
-<tcp_main_settings>Param&egrave;tres cartes r&eacute;seau</tcp_main_settings>
+<tcp_main_settings>Param&egrave;tres cartes r&eacute;seaux</tcp_main_settings>
 <tempfail>Echec d'envoi</tempfail>
 <templates>Mod&egrave;les</templates>
 <template_add>Ajouter un nouveau mod&egrave;le</template_add>
@@ -4321,10 +4320,10 @@ Chaque niveau de journalisation inclut &eacute;galement l'information journalis&
 <tools>outils</tools>
 <TOO_MANY_STOPPED_SERVICES>Trop de services arr&ecirc;t&eacute;s</TOO_MANY_STOPPED_SERVICES>
 <top>top</top>
-<topten>TOP 10</topten>
-<top_hits>Top des acc&egrave;s</top_hits>
-<top_ressources>TOP des ressources</top_ressources>
-<top_users>Top utilisateurs</top_users>
+<topten>Palmar&egrave;s des 10 premiers</topten>
+<top_hits>Palmar&egrave;s des acc&egrave;s</top_hits>
+<top_ressources>Palmar&egrave;s des ressources</top_ressources>
+<top_users>Palmar&egrave;s des utilisateurs</top_users>
 <total>total.</total>
 <town>ville</town>
 <to_ip_address>vers l'adresse tcp/ip</to_ip_address>
@@ -4411,7 +4410,7 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <upload_new_license>Charger une nouvelle licence</upload_new_license>
 <upload_vpn_configuration>Charger les param&egrave;tres VPN</upload_vpn_configuration>
 <upload_your_file_here>Chargez votre fichier ici</upload_your_file_here>
-<uptime>temps de vie</uptime>
+<uptime>Temps de vie</uptime>
 <uri_add_in_browser>Lien web &agrave; rajouter dans les param&egrave;tres des navigateurs</uri_add_in_browser>
 <uri_dnsbl>Lien DNSBL</uri_dnsbl>
 <uri_test>adresse web &agrave; tester</uri_test>
@@ -4465,14 +4464,14 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <use_tls_relay_explain>Utilisez la communication TLS avec le serveur cible d&eacute;fini</use_tls_relay_explain>
 <using>utilis&eacute;</using>
 <using_pid>utilis&eacute; le num&eacute;ro pid</using_pid>
-<using_version>num&eacute;ro de version utilis&eacute;</using_version>
+<using_version>Num&eacute;ro de version utilis&eacute;</using_version>
 <vacation>vacances</vacation>
 <vacation_default>Bonjour, je suis actuellement indisponible, je lirai votre message d&egrave;s mon retour</vacation_default>
 <value>valeur</value>
 <vendor>nom du vendeur</vendor>
 <verify_incoming_mails>V&eacute;rifier la signature des messages entrants</verify_incoming_mails>
 <verify_template>v&eacute;rifier le template</verify_template>
-<version>version</version>
+<version>Version</version>
 <vfs_modules_disabled_text>Si vous d&eacute;sactivez certains modules, vous aurez besoin de r&eacute;-appliquer la configuration de chaque r&eacute;pertoire partag&eacute; pr&eacute;c&eacute;demment prot&eacute;g&eacute; par le module</vfs_modules_disabled_text>
 <vgcreate_dev>Ajouter un groupe de volumes</vgcreate_dev>
 <vgcreate_dev_explain>Ajoutez un nouveau groupe afin de cr&eacute;er des volumes de disque logiques dans ce groupe</vgcreate_dev_explain>

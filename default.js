@@ -73,17 +73,40 @@ function OpenLDAPCompilesRules(){Loadjs('openldap.php?compile-rules-js=yes');}
 
 function RefreshAllAclsTables(){
 var id='';
-if( document.getElementById('ACL_ID_MAIN_TABLE') ){
-  id=document.getElementById('ACL_ID_MAIN_TABLE').value;
-  $('#'+id).flexReload();
-}
-if( document.getElementById('ACL_ID_GROUP_TABLE') ){
-  id=document.getElementById('ACL_ID_GROUP_TABLE').value;
-  $('#'+id).flexReload();
+	if( document.getElementById('ACL_ID_MAIN_TABLE') ){
+	  id=document.getElementById('ACL_ID_MAIN_TABLE').value;
+	  $('#'+id).flexReload();
+	}
+	if( document.getElementById('ACL_ID_GROUP_TABLE') ){
+	  id=document.getElementById('ACL_ID_GROUP_TABLE').value;
+	  $('#'+id).flexReload();
+	}
+	if(document.getElementById('GLOBAL_SSL_CENTER_ID')){
+		$('#'+document.getElementById('GLOBAL_SSL_CENTER_ID').value).flexReload();
+	}
+	if(document.getElementById('SSL_RULES_GROUPS_ID')){
+		$('#'+document.getElementById('SSL_RULES_GROUPS_ID').value).flexReload();
+	}	
+	
+	if(document.getElementById('flexRT-refresh-1')){ 
+		$('#'+document.getElementById('flexRT-refresh-1').value).flexReload();
+	}
+	if(document.getElementById('TABLE_BROWSE_ACL_GROUPS_ID')){ 
+		$('#'+document.getElementById('TABLE_BROWSE_ACL_GROUPS_ID').value).flexReload();
+	}
+
 }
 
 
+function DashBoardProxy(){
+
+	if(!document.getElementById('MainSlider')){
+		LoadAjax('BodyContent','admin.dashboard.proxy.php');
+		return;
+	}		
+	LoadAjaxRound('proxy-dashboard','admin.dashboard.proxy.php?proxy-dashboard=yes');
 }
+
 
 function LoadMemDump(){
 	Loadjs('admin.index.php?mem-dump-js=yes',true);
@@ -202,8 +225,7 @@ function initMessagesTop(){
 	$('.messageMenu').click(function(){ $(this).animate({top: -$(this).outerHeight()}, 500);});	
 }
 
-function ifFnExistsCallIt(fnName)
-{
+function ifFnExistsCallIt(fnName){
    fn = window[fnName];
    fnExists = typeof fn === 'function';
    if(fnExists)
@@ -272,38 +294,19 @@ var x_time_fill= function (obj) {
 
 
 function UnlimitedSession(){
-    var dt=new Date();
-    try{
-    	var jqueryIsLoaded=jQuery;
-    		jQueryIsLoaded=true;
-    	}
-    	catch(err){
-    		var jQueryIsLoaded=false;
-    	}
-    
-    
-    window.status=dt.getHours()+":"+dt.getMinutes()+":"+dt.getSeconds();
-    if (jQueryIsLoaded) {  
-    	
-    	Loadjs('Inotify.php');
-    }
-    setTimeout("UnlimitedSession()",120000);
-    
+
 }
 
 function SearchIds(){
 
-	$("div[id^=SERVICE-STATUS-ROUND-]").each(function(){
-		LoadAjax($(this).attr('id'),'Inotify.php?refresh-service-status='+$(this).attr('id'));
-	});
-	setTimeout("SearchIds()",15000);
+
 
 }
 
 
-function IsFunctionExists(a){
-	return $.isFunction(a);
-	
+function IsFunctionExists(fnName){
+	if(fnName && window[fnName]) { return true;}
+	return false;
 }
 
 
@@ -675,6 +678,61 @@ function LoadAjaxError(ID,uri,functionError) {
 	
 	}
 }
+
+
+function LoadAjaxRound(ID,uri,concatene) {
+ 	if(!document.getElementById(ID)){ return;}
+	var uri_add='';
+	var datas='';
+	var xurl='';
+	LockeMe=false;
+	if(concatene==true){ LockeMe=true; }else{ if(concatene){ uri_add='&datas='+concatene; } }
+	uri=uri+uri_add;
+	var WAITX=ID+'_WAITX';
+	if(document.getElementById(WAITX)){return;}
+
+ $.ajax({
+        type: "GET",
+        timeout: 40000,
+        url: uri,
+        beforeSend: function() {
+		    AnimateDivRound(ID);
+		    if(LockeMe){ LockPage();}
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+        	if(LockeMe){ UnlockPage(); }
+        	var StatusLength=textStatus.length;
+        	if(StatusLength==0){
+        	   LoadAjaxRound(ID,uri,concatene);
+        	   return;
+        	}
+        	
+	      	if(textStatus=='error'){
+ 	      	  LoadAjaxRound(ID,uri,concatene);
+	      	  return;
+	      	}
+
+	      	if(textStatus=='Service Unavailable'){
+	      		JavaScriptError=JavaScriptError+1;
+	      		if(JavaScriptError<2){
+			  LoadAjaxRound(ID,uri,concatene);
+			}
+	      	}
+        	
+        	document.getElementById(ID).innerHTML="<strong style='font-size:14px'>An error has occurred making the request: error Thrown:&laquo;" + errorThrown+"&raquo;<br>Status: &laquo;"+textStatus+"&raquo;</strong>";
+        },
+        success: function(data) {
+            $('#'+ID).html(data);
+	    JavaScriptError=0;
+            if(LockeMe){ UnlockPage(); }
+        }
+});	
+	
+	
+}
+
+
+
 
 
 function LoadAjax(ID,uri,concatene) {
@@ -1970,6 +2028,11 @@ function AnimateDiv(id){
 	document.getElementById(id).innerHTML='<div style="width:100%;height:auto"><center><img src="'+animated+'"></center></div>';
 }
 
+function AnimateDivRound(id){
+	document.getElementById(id).innerHTML='<div style="width:100%;height:auto"><center style="margin:50px"><img src="img/loader.gif"></center></div>';
+
+}
+
 function YahooSetupControlModal(width,uri,title){
     if(!width){width='300';}
     if(!title){title='Windows';}
@@ -2562,7 +2625,14 @@ function LayersTabsAllAfter(){
 
 	if(document.getElementById('squid-services')){ LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes',false); }
 	if(document.getElementById('logger-status')){ LoadAjax('logger-status','squid.loggers.status.php?logger-status=yes',false); }
-	
+	if(document.getElementById('kerbchkconf')){ LoadAjaxRound('kerbchkconf','squid.adker.php?kerbchkconf=yes'); }
+	if(document.getElementById('squid.update.php')){ LoadAjaxRound('main-proxy-update-table','squid.update.php'); }
+	if(document.getElementById('UFDBCAT_STATUS')){LoadAjax('UFDBCAT_STATUS','ufdbcat.php?status=yes');}
+	if(document.getElementById('thisIsTheSquidDashBoard')){LoadAjaxRound('main-dashboard-proxy','squid.dashboard.php');}
+	if(document.getElementById('TABLE_SQUID_PORTS')){ $('#'+document.getElementById('TABLE_SQUID_PORTS').value).flexReload();}
+	if(document.getElementById('MAIN_PAGE_ORGANIZATION_LIST')){ $('#'+document.getElementById('MAIN_PAGE_ORGANIZATION_LIST').value).flexReload();}
+	if(document.getElementById('TABLE_SEARCH_USERS')){ $('#'+document.getElementById('TABLE_SEARCH_USERS').value).flexReload();}
+	if(document.getElementById('system-main-status')){ LoadAjaxRound('system-main-status','admin.dashboard.system.php');}
 
 
 }	
@@ -3369,6 +3439,13 @@ function ExtractPathName(path){
 }
 
 function ConfigureYourserver(title){
+	if(document.getElementById('MainSlider')){
+	  if(IsFunctionExists('GoToIndex')){GoToIndex();return;}
+	  LoadAjax('BodyContent','admin.dashboard.proxy.php');	
+	  return;
+	
+	}
+
 	if(!document.getElementById('QuickLinksTop')){QuickLinks();}else{QuickLinksHide();}
 }
 
@@ -3673,6 +3750,11 @@ function RefreshMainFilterTable(){
 	var tableid=document.getElementById('WebFilteringMainTableID').value;
 	if(!document.getElementById(tableid)){return;}
 	$('#'+tableid).flexReload();
+	if( document.getElementById('MAIN_TABLE_UFDB_GROUPS_ALL') ){ $('#'+document.getElementById('MAIN_TABLE_UFDB_GROUPS_ALL').value).flexReload(); }
+	
+	
+	
+	
 }
 
 function CheckBoxDesignRebuild(){

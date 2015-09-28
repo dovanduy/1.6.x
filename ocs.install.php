@@ -46,7 +46,7 @@ function popup(){
 	<tr>
 	<TD VALIGN='TOP'>$p</td>
 	<td valign='top' width=99%>
-		<div class=text-info style='font-size:14px'>{OCS_PUB_TEXT}</div>
+		<div class=explain style='font-size:14px'>{OCS_PUB_TEXT}</div>
 	</td>
 	</tr>
 	<tr>

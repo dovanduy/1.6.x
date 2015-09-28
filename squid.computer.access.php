@@ -17,7 +17,7 @@ $change_aliases = GetRights_aliases();
 
 
 if($change_aliases==0){
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
 	die();
 }
 

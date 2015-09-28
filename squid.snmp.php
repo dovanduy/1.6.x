@@ -62,6 +62,13 @@ function popup(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
+	$DisableSquidSNMPAll=intval($sock->GET_INFO("DisableSquidSNMPAll"));
+	
+	$SquidSNMPPort=intval($sock->GET_INFO("SquidSNMPPort"));
+	$SquidSNMPComunity=$sock->GET_INFO("SquidSNMPComunity");
+	if($SquidSNMPPort==0){$SquidSNMPPort=$squid->snmp_port;}
+	if($SquidSNMPComunity==null){$SquidSNMPComunity=$squid->snmp_community;}
+	if($SquidSNMPComunity==null){$SquidSNMPComunity="public";}
 	
 	
 	$arrayParams=unserialize(base64_decode($sock->getFrameWork("squid.php?compile-list=yes")));
@@ -79,36 +86,37 @@ function popup(){
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
 			<tr>
-			<td class=legend style='font-size:16px'>{enable_snmp}:</td>
-			<td>". Field_checkbox("enable_snmp",1,$squid->snmp_enable,"enable_snmp_check()")."</td>
-		</tr>
-	
-		<tr>
-			<td class=legend style='font-size:16px'>{snmp_community}:</td>
-			<td>". Field_text("snmp_community",$squid->snmp_community,"font-size:16px;width:220px")."</td>
-		</tr>
-		<tr>
-			<td class=legend style='font-size:16px'>{listen_port}:</td>
-			<td>". Field_text("snmp_port",$squid->snmp_port,"font-size:16px;width:95px")."</td>
-		</tr>	
-		<tr>
-			<td class=legend style='font-size:16px'>{remote_snmp_console_ip}:</td>
-			<td>". Field_text("snmp_access_ip",$squid->snmp_access_ip,"font-size:16px;width:190px")."</td>
-		</tr>
-		<tr>
-			<td align='right' colspan=2 style='font-size:16px'><a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('$page?mib-js=yes');\" 
-			style='font-size:16px;text-decoration:underline'
-			>mib.txt</a>&nbsp;|&nbsp;
+			<td colspan=2 style='font-size:30px'><strong>{monitor_proxy_service} (SNMP)</strong>
+			<p>&nbsp;</p>
+			</td>
 			
-			<a href=\"javascript:blur();\" 
-				OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=361','1024','900');\"
-				style=\"font-size:16px;font-weight;bold;text-decoration:underline\">{online_help}</a>			
+		</tr>
+		<tr>
+			<td class=legend style='font-size:30px'>{snmp_community}:</td>
+			<td>". Field_text("snmp_community",$SquidSNMPComunity,"font-size:30px;width:300px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:30px'>{listen_port}:</td>
+			<td>". Field_text("snmp_port",$SquidSNMPPort,"font-size:30px;width:150px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:30px'>{limit_access}:</td>
+			<td>". Field_checkbox_design("DisableSquidSNMPAll",1,$DisableSquidSNMPAll,"DisableSquidSNMPAllCheck()")."</td>
+		</tr>						
+		<tr>
+			<td class=legend style='font-size:30px'>{remote_snmp_console_ip}:</td>
+			<td>". Field_text("snmp_access_ip",$squid->snmp_access_ip,"font-size:30px;width:300px")."</td>
+		</tr>
+		<tr>
+			<td align='right' colspan=2 style='font-size:30px'><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('$page?mib-js=yes');\" 
+			style='font-size:28px;text-decoration:underline'
+			>mib.txt</a>		
 			
 			</td>
 		</tr>				
 	<tr>
-		<td align='right' colspan=2><hr>". button("{apply}", "SaveSNMP$t()","18px")."</td>
+		<td align='right' colspan=2><hr>". button("{apply}", "SaveSNMP$t()","40px")."</td>
 	</tr>
 	</table>
 	
@@ -116,7 +124,7 @@ function popup(){
 	var x_SaveSNMP$t=function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);}
-		document.getElementById('$t').innerHTML='';
+		Loadjs('squid.compile.progress.php');
 		YahooWin3Hide();
 	}	
 	
@@ -125,32 +133,27 @@ function popup(){
 		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}	
 		var XHR = new XHRConnection();
 		var enable_snmp=0;
-		if(document.getElementById('enable_snmp').checked){enable_snmp=1;}
+		var DisableSquidSNMPAll=0;
+		if(document.getElementById('DisableSquidSNMPAll').checked){DisableSquidSNMPAll=1;}
 		XHR.appendData('enable_snmp',enable_snmp);
+		XHR.appendData('DisableSquidSNMPAll',DisableSquidSNMPAll);		
 		XHR.appendData('snmp_community',document.getElementById('snmp_community').value);
 		XHR.appendData('snmp_port',document.getElementById('snmp_port').value);
 		XHR.appendData('snmp_access_ip',document.getElementById('snmp_access_ip').value);
-		AnimateDiv('$t'); 
 		XHR.sendAndLoad('$page', 'POST',x_SaveSNMP$t);	
 		
 	}	
 	
-	function enable_snmp_check(){
-		var lock=$EnableRemoteStatisticsAppliance;
-		document.getElementById('snmp_community').disabled=true;
-		document.getElementById('snmp_port').disabled=true;
+	
+	function DisableSquidSNMPAllCheck(){
 		document.getElementById('snmp_access_ip').disabled=true;
-		if(lock==1){
-			document.getElementById('enable_snmp').disabled=true;
-			return;
+		if(document.getElementById('DisableSquidSNMPAll').checked){	
+			document.getElementById('snmp_access_ip').disabled=false;
 		}
-		if(document.getElementById('enable_snmp').checked){
-			document.getElementById('snmp_community').disabled=false;
-			document.getElementById('snmp_port').disabled=false;
-			document.getElementById('snmp_access_ip').disabled=false;		
-		}
+	
+	
 	}
-	enable_snmp_check();
+	DisableSquidSNMPAllCheck();
 	</script>
 	";
 	
@@ -159,11 +162,14 @@ function popup(){
 }
 
 function enable_snmp(){
+	$sock=new sockets();
 	$squid=new squidbee();
 	$squid->snmp_enable=$_POST["enable_snmp"];
 	$squid->snmp_community=$_POST["snmp_community"];
 	$squid->snmp_port=$_POST["snmp_port"];
 	$squid->snmp_access_ip=$_POST["snmp_access_ip"];
-	$squid->SaveToLdap();
+	$sock->SET_INFO("DisableSquidSNMPAll", $_POST["DisableSquidSNMPAll"]);
+	$squid->SaveToLdap(true);
+	$sock->getFrameWork("snmpd.php?restart=yes");
 	
 }

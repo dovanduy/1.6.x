@@ -655,7 +655,6 @@ class dansguardian_rules{
 									"horses"=>"{www_horses}",
 									
 									"filehosting"=>"{filehosting}",
-									"pictures"=>"{ww_pictures}",
 									"photo"=>"{www_photo}",
 									"pictureslib"=>"{www_pictureslib}",
 									"imagehosting"=>"{www_imagehosting}",
@@ -663,7 +662,7 @@ class dansguardian_rules{
 									"sect"=>"{sect}",
 									"genealogy"=>"{www_genealogy}",
 									
-									"ringtones"=>"{ringtones}",
+									
 									"recreation/wellness"=>"{recreation_wellness}",
 									"recreation/travel"=>"{recreation_travel}",
 									"recreation/nightout"=>"{recreation_nightout}",
@@ -814,7 +813,7 @@ class dansguardian_rules{
 		  	"science/astronomy"=>"astronomy-20.png",
 		  	"science/weather"=>"20-climat.png",
 		  	"recreation/humor"=>"20-humour.png",
-		  	"ringtones"=>"20-ringtone.png",
+		  	
 		  	"mobile-phone"=>"20-mobile-phone.png",
 		  	"tricheur"=>"20-exams.png",
 		  	"clothing"=>"20-clothing.png",
@@ -852,7 +851,6 @@ class dansguardian_rules{
 		  	"remote-control"=>"20-win-nic.png",
 			"recreation/nightout"=>"icon_nightclub.png",	
 			"imagehosting"=>"picasa_icon.png",
-		  	"pictures"=>"cat_pictures.png",
 		  	"malware"=>"icon_malwares.png",
 		  	"celebrity"=>"celebrity-20.png",
 		  	"books"=>"books_20.png",
@@ -1402,7 +1400,7 @@ class dansguardian_rules{
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 		if(!is_numeric($AntivirusEnabledCentral)){$AntivirusEnabledCentral=1;}
-		$EnableUfdbGuard=$sock->EnableUfdbGuard();
+		$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 		if(!is_numeric($UfdbEnabledCentral)){$UfdbEnabledCentral=1;}
 		if($EnableRemoteStatisticsAppliance==1){
 			$enable_cicap=$AntivirusEnabledCentral;
@@ -2184,9 +2182,19 @@ function DelBannedregexpurllist($ruleindex,$listindex){
 	
 	
 }
+
+function IsPersonalCategoriesRights(){
+	if(IsDansGuardianrights()){return true;}
+	$users=new usersMenus();
+	if($users->AsSquidPersonalCategories){return true;}
+	
+	return true;
+}
+
+
 function IsDansGuardianrights(){
 	$users=new usersMenus();
-	writelogs("AsDansGuardianGroupRule=$users->AsDansGuardianGroupRule",__FUNCTION__,__FILE__,__LINE__);
+	if($users->AsArticaMetaAdmin){return true;}
 	if(!$users->AsDansGuardianGroupRule){return false;}else{return true;}
 	if(!$users->AsSquidAdministrator){return false;}
 	return true;

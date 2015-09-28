@@ -87,38 +87,49 @@ function items(){
 	$MyPage=CurrentPageName();
 	$q=new mysql();
 	$CommonName=$_GET["CommonName"];
-	
+	$q=new mysql();
+	$sql="SELECT UseGodaddy,bundle,UploadCertWizard  FROM sslcertificates WHERE CommonName='$CommonName'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$UseGodaddy=intval($ligne["UseGodaddy"]);
+	$bundle=trim($ligne["bundle"]);
 	$data = array();
 	$data['page'] = 1;
 	$data['total'] = 0;
 	$data['rows'] = array();
 
-	$title=$tpl->javascript_parse_text("{privkey}");
-	$jsEdit="Loadjs('certificates.center.srca.php?CommonName=$CommonName&js=yes');";
-	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
-
-	$data['rows'][] = array(
-		'id' => "srca",
-		'cell' => array(
-		"<img src='img/certificate-32.png'>",
-		"<span style='font-size:22px;'>$urljs{$title}</a></span>",
-		"<span style='font-size:22px;'>PRIVATE KEY</a></span>"
-		)
-		);
 	
-	$title=$tpl->javascript_parse_text("{RSA_PRIVATE_KEY}");
-	$jsEdit="Loadjs('certificates.center.privkey.php?CommonName=$CommonName&js=yes');";
-	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
 	
-	$data['rows'][] = array(
-			'id' => "privkey",
+	if($UseGodaddy==0){
+		$title=$tpl->javascript_parse_text("{CA_CERTIFICATE}");
+		$jsEdit="Loadjs('certificates.center.srca.php?CommonName=$CommonName&js=yes');";
+		$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
+	
+		$data['rows'][] = array(
+			'id' => "srca",
 			'cell' => array(
-					"<img src='img/certificate-32.png'>",
-					"<span style='font-size:22px;'>$urljs{$title}</a></span>",
-					"<span style='font-size:22px;'>RSA PRIVATE KEY</a></span>"
+			"<img src='img/certificate-32.png'>",
+			"<span style='font-size:22px;'>$urljs{$title}</a></span>",
+			"<span style='font-size:22px;'>$title</a></span>"
 			)
-	);	
-	
+			);
+		
+		
+	if($ligne["UploadCertWizard"]==0){	
+			$title=$tpl->javascript_parse_text("{RSA_PRIVATE_KEY}");
+			$jsEdit="Loadjs('certificates.center.privkey.php?CommonName=$CommonName&js=yes');";
+			$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
+			
+			$data['rows'][] = array(
+					'id' => "privkey",
+					'cell' => array(
+							"<img src='img/certificate-32.png'>",
+							"<span style='font-size:22px;'>$urljs{$title}</a></span>",
+							"<span style='font-size:22px;'>RSA PRIVATE KEY</a></span>"
+					)
+			);	
+		
+		}
+	}
 	
 	$title=$tpl->javascript_parse_text("{certificate}");
 	$jsEdit="Loadjs('certificates.center.crt.php?CommonName=$CommonName&js=yes');";
@@ -147,10 +158,44 @@ function items(){
 							
 			)
 	);
-
+	
+	
+if(strlen($bundle)>10){
+	$title=$tpl->javascript_parse_text("{certificate_bundle}");
+	$jsEdit="Loadjs('certificates.center.bundle.php?CommonName=$CommonName&js=yes');";
+	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
+	
+	$data['rows'][] = array(
+			'id' => "BUNDLE",
+			'cell' => array(
+					"<img src='img/certificate-32.png'>",
+					"<span style='font-size:22px;'>$urljs{$title}</a></span>",
+					"<span style='font-size:22px;'>CERTIFICATE BUNDLE</a></span>"
+	
+							)
+	);
+	
+}
+	
 	
 
 	
+if($UseGodaddy==1){	
+	$title=$tpl->javascript_parse_text("{certificate_bundle}");
+	$jsEdit="Loadjs('certificates.center.bundle.php?CommonName=$CommonName&js=yes');";
+	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\" style='font-size:22px;text-decoration:underline'>";
+	
+	$data['rows'][] = array(
+			'id' => "BUNDLE",
+			'cell' => array(
+					"<img src='img/certificate-32.png'>",
+					"<span style='font-size:22px;'>$urljs{$title}</a></span>",
+					"<span style='font-size:22px;'>CERTIFICATE BUNDLE</a></span>"
+				
+							)
+	);	
+
+}	
 
 
 	

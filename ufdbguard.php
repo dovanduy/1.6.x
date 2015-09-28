@@ -163,9 +163,12 @@ function ufdbclient_popup(){
 	$datas=$ufdbclass->SetDefaultsConfig($datas);
 	$UfdbUseArticaClient=$sock->GET_INFO("UfdbUseArticaClient");
 	$UfdbArticaClientLocalCache=$sock->GET_INFO("UfdbArticaClientLocalCache");
+	$UfdbgclientSockTimeOut=intval($sock->GET_INFO("UfdbgclientSockTimeOut"));
+	$UfdbgclientMaxSockTimeOut=intval($sock->GET_INFO("UfdbgclientMaxSockTimeOut"));
 	if(!is_numeric($UfdbUseArticaClient)){$UfdbUseArticaClient=1;}
 	if(!is_numeric($UfdbArticaClientLocalCache)){$UfdbArticaClientLocalCache=1;}
-	
+	if($UfdbgclientSockTimeOut==0){$UfdbgclientSockTimeOut=2;}
+	if($UfdbgclientMaxSockTimeOut==0){$UfdbgclientMaxSockTimeOut=5;}
 	
 	$lock=0;
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -180,12 +183,27 @@ function ufdbclient_popup(){
 		$datas["remote_server"]=$RemoteStatisticsApplianceSettings["SERVER"];
 		$lock=1;
 	}
-
 	
+	$redirect_behaviorA[null]="{default}";
+	$redirect_behaviorA["url"]="{redirect_connexion}";
+	$redirect_behaviorA["url-rewrite"]="{rewrite_url}";
+	
+	$HTTP_CODE[0]="{default}";
+	$HTTP_CODE[301]="{Moved_Permanently} (301)";
+	$HTTP_CODE[302]="{Moved_Temporarily} (302)";
+	$HTTP_CODE[303]="{http_code_see_other} (303)";
+	$HTTP_CODE[307]="{Moved_Temporarily} (307)";
+	
+	$SquidGuardRedirectBehavior=$sock->GET_INFO("SquidGuardRedirectBehavior");
+	$SquidGuardRedirectSSLBehavior=$sock->GET_INFO("SquidGuardRedirectSSLBehavior");
+	$SquidGuardRedirectHTTPCode=intval($sock->GET_INFO("SquidGuardRedirectHTTPCode"));
+	
+
+	if(isset($_GET["without-sock"])){$sock_return="return;";}
 	
 	$t=time();
 	$html="
-	<div class=text-info style='font-size:18px'>{ufdbgclient_explain}</div>
+	<div class=explain style='font-size:18px'>{ufdbgclient_explain}</div>
 	
 	<table style='width:100%'>
 	<tr>
@@ -196,15 +214,37 @@ function ufdbclient_popup(){
 		<tr>
 			<td colspan=2>
 			". Paragraphe_switch_img("{UfdbUseArticaClient}", "{UfdbUseArticaClient_explain}",
-					"UfdbUseArticaClient",$UfdbUseArticaClient,null,750)."
+					"UfdbUseArticaClient",$UfdbUseArticaClient,null,1024,"UfdbgClientLOck()")."
 			</td>
 		</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{redirect_behavior}:</td>
+		<td>". Field_array_Hash($redirect_behaviorA,"SquidGuardRedirectBehavior-$t",$SquidGuardRedirectBehavior,
+				"RedirectBehaCheck()",null,null,"font-size:24px;padding:3px;width:75%",false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+
+	<tr>
+		<td class=legend style='font-size:22px'>{redirect_code}:</td>
+		<td>". Field_array_Hash($HTTP_CODE,"SquidGuardRedirectHTTPCode-$t",$SquidGuardRedirectHTTPCode,
+				"style:font-size:24px;padding:3px;width:75%",null,null,null,false,"")."</td>
+		<td>&nbsp;</td>
+	</tr>						
+							
+		<tr>
+			<td style='font-size:22px' class=legend>{socket_timeout}:</td>
+			<td style='font-size:22px;'>". Field_text("UfdbgclientSockTimeOut", $UfdbgclientSockTimeOut,"font-size:22px;width:110px")."&nbsp;{seconds}</td>
+		</tr>	
+		<tr>
+			<td style='font-size:22px' class=legend>{max_errors_before_restart_service}:</td>
+			<td style='font-size:22px;'>". Field_text("UfdbgclientMaxSockTimeOut", $UfdbgclientMaxSockTimeOut,"font-size:22px;width:110px")."&nbsp;{times}</td>
+		</tr>												
 		<tr>
 			<td style='font-size:22px' class=legend>{enable_local_cache}:</td>
 			<td>". Field_checkbox_design("UfdbArticaClientLocalCache", 1,$UfdbArticaClientLocalCache)."</td>
 		</tr>							
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","SaveufdbGuardClient()",28)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","SaveufdbGuardClient()",40)."</td>
 		</tr>	
 		</table>
 		</div>					
@@ -245,12 +285,28 @@ function ufdbclient_popup(){
 	}	
 
 	function RemoteUfdbCheck(){
+		$sock_return
 		LoadAjaxTiny('$t-sock','$page?TestsSocket=yes&t=$t');
 		
 	}
 	
+	function RedirectBehaCheck(){
+		var SquidGuardRedirectBehavior= document.getElementById('SquidGuardRedirectBehavior-$t').value;
+		if( SquidGuardRedirectBehavior =='url-rewrite'){
+			document.getElementById('SquidGuardRedirectHTTPCode-$t').disabled=true;
+		}
+	}
+	
 	function SaveufdbGuardClient(){
 		var XHR = new XHRConnection();
+		
+		XHR.appendData('UfdbgclientSockTimeOut',document.getElementById('UfdbgclientSockTimeOut').value);
+		XHR.appendData('UfdbgclientMaxSockTimeOut',document.getElementById('UfdbgclientMaxSockTimeOut').value);
+		
+		
+		XHR.appendData('SquidGuardRedirectBehavior',document.getElementById('SquidGuardRedirectBehavior-$t').value);
+		XHR.appendData('SquidGuardRedirectHTTPCode',document.getElementById('SquidGuardRedirectHTTPCode-$t').value);
+		
 		
 		XHR.appendData('UfdbUseArticaClient',document.getElementById('UfdbUseArticaClient').value);
 		XHR.appendData('remote_server',document.getElementById('remote_server').value);
@@ -258,8 +314,21 @@ function ufdbclient_popup(){
    		XHR.appendData('UseRemoteUfdbguardService',document.getElementById('UseRemoteUfdbguardService').value);		
    		XHR.sendAndLoad('$page', 'POST',x_SaveufdbGuardClient);
 	}	
-	RemoteUfdbCheck();
 	
+	function UfdbgClientLOck(){
+		var UfdbUseArticaClient=document.getElementById('UfdbUseArticaClient').value;
+		document.getElementById('UfdbgclientSockTimeOut').disabled=true;
+		document.getElementById('UfdbgclientMaxSockTimeOut').disabled=true;
+		if(UfdbUseArticaClient==1){
+			document.getElementById('UfdbgclientSockTimeOut').disabled=false;
+			document.getElementById('UfdbgclientMaxSockTimeOut').disabled=false;
+		}
+	}
+	
+	
+	RemoteUfdbCheck();
+	UfdbgClientLOck();
+	RedirectBehaCheck();
 	</script>
 	
 	";
@@ -292,12 +361,12 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="notifs"){
 			
-			$tab[]="<li><a href=\"ufdbguard.smtp.notif.php?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+			$tab[]="<li><a href=\"ufdbguard.smtp.notif.php?$num=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		
-		 $tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
+		 $tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n";
 		}
 	
 	$html=build_artica_tabs($tab, "main_ufdbguard_config");
@@ -318,7 +387,7 @@ function ufdbperf(){
 	if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
 	if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
 	if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}
-	if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=20;}
+	if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=30;}
 
 	for($i=0;$i<100;$i++){
 		$url_rewrite_children_startup[$i]=" $i ";
@@ -335,13 +404,13 @@ function ufdbperf(){
 	
 	$SquidGuardUseRefreshDomainList_p=Paragraphe_switch_img("{SquidGuardUseRefreshDomainList}", 
 			"{SquidGuardUseRefreshDomainList_explain}","SquidGuardUseRefreshDomainList",
-			$SquidGuardUseRefreshDomainList,null,850);
+			$SquidGuardUseRefreshDomainList,null,1300);
 	
 	
 	$html="
 	<div id='anim-$t'></div>
 	<div style='width:98%' class=form>
-	<div class=text-info style='font-size:18px'>{ufdb_perfs_explain}</div>
+	<div class=explain style='font-size:22px'>{ufdb_perfs_explain}</div>
 	
 	$SquidGuardUseRefreshDomainList_p
 	
@@ -386,11 +455,13 @@ function ufdbperf(){
 
 	function Save$t(){
 		var XHR = new XHRConnection();
+		
+		XHR.appendData('SquidGuardUseRefreshDomainList',
+		document.getElementById('SquidGuardUseRefreshDomainList').value);
 		XHR.appendData('url_rewrite_children_max',document.getElementById('url_rewrite_children_max').value);
     	XHR.appendData('url_rewrite_children_startup',document.getElementById('url_rewrite_children_startup').value);
     	XHR.appendData('url_rewrite_children_idle',document.getElementById('url_rewrite_children_idle').value);
     	XHR.appendData('url_rewrite_children_concurrency',document.getElementById('url_rewrite_children_concurrency').value);		
-		AnimateDiv('$t');
     	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
 </script>				
@@ -526,22 +597,22 @@ function popup(){
 	<td colspan=2><span style='font-size:32px'>{ssl}:</span>
 	<tr>
 		<td class=legend style='font-size:22px'>{enforce-https-with-hostname}:</td>
-		<td>". Field_checkbox("enforce-https-with-hostname",1,$datas["enforce-https-with-hostname"])."</td>
+		<td>". Field_checkbox_design("enforce-https-with-hostname",1,$datas["enforce-https-with-hostname"])."</td>
 		<td width=1%>". help_icon("{UFDBGUARD_SSL_OPTS}")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:22px'>{enforce-https-official-certificate}:</td>
-		<td>". Field_checkbox("enforce-https-official-certificate",1,$datas["enforce-https-official-certificate"])."</td>
+		<td>". Field_checkbox_design("enforce-https-official-certificate",1,$datas["enforce-https-official-certificate"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:22px'>{https-prohibit-insecure-sslv2}:</td>
-		<td>". Field_checkbox("https-prohibit-insecure-sslv2",1,$datas["https-prohibit-insecure-sslv2"])."</td>
+		<td>". Field_checkbox_design("https-prohibit-insecure-sslv2",1,$datas["https-prohibit-insecure-sslv2"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:22px'>{allow-unknown-protocol-over-https}:</td>
-		<td>". Field_checkbox("allow-unknown-protocol-over-https",1,$datas["allow-unknown-protocol-over-https"])."</td>
+		<td>". Field_checkbox_design("allow-unknown-protocol-over-https",1,$datas["allow-unknown-protocol-over-https"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>				
 				
@@ -558,18 +629,18 @@ function popup(){
 				
 	<tr>
 		<td class=legend style='font-size:22px'>{UfdbDatabasesInMemory}:</td>
-		<td>". Field_checkbox("UfdbDatabasesInMemory",1,$UfdbDatabasesInMemory)."</td>
+		<td>". Field_checkbox_design("UfdbDatabasesInMemory",1,$UfdbDatabasesInMemory)."</td>
 		<td width=1%>". help_icon("{UfdbDatabasesInMemory_explain}")."</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:22px'>{DisableExpressionLists}:</td>
-		<td>". Field_checkbox("DisableExpressionList",1,$datas["DisableExpressionList"])."</td>
+		<td>". Field_checkbox_design("DisableExpressionList",1,$datas["DisableExpressionList"])."</td>
 		<td width=1%>". help_icon("{DisableExpressionLists_explain}")."</td>
 	</tr>								
 		
 	<tr>
 		<td class=legend style='font-size:22px'>{verbose_mode}:</td>
-		<td>". Field_checkbox("DebugAll",1,$datas["DebugAll"],"")."</td>
+		<td>". Field_checkbox_design("DebugAll",1,$datas["DebugAll"],"")."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
@@ -586,7 +657,7 @@ function popup(){
 				
 	<tr>
 		<td class=legend style='font-size:22px'>{enable_tcpsockets}:</td>
-		<td>". Field_checkbox("tcpsockets",1,$datas["tcpsockets"],"tcpsocketsCheck()")."</td>
+		<td>". Field_checkbox_design("tcpsockets",1,$datas["tcpsockets"],"tcpsocketsCheck()")."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
@@ -602,18 +673,18 @@ function popup(){
 
 	<tr>
 		<td class=legend style='font-size:22px'>{check-proxy-tunnel}:</td>
-		<td>". Field_checkbox("check-proxy-tunnel",1,$datas["check-proxy-tunnel"])."</td>
+		<td>". Field_checkbox_design("check-proxy-tunnel",1,$datas["check-proxy-tunnel"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:22px'>{NoMalwareUris}:</td>
-		<td>". Field_checkbox("NoMalwareUris",1,$datas["NoMalwareUris"])."</td>
+		<td>". Field_checkbox_design("NoMalwareUris",1,$datas["NoMalwareUris"])."</td>
 		<td width=1%>". help_icon("{NoMalwareUris_explain}")."</td>
 	</tr>				
 
 	<tr>
 		<td class=legend style='font-size:22px'>{strip-domain-from-username}:</td>
-		<td>". Field_checkbox("strip-domain-from-username",1,$datas["strip-domain-from-username"])."</td>
+		<td>". Field_checkbox_design("strip-domain-from-username",1,$datas["strip-domain-from-username"])."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
@@ -764,10 +835,18 @@ function save_ssl(){
 	$sock=new sockets();
 	
 	
-	if(isset($_POST["UfdbUseArticaClient"])){
-		$sock->SET_INFO("UfdbUseArticaClient", $_POST["UfdbUseArticaClient"]);
-		
+	if(isset($_POST["UfdbUseArticaClient"])){$sock->SET_INFO("UfdbUseArticaClient", $_POST["UfdbUseArticaClient"]);}
+	if(isset($_POST["UfdbgclientSockTimeOut"])){$sock->SET_INFO("UfdbgclientSockTimeOut", $_POST["UfdbgclientSockTimeOut"]);}
+	if(isset($_POST["UfdbgclientMaxSockTimeOut"])){$sock->SET_INFO("UfdbgclientMaxSockTimeOut", $_POST["UfdbgclientMaxSockTimeOut"]);}
+	
+	
+	if(isset($_POST["SquidGuardRedirectBehavior"])){$sock->SET_INFO("SquidGuardRedirectBehavior", $_POST["SquidGuardRedirectBehavior"]);}
+	if(isset($_POST["SquidGuardRedirectHTTPCode"])){$sock->SET_INFO("SquidGuardRedirectHTTPCode", $_POST["SquidGuardRedirectHTTPCode"]);}
+	
+	if(isset($_POST["SquidGuardUseRefreshDomainList"])){
+		$sock->SET_INFO("SquidGuardUseRefreshDomainList", $_POST["SquidGuardUseRefreshDomainList"]);
 	}
+	 
 	
 	
 	if(isset($_POST["UseRemoteUfdbguardService"])){

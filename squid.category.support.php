@@ -71,7 +71,7 @@ function popup() {
 	$field_category=Field_array_Hash($newcat,"category-add$t",null,null,"style:font-size:22px")."</span>";
 	
 	
-	$html="<div style='font-size:16px' class=text-info>{bad_category_explain}</div>
+	$html="<div style='font-size:16px' class=explain>{bad_category_explain}</div>
 	<div style='width:95%;padding:15px' class=form>
 	<center>
 		<table style='width:100%'>

@@ -148,12 +148,13 @@ $spec",1);
 					$this->privs["AsVirtualBoxManager"]="yes";
 					$this->privs["AsDansGuardianAdministrator"]="yes";
 					$this->privs["AsWebStatisticsAdministrator"]="yes";
+					$this->privs["AsSquidPersonalCategories"]="yes";
 					$this->privs["AsArticaMetaAdmin"]="yes";
 					
 				}
-				if($groupname=="ProxyAdms"){$this->privs["AsSquidAdministrator"]="yes";}
-				if($groupname=="ProxySecurity"){$this->privs["AsDansGuardianAdministrator"]="yes";}				
-				if($groupname=="WebStatsAdm"){$this->privs["AsWebStatisticsAdministrator"]="yes";}				
+				if($groupname=="ProxyAdms"){$this->privs["AsSquidAdministrator"]="yes";$this->privs["AsSquidPersonalCategories"]="yes";}
+				if($groupname=="ProxySecurity"){$this->privs["AsDansGuardianAdministrator"]="yes";$this->privs["AsSquidPersonalCategories"]="yes";}				
+				if($groupname=="WebStatsAdm"){$this->privs["AsWebStatisticsAdministrator"]="yes";$this->privs["AsSquidPersonalCategories"]="yes";}				
 				
 				
 			}
@@ -244,6 +245,8 @@ $spec",1);
 		$f[]="[AsDansGuardianAdministrator]=\"yes\"";
 		$f[]="[AsSystemWebMaster]=\"yes\"";
 		$f[]="[AsArticaMetaAdmin]=\"yes\"";
+		$f[]="[AsSquidPersonalCategories]=\"yes\"";
+		
 		
 		
 		return @implode("\n", $f)."\n";

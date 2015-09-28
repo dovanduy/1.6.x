@@ -40,6 +40,7 @@ function build($uri){
 	
 	progress("{rotate_logs_files}",30);
 	shell_exec("$echo \"Rotate & turn to debug... \" >> /var/log/squid/request.debug 2>&1");
+	@copy("/var/log/squid/access.log", "/var/log/squid/access.log.".time());
 	shell_exec("$squidbin -k rotate >> /var/log/squid/request.debug 2>&1");
 	progress("{turn_to_debug}",35);
 	shell_exec("$squidbin -k debug >/dev/null 2>&1");

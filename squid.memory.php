@@ -31,6 +31,8 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$SquidSimpleConfig=$sock->GET_INFO("SquidSimpleConfig");
+	if(!is_numeric($SquidSimpleConfig)){$SquidSimpleConfig=1;}
 	
 	$meminfo=unserialize(base64_decode($sock->getFrameWork("system.php?meminfo=yes")));
 	$kernel_shmmax=$sock->getFrameWork("cmd.php?sysctl-value=yes&key=".base64_encode("kernel.shmmax"));
@@ -39,11 +41,7 @@ function page(){
 	$cache_mem=$squid->global_conf_array["cache_mem"];
 	if(preg_match("#([0-9]+)\s+#", $cache_mem,$re)){$cache_mem=$re[1];}
 	
-	if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){
-		$maximum_object_size_in_memory=$re[1];
-		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){$unit=$re[1];}
-		if($unit=="KB"){$maximum_object_size_in_memory=round($maximum_object_size_in_memory/1024);}
-	}
+
 	$SquidMemoryPools=intval($sock->GET_INFO("SquidMemoryPools"));
 	
 	$memory_pools_limit_suffix=null;
@@ -59,7 +57,7 @@ function page(){
 	
 	$html="
 	
-	<div class=text-info style='font-size:16px'>{squid_cache_memory_explain}</div>
+	<div class=explain style='font-size:16px'>{squid_cache_memory_explain}</div>
 	<div style='margin:10px;padding:10px;width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -82,11 +80,7 @@ function page(){
 	</div>		
 	<div style='margin:10px;padding:10px;width:98%' class=form>	
 	<table style='width:100%'>
-	<tr>
-		<td style='font-size:26px' class=legend>{maximum_object_size_in_memory}:</td>
-		<td align='left' style='font-size:26px'>" . Field_text("maximum_object_size_in_memory-$t",$maximum_object_size_in_memory,'width:150px;font-size:26px')."&nbsp;MB</td>
-		<td width=1%>" . help_icon('{maximum_object_size_in_memory_text}',true)."</td>
-	</tr>
+
 	<tr>
 		<td style='font-size:26px' class=legend>{memory_pools}:</td>
 		<td align='left' style='font-size:26px'>" . Field_checkbox_design("SquidMemoryPools-$t", 1,$SquidMemoryPools,"SquidMemoryPools$t()")."</td>
@@ -111,7 +105,7 @@ var xSave$t= function (obj) {
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('cache_mem',document.getElementById('cache_mem-$t').value);
-	XHR.appendData('maximum_object_size_in_memory',document.getElementById('maximum_object_size_in_memory-$t').value);
+	
 	if(document.getElementById('SquidMemoryPools-$t').checked){XHR.appendData('SquidMemoryPools',1);}else{
 	XHR.appendData('SquidMemoryPools',0);}
 	XHR.appendData('SquidMemoryPoolsLimit',document.getElementById('SquidMemoryPoolsLimit-$t').value);
@@ -119,6 +113,13 @@ function Save$t(){
 }
 	
 function SquidMemoryPools$t(){
+	var SquidSimpleConfig=$SquidSimpleConfig;
+	if(SquidSimpleConfig==1){
+		document.getElementById('SquidMemoryPools-$t').disabled=true;
+		document.getElementById('SquidMemoryPoolsLimit-$t').disabled=true;
+		return;
+	}
+
 	document.getElementById('SquidMemoryPoolsLimit-$t').disabled=true;
 	if(document.getElementById('SquidMemoryPools-$t').checked){
 		document.getElementById('SquidMemoryPoolsLimit-$t').disabled=false;
@@ -144,7 +145,7 @@ function Save(){
 		$squid->global_conf_array["cache_mem"]=trim($_POST["cache_mem"])." MB";
 	}	
 	
-	$squid->global_conf_array["maximum_object_size_in_memory"]=$_POST["maximum_object_size_in_memory"]." MB";
+	
 	$squid->SaveToLdap(true);
 
 }

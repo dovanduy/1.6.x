@@ -47,7 +47,7 @@ $buttons="buttons : [
 	],	";	
 	
 
-if($explain<>null){$explain="<div class=text-info style='font-size:13px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
 $html="
 $explain
 <center>

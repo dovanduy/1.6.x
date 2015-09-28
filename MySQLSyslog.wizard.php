@@ -47,7 +47,7 @@ function popup(){
 	
 	if($EnableSyslogDB==1){
 		$P1="<div id='status-$t'></div>
-		<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_EXPLAIN}</div>";
+		<div class=explain style='font-size:14px'>{MYSQLSYSLOG_EXPLAIN}</div>";
 		
 	}
 	
@@ -147,7 +147,7 @@ function Next1(){
 	$array[4]="{local}";
 	
 
-	$html="<div class=text-info style='font-size:18px'>{SYSLOG_TYPE_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:18px'>{SYSLOG_TYPE_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -220,7 +220,7 @@ function Next2_local(){
 	
 	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
 	if(!is_numeric($BackupMaxDaysAccess)){$BackupMaxDaysAccess=365;}
-$html="<div class=text-info style='font-size:18px'>{MYSQLSYSLOG_TYPE_LOCAL_EXPLAIN}</div>
+$html="<div class=explain style='font-size:18px'>{MYSQLSYSLOG_TYPE_LOCAL_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -290,7 +290,7 @@ function Next2_nas(){
 	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
 
 	
-	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -379,7 +379,7 @@ function Next2_client(){
 	$array[2]="{client}";
 	
 	
-	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -455,7 +455,7 @@ function Next2_server(){
 	$array[2]="{client}";
 
 
-	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_SERVER_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_SERVER_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>

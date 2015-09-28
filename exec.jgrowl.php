@@ -178,7 +178,7 @@ function Overloaded(){
 	$html[]="<img src=img/database-error-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{OVERLOADED_SYSTEM_EXPLAIN}</span><p>$link</p>","");
 	$html[]="\",";
@@ -202,7 +202,7 @@ function DansGuardianPattern(){
 	$html[]="<img src=img/database-error-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{DANSGUARDIAN_BLACKLISTS_MISSING_TEXT}</span><p>$link</p>","dansguardian.index.php");
 	$html[]="\",";
@@ -228,7 +228,7 @@ function DomainAdmin(){
 	$html[]="<img src=img/user-error-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{DOMAIN_ADMIN_NOT_EDITED_TEXT}</span><p>$link</p>","samba.index.php");
 	$html[]="\",";
@@ -253,7 +253,7 @@ function Xapian(){
 	$html[]="<img src=img/info-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>".@file_get_contents("/usr/share/artica-postfix/ressources/logs/xapian.results")."</span>");
 	$html[]="\",";
@@ -277,7 +277,7 @@ function CheckLDAPBranch(){
 	$html[]="<img src=img/danger48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<strong style=font-size:12px>{CORRUPTED_LDAP_BRANCH_TEXT}</strong><br>$link</a>");
 	$html[]="\",";
@@ -307,7 +307,7 @@ while (list ($num, $val) = each ($array) ){
 	$html[]="<img src=img/48-hd-warning.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<strong style=font-size:14px>{$val["DISP"]}{$val["UNIT"]} {free}/{$val["USED"]}{$val["UNIT"]} {used}</strong>");
 	$html[]="\",";
@@ -533,7 +533,7 @@ function CurrentInstall(){
 		$html[]="<td valign=top>";
 		$html[]="<span style=color:#C3393E;font-size:16px>$title";
 		$html[]="</span><hr>";
-		$html[]=$tpl->_ENGINE_parse_body("<strong style=font-size:12px>$installation_lauched </strong><br><i style=color:red>$pourc% $text_info</i>");
+		$html[]=$tpl->_ENGINE_parse_body("<strong style=font-size:12px>$installation_lauched </strong><br><i style=color:#d32d2d>$pourc% $text_info</i>");
 		$html[]="\",";
 		$html[]="{header: '$title',life:15000});";
 		echo implode("",$html)."\n";
@@ -1086,7 +1086,7 @@ function postmaster(){
 	$html[]="<img src=img/postmaster-warning-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{POSTMASTER_NOT_EDITED_TEXT}</span><p>$link</p>","samba.index.php");
 	$html[]="\",";
@@ -1112,7 +1112,7 @@ function norogs(){
 	$html[]="<img src=img/org-warning-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
 	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{no_organization_text_jgrowl}</span><p>$link</p>","samba.index.php");
 	$html[]="\",";
@@ -1159,9 +1159,9 @@ if($GLOBALS["VERBOSE"]){echo "squid_cache_infos(): Starting ". count($cacheinfo)
 	$html[]="<img src=img/cache-warning-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
-	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{SQUID_CACHES_OVER_TEXT}</span><p style=font-size:14px;color:red>$tot_pourc% {used}</p>","samba.index.php");
+	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{SQUID_CACHES_OVER_TEXT}</span><p style=font-size:14px;color:#d32d2d>$tot_pourc% {used}</p>","samba.index.php");
 	$html[]="\",";
 	$html[]="{header: '$title',life:25000});";
 	echo implode("",$html)."\n";		
@@ -1224,9 +1224,9 @@ function apt_execute(){
 	$html[]="<img src=img/software-task-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
-	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{APTGET_CURRENT_INSTALL_TEXT}</span><p style=font-size:14px;color:red>$package</p>","samba.index.php");
+	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{APTGET_CURRENT_INSTALL_TEXT}</span><p style=font-size:14px;color:#d32d2d>$package</p>","samba.index.php");
 	$html[]="\",";
 	$html[]="{header: '$title',life:25000});";
 	echo implode("",$html)."\n";	
@@ -1263,9 +1263,9 @@ function make_execute(){
 	$html[]="<img src=img/software-task-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
-	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{COMPILING_SOFTWARES_TEXT}</span><p style=font-size:14px;color:red>$package</p>","samba.index.php");
+	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{COMPILING_SOFTWARES_TEXT}</span><p style=font-size:14px;color:#d32d2d>$package</p>","samba.index.php");
 	$html[]="\",";
 	$html[]="{header: '$title',life:25000});";
 	echo implode("",$html)."\n";	
@@ -1305,9 +1305,9 @@ function cicap_VirHTTPServer(){
 	$html[]="<img src=img/software-task-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
-	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{BAD_CONFIGURATION_CICAP_BAD_PARAM}</span><p style=font-size:14px;color:red>$link</p>");
+	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{BAD_CONFIGURATION_CICAP_BAD_PARAM}</span><p style=font-size:14px;color:#d32d2d>$link</p>");
 	$html[]="\",";
 	$html[]="{header: '$title',life:25000});";
 	echo implode("",$html)."\n";	
@@ -1350,9 +1350,9 @@ function SquidGardCompile(){
 	$html[]="<img src=img/software-task-48.png>";
 	$html[]="</td>";
 	$html[]="<td valign=top>";
-	$html[]="<span style=color:red;font-size:16px>$title";
+	$html[]="<span style=color:#d32d2d;font-size:16px>$title";
 	$html[]="</span><hr>";
-	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{COMPILING_SQUIDGUARD_DATABASES_TEXT}</span><p style=font-size:14px;color:red>$package</p>","samba.index.php");
+	$html[]=$tpl->_ENGINE_parse_body("<span style=font-size:13px>{COMPILING_SQUIDGUARD_DATABASES_TEXT}</span><p style=font-size:14px;color:#d32d2d>$package</p>","samba.index.php");
 	$html[]="\",";
 	$html[]="{header: '$title',life:25000});";
 	echo implode("",$html)."\n";

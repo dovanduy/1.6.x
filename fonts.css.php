@@ -14,6 +14,7 @@ $StrongGreen="#044036";
 $Button2014Bgcolor="#5CB85C";
 $Button2014BgcolorOver="#47A447";
 $Button2014BgcolorBorder="#4CAE4C";
+$skinf="#005447";
 $sock=new sockets();
 $font_family=$sock->GET_INFO("InterfaceFonts");
 if($font_family==null){$font_family="'Lucida Grande',Arial, Helvetica, sans-serif";}
@@ -23,6 +24,8 @@ $skinOver=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"
 $skinborder=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/top-bar-color-border.conf";
 $body=dirname(__FILE__) . "/ressources/templates/{$_COOKIE["artica-template"]}/body.conf";
 
+
+
 $css[]="/* template {$_COOKIE["artica-template"]} */";
 
 if(is_file($skinf)){
@@ -30,12 +33,15 @@ if(is_file($skinf)){
 	$Button2014Bgcolor=$Green;
 	
 }
+
 if(is_file($skinOver)){
 	$Button2014BgcolorOver=@file_get_contents($skinOver);
 }
 if(is_file($skinborder)){
 	$Button2014BgcolorBorder=@file_get_contents($skinborder);
 }
+
+if($Green==null){$Green="#005447";}
 
 
 if(is_file($body)){
@@ -92,6 +98,47 @@ $cssplus=@implode("\n", $css);
 $MAINCSS= "/* template {$_COOKIE["artica-template"]} */
 body{
 	font-family:$font_family;
+}
+
+.bx-slider-top {
+  	background-color: $Green;
+    color: #DCDCDC;
+    font-size:16px;
+    height: 28px;
+    margin-left: 0px;
+    margin-right: 0;
+    margin-top: 0px;
+    padding-right: 10px;
+    padding-top: 6px;
+    text-align: right;
+    width: 99%;
+      -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+	/* behavior:url(/css/border-radius.htc); */
+}
+
+#bx-slider-top a {
+    color: #DCDCDC;
+    font-weight: normal;
+    font-size:16px;
+}
+
+
+
+
+.bx-slider-top a:link, a:visited {
+    color: #DCDCDC;
+    font-weight: normal;
+    font-size:16px;
+}
+
+.bx-slider-top a:hover {
+    color: white;
+    font-weight:bold;
+    font-size: 16px;
+    text-decoration:underline;
+    
 }
 
 
@@ -551,8 +598,8 @@ font-size:12px !important;
   background-color: #f7f7f7;
   border-bottom: 1px solid #ebebeb;
   -webkit-border-radius: 5px 5px 0 0;
-     -moz-border-radius: 5px 5px 0 0;
-          border-radius: 5px 5px 0 0;
+  -moz-border-radius: 5px 5px 0 0;
+  border-radius: 5px 5px 0 0;
 /* behavior:url(/css/border-radius.htc); */
 }
 
@@ -776,6 +823,28 @@ opacity: 0.6;
 a.Button2014, a.Button2014:link, a.Button2014:visited, a.Button2014:hover{
 	color: #FFFFFF;
 	text-decoration:none;	
+}
+
+tr.TableBouton2014{
+	cursor: pointer;
+	background-color: $Button2014Bgcolor !important;
+	border-color: $Button2014BgcolorBorder !important;
+	color: #FFFFFF !important;
+}
+tr.TableBouton2014:hover{
+	cursor: pointer;
+	background-color: $Button2014BgcolorOver !important;
+	border-color: $Button2014BgcolorBorder !important;
+	color: #FFFFFF !important;
+}
+
+td.TableBouton2014{
+	border-color: $Button2014BgcolorBorder !important;
+	border-color: $Button2014BgcolorBorder !important;
+}
+td.TableBouton2014:hover{
+	background-color: $Button2014BgcolorOver !important;
+	border-color: $Button2014BgcolorBorder !important;
 }
 
 .Button2014-success {
@@ -1040,8 +1109,425 @@ a.Button2014, a.Button2014:link, a.Button2014:visited, a.Button2014:hover{
 		box-sizing: border-box;
 		margin-top: -1px;
 	}
+	
+/*  *****************************************   TOOL TIPS  ***************************************** */
+.tooltipster-default {
+	border-radius: 5px; 
+	border: 2px solid #000;
+	background: #4c4c4c;
+	color: #fff;
+}
 
+/* Use this next selector to style things like font-size and line-height: */
+.tooltipster-default .tooltipster-content {
+	font-family: $font_family;
+	font-size: 18px;
+	line-height: 20px;
+	padding: 8px 10px;
+	overflow: hidden;
+}
+
+/* This next selector defines the color of the border on the outside of the arrow. This will automatically match the color and size of the border set on the main tooltip styles. Set display: none; if you would like a border around the tooltip but no border around the arrow */
+.tooltipster-default .tooltipster-arrow .tooltipster-arrow-border {
+	/* border-color: ... !important; */
+}
+
+
+/* If you're using the icon option, use this next selector to style them */
+.tooltipster-icon {
+	cursor: help;
+	margin-left: 4px;
+}
+
+
+/* This is the base styling required to make all Tooltipsters work */
+.tooltipster-base {
+	padding: 0;
+	font-size: 0;
+	line-height: 0;
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 9999999;
+	pointer-events: none;
+	width: auto;
+	overflow: visible;
+}
+.tooltipster-base .tooltipster-content {
+	overflow: hidden;
+}
+
+
+/* These next classes handle the styles for the little arrow attached to the tooltip. By default, the arrow will inherit the same colors and border as what is set on the main tooltip itself. */
+.tooltipster-arrow {
+	display: block;
+	text-align: center;
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: -1;
+}
+.tooltipster-arrow span, .tooltipster-arrow-border {
+	display: block;
+	width: 0; 
+	height: 0;
+	position: absolute;
+}
+.tooltipster-arrow-top span, .tooltipster-arrow-top-right span, .tooltipster-arrow-top-left span {
+	border-left: 8px solid transparent !important;
+	border-right: 8px solid transparent !important;
+	border-top: 8px solid;
+	bottom: -7px;
+}
+.tooltipster-arrow-top .tooltipster-arrow-border, .tooltipster-arrow-top-right .tooltipster-arrow-border, .tooltipster-arrow-top-left .tooltipster-arrow-border {
+	border-left: 9px solid transparent !important;
+	border-right: 9px solid transparent !important;
+	border-top: 9px solid;
+	bottom: -7px;
+}
+
+.tooltipster-arrow-bottom span, .tooltipster-arrow-bottom-right span, .tooltipster-arrow-bottom-left span {
+	border-left: 8px solid transparent !important;
+	border-right: 8px solid transparent !important;
+	border-bottom: 8px solid;
+	top: -7px;
+}
+.tooltipster-arrow-bottom .tooltipster-arrow-border, .tooltipster-arrow-bottom-right .tooltipster-arrow-border, .tooltipster-arrow-bottom-left .tooltipster-arrow-border {
+	border-left: 9px solid transparent !important;
+	border-right: 9px solid transparent !important;
+	border-bottom: 9px solid;
+	top: -7px;
+}
+.tooltipster-arrow-top span, .tooltipster-arrow-top .tooltipster-arrow-border, .tooltipster-arrow-bottom span, .tooltipster-arrow-bottom .tooltipster-arrow-border {
+	left: 0;
+	right: 0;
+	margin: 0 auto;
+}
+.tooltipster-arrow-top-left span, .tooltipster-arrow-bottom-left span {
+	left: 6px;
+}
+.tooltipster-arrow-top-left .tooltipster-arrow-border, .tooltipster-arrow-bottom-left .tooltipster-arrow-border {
+	left: 5px;
+}
+.tooltipster-arrow-top-right span,  .tooltipster-arrow-bottom-right span {
+	right: 6px;
+}
+.tooltipster-arrow-top-right .tooltipster-arrow-border, .tooltipster-arrow-bottom-right .tooltipster-arrow-border {
+	right: 5px;
+}
+.tooltipster-arrow-left span, .tooltipster-arrow-left .tooltipster-arrow-border {
+	border-top: 8px solid transparent !important;
+	border-bottom: 8px solid transparent !important; 
+	border-left: 8px solid;
+	top: 50%;
+	margin-top: -7px;
+	right: -7px;
+}
+.tooltipster-arrow-left .tooltipster-arrow-border {
+	border-top: 9px solid transparent !important;
+	border-bottom: 9px solid transparent !important; 
+	border-left: 9px solid;
+	margin-top: -8px;
+}
+.tooltipster-arrow-right span, .tooltipster-arrow-right .tooltipster-arrow-border {
+	border-top: 8px solid transparent !important;
+	border-bottom: 8px solid transparent !important; 
+	border-right: 8px solid;
+	top: 50%;
+	margin-top: -7px;
+	left: -7px;
+}
+.tooltipster-arrow-right .tooltipster-arrow-border {
+	border-top: 9px solid transparent !important;
+	border-bottom: 9px solid transparent !important; 
+	border-right: 9px solid;
+	margin-top: -8px;
+}
+
+
+/* Some CSS magic for the awesome animations - feel free to make your own custom animations and reference it in your Tooltipster settings! */
+
+.tooltipster-fade {
+	opacity: 0;
+	-webkit-transition-property: opacity;
+	-moz-transition-property: opacity;
+	-o-transition-property: opacity;
+	-ms-transition-property: opacity;
+	transition-property: opacity;
+}
+.tooltipster-fade-show {
+	opacity: 1;
+}
+
+.tooltipster-grow {
+	-webkit-transform: scale(0,0);
+	-moz-transform: scale(0,0);
+	-o-transform: scale(0,0);
+	-ms-transform: scale(0,0);
+	transform: scale(0,0);
+	-webkit-transition-property: -webkit-transform;
+	-moz-transition-property: -moz-transform;
+	-o-transition-property: -o-transform;
+	-ms-transition-property: -ms-transform;
+	transition-property: transform;
+	-webkit-backface-visibility: hidden;
+}
+.tooltipster-grow-show {
+	-webkit-transform: scale(1,1);
+	-moz-transform: scale(1,1);
+	-o-transform: scale(1,1);
+	-ms-transform: scale(1,1);
+	transform: scale(1,1);
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1);
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-moz-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-ms-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-o-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15);
+}
+
+.tooltipster-swing {
+	opacity: 0;
+	-webkit-transform: rotateZ(4deg);
+	-moz-transform: rotateZ(4deg);
+	-o-transform: rotateZ(4deg);
+	-ms-transform: rotateZ(4deg);
+	transform: rotateZ(4deg);
+	-webkit-transition-property: -webkit-transform, opacity;
+	-moz-transition-property: -moz-transform;
+	-o-transition-property: -o-transform;
+	-ms-transition-property: -ms-transform;
+	transition-property: transform;
+}
+.tooltipster-swing-show {
+	opacity: 1;
+	-webkit-transform: rotateZ(0deg);
+	-moz-transform: rotateZ(0deg);
+	-o-transform: rotateZ(0deg);
+	-ms-transform: rotateZ(0deg);
+	transform: rotateZ(0deg);
+	-webkit-transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 1);
+	-webkit-transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 2.4); 
+	-moz-transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 2.4); 
+	-ms-transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 2.4); 
+	-o-transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 2.4); 
+	transition-timing-function: cubic-bezier(0.230, 0.635, 0.495, 2.4);
+}
+
+.tooltipster-fall {
+	top: 0;
+	-webkit-transition-property: top;
+	-moz-transition-property: top;
+	-o-transition-property: top;
+	-ms-transition-property: top;
+	transition-property: top;
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1);
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-moz-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-ms-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-o-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+}
+.tooltipster-fall-show {
+}
+.tooltipster-fall.tooltipster-dying {
+	-webkit-transition-property: all;
+	-moz-transition-property: all;
+	-o-transition-property: all;
+	-ms-transition-property: all;
+	transition-property: all;
+	top: 0px !important;
+	opacity: 0;
+}
+
+.tooltipster-slide {
+	left: -40px;
+	-webkit-transition-property: left;
+	-moz-transition-property: left;
+	-o-transition-property: left;
+	-ms-transition-property: left;
+	transition-property: left;
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1);
+	-webkit-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-moz-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-ms-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	-o-transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15); 
+	transition-timing-function: cubic-bezier(0.175, 0.885, 0.320, 1.15);
+}
+.tooltipster-slide.tooltipster-slide-show {
+}
+.tooltipster-slide.tooltipster-dying {
+	-webkit-transition-property: all;
+	-moz-transition-property: all;
+	-o-transition-property: all;
+	-ms-transition-property: all;
+	transition-property: all;
+	left: 0px !important;
+	opacity: 0;
+}
+
+
+/* CSS transition for when contenting is changing in a tooltip that is still open. The only properties that will NOT transition are: width, height, top, and left */
+.tooltipster-content-changing {
+	opacity: 0.5;
+	-webkit-transform: scale(1.1, 1.1);
+	-moz-transform: scale(1.1, 1.1);
+	-o-transform: scale(1.1, 1.1);
+	-ms-transform: scale(1.1, 1.1);
+	transform: scale(1.1, 1.1);
+}
 $cssplus
+
+/** RESET AND LAYOUT
+===================================*/
+
+.bx-wrapper {
+	position: relative;
+	margin: 0 auto 60px;
+	padding: 0;
+	*zoom: 1;
+}
+
+.bx-wrapper img {
+	display: block;
+}
+
+/** THEME
+===================================*/
+.bx-wrapper{
+	margin: -15px auto;
+}
+
+.bx-wrapper .bx-viewport {
+	-moz-box-shadow: 0 0 5px #ccc;
+	-webkit-box-shadow: 0 0 5px #ccc;
+	box-shadow: 0 0 5px #ccc;
+	border:  5px solid #fff;
+	left: -5px;
+	background: #fff;
+	
+	/*fix other elements on the page moving (on Chrome)*/
+	-webkit-transform: translatez(0);
+	-moz-transform: translatez(0);
+    	-ms-transform: translatez(0);
+    	-o-transform: translatez(0);
+    	transform: translatez(0);
+}
+.form a {
+    color: black;
+}
+.form a:visited {
+    color: black;
+}
+
+.autocomplete-suggestions {
+    text-align: left; cursor: default; border: 1px solid #ccc; border-top: 0; background: #fff; box-shadow: -1px 1px 3px rgba(0,0,0,.1);
+    position: absolute; display: none; z-index: 9999; max-height: 254px; overflow: hidden; overflow-y: auto; box-sizing: border-box;
+}
+.autocomplete-suggestion { position: relative; padding: 0 .6em; line-height: 23px; white-space: nowrap; overflow: hidden; font-size: 18px; color: #333; }
+.autocomplete-suggestion b { font-weight: normal; color: #$Green; }
+.autocomplete-suggestion.selected { background: #f0f0f0; }
+
+.calamaris th {
+    background: none repeat scroll 0 0 transparent;
+    border: 0 none;
+    color: black;
+    font-size: 22px;
+    text-align:inherit;
+}
+
+.calamaris A{
+	text-decoration:underline;
+}
+
+.backToTop{
+	text-decoration:underline;
+	font-size:18px;
+}
+
+.headline{
+	color: black;
+	font-size: 30px;
+	background: none repeat scroll 0 0 transparent;
+}
+.calamaris td {
+    font-size: 22px;
+    padding:3px;
+    border: 1px solid #D6D6D6;
+    text-align:initial;
+}
+.calamaris .head {
+    font-size: 26px;
+    font-weight:bold;
+    background-color:$Green;
+    color:white;
+    padding:15px 5px 15px;
+    
+}
+
+.calamaris .head A {
+   text-decoration:none;
+    
+}
+
+.calamaris table {
+	border-spacing: 0;
+    border-collapse: collapse;
+    border:5px solid #CCCCCC;
+    border-radius: 5px; 
+    -moz-border-radius: 5px;
+    width:100%;
+}
+
+.calamaris .TableDefinition{
+	text-align:left;
+	background-color:#CCCCCC;
+	font-size: 26px;
+	font-weight:bolder;
+	padding:0px;
+	text-align:right;
+
+}
+.calamaris .line_0{
+	font-size: 22px;
+	font-weight:normal;
+	padding:0px;
+	text-align:right;
+	text-transform:lowercase;
+	padding-right:8px;
+
+}
+.calamaris .line_1{
+	font-size: 22px;
+	font-weight:normal;
+	background-color:#DEDEDE;
+	text-align:right;
+	text-transform:lowercase;
+	padding-right:8px;
+
+}
+.calamaris .line_2{
+	font-size: 26px;
+	font-weight:bolder;
+	background-color:#909090;
+	padding:0px;
+	color:white;
+	text-align:right;
+	padding-right:8px;
+
+}
+.calamaris address {
+	display:none;
+}
+
+.calamaris .head a {
+    color: white;
+}
+.calamaris .head a:visited {
+    color: white;
+}
 ";
 
 $_SESSION["FONT_CSS"]=$MAINCSS;

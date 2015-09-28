@@ -1,4 +1,5 @@
 <?php
+$GLOBALS["FORCE"]=false;
 $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["VERBOSE_MASTER"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;
@@ -12,6 +13,8 @@ $GLOBALS["VERBOSE_MASTER"]=true;ini_set('html_errors',0);ini_set('display_errors
 
 $GLOBALS["LOGON-PAGE"]=true;
 if($GLOBALS["DEBUG"]){echo "Starting...{$argv[1]}\n";}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+
 $GLOBALS["langs"]=array("fr","en","po","es","it","br","pol");
 if($argv[1]=="--remove"){remove_ipcs();die;}
 if($argv[1]=="--dump"){output_ipcs();die;}	
@@ -34,6 +37,19 @@ function PHP5SessionPath($dir){
 	$umount=$unix->find_program("umount");	
 	$sock=new sockets();
 	$SessionPathInMemory=$sock->GET_INFO("SessionPathInMemory");
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	
+	echo "Starting......: ".date("H:i:s")." lighttpd: Performance level $SquidPerformance\n";
+	
+	if($SquidPerformance>2){
+		if(PHP5SessionPathIsMounted($dir)){
+			if(is_dir($dir)){shell_exec("/bin/rm -rf $dir/*");}
+			echo "Starting......: ".date("H:i:s")." lighttpd: Performance to lower config, no tmpfs...\n";
+			shell_exec("$umount -l $dir >/dev/null 2>&1");
+			return;
+		}
+	}
+	
 	
 	if(!is_numeric($SessionPathInMemory)){
 		$users=new usersMenus();
@@ -57,9 +73,9 @@ function PHP5SessionPath($dir){
 		$log[]=__LINE__." $dir = {$mountedMem}M against {$SessionPathInMemory}M";
 		if($mountedMem==$SessionPathInMemory){return;}
 		echo "Starting......: ".date("H:i:s")." lighttpd: unmounting $dir memory filesystem\n";
-		shell_exec("$umount -f $dir >/dev/null 2>&1");
+		shell_exec("$umount -l $dir >/dev/null 2>&1");
 		if(is_dir($dir)){shell_exec("/bin/rm -rf $dir/*");}
-		$unix->send_email_events("Success cleaning session path in memory", @implode("\n", $log), "system");
+		
 	}
 	
 	if(!PHP5SessionPathIsMounted($dir)){
@@ -73,11 +89,11 @@ function PHP5SessionPath($dir){
 			exec("$cmd",$results_cmd);
 			if(count($results_cmd)>0){while (list ($index, $line) = each ($results_cmd) ){$log[]=__LINE__." $line";}}
 			if(PHP5SessionPathIsMounted($dir)){
-				$unix->send_email_events("lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem success", @implode("\n", $log), "system");
+				
 				echo "Starting......: ".date("H:i:s")." lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem success\n";
 			}else{
 				echo "Starting......: ".date("H:i:s")." lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem failed\n";
-				$unix->send_email_events("lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem FAILED", @implode("\n", $log), "system");
+				
 			}
 		}
 	}else{

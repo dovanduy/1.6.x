@@ -39,7 +39,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div id='$t'>
-	<div class=text-info style='font-size:14px'>{MYSQLZARAFA_EXPLAIN}</div>
+	<div class=explain style='font-size:14px'>{MYSQLZARAFA_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
 		<td align='left' style='width:50%'>". button("{close}","Close$t()",18)."</td>
@@ -124,7 +124,7 @@ function Next1(){
 	$array[4]="{client}";
 	
 
-	$html="<div class=text-info style='font-size:14px'>{MYSQLZARAFA_TYPE_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLZARAFA_TYPE_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -200,7 +200,7 @@ function Next2_client(){
 	$array[2]="{client}";
 	
 	
-	$html="<div class=text-info style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_CLIENT_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
@@ -278,7 +278,7 @@ function Next2_server(){
 	$array[2]="{client}";
 
 
-	$html="<div class=text-info style='font-size:14px'>{MYSQLZARAFA_TYPE_SERVER_EXPLAIN}</div>
+	$html="<div class=explain style='font-size:14px'>{MYSQLZARAFA_TYPE_SERVER_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>

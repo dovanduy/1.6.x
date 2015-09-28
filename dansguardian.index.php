@@ -377,7 +377,7 @@ function popup_tabs(){
 	$array["authentication"]='{authentication}';
 	$array["proxy-events"]='{events}';
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	
 	$tpl=new templates();
 	while (list ($num, $ligne) = each ($array) ){
@@ -434,7 +434,7 @@ function popup_databases(){
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}
 	$cicap_enabled=$sock->GET_INFO('CicapEnabled');
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$EnableSquidClamav=$sock->GET_INFO("EnableSquidClamav");	
 	
 	
@@ -542,7 +542,7 @@ function popup_dansguardian_main(){
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}
 	$cicap_enabled=$sock->GET_INFO('CicapEnabled');
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$EnableSquidClamav=$sock->GET_INFO("EnableSquidClamav");
 	
 	
@@ -1110,7 +1110,7 @@ function main_rules_mainsettings(){
 	if($dansguardian_enabled==null){$dansguardian_enabled=0;$sock->SET_INFO("DansGuardianEnabled",0);}
 	$squidGuardEnabled=$sock->GET_INFO("squidGuardEnabled");
 	if($squidGuardEnabled==null){$squidGuardEnabled=0;$sock->SET_INFO("squidGuardEnabled",0);}	
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if($EnableUfdbGuard==null){$EnableUfdbGuard=0;$sock->SET_INFO("EnableUfdbGuard",0);}	
 	
 	$dansguardian_part="	
@@ -1931,7 +1931,7 @@ function main_status_analyse_logs(){
 	if($error<>null){
 		return "<tr ". CellRollOver('DansGuardianViewStartError()','{view}').">
 		<td align='right' valign='top'><img src='img/$img'></td>
-		<td valign='top'><strong style='color:red'>$error:</strong><br><span style='color:red'>$error_text</span></td>
+		<td valign='top'><strong style='color:#d32d2d'>$error:</strong><br><span style='color:#d32d2d'>$error_text</span></td>
 		</tr>";
 		
 	}
@@ -1973,7 +1973,7 @@ function ip_group_page(){
 	
 	$html="
 	
-	<div class=text-info><div style='float:right;margin:5px'>$add</div>{filter_ip_group_explain}</div>
+	<div class=explain><div style='float:right;margin:5px'>$add</div>{filter_ip_group_explain}</div>
 	" . ip_group_rule_list() ."
 		";
 	$tpl=new templates();
@@ -2579,7 +2579,7 @@ function popup_mysql_error(){
 	<td valign='top'><img src='img/database-error-256.png'></td>
 	<td valign='top'>
 	<div id='DansGuardianRebuildDatabase'>
-	<p class=caption style='color:red;font-size:14px'>{dansguardian_tables_error_text}</p>
+	<p class=caption style='color:#d32d2d;font-size:14px'>{dansguardian_tables_error_text}</p>
 	<center style='margin:50px'><input type='button' OnClick=\"javascript:DansGuardianRebuildDatabase();\" value='{build_dansguardian_databases}&nbsp;&raquo;'></td>
 	</div>";
 	$tpl=new templates();

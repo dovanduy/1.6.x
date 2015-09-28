@@ -144,7 +144,7 @@ function popup(){
 			if(!is_numeric($ZarafaEnableServer)){$ZarafaEnableServer=1;}
 				if($ZarafaEnableServer==1){
 					if($users->AsMailBoxAdministrator){
-						$ZarafaField="{display: 'Zarafa', name : 'Zarafa', width :31, sortable : false, align: 'center'},";
+						$ZarafaField="{display: '<span style=font-size:20px>Zarafa</span>', name : 'Zarafa', width :98, sortable : false, align: 'center'},";
 						$ZarafaUri="&zarafaF=1";
 						$help="{name: '$online_help', bclass: 'Help', onpress : Zhelp$t},";
 					}
@@ -175,7 +175,8 @@ function popup(){
 	$actions=$tpl->_ENGINE_parse_body("{actions}");	
 	$add_new_organisation_text=$tpl->javascript_parse_text("{add_new_organisation_text}");
 	$update=$tpl->_ENGINE_parse_body("{update2}");
-	if($users->AsArticaAdministrator){$parametersBT="{name: '<b>$organizations_parameters</b>', bclass: 'Reconf', onpress : organizations_parameters},";}
+	if($users->AsArticaAdministrator){
+		$parametersBT="{name: '<strong style=font-size:18px>$organizations_parameters</strong>', bclass: 'Reconf', onpress : organizations_parameters},";}
 	if(butadm()<>null){
 		
 		$jsadd="TreeAddNewOrganisation$t";
@@ -187,17 +188,8 @@ function popup(){
 	$bb="<input type='hidden' name='add_new_organisation_text' id='add_new_organisation_text' value='". $tpl->javascript_parse_text("{add_new_organisation_text}")."'>";
 	if(isset($_GET["ajaxmenu"])){$bc="&ajaxmenu=yes";}
 	
-	$bt_add_new="{name: '<b>$add_new_organisation</b>', bclass: 'add', onpress : $jsadd},";
-	
-	
-	
-	if($userClasse->SQUID_INSTALLED){
-		if($userClasse->SAMBA_INSTALLED){
-			$bt_activedirectory="{name: '<b>Active Directory</b>', bclass: 'Settings', onpress : ActiveDirectorySquid$t},
-			{name: '<b>$update</b>', bclass: 'Reload', onpress : ActiveDirectoryUpdate$t},
-			";
-		}
-	}
+	$bt_add_new="{name: '<strong style=font-size:18px>$add_new_organisation</strong>', bclass: 'add', onpress : $jsadd},";
+
 	
 	$ldap=new clladp();
 	if($ldap->IsKerbAuth()){
@@ -205,13 +197,13 @@ function popup(){
 		$Totalusers=$tpl->_ENGINE_parse_body("{my_organizations}");
 	}else{
 		$TEXT_TO_CSV=$tpl->_ENGINE_parse_body("{TEXT_TO_CSV}");
-		$CsvToLdap="{name: '<b>$TEXT_TO_CSV</b>', bclass: 'Copy', onpress : TEXT_TO_CSV},";
+		$CsvToLdap="{name: '<strong style=font-size:18px>$TEXT_TO_CSV</strong>', bclass: 'Copy', onpress : TEXT_TO_CSV},";
 	}
 	
 	
 	$buttons="
 	buttons : [
-	$bt_add_new$bt_activedirectory$parametersBT$CsvToLdap$help
+	$bt_add_new$parametersBT$CsvToLdap
 		],";
 	$html="
 	$bb
@@ -225,12 +217,17 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		
-		{display: '$organizations', name : 'ou', width :237, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$organizations</span>', name : 'ou', width :237, sortable : false, align: 'left'},
 		$ZarafaField
-		{display: '$users', name : 'users', width :57, sortable : false, align: 'center'},
-		{display: '$groupsF', name : 'groups', width : 57, sortable : false, align: 'center'},
-		{display: '$domains', name : 'domains', width : 57, sortable : false, align: 'center'},		
-		{display: '$actions', name : 'actions', width : 72, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>$users</span>', name : 'users', width :153, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>&nbsp;</span>', name : 'nonex1', width : 50, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>$groupsF</span>', name : 'groups', width : 153, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>&nbsp;</span>', name : 'nonex2', width : 50, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>$domains</span>', name : 'domains', width : 153, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>&nbsp;</span>', name : 'nonex3', width : 50, sortable : false, align: 'center'},		
+		{display: '<span style=font-size:20px>&nbsp;</span>', name : 'nonex4', width : 50, sortable : false, align: 'center'},
+		{display: '<span style=font-size:20px>&nbsp;</span>', name : 'nonex5', width : 50, sortable : false, align: 'center'},
+		
 		{display: '&nbsp;', name : 'none1', width : 31, sortable : false, align: 'left'},
 	],
 	$buttons
@@ -241,7 +238,7 @@ $('#table-$t').flexigrid({
 	sortname: 'ou',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$Totalusers',
+	title: '<span style=font-size:30px>$Totalusers</span>',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -294,7 +291,7 @@ function TEXT_TO_CSV(){
 		}
 
 </script>
-". $tpl->_ENGINE_parse_body("<div class=text-info>{about_organization}</div>");
+". $tpl->_ENGINE_parse_body("<div class=explain>{about_organization}</div>");
 
 
 $tpl=new templates();
@@ -428,31 +425,27 @@ function ORGANISATIONS_LIST_ACTIVE_DIRECTORY(){
 			$array[]="<a href=\"javascript:blur();\" OnClick=\"$uri\" style='font-size:16px;font-weight:bolder;text-transform:capitalize;text-decoration:underline'>$ou</strong></a>";
 	
 			if($_GET["zarafaF"]==1){
-			
-			$zarafaEnabled="zarafa-logo-32.png";
-				$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')");
+				$zarafaEnabled="zarafa-logo-32.png";
+				$array[]="<center>".imgsimple($zarafaEnabled,null,"Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')")."</center>";
 			}else{
 				$array[]="&nbsp;";
 							
 			}
 	
 	
-		$usersNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$usersNB</td><td width=1% style=border:0px>$SearchUser</td></tr></tbody></table>";
-	
-		$GroupsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$GroupsNB</td><td width=1% style=border:0px>$SearchGroup</td></tr></tbody></table>";
-	
-		$DomainsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$DomainsNB</td><td width=1% style=border:0px>$searchDomain</td></tr></tbody></table>";
+		
 	
 	
 	
-		$array[]="<strong style='font-size:16px'>$usersNB</strong>";
-		$array[]="<strong style='font-size:16px'>$GroupsNB</strong>";
-		$array[]="<strong style='font-size:16px'>$DomainsNB</strong>";
-		$array[]="<strong style='font-size:16px'>$actions</strong>";
-		$array[]="<strong style='font-size:16px'>$delete</strong>";
+	
+		$array[]="<strong style='font-size:22px'>$usersNB</strong>";
+		$array[]="<strong style='font-size:22px'>$SearchUser</strong>";
+		$array[]="<strong style='font-size:22px'>$GroupsNB</strong>";
+		$array[]="<strong style='font-size:22px'>$SearchGroup</strong>";
+		$array[]="<strong style='font-size:22px'>$DomainsNB</strong>";
+		$array[]="<strong style='font-size:22px'>$searchDomain</strong>";
+		$array[]="<strong style='font-size:22px'>$actions</strong>";
+		$array[]="<strong style='font-size:22px'>$delete</strong>";
 		$c++;
 		$data['rows'][] = array('id' => $md5S,'cell' => $array);
 	
@@ -598,38 +591,35 @@ function ORGANISATIONS_LIST(){
 		}
 	
 				
-		$actions="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$adduser</td><td width=1% style='border:0px'>$addgroup</td></tr></tbody></table>";
 		$array=array();
 		$array[]="<a href=\"javascript:blur();\" 
-		OnClick=\"$uri\" style='font-size:16px;font-weight:bolder;text-transform:capitalize;text-decoration:underline'>$ligne</strong></a>$OuZarafaText";
+		OnClick=\"$uri\" style='font-size:26px;font-weight:bolder;text-transform:capitalize;
+		text-decoration:underline'>$ligne</strong></a>$OuZarafaText";
 		
 		if($_GET["zarafaF"]==1){
 			$zarafaEnabled="zarafa-logo-32.png";			
 			if($NOZARAFA==1){$zarafaEnabled="zarafa-logo-32-grey.png";}	
-			$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')");
+			$array[]="<center>".imgsimple($zarafaEnabled,"<strong style=font-size:26px>$ou:{APP_ZARAFA}</strong>
+					<br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')")."</center>";
 		}else{
 			$array[]="&nbsp;";
 			
 		}			
 		
-		
-		$usersNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$usersNB</td><td width=1% style=border:0px>$SearchUser</td></tr></tbody></table>";
-		
-		$GroupsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$GroupsNB</td><td width=1% style=border:0px>$SearchGroup</td></tr></tbody></table>";
-
-		$DomainsNB="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
-		<td width=1% style=border:0px>$DomainsNB</td><td width=1% style=border:0px>$searchDomain</td></tr></tbody></table>";	
-
 
 		
-		$array[]="<strong style='font-size:16px'>$usersNB</strong>";
-		$array[]="<strong style='font-size:16px'>$GroupsNB</strong>";
-		$array[]="<strong style='font-size:16px'>$DomainsNB</strong>";
-		$array[]="<strong style='font-size:16px'>$actions</strong>";
-		$array[]="<strong style='font-size:16px'>$delete</strong>";
+		$array[]="<strong style='font-size:26px'>$usersNB</strong>";
+		$array[]="<center style='font-size:16px'>$SearchUser</center>";
+		
+		$array[]="<strong style='font-size:26px'>$GroupsNB</strong>";
+		$array[]="<center style='font-size:16px'>$SearchGroup</center>";
+		
+		$array[]="<strong style='font-size:26px'>$DomainsNB</strong>";
+		$array[]="<center style='font-size:16px'>$searchDomain</center>";
+		
+		$array[]="<center style='font-size:16px'>$adduser</center>";
+		$array[]="<center style='font-size:16px'>$addgroup</center>";
+		$array[]="<center style='font-size:16px'>$delete</center>";
 		$c++;
 		$data['rows'][] = array('id' => $md5S,'cell' => $array);			
 		

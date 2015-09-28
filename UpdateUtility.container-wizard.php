@@ -38,7 +38,7 @@ function setup1(){
 
 	$html="
 	<div id='$t'></div>		
-	<div style='font-size:16px' class=text-info>{updateutility_setup1}</div>
+	<div style='font-size:16px' class=explain>{updateutility_setup1}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{directory}:</td>

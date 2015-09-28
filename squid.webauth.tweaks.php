@@ -86,7 +86,8 @@ function page(){
 		<tr>
 			<td class=legend style='font-size:22px'>{label} {fontsize}:</td>
 			<td style='font-size:16px'>". Field_text("SKIN_LABEL_FONT_SIZE",$ArticaHotSpotSMTP["SKIN_LABEL_FONT_SIZE"],"font-size:22px;width:100px")."</td>
-		</tr>					
+		</tr>	
+									
 		<tr>
 			<td class=legend style='font-size:22px'>{buttons_size}:</td>
 			<td style='font-size:16px'>". Field_text("SKIN_BUTTON_SIZE",$ArticaHotSpotSMTP["SKIN_BUTTON_SIZE"],"font-size:22px;width:100px")."</td>

@@ -33,7 +33,7 @@ function import_dnsmasq_popup(){
 	$time=time();
 	$t=$_GET["t"];
 	$html="
-	<div class=text-info style='font-size:13px'>{dnsmasq_bulk_import_explain}</div>
+	<div class=explain style='font-size:13px'>{dnsmasq_bulk_import_explain}</div>
 	<center id='id-$time'>
 		<table style='width:99%' class=form>
 		<tbody>
@@ -145,7 +145,7 @@ function page(){
 	
 	$html="
 
-<div class=text-info style='font-size:13px'>$dnsmasq_address_text</div>
+<div class=explain style='font-size:13px'>$dnsmasq_address_text</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	

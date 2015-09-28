@@ -781,7 +781,7 @@ if($COMMAND[$key]<>null){
 }
 
 if($RESTART_STATUS[$key]){
-	events("restarting artica status....",__FUNCTION__,__FILE__,__LINE__);
+	events("Restarting status Daemon....",__FUNCTION__,__FILE__,__LINE__);
 	@unlink("/usr/share/artica-postfix/ressources/logs/global.status.ini");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 }else{
@@ -1048,14 +1048,14 @@ function OPENVPN_REMOTE_SITE_EDIT($value){
 	$reload_datas=$nohup.$EXEC_NICE.LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.artica.meta.users.php --export-openvpn-sites >/dev/null 2>&1 &";	
 	if(!is_array($array)){
 		events("Corrupted data, aborting",__FUNCTION__,__FILE__,__LINE__);
-		send_email_events("Failed to import remote site parameters from Artica Meta (corrupted datas)",null,"VPN");
+		send_email_events("Failed to import remote site parameters from Meta Server (corrupted datas)",null,"VPN");
 		shell_exec($reload_datas);
 		return true;
 	}	
 	
 	if(!is_numeric($array["ID"])){
 		events("Corrupted data, unable to find ID table identifier",__FUNCTION__,__FILE__,__LINE__);
-		send_email_events("Failed to import remote site parameters from Artica Meta (unable to find ID table identifier)",null,"VPN");
+		send_email_events("Failed to import remote site parameters from Meta Server (unable to find ID table identifier)",null,"VPN");
 		shell_exec($reload_datas);
 		return true;		
 	}
@@ -1071,13 +1071,13 @@ function OPENVPN_REMOTE_SITE_EDIT($value){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){
 		events("Corrupted data, (mysql error) $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		send_email_events("Failed to import remote site parameters from Artica Meta (mysql error)",$q->mysql_error,"VPN");
+		send_email_events("Failed to import remote site parameters from Meta Server (mysql error)",$q->mysql_error,"VPN");
 		shell_exec($reload_datas);
 		return true;	
 	}
 	shell_exec($reload_datas);
 	shell_exec("/etc/init.d/artica-postfix restart openvpn");
-	send_email_events("Success to import remote site parameters from Artica Meta ID:{$array["ID"]}",null,"VPN");
+	send_email_events("Success to import remote site parameters from Meta Server ID:{$array["ID"]}",null,"VPN");
 	return true;
 	
 }
@@ -1353,7 +1353,7 @@ function NETWORK_MASTER_CARD($value){
 	events("Execute /usr/share/artica-postfix/bin/artica-install --reconfigure-nic $cmd --verbose",__FUNCTION__,__FILE__,__LINE__);	
 	exec("/usr/share/artica-postfix/bin/artica-install --reconfigure-nic $cmd --verbose",$results);
 	events("success change ip address {$array["NIC"]}: {$array["IPADDR"]}/{$array["NETMASK"]}",__FUNCTION__,__FILE__,__LINE__);	
-	send_email_events("success change ip address {$array["NIC"]}: {$array["IPADDR"]}/{$array["NETMASK"]} from Artica Meta",@implode("\n",$results),"system");
+	send_email_events("success change ip address {$array["NIC"]}: {$array["IPADDR"]}/{$array["NETMASK"]} from Meta Server",@implode("\n",$results),"system");
 	shell_exec($reload_datas);
 	return true;
 	
@@ -1381,7 +1381,7 @@ function NETWORK_MASTER_CARD_ROUTES($value){
 	$unix->NETWORK_ADD_ROUTE($array["NIC"],$array["ROUTES"]);
 	if(is_file("/etc/init.d/networking")){shell_exec("/etc/init.d/networking force-reload");}
 	if(is_file("/etc/init.d/network")){shell_exec("/etc/init.d/network restart");}
-	send_email_events("success reconfigure network interfaces for routes from Artica Meta",null,"system");
+	send_email_events("success reconfigure network interfaces for routes from Meta Server",null,"system");
 	shell_exec($reload_datas);
 	return true;
 	}

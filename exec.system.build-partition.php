@@ -1,6 +1,8 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["BYWIZARD"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--bywizard#",implode(" ",$argv))){$GLOBALS["BYWIZARD"]=true;}
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.auth.tail.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.tail.inc');
@@ -11,7 +13,6 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if($argv[1]=="--unlink"){disk_unlink($argv[2]);die();}
 if($argv[1]=="--full"){disk_build_unique_partition($argv[2],$argv[3],$argv[4]);die();}
 if($argv[1]=="--1part"){FindFirstPartition($argv[2]);die();}
-
 
 
 function disk_unlink($dev){
@@ -102,9 +103,21 @@ function disk_remove_fstab($dev=null){
 }
 
 
-
+function build_progress_wizard($text,$pourc){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid.newcache.center.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}
 
 function build_progress($text,$pourc){
+	
+	if($GLOBALS["BYWIZARD"]){
+		if($pourc<20){$pourc=20;}
+		if($pourc>90){$pourc=90;}
+		build_progress_wizard($text,$pourc);
+	}
 	
 	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/system.partition.progress";
 	

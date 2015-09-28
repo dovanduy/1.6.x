@@ -93,7 +93,7 @@ $('#events-table-$t').flexigrid({
 		{display: '$date', name : 'zDate', width :93, sortable : true, align: 'left'},
 		$TB_SERV
 		{display: 'PID', name : 'zDate', width :40, sortable : false, align: 'left'},
-		{display: '$events', name : 'events', width : 835, sortable : false, align: 'left'},
+		{display: '$events', name : 'events', width : 1140, sortable : false, align: 'left'},
 	],
 	$buttons
 

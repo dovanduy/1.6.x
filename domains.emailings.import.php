@@ -40,7 +40,7 @@ function popup(){
 	<hr>
 	<code>\"{gender}\",\"{firstname}\",\"{lastname}\",\"{emailAddress}\",\"{phone}\",\"{city}\",\"{CP}\",\"{postalAddress}\"
 	<br>\"{gender}\",\"{firstname}\",\"{lastname}\",\"{emailAddress}\",\"{phone}\",\"{city}\",\"{CP}\",\"{postalAddress}\"</code>
-	<br><span style='color:red'>{use_compressed_zip_file}</span>
+	<br><span style='color:#d32d2d'>{use_compressed_zip_file}</span>
 	<hr>	
 	</div>
 	

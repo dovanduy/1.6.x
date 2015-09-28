@@ -72,7 +72,7 @@ function restrictions_popup(){
 
 $html="
 <div style='font-size:32px;margin-bottom:20px'>{new_item}</div>
-<div style='font-size:18px' class=text-info>{acl_src_text}</div>
+<div style='font-size:18px' class=explain>{acl_src_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -193,7 +193,7 @@ $dns_nameservers=$tpl->javascript_parse_text("{ipaddr}");
 $new=$tpl->_ENGINE_parse_body("{new_item}");
 $restart_service=$tpl->javascript_parse_text("{apply}");
 
-$texttoadd=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{enable_test_port_table_explain}</div>");
+$texttoadd=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{enable_test_port_table_explain}</div>");
 
 	
 

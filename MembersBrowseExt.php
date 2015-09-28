@@ -295,7 +295,7 @@ function query_group(){
 	
 		$c++;
 		if($c>$_POST["rp"]){
-			if($GLOBALS["VERBOSE"]){echo "<code style='color:red'>\$c ($c) > {$_POST["rp"]} break</code><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<code style='color:#d32d2d'>\$c ($c) > {$_POST["rp"]} break</code><br>\n";}
 			break;}
 	
 		$data['rows'][] = array(

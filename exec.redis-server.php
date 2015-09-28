@@ -56,7 +56,10 @@ function reload($nopid=false){
 
 	$sock=new sockets();
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+	
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
+	if($EnableIntelCeleron==1){$Enablentopng=0;}
 	if($Enablentopng==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Disabled ( see Enablentopng )...\n";}
 		return;		
@@ -181,7 +184,9 @@ function start($nopid=false){
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=0;}
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
 	if($SquidPerformance>2){$Enablentopng=0;}
+	if($EnableIntelCeleron==1){$Enablentopng=0;}
 	
 	
 	if($Enablentopng==0){

@@ -25,7 +25,7 @@
 	
 </head>
 
-<body>
+<body onload="noBack();" onpageshow="if (event.persisted) noBack();" onunload="">
 <input type="hidden" id="LoadAjaxPicture" value="ressources/templates/default/images/wait_verybig.gif">
 	{TEMPLATE_BODY_YAHOO} 
 	<div id="wrapper">

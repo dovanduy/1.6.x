@@ -86,7 +86,7 @@ var x_testingConnection= function (obj) {
 	
 	<span id='mmwait'></span>
 	<center>
-	<div style='width:700px;border:2px solid red;margin-top:100px;margin-left:100px;padding:20px;background-color:red'>
+	<div style='width:700px;border:2px solid red;margin-top:100px;margin-left:100px;padding:20px;background-color:#d32d2d'>
 	<div style='width:600px;border:2px solid red;padding:20px;background-color:white'>
 		<div style='font-size:18px;margin:10px;text-align:center'>$uri</div>
 	<div style='width:300px;margin-top:50px;margin-bottom:50px'>

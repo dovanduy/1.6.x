@@ -272,7 +272,7 @@ function build(){
 	$DIRS[]="/etc/opt/kaspersky";
 	$DIRS[]="/tmp/Kav4proxy";
 	$DIRS[]="/var/log/kaspersky/kav4proxy";
-	$DIRS[]="/var/log/artica-postfix/ufdbguard-blocks";
+	
 	$DIRS[]="/opt/kaspersky/kav4proxy/share/notify";
 	
 	while (list ($none, $path) = each ($DIRS)){

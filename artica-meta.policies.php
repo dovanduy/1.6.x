@@ -331,7 +331,7 @@ $buttons
 	sortname: 'policy_name',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<strong style=font-size:22px>Artica Meta $policies</strong>',
+	title: '<strong style=font-size:22px>Meta Server $policies</strong>',
 	useRp: true,
 	rpOptions: [10, 20, 30, 50,100,200],
 	rp:50,

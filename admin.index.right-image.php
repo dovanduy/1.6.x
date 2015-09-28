@@ -1,28 +1,31 @@
 <?php
+$GLOBALS["CACHE_RIGHT_IMAGE"]="/usr/share/artica-postfix/ressources/logs/web/status.right.image.cache";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $GLOBALS["AS_ROOT"]=false;
-$GLOBALS["CACHE_RIGHT_IMAGE"]="/usr/share/artica-postfix/ressources/logs/web/status.right.image.cache";
+if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 
-if(count($argv)>0){if($argv[1]=="--verbose"){$_GET["status-debug"]="yes";}}
+include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 
-if(isset($_GET["status-debug"])){
-	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-	ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");
-	$GLOBALS["VERBOSE"]=true;
-	status_right_image2();
+
+
+if(count($argv)>0){
+	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if($argv[1]=="--verbose"){$_GET["status-debug"]="yes";}
+	if($argv[1]=="--right-image"){build();exit;}
 }
 
-if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
-header("Pragma: no-cache");
-header("Expires: 0");
-header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
-header("Cache-Control: no-cache, must-revalidate");
+if(isset($_GET["status-debug"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");	$GLOBALS["VERBOSE"]=true;status_right_image2();}
+
+if(!$GLOBALS["AS_ROOT"]){
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	header("Cache-Control: no-cache, must-revalidate");
+}
 
 if(isset($_GET["refresh-image-js"])){refresh_image_js();exit;}
 
 if($GLOBALS["AS_ROOT"]){
-	
-	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
 	include_once(dirname(__FILE__).'/framework/frame.class.inc');
 	include_once(dirname(__FILE__).'/framework/class.settings.inc');
@@ -46,26 +49,34 @@ if($GLOBALS["AS_ROOT"]){
 
 
 	if(!$GLOBALS["AS_ROOT"]){
-	$data=@file_get_contents($GLOBALS["CACHE_RIGHT_IMAGE"]);
-	if(strlen($data)>50){
-			include_once('ressources/class.templates.inc');
-			$page=CurrentPageName();
-			$time=filemtime($GLOBALS["CACHE_RIGHT_IMAGE"]);
-			if($GLOBALS["VERBOSE"]){echo "<H1>{$GLOBALS["CACHE_RIGHT_IMAGE"]} ".strlen($data)." bytes</H1>";}
-			$tpl=new templates();
-			$cacheTime_text=date("Y {F} {l} H:i:s",$time);
-			$subtext=$tpl->_ENGINE_parse_body("
-				<div style='text-align:right;border-top:1px solid #CCCCCC;padding-top:200px'>
-					<i>{generated_on} $cacheTime_text</i>
-					<br><a href=\"javascript:Loadjs('$page?refresh-image-js=yes');\" style='text-decoration:underline'>&laquo;&nbsp;{refresh}&nbsp;&raquo;</a>
-				</div>");
-			
-			
-			
-			echo $tpl->_ENGINE_parse_body($data).$subtext;
-			return;
+		if(!$GLOBALS["VERBOSE"]){
+		if(is_file($GLOBALS["CACHE_RIGHT_IMAGE"])){
+			$data=@file_get_contents($GLOBALS["CACHE_RIGHT_IMAGE"]);
+			if(strlen($data)>50){
+				$tpl=new templates();
+				$CacheLan=$GLOBALS["CACHE_RIGHT_IMAGE"].$tpl->language.".html";
+				if(is_file($CacheLan)){
+					echo @file_get_contents($CacheLan);
+					return;
+				}
+				$page=CurrentPageName();
+				$time=filemtime($GLOBALS["CACHE_RIGHT_IMAGE"]);
+				if($GLOBALS["VERBOSE"]){echo "<H1>{$GLOBALS["CACHE_RIGHT_IMAGE"]} ".strlen($data)." bytes</H1>";}
+				
+				$cacheTime_text=date("Y {F} {l} H:i:s",$time);
+				$subtext=$tpl->_ENGINE_parse_body("
+					<div style='text-align:right;border-top:1px solid #CCCCCC;padding-top:200px'>
+						<i>{generated_on} $cacheTime_text</i>
+						<br><a href=\"javascript:Loadjs('$page?refresh-image-js=yes');\" style='text-decoration:underline'>&laquo;&nbsp;{refresh}&nbsp;&raquo;</a>
+					</div>");
+				$data= $tpl->_ENGINE_parse_body($data).$subtext;
+				@file_put_contents($CacheLan, $data);
+				echo $data;
+				return;
+			}
 		}
 	}
+}
 
 build();
 
@@ -75,6 +86,15 @@ function build(){
 	$html=status_right_image2().$script;
 	@file_put_contents($GLOBALS["CACHE_RIGHT_IMAGE"], $html);
 	@chmod($GLOBALS["CACHE_RIGHT_IMAGE"], 0755);
+	
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.en.html");
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.fr.html");
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.de.html");
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.br.html");
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.pt.html");
+	@unlink("{$GLOBALS["CACHE_RIGHT_IMAGE"]}.es.html");
+	
+	
 	if($GLOBALS["AS_ROOT"]){return;}
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
@@ -258,7 +278,7 @@ function status_kav4proxy(){
 function status_squid($NOCACHE=false){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$page LINE:".__LINE__."</strong><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>$page LINE:".__LINE__."</strong><br>\n";}
 	$status=new status();
 	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
 	$html=$status->Squid_status($NOCACHE);

@@ -132,7 +132,29 @@ class logfile_daemon{
 		if(preg_match("#(.+?):(.+)#", $SquidCode,$re)){
 			$SquidCode=$re[1];
 		}
+		$SquidCode=strtoupper($SquidCode);
 		
+		
+		$HITS["TCP_ASYNC_HIT"]=true;
+		$HITS["TCP_DENIED"]=true;
+		$HITS["TCP_HIT"]=true;
+		$HITS["TCP_IMS_HIT"]=true;
+		$HITS["TCP_MEM_HIT"]=true;
+		$HITS["TCP_MISS_ABORTED"]=true;
+		$HITS["TCP_OFFLINE_HIT"]=true;
+		$HITS["TCP_REDIRECT"]=true;
+		$HITS["TCP_REFRESH_FAIL_HIT"]=true;
+		$HITS["TCP_REFRESH_HIT"]=true;
+		$HITS["TCP_REFRESH_MISS"]=true;
+		$HITS["TCP_REFRESH_MODIFIED"]=true;
+		$HITS["TCP_REFRESH_UNMODIFIED"]=true;
+		$HITS["TAG_NONE"]=true;
+		$HITS["TCP_STALE_HIT"]=true;
+		$HITS["UDP_HIT"]=true;
+		$HITS["UDP_DENIED"]=true;
+		$HITS["UDP_INVALID"]=true;
+		
+		if(isset($HITS[$SquidCode])){return 1;}
 		if(preg_match("#_HIT$#", $SquidCode)){return 1;}
 		
 		switch ($SquidCode) {
@@ -140,7 +162,7 @@ class logfile_daemon{
 			case "TCP_HIT":
 	
 			case "TCP_REFRESH_UNMODIFIED":
-	
+				
 			case "TCP_REFRESH_HIT":
 	
 			case "TCP_REFRESH_FAIL_HIT":
@@ -150,6 +172,8 @@ class logfile_daemon{
 			case "TCP_IMS_HIT":
 	
 			case "TCP_MEM_HIT":
+				
+			case "TCP_HIT_ABORTED":
 	
 			case "TCP_IMS_MISS":
 	

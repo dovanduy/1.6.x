@@ -10,6 +10,8 @@ include_once(dirname(__FILE__).'/class.privileges.inc');
 include_once(dirname(__FILE__)."/class.external.ad.inc");
 
 class user{
+	public $GroupsOf=array();
+	public $AsZarafaContact=false;
 	public $DoesNotExists;
 	public $DisplayName;
 	public $domainname;
@@ -67,7 +69,7 @@ class user{
 	public $FTPUploadBandwidth=550;	
 	public $FTPUploadRatio=1;	
 	
-	//Joomla
+	
 	public $JoomlaGroup;
 	
 	//amavis
@@ -290,7 +292,6 @@ class user{
 			if($this->FTPStatus==null){$this->FTPStatus="FALSE";}
 			if($this->FTPUploadBandwidth==null){$this->FTPUploadBandwidth="550";}
 			if($this->FTPUploadRatio==null){$this->FTPUploadRatio="1";}		
-			if($this->JoomlaGroup==null){$this->JoomlaGroup="Registered";}
 			if($this->zarafaQuotaWarn==null){$this->zarafaQuotaWarn="0";}
 			if($this->zarafaAdmin==null){$this->zarafaAdmin="0";}
 			if($this->zarafaQuotaSoft==null){$this->zarafaQuotaSoft="0";}
@@ -362,7 +363,7 @@ class user{
 	}	
 	private function LoadFromActiveDirectory_prime($uid=null){
 		writelogs("Loading $uid",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:red'>p->LoadMember($this->uid)</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:#d32d2d'>p->LoadMember($this->uid)</strong><br>\n";}
 		include_once(dirname(__FILE__)."/class.external.ad.inc");
 		$p=new external_ad_search();
 		if($uid==null){$uid=$this->uid;}
@@ -371,7 +372,7 @@ class user{
 		$_SESSION[__CLASS__][$uid]["AsActiveDirectoryMember"]=true;
 		$this->AsActiveDirectoryMember=true;
 		$this->ou=$p->ou;
-		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:red'>User OU = $this->ou</strong><br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] <strong style='color:#d32d2d'>User OU = $this->ou</strong><br>\n";}
 		return $attrs;		
 	}
 	
@@ -787,7 +788,7 @@ class user{
 		if(isset($attrs["FTPUploadRatio"][0])){$this->FTPUploadRatio=$attrs["FTPUploadRatio"][0];}
 		
 		if(isset($attrs["UsersInterfaceDatas"][0])){$this->UsersInterfaceDatas=$attrs["UsersInterfaceDatas"][0];}
-		if(isset($attrs["JoomlaGroup"][0])){$this->JoomlaGroup=$attrs["JoomlaGroup"][0];}
+		
 		
 		if(!class_exists("mysql")){include_once(dirname(__FILE__)."/class.mysql.inc");}
 		$q=new mysql();
@@ -1607,7 +1608,7 @@ class user{
 			}
 		
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>find_ldap_items_groups:: Error for posixGrou</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>find_ldap_items_groups:: Error for posixGrou</strong><br>\n";}
 			writelogs("find_ldap_items_groups:: Error for posixGroup",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		return $res;
@@ -1650,12 +1651,12 @@ class user{
 		
 		if($OnlyCheckAD==0){
 		if(!$nogetent){
-			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>nogetent=FALSE,OnlyCheckAD=0</strong><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>nogetent=FALSE,OnlyCheckAD=0</strong><br>\n";}
 			include_once(dirname(__FILE__)."/class.mysql.inc");
 			$q=new mysql();
 			if($OnlyGroups==0){
 					$sql="SELECT uid FROM getent_users WHERE uid LIKE '$usersqsql' ORDER BY uid LIMIT 0,$MaxItems_sql";
-					if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$sql</strong><br>\n";}
+					if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>$sql</strong><br>\n";}
 					$results=$q->QUERY_SQL($sql,"artica_backup");	
 					while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 						$uid=trim($ligne["uid"]);
@@ -1667,7 +1668,7 @@ class user{
 			
 			if($OnlyUsers==0){	
 				$sql="SELECT `group`,`gpid` FROM getent_groups WHERE `group` LIKE '$usersqsql' ORDER BY `group` LIMIT 0,$MaxItems_sql";
-				if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$sql</strong><br>\n";}
+				if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>$sql</strong><br>\n";}
 				$results=$q->QUERY_SQL($sql,"artica_backup");	
 				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 					$uid=trim($ligne["group"]);
@@ -1687,7 +1688,7 @@ class user{
 			if($OnlyCheckAD==0){
 				$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users)))",
 				array("displayname","uid"),null,$MaxItems);
-				if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>ldap_search(...,$suffix,(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users))))</strong><br>\n";}
+				if($GLOBALS["VERBOSE"]){echo "<strong style='color:#d32d2d'>ldap_search(...,$suffix,(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users))))</strong><br>\n";}
 				if($sr){
 						$result = ldap_get_entries($ldap->ldap_connection, $sr);
 						for($i=0;$i<$result["count"];$i++){
@@ -2076,67 +2077,6 @@ class user{
 		$sock->getFrameWork("cmd.php?GroupOfficeUid=$this->uid");
 	}
 	
-	
-function joomla(){
-	$users=new usersMenus();
-	if(!$users->JOOMLA_INSTALLED){
-		writelogs("Joomla is not installed",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		return false;
-	}
-	$q=new mysql();
-	$database="joomla_$this->ou";
-	if(!$q->DATABASE_EXISTS($database)){
-		writelogs("database \"$database\" does not exists",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		return false;
-	}
-	
-	$groupmap["Public Frontend"]=29; 	
-	$groupmap["Registered"]=18; 
-	$groupmap["Author"]=19;	
-	$groupmap["Editor"]=20;	
-	$groupmap["Publisher"]=21;	
-	$groupmap["Public Backend"]=30;
-	$groupmap["Manager"]=23;
-	$groupmap["Administrator"]=24;
-	$groupmap["Super Administrator"]=25;	
-	$database="joomla_$this->ou";
-	
-	$group=$groupmap[$this->JoomlaGroup];
-	$sql="SELECT id FROM jos_users WHERE username=\"$this->uid\"";
-	
-	$date=date('Y-m-d H:i:s');
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-    if(trim($ligne["id"])==null){
-    	$sql="INSERT INTO jos_users (name,username,email,usertype,block,gid,registerDate)
-    	VALUES('$this->DisplayName','$this->uid','$this->mail','$this->JoomlaGroup','0','$group','$date')";
-    	$q->QUERY_SQL($sql,$database);
-    	$sql="SELECT id FROM jos_users WHERE username=\"$this->uid\"";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));    	
-    	
-    }else{
-    	$sql="UPDATE jos_users SET email='$this->mail', usertype='$this->JoomlaGroup',gid='$group' WHERE id='{$ligne["id"]}'";
-    	$q->QUERY_SQL($sql,$database);
-
-    }
-	$id=$ligne["id"];
-	if(trim($ligne["id"])==null){
-		writelogs("Error while set $this->uid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		return false;
-	}
-	
-	$sql="SELECT name FROM jos_core_acl_aro WHERE value=$id";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));  
-	if(trim($ligne["name"])==null){
-		$sql="INSERT INTO jos_core_acl_aro (section_value,value,order_value,name,hidden) 
-		VALUES('users','$id','0','$this->DisplayName',0)";
-		$q->QUERY_SQL($sql,$database);
-	}
-	
-	
-	
-	
-	
-}
 
 
 	function Samba_edit_LogonScript($scriptname){
@@ -2682,26 +2622,7 @@ function FTPSettingsEdit(){
 	}
 	
 	
-	private function JoomlaUser(){
-		$ldap=new clladp();
-		
-		if(!$ldap->ExistsDN($this->dn)){writelogs("$this->dn NO SUCH DN",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return;}
-		if($this->JoomlaGroup==null){writelogs("JoomlaGroup is null, decide to turn to \"Registered\" value",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);$this->JoomlaGroup="Registered";}
-		
-		if(!isset($this->objectClass_array["JoomlaUser"])){
-			writelogs("objectClass `JoomlaUser` does not exists...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$upd["JoomlaGroup"]=$this->JoomlaGroup;
-			$upd["JoomlaBlockUser"]=0;	
-			$upd=$this->AddObjectClassReturned("JoomlaUser",$upd);
-			
-		}	
-		
-		
-		$upd["JoomlaGroup"][0]=$this->JoomlaGroup;
-		$upd["JoomlaBlockUser"][0]="0";	
-		$res=$ldap->Ldap_modify($this->dn,$upd);
-		if(!$res){writelogs("Warning JoomlaUser $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-	}
+
 
 	
 	private function Zarafa_User(){
@@ -2823,6 +2744,12 @@ function FTPSettingsEdit(){
 		if(strlen($this->jpegPhoto_datas)>0){$upd["jpegPhoto"][0]=$this->jpegPhoto_datas;}
 		if($this->DisplayName<>null){$upd["displayName"][0]=$this->DisplayName;}
 		if($this->mobile<>null){$upd["mobile"][0]=$this->mobile;}
+		
+		
+		if(is_array($this->mail)){
+			$upd["mail"]=$this->mail;
+		}else{
+		
 		if($this->mail<>null){
 			$uidmail=null;$domain=null;
 			if(!preg_match("#(.+?)@(.+)#", $this->mail)){
@@ -2834,7 +2761,7 @@ function FTPSettingsEdit(){
 			}
 			$upd["mail"][0]=$this->mail;
 		}
-		
+		}
 		$res=$ldap->Ldap_modify($this->dn,$upd);
 		if(!$res){writelogs("Warning $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
 		
@@ -3060,6 +2987,12 @@ function FTPSettingsEdit(){
 					$upd["objectClass"][]="top";			
 					$upd["objectClass"][]="userAccount";
 					$upd["objectClass"][]="posixAccount";
+					if($this->AsZarafaContact){
+						$upd["objectClass"][]="zarafa-user";
+						$upd["objectClass"][]="zarafa-contact";
+						$upd["objectClass"][]="inetOrgPerson";
+					}
+					
 			}
 			
 			
@@ -3101,16 +3034,20 @@ function FTPSettingsEdit(){
 					
 					
 				if($resultAdd){
-					$this->CreateHome();
-					writelogs("adding $this->dn...success, linking user $this->uid to group $this->group_id now",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					$group=new groups($this->group_id);
-					$group->user_add_to_group($this->uid);
-					$this->UpdateObjectClasses();
+					if(!$this->AsZarafaContact){
+						$this->CreateHome();
+						writelogs("adding $this->dn...success, linking user $this->uid to group $this->group_id now",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+						$group=new groups($this->group_id);
+						$group->user_add_to_group($this->uid);
+						$this->UpdateObjectClasses();
+					}
 					$this->CreateMailbox();
-					$this->UpdatePlugins();
-					$sock=new sockets();
-					if(!isset($GLOBALS["user-nsswitch"])){$sock->getFrameWork("services.php?nsswitch=yes");$GLOBALS["user-nsswitch"]=true;}
-					$nab=new nab($this->uid,$this->ou);
+					if(!$this->AsZarafaContact){
+						$this->UpdatePlugins();
+						$sock=new sockets();
+						if(!isset($GLOBALS["user-nsswitch"])){$sock->getFrameWork("services.php?nsswitch=yes");$GLOBALS["user-nsswitch"]=true;}
+						$nab=new nab($this->uid,$this->ou);
+					}
 					return true;
 				}
 				
@@ -3138,7 +3075,7 @@ function FTPSettingsEdit(){
 						$this->SieveScripts();
 						$this->obm();
 						$this->MLDonKey();
-						$this->joomla();
+						
 						$nab=new nab($this->uid,$this->ou);	
 					}	
 				}
@@ -3157,7 +3094,6 @@ function FTPSettingsEdit(){
 		$this->organizationalPerson();
 		$this->inetOrgPerson();
 		$this->mozillaOrgPerson();
-		$this->JoomlaUser();
 		$this->FTPSettingsEdit();	
 		$this->UserArticaClass();	
 		$this->ArticaSettings();	
@@ -3212,13 +3148,19 @@ function FTPSettingsEdit(){
 			$this->homeDirectory="/home/$this->uid";
 			$upd["homeDirectory"][0]="/home/$this->uid";			
 			$upd["userPassword"][0]=$this->password;
+			if(is_array($this->mail)){
+				$upd["mail"]=$this->mail;
+			}else{
 			if($this->mail<>null){$upd["mail"][0]=$this->mail;}	
+			}
 			if(!$ldap->ldap_add($this->dn,$upd)){	
 				$this->ldap_error=$this->ldap_error."\nFile:\n".__FILE__."\nFunction:". __FUNCTION__."\nLine:".__LINE__."\n----------\n".$ldap->ldap_last_error;
 				writelogs("adding $this->dn...failed",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return false;
 			}
-			$this->CreateHome();
+			if(!$this->AsZarafaContact){
+				$this->CreateHome();
+			}
 			return true;
 		
 	}
@@ -3303,8 +3245,6 @@ function FTPSettingsEdit(){
 		$fields["gidnumber"]=true; // 5001
 		$fields["givenname"]=true; // Angelique
 		$fields["homedirectory"]=true; // /home/angelique
-		$fields["joomlablockuser"]=true; // 0
-		$fields["joomlagroup"]=true; // Registered
 		$fields["l"]=true; // unknown
 		$fields["loginshell"]=true; // /bin/bash
 		$fields["mail"]=true; // angelique@touzeau.com
@@ -3353,7 +3293,7 @@ function FTPSettingsEdit(){
 		$this->SieveScripts();
 		$this->obm();
 		$this->MLDonKey();
-		$this->joomla();
+		
 			
 		return true;
 	}
@@ -3618,11 +3558,7 @@ function UsersInterfaceDatasDelete(){
 			$this->GroupOffice();
 		}
 		
-		$this->obm();
-		if( ( $GLOBALS["CLASS_USERSMENUS"]->JOOMLA_INSTALLED ) OR ($GLOBALS["CLASS_USERSMENUS"]->JOOMLA17_INSTALLED) ){
-			writelogs("Check joomla",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$this->joomla();
-		}
+		
 		
 		
 		
@@ -3674,7 +3610,7 @@ function UsersInterfaceDatasDelete(){
 	
 	
 	function CreateMailbox(){
-		
+		if($this->AsZarafaContact){return;}
 		if(!isset($GLOBALS["CLASS_USERSMENUS"])){$GLOBALS["CLASS_USERSMENUS"]=new usersMenus();}
 		
 		
@@ -3782,6 +3718,7 @@ function UsersInterfaceDatasDelete(){
 				for($i=0;$i<$result["count"];$i++){
 					
 					$this->array_groups[]=$result[$i]["gidnumber"][0];
+					$this->GroupsOf[$result[$i]["gidnumber"][0]]=$result[$i]["cn"][0];
 					if($reverse==1){$res[$result[$i]["gidnumber"][0]]=$result[$i]["cn"][0];}else{$res[$result[$i]["cn"][0]]=$result[$i]["gidnumber"][0];}
 					
 				}
@@ -3977,9 +3914,7 @@ function UsersInterfaceDatasDelete(){
 			$sql="DELETE FROM picasa WHERE userid='$uid'";
 			$q->QUERY_SQL($sql,"artica_backup");			
 			
-			//joomla web sites
-			$sql="UPDATE joomla_users SET install=-1,status='{scheduled}:{delete}' WHERE uid='$this->uid'";
-			$q->QUERY_SQL($sql,"artica_backup");
+			
 			
 			$sql="DELETE FROM quotaroot WHERE userid='$uid'";
 			$q->QUERY_SQL($sql,"artica_backup");	
@@ -4010,7 +3945,7 @@ function UsersInterfaceDatasDelete(){
 			}
 			$sock->getFrameWork("cmd.php?pdf-quarantine-cron=yes");
 			$sock->getFrameWork("cmd.php?reload-apache-groupware=yes");
-			$sock->getFrameWork("cmd.php?install-joomla=yes");
+			
 			$sock->getFrameWork("cmd.php?sarg-passwords=yes");
 			if($users->SAMBA_INSTALLED){
 				$sock->getFrameWork("samba.php?smb-logon-scripts-user=$uid");

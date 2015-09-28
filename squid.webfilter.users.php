@@ -54,7 +54,7 @@ function popup_index(){
 	$squidguard_add_ip_howto=$tpl->javascript_parse_text("{squidguard_add_ip_howto}");
 	$group_legend=$tpl->_ENGINE_parse_body('{add_group}');
 	
-	$html="<H3>{MAP_USERS_RULES}</h3><div style='float:right'>". help_icon("{filter_ip_group_explain}")."</div><div class=text-info>{MAP_USERS_RULES_DANSGUARDIAN_TEXT}</div>
+	$html="<H3>{MAP_USERS_RULES}</h3><div style='float:right'>". help_icon("{filter_ip_group_explain}")."</div><div class=explain>{MAP_USERS_RULES_DANSGUARDIAN_TEXT}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:13px' width=1% nowrap>{rules}:</td>

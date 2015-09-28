@@ -551,7 +551,7 @@ function main_smb_config(){
 			$styleTD="font-size:16px";$styleFieldWith=290;
 			$explain="
 			<div style='font-size:22px'>{SAMBA_MAIN_PARAMS}</div>
-			<div style='font-size:16px' class=text-info>{SAMBA_MAIN_PARAMS_TEXT}</div>";
+			<div style='font-size:16px' class=explain>{SAMBA_MAIN_PARAMS_TEXT}</div>";
 				$global_parameters_icon=Paragraphe('parameters2-64.png',"{SAMBA_MAIN_PARAMS}",'{SAMBA_MAIN_PARAMS_TEXT}',
 				"javascript:Loadjs('samba.index.php?main-params-js=yes')");
 		$after_post="x_SaveSambaMainConfiguration$t";
@@ -746,12 +746,12 @@ $formArtica="
 	<td valign='top' style='$styleTD'>" . help_icon("{enable_automask_creation_explain}")."</td>
 </tr>	
 <tr>	
-	<td align='right' nowrap valign='top' class=legend>{HomeDirectoriesMask}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{HomeDirectoriesMask}:</td>
 	<td valign='top' style='$styleTD'>" . Field_text("HomeDirectoriesMask",$HomeDirectoriesMask,"width:60px;$styleTD;padding:3px")."</td>
 	<td valign='top' style='$styleTD'>&nbsp;</td>
 </tr>
 <tr>	
-	<td align='right' nowrap valign='top' class=legend>{SharedFoldersDefaultMask}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{SharedFoldersDefaultMask}:</td>
 	<td valign='top' style='$styleTD'>" . Field_text("SharedFoldersDefaultMask",$SharedFoldersDefaultMask,"width:60px;$styleTD;padding:3px")."</td>
 	<td valign='top'>&nbsp;</td>
 </tr>
@@ -1194,13 +1194,13 @@ $pure=new samba();
 		if(trim($ligne)==null){continue;}
 		$ligne=str_replace("#","<br><br>#",$ligne);
 		$ligne=str_replace("[","<br>[",$ligne);
-		$c=$c."<div><code>$ligne</code></div>";
+		$c=$c."<div><code style='font-size:16px'>$ligne</code></div>";
 		
 	}
 	
 	
 	
-	$html="<h5>{config}</H5>
+	$html="<h5 style='font-size:22px'>{config}</H5>
 	<div style='padding:5px;;width:100%;;background-color:#FFFFFF'>
 	$c
 	</div>";
@@ -1232,9 +1232,9 @@ function shared_folders(){
 	
 $buttons="
 		buttons : [
-		{name: '$add_a_shared_folder', bclass: 'add', onpress : AddShared$t},
-		{name: '$add_usb', bclass: 'Usb', onpress : AddUsb$t},
-		{name: '$default_settings', bclass: 'Reconf', onpress : Defsets$t},
+		{name: '<strong style=font-size:16px>$add_a_shared_folder</strong>', bclass: 'add', onpress : AddShared$t},
+		{name: '<strong style=font-size:16px>$add_usb</strong>', bclass: 'Usb', onpress : AddUsb$t},
+		{name: '<strong style=font-size:16px>$default_settings</strong>', bclass: 'Reconf', onpress : Defsets$t},
 		
 		],";	
 	
@@ -1254,7 +1254,7 @@ $('#SAMBA_TABLE_SHARED_LIST').flexigrid({
 		{display: '$folder', name : 'flags', width :219, sortable : true, align: 'left'},
 		{display: '$trash', name : 'action', width : 56, sortable : false, align: 'center'},
 		{display: '$path', name : 'xNOTIFY', width : $pATH_WITH, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 46, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 55, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -1263,11 +1263,11 @@ $('#SAMBA_TABLE_SHARED_LIST').flexigrid({
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TABLE_WIDTH,
+	width: '99%',
 	height: 400,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1308,16 +1308,8 @@ function shared_folders_list(){
 	
 	
 	$dustbins=$samba->LOAD_RECYCLES_BIN();
-	
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace(".", "\.", $_POST["query"]);
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", ".*?", $_POST["query"]);
-		$search=$_POST["query"];
+	$search=string_to_flexregex();
 
-	}
 	$q2=new mysql();
 	$data = array();
 	$data['page'] = $page;
@@ -1332,7 +1324,7 @@ function shared_folders_list(){
 		$md=md5($FOLDER);
 		$propertiesjs="FolderProp('$FOLDER_url')";
 		$c++;
-		$delete=imgsimple('delete-32.png',null,"FolderDelete('$FOLDER')");
+		$delete=imgsimple('dustbin-48.png',null,"FolderDelete('$FOLDER')");
 		if($samba->main_array[$FOLDER]["path"]=="/home/netlogon"){
 			$propertiesjs=null;
 			$delete="&nbsp;";
@@ -1676,52 +1668,52 @@ function folder_properties(){
 	<div style='width:98%' class=form>
 	<table style='width:100%'>		
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{share_name}:</td>
-			<td valign='top'><a href=\"javascript:blur()\" OnClick=\"javascript:ChangeShareName('$folder');\" style='font-size:13px;text-decoration:underline'>$folder</a></td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{share_name}:</td>
+			<td valign='top'><a href=\"javascript:blur()\" OnClick=\"javascript:ChangeShareName('$folder');\" style='font-size:22px;text-decoration:underline'>$folder</a></td>
 			<td valign='top'>" . help_icon("{SMBChangeShareName_text}")."</td>
 		</tr>		
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{browseable}:</td>
-			<td valign='top'>" . Field_checkbox('browsable','yes',strtolower($smb->main_array[$folder]["browsable"]))."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{browseable}:</td>
+			<td valign='top'>" . Field_checkbox_design('browsable','yes',strtolower($smb->main_array[$folder]["browsable"]))."</td>
 			<td valign='top'>" . help_icon("{browseable_text}")."</td>
 		</tr>
 		
 		<tr>	
-			<td  align='right' nowrap valign='top' class=legend>{writeable}:</td>
-			<td  valign='top'>" . Field_checkbox('writable','yes',strtolower($smb->main_array[$folder]["writable"]))."</td>
+			<td  align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{writeable}:</td>
+			<td  valign='top'>" . Field_checkbox_design('writable','yes',strtolower($smb->main_array[$folder]["writable"]))."</td>
 			<td  valign='top'>" . help_icon("{writeable_text}")."</td>
 		</tr>	
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{public}:</td>
-			<td valign='top'>" . Field_checkbox('public','yes',strtolower($smb->main_array[$folder]["public"]))."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{public}:</td>
+			<td valign='top'>" . Field_checkbox_design('public','yes',strtolower($smb->main_array[$folder]["public"]))."</td>
 			<td valign='top'>" . help_icon("{public_text}")."</td>
 		</tr>	
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{hide_unreadable}:</td>
-			<td valign='top'>" . Field_checkbox('hide_unreadable','yes',strtolower($smb->main_array[$folder]["hide unreadable"]))."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{hide_unreadable}:</td>
+			<td valign='top'>" . Field_checkbox_design('hide_unreadable','yes',strtolower($smb->main_array[$folder]["hide unreadable"]))."</td>
 			<td valign='top'>" . help_icon("{hide_unreadable_text}")."</td>
 		</tr>
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{hide_unwriteable_files}:</td>
-			<td valign='top'>" . Field_checkbox('hide_unwriteable_files','yes',strtolower($smb->main_array[$folder]["hide unwriteable files"]))."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{hide_unwriteable_files}:</td>
+			<td valign='top'>" . Field_checkbox_design('hide_unwriteable_files','yes',strtolower($smb->main_array[$folder]["hide unwriteable files"]))."</td>
 			<td valign='top'>" . help_icon("{hide_unwriteable_files_text}")."</td>
 		</tr>
 		
 		
 
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{samba_create_mask}:</td>
-			<td valign='top'>" . Field_text('create_mask',$smb->main_array[$folder]["create mask"],"font-size:13px;width:45px")."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{samba_create_mask}:</td>
+			<td valign='top'>" . Field_text('create_mask',$smb->main_array[$folder]["create mask"],"font-size:22px;width:110px")."</td>
 			<td valign='top'>" . help_icon("{samba_create_mask_text}")."</td>
 		</tr>
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{force_create_mode}:</td>
-			<td valign='top'>" . Field_text('force_create_mode',$smb->main_array[$folder]["force create mode"],"font-size:13px;width:45px")."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{force_create_mode}:</td>
+			<td valign='top'>" . Field_text('force_create_mode',$smb->main_array[$folder]["force create mode"],"font-size:22px;width:110px")."</td>
 			<td valign='top'>" . help_icon("{samba_create_mask_text}")."</td>
 		</tr>			
 		<tr>	
-			<td align='right' nowrap valign='top' class=legend>{samba_directory_mask}:</td>
-			<td valign='top'>" . Field_text('directory_mask',$smb->main_array[$folder]["directory mask"],"font-size:13px;width:45px")."</td>
+			<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{samba_directory_mask}:</td>
+			<td valign='top'>" . Field_text('directory_mask',$smb->main_array[$folder]["directory mask"],"font-size:22px;width:110px")."</td>
 			<td valign='top'>" . help_icon("{samba_directory_mask_text}")."</td>
 		</tr>	
 
@@ -1731,48 +1723,48 @@ function folder_properties(){
 	</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
-	<td colspan=3 style='font-size:15px;padding-top:5px'>{acls}</td>		
+	<td colspan=3 style='font-size:32px;padding-top:5px'>{acls}</td>		
 	<tr>			
-		<td class=legend style='font-size:12px'>{dos_filemode}</td>
-		<td>". Field_checkbox("dos_filemode","yes",$smb->main_array["$folder"]["dos filemode"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{dos_filemode}</td>
+		<td>". Field_checkbox_design("dos_filemode","yes",$smb->main_array["$folder"]["dos filemode"])."</td>
 		<td>".help_icon("{dos_filemode_text}")."</td>
 	</tr>		
 
 		
 	<tr>			
-		<td class=legend style='font-size:12px'>{nt_acl_support}</td>
-		<td>". Field_checkbox("nt_acl_support","yes",$smb->main_array["$folder"]["nt acl support"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{nt_acl_support}</td>
+		<td>". Field_checkbox_design("nt_acl_support","yes",$smb->main_array["$folder"]["nt acl support"])."</td>
 		<td>".help_icon("{nt_acl_support_text}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:12px'>{acl_group_control}</td>
-		<td>". Field_checkbox("acl_group_control","yes",$smb->main_array["$folder"]["acl group control"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{acl_group_control}</td>
+		<td>". Field_checkbox_design("acl_group_control","yes",$smb->main_array["$folder"]["acl group control"])."</td>
 		<td>".help_icon("{acl_group_control_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:12px'>{map_acl_inherit}</td>
-		<td>". Field_checkbox("map_acl_inherit","yes",$smb->main_array["$folder"]["map acl inherit"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{map_acl_inherit}</td>
+		<td>". Field_checkbox_design("map_acl_inherit","yes",$smb->main_array["$folder"]["map acl inherit"])."</td>
 		<td>".help_icon("{map_acl_inherit_text}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:12px'>{acl_check_permissions}</td>
-		<td>". Field_checkbox("acl_check_permissions","yes",$smb->main_array["$folder"]["acl check permissions"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{acl_check_permissions}</td>
+		<td>". Field_checkbox_design("acl_check_permissions","yes",$smb->main_array["$folder"]["acl check permissions"])."</td>
 		<td>".help_icon("{acl_check_permissions_text}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:12px'>{inherit_acls}</td>
-		<td>". Field_checkbox("inherit_acls","yes",$smb->main_array["$folder"]["inherit acls"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{inherit_acls}</td>
+		<td>". Field_checkbox_design("inherit_acls","yes",$smb->main_array["$folder"]["inherit acls"])."</td>
 		<td>".help_icon("{inherit_acls_text}")."</td>
 	</tr>	
 
 	<tr>
-		<td class=legend style='font-size:12px'>{inherit_permissions}</td>
-		<td>". Field_checkbox("inherit_permissions","yes",$smb->main_array["$folder"]["inherit permissions"])."</td>
+		<td class=legend style='font-size:22px;vertical-align:middle'>{inherit_permissions}</td>
+		<td>". Field_checkbox_design("inherit_permissions","yes",$smb->main_array["$folder"]["inherit permissions"])."</td>
 		<td>".help_icon("{inherit_permissions_text}")."</td>
 	</tr>		
 			<tr>
 				<td colspan=3 align='right' valign='top'>
-					<hr>". button("{apply}","SambaSaveFolderProperties()",14)."
+					<hr>". button("{apply}","SambaSaveFolderProperties()",32)."
 					
 				</td>
 			</tr>
@@ -1783,12 +1775,12 @@ function folder_properties(){
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 <tr>
- 	<td $style valign='top' class=legend'>{comment}:</td>
- 	<td $style valign='top' class=legend'>" . Field_text('comment',$smb->main_array[$folder]["comment"])."</td>
+ 	<td style='font-size:22px;vertical-align:middle' valign='top' class=legend'>{comment}:</td>
+ 	<td style='font-size:22px;vertical-align:middle' valign='top' class=legend'>" . Field_text('comment',$smb->main_array[$folder]["comment"],"font-size:18px")."</td>
 </tr>
 	<tr>
-		<td $style colspan=3 align='right' valign='top'>
-			<hr>". button("{apply}","SambaSaveFolderProperties()",14)."
+		<td style='font-size:22px;vertical-align:middle' colspan=3 align='right' valign='top'>
+			<hr>". button("{apply}","SambaSaveFolderProperties()",32)."
 		</td>
 	</tr>
 </table>
@@ -1925,9 +1917,9 @@ function folder_conf(){
 	
 	$conf=$g=nl2br($ini->toString());
 $html="
-	<H6>{config}</H6>
-	<div style='padding:5px;margin:5px;border:1px solid #CCCCCC;width:380px;background-color:white' id=''>	
-	<code>$conf</code>
+	<h3 style='font-size:22px'>{config}</h3>
+	<div style='padding:5px;margin:5px;border:1px solid #CCCCCC;width:98%;background-color:white' id=''>	
+	<code style='font-size:18px'>$conf</code>
 	
 	</div>";
 	
@@ -2176,7 +2168,7 @@ function folder_properties_tab(){
 	$array["options"]='{options}';
 	$array["greyhole"]='{backup}';
 	$tpl=new templates();
-	$fontsize=14;
+	$fontsize=22;
 	
 	
 		while (list ($num, $ligne) = each ($array) ){
@@ -2246,7 +2238,7 @@ function folder_greyhole(){
 	$copies=$ligne["num_copies"];
 	if(!is_numeric($copies)){$copies=2;}
 	$html="
-	<div class=text-info>{greyhole_dirs_explain}</div>
+	<div class=explain>{greyhole_dirs_explain}</div>
 	
 	<center id='greyholecopydiv'>
 		". Field_text("num_copies",$copies,"font-size:16px;padding:5px;width:90px").
@@ -2362,29 +2354,29 @@ if($users->SAMBA_MYSQL_AUDIT){
 	
 	$mysql_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{mysql_stats}:</td>
-		<td align='left'>". Field_checkbox('mysql_vfs','yes',$mysql)."</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{mysql_stats}:</td>
+		<td align='left'>". Field_checkbox_design('mysql_vfs','yes',$mysql)."</td>
 	</tr>";	
 }
 	
 	$kav_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{kantivirus_protect}:</td>
-		<td align='left'>". Field_checkbox('kav_vfs','yes',$kav_protected)."</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{kantivirus_protect}:</td>
+		<td align='left'>". Field_checkbox_design('kav_vfs','yes',$kav_protected)."</td>
 	</tr>
 	";
 
 	$scannedonly_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{clamav_protect}:</td>
-		<td align='left'>". Field_checkbox('scannedonly_vfs','yes',$scannedonly)."</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{clamav_protect}:</td>
+		<td align='left'>". Field_checkbox_design('scannedonly_vfs','yes',$scannedonly)."</td>
 	</tr>
 	";	
 	
 	$recycle_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{recycle}:</td>
-		<td align='left'>". Field_checkbox('recycle_vfs2','1',$recyclebin,"RecyclebinSave()")."</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{recycle}:</td>
+		<td align='left'>". Field_checkbox_design('recycle_vfs2','1',$recyclebin,"RecyclebinSave()")."</td>
 	</tr>
 	";	
 	
@@ -2395,7 +2387,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	if(!$kav){
 	$kav_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{kantivirus_protect}:</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{kantivirus_protect}:</td>
 		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='kav_vfs' name='kav_vfs' value='no'></td>
 	</tr>";	
 	}
@@ -2404,7 +2396,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 		$EnableScannedOnly=0;
 	$scannedonly_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{clamav_protect}:</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{clamav_protect}:</td>
 		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
 	</tr>";			
 	}
@@ -2412,7 +2404,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	if($EnableScannedOnly==0){
 	$scannedonly_vfs="
 	<tr>
-		<td align='right' nowrap class=legend>{clamav_protect}:</td>
+		<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{clamav_protect}:</td>
 		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
 	</tr>";			
 	}
@@ -2420,7 +2412,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$html="
 	<FORM NAME='FFMVFS'>
 	<br>
-	<H5>{options}</H5>
+	<H3 style='font-size:22px'>{options}</H3>
 	<input type='hidden' id='vfs_object' name='vfs_object' value='{$_GET["prop"]}'>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
@@ -2429,8 +2421,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$kav_vfs
 	$scannedonly_vfs
 	<tr>
-	<td colspan=2 align='right'><hr>
-		<input type='button' OnClick=\"javascript:SambaSaveVFSModules();\" value='{apply}&nbsp;&raquo;'>
+	<td colspan=2 align='right'><hr>". button("{apply}", "SambaSaveVFSModules()",32)."
 	</td>
 	</tr>
 	</table>
@@ -2548,11 +2539,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title::$folder_text&nbsp;&laquo;$folder&raquo;',
+	title: '<span style=font-size:18px>$title::$folder_text&nbsp;&laquo;$folder&raquo;</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 558,
+	width: '99%',
 	height: 230,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -3092,7 +3083,7 @@ if(file_exists( $content_dir . "/" .$name_file)){@unlink( $content_dir . "/" .$n
 while (list ($num, $val) = each ($tbl) ){
 		if(trim($val)==null){continue;}
 		if(preg_match('#Error#',$val)){
-			$ss="color:red;";
+			$ss="color:#d32d2d;";
 		}else{$ss="";}
 		$nres=$nres."<div style='font-weight:bold;$ss'>$val</div>";
 		
@@ -3134,31 +3125,31 @@ function main_kav4samba_Objects_action(){
 		<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-	<td align='right' nowrap class=legend>{OnInfected}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnInfected}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnInfected",$kav->main_array["samba.actions"]["OnInfected"])."</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{OnCured}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnCured}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnCured",$kav->main_array["samba.actions"]["OnCured"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{OnSuspicion}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnSuspicion}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnSuspicion",$kav->main_array["samba.actions"]["OnSuspicion"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{OnWarning}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnWarning}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnWarning",$kav->main_array["samba.actions"]["OnWarning"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{OnProtected}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnProtected}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnProtected",$kav->main_array["samba.actions"]["OnProtected"])."</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{OnCorrupted}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnCorrupted}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnCorrupted",$kav->main_array["samba.actions"]["OnCorrupted"])."</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{OnError}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{OnError}:</td>
 	<td align='left'>".Field_array_Hash($arr,"OnError",$kav->main_array["samba.actions"]["OnError"])."</td>
 	</tr>				
 	</tr>			
@@ -3202,48 +3193,48 @@ function main_kav4samba(){
 	<table style='width:100%'>
 	<tr><td colspan=2><strong style='font-size:13px;font-weight:bold'>{how_to_scan}<hr></td></tr>
 	<tr>
-	<td align='right' nowrap class=legend>{UseAVbasesSet}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{UseAVbasesSet}:</td>
 	<td align='left'>$UseAVbasesSet</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{MaxLoadAvg}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{MaxLoadAvg}:</td>
 	<td align='left'>" .Field_text('MaxLoadAvg',$kav->main_array["scanner.options"]["MaxLoadAvg"],'width:50px')."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{Ichecker}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{Ichecker}:</td>
 	<td align='left'>" .Field_yesno_checkbox('Ichecker',$kav->main_array["scanner.options"]["Ichecker"])."</td>
 	</tr>		
 	<tr>
-	<td align='right' nowrap class=legend>{LocalFS}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{LocalFS}:</td>
 	<td align='left'>" .Field_yesno_checkbox('LocalFS',$kav->main_array["scanner.options"]["LocalFS"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{Recursion}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{Recursion}:</td>
 	<td align='left'>" .Field_yesno_checkbox('Recursion',$kav->main_array["scanner.options"]["Recursion"])."</td>
 	</tr>		
 	<tr>
-	<td align='right' nowrap class=legend>{Cure}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{Cure}:</td>
 	<td align='left'>" .Field_yesno_checkbox('Cure',$kav->main_array["scanner.options"]["Cure"])."</td>
 	</tr>		
 	<tr>
 	<tr><td colspan=2><strong style='font-size:13px;font-weight:bold'>{wich_to_scan}<hr></td></tr>
-	<td align='right' nowrap class=legend>{Packed}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{Packed}:</td>
 	<td align='left'>" .Field_yesno_checkbox('Packed',$kav->main_array["scanner.options"]["Packed"])."</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{Archives}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{Archives}:</td>
 	<td align='left'>" .Field_yesno_checkbox('Archives',$kav->main_array["scanner.options"]["Archives"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{SelfExtArchives}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{SelfExtArchives}:</td>
 	<td align='left'>" .Field_yesno_checkbox('SelfExtArchives',$kav->main_array["scanner.options"]["SelfExtArchives"])."</td>
 	</tr>	
 	<tr>
-	<td align='right' nowrap class=legend>{MailPlain}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{MailPlain}:</td>
 	<td align='left'>" .Field_yesno_checkbox('MailPlain',$kav->main_array["scanner.options"]["MailPlain"])."</td>
 	</tr>
 	<tr>
-	<td align='right' nowrap class=legend>{MailBases}:</td>
+	<td align='right' nowrap style='font-size:22px;vertical-align:middle' class=legend>{MailBases}:</td>
 	<td align='left'>" .Field_yesno_checkbox('MailBases',$kav->main_array["scanner.options"]["MailBases"])."</td>
 	</tr>			
 
@@ -3303,7 +3294,7 @@ function DomainAdmin_index(){
 	$password=$samba->GetAdminPassword("administrator");
 	
 	$html="
-	<div class=text-info>{domain_admin_text}</div>
+	<div class=explain>{domain_admin_text}</div>
 	
 	<strong style='font-size:14px'>&laquo;{$samba->main_array["global"]["workgroup"]}\administrator&raquo; {password}</strong>
 	<div id='DomainAdminSave'>

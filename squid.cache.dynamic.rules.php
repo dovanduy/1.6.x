@@ -224,7 +224,7 @@ function rule_popup(){
 	
 	
 	$html="<div style='font-size:26px;margin-bottom:16px'>$ID</div>
-	<p class=text-info style='font-size:16px'>{next_check}:". $tpl->time_to_date($ttime)."</p>
+	<p class=explain style='font-size:16px'>{next_check}:". $tpl->time_to_date($ttime)."</p>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>

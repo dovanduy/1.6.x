@@ -26,7 +26,7 @@
 	
 	
 	$user=new usersMenus();
-	if(!$user->AsWebStatisticsAdministrator){
+	if(!IsPersonalCategoriesRights()){
 		$tpl=new templates();
 		echo "alert('".$tpl->javascript_parse_text("{ERROR_NO_PRIVS}").");";
 		exit;
@@ -207,20 +207,20 @@ function free_catgorized_tabs(){
 	$array["test-cat"]='{test_categories}';
 	$array["categorytables"]='{categories}';
 	$array["family"]='{websites_families}';
-	$array["compile"]='{compile}';
+	
 	$t=$_GET["t"];
 	if(!is_numeric($t)){
 		$t=time();
 	}
 	
-	$fontsize=15;
+	$fontsize=22;
 
 	if($category<>null){
-		$fontsize=18;
+		$fontsize=22;
 		unset($array["test-cat"]);
 		unset($array["categorytables"]);
 		unset($array["family"]);
-		unset($array["compile"]);
+		
 	}
 	
 	
@@ -418,7 +418,7 @@ function free_catgorized(){
 		$textarea_with=95;
 	}
 	$html="
-	<div class=text-info style='font-size:18px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
+	<div class=explain style='font-size:18px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -461,6 +461,7 @@ function free_catgorized(){
 		}
 		if(tt>0){ if(document.getElementById(tt)){ $('#'+tt).flexReload();} }
 		ExecuteByClassName('SearchFunction');
+		if(document.getElementById('PERSONAL_CATEGORIES_TABLE')) { $('#PERSONAL_CATEGORIES_TABLE').flexReload();} 
 		
 	}	
 
@@ -522,12 +523,12 @@ function free_catgorized_explain(){
 		$sql="SELECT category_description FROM personal_categories WHERE category='{$_GET["free-cat-explain"]}'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));		
 		$content=$ligne["category_description"];
-		$content=utf8_encode($content);
+		
 	}else{
 		$content=$cats[$_GET["free-cat-explain"]];
 	}
 	
-	echo utf8_encode($content);
+	echo $content;
 	
 }
 
@@ -1203,9 +1204,9 @@ function CategorizeAll_explain(){
 		$q=new mysql_squid_builder();
 		$sql="SELECT category_description FROM personal_categories WHERE `category`='".mysql_escape_string2($_GET["cat-explain"])."'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		$text=$ligne["category_description"];
+		$text=utf8_encode($ligne["category_description"]);
 	}
-	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>$text</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>$text</div>");
 	
 }
 

@@ -16,10 +16,15 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
-if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
-if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;build($argv[2]);die();}
+if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop($argv[2]);die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start($argv[2]);die();}
 
-function start(){
+function start($ID){
+	
+	if(!is_numeric($ID)){return;}
+	if($ID==0){return;}
+	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/ftpproxystart.pid";
 	$SERV_NAME=$GLOBALS["SERV_NAME"];
@@ -33,20 +38,9 @@ function start(){
 		
 	@file_put_contents($pidfile, getmypid());
 	
-	$sock=new sockets();
-	$EnableFTPProxy=$sock->GET_INFO("EnableFTPProxy");
-	$php5=$unix->LOCATE_PHP5_BIN();
-	if(!is_numeric($EnableFTPProxy)){$EnableFTPProxy=0;}
 	
 
 	
-	if($EnableFTPProxy==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is disabled...\n";}
-		stop();
-		return;		
-		
-	}
-		
 	
 	$daemonbin=$unix->find_program("ftp-proxy");
 	if(!is_file($daemonbin)){
@@ -54,7 +48,7 @@ function start(){
 		return;
 	}	
 	
-	$pid=FTPD_PID();
+	$pid=FTPD_PID($ID);
 	
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
@@ -65,19 +59,15 @@ function start(){
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: writing init.d\n";}
-	$cmd=trim("$php5 /usr/share/artica-postfix/exec.initslapd.php --ftp-proxy >/dev/null 2>&1");
-	
-	
-	build();
-	$cmdline="$daemonbin -d -f /etc/proxy-suite/ftp-proxy.conf";
+
+	$cmdline="$daemonbin -d -f /etc/proxy-suite/ftp-proxy-$ID.conf";
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting $SERV_NAME\n";}
 	shell_exec("$nohup $cmdline 2>&1 &");
 	sleep(1);
 	for($i=0;$i<10;$i++){
-		$pid=FTPD_PID();
+		$pid=FTPD_PID($ID);
 		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME started pid .$pid..\n";}break;}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME wait $i/10\n";}
 		sleep(1);
@@ -102,8 +92,12 @@ function start(){
 }
 
 
-function stop(){
-	$SERV_NAME=$GLOBALS["SERV_NAME"];
+function stop($ID){
+	
+	if(!is_numeric($ID)){return;}
+	if($ID==0){return;}
+	
+	$SERV_NAME=$GLOBALS["SERV_NAME"].":$ID";
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
@@ -113,7 +107,7 @@ function stop(){
 		return;
 	}
 
-	$pid=FTPD_PID();
+	$pid=FTPD_PID($ID);
 	
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME already stopped...\n";}
@@ -128,7 +122,7 @@ function stop(){
 	$cmd="$kill $pid >/dev/null";
 	shell_exec($cmd);
 
-	$pid=FTPD_PID();
+	$pid=FTPD_PID($ID);
 	
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME success...\n";}
@@ -137,7 +131,7 @@ function stop(){
 	
 	
 	for($i=0;$i<10;$i++){
-		$pid=FTPD_PID();
+		$pid=FTPD_PID($ID);
 		if($unix->process_exists($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME kill pid $pid..\n";}
 			unix_system_kill_force($pid);
@@ -147,7 +141,7 @@ function stop(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME wait $i/10\n";}
 		sleep(1);
 	}	
-	$pid=FTPD_PID();
+	$pid=FTPD_PID($ID);
 	
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME success...\n";}
@@ -156,49 +150,105 @@ function stop(){
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Failed...\n";}
 }
 
-function FTPD_PID(){
+function FTPD_PID($ID){
 	$unix=new unix();
-	$pid=$unix->get_pid_from_file("/var/run/ftp-proxy.pid");
+	$pid=$unix->get_pid_from_file("/var/run/ftp-proxy.$ID.pid");
 	if($unix->process_exists($pid)){return $pid;}
-	return $unix->PIDOF($unix->find_program("ftp-proxy"));
+	$daemonbin=$unix->find_program("ftp-proxy");
+	$cmdline=basename($daemonbin).".*?ftp-proxy-$ID.conf";
+	return $unix->PIDOF_PATTERN($cmdline);
 }
 
 
 
-function restart(){
+function restart($ID){
+	if(!is_numeric($ID)){return;}
+	if($ID==0){return;}
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 ".__FILE__." --stop");
-	shell_exec("$php5 ".__FILE__." --start");
+	shell_exec("$php5 ".__FILE__." --stop $ID");
+	shell_exec("$php5 ".__FILE__." --start $ID");
 	
 }
 
 
 
 function build(){
-	//http://numsys.eu/ftp-proxy.php
-	$sock=new sockets();
-	$FTPProxyPort=$sock->GET_INFO("FTPProxyPort");
-	if(!is_numeric($FTPProxyPort)){$FTPProxyPort="2121";}
-	$FTPProxyUseAuth=$sock->GET_INFO("FTPProxyUseAuth");
+	remove_init();
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM proxy_ports WHERE FTP=1 AND enabled=1";
+	$results = $q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		build_conf($ligne);
+		stop($ligne["ID"]);
+		start($ligne["ID"]);
+	}
 	
-	$FTPMaxClients=$sock->GET_INFO("FTPProxyMaxClients");
-	if(!is_numeric($FTPMaxClients)){$FTPMaxClients=64;}
+}	
+
+function remove_init(){
 	
-	if(!is_numeric($FTPProxyUseAuth)){$FTPProxyUseAuth=0;}
+	$unix=new unix();
+	$files=$unix->DirFiles('/etc/init.d',"ftp-proxy-[0-9]+");
 	
-	$FTPProxyTimeOuts=$sock->GET_INFO("FTPProxyTimeOuts");
-	if(!is_numeric($FTPProxyTimeOuts)){$FTPProxyTimeOuts=900;}
 	
-	$FTPLogLevel=$sock->GET_INFO("FTPLogLevel");
-	if($FTPLogLevel==null){$FTPLogLevel="INF";}
+	while (list ($basename, $value) = each ($files) ){
+		$filepath="/etc/init.d/$basename";
+		if($GLOBALS["OUTPUT"]){echo "Reconfigure...: ".date("H:i:s")." [INIT]: Remove $basename init\n";}
+		if(is_file('/usr/sbin/update-rc.d')){
+			shell_exec("/usr/sbin/update-rc.d -f $basename remove >/dev/null 2>&1");
+		}
+		
+		if(is_file('/sbin/chkconfig')){
+			shell_exec("/sbin/chkconfig --del $basename >/dev/null 2>&1");
+		}
+		
+		if(is_file($filepath)){@unlink($filepath);}
+		
+	}
 	
-	$FTPProxyListen=$sock->GET_INFO("FTPProxyListen");
-	if($FTPProxyListen==null){$FTPProxyListen="0.0.0.0";}
 	
-	$FTPProxyDestinationTransferMode=$sock->GET_INFO("FTPProxyDestinationTransferMode");
+	
+}
+
+
+
+function build_conf($ligne){
+	
+	$ID=$ligne["ID"];
+	$FTPProxyPort=intval($ligne["port"]);
+	$eth=$ligne["nic"];
+	$FTPProxyListen="0.0.0.0";
+	
+	if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"])){
+		$unix=new unix();
+		$GLOBALS["NETWORK_ALL_INTERFACES"]=$unix->NETWORK_ALL_INTERFACES();
+	}
+	if(!isset($GLOBALS["NETWORK_ALL_NICS"])){
+		$unix=new unix();
+		$GLOBALS["NETWORK_ALL_NICS"]=$unix->NETWORK_ALL_INTERFACES();
+	}
+	
+	if($eth<>null){
+		$FTPProxyListen=$GLOBALS["NETWORK_ALL_NICS"][$eth]["IPADDR"];
+	}
+	
+	$FTPMaxClients=intval($ligne["FTPProxyMaxClients"]);
+	if($FTPMaxClients==0){$FTPMaxClients=64;}
+	
+	
+	
+	$FTPProxyTimeOuts=intval($ligne["FTPProxyTimeOuts"]);;
+	if($FTPProxyTimeOuts==0){$FTPProxyTimeOuts=900;}
+	
+	$FTPLogLevel="INF";
+	
+	
+	$FTPAllowMagicUser=intval($ligne["FTPAllowMagicUser"]);
+	$FTPProxyDestinationTransferMode=$ligne["FTPProxyDestinationTransferMode"];
 	if($FTPProxyDestinationTransferMode==null){$FTPProxyDestinationTransferMode="client";}	
-	
+	$FTPUserAuthMagic=$ligne["FTPUserAuthMagic"];
+	$FTPUseMagicChar=$ligne["FTPUseMagicChar"];
 	$f[]="[-Global-]";
 	$f[]="#";
 	$f[]="# The following entries select a port range for client DTP";
@@ -290,50 +340,11 @@ function build(){
 	$f[]="Group			nogroup";
 	$f[]="";
 	$f[]="#";
-	if($FTPProxyUseAuth==1){
-		
-		$LDAPAuthDN=$sock->GET_INFO("FTPLDAPAuthDN");
-		
-		$LDAPAuthPWAttr=$sock->GET_INFO("FTPLDAPAuthPWAttr");
-		$LDAPBaseDN=$sock->GET_INFO("FTPLDAPBaseDN");
-		$LDAPBindDN=$sock->GET_INFO("FTPLDAPBindDN");
-		$LDAPServer=$sock->GET_INFO("FTPLDAPServer");
-		if($LDAPAuthDN==null){$LDAPAuthDN="dc=domain,dc=tld";}
-		if($LDAPAuthPWAttr==null){$LDAPAuthPWAttr="userPassword";}
-		if($LDAPBaseDN==null){$LDAPBaseDN="dc=abc,dc=lab";}
-		if($LDAPBindDN==null){$LDAPBindDN="%s@domain.tld";}
-		if($LDAPServer==null){$LDAPServer="10.10.0.2";}
 
-
-		
-
-		
-		$f[]="#";
-		$f[]="UserAuthType		ldap";
-		$f[]="# LDAPAuthDN		$LDAPAuthDN";
-		$f[]="# LDAPAuthOKFlag	allowedService=FTPProxy";
-		$f[]="# LDAPAuthPWAttr	$LDAPAuthPWAttr";
-		$f[]="# LDAPAuthPWType		plain";
-		$f[]="LDAPBaseDN		$LDAPBaseDN";
-		$f[]="# LDAPBindDN		uid=%s,dc=domain,dc=tld";
-		$f[]="LDAPBindDN		$LDAPBindDN";
-		$f[]="# LDAPBindDN		uid=ftp-proxy,dc=domain,dc=tld";
-		$f[]="# LDAPBindDN auto";
-		$f[]="# LDAPBindPW		aPassword";
-		$f[]="# LDAPIdentifier	LoginName";
-		$f[]="# LDAPObjectClass	FTPProxyUser";
-		$f[]="LDAPServer		$LDAPServer";
-
-
-
-	}
 
 	if($FTPUserAuthMagic==null){$FTPUserAuthMagic="@user";}
 	if($FTPUseMagicChar==null){$FTPUseMagicChar="@";}
-	$FTPAllowMagicUser=$sock->GET_INFO("FTPAllowMagicUser");
 	if(!is_numeric($FTPAllowMagicUser)){$FTPAllowMagicUser=1;}	
-	$FTPUserAuthMagic=$sock->GET_INFO("FTPUserAuthMagic");
-	$FTPUseMagicChar=$sock->GET_INFO("FTPUseMagicChar");	
 	
 	$f[]="# ForceMagicUser	yes";
 	if($FTPAllowMagicUser==1){
@@ -350,7 +361,7 @@ function build(){
 	$f[]="#";
 	$f[]="# Maximum number of concurrent clients if running as daemon.";
 	$f[]="#";
-	$f[]="# MaxClients		64";
+	$f[]="# MaxClients		$FTPMaxClients";
 	$f[]="";
 	$f[]="#";
 	$f[]="# This message (or rather the contents of a file with this";
@@ -388,7 +399,7 @@ function build(){
 	$f[]="#";
 	$f[]="# PassiveMinDataPort	41000";
 	$f[]="# PassiveMaxDataPort	41999";
-	$f[]="PidFile		/var/run/ftp-proxy.pid";
+	$f[]="PidFile		/var/run/ftp-proxy.$ID.pid";
 	$f[]="Port $FTPProxyPort";
 	$f[]="Listen		$FTPProxyListen";
 	$f[]="";
@@ -507,9 +518,79 @@ function build(){
 	$f[]="";
 	$f[]="";	
 	@mkdir("/etc/proxy-suite",0755,true);
-	@file_put_contents("/etc/proxy-suite/ftp-proxy.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: building /etc/proxy-suite/ftp-proxy.conf done...\n";}
+	@file_put_contents("/etc/proxy-suite/ftp-proxy-$ID.conf", @implode("\n", $f));
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: building /etc/proxy-suite/ftp-proxy-$ID.conf done...\n";}
+	ftpproxy_init($ID);
 }
+function ftpproxy_init($ID){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$daemonbin=$unix->find_program("ftp-proxy");
+	$daemonbinLog=basename($daemonbin);
+	$INITD_PATH="/etc/init.d/ftp-proxy-$ID";
 
+
+
+	$php5script="exec.ftpproxy.php";
+	if(!is_file($daemonbin)){return;}
+
+
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:         $daemonbinLog-$ID";
+	$f[]="# Required-Start:    \$local_fs \$syslog \$network";
+	$f[]="# Required-Stop:     \$local_fs \$syslog \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: $daemonbinLog-$ID";
+	$f[]="# chkconfig: - 80 75";
+	$f[]="# description: $daemonbinLog-$ID";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start $ID \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop $ID \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop $ID \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start $ID \$2 \$3";
+	$f[]="    ;;";	
+	
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop $ID \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --buildid $ID \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start $ID \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: building $INITD_PATH done...\n";}
+	
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+
+}
 
 ?>

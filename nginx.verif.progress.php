@@ -154,8 +154,8 @@ if($prc==100){
 		if(!RTMMailOpen()){return;}
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
-		AnimateDiv('BodyContent');
-		LoadAjax('BodyContent','nginx.main.php')
+		LoadAjaxRound('nginx-reverse','nginx.main.php');
+		CacheOff();
 		RTMMailHide();
 	}
 	setTimeout(\"Start$time()\",1000);

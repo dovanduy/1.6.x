@@ -16,21 +16,24 @@ class ActiveDirectory{
 	var $members=array();
 	var $LDAP_RECURSIVE=0;
 	var $ARRAY_MEMBERS=array();
-	var $UseDynamicGroupsAcls=0;
+	var $UseDynamicGroupsAcls=1;
 
 	private $WINDOWS_SERVER_ADMIN=null;
 	private $WINDOWS_DNS_SUFFIX=null;
 	
 	function ActiveDirectory($AdSourceID=0){
+			if(!class_exists("sockets")){include_once(dirname(__FILE__)."/class.sockets.inc");}
 			if(!is_numeric($AdSourceID)){$AdSourceID=0;}
 			if($AdSourceID==0){
 				$this->LoadAdSettingsFromSquid();
 			}
+			
+			
+			
 			$sock=new sockets();
 			if(!is_numeric($this->LDAP_RECURSIVE)){$this->LDAP_RECURSIVE=0;}
 			if($this->suffix==null){return;}
-			$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
-			if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
+
 			
 			$fp=@fsockopen($this->ldap_host, $this->ldap_port, $errno, $errstr, 2);
 			if(!$fp){
@@ -380,6 +383,91 @@ class ActiveDirectory{
 		
 		return $FINAL;
 	}
+	
+	
+	function dump_users_from_group($dn){
+		$this->ldap_last_error=null;
+		$recursive=false;
+		if($this->LDAP_RECURSIVE==1){$recursive=true;}
+		
+		if($GLOBALS["VERBOSE"]){echo "Dn = $dn<br>\n";}
+		
+		$props=$this->ObjectProperty($dn);
+		$name=$props["name"];
+		
+		$options=array(
+				'base_dn'=>$this->suffix,
+				'ad_username'=>$this->WINDOWS_SERVER_ADMIN,
+				'ad_password'=>$this->ldap_password,
+				'recursive_groups'=>$recursive,
+				'domain_controllers'=>array($this->ldap_host),
+				'account_suffix'=>"@{$this->WINDOWS_DNS_SUFFIX}");
+		
+		
+		try {
+			$adldap = new adLDAP($options);
+		}
+		catch (adLDAPException $e) {
+			if($GLOBALS["VERBOSE"]){echo $e."<br>\n";}
+			return array();
+		}
+		
+		try {
+			$adldap->authenticate($this->WINDOWS_SERVER_ADMIN,$this->ldap_password);}
+			catch (adLDAPException $e) {
+				if($GLOBALS["VERBOSE"]){echo $e."<br>\n";}
+				return array();
+			}
+			$MEMBERS=$adldap->group()->members($name);
+		
+				
+			if(count($MEMBERS)==0){return array();}
+		
+			while (list ($num, $uid) = each ($MEMBERS) ){
+				$uid=trim(strtolower($uid));
+				$array[$uid]=true;
+			}
+			
+			return $array;
+			
+	}
+	
+	function search_users_from_groupName($name,$entriesNumber=5000){
+		$this->ldap_last_error=null;
+		$recursive=false;
+		if($this->LDAP_RECURSIVE==1){$recursive=true;}
+	
+	
+		$options=array(
+				'base_dn'=>$this->suffix,
+				'ad_username'=>$this->WINDOWS_SERVER_ADMIN,
+				'ad_password'=>$this->ldap_password,
+				'recursive_groups'=>$recursive,
+				'domain_controllers'=>array($this->ldap_host),
+				'account_suffix'=>"@{$this->WINDOWS_DNS_SUFFIX}");
+	
+	
+		try {
+			$adldap = new adLDAP($options);
+		}
+		catch (adLDAPException $e) {
+			if($GLOBALS["VERBOSE"]){echo $e." $name:<br>\n";}
+			return array();
+		}
+	
+		try {
+			$adldap->authenticate($this->WINDOWS_SERVER_ADMIN,$this->ldap_password);}
+			catch (adLDAPException $e) {
+				if($GLOBALS["VERBOSE"]){echo $e." $name: <br>\n";}
+				return array();
+			}
+			if($GLOBALS["VERBOSE"]){echo "$name: authenticate $this->ldap_host/$this->WINDOWS_SERVER_ADMIN<br>\n";}
+			return $adldap->group()->members($name);
+	
+				
+			
+	
+	}	
 	
 	function search_users_from_group($dn,$entriesNumber=1000){
 		$this->ldap_last_error=null;

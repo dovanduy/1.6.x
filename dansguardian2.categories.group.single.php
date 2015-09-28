@@ -267,11 +267,7 @@ function category_group_blacklist(){
 		}
 
 		$catz=new mysql_catz();
-		$category_table_elements_artica=$catz->COUNT_ROWS($category_table);
-		if($category_table_elements_artica>0){
-			$category_table_elements_artica=FormatNumber($category_table_elements_artica);
-			$DBTXT[]="$category_table_elements_artica Artica $items <i style='font-size:10px;font-weight:normal'>$text_license</i>";
-		}
+		
 
 
 

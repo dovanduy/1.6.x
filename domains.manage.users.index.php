@@ -626,14 +626,21 @@ function finduser_tab(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["finduser"]='{search}::{members}';
+	$array["ous"]='{organizations}';
 		
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=*\"><span>$ligne</span></a></li>\n");
+		
+		if($num=="ous"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:28px'><a href=\"domains.index.php?inside-tab=yes&newfrontend=yes\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:28px'><a href=\"$page?$num=*\"><span>$ligne</span></a></li>\n");
 	
 	}
 	
 	
-	echo build_artica_tabs($html, "find_user_tabs",1050)."<script>LeftDesign('users-search-opac20.png');</script>";
+	echo build_artica_tabs($html, "find_user_tabs",1495)."<script>LeftDesign('users-search-opac20.png');</script>";
 	
 	
 }
@@ -659,14 +666,14 @@ $('#table-$t').flexigrid({
 	url: '$page?finduser-list=yes&finduser=$stringtofind',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'aclname', width : 77, sortable : true, align: 'center'},
-		{display: '$member', name : 'items', width : 422, sortable : false, align: 'left'},
-		{display: '$email', name : 'none2', width : 422, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>&nbsp;</span>', name : 'aclname', width : 77, sortable : true, align: 'center'},
+		{display: '<span style=font-size:22px>$member</span>', name : 'items', width : 536, sortable : false, align: 'left'},
+		{display: '<span style=font-size:22px>$email</span>', name : 'none2', width : 536, sortable : true, align: 'left'},
 		
 		
 	],
 buttons : [
-	{name: '$add', bclass: 'add', onpress : Addmemebr$t},
+	{name: '<strong style=font-size:18px>$add</strong>', bclass: 'add', onpress : Addmemebr$t},
 		],	
 	searchitems : [
 		{display: '$member', name : 'aclname'},
@@ -674,7 +681,7 @@ buttons : [
 	sortname: 'aclname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$ldap_members',
+	title: '<span style=font-size:30px>$ldap_members</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -742,7 +749,7 @@ function finduser_list(){
 	
 	
 	}else{
-		include_once(dirname(__FILE__."/ressources/class.external.ad.inc"));
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
 		$ad=new external_ad_search();
 		$hash_full=$ad->UserSearch(null,$stringtofind,$_POST["rp"]);
 		$hash1=$hash_full[0];

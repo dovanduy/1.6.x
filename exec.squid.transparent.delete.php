@@ -8,6 +8,7 @@ if(isset($argv[1])){
 	if($argv[1]=="--wccp"){wccp_delete();exit;}
 	if($argv[1]=="--mikrotik"){MikrotikRemoveIpaddr();MikrotikRemoveIptables();exit;}
 	if($argv[1]=="--mikrotik"){MikrotikRemoveIpaddr();MikrotikRemoveIptables();exit;}
+	if($argv[1]=="--parent"){SquidParentRemove();MikrotikRemoveIptables();exit;}
 }
 
 
@@ -25,6 +26,7 @@ $SquidWCCPL3Enabled=intval(trim(@file_get_contents("/etc/artica-postfix/settings
 
 
 $d=0;
+$conf=null;
 while (list ($num, $ligne) = each ($datas) ){
 	if($ligne==null){continue;}
 	if(preg_match($pattern,$ligne)){$d++;continue;}
@@ -91,7 +93,26 @@ function MikrotikRemoveIptables(){
 
 
 }
-
+function SquidParentRemove(){
+	$iptables_save=find_program("iptables-save");
+	$iptables_restore=find_program("iptables-restore");
+	$conf=null;
+	system("$iptables_save > /etc/artica-postfix/iptables.conf");
+	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
+	$datas=explode("\n",$data);
+	$pattern="#.+?ArticaSquidChilds#";
+	$d=0;
+	while (list ($num, $ligne) = each ($datas) ){
+		if($ligne==null){continue;}
+		if(preg_match($pattern,$ligne)){$d++;continue;}
+		$conf=$conf . $ligne."\n";
+	}
+	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
+	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
+	echo "Starting......: ".date("H:i:s")." Squid Check Parent mode: removing $d iptables rule(s) done...\n";
+	
+	
+}
 
 
 function find_program($strProgram){

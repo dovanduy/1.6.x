@@ -274,8 +274,15 @@ function page(){
 	$tpl=new templates();
 	$sock=new sockets();
 	if(!isset($_GET["uuid"])){$_GET["uuid"]=$sock->getframework("cmd.php?system-unique-id=yes");}	
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
 	
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+		$sock=new sockets();
+		$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+	}else{
+		$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+	}
+	$CPU_NUMBER=$cpunum;
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");

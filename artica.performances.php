@@ -212,21 +212,21 @@ function cron_index(){
 	
 	
 	
-	$DoNotutf8EncodeJS=Field_checkbox("DoNotutf8EncodeJS",1,$DoNotutf8EncodeJS);
-	$DisableWarnNotif=Field_checkbox("DisableWarnNotif",1,$DisableWarnNotif);
-	$DisableJGrowl=Field_checkbox("DisableJGrowl",1,$DisableJGrowl);
-	$jgrowl_no_clamav_update=Field_checkbox("jgrowl_no_clamav_update",1,$jgrowl_no_clamav_update);
-	$DisableFrontEndArticaEvents=Field_checkbox("DisableFrontEndArticaEvents",1,$DisableFrontEndArticaEvents);
-	$jgrowl_no_kas_update=Field_checkbox("jgrowl_no_kas_update",1,$jgrowl_no_kas_update);
-	$AllowShutDownByInterface=Field_checkbox("AllowShutDownByInterface",1,$AllowShutDownByInterface);
-	$DisableNoOrganization=Field_checkbox("DisableNoOrganization",1,$DisableNoOrganization);
-	$DisableAPTNews=Field_checkbox("DisableAPTNews",1,$DisableAPTNews);
-	$DisableWarningCalculation=Field_checkbox("DisableWarningCalculation",1,$DisableWarningCalculation);
-	$DisableFrontBrowseComputers=Field_checkbox("DisableFrontBrowseComputers", 1,$DisableFrontBrowseComputers);
-	$DisableFrontArticaMeta=Field_checkbox("DisableFrontArticaMeta", 1,$DisableFrontArticaMeta);
-	$DisableJqueryDropDown=Field_checkbox("DisableJqueryDropDown", 1,$DisableJqueryDropDown);
-	$DisableFreeWebToolBox=Field_checkbox("DisableFreeWebToolBox", 1,$DisableFreeWebToolBox);
-	$DisableTimeCapsuleToolBox=Field_checkbox("DisableTimeCapsuleToolBox", 1,$DisableTimeCapsuleToolBox);
+	$DoNotutf8EncodeJS=Field_checkbox_design("DoNotutf8EncodeJS",1,$DoNotutf8EncodeJS);
+	$DisableWarnNotif=Field_checkbox_design("DisableWarnNotif",1,$DisableWarnNotif);
+	$DisableJGrowl=Field_checkbox_design("DisableJGrowl",1,$DisableJGrowl);
+	$jgrowl_no_clamav_update=Field_checkbox_design("jgrowl_no_clamav_update",1,$jgrowl_no_clamav_update);
+	$DisableFrontEndArticaEvents=Field_checkbox_design("DisableFrontEndArticaEvents",1,$DisableFrontEndArticaEvents);
+	$jgrowl_no_kas_update=Field_checkbox_design("jgrowl_no_kas_update",1,$jgrowl_no_kas_update);
+	$AllowShutDownByInterface=Field_checkbox_design("AllowShutDownByInterface",1,$AllowShutDownByInterface);
+	$DisableNoOrganization=Field_checkbox_design("DisableNoOrganization",1,$DisableNoOrganization);
+	$DisableAPTNews=Field_checkbox_design("DisableAPTNews",1,$DisableAPTNews);
+	$DisableWarningCalculation=Field_checkbox_design("DisableWarningCalculation",1,$DisableWarningCalculation);
+	$DisableFrontBrowseComputers=Field_checkbox_design("DisableFrontBrowseComputers", 1,$DisableFrontBrowseComputers);
+	$DisableFrontArticaMeta=Field_checkbox_design("DisableFrontArticaMeta", 1,$DisableFrontArticaMeta);
+	$DisableJqueryDropDown=Field_checkbox_design("DisableJqueryDropDown", 1,$DisableJqueryDropDown);
+	$DisableFreeWebToolBox=Field_checkbox_design("DisableFreeWebToolBox", 1,$DisableFreeWebToolBox);
+	$DisableTimeCapsuleToolBox=Field_checkbox_design("DisableTimeCapsuleToolBox", 1,$DisableTimeCapsuleToolBox);
 	$DenyMiniWebFromStandardPort=$sock->GET_INFO("DenyMiniWebFromStandardPort");
 	$DisableSpecialCharacters=$sock->GET_INFO("DisableSpecialCharacters");
 	if(!is_numeric($EnableWebPageDebugging)){$EnableWebPageDebugging=0;}
@@ -238,7 +238,7 @@ function cron_index(){
 	if($jGrowlMaxEvents==null){$jGrowlMaxEvents=50;}
 
 	$jgrowl_no_kas_update="	<tr>
-		<td class=legend style='font-size:14px'>{jgrowl_no_kas_update}:</td>
+		<td class=legend style='font-size:22px'>{jgrowl_no_kas_update}:</td>
 		<td valign='top'>$jgrowl_no_kas_update</tD>
 	</tr>
 	<tr><td colspan=2 style='border-top:1px solid #005447'>&nbsp;</td></tr>";
@@ -249,7 +249,7 @@ function cron_index(){
 	
 	
 	$noclamav="	<tr>
-		<td class=legend style='font-size:14px'>{jgrowl_no_clamav_update}:</td>
+		<td class=legend style='font-size:22px'>{jgrowl_no_clamav_update}:</td>
 		<td>$jgrowl_no_clamav_update</tD>
 	</tr>
 	<tr><td colspan=2 style='border-top:1px solid #005447'>&nbsp;</td></tr>";
@@ -260,18 +260,18 @@ function cron_index(){
 	}
 	$t=time();
 	$html="
-	<div class=text-info style='font-size:14px'>{frontend_disables_options_explain}</div>
+	<div class=explain style='font-size:18px'>{frontend_disables_options_explain}</div>
 	<div id='articaschedulesdiv'></div>
 	<div id='$t'></div>
 	<div style='width:98%' class=form>	
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:14px'>font:</td>
-		<td valign='top'>".Field_text("InterfaceFonts",$InterfaceFonts,"font-size:13px;width:99%")."</tD>
+		<td class=legend style='font-size:22px'>font:</td>
+		<td valign='top'>".Field_text("InterfaceFonts",$InterfaceFonts,"font-size:22px;width:99%")."</tD>
 	</tr>
 	<tr>			
 	<td colspan=2 align='right'>
-			<hr>". button("{apply}","SaveArticaIndexPage2()",16)."
+			<hr>". button("{apply}","SaveArticaIndexPage2()",28)."
 				
 		</td>
 	</tr>	
@@ -281,93 +281,93 @@ function cron_index(){
 <div style='width:98%' class=form>	
 <table style='width:100%'>
 <tr>
-		<td class=legend style='font-size:14px'>{EnableWebPageDebugging}:</td>
-		<td valign='top'>". Field_checkbox("EnableWebPageDebugging", 1,$EnableWebPageDebugging)."</td>
+		<td class=legend style='font-size:22px'>{EnableWebPageDebugging}:</td>
+		<td valign='top'>". Field_checkbox_design("EnableWebPageDebugging", 1,$EnableWebPageDebugging)."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{disable}:{icon_artica_events_front_end}:</td>
+		<td class=legend style='font-size:22px'>{disable}:{icon_artica_events_front_end}:</td>
 		<td valign='top'>$DisableFrontEndArticaEvents</tD>
 	</tr>
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{DoNotutf8EncodeJS}:</td>
+		<td class=legend style='font-size:22px'>{DoNotutf8EncodeJS}:</td>
 		<td valign='top'>$DoNotutf8EncodeJS</tD>
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{disable_jgrowl}:</td>
+		<td class=legend style='font-size:22px'>{disable_jgrowl}:</td>
 		<td valign='top'>$DisableJGrowl</tD>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{DisableJqueryDropDown}:</td>
+		<td class=legend style='font-size:22px'>{DisableJqueryDropDown}:</td>
 		<td valign='top'>$DisableJqueryDropDown</tD>
 			
 	<tr>
-		<td class=legend style='font-size:14px'>{disable}:{no_organization}:</td>
+		<td class=legend style='font-size:22px'>{disable}:{no_organization}:</td>
 		<td valign='top'>$DisableNoOrganization</tD>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{DisableAPTNews}:</td>
+		<td class=legend style='font-size:22px'>{DisableAPTNews}:</td>
 		<td valign='top'>$DisableAPTNews</tD>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{DisableWarningCalculation}:</td>
+		<td class=legend style='font-size:22px'>{DisableWarningCalculation}:</td>
 		<td valign='top'>$DisableWarningCalculation</tD>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{disable}:{browse_computers}:</td>
+		<td class=legend style='font-size:22px'>{disable}:{browse_computers}:</td>
 		<td valign='top'>$DisableFrontBrowseComputers</tD>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{DisableSpecialCharacters}:</td>
-		<td valign='top'>". Field_checkbox("DisableSpecialCharacters", 1,$DisableSpecialCharacters)."</td>
+		<td class=legend style='font-size:22px'>{DisableSpecialCharacters}:</td>
+		<td valign='top'>". Field_checkbox_design("DisableSpecialCharacters", 1,$DisableSpecialCharacters)."</td>
 	</tr>
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{disable}:{meta-console}:</td>
+		<td class=legend style='font-size:22px'>{disable}:{meta-console}:</td>
 		<td valign='top'>$DisableFrontArticaMeta</tD>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{deny_access_from_the_standard_port}:</td>
-		<td>". Field_checkbox("DenyMiniWebFromStandardPort", 1,$DenyMiniWebFromStandardPort,"DenyMiniWebFromStandardPortCheck()")."</td>
+		<td class=legend style='font-size:22px'>{deny_access_from_the_standard_port}:</td>
+		<td>". Field_checkbox_design("DenyMiniWebFromStandardPort", 1,$DenyMiniWebFromStandardPort,"DenyMiniWebFromStandardPortCheck()")."</td>
 	</tr>		
 		 
 	<tr>
-		<td class=legend style='font-size:14px'>{ArticaTabsTimeout}:</td>
-		<td valign='top' style='font-size:14px'>". Field_text("ArticaTabsTimeout",$ArticaTabsTimeout,"width:60px")."&nbsp;Ms</tD>
+		<td class=legend style='font-size:22px'>{ArticaTabsTimeout}:</td>
+		<td valign='top' style='font-size:22px'>". Field_text("ArticaTabsTimeout",$ArticaTabsTimeout,"font-size:22px;width:110px")."&nbsp;Ms</tD>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:14px'>{jGrowlMaxEvents}:</td>
-		<td valign='top'>". Field_text("jGrowlMaxEvents",$jGrowlMaxEvents,"width:30px")."</tD>
+		<td class=legend style='font-size:22px'>{jGrowlMaxEvents}:</td>
+		<td valign='top'>". Field_text("jGrowlMaxEvents",$jGrowlMaxEvents,"font-size:22px;width:110px")."</tD>
 	</tr>	
 	
 $noclamav
 $jgrowl_no_kas_update	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{enable_shutdown_interface}:</td>
+		<td class=legend style='font-size:22px'>{enable_shutdown_interface}:</td>
 		<td valign='top'>$AllowShutDownByInterface</tD>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{disable_tooltips}:</td>
-		<td valign='top'>".Field_checkbox("DisableToolTips",1,$DisableToolTips,"DisableToolTipsSave()")."</tD>
+		<td class=legend style='font-size:22px'>{disable_tooltips}:</td>
+		<td valign='top'>".Field_checkbox_design("DisableToolTips",1,$DisableToolTips,"DisableToolTipsSave()")."</tD>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{disable_help_tooltips}:</td>
-		<td valign='top'>".Field_checkbox("DisableHelpToolTips",1,$DisableHelpToolTips,"DisableToolTipsSave()")."</tD>
+		<td class=legend style='font-size:22px'>{disable_help_tooltips}:</td>
+		<td valign='top'>".Field_checkbox_design("DisableHelpToolTips",1,$DisableHelpToolTips,"DisableToolTipsSave()")."</tD>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{disable_freewebs_toolbox}:</td>
+		<td class=legend style='font-size:22px'>{disable_freewebs_toolbox}:</td>
 		<td valign='top'>$DisableFreeWebToolBox</tD>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{disable_TimeCapsule_toolbox}:</td>
+		<td class=legend style='font-size:22px'>{disable_TimeCapsule_toolbox}:</td>
 		<td valign='top'>$DisableTimeCapsuleToolBox</tD>
 	</tr>	
 	
 	<tr>			
 	<td colspan=2 align='right'>
-			<hr>". button("{apply}","SaveArticaIndexPage$t()",16)."
+			<hr>". button("{apply}","SaveArticaIndexPage$t()",36)."
 				
 		</td>
 	</tr>
@@ -515,7 +515,7 @@ function cron_popup(){
 	<tr>
 	<td valign='top' width=1%><img src='img/cron-128.png'></td>
 	<td valign='top'>
-	<div class=text-info style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
+	<div class=explain style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
 	<div id='articaschedulesdiv' style='width:98%' class=form>
 			<table style='width:100%'>
 				<tr>
@@ -657,11 +657,11 @@ echo $html;
 function main_tabs(){
 	
 	$page=CurrentPageName();
-	$array["index"]='{index}';
+	
 	$array["artica_process"]='{artica_process}';
 	$array["optimize"]='{optimization}';
-	$array["cgroups"]='{APP_CGROUPS}';
-	$style="style='font-size:16px'";
+	//$array["cgroups"]='{APP_CGROUPS}';
+	$style="style='font-size:18px'";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="optimize"){$html[]= "<li><a href=\"artica.optimize.php\"><span $style>$ligne</span></a></li>\n";continue;}
@@ -716,15 +716,11 @@ function main_switch(){
 
 function main_config($return=0){
 	$users=new usersMenus();
-	$html="
-	<table style='width:97%'>
-	<td valign='top' width=50%>".
+	$html=
 	main_config_artica().
 	main_warn_preload().
-	main_config_syslogng().main_config_mimedefang().
-	"</td>
-	</tr>
-	</table>";
+	main_config_syslogng().main_config_mimedefang();
+
 	
 
 	if($return==1){return $html;}
@@ -740,16 +736,15 @@ function main_config_artica(){
 	$page=CurrentPageName();
 	
 	$MaxtimeBackupMailSizeCalculate=trim($sock->GET_INFO("MaxtimeBackupMailSizeCalculate"));
-	$systemForkProcessesNumber=trim($sock->GET_INFO("systemForkProcessesNumber"));
+	$systemForkProcessesNumber=intval($sock->GET_INFO("systemForkProcessesNumber"));
+	if($systemForkProcessesNumber==0){$systemForkProcessesNumber=4;}
 	$cpulimit=trim($sock->GET_INFO("cpulimit"));
 	$cpuLimitEnabled=trim($sock->GET_INFO("cpuLimitEnabled"));
 	$SystemV5CacheEnabled=trim($sock->GET_INFO("SystemV5CacheEnabled"));
 	
 	
 	
-	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
-	$ArticaInCgroups=$sock->GET_INFO('ArticaInCgroups');
-	$ArticaCgroup=$sock->GET_INFO('ArticaCgroup');
+	
 	$systemMaxOverloaded=trim($sock->GET_INFO("systemMaxOverloaded"));
 	
 	$SystemLoadNotif=trim($sock->GET_INFO("SystemLoadNotif"));
@@ -768,7 +763,7 @@ function main_config_artica(){
 	
 	
 	if(!is_numeric($cpuLimitEnabled)){$sock->SET_INFO("cpuLimitEnabled",0);$cpuLimitEnabled=0;}
-	if(!is_numeric($EnableBandwithCalculation)){$sock->SET_INFO("EnableBandwithCalculation",1);$EnableBandwithCalculation=1;}
+	
 	if(!is_numeric($MaxtimeBackupMailSizeCalculate)){$MaxtimeBackupMailSizeCalculate=300;}
 	if(!is_numeric($cpulimit)){$cpulimit=0;}
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
@@ -777,22 +772,12 @@ function main_config_artica(){
 	
 	if(!is_numeric($DisableLoadAVGQueue)){$DisableLoadAVGQueue=0;}
 	
-	
-	$q=new mysql();
-	$sql="SELECT groupname  FROM cgroups_groups ORDER BY groupname";
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "<H2>Fatal: $q->mysql_error</H2><code>".basename(__FILE__)." Line ".__LINE__."</code><br>";}
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$cgroups[$ligne["groupname"]]=	$ligne["groupname"];	
-		
-	}
-	$CountDeCgroups=count($cgroups);
 
 
 if($users->POSTFIX_INSTALLED){
 	$backupmailsize="<tr>
-	<td nowrap width=1% align='right' class=legend>{MaxtimeBackupMailSizeCalculate}:</td>
-	<td nowrap>". Field_text("MaxtimeBackupMailSizeCalculate",$MaxtimeBackupMailSizeCalculate,"width:60px;font-size:13px;padding:3px")."&nbsp;{minutes}</td>
+	<td nowrap width=1% align='right' class=legend style='font-size:22px'>{MaxtimeBackupMailSizeCalculate}:</td>
+	<td nowrap>". Field_text("MaxtimeBackupMailSizeCalculate",$MaxtimeBackupMailSizeCalculate,"width:110px;font-size:22px;padding:3px")."&nbsp;{minutes}</td>
 	<td>" . help_icon("{MaxtimeBackupMailSizeCalculate_explain}")."</td>
 </tr>";
 }
@@ -841,14 +826,14 @@ $SystemLoadNotif_array=array(
 );
 
 
-$arrp=Field_array_Hash($arrp,'ProcessNice',$ini->_params["PERFORMANCES"]["ProcessNice"]);
-$cpulimit_f=Field_array_Hash($cpulimit_array,'cpulimit',$cpulimit);
+$arrp=Field_array_Hash($arrp,'ProcessNice',$ini->_params["PERFORMANCES"]["ProcessNice"],null,null,0,"font-size:22px");
+$cpulimit_f=Field_array_Hash($cpulimit_array,'cpulimit',$cpulimit,null,null,0,"font-size:22px");
 
 
 	$arrp_mysql=array(null=>"{default}",0=>"{ISP_MODE}",1=>"{high}",2=>"{medium}",3=>"{low}",4=>'{very_low}');
-	$mysql_nice=Field_array_Hash($arrp_mysql,'MysqlNice',$ini->_params["PERFORMANCES"]["MysqlNice"]);
+	$mysql_nice=Field_array_Hash($arrp_mysql,'MysqlNice',$ini->_params["PERFORMANCES"]["MysqlNice"],null,null,0,"font-size:22px");
 	$mysql_nice="		<tr>
-			<td nowrap width=1% align='right' class=legend>{mysql_server_consumption}:</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{mysql_server_consumption}:</td>
 			<td>$mysql_nice</td>
 			<td>" . help_icon("{mysql_server_text}")."</td>
 		</tr>";
@@ -866,133 +851,110 @@ if($MaxMailEventsLogs<100){$MaxMailEventsLogs=4000;}
 $t=time();
 
 $html="
-<div id=ffm1>
+<div id=ffm1 style='width:98%' class=form>
 <table style='width:100%'>
-<tbody>
-<tr>
-	<td valign='top'>
-		
-		<table style='width:99%' class=form>
-		<tbody>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{artica_process}:</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{artica_process}:</td>
 			<td>$arrp</td>
 			<td>" . help_icon("{artica_process_explain}")."</td>
 		</tr>
+
+			
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{ArticaInCgroups}:</td>
-			<td>" . Field_checkbox("ArticaInCgroups",1,$ArticaInCgroups,"ArticaCgroupCheck()")."</td>
-			<td>" . help_icon("{ArticaInCgroups_explain}")."</td>
-		</tr>
-		<tr>
-			<td nowrap width=1% align='right' class=legend>{APP_CGROUPS}:</td>
-			<td>" . Field_array_Hash($cgroups,"ArticaCgroup",$ArticaCgroup)."</td>
-			<td>&nbsp;</td>
-		</tr>					
-		<tr>
-			<td nowrap width=1% align='right' class=legend>{cpuLimitEnabled}:</td>
-			<td>" . Field_checkbox("cpuLimitEnabled",1,$cpuLimitEnabled,"CheckCPULimit()")."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{cpuLimitEnabled}:</td>
+			<td>" . Field_checkbox_design("cpuLimitEnabled",1,$cpuLimitEnabled,"CheckCPULimit()")."</td>
 			<td>" . help_icon("{cpuLimitEnabled_explain}")."</td>
 		</tr>			
 		
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{cpulimit}:</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{cpulimit}:</td>
 			<td>$cpulimit_f</td>
 			<td>" . help_icon("{artica_cpulimit_explain}")."</td>
 		</tr>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{SystemLoadNotif}:</td>
-			<td>" . Field_array_Hash($SystemLoadNotif_array,"SystemLoadNotif",$SystemLoadNotif)."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{SystemLoadNotif}:</td>
+			<td>" . Field_array_Hash($SystemLoadNotif_array,"SystemLoadNotif",$SystemLoadNotif,null,null,0,"font-size:22px")."</td>
 			<td>&nbsp;</td>
 		</tr>			
 		
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{systemMaxOverloaded}:</td>
-			<td nowrap>". Field_text("systemMaxOverloaded",$systemMaxOverloaded,"width:60px;font-size:13px;padding:3px")."&nbsp;{load}</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{systemMaxOverloaded}:</td>
+			<td nowrap style='font-size:22px'>". Field_text("systemMaxOverloaded",
+					$systemMaxOverloaded,"width:110px;font-size:22px;padding:3px")."&nbsp;{load}</td>
 			<td>" . help_icon("{systemMaxOverloaded_explain}")."</td>
 		</tr>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{systemForkProcessesNumber}:</td>
-			<td nowrap>". Field_text("systemForkProcessesNumber",$systemForkProcessesNumber,"width:60px;font-size:13px;padding:3px")."&nbsp;{processes}</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{systemForkProcessesNumber}:</td>
+			<td nowrap style='font-size:22px'>". Field_text("systemForkProcessesNumber",
+					$systemForkProcessesNumber,"width:110px;font-size:22px;padding:3px")."&nbsp;{processes}</td>
 			<td>" . help_icon("{systemForkProcessesNumber_explain}")."</td>
 		</tr>		
 		$mysql_nice
 
 		
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{SystemV5CacheEnabled}:</td>
-			<td>" . Field_checkbox("SystemV5CacheEnabled",1,$SystemV5CacheEnabled)."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{SystemV5CacheEnabled}:</td>
+			<td>" . Field_checkbox_design("SystemV5CacheEnabled",1,$SystemV5CacheEnabled)."</td>
 			<td>" . help_icon("{SystemV5CacheEnabled_explain}")."</td>
 		</tr>	
 		
 				
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{useIonice}:</td>
-			<td>" . Field_checkbox("useIonice",1,$ini->_params["PERFORMANCES"]["useIonice"])."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{useIonice}:</td>
+			<td>" . Field_checkbox_design("useIonice",1,$ini->_params["PERFORMANCES"]["useIonice"])."</td>
 			<td>" . help_icon("{useIonice_explain}")."</td>
 		</tr>
 		
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{NoBootWithoutIP}:</td>
-			<td>" . Field_checkbox("NoBootWithoutIP",1,$ini->_params["PERFORMANCES"]["NoBootWithoutIP"])."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{NoBootWithoutIP}:</td>
+			<td>" . Field_checkbox_design("NoBootWithoutIP",1,$ini->_params["PERFORMANCES"]["NoBootWithoutIP"])."</td>
 			<td>" . help_icon("{NoBootWithoutIP_explain}")."</td>
 		</tr>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{DisableFollowServiceHigerThan1G}:</td>
-			<td>" . Field_checkbox("DisableFollowServiceHigerThan1G",1,$ini->_params["PERFORMANCES"]["DisableFollowServiceHigerThan1G"])."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{DisableFollowServiceHigerThan1G}:</td>
+			<td>" . Field_checkbox_design("DisableFollowServiceHigerThan1G",1,$ini->_params["PERFORMANCES"]["DisableFollowServiceHigerThan1G"])."</td>
 			<td>" . help_icon("{DisableFollowServiceHigerThan1G_explain}")."</td>
 		</tr>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{EnableArticaWatchDog}:</td>
-			<td>" . Field_checkbox("EnableArticaWatchDog",1,$sock->GET_INFO('EnableArticaWatchDog'))."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{EnableArticaWatchDog}:</td>
+			<td>" . Field_checkbox_design("EnableArticaWatchDog",1,$sock->GET_INFO('EnableArticaWatchDog'))."</td>
 			<td>" . help_icon("{EnableArticaWatchDog_explain}")."</td>
 		</tr>
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{DisableLoadAVGQueue}:</td>
-			<td>" . Field_checkbox("DisableLoadAVGQueue",1,$DisableLoadAVGQueue)."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{DisableLoadAVGQueue}:</td>
+			<td>" . Field_checkbox_design("DisableLoadAVGQueue",1,$DisableLoadAVGQueue)."</td>
 			<td>" . help_icon("{DisableLoadAVGQueue_explain}")."</td>
 		</tr>	
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{oom_kill_allocating_task}:</td>
-			<td>" . Field_checkbox("oom_kill_allocating_task",1,$oom_kill_allocating_task)."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{oom_kill_allocating_task}:</td>
+			<td>" . Field_checkbox_design("oom_kill_allocating_task",1,$oom_kill_allocating_task)."</td>
 			<td>
 		</tr>
-					
-					
-		<tr>
-			<td nowrap width=1% align='right' class=legend>{EnableBandwithCalculation}:</td>
-			<td>" . Field_checkbox("EnableBandwithCalculation",1,$EnableBandwithCalculation)."</td>
-			<td>" . help_icon("{EnableBandwithCalculation_explain}")."</td>
-		</tr>	
+
 			
 		$backupmailsize
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{MaxEventsInDatabase} (mail):</td>
-			<td nowrap>". Field_text("MaxMailEventsLogs",$MaxMailEventsLogs,"width:90px;font-size:13px;padding:3px")."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{MaxEventsInDatabase} (mail):</td>
+			<td nowrap>". Field_text("MaxMailEventsLogs",$MaxMailEventsLogs,"width:150px;font-size:22px;padding:3px")."</td>
 			<td></td>
 		</tr>	
 		<tr>
-			<td nowrap width=1% align='right' class=legend>{temp_dir}:</td>
-			<td nowrap>". Field_text("SysTmpDir",$SysTmpDir,"width:190px;font-size:13px;padding:3px")."</td>
+			<td nowrap width=1% align='right' class=legend style='font-size:22px'>{temp_dir}:</td>
+			<td nowrap>". Field_text("SysTmpDir",$SysTmpDir,"width:320px;font-size:22px;padding:3px")."</td>
 			<td></td>
 		</tr>	
-			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesMasterForm()",26)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesMasterForm()",34)."</td>
 		</tr>
 		</tbody>
 		</table>
-		
+		</form>
+</div>
 		<div id='$t-reboot'></div>	
 
 		
-</form>
-</td>
-<td valign='top'>
-	$icon_schedule$icon_phlisight
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+
+
+
 <script>
 	var x_SavePerformancesMasterForm= function (obj) {
 		var results=obj.responseText;
@@ -1003,41 +965,13 @@ $html="
 
 	function SavePerformancesMasterForm(){
 		var XHR=XHRParseElements('ffm1');
-		AnimateDiv('ffm1');
 		XHR.sendAndLoad('$page', 'POST',x_SavePerformancesMasterForm);
 	
 	}
 
 
 
-	function ArticaCgroupCheck(){
-		
-		var CGROUPS_INSTALLED=$CGROUPS_INSTALLED;
-		var cgroupsEnabled=$cgroupsEnabled;
-		var CountDeCgroups=$CountDeCgroups;
-		document.getElementById('ArticaCgroup').disabled=true;
-		document.getElementById('ArticaInCgroups').disabled=true;
-		
-		if(CGROUPS_INSTALLED==0){return;}
-		if(cgroupsEnabled==0){return;}
-		if(CountDeCgroups==0){return;}
-		document.getElementById('ArticaCgroup').disabled=false;
-		document.getElementById('ArticaInCgroups').disabled=false;	
-			 
-		if(document.getElementById('ArticaInCgroups').checked){
-			document.getElementById('cpuLimitEnabled').disabled=true;
-			document.getElementById('ProcessNice').disabled=true;
-			document.getElementById('cpulimit').disabled=true;
-			document.getElementById('useIonice').disabled=true;
-			
-		}else{
-			document.getElementById('cpuLimitEnabled').disabled=false;
-			document.getElementById('useIonice').disabled=false;
-			document.getElementById('ProcessNice').false=true;
-			CheckCPULimit();		
-		}
-		
-	}
+
 	
 	
 	function CheckCPULimit(){
@@ -1057,7 +991,7 @@ $html="
 		
 	
 
-ArticaCgroupCheck();
+
 CheckCPULimit();
 LoadRebootSection();
 
@@ -1321,16 +1255,15 @@ if(isset($_POST["systemMaxOverloaded"])){$sock->SET_INFO('systemMaxOverloaded',$
 if(isset($_POST["systemForkProcessesNumber"])){$sock->SET_INFO('systemForkProcessesNumber',$_POST["systemForkProcessesNumber"]);}
 if(isset($_POST["SystemV5CacheEnabled"])){$sock->SET_INFO('SystemV5CacheEnabled',$_POST["SystemV5CacheEnabled"]);}
 if(isset($_POST["MaxMailEventsLogs"])){$sock->SET_INFO('MaxMailEventsLogs',$_POST["MaxMailEventsLogs"]);}
-if(isset($_POST["ArticaCgroup"])){$sock->SET_INFO('ArticaCgroup',$_POST["ArticaCgroup"]);}
-if(isset($_POST["ArticaInCgroups"])){$sock->SET_INFO('ArticaInCgroups',$_POST["ArticaInCgroups"]);}
 if(isset($_POST["DisableLoadAVGQueue"])){$sock->SET_INFO('DisableLoadAVGQueue',$_POST["DisableLoadAVGQueue"]);}
 if(isset($_POST["SystemLoadNotif"])){$sock->SET_INFO('SystemLoadNotif',$_POST["SystemLoadNotif"]);}
-if(isset($_POST["EnableBandwithCalculation"])){$sock->SET_INFO('EnableBandwithCalculation',$_POST["EnableBandwithCalculation"]);}
+
 if(isset($_POST["oom_kill_allocating_task"])){$sock->SET_INFO('oom_kill_allocating_task',$_POST["oom_kill_allocating_task"]);}
 if(isset($_POST["SysTmpDir"])){$sock->SET_INFO("SysTmpDir",$_POST["SysTmpDir"]);}
 	
 	while (list ($num, $val) = each ($_POST) ){
 		if(strpos($val, "javascript")>0){continue;}
+		if(preg_match("#^Text_#", $num)){continue;}
 		writelogs("Save $num == '$val'",__FUNCTION__,__FILE__,__LINE__);
 		$ini->_params["PERFORMANCES"][$num]=$val;
 		
@@ -1391,7 +1324,7 @@ function mysql_test_perfs(){
 	
 	
 	<div style='font-size:18px'>{service_performances}</div>
-	<span style='font-size:14px;font-weight:bold;color:red'>{benchmark_result}: <code>$time seconds</code></span>
+	<span style='font-size:14px;font-weight:bold;color:#d32d2d'>{benchmark_result}: <code>$time seconds</code></span>
 	<H2>{others_benchmarks}</H2>
 	<table style='width:99%' class=form>
 	<tr>

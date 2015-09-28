@@ -149,7 +149,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 845,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -301,7 +301,7 @@ function item_popup(){
 	if(!is_numeric($t)){$t=time();}
 	$bname="{add}";
 	$page=CurrentPageName();
-	$explian="<div class=text-info style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
+	$explian="<div class=explain style='font-size:14px'>{ADD_DNS_ENTRY_TEXT}</div>";
 	$explian=null;
 	$q=new mysql();
 	if($id>0){

@@ -10,6 +10,7 @@
 	include_once('ressources/class.system.network.inc');
 	include_once('ressources/class.os.system.inc');
 	include_once('ressources/class.samba.inc');
+	include_once('ressources/class.system-msmtp.inc');
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	
 $usersmenus=new usersMenus();
@@ -18,7 +19,7 @@ if(isset($_GET["js"])){js();exit;}
 
 if($usersmenus->AsArticaAdministrator==false){header('location:users.index.php');exit;}
 
-if(isset($_GET["http_settings"])){HTTPS_PORT_SAVE();exit;}
+if(isset($_POST["LANGUAGE_SELECTOR_REMOVE"])){HTTPS_PORT_SAVE();exit;}
 if(isset($_POST["DenyMiniWebFromStandardPort"])){js_web_miniadm_save();exit;}
 if(isset($_POST["LighttpdArticaDisableSSLv2"])){js_LighttpdArticaDisableSSLv2_save();exit;}
 if(isset($_GET["lighttpd_procs"])){HTTPS_PROCESSES_SAVE();exit;}
@@ -217,8 +218,7 @@ function js_index(){
 	$mysql_settings=$tpl->_ENGINE_parse_body("{mysql_settings}");
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 	"javascript:Loadjs('$page?js=yes&func-webinterface=yes');");
-	$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
-	"javascript:Loadjs('$page?js=yes&func-NotificationsInterface=yes');");
+
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 	"javascript:Loadjs('$page?js=yes&func-ProxyInterface=yes');");
 	
@@ -228,7 +228,7 @@ function js_index(){
 	$logs=Paragraphe("scan-64.png","{logs_cleaning}","{logs_cleaning_text}",
 	"javascript:Loadjs('$page?js=yes&func-LogsInterface=yes');");
 	//$mysql=Paragraphe("folder-64-backup.png","{mysql_settings}","{mysql_settings_text}","javascript:MysqlInterface();","$mysql_settings");
-	$perfs=Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
+	
 	
 	
 	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
@@ -280,8 +280,7 @@ function js_index(){
 
 function js_web_interface(){
 	$tpl=new templates();
-	$array["js-web-interface2"]='{web_interface_settings}';
-	$array["js-web-fw"]='{security_access}';
+	
 	$array["js-web-miniadm"]='{ARTICA_MINIADM}';
 	
 	$array["php-options"]="PHP: {options}";
@@ -292,27 +291,34 @@ function js_web_interface(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
+		
+		if($num=="js-web-miniadm"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.performances.php?cron-index-page=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
 		if($num=="js-web-fw"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.web.fw.php\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.web.fw.php\"><span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		
 		if($num=="php-options"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?options=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?options=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="modules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?modules=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?modules=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_jsweb",1100);
+	echo build_artica_tabs($html, "main_config_jsweb",1470);
 	
 }
 
@@ -366,7 +372,7 @@ function SMTP_NOTIFICATIONS_NOTIF_JS(){
 	$html="
 	{$prefix}timeout=0;
 	
-	YahooWin2('760','$page?ajax-notif-popup=yes','$title');
+	YahooWin2('990','$page?ajax-notif-popup=yes','$title');
 		
 	function testnotifs(){
 		SaveArticaSMTPNotifValues();
@@ -413,14 +419,18 @@ function SMTP_NOTIFICATIONS_NOTIF_JS(){
 function SMTP_NOTIFICATIONS_POPUP(){
 	$tpl=new templates();
 	//$form=SMTP_NOTIFICATIONS();
-	echo "<form name='FFM120'><input type='hidden' name='' value='yes'>".$tpl->_ENGINE_parse_body(SMTP_NOTIFICATIONS_TABS())."</form>";
+	echo $tpl->_ENGINE_parse_body("
+	<div style='font-size:30px;margin-bottom:20px'>{smtp_notifications}</div>		
+	<form name='FFM120'><input type='hidden' name='' value='yes'>".SMTP_NOTIFICATIONS_TABS()."</form>");
 	
 }
 
 function SMTP_NOTIFICATIONS_TEST(){
+	$page=CurrentPageName();
 	$html="<div style='width:95%;height:500px;overflow:auto' id='testnotifs' class=form>
 	
-	</div>";
+	</div>
+	<script>LoadAjax('testnotifs','$page?testnotif=yes');</script>";
 	
 	echo $html;
 	
@@ -653,6 +663,7 @@ function HTTPS_PORT(){
 	$LighttpdArticaDisabled=$sock->GET_INFO("LighttpdArticaDisabled");
 	$LighttpdArticaDisableSSLv2=$sock->GET_INFO("LighttpdArticaDisableSSLv2");
 	$LighttpdArticaListenIP=$sock->GET_INFO("LighttpdArticaListenIP");
+	$LighttpdArticaCertificateName=$sock->GET_INFO("LighttpdArticaCertificateName");
 	$ConfirmDisableArticaWebConsole=$tpl->javascript_parse_text("{ConfirmDisableArticaWebConsole}");
 	
 	
@@ -675,63 +686,122 @@ function HTTPS_PORT(){
 	}
 	unset($IPAR["127.0.0.1"]);
 	
+
+	$t=time();
+	$logon_parameters=unserialize(base64_decode($sock->GET_INFO("LogonPageSettings")));
+	$page=CurrentPageName();
+	$lang["en"]="English";
+	$lang["fr"]="Francais";
+	$lang["po"]="Portugues";
+	$lang["br"]="Brazilian";
+	$lang["es"]="Espanol";
+	$lang["it"]="Italiano";
+	$lang["de"]="Deutsch";
+	$HTMLTitle=$sock->GET_INFO("HTMLTitle");
+	if(trim($HTMLTitle)==null){$HTMLTitle="%s (%v)";}	
 	
-	$lighttp_processes="<tr>
-			<td nowrap nowrap class=legend style='font-size:14px'>{processes}:</strong></td>
-			<td><input type='button' value='{advanced_settings}&nbsp;&raquo;' OnClick=\"javascript:YahooWin3(440,'$page?advlighttp=yes');\"></td>
-		</tr>
-		<tr>
-			<td nowrap nowrap class=legend style='font-size:14px'>{LighttpdUseLdap}:</strong></td>
-			<td>" . Field_numeric_checkbox_img('LighttpdUseLdap',$httpd->LighttpdUseLdap,'{LighttpdUseLdap_text}')."</td>
-		</tr>	";
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	$squid_reverse=new squid_reverse();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	
-	if($users->lighttpd_installed){
-		$lighttp_processes="<input type='hidden' id='LighttpdUseLdap' value=',$httpd->LighttpdUseLdap'>";
+	
+$html=$html . "
+<div style='width:98%' class=form>
+<table style='width:100%'>
+
+	<table style='width:100%'>
 		
+
+
+		<tr>
+			<td nowrap nowrap class=legend style='font-size:22px'>{ssl}:</strong></td>
+			<td>". Field_checkbox_design("ArticaHttpUseSSL",1,$ArticaHttpUseSSL,"WebArticaCheck()")."</td>
+		</tr>	
+		<tr>
+			<td nowrap nowrap class=legend style='font-size:22px'>{disableSSLv2}:</strong></td>
+			<td>". Field_checkbox_design("LighttpdArticaDisableSSLv2",1,$LighttpdArticaDisableSSLv2,"disableSSLv2Check()")."</td>
+		</tr>	
+	<tr>
+		<td class=legend nowrap style='font-size:22px;'>{certificate}:</td>
+		<td >". Field_array_Hash($sslcertificates, "LighttpdArticaCertificateName",
+				$LighttpdArticaCertificateName,null,null,0,"font-size:22px")."</td>
+	</tr>
+					
+					
+					
+	<tr>
+				<td nowrap class=legend style='font-size:22px'>{listen_port}:</strong></td>
+				<td>" . Field_text('https_port',trim($ArticaHttpsPort),'width:100px;font-size:22px;padding:3px')."</td>
+			</tr>
+			<tr>
+				<td nowrap class=legend style='font-size:22px'>{listen_address}:</strong></td>
+				<td>" . Field_array_Hash($IPAR,'LighttpdArticaListenIP',trim($LighttpdArticaListenIP),'style:font-size:22px;padding:3px')."</td>
+			</tr>			
+			 
+			
+			<tr>
+				<td nowrap class=legend style='font-size:22px'>{username}:</strong></td>
+				<td>" . Field_text('LighttpdUserAndGroup',trim($LighttpdUserAndGroup),'width:330px;font-size:22px;padding:3px')."</td>
+			</tr>
+<tr><td colspan=2 style='font-size:22px'>&nbsp;</td></tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{remove_language_selector}</td>
+		<td>". Field_checkbox_design("LANGUAGE_SELECTOR_REMOVE",1,
+		$logon_parameters["LANGUAGE_SELECTOR_REMOVE"],"CronLogonApplySelector()")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{default_language}</td>
+		<td>". Field_array_Hash($lang,"DEFAULT_LANGUAGE",$logon_parameters["DEFAULT_LANGUAGE"],null,null,0,
+				"font-size:22px;padding:3px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{title_pages}:</td>
+		<td>". Field_text("HTMLTitle",$HTMLTitle,"font-size:22px;padding:3px;width:380px")."</td>
+	</tr>										
+			<tr>
+				<td colspan=2 align='right'>
+					<hr>
+					". button("{apply}","Save$t()",36)."
+					
+				</td>
+			</tr>
+</table>
+</div>
+<script>
+
+	
+	
+	function CronLogonApplySelector(){
+		document.getElementById('DEFAULT_LANGUAGE').disabled=true;
+		if(document.getElementById('LANGUAGE_SELECTOR_REMOVE').checked){
+			document.getElementById('DEFAULT_LANGUAGE').disabled=false;
+		}
 	}
 	
-	
-	$lighttpd_usenossl="
-		<tr>
-			<td nowrap nowrap class=legend style='font-size:16px'>{ssl}:</strong></td>
-			<td>". Field_checkbox("ArticaHttpUseSSL",1,$ArticaHttpUseSSL,"WebArticaCheck()")."</td>
-		</tr>	
-		<tr>
-			<td nowrap nowrap class=legend style='font-size:16px'>{disableSSLv2}:</strong></td>
-			<td>". Field_checkbox("LighttpdArticaDisableSSLv2",1,$LighttpdArticaDisableSSLv2,"disableSSLv2Check()")."</td>
-		</tr>	
-	";
-	
-	
-	
-	
-	$t=time();
-	if($use_apache==null){$use_apache="<input type='hidden' name='ApacheArticaEnabled' value='0'>";}
-	
-	$html="
-	<input type='hidden' id='interface_restarted' value='{interface_restarted}'>
-	<form name='FFM109'>
-	<input type='hidden' name='http_settings' value='yes'>
-	<script>
-	
-		function Save$t(){
-			ParseForm('FFM109','artica.settings.php',true);
-		}
-	
-	
-		function LighttpdArticaDisabledCheck(){
+	var xSave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>2){alert(results);return;}
+		Loadjs('artica.webinterface.restart.php');
+	}	
+							
+	function Save$t(){
+				// -- > HTTPS_PORT_SAVE
 			var XHR = new XHRConnection();
-			if(document.getElementById('LighttpdArticaDisabled').checked){
-				if(!confirm('$ConfirmDisableArticaWebConsole')){return;}
-				XHR.appendData('LighttpdArticaDisabled',1);
-				
-			}else{
-				XHR.appendData('LighttpdArticaDisabled',0);
-			}
-			LighttpdArticaDisabledcheck();
-			XHR.sendAndLoad('$page', 'GET');
-		
-		}
+			if(document.getElementById('LANGUAGE_SELECTOR_REMOVE').checked){XHR.appendData('LANGUAGE_SELECTOR_REMOVE',1);}else{XHR.appendData('LANGUAGE_SELECTOR_REMOVE',0);}
+			if(document.getElementById('ArticaHttpUseSSL').checked){XHR.appendData('ArticaHttpUseSSL',1);}else{XHR.appendData('ArticaHttpUseSSL',0);}
+			if(document.getElementById('LighttpdArticaDisableSSLv2').checked){XHR.appendData('LighttpdArticaDisableSSLv2',1);}else{XHR.appendData('LighttpdArticaDisableSSLv2',0);}
+			if(document.getElementById('LANGUAGE_SELECTOR_REMOVE').checked){XHR.appendData('LANGUAGE_SELECTOR_REMOVE',1);}else{XHR.appendData('LANGUAGE_SELECTOR_REMOVE',0);}
+			XHR.appendData('DEFAULT_LANGUAGE',document.getElementById('DEFAULT_LANGUAGE').value);
+			XHR.appendData('HTMLTitle',encodeURIComponent(document.getElementById('HTMLTitle').value));
+			XHR.appendData('https_port',document.getElementById('https_port').value);
+			XHR.appendData('LighttpdArticaListenIP',document.getElementById('LighttpdArticaListenIP').value);
+			XHR.appendData('LighttpdUserAndGroup',document.getElementById('LighttpdUserAndGroup').value);
+			XHR.appendData('LighttpdArticaCertificateName',document.getElementById('LighttpdArticaCertificateName').value);
+			
+			
+			
+			XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
 		
 		function disableSSLv2Check(){
 			var XHR = new XHRConnection();
@@ -757,75 +827,11 @@ function HTTPS_PORT(){
 		
 		}
 		
-		function LighttpdArticaDisabledcheck(){
-			if(!document.getElementById('LighttpdArticaDisabled')){return;}
-			document.getElementById('LighttpdArticaDisableSSLv2').disabled=true;
-			document.getElementById('ArticaHttpUseSSL').disabled=true;
-			document.getElementById('https_port').disabled=true;
-			document.getElementById('LighttpdUserAndGroup').disabled=true;
-			document.getElementById('LighttpdArticaListenIP').disabled=true;
-			
-			
-			
-			if(!document.getElementById('LighttpdArticaDisabled').checked){
-				document.getElementById('LighttpdArticaDisableSSLv2').disabled=false;
-				document.getElementById('ArticaHttpUseSSL').disabled=false;
-				document.getElementById('https_port').disabled=false;
-				document.getElementById('LighttpdUserAndGroup').disabled=false;	
-				document.getElementById('LighttpdArticaListenIP').disabled=false;	
-			}
-		
-		}
-		
 		
 	WebArticaCheck();	
-	LighttpdArticaDisabledcheck();
-	</script>
-	
-	
-	";
-	
-	if($users->lighttpd_installed){
-		$lighttpd= "
-		$use_apache
-		$lighttp_processes
-		$lighttpd_usenossl
-						
-		";
-		
-		
-		
-	}else{$html=$html . "<input type='hidden' name='ApacheArticaEnabled' value='1'>";}
-	
-	
-$html=$html . "
-<div style='width:98%' class=form>
-<table style='width:100%'>
-			$lighttpd
-			<tr>
-				<td nowrap class=legend style='font-size:16px'>{listen_port}:</strong></td>
-				<td>" . Field_text('https_port',trim($ArticaHttpsPort),'width:100px;font-size:16px;padding:3px')."</td>
-			</tr>
-			<tr>
-				<td nowrap class=legend style='font-size:16px'>{listen_address}:</strong></td>
-				<td>" . Field_array_Hash($IPAR,'LighttpdArticaListenIP',trim($LighttpdArticaListenIP),'style:font-size:16px;padding:3px')."</td>
-			</tr>			
-			 
-			
-			<tr>
-				<td nowrap class=legend style='font-size:16px'>{username}:</strong></td>
-				<td>" . Field_text('LighttpdUserAndGroup',trim($LighttpdUserAndGroup),'width:230px;font-size:16px;padding:3px')."</td>
-			</tr>
-			
-			<tr>
-				<td colspan=2 align='right'>
-					<hr>
-					". button("{apply}","Save$t()",22)."
-					
-				</td>
-			</tr>
-</table>
-</div>";
+CronLogonApplySelector();														
+</script>							
+";
 			
 			
 	
@@ -1520,92 +1526,32 @@ function SMTP_NOTIFICATIONS_TABS(){
 	
 	$array["notif1"]='{parameters}';
 	$array["notif2"]='{notifications}';
+	$array["notif4"]='{recipients}';
 	if($user->POSTFIX_INSTALLED){
 		$array["notif3"]='{APP_POSTFIX}';
 		
 	}
 
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?smtp-notifs-tab=$num\"><span style='font-size:16px'>$ligne</span></a></li>\n";
+		
+		if($num=="notif4"){
+			$html[]= "<li><a href=\"artica.smtp.bcc.php\"><span style='font-size:26px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		$html[]= "<li><a href=\"$page?smtp-notifs-tab=$num\"><span style='font-size:26px'>$ligne</span></a></li>\n";
 	}
 	
 	
-	return "
-	<div id='main_config_notifs' style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_notifs').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";			
+	return build_artica_tabs($html, "main_config_notifs");
+		
 	
 }
 
-function SMTP_NOTIFICATIONS_ADD_CC(){
-	$sock=new sockets();
-	
-	$tbl=explode("\n",$sock->GET_INFO("SmtpNotificationConfigCC"));
-	$tbl[]=$_GET["SMTP_NOTIFICATIONS_ADD_CC"];
-	while (list ($num, $ligne) = each ($tbl) ){
-		if(trim($ligne)==null){continue;}
-		$cc[$ligne]=$ligne;
-	}
-	
-	while (list ($num, $ligne) = each ($cc) ){
-		$cc_final[]=$num;
-	}	
-	
-	$sock->SaveConfigFile(implode("\n",$cc_final),"SmtpNotificationConfigCC");
-	
-	
-}
 
-function SMTP_NOTIFICATIONS_DEL_CC(){
-	$sock=new sockets();
-	$tbl=explode("\n",$sock->GET_INFO("SmtpNotificationConfigCC"));
-	unset($tbl[$_GET["SMTP_NOTIFICATIONS_DEL_CC"]]);
-	if(!is_array($tbl)){
-		$final=null;
-	}else{
-		$final=implode("\n",$tbl);
-	}
-	
-	$sock->SaveConfigFile(implode("\n",$cc_final),"SmtpNotificationConfigCC");
-}
 
-function SMTP_NOTIFICATIONS_CCLIST(){
-	$sock=new sockets();
-	$tbl=explode("\n",$sock->GET_INFO("SmtpNotificationConfigCC"));
-	if(!is_array($tbl)){return null;}
-	
-	$html="<table style='width:99%'>";
-while (list ($num, $ligne) = each ($tbl) ){
-		if($ligne==null){continue;}
-		$html=$html . "
-		<tr ". CellRollOver().">
-			<td width=1%>". imgtootltip('ed_delete.gif',"{delete}","SMTP_NOTIFICATIONS_DEL_CC($num)")."</td>
-			<td><code style='font-size:10px'>$ligne</code></td>
-		</tr>
-		";
-	}	
-	
-	
-	$html=$html . "</table>";
-	$tpl=new templates();
-	return  $tpl->_ENGINE_parse_body($html);	
-	
-	
-}
+
+
 
 function SMTP_NOTIFICATIONS_SWITCH(){
 	echo SMTP_NOTIFICATIONS();
@@ -1614,12 +1560,15 @@ function SMTP_NOTIFICATIONS_SWITCH(){
 
 
 function SMTP_NOTIFICATIONS(){
-	
+	$t=time();
 	$users=new usersMenus();
 	$ini=new Bs_IniHandler();
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$ini->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));
+	$tpl=new templates();
+	$test=$tpl->javascript_parse_text("{test}");
+	$datas=trim($sock->GET_INFO("SmtpNotificationConfig"));
+	$ini->loadString($datas);
 	$EnableMONITSmtpNotif=$sock->GET_INFO("EnableMONITSmtpNotif");
 	$jGrowlNotifsDisabled=$sock->GET_INFO("jGrowlNotifsDisabled");
 	
@@ -1647,76 +1596,61 @@ function SMTP_NOTIFICATIONS(){
 	
 
 	$SystemCPUAlarmMin_arr=array(5=>5,10=>10,15=>15,30=>30,60=>60,120=>120,180=>180,240=>240);
-	$SystemCPUAlarmMin=Field_array_Hash($SystemCPUAlarmMin_arr,'SystemCPUAlarmMin',$ini->_params["SMTP"]["SystemCPUAlarmMin"]);
+	$SystemCPUAlarmMin=Field_array_Hash($SystemCPUAlarmMin_arr,
+			'SystemCPUAlarmMin',$ini->_params["SMTP"]["SystemCPUAlarmMin"],null,null,0,"font-size:22px");
 	
-	$member_add=Paragraphe("member-add-64.png","{add_recipient}","{add_recipient_text}",
-		"javascript:SMTP_NOTIFICATIONS_ADD_CC();");
-	
-	$notifcclist=SMTP_NOTIFICATIONS_CCLIST();
+
 		
 		//Switchdiv
 	
 $notif1="
-	<div class=text-info style='font-size:14px'>{smtp_notifications_text}</div>
+	<div class=explain style='font-size:20px'>{smtp_notifications_text}</div>
 	<div id='notif1'>
 	<div style='width:98%' class=form>
-	<table>
+	<table style='width:100%'>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{jGrowlNotifsDisabled}:</strong></td>
-		<td>" . Field_checkbox("jGrowlNotifsDisabled",1,$jGrowlNotifsDisabled,"")."</td>
-	</tr>	
-	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_enabled}:</strong></td>
-		<td>" . Field_checkbox("enabled",1,$ini->_params["SMTP"]["enabled"],"SMTPNotifArticaEnableSwitch()")."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_enabled}:</strong></td>
+		<td>" . Field_checkbox_design("enabled",1,$ini->_params["SMTP"]["enabled"],"SMTPNotifArticaEnableSwitch()")."</td>
 	</tr>
-	<tr>
-		<td nowrap class=legend style='font-size:14px'>{EnableMONITSmtpNotif}:</strong></td>
-		<td>" . Field_checkbox("EnableMONITSmtpNotif",1,$EnableMONITSmtpNotif,"")."</td>
-	</tr>
+
 
 	
 	
 	
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_server_name}:</strong></td>
-		<td>" . Field_text('smtp_server_name',trim($ini->_params["SMTP"]["smtp_server_name"]),'font-size:14px;padding:3px;width:200px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_server_name}:</strong></td>
+		<td>" . Field_text('smtp_server_name',trim($ini->_params["SMTP"]["smtp_server_name"]),'font-size:22px;padding:3px;width:500px')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_server_port}:</strong></td>
-		<td>" . Field_text('smtp_server_port',trim($ini->_params["SMTP"]["smtp_server_port"]),'font-size:14px;padding:3px;width:60px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_server_port}:</strong></td>
+		<td>" . Field_text('smtp_server_port',trim($ini->_params["SMTP"]["smtp_server_port"]),'font-size:22px;padding:3px;width:120px')."</td>
 	</tr>	
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_sender}:</strong></td>
-		<td>" . Field_text('smtp_sender',trim($ini->_params["SMTP"]["smtp_sender"]),'font-size:14px;padding:3px;width:200px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text('smtp_sender',trim($ini->_params["SMTP"]["smtp_sender"]),'font-size:22px;padding:3px;width:500px')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_dest}:</strong></td>
-		<td>" . Field_text('smtp_dest',trim($ini->_params["SMTP"]["smtp_dest"]),'font-size:14px;padding:3px;width:200px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_dest}:</strong></td>
+		<td>" . Field_text('smtp_dest',trim($ini->_params["SMTP"]["smtp_dest"]),'font-size:22px;padding:3px;width:500px')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_auth_user}:</strong></td>
-		<td>" . Field_text('smtp_auth_user',trim($ini->_params["SMTP"]["smtp_auth_user"]),'font-size:14px;padding:3px;width:200px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_auth_user}:</strong></td>
+		<td>" . Field_text('smtp_auth_user',trim($ini->_params["SMTP"]["smtp_auth_user"]),'font-size:22px;padding:3px;width:500px')."</td>
 	</tr>	
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{smtp_auth_passwd}:</strong></td>
-		<td>" . Field_password('smtp_auth_passwd',trim($ini->_params["SMTP"]["smtp_auth_passwd"]),'font-size:14px;padding:3px;width:150px')."</td>
+		<td nowrap class=legend style='font-size:22px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password('smtp_auth_passwd',trim($ini->_params["SMTP"]["smtp_auth_passwd"]),'font-size:22px;padding:3px;width:500px')."</td>
 	</tr>
 	<tr>
-		<td nowrap class=legend style='font-size:14px'>{tls_enabled}:</strong></td>
-		<td>" . Field_checkbox("tls_enabled",1,$ini->_params["SMTP"]["tls_enabled"])."</td>
+		<td nowrap class=legend style='font-size:22px'>{tls_enabled}:</strong></td>
+		<td>" . Field_checkbox_design("tls_enabled",1,$ini->_params["SMTP"]["tls_enabled"])."</td>
 	</tr>	
-	<tr>
-		<td nowrap class=legend style='font-size:14px'>LOGIN:</strong></td>
-		<td>" . Field_checkbox("USE_LOGIN",1,$ini->_params["SMTP"]["USE_LOGIN"])."</td>
-	</tr>
-	
-	
 	<tr>
 		<td align='left'>
-			". button("{test}","testnotifs()",16)."
+			". button("{test}","testnotifs$t()",30)."
 			
 		</td>
-		<td align='right'>".button('{apply}',"SaveArticaSMTPNotifValues();",16)."</td>
+		<td align='right'>".button('{apply}',"SaveArticaSMTPNotifValues();",30)."</td>
 
 	</tr>
 </table>
@@ -1739,13 +1673,7 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 	function SaveArticaSMTPNotifValues(){
 		var XHR = new XHRConnection();
 		if(document.getElementById('enabled').checked){XHR.appendData('enabled',1);}else {XHR.appendData('enabled',0);}
-		if(document.getElementById('jGrowlNotifsDisabled').checked){XHR.appendData('jGrowlNotifsDisabled',1);}else {XHR.appendData('jGrowlNotifsDisabled',0);}
-		
-		
-		
 		if(document.getElementById('tls_enabled').checked){XHR.appendData('tls_enabled',1);}else {XHR.appendData('tls_enabled',0);}
-		if(document.getElementById('USE_LOGIN').checked){XHR.appendData('USE_LOGIN',1);}else {XHR.appendData('USE_LOGIN',0);}
-		if(document.getElementById('EnableMONITSmtpNotif').checked){XHR.appendData('EnableMONITSmtpNotif',1);}else {XHR.appendData('EnableMONITSmtpNotif',0);}
 		XHR.appendData('smtp_server_name',document.getElementById('smtp_server_name').value);
 		XHR.appendData('smtp_server_port',document.getElementById('smtp_server_port').value);
 		XHR.appendData('smtp_sender',document.getElementById('smtp_sender').value);
@@ -1753,22 +1681,19 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 		XHR.appendData('smtp_auth_user',document.getElementById('smtp_auth_user').value);
 		XHR.appendData('smtp_auth_passwd',document.getElementById('smtp_auth_passwd').value);
 		XHR.appendData('smtp_notifications','yes');
-		AnimateDiv('notif1');
 		XHR.sendAndLoad('$page', 'GET',x_SaveArticaSMTPNotifValues);
 	}
 	
 	function SMTPNotifArticaEnableSwitch(){
 		document.getElementById('smtp_auth_passwd').disabled=true;
-		document.getElementById('EnableMONITSmtpNotif').disabled=true;
 		document.getElementById('smtp_auth_user').disabled=true;
 		document.getElementById('smtp_dest').disabled=true;
 		document.getElementById('smtp_sender').disabled=true;
 		document.getElementById('smtp_server_port').disabled=true;
 		document.getElementById('smtp_server_name').disabled=true;
 		document.getElementById('tls_enabled').disabled=true;
-		document.getElementById('USE_LOGIN').disabled=true;
+		
 		if(document.getElementById('enabled').checked){
-			document.getElementById('EnableMONITSmtpNotif').disabled=false;
 			document.getElementById('smtp_auth_passwd').disabled=false;
 			document.getElementById('smtp_auth_user').disabled=false;
 			document.getElementById('smtp_dest').disabled=false;
@@ -1776,16 +1701,26 @@ var x_SaveArticaSMTPNotifValues= function (obj) {
 			document.getElementById('smtp_server_port').disabled=false;
 			document.getElementById('smtp_server_name').disabled=false;
 			document.getElementById('tls_enabled').disabled=false;
-			document.getElementById('USE_LOGIN').disabled=false;			
+					
 		}
 	}
+	
+	function testnotifs$t(){
+		SaveArticaSMTPNotifValues();
+		YahooWin3('800','$page?ajax-notif-start=yes','$test');
+		
+	}
+	
+	
+	
+	
 	SMTPNotifArticaEnableSwitch();
 </script>
 ";
 $notif2="
 <div id='notif2'>
 <br>
-<div class=text-info>{notification_context}</div>
+<div class=explain style='font-size:22px'>{notification_context}</div>
 <table style='width:99%' class='form'>
 <tbody>
 <tr>
@@ -1793,30 +1728,30 @@ $notif2="
 	<table style='width:100%'>
 	<tbody>
 		<tr>
-			<td valign='top' class=legend>{system}:</td>
-			<td valign='top'>" . Field_checkbox('system',1,$ini->_params["SMTP"]["system"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{system}:</td>
+			<td valign='top'>" . Field_checkbox_design('system',1,$ini->_params["SMTP"]["system"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>{security}:</td>
-			<td valign='top'>" . Field_checkbox('security',1,$ini->_params["SMTP"]["security"])."</td>
-		</tr>
-		
-		<tr>
-			<td valign='top' class=legend>{sa-learn}:</td>
-			<td valign='top'>" . Field_checkbox('sa-learn',1,$ini->_params["SMTP"]["sa-learn"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{security}:</td>
+			<td valign='top'>" . Field_checkbox_design('security',1,$ini->_params["SMTP"]["security"])."</td>
 		</tr>
 		
 		<tr>
-			<td valign='top' class=legend>{logs_cleaning}:</td>
-			<td valign='top'>" . Field_checkbox('logs_cleaning',1,$ini->_params["SMTP"]["logs_cleaning"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{sa-learn}:</td>
+			<td valign='top'>" . Field_checkbox_design('sa-learn',1,$ini->_params["SMTP"]["sa-learn"])."</td>
+		</tr>
+		
+		<tr>
+			<td valign='top' class=legend style='font-size:22px'>{logs_cleaning}:</td>
+			<td valign='top'>" . Field_checkbox_design('logs_cleaning',1,$ini->_params["SMTP"]["logs_cleaning"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>{update}:</td>
-			<td valign='top'>" . Field_checkbox('update',1,$ini->_params["SMTP"]["update"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{update}:</td>
+			<td valign='top'>" . Field_checkbox_design('update',1,$ini->_params["SMTP"]["update"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>{amavis_watchdog}:</td>
-			<td valign='top'>" . Field_checkbox('amavis_watchdog',1,$ini->_params["SMTP"]["AmavisWatchdog"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{amavis_watchdog}:</td>
+			<td valign='top'>" . Field_checkbox_design('amavis_watchdog',1,$ini->_params["SMTP"]["AmavisWatchdog"])."</td>
 		</tr>		
 		</tbody>
 	</table>
@@ -1825,55 +1760,55 @@ $notif2="
 	<table style='width:100%'>
 	<tbody>
 		<tr>
-			<td valign='top' class=legend>{KASPERSKY_UPDATES}:</td>
-			<td valign='top'>" . Field_checkbox('KASPERSKY_UPDATES',1,$ini->_params["SMTP"]["KASPERSKY_UPDATES"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{KASPERSKY_UPDATES}:</td>
+			<td valign='top'>" . Field_checkbox_design('KASPERSKY_UPDATES',1,$ini->_params["SMTP"]["KASPERSKY_UPDATES"])."</td>
 		</tr>
 		
 		<tr>
-			<td valign='top' class=legend>{backup}:</td>
-			<td valign='top'>" . Field_checkbox('backup',1,$ini->_params["SMTP"]["backup"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{backup}:</td>
+			<td valign='top'>" . Field_checkbox_design('backup',1,$ini->_params["SMTP"]["backup"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>{mailbox}:</td>
-			<td valign='top'>" . Field_checkbox('mailbox',1,$ini->_params["SMTP"]["mailbox"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>{mailbox}:</td>
+			<td valign='top'>" . Field_checkbox_design('mailbox',1,$ini->_params["SMTP"]["mailbox"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>postfix:</td>
-			<td valign='top'>" . Field_checkbox('postfix',1,$ini->_params["SMTP"]["postfix"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>postfix:</td>
+			<td valign='top'>" . Field_checkbox_design('postfix',1,$ini->_params["SMTP"]["postfix"])."</td>
 		</tr>
 		<tr>
-			<td valign='top' class=legend>VIPTrack:</td>
-			<td valign='top'>" . Field_checkbox('VIPTrack',1,$ini->_params["SMTP"]["VIPTrack"])."</td>
+			<td valign='top' class=legend style='font-size:22px'>VIPTrack:</td>
+			<td valign='top'>" . Field_checkbox_design('VIPTrack',1,$ini->_params["SMTP"]["VIPTrack"])."</td>
 		</tr>
 		
 		<tr>
-			<td nowrap class=legend>{APP_MONIT}:</strong></td>
-			<td>" . Field_checkbox('monit',1,$ini->_params["SMTP"]["monit"])."</td>
+			<td nowrap class=legend style='font-size:22px'>{APP_MONIT}:</strong></td>
+			<td>" . Field_checkbox_design('monit',1,$ini->_params["SMTP"]["monit"])."</td>
 		</tr>
 	</tbody>
 	</table>
 </td>
 </tr>
 <tr>
-	<td valign='top' colspan=2 align='right'><hr>".button('{apply}',"SaveNotificationsContext()")."</td>
+	<td valign='top' colspan=2 align='right'><hr>".button('{apply}',"SaveNotificationsContext()",30)."</td>
 </tr>
 </table>
-<br><div style='font-size:14px;font-weight:bold;border-bottom:1px solid #005447'>{CPU_ALARM}</div>
+<br><div style='font-size:30px;font-weight:bold;border-bottom:1px solid #005447'>{CPU_ALARM}</div>
 <table style='width:100%'>
 <tr>
-	<td valign='top' class=legend>{enable}:</td>
-	<td valign='top'>" . Field_checkbox('SystemCPUAlarm',1,$ini->_params["SMTP"]["SystemCPUAlarm"],"NotifSwitch()")."</td>
+	<td valign='top' class=legend style='font-size:22px'>{enable}:</td>
+	<td valign='top'>" . Field_checkbox_design('SystemCPUAlarm',1,$ini->_params["SMTP"]["SystemCPUAlarm"],"NotifSwitch()")."</td>
 </tr>
 <tr>
-	<td valign='top' class=legend>{SystemCPUAlarmPourc}:</td>
-	<td valign='top'>" . Field_text('SystemCPUAlarmPourc',$ini->_params["SMTP"]["SystemCPUAlarmPourc"],'width:40px')."&nbsp;%</td>
+	<td valign='top' class=legend style='font-size:22px'>{SystemCPUAlarmPourc}:</td>
+	<td valign='top'>" . Field_text('SystemCPUAlarmPourc',$ini->_params["SMTP"]["SystemCPUAlarmPourc"],'width:110px;font-size:22px')."&nbsp;%</td>
 </tr>
 <tr>
-	<td valign='top' class=legend>{during}:</td>
-	<td valign='top'>$SystemCPUAlarmMin&nbsp;mn</td>
+	<td valign='top' class=legend style='font-size:22px'>{during}:</td>
+	<td valign='top' style='font-size:18px'>$SystemCPUAlarmMin&nbsp;mn</td>
 </tr>
 <tr>
-	<td valign='top' colspan=2 align='right'><hr>".button('{apply}',"SaveNotificationsContext();")."</td>
+	<td valign='top' colspan=2 align='right'><hr>".button('{apply}',"SaveNotificationsContext();",30)."</td>
 </tr>
 </table>
 </div>
@@ -1917,7 +1852,7 @@ $notif2="
 $notif3="
 <div id='notif3'>
 <br>
-<div class=text-info>{APP_POSTFIX} {notifications}</div>
+<div class=explain>{APP_POSTFIX} {notifications}</div>
 <table style='width:100%'>
 <tr>
 	<td valign='top' class=legend>{PostfixQueueEnabled}:</td>
@@ -1984,64 +1919,42 @@ return $tpl->_ENGINE_parse_body($HTML);
 
 function SMTP_NOTIFICATIONS_NOTIF(){
 	$sock=new sockets();
-	
-	
-	
-	$datas=$sock->getFrameWork("cmd.php?testnotif=yes");
-	//echo $datas;
-	$datas=explode("\n",$datas);
-	$datas=array_reverse($datas,true);
-	while (list ($num, $ligne) = each ($datas) ){
-		if(trim($ligne)==null){continue;}
-		if(preg_match("#error while loading shared libraries:\s+(.+?)\s+#",$ligne,$re)){
-			$success="<div style='margin:5px;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px;background-color:white'>
-				LIBRARY {$re[1]} ERROR, please <a href='#' OnClick=\"javascript:Loadjs('setup.index.progress.php?product=APP_MSMTP&start-install=yes')\">
-				reinstall</a><br>
-				<hr style='border:1px'>
-					<code>$ligne</code>
-				<hr style='border:1px'>
-			</div><br>";
-			continue;
-		}
-		if(preg_match('#No such file or directory#',$ligne)){continue;}
-		if(preg_match('#EX_OK#',$ligne)){
-			$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>{success}</div><br>";
-			continue;
-		}
-		
-		if(preg_match('#cannot use a secure authentication method#',$ligne,$re)){
-		$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>
-			{failed}<br>$ligne</div><br>";
-			continue;
-			
-		}
-		
-		if(preg_match("#errormsg='(.+)'#", $ligne,$re)){
-			$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>
-			{failed}<br>{$re[1]}</div><br>";
-			continue;			
-			
-		}
-		
-		
-		
-		if(preg_match('#errormsg=(.+?)\s+exitcode=EX_UNAVAILABLE#',$ligne,$re)){
-			$success="<div style='margin:5px;background-color:white;text-align:center;font-size:14px;font-weight:bold;color:red;border:1px solid red;padding:4px;margin:5px'>
-			{failed}<br>{$re[1]}</div><br>";
-			continue;
-			
-		}
-				
-		
-		
-		
-		
-		$html=$html. "<div style='border-bottom:1px solid #CCCCCC'><code>" . htmlspecialchars($ligne)."</code></div>";
-		
-	}
-	
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($success.$html);	
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$datas=trim($sock->GET_INFO("SmtpNotificationConfig"));
+	$ini->loadString($datas);
+	
+	
+	
+	$smtp_sender=$ini->_params["SMTP"]["smtp_sender"];
+	$recipient=$ini->_params["SMTP"]["smtp_dest"];
+	if($GLOBALS["VERBOSE"]){echo "Build PHPMailer<br>\n";}
+	$mail = new PHPMailer(true);
+	$mail->IsSendmail();
+	$mail->AddAddress($recipient,$recipient);
+	$mail->AddReplyTo($smtp_sender,$smtp_sender);
+	
+	$mail->From=$smtp_sender;
+	$mail->FromName=$smtp_sender;
+	$mail->Subject="This is a test notification message";
+	$mail->Body= "This is a test notification message";
+	$content=$mail->Send(true);
+	$msmtp=new system_msmtp($recipient, $content);
+	if($GLOBALS["VERBOSE"]){echo "Build SEND system_msmtp($recipient, $content)<br>\n";}
+	if($msmtp->Send()){
+		echo $tpl->_ENGINE_parse_body("<center style='font-size:50px'>{success}</center>");
+		return;
+	}
+	echo $tpl->_ENGINE_parse_body("<center style='font-size:50px'>{failed2}</center>
+	<textarea style='margin-top:5px;font-family:Courier New;
+font-weight:bold;width:99%;height:250px;border:5px solid #8E8E8E;
+overflow:auto;font-size:18px !important' id='text-'>$msmtp->logs</textarea>		
+			
+			
+	");
+	
+	
 }
 
 
@@ -2832,18 +2745,25 @@ function SaveSqlSettings(){
 function HTTPS_PORT_SAVE(){
 	$httpd=new httpd();
 	$sock=new sockets();
-
-	if(preg_match('#(.+?):(.+)#',$_GET["LighttpdUserAndGroup"])){
-		$sock->SET_INFO("LighttpdUserAndGroup",$_GET["LighttpdUserAndGroup"]);
+	$logon_parameters=unserialize(base64_decode($sock->GET_INFO("LogonPageSettings")));
+	
+	while (list ($num, $val) = each ($_GET) ){
+		$logon_parameters[$num]=url_decode_special_tool($val);
 	}
-	$sock->SET_INFO("ArticaHttpsPort",$_GET["https_port"]);
-	$sock->SET_INFO("ArticaHttpUseSSL",$_GET["ArticaHttpUseSSL"]);
-	$sock->SET_INFO("LighttpdArticaListenIP", $_GET["LighttpdArticaListenIP"]);
-	$httpd->https_port=$_GET["https_port"];
-	$httpd->LighttpdUseLdap=$_GET["LighttpdUseLdap"];
-	$httpd->ApacheConfig=$_GET["ApacheArticaEnabled"];
-	$httpd->ApacheArticaEnabled=$_GET["ApacheArticaEnabled"];
-	$httpd->SaveToServer();
+	
+	if(isset($_POST["HTMLTitle"])){$sock->SET_INFO("HTMLTitle", url_decode_special_tool($_POST["HTMLTitle"]));}
+	
+	$sock->SaveConfigFile(base64_encode(serialize($logon_parameters)),"LogonPageSettings");
+	
+	
+	if(preg_match('#(.+?):(.+)#',$_POST["LighttpdUserAndGroup"])){
+		$sock->SET_INFO("LighttpdUserAndGroup",$_POST["LighttpdUserAndGroup"]);
+	}
+	$sock->SET_INFO("ArticaHttpsPort",$_POST["https_port"]);
+	$sock->SET_INFO("ArticaHttpUseSSL",$_POST["ArticaHttpUseSSL"]);
+	$sock->SET_INFO("LighttpdArticaListenIP", $_POST["LighttpdArticaListenIP"]);
+	$sock->SET_INFO("LighttpdArticaCertificateName", $_POST["LighttpdArticaCertificateName"]);
+	
 	
 }
 
@@ -3327,7 +3247,7 @@ $db="<table style='width:99%' class=form>
 		while (list ($num, $ligne) = each ($dbstat) ){
 			if(preg_match("#Program version ([0-9\.]+) doesn't match environment version ([0-9\.]+)#",$ligne,$re[1])){
 				$db=$db."<tr>
-					<td><strong style='color:red;font-size:12px'>Please install db tools for {$re[2]} version</strong></td>
+					<td><strong style='color:#d32d2d;font-size:12px'>Please install db tools for {$re[2]} version</strong></td>
 					</tr>";
 					break;
 			}
@@ -3515,7 +3435,7 @@ function js_web_fw(){
 	$page=CurrentPageName();
 	$styleOfFields="width:190px;font-size:14px;padding:3px";
 	$html="
-	<div class=text-info>{LIGHTTPD_IP_ACCESS_TEXT}</div>
+	<div class=explain>{LIGHTTPD_IP_ACCESS_TEXT}</div>
 	
 	<table style='width:100%'>
 	<tr>

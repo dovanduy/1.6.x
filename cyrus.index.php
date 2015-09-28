@@ -496,7 +496,7 @@ function popup_status(){
 	<center><img src='img/bg-cyrus.jpg'></center></td>
 	<td valign='top'>
 		<div id='services_status_mbx_cyrus'>". main_status() . "</div>
-		<div style='font-size:18px;' class=text-info>{about_cyrus}</div>
+		<div style='font-size:18px;' class=explain>{about_cyrus}</div>
 		<div style='text-align:right;width:100%;font-size:16px'><hr>
 				". button('{sync_services}',"Loadjs('cyrus.sync-services.progress.php')",26)."
 				". button('{create_a_mailbox}',"Loadjs('create-user.php')",26)."</div>
@@ -553,7 +553,7 @@ function main_tabs(){
 	$array["mailboxes"]='{mailboxes}';
 	
 	$height="680px";	
-	$style="style='font-size:18px'";
+	$style="style='font-size:24px'";
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="logs"){
@@ -569,7 +569,7 @@ function main_tabs(){
 			
 		}	
 	
-	echo build_artica_tabs($html, "main_config_cyrus",1050);
+	echo build_artica_tabs($html, "main_config_cyrus",1490);
 		
 	
 	
@@ -1124,7 +1124,7 @@ function main_cyrusconf(){
 	
 	$defaultsDomain=Field_array_Hash($hash,'defaultdomain',$cyrus->impad_array["defaultdomain"],null,null,0,'font-size:18px;padding:3px');
 	$html="
-	<div class=text-info style='font-size:16px'>{services_settings_text}</div>
+	<div class=explain style='font-size:16px'>{services_settings_text}</div>
 	
 			<div style='font-size:40px'>{ports}</a></div>
 	<div id='cyrusconf' style='width:98%' class=form>

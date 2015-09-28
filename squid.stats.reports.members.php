@@ -240,7 +240,7 @@ function search(){
 	$error_engine_categorization=$tpl->javascript_parse_text("{error_engine_categorization}");
 
 	$span="<span style='font-size:{$fontsize}px'>";
-
+	
 	
 
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){

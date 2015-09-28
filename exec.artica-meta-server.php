@@ -1,6 +1,8 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["NOTIFY"]=false;
+$GLOBALS["OUTPUT"]=false;
 $GLOBALS["MAIN_PATH"]="/usr/share/artica-postfix/ressources/conf/meta";
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["AS_ROOT"]=true;
@@ -17,8 +19,10 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--notify#",implode(" ",$argv))){$GLOBALS["NOTIFY"]=true;}
+if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 
-
+if($argv[1]=="--metastats"){meta_stats();exit;}
 if($argv[1]=="--repair-tables"){repair_tables();exit;}
 if($argv[1]=="--build-orders"){build_orders();exit;}
 if($argv[1]=="--build-proxy"){build_proxy_configs();exit;}
@@ -28,6 +32,11 @@ if($argv[1]=="--psaux"){psaux_client($argv[2]);exit;}
 if($argv[1]=="--philesight"){philesight_client($argv[2]);exit;}
 if($argv[1]=="--metaevents"){metaevents_client($argv[2]);exit;}
 if($argv[1]=="--metaevents2"){metaevents_client2($argv[2]);exit;}
+if($argv[1]=="--purge-upload"){artica_meta_client_purge_upload_queue($argv[2]);exit;}
+
+if($argv[1]=="--checkufdb"){checkufdb();exit;}
+if($argv[1]=="--scan-categories"){scan_categories(true);exit;}
+if($argv[1]=="--scan-clean"){scan_categories_clean(true);exit;}
 
 
 
@@ -36,8 +45,14 @@ if($argv[1]=="--smtp"){sysalerts_smtp_client($argv[2]);exit;}
 if($argv[1]=="--snapshot"){snapshot_client($argv[2]);exit;}
 if($argv[1]=="--articadaemons"){articadaemons_client($argv[2]);exit;}
 if($argv[1]=="--squid-quota-size"){articasquid_quota_size_client($argv[2]);exit;}
-
-
+if($argv[1]=="--squid-perfs"){articasquid_perf_client($argv[2]);exit;}
+if($argv[1]=="--uuid-events"){metaevents_client3($argv[2]);exit;}
+if($argv[1]=="--uuid-scheduler"){system_scheduler($argv[2]);exit;}
+if($argv[1]=="--uuid-clone-source"){CloneSource($argv[2]);exit;}
+if($argv[1]=="--scan-softs"){scan_softs($argv[2]);exit;}
+if($argv[1]=="--scan-repos"){scan_repos();exit;}
+if($argv[1]=="--scan-temp"){scan_temp_queue();exit;}
+if($argv[1]=="--scan-events"){uuid_META_CLIENT_EVENTS($argv[2]);exit;}
 
 
 
@@ -46,7 +61,7 @@ if($argv[1]=="--scan-repo"){scan_software_repo($argv[2]);exit;}
 if($argv[1]=="--delete-repo"){delete_software_repo($argv[2]);exit;}
 if($argv[1]=="--delete-articapkg"){delete_artica_repo($argv[2],$argv[3]);exit;}
 if($argv[1]=="--add-node"){add_node();exit;}
-if($argv[1]=="--tests-notifs"){send_notifications("Test From Artica Meta","This is a test");exit;}
+if($argv[1]=="--tests-notifs"){send_notifications("Test From Meta Server","This is a test");exit;}
 if($argv[1]=="--ping-host"){ping_host($argv[2]);exit;}
 if($argv[1]=="--ping-group"){ping_group($argv[2]);exit;}
 
@@ -60,7 +75,8 @@ function execute(){
 	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo "cachetime:$cachetime\n";}
 	
 	$pid=@file_get_contents($pidfile);
@@ -69,16 +85,37 @@ function execute(){
 	
 	$TimeEx=$unix->file_time_min($cachetime);
 	if(!$GLOBALS["FORCE"]){if($TimeEx<20){return;}}
+	
 	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
 	if($EnableArticaMetaServer==0){return;}
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	
+	
 	@unlink($cachetime);
 	@file_put_contents($cachetime, time());
 	@file_put_contents($pidfile,getmypid());
+	meta_stats();
 	scan_repos();
+	scan_softs();
 	scan_software_repo();
+	scan_categories();
+	scan_temp_queue();
 	extract_all_tgz();
+	
 	checkufdb();
 	clean_tables();
+	
+	
+	if(is_file("$ArticaMetaStorage/webfiltering/ufdbartica.txt")){
+		@unlink("/etc/artica-postfix/settings/Daemons/MetaUfdbArticaVer");
+		@copy("$ArticaMetaStorage/webfiltering/ufdbartica.txt","/etc/artica-postfix/settings/Daemons/MetaUfdbArticaVer");
+		@chmod("/etc/artica-postfix/settings/Daemons/MetaUfdbArticaVer",0755);
+	}
+	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.artica-meta-squid-parser.php >/dev/null 2>&1 &");
+	meta_events($cmd);
+	shell_exec($cmd);
 	
 }
 
@@ -88,25 +125,327 @@ function checkufdb(){
 	$unix=new unix();
 	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
 	
+	
+	
+	
+	
+	
 	$timeFile="/etc/artica-postfix/pids/exec.artica-meta-server.php.checkufdb.time";
 	$unix=new unix();
 	$time=$unix->file_time_min($timeFile);
-	if($time<1440){return;}
+	if(!$GLOBALS["VERBOSE"]){
+			if($time<1440){
+				meta_events("exec.artica-meta-server.php.checkufdb.time = {$time}Mn/1440");
+				return;
+			}
+	}
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	
 	if($GLOBALS["VERBOSE"]){echo "$php /usr/share/artica-postfix/exec.squid.blacklists.php --ufdbmaster\n";}
-	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.blacklists.php --ufdbmaster >/dev/null 2>&1 &");
+	shell_exec("$php /usr/share/artica-postfix/exec.squid.blacklists.php --ufdbmaster >/dev/null 2>&1");
 	
 	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
 	if(!is_file("$ArticaMetaStorage/webfiltering/ufdbartica.txt")){
-		
-		
 	}else{
 		if($GLOBALS["VERBOSE"]){echo "$ArticaMetaStorage/webfiltering/ufdbartica.txt OK\n";}
 	}
+	
+	if(!is_file("$ArticaMetaStorage/webfiltering/ufdbartica.tgz")){return;}
+	$size=@filesize("$ArticaMetaStorage/webfiltering/ufdbartica.tgz");
+	
+	$listfiles=$unix->DirFiles("$ArticaMetaStorage/webfiltering/ufdbartica","ufdbartica\.tgz\.[0-9]+");
+	while (list ($num, $ligne) = each ($listfiles) ){
+		$full_path="$ArticaMetaStorage/webfiltering/ufdbartica/$num";
+		$size2=$size2+@filesize($full_path);
+	}
+	
+	$size3=$size-$size2;
+	echo "$size - $size2 = $size3\n";
+	if($size3<100000){return;}
+	reset($listfiles);
+	while (list ($num, $ligne) = each ($listfiles) ){
+		$full_path="$ArticaMetaStorage/webfiltering/ufdbartica/$num";
+		if($GLOBALS["VERBOSE"]){echo "Remove $full_path\n";}
+		@unlink($full_path);
+	}
+	$split=$unix->find_program("split");
+	@mkdir("$ArticaMetaStorage/webfiltering/ufdbartica",0755,true);
+	chdir("$ArticaMetaStorage/webfiltering/ufdbartica");
+	system("cd $ArticaMetaStorage/webfiltering/ufdbartica");
+	@copy("$ArticaMetaStorage/webfiltering/ufdbartica.tgz", "$ArticaMetaStorage/webfiltering/ufdbartica/ufdbartica.tgz");
+	echo "Split...ufdbartica.tgz\n";
+	shell_exec("$split -a 3 -b 1m -d ufdbartica.tgz ufdbartica.tgz.");
+	@unlink("$ArticaMetaStorage/webfiltering/ufdbartica/ufdbartica.tgz");
+	
+	$files=$unix->DirFiles("$ArticaMetaStorage/webfiltering/ufdbartica","ufdbartica\.tgz\.[0-9]+");
+	while (list ($num, $ligne) = each ($files) ){
+		$Splited_md5=md5_file("$ArticaMetaStorage/webfiltering/ufdbartica/$num");
+		$ARRAY["$num"]=$Splited_md5;
+	}
+	@file_put_contents("$ArticaMetaStorage/webfiltering/ufdbartica/ufdbartica.txt", serialize($ARRAY));
+	
+	
+	
+}
+
+
+function meta_stats(){
+	$MAIN_DIR="/usr/share/artica-postfix/ressources/conf/meta";
+	$unix=new unix();
+	$files=$unix->DirFiles("/usr/share/artica-postfix/ressources/conf/meta","^SIZES_[0-9]+\.db");
+	
+	
+	if($GLOBALS["VERBOSE"]){echo count($files)." to scan...\n";}
+	
+	while (list ($num, $ligne) = each ($files) ){
+		$full_path="$MAIN_DIR/$num";
+		if($GLOBALS["VERBOSE"]){echo "$full_path\n";}
+		if(is_dir($full_path)){
+			if($GLOBALS["VERBOSE"]){echo "$full_path -> DIRECTORY SKIP\n";}
+			continue;}
+		if(!meta_stats_parse($full_path)){continue;}
+		@unlink($full_path);
+	}
+	
+	meta_stats_day();
+	
+}
+
+function meta_stats_parse($databasepath){
+	
+	if(!is_file($databasepath)){
+		if($GLOBALS["VERBOSE"]){echo "$databasepath NO SUCH FILE.\n";}
+		return false;}
+	
+		$db_con = @dba_open($databasepath, "r","db4");
+	if(!$db_con){
+		if($GLOBALS["VERBOSE"]){echo "DBCON FAILED\n";}
+		return false;
+	}
+	$mainkey=dba_firstkey($db_con);
+	$f=array();
+	while($mainkey !=false){
+		$data=dba_fetch($mainkey,$db_con);
+		$UNCRYPT=base64_decode($data);
+		
+		$ARRAY=unserialize($UNCRYPT);
+		if(!is_array($ARRAY)){
+			if($GLOBALS["VERBOSE"]){echo "$UNCRYPT -> NOT AN ARRAY...\n";}
+			$mainkey=dba_nextkey($db_con);
+			continue;
+		}
+		
+		$uuid=$ARRAY["UUID"];
+		$size=$ARRAY["SIZE"];
+		if(!is_numeric($size)){
+			if($GLOBALS["VERBOSE"]){echo "{$ARRAY["SIZE"]} SIZE -> NOT A NUMERIC\n";}
+			$mainkey=dba_nextkey($db_con);
+			continue;
+		}
+		$file=$ARRAY["FILE"];
+		$time=$ARRAY["TIME"];
+		if(!is_numeric($time)){$time=time();}
+		$tablename="metastats_size_".date("YmdH",$time);
+		$date=date("Y-m-d H:i:s",$time);
+		if($GLOBALS["VERBOSE"]){echo "'$mainkey','$uuid','$size','$file','$date'\n";}
+		$f[$tablename][]="('$mainkey','$uuid','$size','$file','$date')";
+		if(count($f[$tablename])>500){
+			if(!meta_stats_dump($f)){return;}
+			$f[$tablename]=array();
+		}
+		
+		$mainkey=dba_nextkey($db_con);
+	}
+		
+	meta_stats_dump($f);
+	return true;
+}
+
+function meta_stats_day(){
+	$CurrentTableName="metastats_size_".date("YmdH");
+	$q=new mysql_meta();
+	$LIST_TABLES_STATS_HOURLY=$q->LIST_TABLES_STATS_HOURLY();
+	while (list ($tablename, $rows) = each ($LIST_TABLES_STATS_HOURLY) ){
+		if($tablename==$CurrentTableName){continue;}
+		if(!meta_stats_day_comprime($tablename)){continue;}
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+	}
+	
+}
+
+function meta_stats_day_comprime($tablename){
+	$q=new mysql_meta();
+	
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00') as zDate,DATE_FORMAT(zDate,'%Y%m%d') as suffix,
+	COUNT(zmd5) as hits,SUM(size) as size,uuid 
+	FROM `$tablename` GROUP BY `uuid`,DATE_FORMAT(zDate,'%Y-%m-%d %H:00:00'),DATE_FORMAT(zDate,'%Y%m%d')";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){return false;}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$zmd5=md5(serialize($ligne));
+		$table="metastats_sized_".$ligne["suffix"];
+		$f[$table][]="('$zmd5','{$ligne["zDate"]}','{$ligne["uuid"]}','{$ligne["hits"]}','{$ligne["size"]}')";
+		
+		
+	}
+	
+	while (list ($tablename, $rows) = each ($f) ){
+		if(count($rows)==0){
+			if($GLOBALS["VERBOSE"]){echo "$tablename 0 rows\n";}
+			continue;
+		}
+		if($GLOBALS["VERBOSE"]){echo "$tablename ".count($rows)."\n";}
+		if(!$q->create_table_meta_stats_size_day($tablename)){return;}
+		$sql="INSERT IGNORE INTO `$tablename` (`zmd5`,`zDate`,`uuid`,`hits`,`size`) VALUES ".@implode(",", $rows);
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			meta_events($q->mysql_error);
+			return false;
+		}
+	}
+	
+	return true;	
+	
+	
+}
+
+function meta_stats_dump($array){
+	if(count($array)==0){
+		
+		if($GLOBALS["VERBOSE"]){echo "meta_stats_dump ARRAY=0\n";}
+		return;}
+	
+	$q=new mysql_meta();
+	while (list ($tablename, $rows) = each ($array) ){
+		if(count($rows)==0){
+			if($GLOBALS["VERBOSE"]){echo "$tablename 0 rows\n";}
+			continue;
+		}
+		if($GLOBALS["VERBOSE"]){echo "$tablename ".count($rows)."\n";}
+		if(!$q->create_table_meta_stats_size_hours($tablename)){return;}
+		$sql="INSERT IGNORE INTO `$tablename` (`zmd5`,`uuid`,`size`,`filename`,`zDate`) VALUES ".@implode(",", $rows);
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			meta_events($q->mysql_error);
+			return false;
+		}
+	}
+	
+	return true;
+	
+}
+
+function order_uuid($uuid,$force=false){
+	
+	$filepath="/usr/share/artica-postfix/ressources/conf/meta/hosts/$uuid.orders";
+	$FileTime="/etc/artica-postfix/metaorder.$uuid.time";
+	$unix=new unix();
+
+	if(!$force){
+		if(is_file($filepath)){if($unix->file_time_min($filepath)<5){return;}}
+		if($unix->file_time_min($FileTime)<5){return;}
+	}
+	@unlink($FileTime);
+	@file_put_contents($FileTime, time());
+	
+	
+	$q=new mysql_meta();
+	if($q->COUNT_ROWS("metaorders")==0){
+		meta_events("metaorders table contains now row");
+		return;}
+	
+	@mkdir("/usr/share/artica-postfix/ressources/conf/meta/hosts",0755,true);
+	$sql="SELECT * FROM metaorders WHERE uuid='$uuid' ORDER BY zDate";
+	$results=$q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$uuid=$ligne["uuid"];
+		$orderid=$ligne["orderid"];
+		$ordersubject=$ligne["ordersubject"];
+		$ordercontent=$ligne["ordercontent"];
+		$FULL_SERVERS[$uuid]=true;
+		meta_events("metaorders $orderid $ordersubject");
+		$ARRAY[$orderid]=array("SUBJECT"=>$ordersubject,"CONTENT"=>$ordercontent);
+	}
+	
+	@file_put_contents($filepath, base64_encode(serialize($ARRAY)));
+	
+}
+
+function system_scheduler($uuid){
+	@mkdir("/usr/share/artica-postfix/ressources/conf/meta/hosts",0755,true);
+	$unix=new unix();
+	$filename="/usr/share/artica-postfix/ressources/conf/meta/hosts/$uuid-schedules.gz";
+	$filenameMD5="/usr/share/artica-postfix/ressources/conf/meta/hosts/$uuid-schedules.md5";
+	$sql="SELECT * FROM system_schedules WHERE uuid='$uuid' AND enabled=1 ORDER BY ID DESC";
+	$q=new mysql_meta();
+	if($q->COUNT_ROWS("system_schedules")==0){
+		if(is_file($filename)){@unlink($filename);@unlink($filenameMD5);}	
+		if($GLOBALS["NOTIFY"]){ping_host($uuid);}
+		return;
+	}
+	
+	
+	$results=$q->QUERY_SQL($sql);
+
+	
+	$array=array();
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$TimeText=$ligne["TimeText"];
+		$TimeDescription=$ligne["TimeDescription"];
+		$TaskType=$ligne["TaskType"];
+		$md5=md5(serialize($ligne));
+		$array[$md5]["TimeText"]=$TimeText;
+		$array[$md5]["TimeDescription"]=$TimeDescription;
+		$array[$md5]["TaskType"]=$TaskType;
+	}
+	
+	if(count($array)==0){$array["REMOVE"]=true;}
+	
+	$tmpfile=$unix->FILE_TEMP();
+	@file_put_contents($tmpfile, serialize($array));
+	
+	if(!$unix->compress($tmpfile, $filename)){@unlink($filename);@unlink($filenameMD5);return;}
+	@unlink($tmpfile);
+	@chmod($filename,0755);
+	$md5Sum=md5_file($filename);
+	@file_put_contents($filenameMD5, $md5Sum);
+	if($GLOBALS["NOTIFY"]){ping_host($uuid);}
+	
+	
+}
+
+
+function CloneSource($uuid){
+	$filepath="/usr/share/artica-postfix/ressources/conf/meta/hosts/$uuid.clone";
+	$q=new mysql_meta();
+	$source_uuid=$q->CloneSource($uuid);
+	if($source_uuid==null){if(is_file($filepath)){@unlink($filepath);}return;}
+	
+	$sql="SELECT zmd5 FROM snapshots WHERE uuid='$source_uuid' ORDER BY zDate DESC LIMIT 0,1";
+	$results=$q->QUERY_SQL($sql);
+	
+	if(!$q->ok){
+		meta_admin_mysql(0, "MySQL error while building Clone source", $q->mysql_error,__FILE__,__LINE__);
+		return;
+	}
+	
+	if(mysql_num_rows($results)==0){
+		@unlink($filepath);
+		return;
+	}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		@file_put_contents($filepath,$ligne["zmd5"]);
+		
+	}
+	
+	@chmod($filepath,0755);
+	if($GLOBALS["NOTIFY"]){ping_host($uuid);}
 }
 
 
@@ -210,7 +549,9 @@ function ping_group($gpid){
 }
 
 function ping_host($uuid){
-	
+	$sock=new sockets();
+	$ArticaMetaUseSendClient=intval($sock->GET_INFO("ArticaMetaUseSendClient"));
+	if($ArticaMetaUseSendClient==0){return;}
 	$artica_meta=new mysql_meta();
 	meta_events("ping_host to $uuid");
 	$public_ip=$artica_meta->uuid_to_public_ip($uuid);
@@ -218,7 +559,7 @@ function ping_host($uuid){
 		meta_admin_mysql(1, "$uuid: ping Failed public_ip is null",$curl->errors,__FILE__,__LINE__);
 		return;
 	}
-	
+	order_uuid($uuid,true);
 	$uri="https://$public_ip:9000/artica.meta.listener.php?wakeup=yes";
 	$curl=new ccurl($uri,true);
 	$curl->NoHTTP_POST=true;
@@ -292,6 +633,7 @@ function meta_events($text){
 		
 	
 	}
+	if($GLOBALS["OUTPUT"]){echo $text."\n";}
 	$unix->events($text,"/var/log/artica-meta.log",false,$function,$line,$file);
 	
 }
@@ -308,7 +650,13 @@ function scan_repos_split($source_path){
 	$Dirname=dirname($source_path);
 	$FileName=basename($source_path);
 	$FileDir=str_replace(".tgz", "", $FileName);
+	$FileDir=str_replace(".tar.gz", "", $FileDir);
+	meta_events("Dirname=$Dirname FileDir=$FileDir FileName=$FileName");
+	
+	
 	$TarGetDirectory="$Dirname/$FileDir";
+	meta_events("Dirname=$Dirname/FileDir=$FileDir");
+	
 	if(!is_dir($TarGetDirectory)){
 		meta_events("Creating directory $TarGetDirectory");
 		if(!@mkdir($TarGetDirectory,0755,true)){
@@ -324,8 +672,9 @@ function scan_repos_split($source_path){
 	$ARRAY=array();
 	chdir("$TarGetDirectory");
 	system("cd $TarGetDirectory");
-	meta_events("$split -b 1m -d $source_path $FileName.");
-	shell_exec("$split -b 1m -d $source_path $FileName.");
+	scan_repos_progress("Explode $source_path",40);
+	meta_events("$split -a 3 -b 1m -d $source_path $FileName.");
+	shell_exec("$split -a 3 -b 1m -d $source_path $FileName.");
 	chdir("/root");
 	system("cd /root");
 	
@@ -391,6 +740,7 @@ function scan_software_repo($filename=null){
 	while (list ($num, $ligne) = each ($files) ){
 		if($GLOBALS["VERBOSE"]){echo "Found $ArticaMetaStorage/softwares/$num\n";}
 		$ARRAY[$num]["SIZE"]=@filesize("$ArticaMetaStorage/softwares/$num");
+		$ARRAY[$num]["SPLITED"]=scan_repos_split("$ArticaMetaStorage/softwares/$num");
 	}
 	
 	@file_put_contents("{$GLOBALS["MAIN_PATH"]}/softwares.db", base64_encode(serialize($ARRAY)));
@@ -399,12 +749,54 @@ function scan_software_repo($filename=null){
 	
 }
 
+function scan_softs(){
+	$unix=new unix();
+	$sock=new sockets();
+	$APACHE_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	$files=$unix->DirFiles("$ArticaMetaStorage/softwares");
+	while (list ($num, $ligne) = each ($files) ){
+		if($GLOBALS["VERBOSE"]){echo "Found $ArticaMetaStorage/softwares/$num\n";}
+		$ARRAY[$num]["SIZE"]=@filesize("$ArticaMetaStorage/softwares/$num");
+		$ARRAY[$num]["SPLITED"]=scan_repos_split("$ArticaMetaStorage/softwares/$num");
+	}
+	
+	@file_put_contents("{$GLOBALS["MAIN_PATH"]}/softwares.db", base64_encode(serialize($ARRAY)));
+	@chown("{$GLOBALS["MAIN_PATH"]}/softwares.db",$APACHE_ACCOUNT);
+	
+}
+
+function scan_repos_progress($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/artica-meta.update.php.progress", serialize($array));
+	$unix=new unix();
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			$sourcefile=basename($trace[1]["file"]);
+			$sourcefunction=$trace[1]["function"];
+			$sourceline=$trace[1]["line"];
+		}
+			
+	}
+	if($GLOBALS["OUTPUT"]){echo "{$pourc}) $text\n";}
+	$unix->events("{$pourc}) $text","/var/log/artica.updater.log",false,$sourcefunction,$sourceline,$sourcefile);
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/artica-meta.update.php.progress",0755);
+
+}
+
+
 function scan_repos(){
 	
 	$unix=new unix();
 	$rm=$unix->find_program("rm");
 	$sock=new sockets();
 	$APACHE_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$ArticaMaxPackages=intval($sock->GET_INFO("ArticaMaxPackages"));
+	if($ArticaMaxPackages==0){$ArticaMaxPackages=5;}
 	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
 	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
 	@mkdir("$ArticaMetaStorage/nightlys",0755,true);
@@ -412,17 +804,103 @@ function scan_repos(){
 	@mkdir($GLOBALS["MAIN_PATH"],0755,true);
 	
 	meta_events("Scanning $ArticaMetaStorage/releases");
+	scan_repos_progress("Scanning $ArticaMetaStorage/releases",25);
 	
 	$unix=new unix();
 	$files=$unix->DirFiles("$ArticaMetaStorage/releases");
 	while (list ($num, $ligne) = each ($files) ){
-		meta_events("Found $ArticaMetaStorage/releases/$num");
-		$ARRAY["RELEASES"][$num]=scan_repos_split("$ArticaMetaStorage/releases/$num");
+		$NUM_INT=$num;
+		scan_repos_progress("Scanning $NUM_INT",25);
+		if($unix->file_time_min("$ArticaMetaStorage/releases/$NUM_INT")<2880){continue;}
+		$NUM_INT=str_replace("artica-","", $NUM_INT);
+		$NUM_INT=str_replace(".tgz","", $NUM_INT);
+		$NUM_INT=str_replace(".","", $NUM_INT);
+		$XCOUNT[$NUM_INT]=$num;
+	}
+	
+
+	if(count($XCOUNT)>$ArticaMaxPackages){
+		scan_repos_progress("$XCOUNT > $ArticaMaxPackages",30);
+		krsort($XCOUNT);
+		$x=0;
+		while (list ($num, $filename) = each ($XCOUNT) ){
+			scan_repos_progress("$num > $filename",30);
+			$x++;
+			if($x>$ArticaMaxPackages){break;}
+			$directory=str_replace(".tgz", "", $filename);
+			scan_repos_progress("Removing $ArticaMetaStorage/releases/$filename",30);
+			@unlink("$ArticaMetaStorage/releases/$filename");
+			if(is_dir("$ArticaMetaStorage/releases/$directory")){
+				shell_exec("$rm -rf $ArticaMetaStorage/releases/$directory");
+			}
+	
+		}
 	}
 	
 	$files=$unix->DirFiles("$ArticaMetaStorage/nightlys");
 	while (list ($num, $ligne) = each ($files) ){
-		meta_events("Found $ArticaMetaStorage/nightlys/$num");
+		$NUM_INT=$num;
+		scan_repos_progress("Scanning $NUM_INT",35);
+		if($unix->file_time_min("$ArticaMetaStorage/nightlys/$NUM_INT")<2880){continue;}
+		$NUM_INT=str_replace("artica-","", $NUM_INT);
+		$NUM_INT=str_replace(".tgz","", $NUM_INT);
+		$NUM_INT=str_replace(".","", $NUM_INT);
+		$ZCOUNT[$NUM_INT]=$num;
+	}
+	
+	if(count($ZCOUNT)>$ArticaMaxPackages){
+		krsort($ZCOUNT);
+		$x=0;
+		while (list ($num, $filename) = each ($ZCOUNT) ){
+			$x++;
+			if($x>$ArticaMaxPackages){break;}
+			$directory=str_replace(".tgz", "", $filename);
+			scan_repos_progress("Removing $ArticaMetaStorage/nightlys/$filename",36);
+			@unlink("$ArticaMetaStorage/nightlys/$filename");
+			if(is_dir("$ArticaMetaStorage/nightlys/$directory")){
+				shell_exec("$rm -rf $ArticaMetaStorage/nightlys/$directory");
+			}
+	
+		}
+	}
+	
+	
+	
+	
+	
+	$files=$unix->DirFiles("$ArticaMetaStorage/releases");
+	while (list ($num, $ligne) = each ($files) ){
+		if(!preg_match("#^artica-[\.0-9]+#", $num)){continue;}
+		meta_events("Found package $ArticaMetaStorage/releases/$num");
+		$ARRAY["RELEASES"][$num]=scan_repos_split("$ArticaMetaStorage/releases/$num");
+	}
+	
+	$dirs=$unix->dirdir("$ArticaMetaStorage/releases");
+	while (list ($num, $ligne) = each ($dirs) ){
+		$dirname=basename($num);
+		if(!preg_match("#^artica-[\.0-9]+#", $dirname)){continue;}
+		meta_events("Found $num");
+		if(!is_file("$num/metaindex.txt")){
+			meta_events("Remove $num metaindex not found");
+			shell_exec("$rm -rf $num");
+			continue;
+		}
+		
+		$arr=unserialize(@file_get_contents("$num/metaindex.txt"));
+		if(count($arr)<2){
+			meta_events("Remove $num metaindex not enough files");
+			shell_exec("$rm -rf $num");
+			continue;
+		}
+	
+	}	
+	
+
+	
+	$files=$unix->DirFiles("$ArticaMetaStorage/nightlys");
+	while (list ($num, $ligne) = each ($files) ){
+		if(!preg_match("#^artica-[\.0-9]+#", $num)){continue;}
+		meta_events("Found package $ArticaMetaStorage/nightlys/$num");
 		$ARRAY["NIGHTLY"][$num]=scan_repos_split("$ArticaMetaStorage/nightlys/$num");
 	}	
 	
@@ -430,7 +908,7 @@ function scan_repos(){
 	while (list ($num, $ligne) = each ($dirs) ){
 		$dirname=basename($num);
 		if(!preg_match("#^artica-[\.0-9]+#", $dirname)){continue;}
-		meta_events("Found $num");
+		scan_repos_progress("Found $num",45);
 		if(!is_file("$num/metaindex.txt")){
 			meta_events("Remove $num metaindex not found");
 			shell_exec("$rm -rf $num");
@@ -448,7 +926,7 @@ function scan_repos(){
 	while (list ($num, $ligne) = each ($dirs) ){
 		$dirname=basename($num);
 		if(!preg_match("#^artica-[\.0-9]+#", $dirname)){continue;}
-		meta_events("Found $num");
+		scan_repos_progress("Found $num",50);
 		if(!is_file("$num/metaindex.txt")){
 			meta_events("Remove $num metaindex not found");
 			shell_exec("$rm -rf $num");
@@ -462,11 +940,14 @@ function scan_repos(){
 		}
 	
 	}	
-	
+	scan_repos_progress("Creating index file",60);
 	meta_events("Saving {$GLOBALS["MAIN_PATH"]}/updates.db");
 	@file_put_contents("{$GLOBALS["MAIN_PATH"]}/updates.db", base64_encode(serialize($ARRAY)));
 	@chown("{$GLOBALS["MAIN_PATH"]}/updates.db",$APACHE_ACCOUNT);
 	@chmod("{$GLOBALS["MAIN_PATH"]}/updates.db",0755);
+	
+	if($GLOBALS["OUTPUT"]){scan_repos_progress("{done}",95);sleep(5);}
+	scan_repos_progress("{done}",100);
 	
 }
 
@@ -497,6 +978,7 @@ function build_proxy_configs(){
 	
 	$results=$q->QUERY_SQL("SELECT uuid FROM metahosts WHERE PROXY=1");
 	while ($ligne = mysql_fetch_assoc($results)) {
+		if($GLOBALS["VERBOSE"]){echo "CREATE ORDER FOR {$ligne["uuid"]}\n";}
 		$q->CreateOrder($ligne["uuid"], "PROXY_PARAMS");
 	}
 	
@@ -516,14 +998,42 @@ function extract_all_tgz(){
 		philesight_client($uuid);
 		metaevents_client($uuid);
 		metaevents_client2($uuid);
+		metaevents_client3($uuid);
 		sysalerts_smtp_client($uuid);
 		articadaemons_client($uuid);
-		bandwidth_squid_calc($uuid);
+		//bandwidth_squid_calc($uuid);
 		articasquid_quota_size_client($uuid);
+		articasquid_perf_client($uuid);
+		artica_meta_client_squid_relatime_ev($uuid);
 		$workingfile="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/SNAPSHOT/snapshot.tar.gz";
 		if(is_file($workingfile)){snapshot_client($uuid);}
+		system_scheduler($uuid);
+		order_uuid($uuid);
+		MaxSnapShots($uuid);
+		CloneSource($uuid);
+		artica_meta_client_purge_upload_queue($uuid);
 	}
 }
+
+function MaxSnapShots($uuid){
+	$sock=new sockets();
+	$ArticaMaxSnapshots=intval($sock->GET_INFO("ArticaMaxSnapshots"));
+	if($ArticaMaxSnapshots==0){$ArticaMaxSnapshots=10;}
+	$q=new mysql_meta();
+	if(!$q->COUNT_ROWS("snapshots")==0){return;}
+	$sql="SELECT COUNT(zmd5) as tcount FROM snapshots WHERE uuid='$uuid'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(intval($ligne["tcount"])<$ArticaMaxSnapshots){return;}
+	$Current=$ligne["tcount"];
+	$Todelete=$Current-$ArticaMaxSnapshots;
+	$sql="DELETE FROM snapshots WHERE uuid='$uuid' ORDER BY zDate LIMIT 0,$Todelete";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){meta_events("FATAL $q->mysql_errror");}
+	
+	
+}
+
+
 
 function rotate_client($uuid){
 	$unix=new unix();
@@ -620,8 +1130,9 @@ function metaevents_client($uuid){
 	
 }
 
-function metaevents_client2($uuid){
-	$workingDir="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/CLIENT_META_EVENTS";
+function metaevents_client3($uuid){
+	
+	$workingDir="/home/artica-meta/$uuid/EVENT_NOTIFY_MASTER";
 	if(!is_dir($workingDir)){return;}
 	$unix=new unix();
 	if (!$handle = opendir($workingDir)){
@@ -631,8 +1142,191 @@ function metaevents_client2($uuid){
 	
 	$metaSql=new mysql_meta();
 	$hostname=$metaSql->uuid_to_host($uuid);
-	$q=new mysql();
-	$prefix="INSERT IGNORE INTO `meta_admin_mysql` (`zmd5`,`uuid`,`zDate`,`content`,`hostname`,`subject`,`function`,`filename`,`line` ,	`severity` ,`sended`) VALUES ";
+	
+}
+function artica_meta_client_purge_upload_queue($uuid){
+	
+	
+	$possibleFiles[]="TABLE_NICS.gz";
+	$possibleFiles[]="PROXY_CATEGORIES.gz";
+	$possibleFiles[]="ARTICA_DAEMONS.gz";
+	$possibleFiles[]="META_CLIENT_EVENTS.gz";
+	$possibleFiles[]="SQUID_PERFS.gz";
+	
+	
+	$TARGET_DIR="/home/artica/squid/META_UPLOADED_QUEUE";
+	@mkdir($TARGET_DIR,0755,true);
+	$BaseWorkDir="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid";
+	if(is_dir("/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/SQUID_PERFS")){
+		$unix=new unix();
+		$rm=$unix->find_program("rm");
+		shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/SQUID_PERFS");
+	}
+	
+	while (list ($num, $BASENAME) = each ($possibleFiles)){
+		$SOURCE_FILE="$BaseWorkDir/$BASENAME";
+		if(!is_file($SOURCE_FILE)){
+			meta_events("$uuid: $SOURCE_FILE  ->  NONE");
+			continue;
+		}
+	
+		$TARGET_FILE="$TARGET_DIR/$uuid-$BASENAME";
+		if(is_file($TARGET_FILE)){@unlink($TARGET_FILE);}
+		meta_events("$uuid: " .basename($SOURCE_FILE)."  ->  $TARGET_FILE");
+		@copy($SOURCE_FILE, $TARGET_FILE);
+		@unlink($SOURCE_FILE);
+	}
+	
+	uuid_TABLE_NICS($uuid);
+	articadaemons_client($uuid);;
+	articasquid_perf_client($uuid);
+	uuid_META_CLIENT_EVENTS($uuid);
+	
+}
+
+function uuid_META_CLIENT_EVENTS($uuid){
+	$SOURCE_FILE="/home/artica/squid/META_UPLOADED_QUEUE/$uuid-META_CLIENT_EVENTS.gz";
+	$DEST_FILE="/home/artica/squid/META_UPLOADED_QUEUE/$uuid-META_CLIENT_EVENTS.log";
+	if(!is_file($SOURCE_FILE)){return;}
+	$unix=new unix();	
+	
+	if(!$unix->uncompress($SOURCE_FILE, $DEST_FILE)){
+		meta_events("Unable to uncompress $SOURCE_FILE");
+		@unlink($SOURCE_FILE);
+		@unlink($DEST_FILE);
+		return;
+	}
+	@unlink($SOURCE_FILE);
+	$f=explode("\n",@file_get_contents($DEST_FILE));
+	@unlink($DEST_FILE);
+	$q=new mysql_meta();
+	$q->create_table_meta_uuid_admin_mysql();
+	$hostname=$q->uuid_to_host($uuid);
+	
+	foreach($f as $line) {
+		$array=unserialize(base64_decode($line));
+		if(!is_array($array)){continue;}
+		
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+		$function=null;
+		
+		
+		$zdate=$array["zdate"];
+		if(isset($array["function"])){$function=$array["function"];}
+		$file=$array["file"];
+		$line=$array["line"];
+		$severity=$array["severity"];
+		$zmd5=md5(serialize($array));
+	
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO `meta_admin_hosts`
+				(`zmd5`,`uuid`,`hostname`,`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
+				('$zmd5','$uuid','$hostname','$zdate','$content','$subject','$function','$file','$line','$severity')");
+		
+		if(!$q->ok){continue;}
+	}
+	
+	$q->QUERY_SQL("DELETE FROM `meta_admin_hosts` WHERE zDate<DATE_SUB(NOW(),INTERVAL 15 DAY)");
+	
+	
+}
+
+function uuid_TABLE_NICS($uuid){
+	$SOURCE_FILE="/home/artica/squid/META_UPLOADED_QUEUE/$uuid-TABLE_NICS.gz";
+	$DEST_FILE="/home/artica/squid/META_UPLOADED_QUEUE/$uuid-TABLE_NICS.log";
+	if(!is_file($SOURCE_FILE)){return;}
+	$unix=new unix();
+	
+	if(!$unix->uncompress($SOURCE_FILE, $DEST_FILE)){
+		meta_events("Unable to uncompress $SOURCE_FILE");
+		@unlink($SOURCE_FILE);
+		@unlink($DEST_FILE);
+		return;
+	}
+	@unlink($SOURCE_FILE);
+	
+	$q=new mysql_meta();
+	$q->CheckTables();
+	
+	meta_events("Running $SOURCE_FILE");
+	
+	$all_lines = file($DEST_FILE, FILE_SKIP_EMPTY_LINES | FILE_IGNORE_NEW_LINES);
+	@unlink($DEST_FILE);
+	foreach($all_lines as $query) {
+		if(trim($query)==null){continue;}
+		if(substr($query, 0, 2) == "--") {continue; }
+		if(strpos(" $query", "CREATE TABLE IF NOT")>0){continue;}
+		if(strpos(" $query", "varchar(")>0){continue;}
+		if(strpos(" $query", ") NOT NULL")>0){continue;}
+		if(strpos(" $query", "longtext NOT NULL")>0){continue;}
+		if(strpos(" $query", "int(")>0){continue;}
+		if(strpos(" $query", "` text")>0){continue;}
+		if(strpos(" $query", "PRIMARY KEY  (")>0){continue;}
+		if(strpos(" $query", "KEY `")>0){continue;}
+		if(strpos(" $query", ") ENGINE=InnoDB")>0){continue;}
+		if(strpos(" $query", "ALTER IGNORE TABLE")>0){continue;}
+		if(strpos(" $query", "SET FOREIGN")>0){continue;}
+		$queryZ[]=$query;
+		
+	}
+	
+	$q->QUERY_SQL("DELETE FROM nics WHERE uuid='$uuid'");
+	$q->QUERY_SQL(@implode(" ", $queryZ));
+	if(!$q->ok){
+		meta_events("$q->mysql_error\n$query\n");
+		return;
+	}
+	
+	
+}
+
+
+function artica_meta_client_squid_relatime_ev($uuid){
+	$uuid=$_GET["uuid"];
+	$BaseWorkDir="{$GLOBALS["HOSTS_PATH"]}/uploaded/$uuid/SQUID_RELATIME_EVENTS";
+	if(!is_dir($BaseWorkDir)){return;}
+	$unix=new unix();
+	
+
+
+	
+	if (!$handle = opendir($BaseWorkDir)) {return;}
+
+	$TARGET_DIR="/home/artica/squid/META_EVENTS_QUEUE";
+	@mkdir($TARGET_DIR,0755,true);
+
+
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if(is_dir($targetFile)){continue;}
+		@copy($targetFile, "$TARGET_DIR/$filename");
+		if(!is_file("$TARGET_DIR/$filename")){
+			meta_events("Unable to copy $targetFile to $TARGET_DIR/$filename");
+			return;
+		}
+		@unlink($targetFile);
+	}
+}
+
+
+function metaevents_client2($uuid){
+	$workingDir="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/CLIENT_META_EVENTS";
+	if(!is_dir($workingDir)){return;}
+	$unix=new unix();
+	if (!$handle = opendir($workingDir)){
+		meta_events("$uuid: $workingDir failed to parse");
+		return;
+	}
+	
+	$q=new mysql_meta();
+	$hostname=$q->uuid_to_host($uuid);
+	
+	$q->create_table_meta_uuid_admin_mysql($uuid);
+	$prefix="INSERT IGNORE INTO `meta_admin_$uuid` (`zmd5`,`uuid`,`zDate`,`content`,`hostname`,`subject`,`function`,`filename`,`line` ,	`severity` ,`sended`) VALUES ";
 	
 	
 	while (false !== ($file = readdir($handle))) {
@@ -647,36 +1341,68 @@ function metaevents_client2($uuid){
 			continue;
 		}
 		
-		$BIG_ARRAY=unserialize(@file_get_contents($targetfile));
+		$array=unserialize(base64_decode(@file_get_contents($targetfile)));
 		@unlink($workingfile);
 		@unlink($targetfile);
-
-		$f=array();		
-		while (list ($md5, $array) = each ($BIG_ARRAY) ){
-			if(!is_array($array)){continue;}
-			if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
-			$content=mysql_escape_string2($array["text"]);
-			$subject=mysql_escape_string2($array["subject"]);
-			$hostname=
-			$zdate=$array["zdate"];
-			$function=$array["function"];
-			$file=$array["file"];
-			$line=$array["line"];
-			$TASKID=$array["TASKID"];
-			$severity=$array["severity"];
-			$md5=md5(serialize($array));
-			$f[]="('$md5','$uuid','$zdate','$content','$hostname','$subject','$function','$file','$line','$severity',0)";
-		}
+		if(!is_array($array)){continue;}
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+		$hostname=
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+		$md5=md5(serialize($array));
+		$f[]="('$md5','$uuid','$zdate','$content','$hostname','$subject','$function','$file','$line','$severity',0)";
+	}
 		
 		
 		if(count($f)>0){
-			$q->QUERY_SQL($prefix.@implode(",", $f),"artica_events");
-			$f=array();
-			if(!$q->ok){
-				meta_admin_mysql(0, "MySQL error", "$q->mysql_error",__FILE__,__LINE__);
-			}
+			$q->QUERY_SQL($prefix.@implode(",", $f));
+			if(!$q->ok){meta_admin_mysql(0, "MySQL error", "$q->mysql_error",__FILE__,__LINE__);}
+		}	
+	
+}
+
+
+function scan_temp_queue(){
+	
+	$workingDir="/home/artica/squid/META_UPLOADED_QUEUE";
+	if(!is_dir($workingDir)){return;}
+	
+	$unix=new unix();
+	if (!$handle = opendir($workingDir)){
+		meta_events("$workingDir failed to parse");
+		return;
+	}
+	
+	while (false !== ($file = readdir($handle))) {
+		if ($file == "." ){continue;}
+		if ($file == ".." ){continue;}
+		if(!preg_match("#^(.+?)-([A-Z_]+)\.gz#", $file,$re)){
+			meta_events("$file not correcly named...");
+			continue;
 		}
-	}	
+		
+		$FILEBASE=$re[2];
+		$uuid=$re[1];
+		
+		meta_events("Checking $uuid ($FILEBASE)");
+		
+		switch ($FILEBASE){
+			case "ARTICA_DAEMONS":articadaemons_client($uuid);break;
+			case "TABLE_NICS":uuid_TABLE_NICS($uuid);break;
+			case "META_CLIENT_EVENTS":uuid_META_CLIENT_EVENTS($uuid);break;
+			case "SQUID_PERFS":articasquid_perf_client($uuid);break;
+			case "add-tab":main_add_tab();exit;break;
+			default:break;
+		}
+		
+	}
+	
 	
 }
 
@@ -815,7 +1541,11 @@ function metaevents_client_scan($uuid){
 function articadaemons_client($uuid){
 	$unix=new unix();
 	$workingDir="/usr/share/artica-postfix/ressources/conf/meta/hosts/uploaded/$uuid/ARTICA_DAEMONS";
-	if(!is_dir($workingDir)){meta_events("$uuid: $workingDir no such directory");return;}	
+	if(is_dir($workingDir)){
+		meta_events("ARTICA_DAEMONS: $uuid: remove $workingDir");
+		$rm=$unix->find_program("rm");
+		shell_exec("$rm -rf $workingDir");
+	}
 
 	$sql="CREATE TABLE IF NOT EXISTS `localconfig` (
 			`zmd5` VARCHAR( 90 ) NOT NULL,
@@ -832,53 +1562,47 @@ function articadaemons_client($uuid){
 		meta_events("$uuid: $workingDir $q->mysql_error");
 		return;
 	}
-	
-	if (!$handle = opendir($workingDir)){
-		meta_events("$uuid: $workingDir failed to parse");
+	$TARGET_DIR="/home/artica/squid/META_UPLOADED_QUEUE";
+	$workingfile="$TARGET_DIR/$uuid-ARTICA_DAEMONS.gz";	
+	if(!is_file($workingfile)){
+		meta_events("ARTICA_DAEMONS: $uuid: $workingfile -> NONE");
 		return;
-	}	
-	
-	while (false !== ($file = readdir($handle))) {
-		if ($file == "." ){continue;}
-		if ($file == ".." ){continue;}
-		$workingfile="$workingDir/$file";
-		if(is_dir($workingfile)){continue;}
-		if(!$unix->uncompress("$workingfile", "$workingfile.array")){
-			@unlink($workingfile);
-			continue;
-		}
+	}
+	if(!$unix->uncompress("$workingfile", "$workingfile.array")){
+		meta_events("ARTICA_DAEMONS: $uuid: Uncompress failed");
 		@unlink($workingfile);
+		continue;
+	}
+	@unlink($workingfile);
 		
-		$MAIN_ARRAY=unserialize(@file_get_contents("$workingfile.array"));
-		if(!is_array($MAIN_ARRAY)){
-			meta_events("$uuid: $workingfile.array is not an array");
-			@unlink("$workingfile.array");
-			return;
-		}
+	$MAIN_ARRAY=unserialize(@file_get_contents("$workingfile.array"));
+	if(!is_array($MAIN_ARRAY)){
+		meta_events("ARTICA_DAEMONS: $uuid: $workingfile.array is not an array");
 		@unlink("$workingfile.array");
+		return;
+	}
+	@unlink("$workingfile.array");
 		
-		$prefix="INSERT IGNORE INTO `localconfig` (`zmd5`,`uuid`,`filekey`,`fileData`) VALUES ";
-		$f=array();
-		$q->QUERY_SQL("DELETE FROM `localconfig` WHERE `uuid`='$uuid'");
-		while (list ($key, $data) = each ($MAIN_ARRAY)){
-			$md5=md5("$uuid$key");
-			$data=mysql_escape_string2($data);
-			$f[]="('$md5','$uuid','$key','$data')";
+	$prefix="INSERT IGNORE INTO `localconfig` (`zmd5`,`uuid`,`filekey`,`fileData`) VALUES ";
+	$f=array();
+	$q->QUERY_SQL("DELETE FROM `localconfig` WHERE `uuid`='$uuid'");
+	$c=0;
+	while (list ($key, $data) = each ($MAIN_ARRAY)){
+		$md5=md5("$uuid$key");
+		$c++;
+		$data=mysql_escape_string2($data);
+		$f[]="('$md5','$uuid','$key','$data')";
+		if(count($f)>10){
+			if(!$q->QUERY_SQL($prefix.@implode(",", $f))){meta_events("ARTICA_DAEMONS: $uuid: $q->mysql_error");return;}
+			$f=array();
+		}
 			
-		}
-		
-		if(count($f)==0){continue;}
-		if(!$q->QUERY_SQL($prefix.@implode(",", $f))){
-			meta_events("$uuid: $q->mysql_error");
-			continue;
-		}
-		meta_events("$uuid: Injecting ".count($f)." items");
-		$f=array();
-		
-		
-	}	
-	
-	
+	}
+	meta_events("ARTICA_DAEMONS: $uuid: Injecting $c items");
+	if(count($f)==0){return;}
+	if(!$q->QUERY_SQL($prefix.@implode(",", $f))){meta_events("ARTICA_DAEMONS: $uuid: $q->mysql_error");return;}
+	$f=array();
+
 }
 
 function articasquid_quota_size_client($uuid){
@@ -900,28 +1624,95 @@ function articasquid_quota_size_client($uuid){
 		return;
 	}
 	
+	$TARGET_DIR="/home/artica-meta/$uuid/SQUID_QUOTASIZE";
+	@mkdir($TARGET_DIR,0755,true);
 	while (false !== ($file = readdir($handle))) {
 		if ($file == "." ){continue;}
 		if ($file == ".." ){continue;}
 		$workingfile="$workingDir/$file";
 		if(is_dir($workingfile)){continue;}
 		
+		
+		
+		
 		meta_events("Analyze $workingfile (".(@filesize($workingfile)/1024) .")");
-		$UnCompressed_path="$TEMP_DIR/squidqsize.$file.$uuid.db";
+		$UnCompressed_path="$TARGET_DIR/SQUID_QUOTASIZE.db";
 	
 		if(!$unix->uncompress($workingfile,$UnCompressed_path )){
-			meta_admin_mysql(1, "Unable to uncompress SQUID_QUOTASIZE.gz", null,__FILE__,__LINE__);
+			meta_admin_mysql(1, "Unable to uncompress $workingfile", null,__FILE__,__LINE__);
 			return;
 		}
 		@unlink($workingfile);
-		meta_events("-> exec.squid.interface-size.php --meta \"$UnCompressed_path\" $uuid");
-		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.interface-size.php --meta \"$UnCompressed_path\" $uuid >/dev/null 2>&1 &");
-	
+		
 	}
 	
-	bandwidth_squid_calc($uuid);
+	//bandwidth_squid_calc($uuid);
 	
 }
+
+function articasquid_perf_client($uuid){
+	$unix=new unix();
+	
+	$workingfile="/home/artica/squid/META_UPLOADED_QUEUE/$uuid-SQUID_PERFS.gz";
+	if(!is_file($workingfile)){return;}
+	
+	$TEMP_DIR=$unix->TEMP_DIR();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	$q=new mysql_meta();
+	if(!$q->TABLE_EXISTS("squid_perfs_gb")){
+		$sql="CREATE TABLE IF NOT EXISTS `squid_perfs_gb` (
+				`uuid` varchar(90) NOT NULL,
+				`client_http_hits` FLOAT,
+				`client_http_requests` FLOAT,
+				`client_http_kbytes_out` FLOAT,
+				`TOTALS_NOT_CACHED` INT UNSIGNED,
+				`TOTALS_CACHED` INT UNSIGNED,
+				`TOTALS_CACHED_AVG` FLOAT,
+				PRIMARY KEY (`uuid`) ) ENGINE=MYISAM;";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){meta_events($q->mysql_error);}
+	}
+	
+	
+	meta_events("Analyze $workingfile (".(@filesize($workingfile)/1024) .")");
+	$UnCompressed_path="$TEMP_DIR/$uuid-SQUID_PERFS";
+	
+		if(!$unix->uncompress($workingfile,$UnCompressed_path )){
+			meta_admin_mysql(1, "Unable to uncompress $workingfile", null,__FILE__,__LINE__);
+			@unlink("$UnCompressed_path");
+			@unlink($workingfile);
+			return;
+		}
+		
+		
+		@unlink($workingfile);
+		$array=unserialize(@file_get_contents($UnCompressed_path));
+		@unlink($UnCompressed_path);
+		
+		if(!is_array($array)){
+			meta_events("NOT AN ARRAY");
+			continue;
+		}
+	
+	
+		$client_http_hits=$array["client_http_hits"];
+		$client_http_requests=$array["client_http_requests"];
+		$client_http_kbytes_out=$array["client_http_kbytes_out"];
+		$TOTALS_NOT_CACHED=$array["TOTALS_NOT_CACHED"];
+		$TOTALS_CACHED=$array["TOTALS_CACHED"];
+		$TOTALS_CACHED_AVG=$array["TOTALS_CACHED_AVG"];
+		meta_events("client_http_hits: $client_http_hits, client_http_requests $client_http_requests, client_http_kbytes_out $client_http_kbytes_out");
+	
+		$q->QUERY_SQL("DELETE FROM `squid_perfs_gb` WHERE `uuid`='$uuid'");
+	
+		$q->QUERY_SQL("INSERT IGNORE INTO `squid_perfs_gb`
+				(uuid,client_http_hits,client_http_requests,client_http_kbytes_out,TOTALS_NOT_CACHED,TOTALS_CACHED,TOTALS_CACHED_AVG)
+				VALUES('$uuid','$client_http_hits','$client_http_requests','$client_http_kbytes_out','$TOTALS_NOT_CACHED','$TOTALS_CACHED','$TOTALS_CACHED_AVG')");
+		
+		if(!$q->ok){meta_events($q->mysql_error);}
+	}
 
 function bandwidth_squid_calc($uuid){
 	$q=new mysql_meta();
@@ -979,9 +1770,15 @@ function snapshot_client($uuid){
 			continue;
 		}
 	
-	
+		
 		@unlink($workingfile);
 	
+	}
+	
+	$sql="SELECT uuid FROM `metahosts` WHERE `cloneFrom`='$uuid'";
+	$results=$q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		CloneSource($ligne["uuid"]);
 	}
 	
 }
@@ -1421,7 +2218,7 @@ function add_node(){
 		return;
 	}
 	
-	echo "Ask to remote server to register to Artica Meta server ...\n";
+	echo "Ask to remote server to register to Meta Server server ...\n";
 	add_node_progress("{order}: -> {register}",50);
 	
 	$ArticaMetaServerUsername=$sock->GET_INFO("ArticaMetaServerUsername");
@@ -1444,7 +2241,8 @@ function add_node(){
 	
 	if($GLOBALS["VERBOSE"]){echo "***********************************\n$curl->data\n***********************************\n";}
 	
-	if(!preg_match("#<ARTICA_META>(.+?):(.+?)</ARTICA_META>#is", $curl->data,$re)){
+	if(!preg_match("#<ARTICA_META>(.+?):(.*)</ARTICA_META>#is", $curl->data,$re)){
+		echo  $curl->data."\n";
 		add_node_progress("{register}: Communication: {failed}",110);
 		die();
 	}
@@ -1466,7 +2264,7 @@ function add_node(){
 	add_node_progress("{waiting}: $ArticaMetaHost {to_return_back}",79);
 	for($i=0;$i<20;$i++){
 		if($artica_meta->isExists($uuid)){break;}
-		echo "Waiting $ArticaMetaHost $uuid to register to Artica Meta...$i/20 second\n";
+		echo "Waiting $ArticaMetaHost $uuid to register to Meta Server...$i/20 second\n";
 		$prc=79+$i;
 		add_node_progress("{waiting}: $ArticaMetaHost {to_return_back}",$prc);
 		sleep(1);
@@ -1560,6 +2358,7 @@ function send_notifications($subject,$content){
 	$mail->AddAddress($smtp_dest,$smtp_dest);
 	$mail->AddReplyTo($smtp_sender,$smtp_sender);
 	$mail->From=$smtp_sender;
+	$mail->FromName=$smtp_sender;
 	$mail->Subject=$subject;
 	$mail->Body=$text;
 	$mail->Host=$ArticaMetaSMTPNotifs["smtp_server_name"];
@@ -1592,5 +2391,117 @@ function send_notifications($subject,$content){
 	return false;
 
 }
+
+function scan_categories($aspid=false){
+	$unix=new unix();
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){die();}
+		@file_put_contents($pidfile, getmypid());
+	}
+		
+	
+	
+	
+	$sock=new sockets();
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	
+	
+	$q=new mysql_meta();
+	
+	$sql="SELECT webfiltering_categories_items.pattern, metagroups_link.uuid, 
+	webfiltering_categories_link.category FROM metagroups_link,webfiltering_categories_link,
+	webfiltering_categories_items WHERE webfiltering_categories_link.gpid=metagroups_link.gpid 
+	AND webfiltering_categories_items.category=webfiltering_categories_link.category";
+	
+	
+	$results=$q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)==0){scan_categories_clean();return;}
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$uuid=$ligne["uuid"];
+		$category=$ligne["category"];
+		$ARRAY[$uuid][$category]["SITES"][]=$ligne["pattern"];
+	}
+	
+	$sql="SELECT webfiltering_categories_urls.pattern, metagroups_link.uuid,
+	webfiltering_categories_link.category FROM metagroups_link,webfiltering_categories_link,
+	webfiltering_categories_urls WHERE webfiltering_categories_link.gpid=metagroups_link.gpid
+	AND webfiltering_categories_urls.category=webfiltering_categories_link.category";
+	
+	
+	$results=$q->QUERY_SQL($sql);
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$uuid=$ligne["uuid"];
+		$category=$ligne["category"];
+		$ARRAY[$uuid][$category]["URLS"][]=$ligne["pattern"];
+	}
+	$MAIN_UUID=array();
+	while (list($uuid,$FINAL)=each($ARRAY)){
+		@mkdir("$ArticaMetaStorage/$uuid");
+		$SourceFile="$ArticaMetaStorage/$uuid/PERSONAL_CATEGORIES";
+		$destfile="$ArticaMetaStorage/$uuid/PERSONAL_CATEGORIES.gz";
+		$MAIN_UUID[$uuid]=true;
+		
+		if($GLOBALS["VERBOSE"]){echo "Saving: $destfile\n";}
+		@file_put_contents($SourceFile, serialize($FINAL));
+		if(!$unix->compress($SourceFile, $destfile)){
+			@unlink($SourceFile);
+			@unlink($destfile);
+			continue;
+		}
+		ping_host($uuid);
+		@unlink($SourceFile);
+	}
+	
+	if($aspid){@unlink($pidfile);}
+	
+	scan_categories_clean($MAIN_UUID);
+	
+}
+function scan_categories_clean($MAIN_UUID=array()){
+	$sock=new sockets();
+	$unix=new unix();
+	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
+	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
+	$dirs=$unix->dirdir($ArticaMetaStorage);
+	$q=new mysql_meta();
+	$rm=$unix->find_program("rm");
+	while (list($dirname,$FINAL)=each($dirs)){
+		$uuid=basename($dirname);
+		if(!preg_match("#^[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+$#", $uuid)){continue;}		
+		echo "$uuid checking if must stay on disk\n";
+		
+		if(!$q->isExists($uuid)){
+			echo "$uuid: isExists -> FALSE: Remove $dirname\n";
+			shell_exec("$rm -rf $dirname");
+			continue;
+		}
+		if(count($MAIN_UUID)>0){
+			if(!isset($MAIN_UUID[$uuid])){
+				if(is_file("$dirname/PERSONAL_CATEGORIES.gz")){
+					echo "Remove $dirname/PERSONAL_CATEGORIES.gz\n";
+					@unlink("$dirname/PERSONAL_CATEGORIES.gz");
+				}
+			}
+		}
+		
+		if(is_dir("$dirname/EVENT_NOTIFY_MASTER")){
+			echo "Remove $dirname/EVENT_NOTIFY_MASTER ( directory )\n";
+			shell_exec("$rm -rf $dirname/EVENT_NOTIFY_MASTER");
+		}
+		
+		if(is_dir("$dirname/SMTP_NOTIF")){
+			echo "Remove $dirname/SMTP_NOTIF ( directory )\n";
+			shell_exec("$rm -rf $dirname/SMTP_NOTIF");
+		}
+		
+	}
+}
+
 
 

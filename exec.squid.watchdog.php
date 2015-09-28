@@ -1,5 +1,9 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+
+
+
+
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
@@ -13,14 +17,18 @@ $GLOBALS["BY_FRAMEWORK"]=false;
 $GLOBALS["BY_OTHER_SCRIPT"]=false;
 $GLOBALS["BY_ARTICA_INSTALL"]=false;
 $GLOBALS["BY_RESET_CACHES"]=false;
+$GLOBALS["BY_CRON"]=false;
 $GLOBALS["OUTPUT"]=false;
 $GLOBALS["KILL_ALL"]=false;
 $GLOBALS["URGENCY"]=false;
-
+$GLOBALS["START_PROGRESS"]=false;
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
-	$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL)
-	;ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$GLOBALS["debug"]=true;
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
 }
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#--monit#",implode(" ",$argv))){$GLOBALS["MONIT"]=true;}
@@ -37,10 +45,13 @@ if(preg_match("#--class-unix#",implode(" ",$argv),$re)){$GLOBALS["BY_CLASS_UNIX"
 if(preg_match("#--framework#",implode(" ",$argv),$re)){$GLOBALS["BY_FRAMEWORK"]=true;}
 if(preg_match("#--script=(.+)#",implode(" ",$argv),$re)){$GLOBALS["BY_OTHER_SCRIPT"]=$re[1];}
 if(preg_match("#--bydaemon#",implode(" ",$argv),$re)){$GLOBALS["BY_ARTICA_INSTALL"]=true;}
+if(preg_match("#--bycron#",implode(" ",$argv),$re)){$GLOBALS["BY_CRON"]=true;}
 if(preg_match("#--byForceReconfigure#",implode(" ",$argv),$re)){$GLOBALS["BY_FORCE_RECONFIGURE"]=true;}
 if(preg_match("#--by-reset-caches#",implode(" ",$argv),$re)){$GLOBALS["BY_RESET_CACHES"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--kill-all#",implode(" ",$argv),$re)){$GLOBALS["KILL_ALL"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--urgency#",implode(" ",$argv),$re)){$GLOBALS["URGENCY"]=true;$GLOBALS["URGENCY"]=true;}
+if(preg_match("#--start-progress#",implode(" ",$argv),$re)){$GLOBALS["START_PROGRESS"]=true;}
+
 
 
 
@@ -64,7 +75,9 @@ include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
 include_once(dirname(__FILE__)."/ressources/class.resolv.conf.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.booster.inc");
-
+include_once(dirname(__FILE__)."/ressources/class.squid.watchdog.inc");
+include_once(dirname(__FILE__)."/ressources/class.influx.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
 
 	$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
 	if($AsCategoriesAppliance==1){die();}
@@ -78,13 +91,14 @@ include_once(dirname(__FILE__)."/ressources/class.squid.booster.inc");
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
 	
 	
+	if($argv[1]=="--shm"){dev_shm();die();}
 	if($argv[1]=="--redirector-array"){redirectors_array(true);die();}
 	if($argv[1]=="--ufdb-kill"){killufdbgClientPHP();die();}
 	if($argv[1]=="--cache-mem"){squid_cache_mem_current();die();}
 	if($argv[1]=="--caches-size"){caches_size();die();}
 	if($argv[1]=="--cnx"){squid_conx();die();}
 	if($argv[1]=="--mem"){squid_memory_monitor();die();}
-	if($argv[1]=="--mem-month"){squid_memory_month();die();}
+	if($argv[1]=="--mem-month"){die();}
 	
 	if($argv[1]=="--storage-infos"){squid_get_storage_info();die();}
 	if($argv[1]=="--check-status"){check_status();die();}
@@ -99,7 +113,7 @@ include_once(dirname(__FILE__)."/ressources/class.squid.booster.inc");
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart_squid();die();}
 	if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload_squid();die();}
 	if($argv[1]=="--squidz"){$GLOBALS["OUTPUT"]=true;squidz();die();}
-	if($argv[1]=="--init"){$GLOBALS["OUTPUT"]=true;initd_squid();die();}
+	
 	if($argv[1]=="--tests-smtp"){$GLOBALS["OUTPUT"]=true;test_smtp_watchdog();die();}
 	if($argv[1]=="--swapstate"){$GLOBALS["OUTPUT"]=true;$GLOBALS["SWAPSTATE"]=true;restart_squid();die();}
 	if($argv[1]=="--storedirs"){$GLOBALS["OUTPUT"]=true;CheckStoreDirs();die();}
@@ -121,21 +135,29 @@ include_once(dirname(__FILE__)."/ressources/class.squid.booster.inc");
 	if($argv[1]=="--checkufdbguard"){CheckUFDBGuardConfig(true);die();}
 	if($argv[1]=="--route"){DefaultRoute(true);die();}
 	if($argv[1]=="--idns"){idns();die();}
-	if($argv[1]=="--dns"){CHECK_DNS_SYSTEMS();die();}
+	if($argv[1]=="--dns"){die();}
 	if($argv[1]=="--ufdbthreads"){CheckUFDBGuardLocalThreads();die();}
 	if($argv[1]=="--sizes"){CheckAvailableSize();die();}
 	if($argv[1]=="--info"){CheckGlobalInfos(true);die();exit;}
-	if($argv[1]=="--rqs"){CheckRequestsStats();die();exit;}
-	if($argv[1]=="--rqsb"){BuilRequestsStats();die();exit;}
+	if($argv[1]=="--rqs"){die("Depreciated");exit;}
+	if($argv[1]=="--rqsb"){die("Depreciated");exit;}
 	if($argv[1]=="--allkids"){ALLKIDS();die();exit;}
 	if($argv[1]=="--all-status"){ALL_STATUS();die();exit;}
-	if($argv[1]=="--streamcache"){CHECK_STREAMCACHE();die();exit;}
+	
 	if($argv[1]=="--icap"){C_ICAP_CLIENTS();die();exit;}
 	if($argv[1]=="--varlog"){verify_var_log();die();exit;}
 	if($argv[1]=="--disable-snmp"){disable_snmp();die();exit;}
 	if($argv[1]=="--mem-status"){squid_mem_status(true);die();exit;}
 	if($argv[1]=="--store-status"){squid_stores_status(true);die();exit;}
-	
+	if($argv[1]=="--test-port"){TEST_PORT(true);die();exit;}
+	if($argv[1]=="--start-progress"){$GLOBALS["START_PROGRESS"]=true;start_squid();die();exit;}
+	if($argv[1]=="--categories"){$GLOBALS["START_PROGRESS"]=true;CATEGORIES_SERVICE();die();exit;}
+	if($argv[1]=="--bandwidth-cron"){BANDWIDTH_MONITOR_CRON();die();exit;}
+	if($argv[1]=="--bandwidth-run"){BANDWIDTH_MONITOR();die();exit;}
+	if($argv[1]=="--google"){DisableGoogleSSL();die();}
+	if($argv[1]=="--wifidog"){CHECK_WIFIDOG_IPTABLES_RULES();die();}
+	if($argv[1]=="--import-old-logs"){import_old_logs();die();}
+	if($argv[1]=="--taskset"){taskset();die();}
 	
 	
 	
@@ -144,13 +166,13 @@ include_once(dirname(__FILE__)."/ressources/class.squid.booster.inc");
 	start_watchdog();
 	
 function PING_GATEWAY_DEFAULT_PARAMS($MonitConfig){
-	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=0;}
 	if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 	if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
 	if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
 	if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
 	if(!isset($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
-	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=0;}
 	if(!is_numeric($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 	if(!is_numeric($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
 	if(!is_numeric($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
@@ -171,13 +193,12 @@ function DNSCACHE(){
 		squid_admin_mysql(1, "DNS Cache stopped", "Starting DNS cache, not started");
 		shell_exec("/etc/init.d/dnsmasq start");
 		$pid=DNSCACHE_PID_NUM();
-			if(!$unix->process_exists($pid)){
-				squid_admin_mysql(1, "DNS Cache stopped/bugged", "Unable to start DNS Cache !!!");
-				
-			}
+		if(!$unix->process_exists($pid)){
+			squid_admin_mysql(1, "DNS Cache stopped/bugged", "Unable to start DNS Cache !!!");
+		}
 	}
 	
-	
+	Events("DONE....");
 	return;
 }
 
@@ -282,6 +303,7 @@ function verify_var_log(){
 		$f["/var/log/lighttpd/squidguard-lighttpd-error.log"]=True;
 		$f["/var/log/lighttpd/squidguard-lighttpd.log"]=True;
 		$f["/var/log/ufdbcat/ufdbguardd.log"]=True;
+		$f["/var/log/squid/cache.log"]=True;
 		while (list ($filename, $line) = each ($f) ){
 			if(is_file($filename)){shell_exec("$echobin \"\" > $filename 2>&1");}
 				
@@ -315,7 +337,7 @@ function verify_var_log(){
 			@unlink("/var/log/squid/access.log");
 			@touch("/var/log/squid/access.log");
 			$unix->chown_func("squid","squid","/var/log/squid/access.log");
-			shell_exec("/etc/init.d/squid reload");
+			shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
 		}
 		
 	}
@@ -330,103 +352,20 @@ function verify_var_log(){
 
 
 function watchdog_config_default($MonitConfig){
-	
-	
-	if(!is_file("/etc/artica-postfix/settings/Daemons/DisableLogFileDaemonMySQL")){
-		@file_put_contents("/etc/artica-postfix/settings/Daemons/DisableLogFileDaemonMySQL", 1);
-	}
-	
-	
-	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
-	if(!isset($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
-	if(!isset($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
-	if(!isset($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
-	if(!isset($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
-	
-	if(!isset($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	if(!isset($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
-	if(!is_numeric($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
-	if(!is_numeric($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}
-	
-	if(!isset($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
-	if(!is_numeric($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
-	if($MonitConfig["StopMaxTTL"]<5){$MonitConfig["StopMaxTTL"]=5;}
-	
-	if(!isset($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
-	if(!is_numeric($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
-	if($MonitConfig["MgrInfosMaxFailed"]==0){$MonitConfig["MgrInfosMaxFailed"]=1;}
-	
-	
-	if(!isset($MonitConfig["MIN_INTERVAL"])){$MonitConfig["MIN_INTERVAL"]=5;}
-	if(!isset($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	if(!isset($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
-	if(!isset($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
-	
-	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-	if(!isset($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	
-	if(!isset($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
-	if(!is_numeric($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
-	if($MonitConfig["watchdogRestart"]==0){$MonitConfig["watchdogRestart"]=80;}
-	
-	if(!isset($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
-	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
-	
-	
-	if(!isset($MonitConfig["SWAP_MONITOR"])){$MonitConfig["SWAP_MONITOR"]=1;}
-	if(!isset($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
-	if(!isset($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
-	if(!is_numeric($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
-	if(!is_numeric($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
-	
-	if(!is_numeric($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
-	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-	if(!is_numeric($MonitConfig["MIN_INTERVAL"])){$MonitConfig["MIN_INTERVAL"]=5;}
-	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	if(!is_numeric($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
-	if(!is_numeric($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
-
-	if(!is_numeric($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
-	if(!is_numeric($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
-	
-	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
-	if(!is_numeric($MonitConfig["DNSIssuesMAX"])){$MonitConfig["DNSIssuesMAX"]=1;}
-	
-	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	
-	if(!is_numeric($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
-	if(!is_numeric($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
-	if(!is_numeric($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
-	
-	
-	
-	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=15;}
-	if($MonitConfig["MIN_INTERVAL"]<3){$MonitConfig["MIN_INTERVAL"]=3;}
-	if($MonitConfig["MaxSwapPourc"]<5){$MonitConfig["MaxSwapPourc"]=5;}
-	if($MonitConfig["DNSIssuesMAX"]<1){$MonitConfig["DNSIssuesMAX"]=1;}
-	if($MonitConfig["REBOOT_INTERVAL"]<10){$MonitConfig["REBOOT_INTERVAL"]=10;}
-	if($MonitConfig["MinTimeFailOverSwitch"]<5){$MonitConfig["MinTimeFailOverSwitch"]=5;}
-	
-	
-	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
-	if(!isset($MonitConfig["EnableFailover"])){
-		$sock=new sockets();
-		$MonitConfig["EnableFailover"]=$sock->GET_INFO("EnableFailover");
-		if(!is_numeric($MonitConfig["EnableFailover"])){$MonitConfig["EnableFailover"]=1;}
-		
-	}
-	$MonitConfig=PING_GATEWAY_DEFAULT_PARAMS($MonitConfig);
-	return $MonitConfig;	
+	$w=new squid_watchdog();
+	return $w->MonitConfig;	
 }
 
 function ALL_STATUS($aspid=false){
+	if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 	$unix=new unix();
+	
+	
+	if(!is_file("/usr/sbin/mgr-info")){
+		$ln=$unix->find_program("ln");
+		shell_exec("$ln -sf ".dirname(__FILE__)."/exec.cmdline.squid.cache.mem.php /usr/sbin/mgr-info");
+		@chmod(dirname(__FILE__)."/exec.cmdline.squid.cache.mem.php", 0755);
+	}
 
 	if($GLOBALS["VERBOSE"]){
 		$cmdline_verbose=" --verbose";
@@ -458,12 +397,25 @@ function ALL_STATUS($aspid=false){
 	squid_cache_mem_current();
 	build_progress_status("redirectors_array()",9);
 	redirectors_array();
+	build_progress_status("CATEGORIES_SERVICE()",9);
+	CATEGORIES_SERVICE();
+	build_progress_status("dev_shm()",9);
+	dev_shm();
+	build_progress_status("DisableGoogleSSL()",9);
+	DisableGoogleSSL();
+	build_progress_status("CHECK_WIFIDOG_IPTABLES_RULES()",9);
+	CHECK_WIFIDOG_IPTABLES_RULES();
+	build_progress_status("taskset()",9);
+	taskset();
+	
+	build_progress_status("CRON_NECESSARIES()",9);
+	CRON_NECESSARIES();
+	build_progress_status("import_old_logs()",9);
+	import_old_logs();
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	build_progress_status("CheckGlobalInfos()",10);
 	CheckGlobalInfos();
-	build_progress_status("CheckRequestsStats()",15);
-	CheckRequestsStats();
 	build_progress_status("ALLKIDS()",20);
 	ALLKIDS();
 	build_progress_status("C_ICAP_CLIENTS()",22);
@@ -473,9 +425,11 @@ function ALL_STATUS($aspid=false){
 	squid_stores_status();
 	build_progress_status("{caches_center} {status}",30);
 	cache_center_status();
+	eCapClamav();
+	squid_conx();
 	if($GLOBALS["FORCE"]){
 		build_progress_status("CacheInfos()",50);
-		system("$php5 /usr/share/artica-postfix/exec.squid.php --cache-infos --force$cmdline_verbose");
+		system("$php5 /usr/share/artica-postfix/exec.squid.php --cache-infos --force --verbose");
 		build_progress_status("{caches_center}",60);
 		system("$php5 ".__FILE__." --caches-center --force$cmdline_verbose");
 		
@@ -505,6 +459,56 @@ function build_progress_status2($text,$pourc){
 }
 
 
+function DisableGoogleSSL(){
+	
+	
+	$TimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if(is_file($TimeFile)){
+		$unix=new unix();
+		if($unix->file_time_min($TimeFile)<20){return;}
+		@unlink($TimeFile);
+		@touch($TimeFile);
+	}
+	
+	Events("DisableGoogleSSL()...");
+	$sock=new sockets();
+	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
+	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}
+	$Enabled=1;
+	if($DisableGoogleSSL==0){
+		if($EnableGoogleSafeSearch==0){
+			$Enabled=0;
+		}
+	}
+	
+	if($Enabled==1){Events("DisableGoogleSSL() is enabled...");return;}
+		
+	Events("DisableGoogleSSL() is disabled...");
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$f=explode("\n",@file_get_contents("/etc/hosts"));
+	
+	Events("DisableGoogleSSL() Scanning ".count($f)." entries");
+	
+	while (list ($index, $line) = each ($f)){
+		if(preg_match("#google\.com#", $line)){
+			squid_admin_mysql(1, "Google no-ssl was disabled but still exists in system [action=disable]", null,__FILE__,__LINE__);
+			Events("$php /usr/share/artica-postfix/exec.nosslsearch.google.com.php --run");
+			shell_exec("$nohup $php /usr/share/artica-postfix/exec.nosslsearch.google.com.php --run >/dev/null 2>&1 &");
+			return;
+		}
+		if($GLOBALS["VERBOSE"]){echo "$line no match\n";}
+		
+	}
+	Events("DisableGoogleSSL() Done... Nothing to do...");
+	
+}
+	
+
+
 
 
 function build_progress_restart($text,$pourc){
@@ -522,15 +526,28 @@ function build_progress_restart($text,$pourc){
 
 }	
 function build_progress_reload($text,$pourc){
-	if($GLOBALS["VERBOSE"]){echo "******************** {$pourc}% $text ********************\n";}
+	if($GLOBALS["VERBOSE"]){echo "******************** {$pourc}% $text ********************\n";}else{
+		echo "Starting......: ".date("H:i:s")." {$pourc}% $text\n";
+	}
 	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.reload.progress";
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
-
+	Events($text);
 }
-
+function build_progress_start($text,$pourc){
+	if(!$GLOBALS["START_PROGRESS"]){return;}
+	if($GLOBALS["VERBOSE"]){echo "******************** {$pourc}% $text ********************\n";}else{
+		echo "Starting......: ".date("H:i:s")." {$pourc}% $text\n";
+	}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squid.start.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+	sleep(1);
+}
 
 
 function start_watchdog(){
@@ -587,7 +604,21 @@ function start_watchdog(){
 	
 	@unlink($pidtime);
 	@file_put_contents($pidtime,time());
+	Events("* * * * * * * * * * * * * * * * START WATCHDOG * * * * * * * * * * * * * * * *");
 	if($SQUIDEnable==0){die();}
+	Events("Testing Memory");
+	CHECK_MEMORY_USE();
+	PARANOID_MODE_CLEAN();
+	
+	Events("Testing Active Directory");
+	
+	TEST_ACTIVE_DIRECTORY();
+	Events("Testing Active Directory Emergency....");
+	CheckActiveDirectoryEmergency();
+	
+	Events("Testing port....");
+	TEST_PORT();
+	Events("ALL_STATUS");
 	ALL_STATUS(true);
 
 	
@@ -623,12 +654,11 @@ function start_watchdog(){
 		if($processtime<2){return;}
 	}
 	
-	CHECK_STREAMCACHE();
+	
 	CACHE_DIR_SIZE_CACHES();
 	verify_var_log();
+	
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after START";
-	CHECK_SARG();
-	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after CHECK_SARG();";
 	Checks_mgrinfos($MonitConfig,true);
 	ntlmauthenticator();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after ntlmauthenticator()";
@@ -660,38 +690,57 @@ function start_watchdog(){
 	DefaultRoute();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after DefaultRoute()";
 	if($GLOBALS["VERBOSE"]){echo "Check UFDB\n";}
+	Events("CheckUFDBGuardLocalThreads....");
 	CheckUFDBGuardLocalThreads();
+	Events("CheckUFDBGuardConfig....");
 	CheckUFDBGuardConfig();
+	Events("CheckUFDBGuardPort....");
 	CheckUFDBGuardPort();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after CheckUFDBGuardConfig()";
 	if($GLOBALS["VERBOSE"]){echo "PING_GATEWAY()\n";}
+	Events("PING_GATEWAY....");
 	PING_GATEWAY();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after PING_GATEWAY()";
 	if($GLOBALS["VERBOSE"]){echo "SwapWatchdog()\n";}
+	Events("SwapWatchdog....");
 	SwapWatchdog();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after SwapWatchdog()";
 	if($GLOBALS["VERBOSE"]){echo "Checks_Winbindd()\n";}
+	Events("Checks_Winbindd....");
 	Checks_Winbindd();
 	if($GLOBALS["VERBOSE"]){echo "CheckStoreDirs()\n";}
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after Checks_Winbindd()";
+	Events("CheckStoreDirs....");
 	CheckStoreDirs();
+	
+	Events("CHECK_SQUID_EXTERNAL_LDAP()....");
+	CHECK_SQUID_EXTERNAL_LDAP();
+	
+	
 	if($GLOBALS["VERBOSE"]){echo "MemBoosters()\n";}
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after CheckStoreDirs()";
+	Events("MemBoosters....");
 	MemBoosters();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after MemBoosters()";
 	if($GLOBALS["VERBOSE"]){echo "SwapCache()\n";}
+	Events("SwapCache....");
 	SwapCache($MonitConfig);
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after SwapCache()";
+	Events("MaxSystemLoad....");
 	MaxSystemLoad($MonitConfig);
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after MaxSystemLoad()";
 	
 	
 	
 	if($GLOBALS["VERBOSE"]){echo "CheckAvailableSize()\n";}
+	Events("CheckAvailableSize....");
 	CheckAvailableSize();
 	$GLOBALS["ALL_SCORES_WHY"][]="score: {$GLOBALS["ALL_SCORES"]} after CheckAvailableSize()";
+	Events("FailOverCheck....");
 	FailOverCheck();
+	Events("DNSCACHE....");
 	DNSCACHE();
+	Events("cache_center_status....");
 	cache_center_status();
 	
 	
@@ -707,16 +756,119 @@ function start_watchdog(){
 			@file_put_contents($pidtimeNTP, time());
 		}
 	}
+	Events("* * * * * * * * * * * * * * * * END WATCHDOG * * * * * * * * * * * * * * * *");
+	
+}
+
+function CRON_NECESSARIES(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	
+	if(!is_file("/etc/cron.d/squid-repos")){
+		$CRON[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+		$CRON[]="MAILTO=\"\"";
+		$CRON[]="* 0,2,4,6,8,10,12,14,16,18,20,22 * * *\troot\t$php5 /usr/share/artica-postfix/exec.web-community-filter.php --squid-repo >/dev/null 2>&1 >/dev/null 2>&1";
+		$CRON[]="";
+		@file_put_contents("/etc/cron.d/squid-repos", @implode("\n", $CRON));
+		@chmod("/etc/cron.d/squid-repos",0644);
+		shell_exec("/etc/init.d/cron reload");
+		$CRON=array();
+	}
+	
+	if(!is_file("/etc/cron.d/squid-chown")){
+		$CRON[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+		$CRON[]="MAILTO=\"\"";
+		$CRON[]="30 5 * * *\troot\t$php5 /usr/share/artica-postfix/exec.squid.chown.caches.php >/dev/null 2>&1";
+		$CRON[]="";
+		@file_put_contents("/etc/cron.d/squid-chown", @implode("\n", $f));
+		@chmod("/etc/cron.d/squid-chown",0644);
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/cron reload >/dev/null 2>&1 &");
+		$CRON=array();
+	}
+	
+	
 	
 	
 }
 
+
 function MaxSystemLoad($MonitConfig){
 
+	
+	
+	
+	$sock=new sockets();
+	$unix=new unix();
+	$shutdown=$unix->find_program("shutdown");
+	$nohup=$unix->find_program("nohup");
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	$MonitConfig=watchdog_config_default($MonitConfig);
+	
+	
+	if($MonitConfig["LOAD_TESTS"]==0){return;}
+	
+	
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	
+	$LOAD_WARNING=$MonitConfig["LOAD_WARNING"];
+	$LOAD_MAX=$MonitConfig["LOAD_MAX"];
+	$LOAD_MAX_ACTION=$MonitConfig["LOAD_MAX_ACTION"];
+	
+	
+	$array_mem=getSystemMemInfo();
+	$MemFree=$array_mem["MemFree"];
+	$MemFree=round($MemFree/1024);
+	
+	
+	if($MonitConfig["MinFreeMem"]>0){
+		$report=$unix->ps_mem_report();
+		if($MemFree<$MonitConfig["MinFreeMem"]){
+			squid_admin_mysql(2, "No memory free: {$MemFree}MB, Need at least {$MonitConfig["MinFreeMem"]}MB",$report,__FILE__,__LINE__);
+			if($MonitConfig["MaxLoadFailOver"]==1){
+				$GLOBALS["ALL_SCORES"]++;
+				$GLOBALS["ALL_SCORES_WHY"][]="No memory free: {$MemFree}MB, Need at least {$MonitConfig["MinFreeMem"]}MB";
+				FailOverDown("No mem free");
+				return;
+			}
+				
+		}
+	}	
+	
+
+if($internal_load>$LOAD_MAX){
+		$report=$unix->ps_mem_report();
+		system_is_overloaded();
+		$GLOBALS["ALL_SCORES_WHY"][]="Overloaded system Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, system {$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB memory free";
+		if($LOAD_MAX_ACTION=="reboot"){
+			squid_admin_mysql(0, "Overloaded system Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: reboot the server", $report,__FILE__,__LINE__);
+			shell_exec("$nohup $shutdown -r -t 5 >/dev/null 2>&1 &");
+			return;
+		}
+		
+		if($LOAD_MAX_ACTION=="failover"){
+			squid_admin_mysql(0, "Overloaded system Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: [action=failover]",$report,__FILE__,__LINE__);
+			FailOverDown("Overloaded");
+			return;
+		}
+
+		
+		if($LOAD_MAX_ACTION=="restart"){
+			squid_admin_mysql(0, "Overloaded system Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: [action=restart]", $report,__FILE__,__LINE__);
+			restart_squid(true);
+			return;
+		}		
+		
+		squid_admin_mysql(0, "Overloaded system Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: Overloaded system [action=none]", $report,__FILE__,__LINE__);
+		
+	}
+	
+	
+	
+	
 	if($MonitConfig["MaxLoad"]>0){
+		$report=$unix->ps_mem_report();
 		if($internal_load>$MonitConfig["MaxLoad"]){
 			if($MonitConfig["MaxLoadFailOver"]==1){
 				$GLOBALS["ALL_SCORES"]++;
@@ -738,21 +890,7 @@ function MaxSystemLoad($MonitConfig){
 	}
 
 	
-	$array_mem=getSystemMemInfo();
-	$MemFree=$array_mem["MemFree"];
-	$MemFree=round($MemFree/1024);
-	
-	
-	if($MonitConfig["MinFreeMem"]>0){
-		if($MemFree<$MonitConfig["MinFreeMem"]){
-			squid_admin_mysql(2, "No memory free: {$MemFree}MB, Need at least {$MonitConfig["MinFreeMem"]}MB",__FILE__,__LINE__);
-			if($MonitConfig["MaxLoadFailOver"]==1){
-				$GLOBALS["ALL_SCORES"]++;
-				$GLOBALS["ALL_SCORES_WHY"][]="No memory free: {$MemFree}MB, Need at least {$MonitConfig["MinFreeMem"]}MB";
-			}
-			
-		}
-	}
+
 }
 
 function swap_state(){
@@ -844,7 +982,7 @@ function CheckUFDBGuardLocalThreads($ForcePid=false){
 	@unlink($pidtime);
 	@file_put_contents($pidtime, time());
 	
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if($EnableUfdbGuard==0){if($GLOBALS["VERBOSE"]){echo "EnableUfdbGuard = $EnableUfdbGuard, return...\n";}return;}
 	
 	$pid=UFDBGUARD_PID_NUM();
@@ -879,7 +1017,7 @@ function CheckUFDBGuardPort(){
 	
 	
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	
 	if($GLOBALS["VERBOSE"]){echo "EnableUfdbGuard = $EnableUfdbGuard\n";}
 	if($EnableUfdbGuard==0){return;}
@@ -978,7 +1116,7 @@ function CheckUFDBGuardConfig($ForcePid=false){
 	@unlink($pidtime);
 	@file_put_contents($pidtime, time());
 	
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if($EnableUfdbGuard==0){if($GLOBALS["VERBOSE"]){echo "EnableUfdbGuard = $EnableUfdbGuard, return...\n";}return;}
 
 
@@ -1113,46 +1251,7 @@ function CHECK_HA_MASTER_UP($MustUp=false){
 }
 
 
-function CHECK_SARG(){
-	
-	$sock=new sockets();
-	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
-	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
-	
-	
-	$f[]="/etc/squid3/sarg-configured-1.8.012202.conf";
-	$f[]="/etc/cron.daily/0sarg.sh";
-	$f[]="/etc/cron.hourly/0sarg.sh";
-	$f[]="/etc/cron.weekly/0sarg.sh";
-	$f[]="/etc/cron.monthly/0sarg.sh";
-	$f[]="/etc/squid3/sarg.conf";
-	
-	if($EnableSargGenerator==0){
-		while (list ($num, $filepath) = each ($f) ){
-			if(is_file($filepath)){@unlink($filepath);}
-		}
-		return;
-	}
-	
-	
-	
-	$confifg=true;
-	while (list ($num, $filepath) = each ($f) ){
-		if(!is_file($filepath)){
-			$missing=$filepath;
-			$confifg=false;break;}
-		
-	}
-	
-	if(!$confifg){
-		$unix=new unix();
-		$php=$unix->LOCATE_PHP5_BIN();
-		sarg_admin_events("Reconfiguring sarg (missing $missing)", __FUNCTION__,__FILE__,__LINE__);
-		squid_admin_mysql(2, "SARG: Reconfiguring sarg",null,__FILE__,__LINE__);
-		shell_exec("$php ".basename(__FILE__)."/exec.sarg.php --conf 2>&1");
-	}
-	
-}
+
 
 
 
@@ -1182,197 +1281,7 @@ function CHEK_SYSTEM_LOAD(){
 	
 }
 
-function CHECK_DNS_SYSTEMS(){
-	
-	$unix=new unix();
-	
-	
-	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$BigTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".week.time";
-	
-	
-	
-	$pid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($pid)){
-		if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
-	}
-	
-	if($GLOBALS["VERBOSE"]){echo "pidtime =$pidtime\n";}
-	
-	@file_put_contents($pidFile, getmypid());
-	$time=$unix->file_time_min($pidtime);
-	if(!$GLOBALS["FORCE"]){
-	if($time<5){
-		Events("{$time}mn < 5mn ( use --force to bypass)");
-		if($GLOBALS["VERBOSE"]){echo "{$time}mn < 5mn ( use --force to bypass)\n";}
-		return;}
-	}
-	
-	
-	
-	@unlink($pidtime);
-	@file_put_contents($pidtime, time());
-	
-	$BigTimeEx=$unix->file_time_min($BigTime);
-	if($GLOBALS["VERBOSE"]){echo "{$BigTimeEx}M for $BigTime\n";}
-	if($BigTimeEx>4320){
-		$q=new mysql();
-		@unlink($BigTimeEx);
-		@file_put_contents($BigTimeEx, time());
-		Events("DELETE FROM dnsperfs_week WHERE zDate<DATE_SUB(NOW(),INTERVAL 8 DAY)");
-		$q->QUERY_SQL("DELETE QUICK FROM dnsperfs_week WHERE zDate<DATE_SUB(NOW(),INTERVAL 8 DAY)","artica_events");
-		$q->QUERY_SQL("OPTIMIZE TABLE dnsperfs_week","artica_events");
-	}
-	
-	
-	$resolv=new resolv_conf();
-	$q=new mysql_squid_builder();
-	$sock=new sockets();
-	include_once(dirname(__FILE__)."/ressources/externals/Net_DNS2/DNS2.php");
-	include_once(dirname(__FILE__)."/ressources/class.resolv.conf.inc");
 
-	$sql="SELECT *  FROM dns_servers ORDER BY zOrder";
-	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){
-		ToSyslog("$q->mysql_error");
-		return;}
-	
-	while ($ligne = mysql_fetch_assoc($results)) { $DNS[]=$ligne["dnsserver"]; }
-	$sock=new sockets();
-	
-	if($sock->dnsmasq_enabled()==1){
-		$DNS[]="127.0.0.1";
-	}
-	
-	$q=new mysql();
-	$sql="CREATE TABLE IF NOT EXISTS `dnsperfs` (
-				`dnsserver` VARCHAR(128) PRIMARY KEY,
-				`performance` FLOAT(5),
-				 `percent` smallint(2),
-				 `zDate` datetime
-				 ) ENGINE=MyISAM;";
-		
-	$q->QUERY_SQL($sql,'artica_events');
-	
-	$sql="CREATE TABLE IF NOT EXISTS `dnsperfs_week` (
-				`dnsserver` VARCHAR(128),
-				`performance` FLOAT(5),
-				 `percent` smallint(2),
-				 `zDate` datetime,
-				 KEY `zDate` (`zDate`),
-			     KEY `dnsserver` (`dnsserver`)
-				 ) ENGINE=MyISAM;";
-	
-	$q->QUERY_SQL($sql,'artica_events');	
-	
-	$nameserver=explode("\n",@file_get_contents("/etc/resolv.conf"));
-	while (list ($index, $line) = each ($nameserver) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		if(!preg_match("#^nameserver\s+(.+)#i", $line,$re)){continue;}
-		$COMP[trim($re[1])]=true;
-	}
-	
-	 
-	
-	$q->QUERY_SQL("TRUNCATE TABLE `dnsperfs`",'artica_events');
-	
-	//ref=518379
-	
-	if($resolv->MainArray["DNS1"]<>null){$DNS[]=$resolv->MainArray["DNS1"];}
-	if($resolv->MainArray["DNS2"]<>null){$DNS[]=$resolv->MainArray["DNS2"];}
-	if($resolv->MainArray["DNS3"]<>null){$DNS[]=$resolv->MainArray["DNS3"];}
-	$type="A";
-	$ipClass=new IP();
-	$minperf=$sock->GET_INFO("DNSPerfsPointer");
-	if(!is_numeric($minperf)){$minperf=301450;}
-	while (list ($index, $dnsA) = each ($DNS) ){$COMP[$dnsA]=true; }
-	
-
-	while (list ($dnsA,$none ) = each ($COMP) ){
-		Events("Checks DNS $dnsA");
-		if(!$ipClass->isIPAddress($dnsA)){continue;}
-		if($GLOBALS["VERBOSE"]){echo "$dnsA\n";}
-		$t['start'] = microtime(true);
-		$rs = new Net_DNS2_Resolver(array('nameservers' => array($dnsA)));
-	
-		try {
-			$date=date("Y-m-d H:i:s");
-			$tA=rand("10000", "208460");
-			$result = $rs->query("p4-cpsk2owex6nby-dwvedtapjla4ebei-$tA-i2-v6exp3-v4.metric.gstatic.com", "A");
-			$t[$dnsA] = microtime(true);
-			$time=mini_bench_to($t);
-			$timeC=$time*10000;
-		} catch(Net_DNS2_Exception $e) {
-				$error=$e->getMessage();
-				$q->QUERY_SQL("INSERT IGNORE INTO `dnsperfs` (dnsserver,performance,percent,zDate) VALUES ('$dnsA','0','0','$date')","artica_events");
-				$q->QUERY_SQL("INSERT IGNORE INTO `dnsperfs_week` (dnsserver,performance,percent,zDate) VALUES ('$dnsA','0','0','$date')","artica_events");
-				continue;
-		}
-		
-		$perc=$minperf/$timeC;
-		$perc=round($perc*100);
-		
-		Events("$dnsA Response Time:$time = $timeC/$minperf {$perc}%");
-		
-		
-		foreach($result->answer as $record){
-			if($ipClass->isIPAddress($record->address)){
-				if($perc>100){$perc=100;}
-				$q->QUERY_SQL("INSERT IGNORE INTO `dnsperfs` (dnsserver,performance,percent,zDate) VALUES ('$dnsA','$time','$perc','$date')","artica_events");
-				
-				
-				if($GLOBALS["VERBOSE"]){echo "INSERT IGNORE INTO `dnsperfs_week` (dnsserver,performance,percent,zDate) VALUES ('$dnsA','$time','$perc','$date')\n";}
-				$q->QUERY_SQL("INSERT IGNORE INTO `dnsperfs_week` (dnsserver,performance,percent,zDate) VALUES ('$dnsA','$time','$perc','$date')","artica_events");
-				break;
-			}
-		}
-		
-	
-	}
-	
-	
-	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/dnsperformances.cache";
-	$sql="SELECT * FROM dnsperfs ORDER BY percent DESC";
-	
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	while ($ligne = mysql_fetch_assoc($results)) { 
-		$percentage=$ligne["percent"];
-		$dnsserver=$ligne["dnsserver"];
-		if($percentage>100){$percentage=100;}
-		
-		$TTR[]="
-		<tr>
-			<td style='font-weight:bold;font-size:12px' align='right'>$dnsserver:</td>
-			<td style='font-weight:bold;font-size:12px'><td>". pourcentage($percentage,10,"green")."</td>
-		</tr>
-		";
-		
-	}
-	if(count($TTR)>0){
-		$data=RoundedLightGreen("<div style='min-height:147px'>
-		<table style='width:100%'>
-				<tr><td colspan=3><span style='font-weight:bold;font-size:12px'>{dns_performance}</span></td></tr>
-				".@implode($TTR, "\n")."
-				
-		<tr>
-			<td colspan=3 align='right'>
-				<i><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('dnsperfs.php',true)\" style='font-weight:normal;font-size:12px;text-decoration:underline'>{more_infos}</a>&nbsp;|&nbsp;
-				<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.popups.php?script=dns');\" style='font-weight:normal;font-size:12px;text-decoration:underline'>{settings}</a>
-				</i>
-			</td>
-		</tr>				
-				
-		</table></div>")."<br>";
-		
-		@file_put_contents($cacheFile, $data);
-	
-	}	
-		
-		
-	
-}
 
 
 function REBOOTING_SYSTEM(){
@@ -1388,8 +1297,8 @@ function REBOOTING_SYSTEM(){
 		return;
 	}
 	
-	squid_admin_notifs("Reboot the system.", __FUNCTION__, __FILE__, __LINE__, "proxy");
-	squid_admin_mysql(0,"Reboot the system.");
+	
+	squid_admin_mysql(0,"Reboot the system", __FUNCTION__, __FILE__, __LINE__, "proxy");
 	$shutdown=$unix->find_program("shutdown");
 	@unlink($GLOBALS["STAMP_REBOOT"]);
 	@file_put_contents($GLOBALS["STAMP_REBOOT"], time());
@@ -1432,7 +1341,6 @@ function reload_squid($aspid=false){
 		$pid=$unix->get_pid_from_file($PidFile);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$TimeMin=$unix->PROCCESS_TIME_MIN($pid);
-			squid_admin_mysql(1, "Reload::{$GLOBALS["BY_OTHER_SCRIPT"]} Already task running PID $pid since {$TimeMin}mn", null,__FILE__,__LINE__);
 			build_progress_reload("Already task running PID $pid since {$TimeMin}mn",100);
 			return;
 		}
@@ -1512,11 +1420,7 @@ function reload_squid($aspid=false){
 	
 	build_progress_reload("Reloading PID $pid",20);
 	
-	if(!is_file("/etc/init.d/tproxy start")){
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.transparent.php >/dev/null 2>&1 ");
-	}else{
-		shell_exec("$nohup /etc/init.d/tproxy start &");
-	}
+
 	
 	build_progress_reload("Check files and security",22);
 	start_prepare();
@@ -1577,38 +1481,19 @@ function reload_squid($aspid=false){
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.netagent.php >/dev/null 2>&1 &");
 	}
 	
-	echo "Reloading.....: ".date("H:i:s")." Squid-cache, Reloading DNS Cache...\n";
-	shell_exec("$nohup /usr/share/artica-postfix/exec.dnscache.php --restart >/dev/null 2>&1 &");
 	
-	
-	$streamsquidcache=$unix->find_program("streamsquidcache");
-	if(is_file($streamsquidcache)){
-		$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
-		if(EnableStreamCache==1){
-			build_progress_reload("Reloading VideoCache services",48);
-			system("$php5 /usr/share/artica-postfix/exec.squidstream.php --reload");
-			
-		}
-		
-	}
-	
-	
-	
-	
-	build_progress_reload("Wake-up loaders...",49);
-	LOGFILE_DAEMON_WAKEUP();
-	sleep(2);
 	
 	build_progress_reload("Reloading Main proxy service PID $pid",50);
 	
 	$sock=new sockets();
 	exec("{$GLOBALS["SQUIDBIN"]} -f \"/etc/squid3/squid.conf\" -k reconfigure 2>&1",$pgrepArray);
+	CHECK_WIFIDOG_IPTABLES_RULES();
 	
 	$sock=new sockets();
 	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 	if($EnableTransparent27==1){
 		build_progress("Reloading Proxy NAT service...",60);
-		system("/etc/init.d/squid-nat reload --script=".basename(__FILE__));
+		system("$nohup /etc/init.d/squid-nat reload --script=".basename(__FILE__)." >/dev/null 2>&1 &");
 	}
 	
 	
@@ -1671,7 +1556,7 @@ function redirectors_more(){
 	if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
 	if(!isset($datas["url_rewrite_children_startup"])){$datas["url_rewrite_children_startup"]=5;}
 	if(!isset($datas["url_rewrite_children_idle"])){$datas["url_rewrite_children_idle"]=5;}
-	if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=20;}
+	if(!isset($datas["url_rewrite_children_max"])){$datas["url_rewrite_children_max"]=30;}
 	
 	$datas["url_rewrite_children_startup"]=$datas["url_rewrite_children_startup"]+5;
 	$datas["url_rewrite_children_idle"]=$datas["url_rewrite_children_idle"]+5;
@@ -1728,7 +1613,7 @@ function ntlmauthenticator(){
 				if($Max+5<151){
 					$NewMax=$Max+5;
 					$ADDNNEW=true;
-					squid_admin_notifs("Warning NTLM Authenticator on CPU $CPU reach 95%:\nArtica will increase your ntlm authenticator processes to $NewMax instances per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG), __FUNCTION__, __FILE__, __LINE__, "proxy");
+					
 					squid_admin_mysql(2,"NTLM Authenticator on CPU $CPU reach 95%",
 					"Artica will increase your ntlm authenticator processes to $NewMax instances 
 					per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG));
@@ -1740,8 +1625,9 @@ function ntlmauthenticator(){
 	
 	if($ADDNNEW){
 		if($NewMax>0){
+			$squid=new squidbee();
 			$SquidClientParams=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidClientParams")));
-			$Old=$SquidClientParams["auth_param_ntlm_children"];
+			$Old=$squid->auth_param_ntlm_children();
 			$SquidClientParams["auth_param_ntlm_children"]=$NewMax;
 			$SquidClientParams["auth_param_ntlm_startup"]=round($NewMax*0.2);
 			
@@ -1751,7 +1637,7 @@ function ntlmauthenticator(){
 				$php=$unix->LOCATE_PHP5_BIN();
 				if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$file=basename($trace[1]["file"]);$function=$trace[1]["function"];$line=$trace[1]["line"];$called="Called by $function() from line $line";}}
 				squid_admin_mysql(1, "Reconfiguring squid-cache Increase NTLM From $Old to $NewMax","$called");
-				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --kreconfigure");
+				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --build --force");
 				
 			}
 		}
@@ -1767,7 +1653,7 @@ function ntlmauthenticator(){
 function ntlmauthenticator_edit($newvalue=0){
 	if(!is_numeric($newvalue)){$newvalue=20;}
 	if($newvalue<20){$newvalue=20;}
-	if($newvalue>150){$newvalue=150;}
+	
 	$FOUND=false;
 	$ARRAY=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 	while (list ($index, $line) = each ($ARRAY) ){
@@ -1785,6 +1671,238 @@ function ntlmauthenticator_edit($newvalue=0){
 		@file_put_contents("/etc/squid3/squid.conf", @implode("\n", $ARRAY));
 		return true;
 	}
+	
+}
+
+
+function TEST_ACTIVE_DIRECTORY(){
+	$ADD=true;
+	$sock=new sockets();
+	$watch=new squid_watchdog();
+	$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+	$CHECK_AD=intval($watch->MonitConfig["CHECK_AD"]);
+	if($EnableKerbAuth==0){$ADD=false;}
+	if($CHECK_AD==0){$ADD=false;}
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nice=$unix->EXEC_NICE();
+	
+	if(!is_file("/etc/init.d/artica-optimize")){
+		shell_exec("nice $php5 /usr/share/artica-postfix/exec.sysctl.php --build >/dev/null 2>&1");
+	}
+	
+	if(!is_file("/etc/cron.d/artica-ping-cloud")){
+		$f=array();
+		$f[]="MAILTO=\"\"";
+		$f[]="15 0,2,4,6,8,10,12,14,16,18,20,22 * * * *  root $nice $php5 /usr/share/artica-postfix/exec.web-community-filter.php --bycron >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/artica-ping-cloud", @implode("\n", $f));
+		
+	}
+	
+	
+	if(!$ADD){
+		if(is_file("/etc/cron.d/artica-ads-watchdog")){
+			@unlink("/etc/cron.d/artica-ads-watchdog");
+		}
+		return;
+	}
+
+	
+}
+
+function TEST_PORT($aspid=false){
+	$sock=new sockets();
+	$unix=new unix();
+	$suffix=null;
+	if(isset($GLOBALS["BY_CRON"])){$suffix="[CRON] ";}
+	$nice=$unix->EXEC_NICE();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
+	
+	if(!is_file("/etc/cron.d/squid-watch-sockets")){
+
+		$me=__FILE__;
+		$cmdline=trim("$nice $php5 $me --test-port --cron");
+		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+		$f[]="MAILTO=\"\"";
+		$f[]="0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *  root $cmdline >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/squid-watch-sockets", @implode("\n", $f));
+		shell_exec("/etc/init.d/cron reload");
+		
+	}
+	$f=array();
+	
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance<2){
+		if(!is_file("/etc/cron.d/squid-statsmembers5mn")){
+			$cmdline=trim("$nice $php5 ".dirname(__FILE__)."/exec.squid.statistics.buildmembers.php");
+			$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+			$f[]="MAILTO=\"\"";
+			$f[]="0,5,10,15,20,25,30,35,40,45,50,55 * * * *  root $cmdline >/dev/null 2>&1";
+			$f[]="";
+			@file_put_contents("/etc/cron.d/squid-statsmembers5mn", @implode("\n", $f));
+			shell_exec("/etc/init.d/cron reload");
+		}
+		
+	}else{
+		if(is_file("/etc/cron.d/squid-statsmembers5mn")){
+			@unlink("/etc/cron.d/squid-statsmembers5mn");
+		}
+		
+	}
+	
+	$f=array();
+	if(!is_file("/etc/cron.d/squid-statsclean")){
+		$cmdline=trim("$nice $php5 ".dirname(__FILE__)."/exec.influxdb.php --clean");
+		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
+		$f[]="MAILTO=\"\"";
+		$f[]="0 1,5 * * *  root $cmdline >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/squid-statsclean", @implode("\n", $f));
+		shell_exec("/etc/init.d/cron reload");
+	}
+	
+	
+	$php5=$unix->LOCATE_PHP5_BIN();
+
+	
+	
+	if($aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			Events("{$suffix}A task already exists pid $pid and running since {$time}mn");
+			return;
+		}
+		
+	}	
+	
+	Events("{$suffix}Testing Manager port...." );
+	@file_put_contents($pidfile, getmypid());
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	
+	$MonitConfig= watchdog_config_default($MonitConfig);
+	if($MonitConfig["TEST_PORT"]==0){Events("Test port is disabled, aborting" );return;}
+	if($MonitConfig["watchdog"]==0){Events("Watchog is disabled, aborting" );return;}
+
+	
+	if(!isset($MonitConfig["TEST_PORT_MAX"])){$MonitConfig["TEST_PORT_MAX"]=5;}
+	if(!isset($MonitConfig["TEST_PORT_INTERVAL"])){$MonitConfig["TEST_PORT_INTERVAL"]=2;}
+	if(!isset($MonitConfig["TEST_PORT_TIMEOUT"])){$MonitConfig["TEST_PORT_TIMEOUT"]=2;}
+	if(!isset($MonitConfig["TEST_PORT_RESTART"])){$MonitConfig["TEST_PORT_RESTART"]=1;}
+	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}	
+	
+	if($MonitConfig["TEST_PORT_MAX"]==0){$MonitConfig["TEST_PORT_MAX"]=5;}
+	if($MonitConfig["TEST_PORT_TIMEOUT"]==0){$MonitConfig["TEST_PORT_TIMEOUT"]=2;}
+	$MAX_RESTART=$MonitConfig["MAX_RESTART"];
+	$SquidPortTimeOudRestart=intval($sock->GET_INFO("SquidPortTimeOudRestart"));
+	
+	
+	$squidpid=SQUID_PID();
+	$timemin=$unix->PROCCESS_TIME_MIN($squidpid);
+	Events("{$suffix}Squid running since {$timemin}mn" );
+	if($GLOBALS["VERBOSE"]){echo "Process Running since {$timemin}mn\n";}
+	if($timemin<2){
+		Events("{$suffix}Can test a port only if Squid run after 2mn , current {$timemin}mn" );
+		return;
+	}
+	
+	
+	$cache_manager=new cache_manager();
+	$cache_manager->TimeOutsec=$MonitConfig["TEST_PORT_TIMEOUT"];
+	$data=$cache_manager->makeQuery("info");
+	if($cache_manager->ok){
+		if($GLOBALS["VERBOSE"]){echo "$data\n";}
+		if($GLOBALS["VERBOSE"]){echo "Process Running since {$timemin}mn\n";}
+		$sock->SET_INFO("SquidPortTimeOudRestart",0);
+		return;
+	}
+	
+	
+	Events("{$suffix}Cache Manager report failed with error $cache_manager->errstr");
+	PROXY_TESTS_PORTS_EVENTS("{$suffix}Cache Manager report failed with error $cache_manager->errstr");
+	
+	
+	sleep($MonitConfig["TEST_PORT_INTERVAL"]);
+	
+	for($i=1;$i<$MonitConfig["TEST_PORT_MAX"];$i++){
+		$cache_manager=new cache_manager();
+		$cache_manager->TimeOutsec=$MonitConfig["TEST_PORT_TIMEOUT"];
+		$data=$cache_manager->makeQuery("info");
+		if($cache_manager->ok){
+			squid_admin_mysql(2, "{$suffix}Manager port retreive information after $i attempts", null,__FILE__,__LINE__);
+			$sock->SET_INFO("SquidPortTimeOudRestart",0);
+			@unlink("/var/log/artica.proxy.watchdog.test.ports.log");
+			return;
+		}
+		
+		if($cache_manager->errno==3){
+			squid_admin_mysql(0,"{$suffix}Proxy Port report $cache_manager->errstr ($cache_manager->errstr_plus) [action=disable-icap]", @file_get_contents("/var/log/artica.proxy.watchdog.test.ports.log"),__FILE__,__LINE__);
+			@file_put_contents("/etc/squid3/icap.conf", "\n");
+			reload_squid(true);
+			sleep(10);
+			continue;
+			
+		}
+		if($cache_manager->errno==4){
+			squid_admin_mysql(1,"{$suffix}Proxy Port report $cache_manager->errstr ($cache_manager->errstr_plus) [action=disable-icap]", @file_get_contents("/var/log/artica.proxy.watchdog.test.ports.log"),__FILE__,__LINE__);
+			return true;
+			continue;
+				
+		}		
+		
+		PROXY_TESTS_PORTS_EVENTS("{$suffix} ($i/{$MonitConfig["TEST_PORT_TIMEOUT"]}) Cache Manager report failed with error $cache_manager->errstr ($cache_manager->errstr_plus)");
+		$LOGS[]="{$suffix}Connection $i/{$MonitConfig["TEST_PORT_TIMEOUT"]} Error:$cache_manager->errstr sleeping {$MonitConfig["TEST_PORT_INTERVAL"]}";
+		Events("{$suffix}Connection $i/{$MonitConfig["TEST_PORT_TIMEOUT"]} Error:$cache_manager->errstr sleeping {$MonitConfig["TEST_PORT_INTERVAL"]}" );
+		sleep($MonitConfig["TEST_PORT_INTERVAL"]);
+	}
+	
+	if(!is_numeric($MAX_RESTART)){$MAX_RESTART=2;}
+	
+	
+	$STAMP_MAX_RESTART=STAMP_MAX_RESTART_GET();
+	if($STAMP_MAX_RESTART >= $MAX_RESTART){
+		Events("{$suffix}Restarting Squid aborted, max $MAX_RESTART restarts has already been made (waiting Squid restart correctly to return back to 0)...");
+		return;
+	}
+	
+
+	$SquidPortTimeOudRestart++;
+	$sock->SET_INFO("SquidPortTimeOudRestart", $SquidPortTimeOudRestart);
+	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
+	PROXY_TESTS_PORTS_EVENTS("{$suffix} Restarting squid Max restarts: $SquidPortTimeOudRestart/$MAX_RESTART");
+	Events("{$suffix}Restarting squid Max restarts: $SquidPortTimeOudRestart/$MAX_RESTART");
+	
+	$SecondsToWaint=$MonitConfig["TEST_PORT_INTERVAL"]+$MonitConfig["TEST_PORT_TIMEOUT"];
+	$max_duration=$MonitConfig["TEST_PORT_MAX"]*$SecondsToWaint;
+	
+	if($MonitConfig["TEST_PORT_RESTART"]==0){
+		squid_admin_mysql(0,"{$suffix}Proxy Port did not respond during $max_duration seconds [action=notify]", @file_get_contents("/var/log/artica.proxy.watchdog.test.ports.log"),__FILE__,__LINE__);
+		@unlink("/var/log/artica.proxy.watchdog.test.ports.log");
+		return;
+	}
+
+	
+
+	if($SquidPortTimeOudRestart>$MAX_RESTART){
+		squid_admin_mysql(0,"{$suffix}Proxy Port did not respond during $max_duration seconds (max restarts) [action=notify]", @file_get_contents("/var/log/artica.proxy.watchdog.test.ports.log"),__FILE__,__LINE__);
+		@unlink("/var/log/artica.proxy.watchdog.test.ports.log");
+		return;
+	}
+	
+	
+	squid_admin_mysql(0,"{$suffix}Proxy Port did not respond during $max_duration seconds [action=restart]", @file_get_contents("/var/log/artica.proxy.watchdog.test.ports.log"),__FILE__,__LINE__);
+	@unlink("/var/log/artica.proxy.watchdog.test.ports.log");
+	restart_squid(true);
+	
+	
+	
+	$GLOBALS["ALL_SCORES_WHY"][]="function ".__FUNCTION__." return failed";
+	$GLOBALS["ALL_SCORES"]++;	
 	
 }
 
@@ -1815,19 +1933,20 @@ function PING_GATEWAY(){
 	if($GLOBALS["VERBOSE"]){echo "PING $PING_GATEWAY STAMP_MAX_PING=$STAMP_MAX_PING\n";}
 	
 	if($unix->PingHost($PING_GATEWAY,true)){
+		Events("PingHost($PING_GATEWAY -> TRUE OK");
 		if($STAMP_MAX_PING>1){
 			@file_put_contents($GLOBALS["STAMP_MAX_PING"], 1);
 		}
 		return;
 	}	
-	
-	if($MonitConfig["PING_FAILED_RELOAD_NET"]==0){
+	Events("PingHost($PING_GATEWAY -> FALSE -> PING_FAILED_RELOAD_NET={$MonitConfig["PING_FAILED_RELOAD_NET"]}");
+	if($MonitConfig["PING_FAILED_RELOAD_NET"]==1){
+		squid_admin_mysql(1,"Reloading network Ping $PING_GATEWAY failed","Reloading network  $PING_GATEWAY:\nThe $PING_GATEWAY ping failed, Artica will restart network");
 		$report=$unix->NETWORK_REPORT();
 		ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
-		shell_exec("/etc/init.d/artica-ifup start");
+		shell_exec("/etc/init.d/artica-ifup start --script=".basename(__FILE__)."/".__FUNCTION__);
 		if($unix->PingHost($PING_GATEWAY,true)){
 			squid_admin_mysql(2,"Relink network success","Relink network success after ping failed on $PING_GATEWAY:\nThe $PING_GATEWAY ping failed, Artica as restarted network and ping is now success.\nHere it is the network report when Ping failed\n$report");
-			squid_admin_notifs("Relink network success after ping failed on $PING_GATEWAY:\nThe $PING_GATEWAY ping failed, Artica as restarted network and ping is now success.\nHere it is the network report when Ping failed\n$report", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		
@@ -1837,7 +1956,9 @@ function PING_GATEWAY(){
 	$STAMP_MAX_PING=$STAMP_MAX_PING+1;
 	Events("$PING_GATEWAY not available - $STAMP_MAX_PING time(s) / $MAX_PING_GATEWAY Max");
 	@file_put_contents($GLOBALS["STAMP_MAX_PING"], $STAMP_MAX_PING);
-	if($STAMP_MAX_PING < $MAX_PING_GATEWAY){return;}
+	if($STAMP_MAX_PING < $MAX_PING_GATEWAY){
+		Events("$STAMP_MAX_PING < $MAX_PING_GATEWAY ABORTING...");
+		return;}
 	
 	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
 	if(!isset($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
@@ -1848,7 +1969,7 @@ function PING_GATEWAY(){
 	if($MonitConfig["PING_FAILED_REPORT"]==1){
 		$report=$unix->NETWORK_REPORT();
 		squid_admin_mysql(1,"Unable to ping $PING_GATEWAY","$report");
-		squid_admin_notifs("Unable to ping $PING_GATEWAY:\n$report", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		
 	}
 
 	if($MonitConfig["PING_FAILED_FAILOVER"]==1){
@@ -2345,7 +2466,7 @@ function Checks_Winbindd(){
 	
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	squid_admin_mysql(1,"Winbindd service was started",@implode("\n", $results)."\n$executed");
-	squid_admin_notifs("Winbindd service was started:\n".@implode("\n", $results)."\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");
+	
 	
 	
 	Events(@implode("\n", $results));
@@ -2382,6 +2503,20 @@ function Events($text){
 	
 	$unix=new unix();
 	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
+}
+
+function PROXY_TESTS_PORTS_EVENTS($text){
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			$sourcefile=basename($trace[1]["file"]);
+			$sourcefunction=$trace[1]["function"];
+			$sourceline=$trace[1]["line"];
+		}
+	
+	}
+	$unix=new unix();
+	$unix->events($text,"/var/log/artica.proxy.watchdog.test.ports.log",false,$sourcefunction,$sourceline);
 }
 
 function ChecksInstances(){
@@ -2457,10 +2592,11 @@ function Checks_mgrinfos($MonitConfig,$aspid=false){
 	$MgrInfosMaxTimeOut=$MonitConfig["MgrInfosMaxTimeOut"];
 	$MgrInfosRestartFailed=$MonitConfig["MgrInfosRestartFailed"];
 	$MgrInfosFaileOverFailed=$MonitConfig["MgrInfosFaileOverFailed"];
-	$MgrInfosMaxFailed=$MonitConfig["MgrInfosFaileOverFailed"];
+	$MgrInfosMaxFailed=intval($MonitConfig["MgrInfosMaxFailed"]);
 	
 	$MgrInfosMaxFailedCount=@file_get_contents("/etc/squid3/MgrInfosMaxFailedCount");
 	if(!is_numeric($MgrInfosMaxFailedCount)){$MgrInfosMaxFailedCount=0;}
+	if($MgrInfosMaxFailed<4){$MgrInfosMaxFailed=4;}
 	
 	
 	if(!$aspid){
@@ -2532,16 +2668,11 @@ function Checks_mgrinfos($MonitConfig,$aspid=false){
 	if(!$curl->get()){
 		
 		$MgrInfosMaxFailedCount++;
-		
-		if($MgrInfosRestartFailed==1){
-			squid_admin_mysql(0, "Unable to retreive informations [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port",$curl->errors,__FILE__,__LINE__);
-		}
-		
-		if($MgrInfosRestartFailed==0){
-			squid_admin_mysql(1, "Unable to retreive informations [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port",$curl->errors,__FILE__,__LINE__);
-		}
+
+
 		
 		if($MgrInfosMaxFailedCount<=$MgrInfosMaxFailed){
+			squid_admin_mysql(1, "Unable to retreive informations [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port",$curl->errors,__FILE__,__LINE__);
 			@file_put_contents("/etc/squid3/MgrInfosMaxFailedCount", $MgrInfosMaxFailedCount);
 			return true;
 		}
@@ -2549,17 +2680,23 @@ function Checks_mgrinfos($MonitConfig,$aspid=false){
 		@file_put_contents("/etc/squid3/MgrInfosMaxFailedCount", 0);
 		if($MonitConfig["watchdog"]==1){
 			if($MgrInfosFaileOverFailed==1){
+					squid_admin_mysql(0, "Retreive informations: Failed [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port [action=failover]",$curl->errors,__FILE__,__LINE__);
 					FailOverDown("Unable to retreive informations [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port, $curl->error");
 				}
 			}
 		
 		if($MgrInfosRestartFailed==1){	
+			squid_admin_mysql(0, "Retreive informations: Failed [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port [action=restart]",$curl->errors,__FILE__,__LINE__);
 			RESTARTING_SQUID_WHY($MonitConfig,"$curl->error: Unable to retreive informations [$MgrInfosMaxFailedCount/$MgrInfosMaxFailed] from $SquidBinIpaddr:$http_port");
 			$GLOBALS["ALL_SCORES_WHY"][]="function ".__FUNCTION__." return failed";
 			$GLOBALS["ALL_SCORES"]++;
 		}
 	
 	}else{
+		if($MgrInfosMaxFailedCount>0){
+			squid_admin_mysql(2, "Retreive informations: Success from $SquidBinIpaddr:$http_port after $MgrInfosMaxFailedCount attempts [action=none]",null,__FILE__,__LINE__);
+		}
+		
 		STAMP_MAX_RESTART_RESET();
 		@file_put_contents("/etc/squid3/MgrInfosMaxFailedCount", 0);
 		if($MonitConfig["EnableFailover"]==1){FailOverUp();}
@@ -2788,7 +2925,7 @@ function DefaultRoute(){
 	
 	squid_admin_mysql(1, "No default route set in network", "I can't see default route in\n".@implode("\n", $results)."\nNetwork will be rebooted");
 	ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
-	shell_exec("/etc/init.d/artica-ifup start");
+	shell_exec("/etc/init.d/artica-ifup start --script=".basename(__FILE__)."/".__FUNCTION__);
 }
 
 
@@ -2987,7 +3124,6 @@ if(!$curl->get()){
 				if($GLOBALS["VERBOSE"]){echo "$index: $val\n";}
 				$tr[]="$index: $val";
 			}
-			squid_admin_mysql(1, "Error $curl->CURLINFO_HTTP_CODE/$curl->error while checking external web page", @implode("\n", $tr));
 			return;
 		}
 		
@@ -3035,25 +3171,8 @@ if(!$curl->get()){
 
 function SQUID_PID(){
 	$unix=new unix();
-	$squidbin=$unix->LOCATE_SQUID_BIN();
-	$pidfile=$unix->LOCATE_SQUID_PID();
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($GLOBALS["VERBOSE"]){echo "PID FILE: $pidfile - > $pid\n";}
+	return $unix->SQUID_PID();
 	
-	if(!$unix->process_exists($pid)){
-		if($GLOBALS["VERBOSE"]){echo "PID: $pid - > NOT RUNNING !! -> PIDOF $squidbin\n";}
-		$pid=$unix->PIDOF($squidbin);
-		if($GLOBALS["VERBOSE"]){echo "PIDOF: $pid\n";}
-	}else{
-		return $pid;
-	}
-	
-	if($GLOBALS["VERBOSE"]){
-		if(!$unix->process_exists($pid)){
-			echo " **** ***** ***** ***** $pid] NOT RUNNING !! \n";
-		}
-	}
-	return $pid;
 	
 }
 
@@ -3070,8 +3189,9 @@ function ToSyslog($text){
 
 function start_prepare(){
 	if($GLOBALS["CRASHED"]){return;}
-	buil_init_squid_cache_log();
-	initd_squid();
+	
+	
+	
 	$reconfigure=false;
 	
 	$unix=new unix();
@@ -3083,7 +3203,7 @@ function start_prepare(){
 	if(!is_file("/etc/squid3/squid-block.acl")){@file_put_contents("/etc/squid3/squid-block.acl", "\n");}
 	$EXPLODED=explode("\n", @file_get_contents("/etc/squid3/squid.conf"));
 	
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Checking configuration consistency\n";}
 	while (list ($index, $val) = each ($EXPLODED)){
 		if(preg_match("#INSERT YOUR OWN RULE#", $val)){
 			if($GLOBALS["OUTPUT"]){echo "Preparing.....: ".date("H:i:s")." squid must be reconfigured...\n";}
@@ -3104,7 +3224,7 @@ function start_prepare(){
 	
 	
 	if($NtpdateAD==1){shell_exec("$nohup $php /usr/share/artica-postfix/exec.kerbauth.php --ntpdate >/dev/null 2>&1 &");}
-
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Checking squid user\n";}
 	$unix->CreateUnixUser("squid","squid");
 	
 	if(!is_file("/etc/squid3/squid.conf")){
@@ -3113,25 +3233,17 @@ function start_prepare(){
 		shell_exec("$php /usr/share/artica-postfix/exec.squid.php --build --force --withoutloading");
 		die();
 	}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." initd-squid\n";}
-	shell_exec("$php /usr/share/artica-postfix/exec.initd-squid.php >/dev/null 2>&1");
+
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Watchdog config\n";}
 	shell_exec("$php /usr/share/artica-postfix/exec.squid.php --watchdog-config >/dev/null 2>&1");
-	exec("$php /usr/share/artica-postfix/exec.squid.transparent.php",$GLOBALS["LOGS"]);
-	
-	if(!is_file("/etc/init.d/tproxy start")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Building transparent method\n";}
-		exec("$php /usr/share/artica-postfix/exec.squid.transparent.php",$GLOBALS["LOGS"]);
-	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Starting transparent method\n";}
-		exec("/etc/init.d/tproxy start",$GLOBALS["LOGS"]);
-	}
+
 	
 
 	
 	$directories_squid[]="/var/squid";
 	$directories_squid[]="/var/squid/cache";
 	$directories_squid[]="/usr/share/squid3/icons";
+	$directories_squid[]="/usr/share/squid3";
 	
 	$directories_squid[]="/var/log/squid";
 	$directories_squid[]="/etc/squid3";
@@ -3154,8 +3266,8 @@ function start_prepare(){
 			@mkdir($directory,0755,true);
 		}
 		@chmod($directory,0755);
-		$unix->chmod_func(0755, "$directory/*");
-		$unix->chown_func("squid","squid", "$directory/*");
+		$unix->chmod_func(0755, "$directory");
+		$unix->chown_func("squid","squid", "$directory");
 		
 	}
 	while (list ($num, $directory) = each ($directories_chmod) ){
@@ -3198,6 +3310,7 @@ function start_prepare(){
 	$articafiles[]="external_acl_quota.php";
 	$articafiles[]="external_acl_basic_auth.php";
 	$articafiles[]="external_acl_squid.php";
+	$articafiles[]="ufdbgclient.php";
 	
 	
 	while (list ($num, $filename) = each ($articafiles) ){
@@ -3256,7 +3369,7 @@ function start_squid($aspid=false){
 	
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	if(!is_file($squidbin)){
-		
+		build_progress_start("Not installed",110);
 		if($GLOBALS["OUTPUT"]){echo "Restart......: Squid-cache, not installed\n";}
 		return;
 	}
@@ -3285,15 +3398,17 @@ function start_squid($aspid=false){
 	
 	if($SQUIDEnable==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Squid is disabled...\n";}
+		build_progress_start("Proxy service is disabled",110);
 		return;
 	}
 	
-	
+	if(is_file("/etc/init.d/iptables-transparent")){shell_exec("/etc/init.d/iptables-transparent start");}
 	
 	if(is_file("/etc/artica-postfix/squid.lock")){
 		$time=$unix->file_time_min("/etc/artica-postfix/squid.lock");
 		if($time<60){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Squid is locked (since {$time}Mn...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Proxy is locked (since {$time}Mn...\n";}
+			build_progress_start(" Proxy is locked (since {$time}Mn",110);
 			return;
 		}
 		@unlink("/etc/artica-postfix/squid.lock");		
@@ -3319,6 +3434,7 @@ function start_squid($aspid=false){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
 			
 			if($time<5){
+				build_progress_start("Task Already running PID $pid since {$time}mn",110);
 				Events("Task Already running PID $pid since {$time}mn");
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Already task running PID $pid since {$time}mn, Aborting operation (".__LINE__.")\n";}
 				return;
@@ -3332,7 +3448,9 @@ function start_squid($aspid=false){
 	
 	$squidbin=$unix->find_program("squid");
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
-	if(!is_file($squidbin)){system_admin_events("Squid not seems to be installed", __FUNCTION__, __FILE__, __LINE__, "proxy");return;}	
+	if(!is_file($squidbin)){
+		build_progress_start("Not installed",110);
+		system_admin_events("Squid not seems to be installed", __FUNCTION__, __FILE__, __LINE__, "proxy");return;}	
 	@chmod($squidbin,0755);
 	
 	
@@ -3344,8 +3462,30 @@ function start_squid($aspid=false){
 		@touch("/forcefsck");
 	}
 	
-	start_prepare();
 	
+	$pid=SQUID_PID();
+	if($unix->process_exists($pid)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		build_progress_start("Proxy service already running since {$time}Mn",50);
+		if($GLOBALS["START_PROGRESS"]){
+			$php=$unix->LOCATE_PHP5_BIN();
+			build_progress_start("Removing caches...",55);
+			@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
+			build_progress_start("Building caches...",70);
+			system("$php /usr/share/artica-postfix/exec.status.php --all-squid");
+			if(!is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){
+				build_progress_start("Fatal!! Watchdog issue!!",110);
+				return;
+			}
+			build_progress_start("{done}",100);
+			
+		}
+		return;
+	}
+	
+	build_progress_start("Preparing proxy service",50);
+	start_prepare();
+	build_progress_start("{starting_proxy_service}",60);
 	$pid=SQUID_PID();
 	if($GLOBALS["CRASHED"]){
 		for($i=0;$i<10;$i++){
@@ -3361,23 +3501,21 @@ function start_squid($aspid=false){
 		
 	}
 	
-	if($unix->process_exists($pid)){
-		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Proxy service already running pid $pid since {$time}mn\n";}
-		system_admin_events("Squid seems to already running pid $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
-		return;
-	}
-
+	build_progress_start("Tuning network",70);
 	$unix->TCP_TUNE_SQUID_DEFAULT();
 	
 	
 	$t1=time();
+	build_progress_start("Checking caches",71);
 	SendLogs("Checking caches...");
 	$cacheBooster=new squidbooster();
 	$cacheBooster->cache_booster();
+	
+	build_progress_start("Checking caches",73);
 	CheckStoreDirs(true);
 	SendLogs("Checking caches done...");
 	
+	build_progress_start("Checking Ports",75);
 	SendLogs("Checking Ports...");
 	$array=CheckAllports();
 	SendLogs("Checking ". count($array) ." ports");
@@ -3393,31 +3531,107 @@ function start_squid($aspid=false){
 		}
 		
 	}
-	
-	
+	build_progress_start("Checking SHM",75);
+	system("$php /usr/share/artica-postfix/exec.squid.smp.php");
 	SendLogs("Starting squid $squidbin....");
 	$echo=$unix->find_program("echo");
 	$size=round(@filesize("/var/log/squid/cache.log")/1024,2)/1024;
-	if($size>10){
+	if($size>50){
+		squid_admin_mysql(2, "Cleaning cache.log {$size}MB", null,__FILE__,__LINE__);
 		@copy("/var/log/squid/cache.log", "/var/log/squid/cache.log.".time());
 		shell_exec("$echo \" \"> /var/log/squid/cache.log 2>&1");
 	}
+	
+	
+	
 	
 	
 	@chmod($squidbin,0755);
 	@chmod("/var/log/squid",0755);
 	if(is_link("/var/log/squid")){ @chmod(readlink("/var/log/squid"),0755); }
 	squid_admin_mysql(1,"Starting Squid-cache service $suffix",@implode("\n", $GLOBALS["LOGS"]),__FILE__,__LINE__);
-	exec("$squidbin -f /etc/squid3/squid.conf 2>&1",$GLOBALS["LOGS"]);
 	
-	$PRC=40;	$MAXPRC=60;
+	build_progress_start("Remove SystemV5 Memory",80);
+	kill_shm();
+	CHECK_WIFIDOG_IPTABLES_RULES();
+	$PIDFILE=$unix->LOCATE_SQUID_PID();
+	$f=array();
+	$f[]="#! /bin/sh";
+	$f[]=". /lib/lsb/init-functions";
+	$f[]="PATH=/bin:/usr/bin:/sbin:/usr/sbin";
+	
+	$f[]="DAEMON=\"$squidbin\"";
+	$f[]="CONFIG=\"/etc/squid3/squid.conf\"";
+	$f[]="SQUID_ARGS=\"-YC -f \$CONFIG\"";
+	$f[]="PIDFILE=\"$PIDFILE\"";
+	$f[]="";
+	$f[]="KRB5RCACHETYPE=none";
+	$f[]="KRB5_KTNAME=/etc/squid3/PROXY.keytab";
+	$f[]="export KRB5RCACHETYPE";
+	$f[]="export KRB5_KTNAME";
+	$f[]="";
+	$f[]="";
+	$f[]="umask 027";
+	$f[]="ulimit -n 65535";
+	$f[]="start-stop-daemon --start --pidfile \$PIDFILE --exec \$DAEMON -- \$SQUID_ARGS";
+	$f[]="status=\$?";
+	$f[]="if [ \$status -eq 0 ]";
+	$f[]="	then";
+	$f[]="	        echo \"Success starting Proxy service\"";
+	$f[]="	fi ";
+	$f[]="exit 0\n";
+	@file_put_contents("/usr/sbin/squid-start", @implode("\n", $f));
+	$f=array();
+	@chmod("/usr/sbin/squid-start",0755);
+	exec("/usr/sbin/squid-start 2>&1",$GLOBALS["LOGS"]);
+	
+	$PRC=40;	
+	$MAXPRC=60;
 	$AB=0;
+	$TESTFAILED=false;
 	
+	while (list ($index, $line) = each ($GLOBALS["LOGS"]) ){
+		if(preg_match("#FATAL: Bungled#", $line)){
+			squid_admin_mysql(1,"Alert: Bungled configuration when starting Proxy",$line,__FILE__,__LINE__);
+			$TESTFAILED=true;
+			break;
+		}
+		
+		
+	}
+	if($TESTFAILED){
+		$TESTFAILED=false;
+		
+		if(!is_file("/etc/artica-postfix/SQUID_TEST_FAILED")){
+			build_progress_start("Reconfigure Proxy service",80);
+			system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
+		}
+		$GLOBALS["LOGS"]=array();
+		exec("$squidbin -f /etc/squid3/squid.conf 2>&1",$GLOBALS["LOGS"]);
+		while (list ($index, $line) = each ($GLOBALS["LOGS"]) ){
+			if(preg_match("#FATAL: Bungled#", $line)){
+				squid_admin_mysql(1,"Alert: Bungled configuration after reconfiguring Proxy",$line,__FILE__,__LINE__);
+				$TESTFAILED=true;
+				break;
+			}
+		}
+	}
+	
+	if($TESTFAILED){
+		@touch("/etc/artica-postfix/SQUID_TEST_FAILED");
+		build_progress_start("Start Proxy service {failed}",110);
+		die();
+	}
+	
+	
+	
+	@unlink("/etc/artica-postfix/SQUID_TEST_FAILED");
 	
 	
 	for($i=0;$i<10;$i++){
 		$PRC++;
 		if($PRC>$MAXPRC-1){$PRC=$MAXPRC-1;}
+		build_progress_start("{starting_service} $i/10",85);
 		build_progress_restart("{starting_service}", $PRC);
 		$pid=SQUID_PID();
 		if($unix->process_exists($pid)){SendLogs("Starting squid started pid $pid...");break;}
@@ -3427,17 +3641,19 @@ function start_squid($aspid=false){
 	}
 	
 	if(!$unix->process_exists($pid)){
+		build_progress_start("{failed}",110);
 		SendLogs("Starting Squid failed to start...");
 		ToSyslog("Starting Squid failed to start...");
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 		squid_admin_mysql(0,"Squid failed to start $suffix",@implode("\n", $GLOBALS["LOGS"])."\n$executed");
-		squid_admin_notifs("Starting Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"])."\n$executed", __FUNCTION__, __FILE__, __LINE__, "proxy");
+	
 		system_admin_events("Starting Squid failed to start\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
 		return;
 	}
 	
 	SendLogs("Starting Squid Tests if it listen all connections....");
 	for($i=0;$i<10;$i++){
+		build_progress_start("{checking} $i/10",90);
 		if(is_started()){SendLogs("Starting squid listen All connections OK");break;}
 		SendLogs("Starting squid listen All connections... waiting $i/10");
 		sleep(1);
@@ -3448,18 +3664,18 @@ function start_squid($aspid=false){
 	SendLogs("Starting Squid success to start PID $pid...");
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	$php5=$unix->LOCATE_PHP5_BIN();
-	
-	system_admin_events("Starting Squid success to start PID $pid took $took\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
-	SendLogs("Starting Squid finishing Reloading DNSMasq");
-	shell_exec("$nohup /etc/init.d/dnsmasq reload >/dev/null 2>&1 &");
-	SendLogs("Starting Squid finishing Starting Squid-cache tail");
-	shell_exec("$nohup /etc/init.d/artica-postfix start squidcache-tail >/dev/null 2>&1 &");
-	SendLogs("Starting Squid finishing Starting auth-cache tail");
+	taskset();
+	build_progress_start("Restarting cache-tail",91);
+	shell_exec("$nohup /etc/init.d/cache-tail restart >/dev/null 2>&1 &");
+	build_progress_start("Restarting access-tail",92);
+	shell_exec("$nohup /etc/init.d/squid-tail restart >/dev/null 2>&1 &");
+	build_progress_start("Restarting auth-tail",93);
 	shell_exec("$nohup /etc/init.d/auth-tail restart >/dev/null 2>&1 &");
-	SendLogs("Starting Squid finishing Reconfiguring proxy.pac scripts");
-	shell_exec("$nohup $php5 ".basename(__FILE__)."/exec.proxy.pac.php --write 2>&1 &");
+	build_progress_start("{done}",100);
+	system_admin_events("Starting Squid success to start PID $pid took $took\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
 	SendLogs("Starting Squid done...");
-	shell_exec("$nohup $php5 ".basename(__FILE__)."/exec.cache.pages.php --force >/dev/null 2>&1 &");
+	if(is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");}
+	
 }
 
 function CheckMySQL(){
@@ -3554,7 +3770,7 @@ while (list ($num, $ligne) = each ($array) ){
 		
 		
 	if(preg_match("#No running copy#i", $ligne)){
-		SendLogs("Stopping Squid-Cache service \"$ligne\"");
+		SendLogs("Stopping Squid-Cache service \"$ligne\" [anaylyze]");
 		return true;
 	}
 		
@@ -3681,7 +3897,7 @@ function stop_squid($aspid=false){
 	$date=date("Y-m-d H:i:s");
 	
 	$timeTTL=$unix->PROCCESS_TIME_MIN($pid);
-	squid_admin_mysql(1, "Stopping Squid-Cache service: running since {$timeTTL}Mn $suffix","$suffix - $date\nSquid live since {$timeTTL}Mn and a process ask to stop it\n$called",__FILE__,__LINE__);
+	squid_admin_mysql(0, "Stopping Squid-Cache service: running since {$timeTTL}Mn $suffix","$suffix - $date\nSquid live since {$timeTTL}Mn and a process ask to stop it\n$called",__FILE__,__LINE__);
 	
 	
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service PID $pid running since {$timeTTL}Mn....\n";}
@@ -3693,9 +3909,10 @@ function stop_squid($aspid=false){
 	}
 	
 	exec("$squidbin -f /etc/squid3/squid.conf -k $commut 2>&1",$shutdown);
-	if(stop_squid_analyze($shutdown)){$STOP_SQUID_TIMEOUT=1;}
-	if($GLOBALS["FORCE"]){$STOP_SQUID_TIMEOUT=5;}
+	$KILLER=false;
+	if($GLOBALS["FORCE"]){$STOP_SQUID_TIMEOUT=30;}
 	if($GLOBALS["KILL_ALL"]){$STOP_SQUID_TIMEOUT=2;}
+	if(stop_squid_analyze($shutdown)){$STOP_SQUID_TIMEOUT=1;$KILLER=true;}
 	$PRC=20;	
 	$MAXPRC=30;
 	$AB=0;
@@ -3706,6 +3923,7 @@ function stop_squid($aspid=false){
 		$STOPIT=false;
 		$task=null;
 		$pid=SQUID_PID();
+		
 		if(!$unix->process_exists($pid)){break;}
 		$cmdline=@file_get_contents("/proc/$pid/cmdline");
 		if(preg_match("#\((.+?)\)-#", $cmdline,$re)){$task=$re[1];}
@@ -3717,14 +3935,14 @@ function stop_squid($aspid=false){
 	
 	$pid=SQUID_PID();
 	if($unix->process_exists($pid)){
-		$STOP_SQUID_TIMEOUT=10;
 		exec("$squidbin -f /etc/squid3/squid.conf -k kill >/dev/null 2>&1");
-		if(stop_squid_analyze($shutdown)){$STOP_SQUID_TIMEOUT=1;}
-		if($GLOBALS["FORCE"]){$STOP_SQUID_TIMEOUT=5;}
+		if($GLOBALS["FORCE"]){$STOP_SQUID_TIMEOUT=20;}
 		if($GLOBALS["KILL_ALL"]){$STOP_SQUID_TIMEOUT=2;}
-	
+		if(stop_squid_analyze($shutdown)){$STOP_SQUID_TIMEOUT=1;}
+		if($KILLER){$STOP_SQUID_TIMEOUT=1;}
+		
 		for($i=0;$i<$STOP_SQUID_TIMEOUT;$i++){
-			if($GLOBALS["OUTPUT"]){echo "Killing.......: ".date("H:i:s")." Squid-Cache service waiting $i/10 seconds for $pid PID Task:$task....\n";}
+			if($GLOBALS["OUTPUT"]){echo "Killing.......: ".date("H:i:s")." Squid-Cache service waiting $i/$STOP_SQUID_TIMEOUT seconds for $pid PID Task:$task....\n";}
 			sleep(1);
 			$pid=SQUID_PID();
 			if(!$unix->process_exists($pid)){break;}
@@ -3766,16 +3984,10 @@ function stop_squid($aspid=false){
 	}
 	
 	KillGhosts();
+	kill_shm();
+	@unlink("/var/run/squid/squid.pid");
 	
-
-	if(is_file("/dev/shm/squid-cache_mem.shm")){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service Removing /dev/shm/squid-cache_mem.shm\n";}
-		@unlink("/dev/shm/squid-cache_mem.shm");
-	}
-	if(is_file("/dev/shm/squid-squid-page-pool.shm")){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service Removing /dev/shm/squid-squid-page-pool.shm\n";}
-		@unlink("/dev/shm/squid-squid-page-pool.shm");
-	}	
+	if(is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");}
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	system_admin_events("Squid success to stop\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
 	
@@ -3796,6 +4008,20 @@ function killufdbgClientPHP(){
 	
 	}
 	
+}
+
+function kill_shm(){
+	if(!is_dir("/run/shm")){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service /dev/shm no such directory\n";}
+		return;
+	}
+	$unix=new unix();
+	$files=$unix->DirFiles("/run/shm","squid-.*?\.shm");
+	while (list ($num, $filename) = each ($files) ){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service removing $filename\n";}
+		@unlink("/run/shm/$filename");
+		
+	}
 }
 
 function KillGhosts(){
@@ -3996,188 +4222,6 @@ function squid_watchdog_events($text){
 	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
 }
 
-function initd_squid(){
-	
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	
-	$f[]="#!/bin/sh";
-	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          squid";
-	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
-	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
-	$f[]="# Should-Start:";
-	$f[]="# Should-Stop:";
-	$f[]="# Default-Start:     2 3 4 5";
-	$f[]="# Default-Stop:      0 1 6";
-	$f[]="# Short-Description: Start squid-cache proxy";
-	$f[]="# chkconfig: 2345 11 89";
-	$f[]="# description: squid-cache proxy Daemon";
-	$f[]="### END INIT INFO";
-	$f[]="case \"\$1\" in";
-	$f[]=" start)";
-	$f[]="    $php ". __FILE__." --start --byinitd \$2 \$3";
-	$f[]="    ;;";
-	$f[]="";
-	$f[]="  stop)";
-	$f[]="    $php ". __FILE__." --stop --byinitd --force \$2 \$3";
-	$f[]="    ;;";
-	$f[]="";
-	$f[]=" restart)";
-	$f[]="    $php ". __FILE__." --restart --byinitd --force \$2 \$3";
-	$f[]="    ;;";
-	$f[]="";
-	$f[]=" reload)";
-	$f[]="    $php ". __FILE__." --reload --byinitd \$2 \$3";
-	$f[]="    ;;";
-	$f[]="";	
-	$f[]="  *)";
-	$f[]="    echo \"Usage: \$0 {start|stop|restart} {ldap|} (+ 'debug' for more infos)\"";
-	$f[]="    exit 1";
-	$f[]="    ;;";
-	$f[]="esac";
-	$f[]="exit 0\n";
-	@file_put_contents("/etc/init.d/squid", @implode("\n", $f));
-	@chmod("/etc/init.d/squid",0755);
-	
-	if(is_file('/usr/sbin/update-rc.d')){
-		shell_exec('/usr/sbin/update-rc.d -f squid defaults >/dev/null 2>&1');
-	}
-	
-	if(is_file('/sbin/chkconfig')){
-		shell_exec('/sbin/chkconfig --add squid >/dev/null 2>&1');
-		shell_exec('/sbin/chkconfig --level 2345 squid on >/dev/null 2>&1');
-	}	
-	buil_init_squid_tail();
-	buil_init_squid_cache_log();
-	
-}
-function buil_init_squid_tail(){
-	$unix=new unix();
-	$unix=new unix();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$chmod=$unix->find_program("chmod");
-	$conf[]="#! /bin/sh";
-	$conf[]="# /etc/init.d/squid-tail";
-	$conf[]="#";
-	$conf[]="# squid-tail-sock Debian init script";
-	$conf[]="#";
-	$conf[]="### BEGIN INIT INFO";
-	$conf[]="# Provides:          squid-tail";
-	$conf[]="# Required-Start:    \$syslog";
-	$conf[]="# Required-Stop:     \$syslog";
-	$conf[]="# Should-Start:      \$local_fs";
-	$conf[]="# Should-Stop:       \$local_fs";
-	$conf[]="# Default-Start:     2 3 4 5";
-	$conf[]="# Default-Stop:      1";
-	$conf[]="# Short-Description: Launch squid-tail server";
-	$conf[]="# Description:       Launch squid-tail server";
-	$conf[]="### END INIT INFO";
-	$conf[]="";
-	$conf[]="case \"\$1\" in";
-	$conf[]=" start)";
-	$conf[]="    /etc/init.d/artica-postfix start squid-tail-sock \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="  stop)";
-	$conf[]="    /etc/init.d/artica-postfix stop squid-tail-sock \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" restart)";
-	$conf[]="     /etc/init.d/artica-postfix restart squid-tail-sock \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" reload)";
-	$conf[]="     /etc/init.d/artica-postfix restart squid-tail-sock \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="";
-	$conf[]="  *)";
-	$conf[]="    echo \"Usage: \$0 {start|stop|restart|reload}\"";
-	$conf[]="    exit 1";
-	$conf[]="    ;;";
-	$conf[]="esac";
-	$conf[]="exit 0\n";
-	@file_put_contents("/etc/init.d/squid-tail",@implode("\n",$conf));
-	$debianbin=$unix->find_program("update-rc.d");
-	$redhatbin=$unix->find_program("chkconfig");
-
-	shell_exec("$chmod +x /etc/init.d/squid-tail >/dev/null 2>&1");
-	if(is_file($debianbin)){
-		shell_exec("$debianbin -f squid-tail defaults >/dev/null 2>&1");
-	}
-	if(is_file($redhatbin)){
-		shell_exec("$redhatbin --add squid-tail >/dev/null 2>&1");
-		shell_exec("$redhatbin --level 2345 squid-tail on >/dev/null 2>&1");
-	}
-}
-
-
-
-function buil_init_squid_cache_log(){
-	$unix=new unix();
-	$unix=new unix();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$dirname=dirname(__FILE__);
-	$chmod=$unix->find_program("chmod");
-	$conf[]="#! /bin/sh";
-	$conf[]="# /etc/init.d/cache-tail";
-	$conf[]="#";
-	$conf[]="# cache-tail Debian init script";
-	$conf[]="#";
-	$conf[]="### BEGIN INIT INFO";
-	$conf[]="# Provides:          cache-tail";
-	$conf[]="# Required-Start:    \$syslog";
-	$conf[]="# Required-Stop:     \$syslog";
-	$conf[]="# Should-Start:      \$local_fs";
-	$conf[]="# Should-Stop:       \$local_fs";
-	$conf[]="# Default-Start:     2 3 4 5";
-	$conf[]="# Default-Stop:      1";
-	$conf[]="# Short-Description: Launch squid-tail on cache.log server";
-	$conf[]="# Description:       Launch squid-tail on cache.log server";
-	$conf[]="### END INIT INFO";
-	$conf[]="";
-	$conf[]="case \"\$1\" in";
-	$conf[]=" start)";
-	$conf[]="    $php5 $dirname/exec.init-tail-cache.php --start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="  stop)";
-	$conf[]="    $php5 $dirname/exec.init-tail-cache.php --stop \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" restart)";
-	$conf[]="	  $php5 $dirname/exec.init-tail-cache.php --stop \$1 \$2";
-	$conf[]="     $php5 $dirname/exec.init-tail-cache.php --start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" reload)";
-	$conf[]="     $php5 $dirname/exec.init-tail-cache.php --stop \$1 \$2";
-	$conf[]="     $php5 $dirname/exec.init-tail-cache.php --stop \$1 \$2";	
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="";
-	$conf[]="  *)";
-	$conf[]="    echo \"Usage: \$0 {start|stop|restart|reload}\"";
-	$conf[]="    exit 1";
-	$conf[]="    ;;";
-	$conf[]="esac";
-	$conf[]="exit 0\n";
-	@file_put_contents("/etc/init.d/cache-tail",@implode("\n",$conf));
-	$debianbin=$unix->find_program("update-rc.d");
-	$redhatbin=$unix->find_program("chkconfig");
-
-	shell_exec("$chmod +x /etc/init.d/cache-tail >/dev/null 2>&1");
-	if(is_file($debianbin)){
-		shell_exec("$debianbin -f cache-tail defaults >/dev/null 2>&1");
-		return;
-	}
-	if(is_file($redhatbin)){
-		shell_exec("$redhatbin --add cache-tail >/dev/null 2>&1");
-		shell_exec("$redhatbin --level 2345 cache-tail on >/dev/null 2>&1");
-	}
-}
-
 function is_peer(){
 	
 	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
@@ -4292,21 +4336,11 @@ function peer_status($aspid=false){
 		if($GLOBALS["VERBOSE"]){echo "No cache_peer...\n";}return;}
 	$sock=new sockets();
 
-	$datas=trim(CurlGet("server_list"));
+	
+	$datas=trim($unix->squidclient("server_list"));
 	if($GLOBALS["DUMP"]){echo $datas."\n";return;}
-	
-	if($datas==null){
-		$GLOBALS["RECONFIGURE_COUNT"]=$GLOBALS["RECONFIGURE_COUNT"]+1;
-		SendLogs("No results for peer, reloading the server reconfigured {{$GLOBALS["RECONFIGURE_COUNT"]}} times");
-		$unix=new unix();
-		squid_admin_mysql(1, "Reconfiguring proxy service\n",null,__FILE__,__LINE__);
-		reload_squid(true);
-		$php5=$unix->LOCATE_PHP5_BIN();
-		shell_exec("$php5 ".__FILE__." --peer-status --reconfigure-count={$GLOBALS["RECONFIGURE_COUNT"]}");
-		return;
-	}
-	
-	$tr=explode("\n",CurlGet("server_list"));
+	if($datas==null){return;}
+	$tr=explode("\n",$datas);
 	
 	
 	while (list ($num, $val) = each ($tr)){
@@ -4405,6 +4439,7 @@ function squid_cache_mem_current(){
 }
 
 function squid_get_storage_info(){
+	$CURCAP=null;
 	if($GLOBALS["VERBOSE"]){
 		echo " **** FORCED MODE ****\n";
 		$GLOBALS["OUTPUT"]=true;$GLOBALS["FORCE"]=true;
@@ -4503,6 +4538,93 @@ function squid_get_storage_info(){
 	return $GLOBALS["squid_get_storage_info"];
 }
 
+function caches_infos(){
+	$unix=new unix();
+	
+	$squid_pid=SQUID_PID();
+	if(!$unix->process_exists($squid_pid)){
+		$nohup=$unix->find_program("nohup");
+		squid_admin_mysql(0, "Squid-Cache is not running...", null,__FILE__,__LINE__);
+		return;
+	}
+
+	
+
+	$ttl=$unix->PROCCESS_TIME_MIN($squid_pid);
+	if($unix->PROCCESS_TIME_MIN($squid_pid)<5){
+		ToSyslog("caches_infos(): squid-cache running only since {$ttl}mn, aborting");
+		return;
+	}
+
+
+	ToSyslog("caches_infos(): Starting get Squid-cache informations.");
+
+	$array=$unix->squid_get_cache_infos();
+
+	for($i=0;$i<10;$i++){
+		$check=true;
+			
+		if(!is_array($array)){
+			if($GLOBALS["VERBOSE"]){echo "unix->squid_get_cache_infos() Not an array...\n";}
+			$check=false;
+			sleep(1);
+			$array=$unix->squid_get_cache_infos();
+			continue;
+
+		}
+			
+		if(count($array)==0){
+			if($GLOBALS["VERBOSE"]){echo "unix->squid_get_cache_infos() O items !!\n";}
+			$check=false;
+			sleep(1);
+			$array=$unix->squid_get_cache_infos();
+			continue;
+		}
+		if($check){
+			break;
+		}
+
+	}
+
+	if(!is_array($array)){if($GLOBALS["VERBOSE"]){echo "unix->squid_get_cache_infos() Not an array...\n";}return;}
+	if(count($array)==0){if($GLOBALS["VERBOSE"]){echo basename(__FILE__)."[".__LINE__."] unix->squid_get_cache_infos() O items !!...\n";}
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db",0755);
+	return;}
+
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db");
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/squid_get_cache_infos.db",0755);
+
+	$q=new mysql_squid_builder();
+	$uuid=$unix->GetUniqueID();
+
+	$profix="INSERT IGNORE INTO cachestatus(uuid,cachedir,maxsize,currentsize,pourc) VALUES ";
+	while (list ($directory, $arrayDir) = each ($array)){
+		$directory=trim($directory);
+		if($directory==null){continue;}
+		if($GLOBALS["VERBOSE"]){echo "('$uuid','$directory','{$arrayDir["MAX"]}','{$arrayDir["CURRENT"]}','{$arrayDir["POURC"]}')\n";}
+		$f[]="('$uuid','$directory','{$arrayDir["MAX"]}','{$arrayDir["CURRENT"]}','{$arrayDir["POURC"]}')";
+	}
+	if(count($f)>0){
+		$q->QUERY_SQL("TRUNCATE TABLE cachestatus");
+		$q->QUERY_SQL("$profix".@implode(",", $f));
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+}
+
+function eCapClamav(){
+	$sock=new sockets();
+	$EnableeCapClamav=intval($sock->GET_INFO("EnableeCapClamav"));
+	if($EnableeCapClamav==0){return;}
+	$unix=new unix();
+	$ln=$unix->find_program("ln");
+	$chown=$unix->find_program("chown");
+	shell_exec("$ln -sf /var/lib/clamav /usr/share/clamav >/dev/null 2>&1");
+	shell_exec("$chown -R squid:squid /var/lib/clamav >/dev/null 2>&1");
+	
+}
+
 function squid_stores_status($ByExec=false){
 	
 	
@@ -4544,7 +4666,7 @@ function squid_stores_status($ByExec=false){
 	
 	
 	$StoreDirs=unserialize(base64_decode(squid_get_storage_info()));
-	
+	caches_infos();
 	
 	
 	$imgRefresh=imgtootltip("20-refresh.png","{refresh}","Loadjs('squid.store.status.php',true)");
@@ -4855,9 +4977,27 @@ return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
 
 function squid_memory_monitor(){
 	$unix=new unix();
+	
+	
+	$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+	if($EnableIntelCeleron==1){return;}
+	$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	if($GLOBALS["VERBOSE"]){echo "$pidfileTime\n";}
+	
+	
+	if(!$GLOBALS["VERBOSE"]){
+		if($unix->file_time_min($pidfileTime)<10){
+			return;
+		}
+	}
+	
+	
 	$sock=new sockets();
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
 	$MonitConfig=watchdog_config_default($MonitConfig);
+	if(!class_exists("influx")){return;}
+	$q=new influx();
 
 	$total_memory=0;
 	$python=$unix->find_program("python");
@@ -4892,23 +5032,7 @@ function squid_memory_monitor(){
 		$total_memory=$total_memory*1024;
 	}
 
-	$timekey=date('Ymd');
-	$q=new mysql_squid_builder();
-	$table="squidmemory_$timekey";
-	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`$table` (
-	`zDate` DATETIME NOT NULL,
-	`memoryuse` INT UNSIGNED NOT NULL,
-	`percent` FLOAT NOT NULL,
-	PRIMARY KEY `zDate`(`zDate`),
-	KEY `memoryuse`(`memoryuse`),
-	KEY `percent`(`percent`)
-
-	) ENGINE=MYISAM;";
-	$q->QUERY_SQL($sql,$q->database);
-
-	if(!$q->ok){squid_admin_mysql(1, "MySQL error", $q->mysql_error,__FILE__,__LINE__);}
-
-
+	
 	$total_memory_MB=$total_memory/1024;
 	$total_memory_MB=$total_memory_MB/1024;
 
@@ -4920,9 +5044,15 @@ function squid_memory_monitor(){
 	$total_memory_MB=round($total_memory_MB);
 	if($GLOBALS["VERBOSE"]){echo "Bytes: $total_memory MB: $total_memory_MB/$MEMORY_SYSTEM_MB ({$prc}%) \n";}
 	$date=date("Y-m-d H:i:s");
-	$q->QUERY_SQL("INSERT INTO `$table` (zDate,memoryuse,`percent`) VALUES ('$date','$total_memory_MB','$prc')");
-	if(!$q->ok){squid_admin_mysql(1, "MySQL error", $q->mysql_error,__FILE__,__LINE__);}
-	squid_memory_month();
+	
+	$array["fields"]["memory"]=$total_memory_MB;
+	$array["fields"]["prc"]=$prc;
+	$array["tags"]["proxyname"]=$unix->hostname_g();
+	if($GLOBALS["VERBOSE"]){print_r($array);}
+	$q->insert("squidmem", $array);
+	
+
+	
 
 	if($MonitConfig["watchdog"]==0){ return;}
 	if($MonitConfig["watchdogRestart"]>99){return;}
@@ -4937,67 +5067,9 @@ function squid_memory_monitor(){
 
 }
 
-function squid_memory_month(){
-	
-	$timeFile="/etc/artica-postfix/pids/exec.squid.watchdog.php.squid_memory_month.time";
-	$unix=new unix();
-	$time=$unix->file_time_min($timeFile);
-	if(!$GLOBALS["FORCE"]){
-		if($time<1440){return;}
-	}
-	
-	$q=new mysql_squid_builder();
-	$LIST_TABLES_SQUID_MEMORY=$q->LIST_TABLES_SQUID_MEMORY();
-	$timekey=date('Ymd');
-	$current_table="squidmemory_$timekey";
-	
-	while (list ($tablename, $line) = each ($LIST_TABLES_SQUID_MEMORY) ){
-		if($tablename==$current_table){continue;}
-		squid_memory_month_perform($tablename);
-	
-	}
-	
-	
-	
-}
 
-function squid_memory_month_perform($tablename){
-	
-	$q=new mysql_squid_builder();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT DAY(zDate) as day, MONTH(zDate) as month, YEAR(zDate) as year ,AVG(memoryuse) as memoryuse, AVG(percent) as percent FROM $tablename"));
-	if(!$q->ok){return false;}
-	
-	$day=$ligne["day"];
-	$month=$ligne["month"];
-	$year=$ligne["year"];
-	$memoryuse=$ligne["memoryuse"];
-	$percent=$ligne["percent"];
-	
-	$timekey="$year$month";
-	
-	$table="squidmemoryM_$timekey";
-	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`$table` (
-	`day` smallint(2) NOT NULL,
-	`memoryuse` FLOAT NOT NULL,
-	`percent` FLOAT NOT NULL,
-	KEY `day`(`day`),
-	KEY `memoryuse`(`memoryuse`),
-	KEY `percent`(`percent`)
-	
-	) ENGINE=MYISAM;";
-	$q->QUERY_SQL($sql,$q->database);	
-	if(!$q->ok){return false;}
-	
-	
-	$q->QUERY_SQL("INSERT INTO `$table` (`day`,memoryuse,`percent`) VALUES ('$day','$memoryuse','$percent')");
-	if(!$q->ok){return false;}
-	$q->QUERY_SQL("DROP TABLE $tablename");
-	return true;
-	
-	
-	
-	
-}
+
+
 
 
 
@@ -5033,7 +5105,7 @@ function SwapWatchdog(){
 	$ps_text[]="Your current Swap file using: {$SwapMemoryused}M - {$pourc}% - $sys->swap_used/$sys->swap_total";
 	$ps_text[]="Memory free on your system:{$freeMemory}M";
 	$ps_text[]="You will find here a snapshot of current tasks";
-	$ps_text[]=ps_mem_report();
+	$ps_text[]=$unix->ps_mem_report();
 	$ps_mail=@implode("\n", $ps_text);
 	
 	if($pourc>$MonitConfig["SWAP_MAX"]){
@@ -5054,20 +5126,7 @@ function SwapWatchdog(){
 	SwapWatchdog_FreeSync();
 
 }
-function ps_mem_report(){
-	$unix=new unix();
-	$python=$unix->find_program("python");
-	$results[]="************* Memory summarize ************************";
-	$results[]="";
-	exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
-	return @implode("\n", $results);
-	$ps=$unix->find_program("ps");
-	$results[]="";
-	$results[]="";
-	$results[]="************* Processes ************************";
-	exec("$ps auxww 2>&1",$results);
-	return @implode("\n", $results);
-}
+
 
 
 
@@ -5173,7 +5232,7 @@ function caches_center($aspid=false){
 	if(!$q->FIELD_EXISTS("squid_caches_center","percenttext","artica_backup")){
 		$sql="ALTER TABLE `squid_caches_center` ADD `percenttext` VARCHAR(10)";
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){writelogs("$this->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
 	
 	$sql="SELECT * FROM squid_caches_center WHERE `remove`=1";
@@ -5231,94 +5290,8 @@ function mini_bench_to($arg_t, $arg_ra=false){
 	return $aff;
 }
 
-function CheckRequestsStats(){
-	
-	$unix=new unix();
-	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$time=$unix->file_time_min($pidtime);
-	if(!$GLOBALS["FORCE"]){
-		if($GLOBALS["VERBOSE"]){echo "Current {$time}Mn, need 5mn\n";}
-		if($time<5){return;}}
-	
-	@unlink($pidtime);
-	@file_put_contents($pidtime, time());
-	
-	$data=$unix->squidclient("5min");
-	if($data==null){return;}
-	$f=explode("\n",$data);
-	
-	while (list ($index, $line) = each ($f)){
-		if(!preg_match("#client_http\.requests.*?=.*?([0-9\.]+)#", $line,$re)){
-			
-			if($GLOBALS["VERBOSE"]){echo "Not found in \"$line\"\n";}
-			continue;
-		}
-			if($GLOBALS["VERBOSE"]){echo "Found {$re[1]}\n";}
-			$requests=round($re[1]);
-			break;
-		
-	}
-if($requests==0){return;}
 
-$q=new mysql();
-if(!$q->TABLE_EXISTS("squid_rqs_days", "artica_events")){
-	$sql="CREATE TABLE IF NOT EXISTS `squid_rqs_days` (
-					`req` INT UNSIGNED,
-					`zDate` DATETIME,
-					 KEY `req` (`req`),
-					 KEY `zDate` (`zDate`)
-					 ) ENGINE=MYISAM;";
-	
-	$q->QUERY_SQL($sql,'artica_events');
-}
 
-$date=date("Y-m-d H:i:s");
-$q->QUERY_SQL("INSERT IGNORE INTO squid_rqs_days (zDate,req) VALUES ('$date','$requests')","artica_events");
-BuilRequestsStats();
-}
-
-function BuilRequestsStats(){
-	$q=new mysql();
-	if(!$q->TABLE_EXISTS("squid_rqs_days", "artica_events")){return;}
-	
-	$sql="SELECT AVG(req) as req, DAY(zDate) as zday,MINUTE(zDate) as zmin,HOUR(zDate) as zhour FROM squid_rqs_days 
-			GROUP BY zmin,zhour,zday HAVING zday=DAY(NOW()) ORDER BY zhour,zmin";
-	
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	while ($ligne = mysql_fetch_assoc($results)) { 
-		if(strlen($ligne["zmin"])==1){$ligne["zmin"]="0{$ligne["zmin"]}";}
-		if(strlen($ligne["zhour"])==1){$ligne["zhour"]="0{$ligne["zhour"]}";}
-		$ttime="{$ligne["zhour"]}h{$ligne["zmin"]}";
-		$REQ=round($ligne["req"]);
-		$xdata[]=$ttime;
-		$ydata[]=$REQ;
-		if($GLOBALS["VERBOSE"]){echo "$ttime $REQ/s\n";}
-	}
-	
-	$final=array($xdata,$ydata);
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/BuilRequestsStats.db", serialize($final));
-	@chmod("/usr/share/artica-postfix/ressources/logs/BuilRequestsStats.db",0755);
-
-	$xdata=array();
-	$ydata=array();
-	$sql="SELECT AVG(req) as req, DAY(zDate) as zday,HOUR(zDate) as zhour FROM squid_rqs_days
-			GROUP BY zhour,zday HAVING zday=DAY(NOW()) ORDER BY zhour;";
-	
-	$results = $q->QUERY_SQL($sql,"artica_events");
-	while ($ligne = mysql_fetch_assoc($results)) {
-		
-		if(strlen($ligne["zhour"])==1){$ligne["zhour"]="0{$ligne["zhour"]}";}
-		$ttime="{$ligne["zhour"]}h";
-		$REQ=round($ligne["req"]);
-		$xdata[]=$ttime;
-		$ydata[]=$REQ;
-		if($GLOBALS["VERBOSE"]){echo "$ttime $REQ/s\n";}
-	}
-	
-	$final=array($xdata,$ydata);
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/BuilRequestsStatsH.db", serialize($final));
-	@chmod("/usr/share/artica-postfix/ressources/logs/BuilRequestsStatsH.db",0755);	
-}
 
 
 function ALLKIDS(){
@@ -5423,69 +5396,8 @@ function ALLKIDS(){
 	
 }
 
-function CHECK_STREAMCACHE(){
-$unix=new unix();
-	$sock=new sockets();
-	$squid=new squidbee();
-	$masterbin=$unix->find_program("streamsquidcache");
-	if(!is_file($masterbin)){return;}
-	$enabled=intval($sock->GET_INFO("EnableStreamCache"));
-	if($enabled==0){return;}
-	
-	$php=$unix->LOCATE_PHP5_BIN();
-	
-	
-	
-	if(!is_file("/usr/share/videocache/videocache.py")){
-		squid_admin_mysql(0,"VideoCache backend ( missing videocache.py) not installed, re-install it...",null,__FILE__,__LINE__);
-		shell_exec("$php /usr/share/artica-postfix/exec.squidstream.php --reinstall");
-		return;
-		
-	}
-	
-	if(!is_file("/usr/share/videocache/vc-scheduler")){
-		squid_admin_mysql(0,"VideoCache backend ( missing vc-scheduler) not installed, re-install it...",null,__FILE__,__LINE__);
-		shell_exec("$php /usr/share/artica-postfix/exec.squidstream.php --reinstall");
-		return;
-	
-	}	
-	
-	$VerifStreamProxyBindIP=$squid->VerifStreamProxyBindIP();
 
-	$pid=streamsquidcache_pid();
-	if($GLOBALS["VERBOSE"]){echo "streamsquidcache: PID: $pid\n";}
-	if($unix->process_exists($pid)){
-		if($GLOBALS["VERBOSE"]){echo "streamsquidcache: Running -> YES\n";}
-		
-	}else{
-		if($GLOBALS["VERBOSE"]){echo "streamsquidcache: Running -> NO\n";}
-		squid_admin_mysql(0,"VideoCache backend not running, start it...",null,__FILE__,__LINE__);
-		shell_exec("/etc/init.d/squid-stream start");
-		return;
-	}
-	
-	$StreamCachePort=intval($sock->GET_INFO("StreamCachePort"));
-	if($StreamCachePort==0){$StreamCachePort=5559;}
-	
-	if($GLOBALS["VERBOSE"]){echo "streamsquidcache: $VerifStreamProxyBindIP:$StreamCachePort\n";}
-	
-	if(!@fsockopen($VerifStreamProxyBindIP, $StreamCachePort, $errno, $errstr, 1)){
-		squid_admin_mysql(0,"VideoCache backend unable to open port $VerifStreamProxyBindIP:$StreamCachePort (action = restart)","Err.$errno $errstr\n",__FILE__,__LINE__);
-		shell_exec("/etc/init.d/squid-stream restart");
-		return;
-	}
-	
-	if($GLOBALS["VERBOSE"]){echo "streamsquidcache: $VerifStreamProxyBindIP:$StreamCachePort OK\n";}
-	
-	
-}
-function streamsquidcache_pid(){
-	$unix=new unix();
-	$masterbin=$unix->find_program("streamsquidcache");
-	$pid=$unix->get_pid_from_file('/var/run/squid/squid-stream.pid');
-	if($unix->process_exists($pid)){return $pid;}
-	return $unix->PIDOF_PATTERN($masterbin." -f /etc/streamsquidcache/squid.conf");
-}
+
 
 function LOGFILE_DAEMON_WAKEUP(){
 
@@ -5498,6 +5410,7 @@ function LOGFILE_DAEMON_WAKEUP(){
 		$PID=$re[1];
 		$PID_LIST[$re[1]]=true;
 		if($GLOBALS["VERBOSE"]){echo "Wakup pid:$PID\n";}
+		echo "Reloading.....: ".date("H:i:s")." Squid-cache, wake-up logger PID:$PID...\n";
 		@touch("/var/run/squid/exec.logfilefile_daemon.$PID.wakeup");
 		@chmod("/var/run/squid/exec.logfilefile_daemon.$PID.wakeup",0777);
 		@chown("/var/run/squid/exec.logfilefile_daemon.$PID.wakeup","squid");
@@ -5601,6 +5514,7 @@ function C_ICAP_CLIENTS($aspid=false){
 	
 	$METHODS["reqmod_precache"]="REQMOD"; 
 	$METHODS["respmod_precache"]="RESPMOD";
+	$php=$unix->LOCATE_PHP5_BIN();
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$service_name_text=$ligne["service_name"];
@@ -5611,6 +5525,7 @@ function C_ICAP_CLIENTS($aspid=false){
 		$cmdline="$cicap_client -i $addr -p $port -s $service -method {$METHODS[$ligne["respmod"]]} 2>&1";
 		if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 		$Mresults=array();
+		$Mresults[]="Service ID:$ID $addr:$port/$service/{$METHODS[$ligne["respmod"]]}";
 		$FINAL=true;
 		exec($cmdline,$Mresults);
 		echo @implode("\n", $Mresults);
@@ -5623,14 +5538,15 @@ function C_ICAP_CLIENTS($aspid=false){
 		}
 		
 		if(!$FOUND){
-			squid_admin_mysql(1,"Unknown ICAP $service for $HEADER_LOG",@implode("\n", $Mresults),__FILE__,__LINE__);
+			squid_admin_mysql(1,"Unknown ICAP $service for $HEADER_LOG [action=warn]",@implode("\n", $Mresults),__FILE__,__LINE__);
 			$q->QUERY_SQL("UPDATE c_icap_services SET `status`=3 WHERE ID=$ID");
 			continue;
 		}
 		
 		if(!$FINAL){
-			squid_admin_mysql(0,"ICAP $service FAILED for $HEADER_LOG",@implode("\n", $Mresults),__FILE__,__LINE__);
-			$q->QUERY_SQL("UPDATE c_icap_services SET `status`=2 WHERE ID=$ID");
+			squid_admin_mysql(0,"ICAP $service FAILED for $HEADER_LOG [action=disable]",@implode("\n", $Mresults),__FILE__,__LINE__);
+			$q->QUERY_SQL("UPDATE c_icap_services SET `status`=2,`enabled`=0 WHERE ID=$ID");
+			shell_exec("$php /usr/share/artica-postfix/exec.squid.php --build --force");
 			continue;
 		}
 		
@@ -5670,7 +5586,7 @@ function check_status(){
 	echo "Remove ALL_SQUID_STATUS\n";
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.status.html");
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/status.right.image.cache");
-	@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
+	if(is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");}
 	$cmd="$php /usr/share/artica-postfix/exec.status.php --all-squid --nowachdog >/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS 2>&1";
 	echo "$cmd\n";
 	shell_exec($cmd);
@@ -5682,7 +5598,7 @@ function check_status(){
 	CheckStoreDirs(true);
 	build_progress_status2("{APP_SQUID}: {checking_caches}",61);
 	sleep(1);
-	BuilRequestsStats();
+	
 	
 	build_progress_status2("{APP_SQUID}: {checking_caches}",62);
 	counters(true);
@@ -5693,12 +5609,7 @@ function check_status(){
 	sleep(1);	
 	
 	
-	build_progress_status2("{APP_SQUID}: {checking_caches}",64);
-	sleep(1);
-	
-	build_progress_status2("{APP_SQUID}: {checking_caches}",70);
-	sleep(1);
-	system("$php /usr/share/artica-postfix/exec.cache.pages.php --force");
+
 	
 	build_progress_status2("{APP_SQUID}: {done}",100);
 	sleep(1);
@@ -5787,12 +5698,49 @@ function redirectors_array($aspid=false){
 	
 	$sock=new sockets();
 	$datas=explode("\n",$unix->squidclient("redirector"));
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	$MonitConfig=watchdog_config_default($MonitConfig);
+	if($MonitConfig["watchdog"]==0){return;}
+	
+	
+	
 	$redirector=array();
 	$RedirectorsArray=unserialize(base64_decode($sock->GET_INFO("SquidRedirectorsOptions")));
 	if(!is_numeric($RedirectorsArray["url_rewrite_children"])){$RedirectorsArray["url_rewrite_children"]=20;}
-	
+	$PERCENTS=array();
 	while (list ($index, $line) = each ($datas)){
+		
+		if(preg_match("#by kid([0-9]+)#", $line,$re)){
+			$KID="Processor #{$re[1]}";
+		}
+		
+		if(preg_match("#number active:\s+([0-9]+)\s+of\s+([0-9]+)#i",$line,$re)){
+			$max=$re[2];
+			$Current=$re[1];
+			$percent=$Current/$max;
+			$percent=$percent*100;
+			$LOGs[]="$KID: $Current/$max = {$percent}%";
+			Events("$line $Current/$max = {$percent}%");
+			$PERCENTS[]=round($percent);
+		}
+		
+		
 		if(!preg_match("#([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)(.*?)\s+([0-9\.]+)\s+([0-9\.]+)\s+(.*)#", $line,$re)){continue;}
+		$re[6]=trim($re[6]);
+		$re[3]=trim($re[3]);
+		$re[6]=str_replace(" ", "", $re[6]);
+		$fflosg[]=$re[3];
+		
+		if($GLOBALS["VERBOSE"]){echo "STATE \"{$re[6]}\"\n";}
+		
+		if($re[6]=="BS"){
+			$unix->KILL_PROCESS($re[3],9);
+			if($GLOBALS["VERBOSE"]){echo "KILLING \"{$re[3]}\"\n";}
+		}
+		if($re[6]=="S"){
+			$unix->KILL_PROCESS($re[3],9);
+			if($GLOBALS["VERBOSE"]){echo "KILLING \"{$re[3]}\"\n";}
+		}
 		
 		$redirector[$re[1]]=array(
 			"FD"=>$re[2],
@@ -5807,36 +5755,766 @@ function redirectors_array($aspid=false){
 			);
 
 	}
-	@unlink($cache_file);
-	if(count($redirector)==0){return;}
-	@file_put_contents($cache_file, serialize($redirector));
-	@chmod($cache_file, 0755);
+	
+	$FFperc=0;
+	$FINAL_PERC=0;
+	$CountOFPercent=count($PERCENTS);
+	if(count($PERCENTS>0)){
+		while (list ($index, $pp) = each ($PERCENTS)){
+			$FFperc=$FFperc+$pp;
+		}
+		
+		$FINAL_PERC=round($FFperc/$CountOFPercent,2);
+		$LOGs[]="************************************************";
+		$LOGs[]="ALL CPUS: {$FINAL_PERC}%";
+		$LOGs[]="";
+	}
 	
 	
-	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
-	$MonitConfig=watchdog_config_default($MonitConfig);
-	if($MonitConfig["watchdog"]==0){return;}
 	
 	
-	$percent=count($redirector)/intval($RedirectorsArray["url_rewrite_children"]);
-	$percent=$percent*100;
-	if($GLOBALS["VERBOSE"]){echo count($redirector)."/{$RedirectorsArray["url_rewrite_children"]} = {$percent}%\n";}
-	
-	if($percent>90){
+	if($FINAL_PERC>90){
 		$severity=1;
 		$action="notify";
 		$NotifyTimeEx=$unix->file_time_min($NotifyTime);
 		if($NotifyTimeEx<10){return;}
 		@unlink($NotifyTime);
 		@file_put_contents($NotifyTime, time());
-		if($percent>95){$severity=0;$action="reload";}
-		squid_admin_mysql($severity, "Warning! redirectors reach {$percent}% [action=$action]", @implode("\n", $datas));
-		if($severity==0){shell_exec($unix->LOCATE_SQUID_BIN()." -f /etc/squid3/squid.conf -k reconfigure");}
+		if($FINAL_PERC>95){$severity=0;$action="reload";}
+	
+		Events("$line $Current/$max  severity = $severity");
+	
+		squid_admin_mysql($severity, "Warning! redirectors reach {$FINAL_PERC}% [action=$action]",
+		@implode("\n", $LOGs)."\n\n---------------------------------\n\n".
+		@implode("\n", $datas));
+		if($severity==0){
+			shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
+			return;
+		}
 	}
+	
+	
+	
+	
+	
+	@unlink($cache_file);
+	if(count($redirector)==0){return;}
+	@file_put_contents($cache_file, serialize($redirector));
+	@chmod($cache_file, 0755);
+	
+	
+
 		
 	
 }
 
+function dev_shm(){
+	$NotifyTime="/etc/artica-postfix/pids/squid.dev.shm";
+	if(!is_dir("/run/shm")){return;}
+	$sock=new sockets();
+	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+	$MonitConfig=watchdog_config_default($MonitConfig);
+
+	
+	
+	$unix=new unix();
+	$percent=$unix->TMPFS_USEPERCENT("/run/shm");
+	
+	
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/StatusDevSHMPerc", $percent);
+	@chmod("/etc/artica-postfix/settings/Daemons/StatusDevSHMPerc", 0755);
+	
+	if($percent>90){
+		if($percent<98){
+			$NotifyTimeEx=$unix->file_time_min($NotifyTime);
+			if($NotifyTimeEx>10){
+				squid_admin_mysql(2, "Warning Shared memory exceed 90%!", "The /dev/shm memory partition exceed 90%, at 100% the proxy will crash!");
+				return;
+			}
+		}
+	}
+	
+	if($percent>98){
+		if($MonitConfig["watchdog"]==1){
+			squid_admin_mysql(0, "Warning Shared memory exceed 98% ({$percent}%)[action=restart]", "The /dev/shm memory partition exceed 98%, at 100% the proxy will crash!, in this case, the proxy will be restarted.");
+			$GLOBALS["BY_OTHER_SCRIPT"]="function SHM";
+			$GLOBALS["FORCE"]=true;
+			restart_squid(true);
+		}else{
+			squid_admin_mysql(0, "Warning Shared memory exceed 98% ({$percent}%) [action=notify]", "The /dev/shm memory partition exceed 98%, at 100% the proxy will crash!");
+		}
+	}
+	
+}
+
+function CHECK_MEMORY_USE_WARN(){
+	$w=new squid_watchdog();
+	$unix=new unix();
+	$MonitConfig=$w->MonitConfig;
+	
+	
+	
+	if($MonitConfig["MEMORY_TEST"]==0){return;}
+	
+	
+	$sys=new os_system();
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	$MAX_MEM_ALERT_TTIME="/etc/artica-postfix/pids/MAX_MEM_ALERT_TTIME";
+	$MAX_MEM_PRC_TTIME="/etc/artica-postfix/pids/MAX_MEM_PRC_TTIME";
+	$MAX_MEM_ALERT=$MonitConfig["MAX_MEM_ALERT"];
+	
+	if($pourc<$MAX_MEM_ALERT){return;}
+	if($unix->file_time_min($MAX_MEM_ALERT_TTIME)<10){return;}
+	$report=$unix->ps_mem_report();
+	$text_ram=FormatBytes($ram_used,true)."/".FormatBytes($ram_total,true);
+	squid_admin_mysql(0, "Memory exceed {$MAX_MEM_ALERT}% - Current {$pourc}%($text_ram) [action=warn]", $report,__FILE__,__LINE__);
+	@unlink($MAX_MEM_ALERT_TTIME);
+	@file_put_contents($MAX_MEM_ALERT_TTIME, time());
+		
+	
+}
+
+
+function CHECK_MEMORY_USE(){
+
+	
+	$unix=new unix();
+	$w=new squid_watchdog();
+	$MonitConfig=$w->MonitConfig;
+	if($MonitConfig["MEMORY_TEST"]==0){return;}
+	
+	
+	$sys=new os_system();
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	$swap_perc=$unix->SYSTEM_GET_SWAP_PERC();
+	
+	Events("Memory {$pourc}% SWAP:{$swap_perc}% Used:$ram_used Total: $ram_total");
+	
+	$MAX_MEM_ALERT_TTIME="/etc/artica-postfix/pids/MAX_MEM_ALERT_TTIME";
+	$MAX_MEM_PRC_TTIME="/etc/artica-postfix/pids/MAX_MEM_PRC_TTIME";
+	
+	$MAX_MEM_MNS=$MonitConfig["MAX_MEM_MNS"];
+	$MAX_MEM_ALERT=$MonitConfig["MAX_MEM_ALERT"];
+	$MAX_MEM_PRC=$MonitConfig["MAX_MEM_PRC"];
+	
+	if($pourc>$MAX_MEM_PRC){
+		$CheckTime=$unix->file_time_min($MAX_MEM_ALERT_TTIME);
+		if($CheckTime<$MAX_MEM_MNS){
+			CHECK_MEMORY_USE_ACTION();
+			return;
+		}
+	}
+	
+	
+	CHECK_MEMORY_USE_WARN();
+}
+
+
+function CheckActiveDirectoryEmergency(){
+	
+	
+	$f=explode("\n",@file_get_contents("/etc/squid3/non_ntlm.access"));
+	$sock=new sockets();
+	$ActiveDirectoryEmergency=intval($sock->GET_INFO("ActiveDirectoryEmergency"));
+	$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+	
+	if($EnableKerbAuth==0){
+		$f[]="# Nothing to do... ";
+		$f[]="# This file is used for Allow users surfing trough Internet when there are issues on Active Directory ";
+		$f[]="";
+		@file_put_contents("/etc/squid3/non_ntlm.access", @implode("\n", $f));
+		return;
+	}
+	
+	if($ActiveDirectoryEmergency==1){return;}
+	$ENABLED=false;
+	while (list ($md5, $line) = each ($f) ){
+		if(preg_match("#http_access allow all#", $line)){
+			$ENABLED=true;
+			break;
+		}
+	
+	}	
+	
+	
+	$f=array();
+	if(!$ENABLED){return;}
+	
+	if($ENABLED){
+		
+		$f[]="# Nothing to do... ";
+		$f[]="# This file is used for Allow users surfing trough Internet when there are issues on Active Directory ";
+		$f[]="";
+		@file_put_contents("/etc/squid3/non_ntlm.access", @implode("\n", $f));
+		
+		squid_admin_mysql(1, "Re-Activate Authentication mode after Active Directory Emergency mode [action=reload proxy]", "",__FILE__,__LINE__);
+		$unix=new unix();
+		$squidbin=$unix->LOCATE_SQUID_BIN();
+		shell_exec("$squidbin -k reconfigure");
+	}
+	
+}
+
+
+
+function CHECK_MEMORY_USE_ACTION(){
+	$sys=new os_system();
+	$unix=new unix();
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	$MAX_MEM_ALERT_TTIME="/etc/artica-postfix/pids/MAX_MEM_ALERT_TTIME";
+	$MAX_MEM_PRC_TTIME="/etc/artica-postfix/pids/MAX_MEM_PRC_TTIME";
+	
+	$ram_log[]="Before Action = {$pourc}% $ram_used/$ram_total";
+	$w=new squid_watchdog();
+	$MonitConfig=$w->MonitConfig;
+	$MAX_MEM_RST_MYSQL=$MonitConfig["MAX_MEM_RST_MYSQL"];
+	$MAX_MEM_RST_UFDB=$MonitConfig["MAX_MEM_RST_UFDB"];
+	$MAX_MEM_RST_APACHE=$MonitConfig["MAX_MEM_RST_APACHE"];
+	$MAX_MEM_RST_SQUID=$MonitConfig["MAX_MEM_RST_SQUID"];
+	$MAX_MEM_PRC=$MonitConfig["MAX_MEM_PRC"];
+	$text_ram=FormatBytes($ram_used,true)."/".FormatBytes($ram_total,true);
+	Events("#1 Memory {$pourc}% Used:$ram_used Total: $ram_total");
+	
+	
+	$unix->send_email_events("Memory exceed {$MAX_MEM_PRC}% ($text_ram) [action=stop-services]", 
+	"MySQL and Categories database will be restarted\n"
+	, "system");
+	squid_admin_mysql(0, "Memory exceed {$MAX_MEM_PRC}% ($text_ram) [action=stop-services]", null,__FILE__,__LINE__);
+	
+	if($MAX_MEM_RST_MYSQL==1){
+		squid_admin_mysql(1, "Memory exceed - Restarting MySQL services", null,__FILE__,__LINE__);
+		shell_exec("/etc/init.d/mysql restart --force --framework=". basename(__FILE__));
+		shell_exec("/etc/init.d/squid-db restart --force");
+		shell_exec("/etc/init.d/ufdbcat restart --force");
+		
+		$mem=$sys->realMemory();
+		$pourc=$mem["ram"]["percent"];
+		$ram_used=$mem["ram"]["used"];
+		$ram_total=$mem["ram"]["total"];	
+		$text_ram=FormatBytes($ram_used,true)."/".FormatBytes($ram_total,true);
+		$ram_log[]="After restarting MySQL services {$pourc}% $text_ram";
+	}
+	
+	
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	Events("#2 Memory {$pourc}% Used:$ram_used Total: $ram_total");
+	
+	
+	if($pourc<$MAX_MEM_PRC){	
+		$report=$unix->ps_mem_report();
+		squid_admin_mysql(1, "Memory OK {$pourc}% [action=report]", @implode("\n", $ram_log)."\n$report",__FILE__,__LINE__);
+		@unlink($MAX_MEM_ALERT_TTIME);
+		@unlink($MAX_MEM_PRC_TTIME);
+		return;
+	}
+	
+	
+	if($MAX_MEM_RST_UFDB==1){
+		squid_admin_mysql(1, "Memory exceed {$pourc}% - Restarting Webfiltering service", null,__FILE__,__LINE__);
+		shell_exec("/etc/init.d/ufdb restart --force --framework=". basename(__FILE__));
+	
+		$mem=$sys->realMemory();
+		$pourc=$mem["ram"]["percent"];
+		$ram_used=$mem["ram"]["used"];
+		$ram_total=$mem["ram"]["total"];
+		$text_ram=FormatBytes($ram_used,true)."/".FormatBytes($ram_total,true);
+		$ram_log[]="After restarting Webfiltering service {$pourc}% $text_ram";
+	}	
+	
+	
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	Events("#3 Memory {$pourc}% Used:$ram_used Total: $ram_total");
+	
+	
+	if($pourc<$MAX_MEM_PRC){
+		$report=$unix->ps_mem_report();
+		squid_admin_mysql(1, "Memory OK {$pourc}% [action=report]", @implode("\n", $ram_log)."\n$report",__FILE__,__LINE__);
+		@unlink($MAX_MEM_ALERT_TTIME);
+		@unlink($MAX_MEM_PRC_TTIME);
+		return;
+	
+	}	
+	
+	
+	if($MAX_MEM_RST_APACHE==1){
+		squid_admin_mysql(1, "Memory exceed {$pourc}% - Restarting Web Servers services", null,__FILE__,__LINE__);
+		shell_exec("/etc/init.d/apache2 restart --force --framework=". basename(__FILE__));
+		shell_exec("/etc/init.d/artica-webconsole restart --force --framework=". basename(__FILE__));
+		shell_exec("/etc/init.d/squidguard-http restart --force --framework=". basename(__FILE__));
+		shell_exec("/etc/init.d/artica-memcache restart --force --framework=". basename(__FILE__));
+		shell_exec("/etc/init.d/ntopng restart  --force --framework=". basename(__FILE__));
+		$mem=$sys->realMemory();
+		$pourc=$mem["ram"]["percent"];
+		$ram_used=$mem["ram"]["used"];
+		$ram_total=$mem["ram"]["total"];
+		$ram_log[]="After restarting web servers services {$pourc}% $ram_used/$ram_total";
+	}	
+	
+	
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	Events("#4 Memory {$pourc}% Used:$ram_used Total: $ram_total");
+	
+	if($pourc<$MAX_MEM_PRC){
+		$report=$unix->ps_mem_report();
+		squid_admin_mysql(1, "Memory OK {$pourc}% [action=report]", @implode("\n", $ram_log)."\n$report",__FILE__,__LINE__);
+		@unlink($MAX_MEM_ALERT_TTIME);
+		@unlink($MAX_MEM_PRC_TTIME);
+		return;
+	
+	}
+	
+	if($MAX_MEM_RST_SQUID==1){
+		squid_admin_mysql(1, "Memory exceed {$pourc}% - Restarting Proxy service", null,__FILE__,__LINE__);
+		stop_squid(true);
+		start_squid(true);
+		$mem=$sys->realMemory();
+		$pourc=$mem["ram"]["percent"];
+		$ram_used=$mem["ram"]["used"];
+		$ram_total=$mem["ram"]["total"];
+		$text_ram=FormatBytes($ram_used,true)."/".FormatBytes($ram_total,true);
+		$ram_log[]="After restarting Proxy service {$pourc}% $text_ram";
+	}
+	
+	$mem=$sys->realMemory();
+	$pourc=$mem["ram"]["percent"];
+	$ram_used=$mem["ram"]["used"];
+	$ram_total=$mem["ram"]["total"];
+	Events("#5 Memory {$pourc}% Used:$ram_used Total: $ram_total");
+	$report=$unix->ps_mem_report();
+	
+	if($pourc<$MAX_MEM_PRC){
+		
+		squid_admin_mysql(1, "Memory OK {$pourc}% [action=report]", @implode("\n", $ram_log)."\n$report",__FILE__,__LINE__);
+		@unlink($MAX_MEM_ALERT_TTIME);
+		@unlink($MAX_MEM_PRC_TTIME);
+		return;
+	
+	}
+	
+	squid_admin_mysql(0, "Clean memory failed after restarting all services!!! [action=report]", @implode("\n", $ram_log)."\n$report",__FILE__,__LINE__);
+	
+	
+}
+
+function CATEGORIES_SERVICE(){
+	
+	$catz=new mysql_catz();
+	if($catz->UfdbCatEnabled==0){return;}
+	$catz->ufdbcat("google.com");
+	
+	if(!$catz->ok){
+		if(preg_match("#UnixSocket N\.11#", $catz->mysql_error)){
+			exec("/etc/init.d/ufdbcat restart 2>&1",$results);
+			squid_admin_mysql(0, "Categories services unavailable [action=restart]",@implode("\n", $results),__FILE__,__LINE);
+			return;	
+		}
+		if(preg_match("#UnixSocket N\.2#", $catz->mysql_error)){
+			exec("/etc/init.d/ufdbcat restart 2>&1",$results);
+			squid_admin_mysql(0, "Categories services unix socket failed [action=restart]",@implode("\n", $results),__FILE__,__LINE);
+			return;
+		}		
+		
+		squid_admin_mysql(0, "Categories services unavailable [action=report]",$catz->mysql_error,__FILE__,__LINE__);
+	}
+	
+}
+
+function BANDWIDTH_MONITOR_CRON(){
+	$sock=new sockets();
+	$cronfile="/etc/cron.d/artica-squid-watchband";
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){
+		if(is_file($cronfile)){@unlink("$cronfile"); system("/etc/init.d/cron reload"); }
+		return;
+	}
+	
+	$watchdog=new squid_watchdog();
+	$MonitConfig=$watchdog->MonitConfig;
+	if($MonitConfig["CHECK_BANDWITDH"]==0){
+		if(is_file($cronfile)){@unlink("$cronfile"); system("/etc/init.d/cron reload"); }
+		return;
+	}
+	
+	
+	
+	$per[5]="0,5,10,15,20,25,30,35,40,45,50,55 * * * *";
+	$per[10]="0,10,20,30,40,45,50 * * * *";
+	$per[30]="0,30 * * * *";
+	$per[60]="0 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *";
+	$per[120]="0 0,2,4,6,8,10,12,14,16,18,20,22 * * *";
+	$per[360]="0 0,6,12,18 * * *";
+	$per[720]="0 0,12 * * *";
+	$per[1440]="0 0 * * *";
+	
+	$unix=new unix();
+	$nice=$unix->EXEC_NICE();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$CHECK_BANDWITDH_INTERVAL=$MonitConfig["CHECK_BANDWITDH_INTERVAL"];
+	if(!is_numeric($CHECK_BANDWITDH_INTERVAL)){$CHECK_BANDWITDH_INTERVAL=5;}
+	
+	$f[]="MAILTO=\"\"";
+	$f[]=$per[$CHECK_BANDWITDH_INTERVAL]." $nice $php ".__FILE__." --bandwidth-run >/dev/null 2>&1";
+	$f[]="";
+	
+	@file_put_contents($cronfile, @implode("\n", $f));
+	@chmod($cronfile,0644);
+	system("/etc/init.d/cron reload");
+	unset($f);
+	
+}
+
+function BANDWIDTH_MONITOR(){
+	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($SquidPerformance>1){return;}
+	$watchdog=new squid_watchdog();
+	$MonitConfig=$watchdog->MonitConfig;
+	if($MonitConfig["CHECK_BANDWITDH"]==0){return;}
+	$CHECK_BANDWITDH_INTERVAL=$MonitConfig["CHECK_BANDWITDH_INTERVAL"];
+	$influx=new influx();
+	if(!is_numeric($CHECK_BANDWITDH_INTERVAL)){$CHECK_BANDWITDH_INTERVAL=5;}
+	$olddate=strtotime("-{$CHECK_BANDWITDH_INTERVAL} minutes",time());
+	$CHECK_BANDWITDH_SIZE=intval($MonitConfig["CHECK_BANDWITDH_INTERVAL"]);
+	
+	$sql="select sum(SIZE) as size from access_log where time > {$olddate}s";
+	$main=$influx->QUERY_SQL($sql);
+	
+	
+	foreach ($main as $row) {
+		$size=$row->size/1024;
+		$size=round($size/1024,2);
+		if($GLOBALS["VERBOSE"]){echo "Since ".date("Y-m-d H:i:s",$olddate)."- Size: {$size}MB\n";}
+	}
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "{$size}MB must be higher than {$CHECK_BANDWITDH_SIZE}MB\n";}
+	if($size<$CHECK_BANDWITDH_SIZE){return;}
+	
+	$EXCEED_SIZE=$size;
+	
+	$REPORT[]="Report bandwidth usage since: ".date("{l} {F} d H:i:s",$olddate);
+
+	$ipclass=new IP();
+	$sql="select sum(SIZE) as size,IPADDR,MAC,USERID from access_log group by IPADDR,MAC,USERID where time > {$olddate}s";
+	$main=$influx->QUERY_SQL($sql);
+	
+	
+	
+	foreach ($main as $row) {
+		$users2=array();
+	
+		$size=$row->size/1024;
+		$size=round($size/1024,2);
+		if($size==0){continue;}
+		if($size<1){continue;}
+		if($CHECK_BANDWITDH_SIZE>1){if($size<2){continue;}}
+		$IPADDR=$row->IPADDR;
+		$users2[]=$IPADDR;
+		$MAC=trim($row->MAC);
+		
+		$USERID=trim($row->USERID);
+		if($USERID<>null){
+			$users2[]=$USERID;
+		}
+		if($ipclass->IsvalidMAC($MAC)){
+			$users2[]=$MAC;
+		}
+		
+		
+		$REPORT[]="User: ".@implode(", ", $users2)." {$size}MB used";
+		
+		if($GLOBALS["VERBOSE"]){echo "Since ".date("Y-m-d H:i:s",$olddate)."- $IPADDR,$MAC,$USERID Size: {$size}MB\n";}
+	}
+	
+	
+	
+	$catz=new mysql_catz();
+	$sql="select sum(SIZE) as size,FAMILYSITE from access_log group by FAMILYSITE where time > {$olddate}s";
+	$main=$influx->QUERY_SQL($sql);
+	foreach ($main as $row) {
+		$size=$row->size/1024;
+		$size=round($size/1024,2);
+		if($size==0){continue;}
+		if($size<1){continue;}
+		$FAMILYSITE=$row->FAMILYSITE;
+		$category=$catz->GET_CATEGORIES($FAMILYSITE);
+		if($category<>null){$category_text=" (category:$category)";}
+		$REPORT[]="Web site: $FAMILYSITE {$size}MB used$category_text";
+		
+		
+	}
+	
+	squid_admin_mysql(0, "Bandwidth usage {$EXCEED_SIZE}MB exceed {$CHECK_BANDWITDH_SIZE}MB",
+	 @implode("\n", $REPORT),__FILE__,__LINE__);
+	
+}
+
+function CHECK_WIFIDOG_IPTABLES_RULES(){
+	$sock=new sockets();
+	$unix=new unix();
+	$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+	if($EnableArticaHotSpot==0){return;}
+	$ArticaHotSpotEnableMIT=$sock->GET_INFO("ArticaHotSpotEnableMIT");
+	$ArticaHotSpotEnableProxy=$sock->GET_INFO("ArticaHotSpotEnableProxy");
+	if(!is_numeric($ArticaHotSpotEnableMIT)){$ArticaHotSpotEnableMIT=1;}
+	if(!is_numeric($ArticaHotSpotEnableProxy)){$ArticaHotSpotEnableProxy=1;}
+	$ArticaHotSpotInterface=$sock->GET_INFO("ArticaHotSpotInterface");
+	if($ArticaHotSpotInterface==null){$ArticaHotSpotInterface="eth0";}
+	$Squid_http_port=intval($sock->GET_INFO("SquidHotSpotPort"));
+	$Squid_hssl_port=intval($sock->GET_INFO("SquidHotSpotSSLPort"));
+	
+	$iptables=$unix->find_program("iptables");
+	
+	$HTTP_RULE ="-t nat -I WiFiDog_{$ArticaHotSpotInterface}_Internet -i $ArticaHotSpotInterface -p tcp -m tcp --dport 80 -m mark --mark 0x1 -j REDIRECT --to-ports $Squid_http_port";
+	$HTTPS_RULE="-t nat -I WiFiDog_{$ArticaHotSpotInterface}_Internet -i $ArticaHotSpotInterface -m mark --mark 0x1 -p tcp --dport 443 -j REDIRECT --to-port $Squid_hssl_port";
+	$HTTPS_RULE2="-t nat -I WiFiDog_{$ArticaHotSpotInterface}_Internet -i $ArticaHotSpotInterface -m mark --mark 0x2 -p tcp --dport 443 -j REDIRECT --to-port $Squid_hssl_port";
+	
+
+	
+	if($ArticaHotSpotEnableProxy==1){
+		Events("HotSpot must be connected to the HTTP proxy port $Squid_http_port Interface $ArticaHotSpotInterface");
+		if(!CHECK_WIFIDOG_IPTABLES_EXISTS(80,$Squid_http_port)){
+			squid_admin_mysql(0, "Fatal HotSpot is not link to $ArticaHotSpotInterface:$Squid_http_port [action=relink]", null,__FILE__,__LINE__);
+			shell_exec("$iptables $HTTP_RULE");
+			
+		}else{
+			Events("HotSpot 80 -> $Squid_http_port OK");
+		}
+		
+	}
+	
+	if($ArticaHotSpotEnableMIT==1){
+		
+		if($Squid_hssl_port<10){
+			echo "Warning $Squid_hssl_port < 10\n";
+			return;
+		}
+		
+		Events("HotSpot must be connected to the HTTPS proxy port $Squid_hssl_port Interface $ArticaHotSpotInterface");
+		if(!CHECK_WIFIDOG_IPTABLES_EXISTS(443,$Squid_hssl_port)){
+			squid_admin_mysql(0, "Fatal HotSpot is not link to $ArticaHotSpotInterface:$Squid_hssl_port [action=relink]", $HTTPS_RULE,__FILE__,__LINE__);
+			shell_exec("$iptables $HTTPS_RULE");
+			shell_exec("$iptables $HTTPS_RULE2");
+				
+		}else{
+			Events("HotSpot 443 -> $Squid_hssl_port OK");
+		}
+	
+	}	
+	
+	
+	
+	
+}
+function CHECK_WIFIDOG_IPTABLES_EXISTS($From_port,$to_port){
+	$unix=new unix();
+	$iptables_save=$unix->find_program("iptables-save");
+	exec("$iptables_save 2>&1",$results);
+	
+	while (list ($md5, $line) = each ($results) ){
+		if(!preg_match("#WiFiDog_.*?--dport $From_port.*?-j REDIRECT --to-ports $to_port#", $line)){
+			continue;
+		}
+		
+		return true;
+		
+	}
+	
+	
+}
+
+function CHECK_SQUID_EXTERNAL_LDAP(){
+
+	$sock=new sockets();
+	if(!$sock->SQUID_IS_EXTERNAL_LDAP()){return;}
+	
+	$unix=new unix();
+	$filetime="/etc/artica-postfix/pids/".md5(__FILE__.__FUNCTION__);
+	$TimeExec=$unix->file_time_min($filetime);
+
+	$EXTERNAL_LDAP_AUTH_PARAMS=unserialize(base64_decode($sock->GET_INFO("SquidExternalAuth")));
+	$ldap_server=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_server"];
+	$ldap_port=intval($EXTERNAL_LDAP_AUTH_PARAMS["ldap_port"]);
+	if($ldap_port==0){$ldap_port=389;}
+	$ldap_suffix=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_suffix"];
+	$CONNECTION=@ldap_connect($ldap_server,$ldap_port);
+
+	if(!$CONNECTION){
+		if($TimeExec>30){
+			@unlink($filetime);
+			squid_admin_mysql(0, "Connection to LDAP server failed $ldap_server:$ldap_port", null,__FILE__,__LINE__);
+			@file_put_contents($filetime, time());
+		}
+		return;
+
+	}
+	@ldap_set_option($CONNECTION, LDAP_OPT_PROTOCOL_VERSION, 3);
+	@ldap_set_option($CONNECTION, LDAP_OPT_REFERRALS, 0);
+	@ldap_set_option($CONNECTION, LDAP_OPT_PROTOCOL_VERSION, 3); // on passe le LDAP en version 3, necessaire pour travailler avec le AD
+	@ldap_set_option($CONNECTION, LDAP_OPT_REFERRALS, 0);
+
+	$userdn=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_user"];
+	$ldap_password=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_password"];
+	$BIND=@ldap_bind($CONNECTION, $userdn, $ldap_password);
+
+	if(!$BIND){
+		$error=@ldap_err2str(@ldap_errno($CONNECTION));
+		if (@ldap_get_option($CONNECTION, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {$error=$error." $extended_error";}
+		@ldap_close($CONNECTION);
+		if($TimeExec>30){
+			@unlink($filetime);
+			squid_admin_mysql(0, "Authenticate to LDAP server $ldap_server:$ldap_port failed $error", $error,__FILE__,__LINE__);
+			@file_put_contents($filetime, time());
+		}
+		return ;
+	}
+	@unlink($filetime);
+	@ldap_close($CONNECTION);
+
+}
+
+
+function import_old_logs(){
+	$unix=new unix();
+	$q=new mysql_squid_builder();
+	if($q->COUNT_ROWS("import_srclogs")==0){return;}
+	
+	$sql="SELECT COUNT(*) as tcount FROM import_srclogs WHERE status=0";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$count=intval($ligne["tcount"]);
+	if($GLOBALS["VERBOSE"]){echo "$count items\n";}
+	
+	$pid=intval($unix->PIDOF_PATTERN("exec.squid.influx.import.php --run-mysql"));
+	if($GLOBALS["VERBOSE"]){echo "$pid PID\n";}
+	if($pid>1){return;}
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	
+	squid_admin_mysql(1, "Importation task stopped $count files to parse [action=start]", null,__FILE__,__LINE__);
+	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.influx.import.php --run-mysql >/dev/null 2>&1 &");
+}
+
+
+function PARANOID_MODE_CLEAN(){
+	
+	$unix=new unix();
+	$cache_file="/etc/artica-postfix/pids/PARANOID_MODE_CLEAN";
+	if($unix->file_time_min($cache_file)<30){return;}
+	@unlink($cache_file);
+	@file_put_contents($cache_file, time());
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sock=new sockets();
+	$UfdbEnableParanoidMode=intval($sock->GET_INFO("UfdbEnableParanoidMode"));
+	if($UfdbEnableParanoidMode==0){return;}
+	$UfdbEnableParanoidBlockR=intval($sock->GET_INFO("UfdbEnableParanoidBlockR"));
+
+	if($UfdbEnableParanoidBlockR==0){$UfdbEnableParanoidBlockR=24;}
+	$q=new mysql_squid_builder();
+	$Count1=$q->COUNT_ROWS("webfilters_paranoid");
+	$q->QUERY_SQL("DELETE FROM `webfilters_paranoid` WHERE zDate<DATE_SUB(NOW(),INTERVAL {$UfdbEnableParanoidBlockR} HOUR)");
+	$Count2=$q->COUNT_ROWS("webfilters_paranoid");
+	$return=$Count1-$Count2;
+	if($Count1<>$Count2){
+		squid_admin_mysql(1, "Release $return rules from paranoid mode", null,__FILE__,__LINE__);
+		shell_exec("$php /usr/share/artica-postfix/exec.squid.global.access.php >/dev/null 2>&1");
+		
+	}
+	
+}
+function taskset(){
+	$processes=array();
+	$cores=array();
+	$unix=new unix();
+	$taskset=$unix->find_program("taskset");
+	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
+	while (list ($num, $line) = each ($f) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#^cpu_affinity_map process_numbers=(.+?)\s+cores=(.+?)#",$line,$re)){continue;}
+		$re[1]=trim($re[1]);
+		$re[2]=trim($re[2]);
+		if(strpos($re[1], ",")>0){
+			$processes=explode(",",$re[1]);
+			$cores=explode(",",$re[2]);
+		}else{
+			$processes[]=$re[1];
+			$cores[]=$re[2];
+		}
+		break;
+		
+	}
+	if(count($processes)==0){
+		if($GLOBALS["VERBOSE"]){echo "No cpu_affinity_map found\n";}
+		return;}
+	
+	
+	while (list ($index, $ProcessNumber) = each ($processes) ){
+		$pid=intval(KidGetPid($ProcessNumber));
+		if($GLOBALS["VERBOSE"]){echo "$ProcessNumber -> $pid\n";}
+		if($pid==0){continue;}
+		
+		$CpuSetGet=CpuSetGet($pid);
+		$expected=$cores[$index]-1;
+		echo "Process Number $ProcessNumber PID $pid task:{$CpuSetGet} Expected $expected\n";
+		if($CpuSetGet<>$expected){
+			if($GLOBALS["VERBOSE"]){echo "Setting PID $pid to $expected\n";}
+			
+			$cmd="$taskset -a -c -p $expected $pid";
+			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+			shell_exec("$cmd");
+		}
+	}
+	
+	
+	
+}
+
+function KidGetPid($number){
+	$unix=new unix();
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"\(squid-$number\" 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(!preg_match("#^([0-9]+)\s+#", $line,$re)){continue;}
+		return $re[1];
+	}
+	
+	
+}
+
+function CpuSetGet($pid){
+	$unix=new unix();
+	$taskset=$unix->find_program("taskset");
+	exec("$taskset -c -p $pid 2>&1",$results);
+	while (list ($num, $line) = each ($results) ){
+		if(!preg_match("#$pid.*?:\s+(.+)#",$line,$re)){continue;}
+		if(strpos($re[1], "-")>0){return 0;}
+		return intval($re[1])+1;
+	}
+	
+	
+}
 
 
 

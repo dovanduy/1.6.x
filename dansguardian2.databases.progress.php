@@ -17,7 +17,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);in
 	
 $usersmenus=new usersMenus();
 if(!$usersmenus->AsDansGuardianAdministrator){
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 	die();	
 }
 
@@ -28,6 +28,7 @@ function page(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	$sock=new sockets();
 	
 	if($_GET["from-ufdbguard"]=="yes"){
 		echo $tpl->_ENGINE_parse_body("
@@ -60,8 +61,9 @@ function page(){
 	
 	$CountDecategories=$ARTICA_DBS_STATUS["CAT_ARTICA_ITEMS_NUM"];
 	if(!is_numeric($CountDecategories)){$CountDecategories=0;}
-	$CountDecategories=numberFormat($CountDecategories,0,""," ");
-	
+	if($CountDecategories>0){
+		$CountDecategories=numberFormat($CountDecategories,0,""," ");
+	}
 	
 	
 	$CAT_STATS_PERCENT=intval($ARTICA_DBS_STATUS["CAT_STATS_PERCENT"]);
@@ -127,12 +129,49 @@ function page(){
 	
 	$button_update=button("{update_now}", "Loadjs('dansguardian2.articadb-progress.php')",32);
 	$button_status=button("{databases_status}", "Loadjs('dansguardian2.databases.artica.php')",32);
+	$button_delete_db=button("{delete_databases}", "Loadjs('dansguardian2.databases.delete.progress.php')",32);
 	
 	if(!$users->CORP_LICENSE){
 		$license_error="- &laquo;{license_error}&raquo;";
 		$button_update=null;
 		$button_status=null;
+		$button_delete_db=null;
 	}
+	
+	$ToulouseUniversityLastCheck=intval($sock->GET_INFO("ToulouseUniversityLastCheck"));
+	if($ToulouseUniversityLastCheck>0){
+		$TLSE_LAST_CHECK=distanceOfTimeInWords($ToulouseUniversityLastCheck,time(),true);
+	}
+	
+	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	if($EnableArticaMetaClient==1){
+		$LOCAL_VERSION_TEXT=$tpl->time_to_date($sock->GET_INFO("UfdbMetaClientVersion"));
+	}
+	
+	if($CountDecategories==0){
+		$CAT_ARTICA_COUNT=0;
+		$MAINARR=unserialize(base64_decode($sock->GET_INFO("CATZ_ARRAY")));
+		if($LOCAL_VERSION_TEXT=="-"){$LOCAL_VERSION_TEXT=$tpl->time_to_date($MAINARR["TIME"]);}
+		unset($MAINARR["TIME"]);
+		while (list ($GroupName, $Count) = each ($MAINARR) ){
+			$CAT_ARTICA_COUNT++;
+			$CountDecategories=$CountDecategories+$Count;
+		}
+		
+		$CountDecategories=numberFormat($CountDecategories,0,""," ");
+	}
+	
+	if($CountDecategories==0){$CAT_ARTICA_COUNT=0;
+		$MAINARR=unserialize(base64_decode($sock->GET_INFO("CATZ_ARRAY.tmp")));
+		unset($MAINARR["TIME"]);
+		while (list ($GroupName, $Count) = each ($MAINARR) ){
+			$CAT_ARTICA_COUNT++;
+			$CountDecategories=$CountDecategories+$Count;
+		}
+		$CountDecategories=numberFormat($CountDecategories,0,""," ");
+	}
+
+	
 	
 	$html="
 	<div style='margin-top:15px;margin-bottom:15px;text-align:right'>". imgtootltip("refresh-32.png",null,"RefreshTab('main_webfiltering_updates')")."</div>
@@ -266,8 +305,8 @@ function page(){
 				>{events}</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'>
-			$button_update</td>
+		<td colspan=2 align='right;' style='font-size:18px;padding-top:60px;text-align:right'>
+			$button_delete_db&nbsp;|&nbsp;$button_update</td>
 	</tr>
 	</table>	
 	

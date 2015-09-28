@@ -47,7 +47,7 @@ function js(){
 function tabs(){
 	$tpl=new templates();
 	$array["popup"]='{system}';
-	$array["plugins"]='{squid_plugins}';
+	
 
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -55,10 +55,7 @@ function tabs(){
 	
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
-		if($num=="plugins"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.client-plugins.php?popup=yes\"><span>$ligne</span></a></li>\n");
-			continue;
-		}
+
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
 	}
 	echo "
@@ -81,7 +78,7 @@ function tabs(){
 function popup(){
 	$page=CurrentPageName();
 	$html="
-	<div class=text-info style='font-size:14px'>{tune_squid_performances_explain}</div>
+	<div class=explain style='font-size:14px'>{tune_squid_performances_explain}</div>
 	<div id='squidperfs'></div>
 	
 	<script>

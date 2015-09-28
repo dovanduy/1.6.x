@@ -8,13 +8,14 @@ include_once('ressources/class.mysql.inc');
 include_once('ressources/class.privileges.inc');
 include_once('ressources/class.ChecksPassword.inc');
 include_once(dirname(__FILE__)."/ressources/class.logfile_daemon.inc");
+include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 
 session_start();
 if($_SESSION["uid"]==null){ AskPasswordAuth("{realtime_requests}"); }
 
 
 $users=new usersMenus();
-if(!$users->AsDansGuardianAdministrator){
+if(!$users->AsWebStatisticsAdministrator){
 	$tpl=new templates();
 	echo "<script> alert('". $tpl->javascript_parse_text("`{$_SERVER['PHP_AUTH_USER']}/{$_SERVER['PHP_AUTH_PW']}` {ERROR_NO_PRIVS}")."'); </script>";
 	die();
@@ -84,7 +85,7 @@ function popup(){
 	$uri=$tpl->_ENGINE_parse_body("{url}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	if(function_exists("date_default_timezone_get")){$timezone=" - ".date_default_timezone_get();}
-	$title=$tpl->_ENGINE_parse_body("{today}: {realtime_requests} ".date("H")."h$timezone");
+	$title=$tpl->_ENGINE_parse_body("{realtime}: {blocked_requests}");
 	$zoom=$tpl->_ENGINE_parse_body("{zoom}");
 	$button1="{name: 'Zoom', bclass: 'Search', onpress : ZoomSquidAccessLogs},";
 	$stopRefresh=$tpl->javascript_parse_text("{stop_refresh}");
@@ -133,23 +134,26 @@ function popup(){
 	
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
+		$zDate_size=101;
 		$url_row=576;
-		$member_row=333;
+		$ipaddr_size=220;
 		$distance_width=352;
+		$rulename_size=104;
 		$margin=0;
 		$margin_left="-5";
 		$tableprc="99%";
 		$button1="{name: '<strong id=refresh-$t>$stopRefresh</stong>', bclass: 'Reload', onpress : StartStopRefresh$t},";
 		$table_height=590;
+		$uri_size=525;
 		$Start="StartRefresh$t()";
 	}
 	
 	if($_GET["minsize"]==1){
 		$zDate_size=90;
 		$ipaddr_size=138;
-		$rulename_size=128;
+		$rulename_size=172;
 		$block_size=60;
-		$proto_size=32;
+		$proto_size=64;
 		$hostname_size=139;
 		$uri_size=480;
 	}
@@ -187,13 +191,13 @@ function popup(){
 			dataType: 'json',
 			colModel : [
 			
-			{display: '$zdate', name : 'zDate', width :$zDate_size, sortable : true, align: 'left'},
-			{display: '$ipaddr', name : 'events', width : $ipaddr_size, sortable : false, align: 'left'},
-			{display: '$rulename', name : 'events', width : $rulename_size, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'code', width : $block_size, sortable : false, align: 'left'},
-			{display: '$proto', name : 'proto', width : $proto_size, sortable : false, align: 'left'},
-			{display: '$hostname', name : 'hostname', width : $hostname_size, sortable : false, align: 'left'},
-			{display: '$uri', name : 'events', width : $uri_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$zdate</span>', name : 'zDate', width :$zDate_size, sortable : true, align: 'left'},
+			{display: '<span style=font-size:18px>$ipaddr</span>', name : 'events', width : $ipaddr_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$rulename</span>', name : 'events', width : $rulename_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>&nbsp;</span>', name : 'code', width : $block_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$proto</span>', name : 'proto', width : $proto_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$hostname</span>', name : 'hostname', width : $hostname_size, sortable : false, align: 'left'},
+			{display: '<span style=font-size:18px>$uri</span>', name : 'events', width : $uri_size, sortable : false, align: 'left'},
 
 			],
 				
@@ -213,12 +217,12 @@ function popup(){
 			sortname: 'zDate',
 			sortorder: 'desc',
 			usepager: true,
-			title: '<span style=\"font-size:16px\">$title</span>',
+			title: '<span style=\"font-size:22px\">$title</span>',
 			useRp: true,
 			rp: 50,
 			showTableToggleBtn: false,
 			width: '98.5%',
-			height: 640,
+			height: 500,
 			singleSelect: true,
 			rpOptions: [10, 20, 30, 50,100,200,500]
 	
@@ -226,7 +230,9 @@ function popup(){
 	
 	}
 	
-	
+if(document.getElementById('SQUID_ACCESS_LOGS_DIV')){
+	document.getElementById('SQUID_ACCESS_LOGS_DIV').innerHTML='';
+}	
 
 StartLogsSquidTable$t();
 </script>";
@@ -252,7 +258,7 @@ function events_list(){
 	krsort($dataZ);
 	if(count($dataZ)==0){json_error_show("no data");}
 	$logfileD=new logfile_daemon();
-	
+	$zcat=new squid_familysite();
 	
 	while (list ($num, $line) = each ($dataZ)){
 		$TR=preg_split("/[\s]+/", $line);
@@ -280,9 +286,16 @@ function events_list(){
 		if($ALLOW=="BLOCK-LD"){$color="#D0080A";}
 		if($ALLOW=="BLOCK"){$color="#D0080A";}
 		if($ALLOW=="REDIR"){$color="#BAB700";}
+		if($ALLOW=="PASS"){$color="#009223";}
 		
+		$familysite=$zcat->GetFamilySites($hostname);
+		$familysiteEnc=urlencode($familysite);
 		
 		if($CLIENT==$CLIENT_IP){$CLIENT_IP=null;}else{$CLIENT_IP="/$CLIENT_IP";}
+		
+		
+	
+		$hostname=texttooltip($hostname,"{webfiltering_tasks_explain}","Loadjs('squid.access.webfilter.tasks.php?familysite=$familysiteEnc')");
 		
 		$fontsize=14;
 		

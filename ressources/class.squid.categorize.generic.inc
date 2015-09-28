@@ -2158,7 +2158,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)[0-9]+starmovies\.[a-z]+$#", $www)){return "movies";}
 		if(preg_match("#(^|\.)cotecine\.fr$#", $www)){return "movies";}
 		if(preg_match("#(^|\.)ariamovie[0-9]+\.[a-z]+$#", $www)){return "movies";}
-		if(preg_match("#(bollywood|maxfilm|streaming|freefilm|cinema|mediasetvod|film.*?online|film.*?gratis|filmpreview|themovie)#", $www)){return "movies";}
+		if(preg_match("#(bollywood|maxfilm|streaming|freefilm|cineplex|cinema|mediasetvod|film.*?online|film.*?gratis|filmpreview|themovie)#", $www)){return "movies";}
 		if(preg_match("#^cinema\.#", $www)){return "movies";}
 		if(preg_match("#(\-|\.|[0-9]+)(movie|film|cinema|streaming)(\-|[0-9]+|[s])\.#", $www)){return "movies";}
 		if(preg_match("#(^|\.)subs4movies\.com$#", $www)){return "movies";}
@@ -3954,7 +3954,7 @@ private function socialnet($www){
 		
 		
 		
-		if(preg_match("#(^|\.)mobijoy\.com$#", $www)){return "ringtones";}
+		if(preg_match("#(^|\.)mobijoy\.com$#", $www)){return "mobile-phone";}
 		if(preg_match("#(^|\.)lawyers\.com$#", $www)){return "justice";}
 		if(preg_match("#ordre-avocats-.*?.com$#", $www)){return "justice";}
 		

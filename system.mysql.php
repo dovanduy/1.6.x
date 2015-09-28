@@ -294,8 +294,7 @@ function tabs(){
 		$array["greensql"]='GreenSQL';
 	}
 	
-	if(count($array)>6){$tabsize="style='font-size:18px'";}
-	if(count($array)>7){$tabsize="style='font-size:16px'";}
+	$tabsize="style='font-size:22px'";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="greensql"){
@@ -343,7 +342,7 @@ function tabs(){
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_mysql")."<script>LeftDesign('mysql-white-256-opac20.png');</script>";
+	echo build_artica_tabs($html, "main_config_mysql",1490)."<script>LeftDesign('mysql-white-256-opac20.png');</script>";
 }
 
 function popup(){
@@ -824,7 +823,7 @@ function mysql_dir_popup(){
 	
 	$html="
 	<div id='ChangeMysqlDirDiv'>
-	<div class=text-info>{ChangeMysqlDir_explain}</div>
+	<div class=explain>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>

@@ -32,7 +32,7 @@ function page(){
 	$ou=base64_decode($_GET["ou"]);
 	
 	$html="
-	<div class=text-info>{milter_multimx_explain}</div>
+	<div class=explain>{milter_multimx_explain}</div>
 	
 	<table style='width:99%;margin-bottom:10px' class=form>
 	<tbody>

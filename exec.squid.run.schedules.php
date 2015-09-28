@@ -1,4 +1,5 @@
 <?php
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.process.inc");
@@ -76,19 +77,21 @@ function squid_running_schedules(){
 	@file_put_contents($TimeFile, time());
 	
 	
+	$StatsApplianceReceivers=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/StatsApplianceReceivers"));
+	$SquidPerformance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
+	
 	
 	$BASEDIR="/usr/share/artica-postfix";
 	$SQUIDEnable=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if(function_exists("systemMaxOverloaded")){
 		if(systemMaxOverloaded()){
+			squid_admin_mysql(1, "{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: System is overloaded, Artica tasks as been aborted", null,__FILE__,__LINE__);
 			_statussquid("Overloaded system, aborting...");
 			return;}
 	}
 	
 	if($SQUIDEnable==0){return;}
-	_statussquid("squid_running_schedules");
-	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.logfile_daemon-parse.php --tables-primaires >/dev/null 2>&1 &");
 	
 	
 	
@@ -100,12 +103,7 @@ function squid_running_schedules(){
 	}
 	
 	
-	$filetimeF="/usr/share/artica-postfix/ressources/logs/web/ufdb.rules_toolbox_left.html";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>5){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/dansguardian2.mainrules.php rules-toolbox-left >/dev/null 2>&1 &");
-	}
+
 	
 	
 	$filetimeF="/usr/share/artica-postfix/ressources/logs/web/squid_mem_status.html";
@@ -152,8 +150,19 @@ function squid_running_schedules(){
 	}
 	
 	$filetimeF='/etc/artica-postfix/pids/DisableGoogleSSL.time';
+	$EnableGoogleDNS=1;
+	
 	$DisableGoogleSSL=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableGoogleSSL"));
-	if($DisableGoogleSSL==1){
+	$EnableGoogleSafeSearch=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableGoogleSafeSearch");
+	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}
+	
+	if($DisableGoogleSSL==0){
+		if($EnableGoogleSafeSearch==0){
+			$EnableGoogleDNS=0;
+		}
+	}
+		
+	if($EnableGoogleDNS==1){	
 		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
 		_statussquid(basename($filetimeF).": {$filetime}Mn");
 		if($GLOBALS["CLASS_UNIX"]->file_time_min($filetime)>4320){
@@ -163,19 +172,9 @@ function squid_running_schedules(){
 		}
 	}
 	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.hours.php.RTTZ_WORKSHOURS.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>60){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.hours.php --rtt >/dev/null 2>&1 &");
-	}
+
 	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.hours.php.tables_hours.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>60){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.hours.php >/dev/null 2>&1 &");
-	}	
+	
 	
 		
 	$filetimeF="/etc/artica-postfix/pids/exec.squid.php.Defaultschedules.time";
@@ -185,152 +184,172 @@ function squid_running_schedules(){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.php --defaults-schedules");
 	}
 	
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>120){
+			@unlink("/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time");
+			@file_put_contents("/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time", time());
+			stats_admin_events(2, "Launching importation tables task", null,__FILE__,__LINE__);
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.central.php --import");
+			
+		}
+	}
 	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>120){
-		@unlink("/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time");
-		@file_put_contents("/etc/artica-postfix/pids/exec.squid.stats.central.php.import.statistics.time", time());
-		stats_admin_events(2, "Launching importation tables task", null,__FILE__,__LINE__);
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.central.php --import");
-		
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.not-categorized.php.not_categorized_scan.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>120){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.not-categorized.php --recategorize >/dev/null 2>&1 &");
+		}
+	}
+	
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.totals.php.donnees_interface.pid";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>30){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.totals.php --interface >/dev/null 2>&1 &");
+		}
 	}
 	
 	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.not-categorized.php.not_categorized_scan.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>120){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.not-categorized.php --recategorize >/dev/null 2>&1 &");
-	}
-	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.totals.php.donnees_interface.pid";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>30){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.totals.php --interface >/dev/null 2>&1 &");
-	}
-	
-	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.interface-size.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>14){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.interface-size.php >/dev/null 2>&1 &");
-	}	
-	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.quota-week.parser.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>1880){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.quota-week.parser.php >/dev/null 2>&1 &");
-	}
-	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.mime.parser.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>19){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.mime.parser.php >/dev/null 2>&1 &");
-	}
 
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.mime.proto.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>19){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.mime.proto.php >/dev/null 2>&1 &");
+	
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.quota-week.parser.php.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>1880){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.quota-week.parser.php >/dev/null 2>&1 &");
+		}
 	}
 	
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.hourly.tables.php.current_access_db.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>9){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.hourly.tables.php --current_access >/dev/null 2>&1 &");
-	}
 
-	$filetimeF="/etc/artica-postfix/pids/exec.squid.hourly.tables.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>64){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.hourly.tables.php >/dev/null 2>&1 &");
-	}	
-	
-	
-	$timefile="/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.start.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>61){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.quotaday.php >/dev/null 2>&1 &");
+
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.stats.mime.proto.php.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>19){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.mime.proto.php >/dev/null 2>&1 &");
+		}
 	}
 	
-	$timefile="/etc/artica-postfix/pids/exec.squid.stats.quotaday.php.quotatemp.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>61){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.quotaday.php --quotatemp >/dev/null 2>&1 &");
+
+
+
+	
+	
+
+	
+
+	
+
+	
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/YoutubeByHour.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>61){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.youtube.days.php --youtube-hours >/dev/null 2>&1 &");
+		}
 	}
 	
-	$timefile="/etc/artica-postfix/pids/exec.squid-searchwords.php.searchwords_hour.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>61){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid-searchwords.php --hour >/dev/null 2>&1 &");
-	}
+
 	
-	$timefile="/etc/artica-postfix/pids/YoutubeByHour.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>61){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.youtube.days.php --youtube-hours >/dev/null 2>&1 &");
-	}
+
 	
-	
-	$timefile="/etc/artica-postfix/pids/exec.squid.stats.notcached-week.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>30){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.notcached-week.php >/dev/null 2>&1 &");
-	}
-	
-	$timefile="/etc/artica-postfix/pids/exec.squid.stats.protos.php.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>240){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.stats.protos.php >/dev/null 2>&1 &");
-	}
-	
-	$timefile="/etc/artica-postfix/pids/exec.squid.php.rotate_logs.pid";
+	$filetimeF="/etc/artica-postfix/pids/exec.squid.php.rotate_logs.pid";
 	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
 	_statussquid(basename($filetimeF).": {$filetime}Mn");
 	if($filetime>60){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.php --rotate >/dev/null 2>&1 &");
 	}
 	
-	$timefile="/etc/artica-postfix/pids/exec.squid.rotate.php.build.time";
+	$filetimeF="/etc/artica-postfix/pids/exec.squid.rotate.php.build.time";
 	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
 	_statussquid(basename($filetimeF).": {$filetime}Mn");
 	if($filetime>120){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.rotate.php >/dev/null 2>&1 &");
 	}
-	$SquidEnforceRules=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidEnforceRules"));
-	if($SquidEnforceRules==1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squidcache.php >/dev/null 2>&1 &");
+	
+
+	
+	if($SquidPerformance<3){
+		$SquidEnforceRules=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidEnforceRules"));
+		if($SquidEnforceRules==1){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squidcache.php >/dev/null 2>&1 &");
+		}
 	}
 	
-	$timefile="/usr/share/artica-postfix/ressources/logs/web/squid_redirectors_status.db";
+	$filetimeF="/usr/share/artica-postfix/ressources/logs/web/squid_redirectors_status.db";
 	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
 	_statussquid(basename($filetimeF).": {$filetime}Mn");
 	if($filetime>10){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.watchdog.php --redirector-array >/dev/null 2>&1 &");
 	}
 	
-	$timefile="/etc/artica-postfix/pids/exec.dansguardian.injector.php.ParseAllUfdbs.time";
-	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
-	_statussquid(basename($filetimeF).": {$filetime}Mn");
-	if($filetime>5){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.dansguardian.injector.php --blocked >/dev/null 2>&1 &");
+	
+	if($SquidPerformance<2){
+		$filetimeF="/etc/artica-postfix/pids/exec.squid.interface-size.php.CachedOrNot.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>4){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.interface-size.php --cache-or-not >/dev/null 2>&1 &");
+		}
 	}
 	
+
+	
+	$filetimeF="/etc/artica-postfix/settings/Daemons/StatsApplianceReceivers";
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+	_statussquid(basename($filetimeF).": {$filetime}Mn");
+	if($filetime>4){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.interface-size.php --stats-apps-clients >/dev/null 2>&1 &");
+	}
+	
+	if($StatsApplianceReceivers>0){
+		$filetimeF="/etc/artica-postfix/pids/exec.stats-appliance-clean.php.start_parse.time";
+		$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+		_statussquid(basename($filetimeF).": {$filetime}Mn");
+		if($filetime>59){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.stats-appliance-clean.php >/dev/null 2>&1 &");
+		}
+		
+	}
+	
+	
+
+	
+	$filetimeF="/etc/artica-postfix/pids/exec.clean.varlog.php.varlog.time";
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+	_statussquid(basename($filetimeF).": {$filetime}Mn");
+	if($filetime>15){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.clean.varlog.php >/dev/null 2>&1 &");
+	}	
+	
+	
+	$filetimeF="/etc/artica-postfix/pids/exec.ufdb.parse-categories.php.time";
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+	_statussquid(basename($filetimeF).": {$filetime}Mn");
+	if($filetime>60){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.ufdb.parse-categories.php >/dev/null 2>&1 &");
+	}
+	
+
+	
+	$filetimeF="/etc/artica-postfix/pids/exec.mysqld.crash.php.check_crashed_squid.time";
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filetimeF);
+	_statussquid(basename($filetimeF).": {$filetime}Mn");
+	if($filetime>120){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.mysqld.crash.php --crashed-squid >/dev/null 2>&1 &");
+	}
+	
+
+	squid_tasks();
 	
 }
 
@@ -411,7 +430,7 @@ function _statussquid($text=null){
 
 	$TIME=date("M d H:i:s");
 	if($GLOBALS["VERBOSE"]){echo "$text\n";}
-	$logFile="/var/log/artica-scheduler-squid.log";
+	$logFile="/var/log/artica-status.log";
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
 	if (is_file($logFile)) {
 		$size=filesize($logFile);

@@ -10,7 +10,7 @@ include_once('ressources/class.ini.inc');
 if(isset($_GET["js"])){js();exit;}
 
 $users=new usersMenus();
-if(!$users->AsArticaMetaAdmin){$tpl=new templates();echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();}
+if(!$users->AsArticaMetaAdmin){$tpl=new templates();echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();}
 
 
 tabs();

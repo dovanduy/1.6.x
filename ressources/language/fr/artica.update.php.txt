@@ -3,7 +3,7 @@
 <current_version>Version actuelle</current_version>
 <enable_autoinstall>Appliquer la mise &agrave; jour</enable_autoinstall>
 <enable_autoupdate>T&eacute;l&eacute;charger les mises 	&agrave; jour</enable_autoupdate>
-<enable_nightlybuild>T&eacute;l&eacute;charger les nightly builds</enable_nightlybuild>
+<enable_nightlybuild>T&eacute;l&eacute;charger les versions interm&eacute;diaires</enable_nightlybuild>
 <front_page_notify>Afficher sur la page de garde</front_page_notify>
 <install_package>Installer le paquetage</install_package>
 <install_package_text>Mettre &agrave; jour le noyau d'Artica en utilisant ce paquet ?

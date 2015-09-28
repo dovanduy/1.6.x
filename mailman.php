@@ -483,7 +483,7 @@ function popup_add(){
 	$listname=$_GET["listname"];
 	$listnameExists=0;
 	$btname="{add}";
-	$explain="<div class=text-info style='font-size:14px'>{add_mailman_text}</div>";
+	$explain="<div class=explain style='font-size:14px'>{add_mailman_text}</div>";
 	if($_GET["ou"]<>null){
 		
 		$domains=$ldap->hash_get_domains_ou($_GET["ou"]);

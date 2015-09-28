@@ -1,1 +1,0 @@
-../artica-ldap/ldapsend.pas

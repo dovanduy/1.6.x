@@ -35,14 +35,11 @@ function tabs(){
 	$users=new usersMenus();
 	$array["status"]='{status}';
 	$array["popup"]='{squid_redirectors}';
-	$array["plugins"]='{squid_plugins}';
+	
 	
 
 	while (list ($num, $ligne) = each ($array) ){
-		if($num=="plugins"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.client-plugins.php?popup=yes\"><span style='font-size:22px'>$ligne</span></a></li>\n");
-			continue;
-		}
+
 		
 		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:22px'>$ligne</span></a></li>\n");
@@ -67,7 +64,7 @@ function popup(){
 	if($squid->enable_UfdbGuard==1){$enable_UfdbGuard=1;}
 	
 	$html="
-	<div class=text-info style='font-size:18px'>{squid_redirectors_howto}</div>
+	<div class=explain style='font-size:18px'>{squid_redirectors_howto}</div>
 	<div id='$t' style='width:98%' class=form>
 	<table style='width:100%' >
 	<tbody>
@@ -292,7 +289,8 @@ function status_search(){
 		$STATES["W"]="warning32.png";
 		$STATES["C"]="warning32.png";
 		$STATES["S"]="ok32-grey.png";
-		$icon=$STATES[$ligne["STATE"]];
+		$STATES["BS"]="32-stop.png";
+		$icon=$STATES[trim($ligne["STATE"])];
 		
 		$ligne["REQ"]=FormatNumber($ligne["REQ"]);
 		$ligne["REP"]=FormatNumber($ligne["REP"]);

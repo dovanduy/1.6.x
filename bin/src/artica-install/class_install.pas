@@ -719,10 +719,10 @@ begin
             
             if ParamStr(2)='watchdog' then begin
                cron:=tcron.Create(GLOBAL_INI.SYS);
-               cron.STOP_WATCHDOG();
+
 
                logs.DeleteFile('/etc/cron.d/artica-cron');
-               logs.DeleteFile('/etc/cron.d/artica-process1');
+
                cron.free;
                exit();
             end;
@@ -1316,49 +1316,10 @@ begin
                  exit();
               end;
 
-              if ParamStr(2)='postfix-heavy' then begin
-                 zpostfix.POSTFIX_STOP();
-                 kas3.STOP();
-                 zspf.SPF_MILTER_STOP();
-                 zmiltergreylist.MILTER_GREYLIST_STOP();
-                 zmimedefang.MIMEDEFANG_STOP();
-                 zSpamass.SPAMASSASSIN_STOP();
-                 zSpamass.MILTER_STOP();
+              if ParamStr(2)='postfix-heavy' then exit();
 
-                 policydw:=tpolicyd_weight.Create(SYS);
-                 policydw.STOP();
-                 policydw.Free;
-
-                 assp:=Tassp.Create(SYS);
-                 assp.STOP();
-                 assp.free;
-                 exit();
-              end;
-
-              if ParamStr(2)='postfix' then begin
-                 zpostfix.POSTFIX_STOP();
-                 kas3.STOP();
-                 zspf.SPF_MILTER_STOP();
-                 zmiltergreylist.MILTER_GREYLIST_STOP();
-                 zmimedefang.MIMEDEFANG_STOP();
-                 zSpamass.SPAMASSASSIN_STOP();
-                 zSpamass.MILTER_STOP();
-
-                 policydw:=tpolicyd_weight.Create(SYS);
-                 policydw.STOP();
-                 policydw.Free;
-
-                 assp:=Tassp.Create(SYS);
-                 assp.STOP();
-                 assp.free;
-                 exit();
-              end;
-
-
+              if ParamStr(2)='postfix' then exit();
               if ParamStr(2)='policydw' then begin
-                 policydw:=tpolicyd_weight.Create(SYS);
-                 policydw.STOP();
-                 policydw.Free;
                  exit();
               end;
 
@@ -1543,18 +1504,18 @@ begin
               end;
 
             if ParamStr(2)='squid-tail' then begin
-               zsquid.TAIL_STOP();
+
                halt(0);
             end;
             if ParamStr(2)='squidcache-tail' then begin
-               zsquid.TAIL_CACHE_STOP();
+
                halt(0);
             end;
 
 
             if ParamStr(2)='squid-tail-sock' then begin
                writeln('squid-tail-sock is depreciated, turned to syslog features');
-               zsquid.TAIL_SOCK_STOP();
+
                halt(0);
             end;
 
@@ -1570,7 +1531,7 @@ begin
               end;
 
             if ParamStr(2)='proxy-pac' then begin
-                 zsquid.PROXY_PAC_STOP();
+
                  exit();
               end;
 
@@ -1687,11 +1648,7 @@ begin
                  exit();
               end;
 
-             if ParamStr(2)='spamd' then begin
-                 zSpamass.SPAMASSASSIN_STOP();
-                 zSpamass.MILTER_STOP();
-                 exit();
-              end;
+             if ParamStr(2)='spamd' then exit();
 
 
              if ParamStr(2)='clamd' then begin
@@ -2004,35 +1961,13 @@ begin
                   exit();
               end;
 
-              if ParamStr(2)='postfix' then begin
-                 if not NetWorkAvailable then exit();
-                 zspf.SPFMILTER_START();
-                 zmiltergreylist.MILTER_GREYLIST_START();
-                 zmimedefang.MIMEDEFANG_START();
-                 zSpamass.SPAMASSASSIN_START();
-                 zSpamass.MILTER_START();
-                 kas3.START();
-
-                 policydw:=tpolicyd_weight.Create(SYS);
-                 policydw.START();
-                 policydw.Free;
-
-                 assp:=Tassp.Create(SYS);
-                 assp.START();
-                 assp.free;
-
-                 exit();
-              end;
-
-             if ParamStr(2)='postfix-heavy' then begin
+              if ParamStr(2)='postfix' then exit();
+              if ParamStr(2)='postfix-heavy' then begin
 
                      exit();
              end;
 
               if ParamStr(2)='policydw' then begin
-                 policydw:=tpolicyd_weight.Create(SYS);
-                 policydw.START();
-                 policydw.Free;
                  exit();
               end;
 
@@ -2229,7 +2164,7 @@ begin
                    exit();
               end;
               if ParamStr(2)='squidcache-tail' then begin
-                   zsquid.TAIL_CACHE_START();
+
                    exit();
               end;
 
@@ -2771,24 +2706,24 @@ begin
               end;
 
               if ParamStr(2)='proxy-pac' then begin
-                 zsquid.PROXY_PAC_START();
+
                  exit();
               end;
 
               if ParamStr(2)='squid-tail' then begin
                  Writeln('Squid-tail is depreciated...');
-                 zsquid.TAIL_STOP();
+
                  exit();
               end;
               if ParamStr(2)='squidcache-tail' then begin
-                 zsquid.TAIL_CACHE_START();
+
                  exit();
               end;
 
 
             if ParamStr(2)='squid-tail-sock' then begin
                writeln('squid-tail-sock is depreciated, turned to syslog features');
-               zsquid.TAIL_SOCK_STOP();
+
                halt(0);
             end;
 
@@ -2958,12 +2893,7 @@ begin
 
 
 
-              if ParamStr(2)='spamd' then begin
-                 if not NetWorkAvailable then exit();
-                 zSpamass.SPAMASSASSIN_START();
-                 zSpamass.MILTER_START();
-                 exit();
-              end;
+              if ParamStr(2)='spamd' then exit();
 
               if ParamStr(2)='clamd' then begin
                  if not NetWorkAvailable then exit();

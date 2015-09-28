@@ -309,7 +309,7 @@ $ntplink
 }
 function about_section(){
 	$tpl=new templates();
-	$html="<div class=text-info style='font-size:13px'>{clocks_text}</div>";
+	$html="<div class=explain style='font-size:13px'>{clocks_text}</div>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 

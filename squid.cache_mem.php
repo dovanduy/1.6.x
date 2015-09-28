@@ -46,7 +46,16 @@ function caches_mount(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();	
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+
+	if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+		$sock=new sockets();
+		$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+	}else{
+		$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+	}	
+	
+	
+	$CPU_NUMBER=$cpunum;
 
 	$users=new usersMenus();
 	$meminfo=unserialize(base64_decode($sock->getFrameWork("system.php?meminfo=yes")));
@@ -108,7 +117,7 @@ function caches_mount(){
 	
 	$tot=FormatBytes($tot*1000);
 	$html="
-	<div class=text-info style='font-size:16px'>{squid_virtual_caches_explain}$front_error</div>
+	<div class=explain style='font-size:16px'>{squid_virtual_caches_explain}$front_error</div>
 	<div id='$t'></div>		
 	<table style='width:99%' class=form>".@implode("\n", $tr)."
 			
@@ -210,17 +219,14 @@ function popup(){
 	$squid=new squidbee();
 	$cache_mem=$squid->global_conf_array["cache_mem"];
 	$read_ahead_gap=$squid->global_conf_array["read_ahead_gap"];
-	$maximum_object_size_in_memory=$squid->global_conf_array["maximum_object_size_in_memory"];
+	
 	
 	
 	//read_ahead_gap
 	
 	if(preg_match("#([0-9]+)\s+#", $cache_mem,$re)){$cache_mem=$re[1];}
 	if(preg_match("#([0-9]+)\s+#", $read_ahead_gap,$re)){$read_ahead_gap=$re[1];}
-	if(preg_match("#([0-9]+)\s+([A-Z]+)#", $maximum_object_size_in_memory,$re)){
-		$maximum_object_size_in_memory_value=$re[1];
-		$maximum_object_size_in_memory_unit=$re[2];
-	}
+
 	$sock=new sockets();
 	
 	$HugePages=$sock->GET_INFO("HugePages");
@@ -258,8 +264,8 @@ function popup(){
 	$UNITS["KB"]="KB";
 	$UNITS["G"]="G";
 	
-	
-	
+	$maximum_object_size_in_memory_value=32;
+	$maximum_object_size_in_memory_unit="KB";
 	$t=time();
 	$html="
 	<div id='$t'>
@@ -351,7 +357,9 @@ function popup(){
 		XHR.appendData('KernelShmmax',document.getElementById('shmmax-$t').value);
 		AnimateDiv('$t'); 
 		XHR.sendAndLoad('$page', 'POST',x_SaveCacheMem);	
-	}	
+	}
+
+	document.getElementById('maximum_object_size_in_memory-$t').disabled=true;
 	
 </script>	
 ";

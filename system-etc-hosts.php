@@ -228,7 +228,7 @@ function old_popup(){
 	$LIST=getlist();
 	$sock=new sockets();
 	
-	$html="<div class=text-info>{etc_hosts_explain}</div>
+	$html="<div class=explain>{etc_hosts_explain}</div>
 	
 	<div style='text-align:right'>
 	<table>

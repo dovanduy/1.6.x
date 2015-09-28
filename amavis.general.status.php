@@ -73,7 +73,7 @@ function amavis_popup(){
 			<div style='font-size:32px;margin:bottom:10px;text-align:right'>{APP_AMAVIS}</div>
 			". Paragraphe_switch_img("{EnableAmavisDaemon}", "{AMAVIS_DEF}<br>$EnableAmavisDaemonP","EnableAmavisDaemon",$EnableAmavisDaemon,null,700)."
 			". Paragraphe_switch_img("{postfix_afterqueue}", "{postfix_afterqueue_text}","EnableAmavisInMasterCF",$EnableAmavisInMasterCF,null,700)."
-			<p class=text-info style='font-size:14px'><strong style='font-size:16px'>{currently}:$EnableAmavisInMasterCFT</strong><br>$EnableAmavisInMasterCFE</p>
+			<p class=explain style='font-size:14px'><strong style='font-size:16px'>{currently}:$EnableAmavisInMasterCFT</strong><br>$EnableAmavisInMasterCFE</p>
 			<hr>
 			<div style='width:100%;text-align:right'>". button("{apply}","SaveEnablePopupAmavis()",26)."</div>
 		</td>

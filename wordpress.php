@@ -102,14 +102,14 @@ function add_popup(){
 	
 	if(isset($_GET["duplicate"])){
 		$title="<div style='font-size:22px'>{duplicate}:{$_GET["duplicate"]}</div>
-		<div style='font-size:18px' class=text-info>{wordpress_duplicate_explain}</div>";
+		<div style='font-size:18px' class=explain>{wordpress_duplicate_explain}</div>";
 		$bt_title="{duplicate}";
 		$DUP=1;
 	}
 	
 	if(isset($_GET["restore"])){
 		$title="<div style='font-size:22px'>{restore_from_website}:{$_GET["duplicate"]}</div>
-		<div style='font-size:18px' class=text-info>{restore_from_website_explain}</div>";
+		<div style='font-size:18px' class=explain>{restore_from_website_explain}</div>";
 		$bt_title="{restore}";
 		$RESTORE=1;
 		$free=new freeweb($_GET["restore"]);
@@ -136,6 +136,7 @@ function add_popup(){
 	
 	$html="$title
 <div style='width:98%' class=form>
+<div class=explain>{wordpress_form_explain_add}</div>
 	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:22px;vertical-align:middle'>{webservername}:</td>
@@ -615,7 +616,7 @@ function wordpress_info(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
-	$html="<div style='font-size:18px;margin-bottom:30px' class=text-info>{APP_WORDPRESS_TEXT}<p>&nbsp;</p>{APP_WORDPRESS_ARTICA_TEXT}</div>
+	$html="<div style='font-size:18px;margin-bottom:30px' class=explain>{APP_WORDPRESS_TEXT}<p>&nbsp;</p>{APP_WORDPRESS_ARTICA_TEXT}</div>
 		<center style='margin:30px'>". button("{new_wordpress_site}","Loadjs('$page?add-js=yes&t=')",35)."</center>
 		<center style='margin:30px'>". button("{import_wordpress_backup}","Loadjs('wordpress.import.php')",35)."</center>		
 			
@@ -632,41 +633,45 @@ function wordpress_backup(){
 	$WordpressBackupParams=unserialize(base64_decode($sock->GET_INFO("WordpressBackupParams")));
 	if($WordpressBackupParams["DEST"]==null){$WordpressBackupParams["DEST"]="/home/wordpress-backup";}
 	$t=time();
-	
+	$WordpressBackupSize=intval($sock->GET_INFO("WordpressBackupSize"));
+	if($WordpressBackupSize>0){$WordpressBackupSize=FormatBytes($WordpressBackupSize);}
 $html="
 <div id='div-$t'></div>
-	<div class=text-info style='font-size:16px'>{wordpress_backup_parameters}</div>
+	<div style='font-size:38px;margin-bottom:20px'>{wordpress_backup_parameters} $WordpressBackupSize</div>
 	<div style='width:98%' class=form>
 		<table style='width:99%'>
 		<tr>
-			<td class=legend style='font-size:18px'>{backup_directory}:</td>
-			<td>". Field_text("DEST-$t",$WordpressBackupParams["DEST"],"font-size:18px;padding:3px;width:253px")."</td>
-			<td>". button("{browse}","Loadjs('SambaBrowse.php?no-shares=yes&field=DEST-$t&no-hidden=yes')")."</td>
+			<td class=legend style='font-size:22px;vertical-align:middle'>{backup_directory}:</td>
+			<td style='font-size:22px;vertical-align:middle'>". Field_text("DEST-$t",$WordpressBackupParams["DEST"],"font-size:22px;padding:3px;width:570px")."</td>
+			<td style='font-size:22px;vertical-align:middle'>". button("{browse}","Loadjs('SambaBrowse.php?no-shares=yes&field=DEST-$t&no-hidden=yes')",18)."</td>
 		</tr>
-		<tr><td colspan=3><hr><span style='font-size:26px;vertical-align:middle'>FTP: {backup}</td></tr>
+		<tr><td colspan=3 style='padding:30px' align='right'><hr>". button("{backup_now}","Save$t(true)","32px")."</td></tr>
+		<tr><td colspan=3 style='padding:30px'>
+					<div style='font-size:56px;vertical-align:middle'>FTP: {backup}</div></td>
+			</tr>
 		<tr><td colspan=3>". Paragraphe_switch_img("{enable_FTP_backup}",
-		"{FTP_backup_zarafa_explain}","FTP_ENABLE-$t",intval($WordpressBackupParams["FTP_ENABLE"]),null,650)."</td>
+		"{FTP_backup_zarafa_explain}","FTP_ENABLE-$t",intval($WordpressBackupParams["FTP_ENABLE"]),null,890)."</td>
 						</tr>
 			<tr>
-				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_server}:</td>
-				<td style='font-size:18px'>". Field_text("FTP_SERVER-$t",
-							$WordpressBackupParams["FTP_SERVER"],"font-size:18px;padding:3px;width:210px")."&nbsp;</td>
+				<td class=legend style='font-size:22px;vertical-align:top'>{ftp_server}:</td>
+				<td style='vertical-align:middle'>". Field_text("FTP_SERVER-$t",
+							$WordpressBackupParams["FTP_SERVER"],"font-size:22px;padding:3px;width:300px")."&nbsp;</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_username}:</td>
-				<td style='font-size:18px'>". Field_text("FTP_USER-$t",
-							$WordpressBackupParams["FTP_USER"],"font-size:18px;padding:3px;width:190px")."&nbsp;</td>
+				<td class=legend style='font-size:22px;vertical-align:top'>{ftp_username}:</td>
+				<td style='vertical-align:middle'>". Field_text("FTP_USER-$t",
+							$WordpressBackupParams["FTP_USER"],"font-size:22px;padding:3px;width:300px")."&nbsp;</td>
 							<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:18px'>{ftp_password}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_password("FTP_PASS-$t",
-							$WordpressBackupParams["FTP_PASS"],"font-size:18px;padding:3px;width:190px")."&nbsp;</td>
+				<td class=legend style='font-size:22px;vertical-align:top'>{ftp_password}:</td>
+				<td style='vertical-align:middle'>". Field_password("FTP_PASS-$t",
+							$WordpressBackupParams["FTP_PASS"],"font-size:22px;padding:3px;width:300px")."&nbsp;</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td colspan=3 align='right'><hr>". button("{apply}","Save$t()","26px")."</td>
+				<td colspan=3 align='right'><hr>". button("{apply}","Save$t(false)","32px")."</td>
 							</tr>
 		</table>
 </div>
@@ -674,17 +679,27 @@ $html="
 	var x_Save$t= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
-		document.getElementById('div-$t').innerHTML='';
+		
+	}
+	var x_Save2$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);return;};
+		Loadjs('wordpress.backup.manual.progress.php');
 	}
 	
-	function Save$t(){
+	
+	function Save$t(backup){
 		var XHR = new XHRConnection();
 		XHR.appendData('DEST',encodeURIComponent(document.getElementById('DEST-$t').value));
 		XHR.appendData('FTP_ENABLE',document.getElementById('FTP_ENABLE-$t').value);
 		XHR.appendData('FTP_USER',document.getElementById('FTP_USER-$t').value);
 		XHR.appendData('FTP_PASS',encodeURIComponent(document.getElementById('FTP_PASS-$t').value));
 		XHR.appendData('FTP_SERVER',document.getElementById('FTP_SERVER-$t').value);
-		XHR.sendAndLoad('$page', 'POST',x_Save$t);
+		if(backup){
+			XHR.sendAndLoad('$page', 'POST',x_Save2$t);
+		}else{
+			XHR.sendAndLoad('$page', 'POST',x_Save$t);
+		}
 	}
 	
 	function Check$t(){

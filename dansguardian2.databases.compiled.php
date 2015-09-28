@@ -342,11 +342,7 @@ function tabs(){
 			
 		}
 		
-		if($num=="schedule"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php\" 
-					style='font-size:18px'><span>$ligne</span></a></li>\n");
-			continue;
-		}
+
 		if($num=="events"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdbguard.admin.events.php?ufdbguard-artica=\" 
 					style='font-size:18px'><span>$ligne</span></a></li>\n");
@@ -979,7 +975,7 @@ if($_GET["cat"]==null){$actions=null;}
 	.utf8_encode($ligne["category_description"])."</textarea>";
 	
 	if(isset($blacklists[$_GET["cat"]])){
-		$description="<input type='hidden' id='category_text' value=''><div class=text-info style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
+		$description="<input type='hidden' id='category_text' value=''><div class=explain style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
 	}
 	
 	$html="
@@ -1345,7 +1341,7 @@ function PurgeCategoryTable(){
 	}
 	
 	$q->QUERY_SQL("TRUNCATE TABLE `webfilters_categories_caches`");
-	$q->QUERY_SQL("DELETE FORM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($categoryname)."'");
+	$q->QUERY_SQL("DELETE FROM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($categoryname)."'");
 	//if($norestore){$q->CreateCategoryTable(null,$_POST["PurgeCategoryTable"]);}
 	
 }
@@ -1370,7 +1366,7 @@ $html="
 </tr>
 </tbody>
 </table>
-<div class=text-info style='font-size:16px'>{webfilter_status_text}</div>
+<div class=explain style='font-size:16px'>{webfilter_status_text}</div>
 <script>
 	function RefreshArticaDBStatus(){
 		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');
@@ -1791,7 +1787,7 @@ function global_status_tlse_db(){
 		if($SquidDatabasesUtlseEnable==1){
 			$sock=new sockets();
 			$sock->getFrameWork("squid.php?tlse-checks=yes");
-			$running="<br><strong style='color:red;font-weight:normal'>{please_refresh_again_this_pannel}</strong>";	
+			$running="<br><strong style='color:#d32d2d;font-weight:normal'>{please_refresh_again_this_pannel}</strong>";	
 		}
 	}
 	

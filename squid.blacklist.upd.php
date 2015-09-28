@@ -114,7 +114,7 @@ function progress(){
 	if(($PROGRESS["DOWN"]<100) && ($PROGRESS["DOWN"]>0)){if($PROGRESS["POURC"]>90){$PROGRESS["POURC"]=99;}}
 	
 	if(preg_match("#error#i", $PROGRESS["TEXT"])){
-		$PROGRESS["TEXT"]="<span style=color:red>{$PROGRESS["TEXT"]} - restart later</span>";
+		$PROGRESS["TEXT"]="<span style=color:#d32d2d>{$PROGRESS["TEXT"]} - restart later</span>";
 	}
 	
 	if($executed){$PROGRESS["TEXT"]=$tpl->javascript_parse_text("{running}:")." ".$PROGRESS["TEXT"];}

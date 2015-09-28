@@ -4,6 +4,9 @@ include_once(dirname(__FILE__) . "/class.sockets.inc");
 include_once(dirname(__FILE__) . "/class.ccurl.inc");
 include_once(dirname(__FILE__) . "/class.os.system.tools.inc");
 include_once(dirname(__FILE__) . "/class.ocs.inc");
+include_once(dirname(__FILE__) . "/class.artica-meta.orders.inc");
+include_once(dirname(__FILE__) . "/class.artica-meta.squidconf.inc");
+include_once(dirname(__FILE__) . "/class.artica-meta.categories-client.inc");
 class artica_meta{
 	public $GLOBAL_ARRAY=array();
 	public $RegisterDatas=array();
@@ -20,6 +23,7 @@ class artica_meta{
 	private $class_socket;
 	private $debug=false;
 	private $nochecksquid=true;
+	public $ping_error=null;
 	
 
 	
@@ -27,6 +31,7 @@ class artica_meta{
 		$this->debug=$GLOBALS["VERBOSE"];
 		$this->class_socket=new sockets();
 		$sock=new sockets();
+		$ArticaLinkAutoconnect=intval($sock->GET_INFO('ArticaLinkAutoconnect'));
 		$unix=new unix();
 		$users=new usersMenus();
 		$ArticaMetaRegisterDatas=base64_decode($this->class_socket->GET_INFO("ArticaMetaRegisterDatas"));
@@ -40,6 +45,7 @@ class artica_meta{
 		$this->ArticaMetaTimeOut=intval($sock->GET_INFO("ArticaMetaTimeOut"));
 		if($this->ArticaMetaTimeOut==0){$this->ArticaMetaTimeOut=300;}
 		$this->ArticaMetaUseLocalProxy=intval($sock->GET_INFO("ArticaMetaUseLocalProxy"));
+		
 		if($this->ArticaMetaPort==0){$this->ArticaMetaPort=9000;}
 		$this->uuid=$unix->GetUniqueID();
 		if($this->debug){$this->events("SYSTEMID: $this->uuid",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -47,6 +53,10 @@ class artica_meta{
 		
 		
 		if($this->uuid==null){
+			if(function_exists("client_progress")){client_progress("UUID is null",25);}
+			if(function_exists("client_progress")){client_progress("Run wizard first",110);}
+			if(function_exists("client_progress")){client_progress("*** **** FAILED **** ****",110);}
+			
 			if($this->debug){$this->events("SYSTEMID is null!!!$called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			return;
 		}		
@@ -55,22 +65,47 @@ class artica_meta{
 		
 		$os=new os_system();
 		$hostname=$unix->hostname_g();
-
+		
 		
 		$post["uuid"]=$this->uuid;
 		$post["hostname"]=$hostname;
+		
 		$post["username"]=$this->ArticaMetaUsername;
 		$post["password"]=$this->ArticaMetaPassword;
+		$post["system_adm"]=null;
+		$post["system_password"]=null;
+		
+		if($ArticaLinkAutoconnect==1){
+			$ldap=new clladp();
+			$post["system_adm"]=$ldap->ldap_admin;
+			$post["system_password"]=$ldap->ldap_password;
+		}
+		
 		$post["version"]=@file_get_contents("/usr/share/artica-postfix/VERSION");
 		$post["memory"]=$os->realMemory();
 		$array_load=sys_getloadavg();
 		$post["load"]=$array_load[0];
 		$post["CPU"]=$unix->CPU_NUMBER();
+		
+		
 		$post["ALL_DISKS_STATUS"]=serialize($unix->ALL_DISKS_STATUS());
+		
+		if($users->POSTFIX_INSTALLED){
+			$post["POSTFIX"]=1;
+			$post["squidver"]=$unix->POSTFIX_VERSION();
+		}
 		
 		if($users->SQUID_INSTALLED){
 			$post["SQUID"]=1;
 			$post["squidver"]=$unix->squid_version();
+			$post["PROXYEMERG"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency"));
+			$post["UFDBARTICA"]=intval(@file_get_contents("/etc/artica-postfix/ufdbartica.txt"));
+			$post["WINDOWSAD"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableKerbAuth"));
+			$post["ADEMERG"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/ActiveDirectoryEmergency"));
+			$post["UFDB_ENABLED"]=$sock->EnableUfdbGuard_local();
+			@unlink("/etc/artica-postfix/settings/Daemons/UfdbMetaClientVersion");
+			@copy("/etc/artica-postfix/ufdbartica.txt", "/etc/artica-postfix/settings/Daemons/UfdbMetaClientVersion");
+			@chmod("/etc/artica-postfix/settings/Daemons/UfdbMetaClientVersion", 0755);
 		}
 		
 		
@@ -84,18 +119,26 @@ class artica_meta{
 	}
 	
 	public function buildCurl($uri,$post=array()){
-		if($this->ArticaMetaUseLocalProxy==1){$nochecksquid=false;}
 		
-		if(strpos(" $uri", "/")==0){
-			$URI=$this->MAIN_URI."&$uri";
-		}else{
-			$URI="https://$this->ArticaMetaHostname:$this->ArticaMetaPort$uri";
+		if(substr($uri, 0,1)=="/"){
+			$URI="$this->ArticaMetaHostname:$this->ArticaMetaPort/$uri";
+			$URI=str_replace("//", "/", $URI);
+			$URI="https://$URI";
+			$this->events("Return $URI", __FUNCTION__,__FILE__,__LINE__);
+			$curl=new ccurl($URI,false,null,$this->nochecksquid);
+			return $curl;
 		}
+		
+		if($this->ArticaMetaUseLocalProxy==1){$nochecksquid=false;}
+		$URI=$this->MAIN_URI."&$uri";
+		
+		if(function_exists("client_progress")){client_progress("Final: $URI",25);}
 		$this->LOG_URI=$URI;
 		$curl=new ccurl($URI,false,null,$this->nochecksquid);
 		if($GLOBALS["VERBOSE"]){echo "Building URI:\n$URI\n";}
 		$curl->Timeout=$this->ArticaMetaTimeOut;
 		if(count($post)==0){$curl->NoHTTP_POST=true;}
+		$this->events("Return $URI", __FUNCTION__,__FILE__,__LINE__);
 		return $curl;
 	}
 	
@@ -103,47 +146,73 @@ class artica_meta{
 	public function SendArticaEventsToMeta(){
 			if(isset($GLOBALS["PING"]["SendArticaEventsToMeta"])){return;}
 			$GLOBALS["PING"]["SendArticaEventsToMeta"]=true;
-			$BaseWorkDir="/home/artica-meta/events";
+			$BaseWorkDir="/home/artica-meta/events-notify-master";
 			$unix=new unix();
-			if(!is_dir($BaseWorkDir)){return;}
-			if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
-			$TODELETE=array();
-			while (false !== ($filename = readdir($handle))) {
-				if($filename=="."){continue;}
-				if($filename==".."){continue;}
-				$targetFile="$BaseWorkDir/$filename";
-				if(is_dir($targetFile)){continue;}
-				if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
-				$BIG_ARRAY[$filename]=@file_get_contents($targetFile);
-				$TODELETE[$targetFile]=true;
-				
+			if(is_dir($BaseWorkDir)){
+				if ($handle = opendir($BaseWorkDir)) {
+					while (false !== ($filename = readdir($handle))) {
+						if($filename=="."){continue;}
+						if($filename==".."){continue;}
+						$targetFile="$BaseWorkDir/$filename";
+						@unlink($targetFile);
+						}
+					}
 			}
-			
-			if(count($TODELETE)==0){return;}
-			
-			
-			$filename=$unix->FILE_TEMP();
-			@file_put_contents($filename, serialize($BIG_ARRAY));
-			$filecompress=$filename.".gz";
-			if(!$unix->compress($filename, $filecompress)){
-				@unlink($filename);
-				@unlink($filecompress);
+		
+		$sourcefile="/home/artica-meta/META_CLIENT_EVENTS.log";
+		if(!is_file($sourcefile)){return;}	
+		$filecompress="/home/artica-meta/META_CLIENT_EVENTS.gz";
+		
+		if(is_file($filecompress)){
+			if(!$this->SendFile("$filecompress","META_CLIENT_EVENTS")){
+				if($unix->file_time_min($filecompress)>240){@unlink($filecompress);}
 				return;
 			}
-			@unlink($filename);
-			if($this->SendFile("$filecompress","CLIENT_META_EVENTS")){
-				while (list ($ToDelFile, $ligne) = each ($TODELETE) ){
-					@unlink($ToDelFile);
-				}
-				
-			}
-			@unlink($filecompress);			
+			return;
+		}
+		
+		
+		if(!$unix->compress($sourcefile, $filecompress)){
+			@unlink($filecompress);
+			return;
+		}
+		@unlink($sourcefile);
+		if($this->SendFile("$filecompress","META_CLIENT_EVENTS")){@unlink($filecompress);}
+		
 			
-		
-		}		
-		
+	}
 		
 		
+	public function SendHotSpotAccounts(){
+		
+		if(isset($GLOBALS["PING"]["SendHotSpotAccounts"])){return;}
+		$GLOBALS["PING"]["SendHotSpotAccounts"]=true;
+		$q=new mysql_squid_builder();
+		$unix=new unix();
+		if($q->COUNT_ROWS("hotspot_members_meta")==0){return;}
+		$sql="SELECT * FROM hotspot_members_meta";
+		$results = $q->QUERY_SQL($sql);
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ARRAY[$ligne["uid"]]=$ligne["creationtime"];
+		}
+		
+		$DirTemp=$unix->TEMP_DIR();
+		$FILENAME="$DirTemp/HOTSPOT_SESSSIONS";
+		@file_put_contents($FILENAME, serialize($ARRAY));
+		$filecompress=$FILENAME.".gz";
+		if(!$unix->compress($FILENAME, $filecompress)){
+			@unlink($FILENAME);
+			@unlink($filecompress);
+			return;
+		}
+		@unlink($FILENAME);
+		if(!$this->SendFile("$filecompress","HOTSPOT_SESSSIONS")){
+			@unlink($filecompress);
+			return;
+		}
+		
+		$q->QUERY_SQL("TRUNCATE TABLE hotspot_members_meta");
+	}	
 	
 	
 	public function SendArticaConfig(){
@@ -164,20 +233,33 @@ class artica_meta{
 			
 		}
 		
-		$filename=$unix->FILE_TEMP();
+		$filename=$unix->TEMP_DIR()."/ARTICA_DAEMONS";
 		@file_put_contents($filename, serialize($BIG_ARRAY));
 		$filecompress=$filename.".gz";
 		if(!$unix->compress($filename, $filecompress)){
 			@unlink($filename);
 			@unlink($filecompress);
+			return;
 		}
 		@unlink($filename);
 		$this->SendFile("$filecompress","ARTICA_DAEMONS");
 		@unlink($filecompress);
-		
+		$this->SEND_GLOBAL_CONFIG();
 	}
 	
-	
+	public function SendSquidPerfs(){
+		if(isset($GLOBALS["PING"]["SendSquidPerfs"])){return;}
+		$GLOBALS["PING"]["SendSquidPerfs"]=true;
+		if(!is_file("/usr/share/artica-postfix/ressources/logs/web/TOTAL_CACHED")){return;}
+		$unix=new unix();
+		$filecompress=$unix->FILE_TEMP().".gz";
+		if(!$unix->compress("/usr/share/artica-postfix/ressources/logs/web/TOTAL_CACHED", $filecompress)){
+			@unlink($filecompress);
+		}
+		$this->SendFile("$filecompress","SQUID_PERFS");
+		@unlink($filecompress);
+		
+	}
 	
 	
 	public function SendSysAlerts(){
@@ -233,13 +315,14 @@ class artica_meta{
 	public function SendFile($file_path,$command=null){
 		$curl=new ccurl($this->MAIN_URI,false,null,$this->nochecksquid);
 		$curl->x_www_form_urlencoded=false;
+		$curl->Timeout=$this->ArticaMetaTimeOut;
 		$ARRAY=array();
 		if($command<>null){
 			$ARRAY["PUSH_FILE_CMD"]=$command;
 		}
 		
 		
-		$this->events("POST FILE $file_path CMD=$command", __FUNCTION__,__FILE__,__LINE__);
+		$this->events("POST FILE $file_path CMD=$command Timeout:{$this->ArticaMetaTimeOut}Mn", __FUNCTION__,__FILE__,__LINE__);
 		if(!$curl->postFile(basename($file_path),$file_path,$ARRAY )){
 			meta_admin_mysql(1, "Unable to post ".basename($file_path), $curl->error);
 			return false;
@@ -267,7 +350,67 @@ class artica_meta{
 		
 		return true;
 		
-	}	
+	}
+	
+	public function send_personal_categories(){
+		
+		$unix=new unix();
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL("SELECT * FROM personal_categories");
+		$MAIN=array();
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$category=$ligne["category"];
+			$tablename=$q->cat_totablename($category);
+			$results2=$q->QUERY_SQL("SELECT pattern FROM $tablename WHERE `enabled`=1");
+			if(mysql_num_rows($results2)==0){continue;}
+			while ($ligne2 = mysql_fetch_assoc($results2)) {
+				$pattern=$ligne2["pattern"];
+				$zmd5=md5("$category{$ligne2["pattern"]}");
+				$sqlline="('$category','$pattern','$zmd5')";
+				$MAIN[$category][]=$sqlline;
+				
+			}
+		}
+		if(count($MAIN)==0){return;}
+		$tempfile=$unix->FILE_TEMP();
+		$tempdir=$unix->TEMP_DIR();
+		@file_put_contents($tempfile, serialize($MAIN));
+		if(!$unix->compress($tempfile, "$tempdir/PROXY_CATEGORIES.gz")){
+			@unlink($tempfile);
+			return;
+		}
+		@unlink($tempfile);
+		$this->SendFile("$tempdir/PROXY_CATEGORIES.gz","PROXY_CATEGORIES");
+		@unlink("$tempdir/PROXY_CATEGORIES.gz");
+	}
+
+	
+	private function SEND_GLOBAL_CONFIG(){
+		$users=new usersMenus();
+		$unix=new unix();
+		$tempfile=$unix->FILE_TEMP();
+		
+		
+		if($users->SQUID_INSTALLED){
+			$q=new mysql_squid_builder();
+			$q->dump_table_to_file("proxy_ports", "$tempfile","uuid","VARCHAR(90)",$unix->GetUniqueID());
+			$unix->compress($tempfile, dirname($tempfile)."/PROXY_PORTS.gz");
+			$this->SendFile(dirname($tempfile)."/PROXY_PORTS.gz","PROXY_PORTS");
+			@unlink($tempfile);
+		}
+		
+		
+		$tempfile=$unix->FILE_TEMP();
+		$q=new mysql();
+		$q2=new class_mysql_dump("artica_backup", $q->mysql_connection,$tempfile);
+		$q2->set_OnlyTableName("nics");
+		$q2->add_fields_values("uuid",$this->uuid,"VARCHAR(90)");
+		$q2->doDump();
+		$unix->compress($tempfile, dirname($tempfile)."/TABLE_NICS.gz");
+		$this->SendFile(dirname($tempfile)."/TABLE_NICS.gz","TABLE_NICS");
+		@unlink($tempfile);
+		
+	}
 	
 	
 	
@@ -368,18 +511,25 @@ class artica_meta{
 	}
 	
 	private function get_meta_infos($uri){
+		if($GLOBALS["OUTPUT"]){$uri=$uri."&output=yes";}
+		if(function_exists("client_progress")){client_progress("Query: $uri",25);}
 		$curl=$this->buildCurl($uri);
-		$this->events("Query: $uri", __FUNCTION__,__FILE__,__LINE__);
+		
 		if(!$curl->get()){
 			if(function_exists("client_progress")){client_progress("{$uri} {failed}",30);}
-			meta_admin_mysql(1, "$uri failed", $curl->error);
+			if($GLOBALS["OUTPUT"]){echo "$uri failed $curl->error\n";}else{
+				meta_admin_mysql(1, "$uri failed", $curl->error);
+			}
 			return false;
 		}
 		
 		if(!preg_match("#<ARTICA_META>(.+?)</ARTICA_META>#is", $curl->data,$re)){
 			$this->events("************ <$curl->data> ************", __FUNCTION__,__FILE__,__LINE__);
 			if(function_exists("client_progress")){client_progress("Communication failed {failed}",30);}
-			meta_admin_mysql(1, "$uri No match <ARTICA_META>", $curl->error);
+			if($GLOBALS["OUTPUT"]){
+				echo "************ <$curl->data> ************\nNo match <ARTICA_META>\n";}else{
+				meta_admin_mysql(1, "$uri No match <ARTICA_META>", $curl->error);
+			}
 			return false;
 		}
 		
@@ -390,7 +540,7 @@ class artica_meta{
 	}
 	
 	
-	private function get_meta_file($uri,$targetfilename){
+	private function get_meta_file($uri,$targetfilename,$noerror=false){
 		$curl=$this->buildCurl($uri);
 		$this->events("Query: $curl->uri", __FUNCTION__,__FILE__,__LINE__);
 		if(!$curl->GetFile($targetfilename)){
@@ -401,7 +551,8 @@ class artica_meta{
 		
 		$size=@filesize($targetfilename);
 		if($size==0){
-			meta_admin_mysql(1, "$uri failed 0 bytes $curl->error", @implode("\n",$curl->errors));
+			$this->events("$curl->error $targetfilename ({0}Bytes)", __FUNCTION__,__FILE__,__LINE__);
+			if(!$noerror){meta_admin_mysql(1, "$uri failed 0 bytes $curl->error", @implode("\n",$curl->errors));}
 			@unlink($targetfilename);
 			return false;
 		}
@@ -416,23 +567,41 @@ class artica_meta{
 		
 		if(function_exists("client_progress")){client_progress("Communicate...",25);}
 		$data=$this->get_meta_infos("ping=yes");
-		if(!$data){return;}
+		if(!$data){
+			if(function_exists("client_progress")){client_progress("No data return from master server...",25);}
+			$this->events("No data returned from master server", __FUNCTION__,__FILE__,__LINE__);
+			$this->ping_error="No data returned from master server";
+			return;
+		}
 		
 		
 		
 		$array=unserialize(base64_decode($data));
 		$sock=new sockets();
+		
 		if(isset($array["ArticaMetaPooling"])){
 			if(function_exists("client_progress")){client_progress("ArticaMetaPooling:{$array["ArticaMetaPooling"]}",30);}
 			if($GLOBALS["VERBOSE"]){echo "Server sends ArticaMetaPooling:{$array["ArticaMetaPooling"]}\n";}
 			$sock->SET_INFO("ArticaMetaPooling", $array["ArticaMetaPooling"]);
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Failed...to match ArticaMetaPooling\n";}
+			$this->events("Failed...to match ArticaMetaPooling", __FUNCTION__,__FILE__,__LINE__);
+		}
+		
+		if(isset($array["ArticaMetaKillProcess"])){
+			if(function_exists("client_progress")){client_progress("ArticaMetaKillProcess:{$array["ArticaMetaKillProcess"]}",30);}
+			if($GLOBALS["VERBOSE"]){echo "Server sends ArticaMetaKillProcess:{$array["ArticaMetaKillProcess"]}\n";}
+			$sock->SET_INFO("ArticaMetaKillProcess", $array["ArticaMetaKillProcess"]);
+		}
+		if(isset($array["ArticaLinkAutoconnect"])){
+			if(function_exists("client_progress")){client_progress("ArticaLinkAutoconnect:{$array["ArticaLinkAutoconnect"]}",30);}
+			if($GLOBALS["VERBOSE"]){echo "Server sends ArticaLinkAutoconnect:{$array["ArticaLinkAutoconnect"]}\n";}
+			$sock->SET_INFO("ArticaLinkAutoconnect", $array["ArticaLinkAutoconnect"]);
 		}
 		
 		
 		if(!$NocheckOrder){
 			if(isset($array["ORDERS"])){
+				$this->events("ORDERS is an array...", __FUNCTION__,__FILE__,__LINE__);
 				$ORDERS=unserialize(base64_decode($array["ORDERS"]));
 				if(count($ORDERS)>0){
 					$this->events("Checking ".count($ORDERS), __FUNCTION__,__FILE__,__LINE__);
@@ -451,6 +620,10 @@ class artica_meta{
 				
 			}
 			
+			if(isset($array["SYSTEM_SCHEDULES"])){$this->APPLY_SCHEDULES($array["SYSTEM_SCHEDULES"]);}else{$this->events("No schedules defined...", __FUNCTION__,__FILE__,__LINE__); }
+			if(isset($array["SYSTEM_CLONE"])){$this->APPLY_CLONE($array["SYSTEM_CLONE"]);}else{$this->events("No Cloning defined...", __FUNCTION__,__FILE__,__LINE__);}
+			
+		
 			
 			
 		}
@@ -467,15 +640,26 @@ class artica_meta{
 		$this->SendSysAlerts();
 		if(function_exists("client_progress")){client_progress("Send local settings",60);}
 		$this->SendArticaConfig();
+		if(function_exists("client_progress")){client_progress("Send Proxy performances",60);}
+		$this->SendSquidPerfs();
+		if(function_exists("client_progress")){client_progress("Send Events",60);}
+		$this->SendArticaEventsToMeta();
+		if(function_exists("client_progress")){client_progress("Send HotSpot Members",60);}
+		$this->SendHotSpotAccounts();
+		if(function_exists("client_progress")){client_progress("Send Personal Categories",60);}
+		$this->send_personal_categories();
+		if(function_exists("client_progress")){client_progress("Get Personal Categories",60);}
+		$this->ACTION_GET_CATEGORIES();
+		
 		
 		return true;
 	}
 	
 	private function parse_orders($ORDERS){
-		
+		$meta_order=new meta_orders();
 		while (list ($orderid, $ARRAY) = each ($ORDERS) ){
-			$this->events("Checking order id: $orderid, action={$ARRAY["SUBJECT"]}", __FUNCTION__,__FILE__,__LINE__);
-			if($GLOBALS["VERBOSE"]){echo "Checking order id: $orderid, action={$ARRAY["SUBJECT"]}\n";}
+			$this->events("Checking order id: $orderid, action={$ARRAY["SUBJECT"]} CONTENT={$ARRAY["CONTENT"]}", __FUNCTION__,__FILE__,__LINE__);
+			if($GLOBALS["VERBOSE"]){echo "Checking order id: $orderid, action={$ARRAY["SUBJECT"]} CONTENT={$ARRAY["CONTENT"]}\n";}
 			
 			switch ($ARRAY["SUBJECT"]) {
 				case "UPDATE_ARTICA":
@@ -530,6 +714,14 @@ class artica_meta{
 					$this->ACTION_RESTART_PROXY($orderid,$CONTENT);
 					break;
 					
+				case "PROXY_DISABLE_URGENCY":
+					$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
+					$this->ACTION_PROXY_DISABLE_URGENCY($orderid,$CONTENT);
+					
+				case "PROXY_ENABLE_URGENCY":
+					$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
+					$this->ACTION_PROXY_ENABLE_URGENCY($orderid,$CONTENT);					
+					
 				case "CLEAN_PROXY_CACHES":
 					$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
 					$this->CLEAN_PROXY_CACHES($orderid,$CONTENT);
@@ -557,8 +749,15 @@ class artica_meta{
 					break;
 					
 				case "SNAPSHOT_RESTORE":
-					$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
-					$this->ACTION_SNAPSHOT_RESTORE($orderid,$CONTENT);
+						$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
+						$this->ACTION_SNAPSHOT_RESTORE($orderid,$CONTENT);
+					break;
+					
+					
+				case "SQUID_TRANSPARENT_WBL":
+						$this->events("PROCESSING /SQUID_TRANSPARENT_WBL/", __FUNCTION__,__FILE__,__LINE__);
+						$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
+						$meta_order->SQUID_TRANSPARENT_WBL($orderid,$CONTENT);
 					break;
 					
 					
@@ -569,9 +768,16 @@ class artica_meta{
 
 					
 				case "PROXY_APPLY_PARAMS":
-					$CONTENT=unserialize(base64_decode($ARRAY["CONTENT"]));
-					$this->ACTION_PROXY_APPLY_PARAMS($orderid,$CONTENT);
+					$meta_order->ACTION_PROXY_APPLY_PARAMS($orderid,unserialize(base64_decode($ARRAY["CONTENT"])));
 					break;
+					
+				case "URGENCY_NOAD":
+					$meta_order->ACTION_DISABLE_AD_EMERGENCY($orderid,unserialize(base64_decode($ARRAY["CONTENT"])));
+					break;
+				case "URGENCY_AD":
+					$meta_order->ACTION_ENABLE_AD_EMERGENCY($orderid,unserialize(base64_decode($ARRAY["CONTENT"])));
+					break;					
+					
 				
 				default:
 					;
@@ -609,10 +815,9 @@ class artica_meta{
 	
 	
 	
-	private function removeorder($orderid){
+	public function removeorder($orderid,$NoPing=false){
 		$curl=$this->buildCurl("removeorder=$orderid");
 		if(!$curl->get()){
-			
 			$this->events("Failed with error $curl->error", __FUNCTION__,__LINE__);
 			return false;
 		}
@@ -628,7 +833,6 @@ class artica_meta{
 		
 		$this->events("Remove order id $orderid success", __FUNCTION__,__LINE__);
 		if($GLOBALS["VERBOSE"]){echo $curl->data."\n";}
-		$this->ping(true);
 		return true;
 		
 	}
@@ -654,7 +858,7 @@ class artica_meta{
 		@unlink($filetemp);
 		if(strlen($data)>10){
 			$q->QUERY_SQL($data); 
-			if(!$q->ok){meta_admin_mysql(0, "Unable to replicate global whitelist $q->mysql_error", null,__FILE__,__LINE__);}
+			if(!$q->ok){meta_admin_mysql(0, "Unable to replicate global whitelist $q->mysql_error - $data", null,__FILE__,__LINE__);}
 		
 		}
 		
@@ -699,7 +903,7 @@ class artica_meta{
 		if(isset($GLOBALS["ACTION_SNAPSHOT_RESTORE"][$orderid])){return;}
 		$GLOBALS["ACTION_SNAPSHOT_RESTORE"][$orderid]=true;
 		$unix=new unix();
-		$filename=$unix->FILE_TEMP().".tar.gz";
+		
 		if(!is_array($array)){
 			meta_admin_mysql(0, "Unable to understand order ACTION_SNAPSHOT_RESTORE ( array expected )", null,__FILE__,__LINE__);
 			$this->removeorder($orderid);
@@ -712,26 +916,42 @@ class artica_meta{
 			return false;
 		}
 		
-		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("Downloading snapshot {$array["ZMD5"]}", __FUNCTION__,__FILE__,__LINE__);
-		$this->events("Downloading snapshot {$array["ZMD5"]}", __FUNCTION__,__FILE__,__LINE__);
-		if(!$this->get_meta_file("snapshot={$array["ZMD5"]}",$filename)){
-			meta_admin_mysql(0, "Failed to download snapshot {$array["ZMD5"]} to $filename", null,__FILE__,__LINE__);
-			$this->removeorder($orderid);
-			return false;
-		}
-		$this->events("{$array["ZMD5"]} downloaded - success..", __FUNCTION__,__FILE__,__LINE__);
-		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("{$array["ZMD5"]} downloaded - success..", __FUNCTION__,__FILE__,__LINE__);
+		$results=$this->ACTION_SNAPSHOT_RETREIVE($array["ZMD5"]);
+		$this->removeorder($orderid);
+		return $results;
+	}
+	
+	
+	private function ACTION_SNAPSHOT_RETREIVE($zMD5=null,$target_filename=null){
+		if($zMD5==null){return;}
+		$cmdadd=null;
 		$unix=new unix();
+		
 		$nohup=$unix->find_program("nohup");
 		$php5=$unix->LOCATE_PHP5_BIN();
-		$this->events("Execute restoring snapshot ID {$array["ZMD5"]}", __FUNCTION__,__FILE__,__LINE__);
-		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("Execute restoring snapshot ID {$array["ZMD5"]}", __FUNCTION__,__FILE__,__LINE__);
-		ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
-		meta_admin_mysql(2, "Execute restoring snapshot ID {$array["ZMD5"]}", null,__FILE__,__LINE__);
-		$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.backup.artica.php --snapshot-file $filename --meta-ping >/dev/null 2>&1 &");
+		
+		
+		$filename=$unix->FILE_TEMP().".tar.gz";
+		if($target_filename<>null){
+			$cmdadd=" --not-remove";
+			$filename=$target_filename;
+		}
+		@mkdir(dirname($filename),0755,true);
+		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("Downloading snapshot {$zMD5}", __FUNCTION__,__FILE__,__LINE__);
+		$this->events("Downloading snapshot {$zMD5}", __FUNCTION__,__FILE__,__LINE__);
+		if(!$this->get_meta_file("snapshot={$zMD5}",$filename)){
+			meta_admin_mysql(0, "Failed to download snapshot {$zMD5} to $filename", null,__FILE__,__LINE__);
+			return false;
+		}
+		$this->events("{$zMD5} downloaded - success..", __FUNCTION__,__FILE__,__LINE__);
+		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("{$zMD5} downloaded - success..", __FUNCTION__,__FILE__,__LINE__);
+		$this->events("Execute restoring snapshot ID {$zMD5}", __FUNCTION__,__FILE__,__LINE__);
+		$this->ACTION_SNAPSHOT_RESTORE_EVENTS("Execute restoring snapshot ID {$zMD5}", __FUNCTION__,__FILE__,__LINE__);
+		meta_admin_mysql(2, "Execute restoring snapshot ID {$zMD5}", null,__FILE__,__LINE__);
+		$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.backup.artica.php --snapshot-file $filename --meta-ping{$cmdadd} >/dev/null 2>&1 &");
 		$this->ACTION_SNAPSHOT_RESTORE_EVENTS($cmd, __FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
-		$this->removeorder($orderid);
+		return true;
 	}
 	
 	
@@ -838,6 +1058,110 @@ class artica_meta{
 		
 		
 		//this->)
+		
+	}
+	
+	
+	private function APPLY_CLONE($md5file=null){
+		if(isset($GLOBALS["APPLY_CLONE"][$md5file])){return;}
+		if($md5file==null){return;}
+		$md5file_local=null;
+		$filename="/home/artica-meta/cloning/snapshot.tar.gz";
+		if(!is_file($filename)){
+			$this->events("$filename no such file...", __FUNCTION__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/meta-clone.md5", null);
+		}
+		if(is_file("/etc/artica-postfix/meta-clone.md5")){
+			$md5file_local=@file_get_contents("/etc/artica-postfix/meta-clone.md5");
+		}
+		$this->events("REMOTE MD5 = $md5file", __FUNCTION__,__LINE__);
+		$this->events("LOCAL  MD5 = $md5file_local", __FUNCTION__,__LINE__);
+		if($md5file==$md5file_local){return;}
+		if(is_file($filename)){@unlink($filename);}
+		if(!$this->ACTION_SNAPSHOT_RETREIVE($md5file,$filename)){
+			@unlink($filename);
+			$this->events(" - - FAILED TO RESTORE SNAPSHOT - -", __FUNCTION__,__LINE__);
+			return false;
+		}
+		$newMD5=md5_file($filename);
+		$this->events("meta-clone.md5 = $filename = $newMD5", __FUNCTION__,__LINE__);
+		@file_put_contents("/etc/artica-postfix/meta-clone.md5", $newMD5);
+		
+	}
+	
+	
+	private function APPLY_SCHEDULES($md5file=null){
+		if(isset($GLOBALS["APPLY_SCHEDULES"][$md5file])){return;}
+		
+		$GLOBALS["APPLY_SCHEDULES"][$md5file]=true;
+		$filename="/etc/artica-postfix/meta-schedules.gz";
+		$md5file_local=null;
+		
+		if($md5file==null){
+			if(is_file($filename)){
+				$q=new mysql();
+				$q->QUERY_SQL("TRUNCATE TABLE system_meta_schedules","artica_backup");
+				@unlink("/etc/artica-postfix/meta-schedules.gz");
+				
+			}
+			return;
+		}
+		$this->events("Remote MD5 = $md5file", __FUNCTION__,__LINE__);
+		if(is_file($filename)){$md5file_local=md5_file($filename); }
+		$q=new mysql();
+		
+		if($md5file==$md5file_local){
+			if($q->COUNT_ROWS("system_meta_schedules", "artica_backup")>0){
+			return;
+			}
+		}
+		
+		
+		if(!$this->get_meta_file("system-schedules=$this->uuid",$filename)){
+			meta_admin_mysql(0, "Failed to download schedules.gz", null,__FILE__,__LINE__);
+			return false;
+		}
+		
+		$this->events("$filename: Size:".@filesize($filename), __FUNCTION__,__LINE__);
+		
+		$unix=new unix();
+		$tmpfile=$unix->FILE_TEMP();
+		if(!$unix->uncompress($filename, $tmpfile)){
+			@unlink($tmpfile);
+			@unlink($filename);
+			$this->events("$filename: Uncompress failed {$GLOBALS["UNCOMPRESSLOGS"]}", __FUNCTION__,__LINE__);
+			return;
+		}
+		
+		$array=unserialize(@file_get_contents($tmpfile));
+		@unlink($tmpfile);
+		if(!is_array($array)){@unlink($filename);}
+		
+		
+
+		$q->QUERY_SQL("TRUNCATE TABLE system_meta_schedules","artica_backup");
+		if(isset($array["REMOVE"])){return;}
+		
+		
+		while (list ($md5, $line) = each ($array) ){
+			$TimeText=$line["TimeText"];
+			$TimeDescription=mysql_escape_string2($line["TimeDescription"]);
+			$TaskType=$line["TaskType"];
+			$f[]="('$TimeText','$TimeDescription','$TaskType')";
+		}
+		
+		if(count($f)>0){
+
+			$q->QUERY_SQL("INSERT IGNORE INTO `system_meta_schedules` (`TimeText`,`TimeDescription` ,`TaskType`) VALUES" .@implode(",", $f),"artica_backup");
+			if(!$q->ok){
+				$this->events("$q->mysql_error", __FUNCTION__,__LINE__);
+				@unlink($filename);
+				return;
+			}
+		}
+		
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$php /usr/share/artica-postfix/exec.schedules.php");
 		
 	}
 	
@@ -988,34 +1312,54 @@ class artica_meta{
 		if(isset($GLOBALS["ACTION_RESTART_PROXY"][$orderid])){return;}
 		$GLOBALS["ACTION_RESTART_PROXY"][$orderid]=true;
 		if(!$this->removeorder($orderid)){return;}
-		
+		$this->SEND_TASK_PERCENT(50);
 		meta_admin_mysql(2, "Success launching restarting proxy service", null,__FILE__,__LINE__);
 		$nohup=$unix->find_program("nohup");
 		shell_exec("$nohup /etc/init.d/squid restart --force >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
+	}
+	private function ACTION_PROXY_DISABLE_URGENCY($orderid){
+		$unix=new unix();
+		if(isset($GLOBALS["ACTION_PROXY_DISABLE_URGENCY"][$orderid])){return;}
+		$GLOBALS["ACTION_PROXY_DISABLE_URGENCY"][$orderid]=true;
+		if(!$this->removeorder($orderid)){return;}
+		$this->SEND_TASK_PERCENT(50);
+		meta_admin_mysql(2, "Success launching disable Proxy emergency service", null,__FILE__,__LINE__);
+		squid_admin_mysql(1, "Emergency disabled by Meta Server", null,__FILE__,__LINE__);
+		$nohup=$unix->find_program("nohup");
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.urgency.remove.php --meta >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
+		
+	}
+	private function ACTION_PROXY_ENABLE_URGENCY($orderid){
+		$unix=new unix();
+		if(isset($GLOBALS["ACTION_PROXY_DISABLE_URGENCY"][$orderid])){return;}
+		$GLOBALS["ACTION_PROXY_DISABLE_URGENCY"][$orderid]=true;
+		if(!$this->removeorder($orderid)){return;}
+		$this->SEND_TASK_PERCENT(50);
+		meta_admin_mysql(2, "Success launching enable Proxy emergency service", null,__FILE__,__LINE__);
+		squid_admin_mysql(0, "Emergency enabled by Meta Server", null,__FILE__,__LINE__);
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency", 1);
+		$nohup=$unix->find_program("nohup");
+		$php=$unix->LOCATE_PHP5_BIN();
+		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
+	
 	}
 	
-	private function  ACTION_PROXY_APPLY_PARAMS($orderid){
-		$unix=new unix();
-		if(isset($GLOBALS["ACTION_PROXY_APPLY_PARAMS"][$orderid])){return;}
-		$GLOBALS["ACTION_PROXY_APPLY_PARAMS"][$orderid]=true;
-		if(!$this->removeorder($orderid)){return;}
-		
-		squid_admin_mysql(2, "Order to reconfigure proxy service by Artica Meta", null,__FILE__,__LINE__);
-		meta_admin_mysql(2, "Success launching reconfigure proxy service task", null,__FILE__,__LINE__);
-		$nohup=$unix->find_program("nohup");
-		$php5=$unix->LOCATE_PHP5_BIN();
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
-	}
+
 	
 	private function ACTION_RELOAD_PROXY($orderid){
 		$unix=new unix();
 		if(isset($GLOBALS["ACTION_RELOAD_PROXY"][$orderid])){return;}
 		$GLOBALS["ACTION_RELOAD_PROXY"][$orderid]=true;
 		if(!$this->removeorder($orderid)){return;}
-		
+		$this->SEND_TASK_PERCENT(50);
 		meta_admin_mysql(2, "Success launching reload proxy service", null,__FILE__,__LINE__);
 		$nohup=$unix->find_program("nohup");
-		shell_exec("$nohup /etc/init.d/squid reload --force >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/squid reload --force --script=".basename(__FILE__)." >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
 	}
 	
 	private function ACTION_PHILESIGHT($orderid){
@@ -1076,7 +1420,9 @@ class artica_meta{
 		}
 		$php=$unix->LOCATE_PHP5_BIN();
 		$this->events("exec.backup.artica.php --snapshot...", __FUNCTION__,__LINE__);
+		$this->SEND_TASK_PERCENT(50);
 		$this->shell_exec("$php /usr/share/artica-postfix/exec.backup.artica.php --snapshot --force --meta-ping >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
 	}
 	
 	
@@ -1103,11 +1449,12 @@ class artica_meta{
 		if(isset($GLOBALS["CLEAN_PROXY_CACHES"][$orderid])){return;}
 		$GLOBALS["CLEAN_PROXY_CACHES"][$orderid]=true;
 		if(!$this->removeorder($orderid)){return;}
-		
+		$this->SEND_TASK_PERCENT(50);
 		meta_admin_mysql(2, "Success launching cleaning caches task..", null,__FILE__,__LINE__);
 		$nohup=$unix->find_program("nohup");
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.rebuild.caches.php --empty >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
 	}
 	
 	private function REINDEX_PROXY_CACHES($orderid){
@@ -1121,6 +1468,130 @@ class artica_meta{
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.rebuild.caches.php --reindex >/dev/null 2>&1 &");
 		}
+		
+		
+		private function ACTION_GET_CATEGORIES(){
+			$uuid=$this->uuid;
+			$this->events("[CATEGORIES]: Checking $uuid/PERSONAL_CATEGORIES.gz", __FUNCTION__);
+			$curl=$this->buildCurl("/meta-updates/$uuid/PERSONAL_CATEGORIES.gz");
+			$unix=new unix();
+			$targetfilename=$unix->FILE_TEMP();
+			
+			if(!$this->get_meta_file("/meta-updates/$uuid/PERSONAL_CATEGORIES.gz", $targetfilename)){
+				@unlink($targetfilename);
+				return;
+			}
+			$this->events("[CATEGORIES]: Success downloading PERSONAL_CATEGORIES", __FUNCTION__,__FILE__,__LINE__);
+			
+			$artica_meta_client_categories=new artica_meta_client_categories($targetfilename);
+			
+			
+			
+			
+			//get_personal_categories
+			
+		}
+		
+		
+private function ACTION_INSTALL_SOFT_INCREMENTS($tgzfile){		
+		$FINAL_FILENAME=basename($tgzfile);
+		$this->events("Checking $tgzfile", __FUNCTION__);
+		$unix=new unix();
+		if(strpos($tgzfile, ".tgz")>0){
+			$Mainpath=str_replace(".tgz", "", $tgzfile);
+			$MAIN_EXT="tgz";
+		}
+		if(strpos($tgzfile, ".tar.gz")>0){
+			$Mainpath=str_replace(".tar.gz", "", $tgzfile);
+			$MAIN_EXT="tar.gz";
+		}
+		
+		$DirTemp=basename($Mainpath);
+		$path=$Mainpath."/metaindex.txt";
+		
+		
+		$curl=$this->buildCurl($path);
+		$filetemp=$unix->FILE_TEMP().".txt";
+		meta_admin_mysql(2, "Downloading $path", null,__FILE__,__LINE__);
+		
+		
+		if(!$curl->GetFile($filetemp)){
+			meta_admin_mysql(0, "Unable to download $path $curl->error",  @implode("\n", $curl->errors),__FILE__,__LINE__);
+			return false;
+		}
+		
+		$ARRAY=unserialize(@file_get_contents($filetemp));
+		if(!is_array($ARRAY)){
+			meta_admin_mysql(0, "Corrupted metaindex ( not an array )", null,__FILE__,__LINE__);
+			return false;
+		}
+		
+		if(count($ARRAY)<5){
+			meta_admin_mysql(0, "Corrupted metaindex ( only ".count($ARRAY)." items )", null,__FILE__,__LINE__);
+			return false;
+		}
+		$tempdir="/home/artica-meta/download/TEMP/$DirTemp";
+		@mkdir($tempdir,0755,true);
+		$count=count($ARRAY);
+		$c=0;
+		while (list ($targetFile, $md5file) = each ($ARRAY) ){
+			$BaseName=basename($targetFile);
+			$HTTP_LINK="$Mainpath/$BaseName";
+			$LOCAL_FILE="$tempdir/$BaseName";
+			$this->events("Checking $LOCAL_FILE", __FUNCTION__);
+			if(is_file($LOCAL_FILE)){
+				$md5Local=md5_file($LOCAL_FILE);
+				if($md5Local==$md5file){ continue; }
+				$this->events("$LOCAL_FILE corrupted...", __FUNCTION__);
+				@unlink($LOCAL_FILE);
+			}
+			$c++;
+			$this->events("$c/$count Downloading $HTTP_LINK", __FUNCTION__);
+			$curl=$this->buildCurl($HTTP_LINK);
+			if(!$curl->GetFile($LOCAL_FILE)){
+				$this->SEND_TASK_PERCENT(0);
+				meta_admin_mysql(0, "Unable to download $HTTP_LINK $curl->error", @implode("\n", $curl->errors),__FILE__,__LINE__);
+				return true;
+			}
+			$md5Local=md5_file($LOCAL_FILE);
+			if($md5Local==$md5file){
+				$this->events("$HTTP_LINK success...", __FUNCTION__);
+				$percent=$c/$count;
+				$percent=round($percent*100);
+				$this->SEND_TASK_PERCENT($percent);
+				continue;
+			}
+				
+			meta_admin_mysql(0, "Corrupted download $HTTP_LINK ( md5 differ )", @implode("\n", $curl->errors),__FILE__,__LINE__);
+			$this->SEND_TASK_PERCENT(0);
+			return true;
+				
+		}
+		
+		
+		$this->SEND_TASK_PERCENT(0);
+		$rm=$unix->find_program("rm");
+		$cat=$unix->find_program("cat");
+		$php=$unix->LOCATE_PHP5_BIN();
+		$tar=$unix->find_program("tar");
+		$filetemp=dirname(__FILE__)."/conf/upload/$FINAL_FILENAME";
+		system("$cat $tempdir/*.$MAIN_EXT.* >$filetemp");
+		shell_exec("$rm -rf $tempdir");
+		$size=filesize("$filetemp");
+		$size=$size/1024;
+		$size=$size/1024;
+		$size=round($size,2);
+		
+		$php=$unix->LOCATE_PHP5_BIN();
+		$this->SEND_TASK_PERCENT(99);
+		$this->events("exec.installv2.php --install $FINAL_FILENAME", __FUNCTION__,__FILE__,__LINE__);
+		system("$php /usr/share/artica-postfix/exec.installv2.php --install $FINAL_FILENAME >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
+		return true;
+		}		
+		
+		
+		
 	
 	private function ACTION_INSTALL_SOFT($orderid,$array=array()){
 		if(isset($GLOBALS["ACTION_INSTALL_SOFT"][$orderid])){return;}
@@ -1133,29 +1604,55 @@ class artica_meta{
 			return false;
 		}
 		
+		$this->SEND_TASK_PERCENT(10);
+		
+		$uri="/meta-updates/softwares/{$array["FILENAME"]}";
+		
+		if($this->ACTION_INSTALL_SOFT_INCREMENTS($uri)){
+			$this->removeorder($orderid);
+			return true;
+		}
+		
 		
 		$uri="/meta-updates/softwares/{$array["FILENAME"]}";
 		$this->events("$uri", __FUNCTION__,__FILE__,__LINE__);
 		$curl=$this->buildCurl($uri);
 		$filetemp=dirname(__FILE__)."/conf/upload/{$array["FILENAME"]}";
 		if(!$curl->GetFile($filetemp)){
+			$this->SEND_TASK_PERCENT(0);
 			$this->events("Unable to download $uri $curl->error", __FUNCTION__,__FILE__,__LINE__);
 			meta_admin_mysql(0, "Unable to download $uri $curl->error", null,__FILE__,__LINE__);
 			$this->removeorder($orderid);
 			return;
 		}
+		$this->SEND_TASK_PERCENT(50);
 		$php=$unix->LOCATE_PHP5_BIN();
 		if(!$unix->TARGZ_TEST_CONTAINER($filetemp)){
 			@unlink($filetemp);
+			$this->SEND_TASK_PERCENT(0);
 			$this->events("Unable to uncompress $filetemp", __FUNCTION__,__FILE__,__LINE__);
 			meta_admin_mysql(0, "Unable to uncompress $filetemp", @implode("\n", $GLOBALS["TARGZ_TEST_CONTAINER_ERROR"]),__FILE__,__LINE__);
 			$this->removeorder($orderid);
 			return;
 		}
 		$php=$unix->LOCATE_PHP5_BIN();
+		$this->SEND_TASK_PERCENT(99);
 		$this->events("exec.installv2.php --install {$array["FILENAME"]}", __FUNCTION__,__FILE__,__LINE__);
 		system("$php /usr/share/artica-postfix/exec.installv2.php --install {$array["FILENAME"]} >/dev/null 2>&1 &");
+		$this->SEND_TASK_PERCENT(0);
 		$this->removeorder($orderid);
+		
+	}
+	
+	public function SEND_TASK_PERCENT($num){
+		
+		$this->events("Notify task {$num}%", "SEND_TASK_PERCENT", __FUNCTION__,__LINE__);
+		
+		$curl=$this->buildCurl("SEND_TASK_PERCENT=$num");
+		if(!$curl->get()){
+			$this->events("Failed with error $curl->error", __FUNCTION__,__LINE__);
+			return false;
+		}
 		
 	}
 	
@@ -1206,20 +1703,27 @@ class artica_meta{
 			$this->events("$c/$count Downloading $HTTP_LINK", __FUNCTION__);
 			$curl=$this->buildCurl($HTTP_LINK);
 			if(!$curl->GetFile($LOCAL_FILE)){
+				$this->SEND_TASK_PERCENT(0);
 				meta_admin_mysql(0, "Unable to download $HTTP_LINK $curl->error", @implode("\n", $curl->errors),__FILE__,__LINE__);
 				return true;
 			}
 			$md5Local=md5_file($LOCAL_FILE);
 			if($md5Local==$md5file){ 
 				$this->events("$HTTP_LINK success...", __FUNCTION__);
+				$percent=$c/$count;
+				$percent=round($percent*100);
+				$this->SEND_TASK_PERCENT($percent);
 				continue; 
 			}
 			
 			meta_admin_mysql(0, "Corrupted download $HTTP_LINK ( md5 differ )", @implode("\n", $curl->errors),__FILE__,__LINE__);
+			$this->SEND_TASK_PERCENT(0);
 			return true;
 			
 		}
 		
+		
+		$this->SEND_TASK_PERCENT(0);
 		$rm=$unix->find_program("rm");
 		$cat=$unix->find_program("cat");
 		$php=$unix->LOCATE_PHP5_BIN();
@@ -1238,6 +1742,7 @@ class artica_meta{
 		$VERSION=@file_get_contents("/usr/share/artica-postfix/VERSION");
 		meta_admin_mysql(2, "Success updating Artica to version $VERSION", null,__FILE__,__LINE__);
 		artica_update_event(2,"Success updating - META CLIENT - Artica version $VERSION",null,  __FILE__, __LINE__);
+		$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.artica-meta-client.php --ping --force");
 		return true;
 	}
 	
@@ -1407,6 +1912,7 @@ class artica_meta{
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
 		$text="[$file][$pid] $date $function:: $text (L.$line)\n";
+		if($GLOBALS["OUTPUT"]){echo $text;}
 		if($GLOBALS["VERBOSE"]){echo $text;}
 		@fwrite($f, $text);
 		@fclose($f);	
@@ -1417,9 +1923,7 @@ class artica_meta{
 		$f = @fopen($logFile, 'a');
 		@fwrite($f, $text);
 		@fclose($f);
-		
-		
-		}	
+	}	
 	
 	
 }

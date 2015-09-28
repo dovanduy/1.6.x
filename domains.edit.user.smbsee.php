@@ -31,7 +31,7 @@ function js(){
 function popup(){
 $page=CurrentPageName();
 $tpl=new templates();	
-	$html="<div class=text-info>{WHAT_USER_SEE_SMB_TEXT}</div>
+	$html="<div class=explain>{WHAT_USER_SEE_SMB_TEXT}</div>
 	<div id='WHAT_USER_SEE_SMB_ID' style='width:100%;height:450px;overflow:auto'></div>
 	
 	<script>

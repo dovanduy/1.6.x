@@ -690,7 +690,7 @@ var
    ZarafaMajorVersion,ZarafaMinorVersion,ZarafaSoftDelete,ZarafaCacheCellSize,ZarafaCacheObjectSize,ZarafaCacheIndexedObjectSize,ZarafaCacheQuotaLifeTime:Integer;
    ZarafaCacheQuotaSize,ZarafaCacheAclSize,ZarafaCacheUserSize,ZarafaCacheUserDetailsSize,ZarafaCacheUserDetailsLifeTime,ZarafaThreadStackSize,ZarafaCacheServerSize,ZarafadAgentJunk:integer;
    ZarafaMySQLServiceType:integer;
-   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaServerListenPort,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer,ZarafaAlwaysSendDelegates,ZarafaMAPISSLPort:integer;
+   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaServerListenPort,ZarafaPluginEnabled,ZarafaAlwaysSendTnef,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer,ZarafaAlwaysSendDelegates,ZarafaMAPISSLPort:integer;
    ZarafaIndexPath:string;
 begin
 attachment_storage:='database';
@@ -739,8 +739,8 @@ if not TryStrToInt(SYS.GET_INFO('ZarafaDedicateMySQLServer'),ZarafaDedicateMySQL
 if not TryStrToInt(SYS.GET_INFO('ZarafaAlwaysSendDelegates'),ZarafaAlwaysSendDelegates) then ZarafaAlwaysSendDelegates:=0;
 if not TryStrToInt(SYS.GET_INFO('ZarafaServerListenPort'),ZarafaServerListenPort) then ZarafaServerListenPort:=236;
 if not TryStrToInt(SYS.GET_INFO('ZarafaMAPISSLPort'),ZarafaMAPISSLPort) then ZarafaMAPISSLPort:=237;
-
-
+if not TryStrToInt(SYS.GET_INFO('ZarafaAlwaysSendTnef'),ZarafaAlwaysSendTnef) then ZarafaAlwaysSendTnef:=0;
+if not TryStrToInt(SYS.GET_INFO('ZarafaPluginEnabled'),ZarafaPluginEnabled) then ZarafaPluginEnabled:=0;
 
 
 
@@ -1032,12 +1032,17 @@ if ZarafaAlwaysSendDelegates=0 then l.add('always_send_delegates = no');
 if ZarafaAlwaysSendDelegates=1 then l.add('always_send_delegates = yes');
 l.add('allow_redirect_spoofing = no');
 l.add('copy_delegate_mails = yes');
-l.add('always_send_tnef = yes');
+
+if ZarafaAlwaysSendTnef=1 then l.add('always_send_tnef = yes');
+if ZarafaAlwaysSendTnef=0 then l.add('always_send_tnef = no');
+
 if ZarafaMajorVersion>6 then begin
    if ZarafaMinorVersion>0 then begin
-      l.add('plugin_enabled     = no');
+      if ZarafaPluginEnabled=0 then l.add('plugin_enabled     = no');
+      if ZarafaPluginEnabled=1 then l.add('plugin_enabled     = yes');
    end;
 end;
+
 logs.WriteToFile(l.Text,'/etc/zarafa/spooler.cfg');
 l.clear;
 l.free;
@@ -1149,7 +1154,12 @@ if ZarafaMajorVersion>6 then begin
         l.add('# DAGENT PLUGIN SETTINGS');
         l.add('');
         l.add('# Enable the dagent plugin framework');
-        l.add('plugin_enabled = no');
+if ZarafaMajorVersion>6 then begin
+   if ZarafaMinorVersion>0 then begin
+      if ZarafaPluginEnabled=0 then l.add('plugin_enabled     = no');
+      if ZarafaPluginEnabled=1 then l.add('plugin_enabled     = yes');
+   end;
+end;
         l.add('plugin_manager_path = /usr/share/zarafa-dagent/python');
         l.add('');
         l.add('# Path to the activated dagent plugins.');

@@ -111,7 +111,7 @@ function item_edit_source_folders(){
 	$Array=$Folders["SourceServer"];
 	$ArraySelected=$Folders["FoldersSelectedSourceServer"];
 	$t=time();
-	$html="<div style='font-size:14px' class=text-info>{explain_sourcefolder_offlineimap}</div>
+	$html="<div style='font-size:14px' class=explain>{explain_sourcefolder_offlineimap}</div>
 	<div style='height:450px;width:100%;overflow:auto'>
 	<table style='width:99%' class=form>";
 	
@@ -201,7 +201,7 @@ function as_gateway_popup(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	$t=time();
 	$html="
-	<div class=text-info style='font-size:14px'>{offlineimap_gateway_explain}</div>
+	<div class=explain style='font-size:14px'>{offlineimap_gateway_explain}</div>
 <div id='form-$t'></div>
 	<table style='width:99%' class=form>
 	<tr>
@@ -1015,7 +1015,7 @@ function users_list_item(){
 			
 			if($ProcessExists=="TRUE"){
 				$ttl=$sock->getFrameWork("cmd.php?process-ttl=yes&pid=$PID");
-				$status="<br><strong style='color:red;font-size:11px'><i>{running} PID $PID {since} $ttl {minutes}</i></strong>";
+				$status="<br><strong style='color:#d32d2d;font-size:11px'><i>{running} PID $PID {since} $ttl {minutes}</i></strong>";
 				$exec="&nbsp;";
 			}
 			
@@ -1102,7 +1102,7 @@ function USERS_POPUP_LIST(){
 			if($ligne["imported"]==0){$imported="danger24.png";}else{$imported="ok24.png";}
 			
 			if($sock->getFrameWork("cmd.php?ProcessExists=yes&PID=$PID")){
-				$status="<br><strong style='color:red;font-size:11px'><i>{running} PID $PID</i></strong>";
+				$status="<br><strong style='color:#d32d2d;font-size:11px'><i>{running} PID $PID</i></strong>";
 			}
 			
 			$html=$html."
@@ -1161,7 +1161,7 @@ function MIGRATION_RESTART_MEMBERS(){
 }
 function about(){
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{MAILBOXES_MIGRATION_EXPLAIN}<hr>
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{MAILBOXES_MIGRATION_EXPLAIN}<hr>
 	{MAILBOXES_MIGRATION_EXPLAIN_2}
 	
 	</div>");

@@ -540,7 +540,7 @@ function INDEX(){
 	<tbody>
 		<tr>
 			<td valign='top'>
-			<div class=text-info style='font-size:14px'>{services_status_text}<br>{services_status_text_explain}</div>
+			<div class=explain style='font-size:14px'>{services_status_text}<br>{services_status_text_explain}</div>
 		</td>
 		<td valign='top'><div id='mymem' style='width:99%' class=form></div></td>
 	</tr>
@@ -620,7 +620,6 @@ function SERVICES_STATUS(){
 			$html=$html . BuildRow($users,$ini->_params["LIGHTTPD"],"{APP_LIGHTTPD}");	
 			$html=$html . BuildRow($users,$ini->_params["ARTICA_WATCHDOG"],"{APP_ARTICA_WATCHDOG}");
 			$html=$html . BuildRow($users,$ini->_params["APP_ARTICA_STATUS"],"{APP_ARTICA_STATUS}");
-			$html=$html . BuildRow($users,$ini->_params["APP_ARTICA_EXECUTOR"],"{APP_ARTICA_EXECUTOR}");
 			$html=$html . BuildRow($users,$ini->_params["APP_ARTICA_BACKGROUND"],"{APP_ARTICA_BACKGROUND}");
 			$html=$html . BuildRow($users,$ini->_params["APP_SYSLOGER"],"{APP_SYSLOGER}");
 			$html=$html . BuildRow($users,$ini->_params["SASLAUTHD"],"{APP_SASLAUTHD}");

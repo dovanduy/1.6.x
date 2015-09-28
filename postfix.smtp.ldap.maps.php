@@ -73,7 +73,7 @@ $hostname=$_GET["hostname"];
 		</center>
 		</td>
 		<td valign='top' width=99%>
-			<div class=text-info>{remote_users_databases_howto}</div>
+			<div class=explain>{remote_users_databases_howto}</div>
 			<div style='width:100%;margin:5px;height:255px;overflow:auto' id='postfix-ldap-databases'></div>
 		</td>
 	</tr>
@@ -343,7 +343,7 @@ CheckEnabledPostfixLDAP();
 function howto(){
 $tpl=new templates();	
 $html="	
-	<div class=text-info style='font-size:14px'>{remote_users_databases_howto}</div>
+	<div class=explain style='font-size:14px'>{remote_users_databases_howto}</div>
 	<div style='height:350px;width:100%;overflow:auto'>
 	<table style='width:100%'>
 		<tr>

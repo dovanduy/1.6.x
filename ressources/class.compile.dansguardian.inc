@@ -483,7 +483,7 @@ class compile_dansguardian{
 				$f[]=".Include<$categorypath>";
 			}
 			
-			if($this->SquidDatabasesUtlseEnable){
+			if($this->SquidDatabasesUtlseEnable==1){
 				if(is_file($categorypathTLSE)){
 					$f[]=".Include<$categorypathTLSE>";
 				}

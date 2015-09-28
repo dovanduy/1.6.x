@@ -1496,7 +1496,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 		
 		if(is_file("$root/plugins/msglistcols/msglistcols.php")){$conf[]="\$rcmail_config['plugins'][] = 'msglistcols';";}
 		if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'dkimstatus';";}
-		//if(is_file("$root/plugins/fail2ban/fail2ban.php")){$conf[]="\$rcmail_config['plugins'][] = 'fail2ban';";}
+		
 		if($roundcube_class->plugin_password($root,$hash["OU"][0])){
 			if(is_file("$root/plugins/dkimstatus/dkimstatus.php")){$conf[]="\$rcmail_config['plugins'][] = 'password';";}
 		}

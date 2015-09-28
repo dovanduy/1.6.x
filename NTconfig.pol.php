@@ -72,7 +72,7 @@ function up_iframe($error=null){
 	}
 	$page=CurrentPageName();
 $html="
-<div style='color:red;font-size:12px;font-family:arial'>$error</div>
+<div style='color:#d32d2d;font-size:12px;font-family:arial'>$error</div>
 <div style='color:blue;font-size:12px'>$download</div>
 <form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 <p>

@@ -43,7 +43,7 @@ public
     function    VERSION():string;
 
 
-    function    CheckSocket():string;
+
     procedure   REMOVE();
 END;
 
@@ -111,40 +111,6 @@ fpsystem('/usr/share/artica-postfix/bin/process1 --force');
 end;
  //##############################################################################
 
-
-function tmilter_greylist.VERSION():string;
-var
-tmpstr:string;
-FileDatas:TstringList;
-i:integer;
-RegExpr:tRegExpr;
-
-begin
-
-result:=SYS.GET_CACHE_VERSION('APP_MGREYLIST');
-   if length(result)>2 then exit;
-
-tmpstr:=LOGS.FILE_TEMP();
-if not FileExists(MILTER_GREYLIST_BIN_PATH()) then exit;
-fpsystem(MILTER_GREYLIST_BIN_PATH()+' -r >'+tmpstr+' 2>&1');
-    RegExpr:=TRegExpr.Create;
-    RegExpr.Expression:='^milter-greylist-([0-9a-z\.]+)';
-    FileDatas:=TStringList.Create;
-    FileDatas.LoadFromFile(tmpstr);
-    logs.DeleteFile(tmpstr);
-
-    for i:=0 to FileDatas.Count-1 do begin
-        if RegExpr.Exec(FileDatas.Strings[i]) then begin
-             result:=RegExpr.Match[1];
-             break;
-        end;
-    end;
-             RegExpr.free;
-             FileDatas.Free;
-             SYS.SET_CACHE_VERSION('APP_MGREYLIST',result);
-
-end;
-//##############################################################################
 function tmilter_greylist.MILTER_GREYLIST_INITD():string;
 begin
     if FileExists('/etc/init.d/milter-greylist') then exit('/etc/init.d/milter-greylist');

@@ -826,6 +826,14 @@ class squid_reverse{
 		
 		if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffer_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `proxy_buffer_size` smallint(10) NOT NULL DEFAULT '8'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_max_temp_file_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_max_temp_file_size` smallint(10) NOT NULL DEFAULT '1024'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_temp_file_write_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_temp_file_write_size` smallint(10) NOT NULL DEFAULT '64'");if(!$q->ok){echo $q->mysql_error_html();}}		
+		
+		
 
 		if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}

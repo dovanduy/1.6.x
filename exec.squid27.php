@@ -96,6 +96,16 @@ function build(){
 	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
 	$visible_hostname=$ini->_params["NETWORK"]["visible_hostname"];
 	if($visible_hostname==null){$visible_hostname=$unix->hostname_g();}
+	
+	if(strpos($visible_hostname, ".")>0){
+		$visible_hostnameTR=explode(".",$visible_hostname);
+		$visible_hostnameTR[0]=$visible_hostnameTR[0]."-nat";
+		$visible_hostname=@implode(".", $visible_hostnameTR);
+	}else{
+		$visible_hostname="nat-$visible_hostname";
+	}
+	
+	
 	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
 	$AllowAllNetworksInSquid=$sock->GET_INFO("AllowAllNetworksInSquid");
 	if(!is_numeric($AllowAllNetworksInSquid)){$AllowAllNetworksInSquid=1;}
@@ -113,94 +123,67 @@ function build(){
 	$q=new mysql_squid_builder();
 	$IPADDRS=array();
 	
-	if($SquidBinIpaddr<>null){
-		if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"][$SquidBinIpaddr])){
-			$SquidBinIpaddr=null;
-		}else{
-			$IPADDRS[$SquidBinIpaddr]=$LISTEN_PORT;
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Listens $SquidBinIpaddr\n";}
-		}
-	}
 	
-	if($SSL_BUMP==1){
-		$ssl=true;
-		$ssl_port=$squid->get_ssl_port();
-	}
-	
-	if($SquidBinIpaddr==null){
-		reset($GLOBALS["NETWORK_ALL_INTERFACES"]);
-		while (list ($ipaddr, $val) = each ($GLOBALS["NETWORK_ALL_INTERFACES"])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Listens $ipaddr:$LISTEN_PORT\n";}
-			$IPADDRS[$ipaddr]=$LISTEN_PORT;
-			$IPADDRSSL[$ipaddr]=$ssl_port;
-		}
-	}
-	
-
-	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} visible hostname........: $visible_hostname\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} AllowAllNetworksInSquid.: $AllowAllNetworksInSquid\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} ICP Port................: $ICP_PORT\n";}
+	$ParentSquid27Port=intval($sock->GET_INFO("ParentSquid27Port"));
+	if($ParentSquid27Port==0){$ParentSquid27Port=13298;}
+		
 	
 	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [CONF]: {$GLOBALS["SERVICE_NAME"]} visible hostname........: $visible_hostname\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [CONF]: {$GLOBALS["SERVICE_NAME"]} AllowAllNetworksInSquid.: $AllowAllNetworksInSquid\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [CONF]: {$GLOBALS["SERVICE_NAME"]} ICP Port................: $ICP_PORT\n";}
 	
 	
-	
-	if($ssl){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} SSL Intercept...........: Yes - $ssl_port\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Certificate.............: $certificate_center\n";}
-		$MAINSSL=$squid->SaveCertificate($certificate_center,false,false,false,true);
-		$f[]=$MAINSSL[0];
-		$certificate=$MAINSSL[1]["certificate"];
-		$key=$MAINSSL[1]["key"];
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Certificate.............: $certificate\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Key.....................: $key\n";}
-	}	
-	
-	
-	$sql="SELECT * FROM proxy_ports WHERE enabled=1 and transparent=1";
+	$sql="SELECT * FROM proxy_ports WHERE enabled=1 and is_nat=1";
 	$results = $q->QUERY_SQL($sql);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [CONF]: {$GLOBALS["SERVICE_NAME"]} ".mysql_num_rows($results)." ports\n";}
 	
-	$f[]="# --------- proxy_ports enabled=1 and transparent=1 -> ". mysql_num_rows($results)." ports";
 	
-
+	$f[]="# --------- proxy_ports enabled=1 and is_nat=1 -> ". mysql_num_rows($results)." ports";
+	
+	$MAINSSL=array();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ipaddr=$ligne["ipaddr"];
 		$xport=$ligne["port"];
+		$ssl=intval($ligne["UseSSL"]);
+		$eth=$ligne["nic"];
 		$transparent_text=null;
-		if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"][$ipaddr])){
-			$f[]="# --------- table proxy_ports $ipaddr:$xport -> Hardware Error [".__LINE__."]\n";
-			$f[]="# --------- http $ipaddr -> Hardware Error [".__LINE__."]\n";
+		$ipaddr="0.0.0.0";
+		$transparent=" transparent";
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $eth $ipaddr:$xport\n";}
+		
+		if($eth<>null){
+			$ipaddr=$GLOBALS["NETWORK_ALL_NICS"][$eth]["IPADDR"];
+			if($ipaddr==null){
+				$conf[]="# --------- table proxy_ports $eth $ipaddr:$xport -> Hardware Error [".__LINE__."]\n";
+				$conf[]="# --------- http $ipaddr -> Hardware Error -> 0.0.0.0 [".__LINE__."]\n";
+				$ipaddr="0.0.0.0";
+			}
+		}
+		
+		
+		$f[]="# --------- Port $xport listen on $eth ($ipaddr) UseSSL=$ssl";
+		
+		
+		
+		
+		if($ssl==1){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $ipaddr:$xport: SSL Intercept...........: Yes - $ssl_port\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $ipaddr:$xport: Certificate.............: {$ligne["sslcertificate"]}\n";}
+			
+			$MAINSSL=$squid->SaveCertificate($ligne["sslcertificate"],false,false,false,true);
+			$f[]=$MAINSSL[0];
+			$key=$MAINSSL[1]["key"];
+			$certificate=$MAINSSL[1]["certificate"];
+			$f[]="https_port $ipaddr:$xport transparent cert=$certificate key=$key";
 			continue;
-		}	
-		
-		if($ssl){
-			$IPADDRSSL[$ipaddr]=$ssl_port;
 		}
+		$f[]="http_port $ipaddr:$xport$transparent";
 		
-		$IPADDRS[$ipaddr]=$xport;
+		
 	}
 	
-	$transparent=" transparent";
-	
-	while (list ($ipaddr, $xport) = each ($IPADDRSSL)){ $IPADDRSSL2["$ipaddr:$xport"]=true; }
-	
-	while (list ($ipaddr, $xport) = each ($IPADDRS)){ $IPADDRS2["$ipaddr:$xport"]=true; }
-	while (list ($ipaddr, $none) = each ($IPADDRS2)){
-		$f[]="http_port $ipaddr$transparent";
-	}
-	
-	
-	if($ssl){
-		$f[]="# --------- https -> ".count($IPADDRSSL2)." addresses";
-		while (list ($ipaddr, $none) = each ($IPADDRSSL2)){
-			$f[]="https_port $ipaddr transparent cert=$certificate key=$key";
-		}
-	}	
-	
-	
-	
-
 	if($AllowAllNetworksInSquid==1){
 		$f[]="acl localnet src all";
 		
@@ -226,13 +209,6 @@ function build(){
 		}	
 	}
 	
-	if($ssl){
-		
-		
-	}
-	
-
-	
 	
 	$f[]="acl all src all";
 	$f[]="acl manager proto cache_object";
@@ -252,43 +228,6 @@ function build(){
 	$f[]="acl CONNECT method CONNECT";
 	$f[]="";
 	$f[]="";
-	
-	if($sock->EnableUfdbGuard()==1){
-		$f[]=ufdbguard27();
-		$EnableUfdbGuardArtica=$sock->EnableUfdbGuardArtica();
-		if(!is_file("/etc/squid3/acls/office365-nets.acl")){@touch("/etc/squid3/acls/office365-nets.acl");}
-		if(!is_file("/etc/squid3/acls/office365-domains.acl")){@touch("/etc/squid3/acls/office365-domains.acl");}
-		if(!is_file("/etc/squid3/acls/skype-nets.acl")){@touch("/etc/squid3/acls/skype-nets.acl");}
-		if(!is_file("/etc/squid3/acls/dropbox-nets.acl")){@touch("/etc/squid3/acls/dropbox-nets.acl");}
-		
-		$f[]="acl squidclient proto cache_object";
-		$f[]="acl MgRDest dst 127.0.0.1";
-		$f[]="acl MgRPort dst 127.0.0.1";
-		$f[]="acl MyTestPort src 127.0.0.1";
-		$f[]="acl MyLocalIpsDest dst 127.0.0.1";
-		$f[]="acl ToArticaWWW dstdomain .artica.fr .articatech.net .articatech.com";
-		
-		if($EnableUfdbGuardArtica==0){
-			$f[]="acl UrlRewriteDenyList dstdomain \"/etc/squid3/url_rewrite_program.deny.db\"";
-		}
-		$f[]="acl ArticaMetaWhiteDoms dstdomain \"/etc/squid3/artica-meta/whitelist-domains.db\"";
-		$f[]="acl ArticaMetaWhiteIPs dst \"/etc/squid3/artica-meta/whitelist-nets.db\"";
-
-		$f[]="acl BrowsersNoWebF browser -i \"/etc/squid3/acls/Browsers-nofilter.acl\"";
-		$f[]="acl whitelisted_mac_computers arp \"/etc/squid3/whitelisted-computers-by-mac.acl\"";
-		
-		$f[]="acl office365_ips dst \"/etc/squid3/acls/office365-nets.acl\"";
-		$f[]="acl office365_www dstdomain \"/etc/squid3/acls/office365-domains.acl\"";
-		
-		$f[]="acl skype_www dstdomain  .live.com  .skypeassets.com";
-		$f[]="acl skype_ips dst \"/etc/squid3/acls/skype-nets.acl\"";
-		
-		$f[]="acl dropbox_ips dst \"/etc/squid3/acls/dropbox-nets.acl\"";
-		$f[]="acl dropbox_www dstdomain  .dropbox.com";
-		
-		$f[]=@file_get_contents("/etc/squid3/url_rewrite_access.conf");
-	}
-	
 	$f[]="http_access allow manager localhost";
 	$f[]="http_access deny manager";
 	$f[]="http_access deny !Safe_ports";
@@ -299,10 +238,10 @@ function build(){
 	$f[]="icp_access allow localnet";
 	$f[]="icp_access deny all";
 	
-	$f[]="cache_peer 127.0.0.1\tparent\t$LISTEN_PORT\t3130\tdefault";
+	$f[]="cache_peer 127.0.0.1\tparent\t$ParentSquid27Port\t3130\tdefault";
 	$f[]="never_direct allow all";
 	$f[]="cache_mem 64 MB";
-	$f[]="maximum_object_size_in_memory 256 KB";
+	$f[]="maximum_object_size_in_memory 64 KB";
 	$f[]="memory_replacement_policy lru";
 	
 	
@@ -587,9 +526,28 @@ function stop(){
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success stopped...\n";}
 		return;
-	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Killing processes\n";}
+	
+	
+	for($i=0;$i<5;$i++){
+		$pid=squid_27_pid();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} kill pid:$pid $i/5...\n";}
+		$unix->KILL_PROCESS($pid,9);
+		
+	}
+	$pid=squid_27_pid();
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success stopped...\n";}
+		return;
+	}
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+	
 }
 
 function squid_27_version(){

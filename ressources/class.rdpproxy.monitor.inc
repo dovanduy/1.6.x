@@ -54,6 +54,10 @@ class rdpproxy_monitor{
 		if(strpos($buffer, "process save session info")>0){return;}	
 		if(strpos($buffer, "Deactivate All PDU")>0){return;}	
 		
+		
+	
+		
+		
 		if(preg_match("#reporting=(.*?):(.*?):Code=([0-9]+)#",$buffer,$re)){
 			rdpproxy_admin_mysql(2, "[{$re[1]}] to {$re[2]} code:{$re[3]}", $buffer,__FILE__,__LINE__);
 			return;

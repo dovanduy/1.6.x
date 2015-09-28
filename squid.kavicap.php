@@ -35,7 +35,7 @@ function popup(){
 	
 	if(!is_numeric($KavICAPRemotePort)){$KavICAPRemotePort=1344;}
 	$html="
-	<div class=text-info>{kavicap_remote_explain}</div>
+	<div class=explain>{kavicap_remote_explain}</div>
 	<div id='kavicap-sect'>
 	<table style='width:99%' class=form>
 	<tbody>

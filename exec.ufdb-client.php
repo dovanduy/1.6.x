@@ -82,7 +82,9 @@ function start($aspid=false){
 	}
 
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
+	$SquidUFDBUrgency=intval($sock->GET_INFO("SquidUFDBUrgency"));
+	if($SquidUFDBUrgency==1){$EnableUfdbGuard=0;}
 	if($EnableUfdbGuard==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Not Enabled\n";}
 		return false;
@@ -97,9 +99,11 @@ function start($aspid=false){
 	
 	if(IsInSquid()){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Hooked chock proxy\n";}
-		shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
+		squid_admin_mysql(1, "Reload proxy service to run Web filtering clients.", null,__FILE__,__LINE__);
+		$squidbin=$unix->LOCATE_SQUID_BIN();
+		system("$squidbin -f /etc/squid3/squid.conf -k reconfigure");
 	}else{
-		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Not Hooked! Hook proxy\n";}
 		EnableClient();
 	}
 	
@@ -115,7 +119,7 @@ function start($aspid=false){
 	if(count($pids)>0){
 		while (list ($pid, $none) = each ($pids) ){$ttl=$unix->PROCESS_TTL($pid);$fty[]="Success PID $pid since {$ttl}Mn";if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid since {$ttl}Mn\n";}}
 		
-		squid_admin_mysql(2,"Succes starting Web Filtering Client service from the proxy{$GLOBALS["ADPLUS"]}",
+		squid_admin_mysql(2,"Succes {starting_web_filtering} Client service from the proxy{$GLOBALS["ADPLUS"]}",
 		@implode("\n", $fty),__FILE__,__LINE__);
 		return true;
 	}else{
@@ -158,8 +162,8 @@ function stop($aspid=false){
 		@file_put_contents($pidfile, getmypid());
 	}
 
-	DisableClient();
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Unlinked from the proxy...\n";}
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, operation not supported\n";}
 	
 }
 
@@ -168,7 +172,7 @@ function stop($aspid=false){
 function IsInSquid(){
 	
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if($EnableUfdbGuard==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Not Enabled\n";}
 		return;
@@ -225,7 +229,7 @@ function CheckAvailable(){
 	$unix=new unix();
 	$sock=new sockets();
 
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if($EnableUfdbGuard==0){return false;}
 
 	
@@ -289,6 +293,7 @@ function EnableClient(){
 	
 	$Detected=false;
 	$unix=new unix();
+	$squidbin=$unix->LOCATE_SQUID_BIN();
 	$replaced_line=null;
 	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 	while (list ($index, $line) = each ($f)){
@@ -301,7 +306,7 @@ function EnableClient(){
 			continue;
 		}
 
-		if(preg_match("#^url_rewrite_program.*?ufdbgclient#", $line)){ return;}
+		if(preg_match("#^url_rewrite_program.*?ufdbgclient#", $line)){ return true;}
 
 	}
 
@@ -313,6 +318,7 @@ function EnableClient(){
 		$squid=$unix->LOCATE_SQUID_BIN();
 		shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Relink done\n";}
+		system("$squidbin -f /etc/squid3/squid.conf -k reconfigure");
 		return;
 	}
 
@@ -320,8 +326,11 @@ function EnableClient(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Reconfigure Proxy for linking \n";}
 	if($GLOBALS["VERBOSE"]){echo "$php /usr/share/artica-postfix/exec.squid.php --build --force\n";}
-	exec("$php /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &",$results);
+	
 	squid_admin_mysql(1,"{reconfigure} Proxy service to relink Web Filtering service{$GLOBALS["ADPLUS"]}","Not Detected in squid.conf\nexecuted exec.squid.php --build --force\n".@implode("\n", $results),__FILE__,__LINE__);
+	system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
+	system("$squidbin -f /etc/squid3/squid.conf -k reconfigure");
+	
 }
 
 function GetLocalConf(){

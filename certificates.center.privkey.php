@@ -83,7 +83,7 @@ function page(){
 		$ssl_explain=$tpl->_ENGINE_parse_body("{privkey_ssl_explain}");
 		$html="
 	
-<div class=text-info style='font-size:18px'>$ssl_explain</div>
+<div class=explain style='font-size:18px'>$ssl_explain</div>
 <center>$button_upload&nbsp;$button_extract</center>
 <div id='verify-$tt'></div>
 	<center style='margin:10px'>

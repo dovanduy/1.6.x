@@ -25,7 +25,7 @@ function Logs(){
 	$tbl=explode("\n",$datas);
 	$tbl=array_reverse ($tbl, TRUE);
 	while (list ($num, $val) = each ($tbl) ){
-		if(preg_match('#WARNING:#',$val)){$color='color:red';}else{$color=null;}
+		if(preg_match('#WARNING:#',$val)){$color='color:#d32d2d';}else{$color=null;}
 		if(preg_match('#INFOS:#',$val)){$color='color:blue';}else{$color=null;}
 		echo "<div style='border-bottom:1px solid #CCCCCC;margin-bottom:4px;$color;font-size:10px'>$val</div>";
 		

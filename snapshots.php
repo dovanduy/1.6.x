@@ -1,12 +1,12 @@
 <?php
 include_once('ressources/class.templates.inc');
-
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 
 $users=new usersMenus();
 if(!$users->AsSystemAdministrator){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 
@@ -17,6 +17,7 @@ if(isset($_GET["content-search"])){content_search();exit;}
 if(isset($_GET["unlink-js"])){unlink_js();exit;}
 if(isset($_POST["unlink"])){unlink_perform();exit;}
 if(isset($_GET["search"])){search();exit;}
+if(isset($_GET["snapshot-download"])){download_snapshot();exit;}
 
 
 page();
@@ -111,8 +112,8 @@ function page(){
 	$date=$tpl->javascript_parse_text("{date}");
 	$size=$tpl->javascript_parse_text("{size}");
 	$title=$tpl->javascript_parse_text("{snapshots}");
-	
-	
+	$download=$tpl->javascript_parse_text("{download2}");
+	$upload=$tpl->javascript_parse_text("{upload_snapshot}");
 	$t=time();
 	$delete="{display: 'delete', name : 'icon3', width : 35, sortable : false, align: 'left'},";
 	$categorysize=387;
@@ -124,7 +125,8 @@ function page(){
 	$groupname=$tpl->javascript_parse_text($ligne["policy_name"]);
 	$buttons="
 	buttons : [
-	{name: '$create_a_snapshot', bclass: 'apply', onpress : run$t},
+	{name: '<strong style=font-size:18px>$create_a_snapshot</strong>', bclass: 'apply', onpress : run$t},
+	{name: '<strong style=font-size:18px>$upload</strong>', bclass: 'import', onpress : Upload$t},
 	
 	],";
 
@@ -139,10 +141,11 @@ function page(){
 	url: '$page?search=yes',
 	dataType: 'json',
 	colModel : [
-	{display: '$date', name : 'zDate', width : 692, sortable : true, align: 'left'},
-	{display: '$size', name : 'size', width : 150, sortable : true, align: 'right'},
-	{display: '$restore', name : 'delete', width : 70, sortable : true, align: 'center'},
-	{display: '&nbsp;', name : 'delete', width : 70, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$date</span>', name : 'zDate', width : 692, sortable : true, align: 'left'},
+	{display: '<span style=font-size:18px>$size</span>', name : 'size', width : 150, sortable : true, align: 'right'},
+	{display: '<span style=font-size:18px>$restore</span>', name : 'delete', width : 150, sortable : false, align: 'center'},
+	{display: '<span style=font-size:18px>$download</span>', name : 'download', width : 150, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},
 	
 
 	],
@@ -155,7 +158,7 @@ function page(){
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<strong style=font-size:22px>$title</strong>',
+	title: '<strong style=font-size:30px>$title</strong>',
 	useRp: true,
 	rpOptions: [10, 20, 30, 50,100,200],
 	rp:50,
@@ -197,6 +200,10 @@ function Orders$t(){
 	Loadjs('artica-meta.menus.php?gpid={$_GET["ID"]}');
 }
 
+function Upload$t(){
+	Loadjs('snapshots.upload.php');
+}
+
 </script>";
 echo $html;
 }
@@ -208,7 +215,6 @@ function search(){
 	$sock=new sockets();
 	$q=new mysql();
 	$table="snapshots";
-	
 	$database="artica_snapshots";
 
 	if(!$q->TABLE_EXISTS($table,$database)){
@@ -276,13 +282,15 @@ function search(){
 		$urijs="Loadjs('$MyPage?content-js=yes&ID={$ligne["ID"]}');";
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:$urijs\" $styleHref>";
 	
-		$delete=imgtootltip("delete-32.png",null,"Loadjs('$MyPage?unlink-js={$ligne["ID"]}')");
-		$restore=imgtootltip("32-import.png",null,"Loadjs('snapshots.restore.php?ID={$ligne["ID"]}')");
+		$delete=imgsimple("delete-32.png",null,"Loadjs('$MyPage?unlink-js={$ligne["ID"]}')");
+		$restore=imgsimple("32-import.png",null,"Loadjs('snapshots.restore.php?ID={$ligne["ID"]}')");
+		$download="<a href=\"$MyPage?snapshot-download={$ligne["ID"]}\"><img src=img/download-32.png></a>";
 		$cell=array();
 		$cell[]="<span $style>$link$xdate - $date</a></span>";
 		$cell[]="<span $style>$size</a></span>";
-		$cell[]=$restore;
-		$cell[]="$delete";
+		$cell[]="<center>$restore</center>";
+		$cell[]="<center>$download</center>";
+		$cell[]="<center>$delete</center>";
 
 		$data['rows'][] = array(
 				'id' => $ligne['uuid'],
@@ -448,4 +456,31 @@ function content_search(){
 
 	$data['total'] = $c;
 	echo json_encode($data);
+}
+
+function  download_snapshot(){
+	$sock=new sockets();
+	$q=new mysql();
+	$ID=$_GET["snapshot-download"];
+	$sql="SELECT * FROM snapshots WHERE ID='$ID'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_snapshots"));
+	$hostname=$hostname=$sock->GET_INFO("myhostname");
+	$hostag=utf8_encode($ligne["hostag"]);
+	$zmd5=$ligne["zmd5"];
+	$xdate=$ligne["zDate"];
+	
+	$filename=strtotime($xdate).".$zmd5.$hostname.snapshot.tar.gz";
+	$fsize = strlen($ligne["snap"]);
+	if(!$GLOBALS["VERBOSE"]){
+		header("Content-Length: ".$fsize);
+		header('Content-type: application/x-tar');
+		header('Content-Transfer-Encoding: binary');
+		header("Content-Disposition: attachment; filename=\"{$filename}\"");
+		header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+		header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date dans le passé
+		header("Content-Length: ".$fsize);
+		ob_clean();
+		flush();
+	}
+	echo $ligne["snap"];
 }

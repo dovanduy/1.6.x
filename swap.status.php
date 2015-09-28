@@ -149,7 +149,7 @@ if($operation_disponible<0){
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body("<div style='width:100%;text-align:right;margin-top:10px;color:#640000'>
 	<span style='font-size:16px;font-weight:bold'>
-	swap:&nbsp;$cureswap/$maxswap ({$swapar[0]}%) </span><hr><span style='color:red'>$operation_disponible</span></div>");
+	swap:&nbsp;$cureswap/$maxswap ({$swapar[0]}%) </span><hr><span style='color:#d32d2d'>$operation_disponible</span></div>");
 
 }
 
@@ -197,7 +197,7 @@ function getLoad(){
 	
 	if($load>=$max_over){
 		$color="#640000";
-		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:red");
+		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:#d32d2d");
 	}	
 
 	if($pourc>100){$pourc=100;}

@@ -14,6 +14,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $unix=new unix();
 
 
+
 if($argv[1]=="--cron"){set_cron();die();}
 if($argv[1]=="--optimize"){optimize();die();}
 if($argv[1]=="--repair"){repair_all();die();}
@@ -80,6 +81,7 @@ function optimize($aspid=false){
 		
 		while (list ($database, $enabled) = each ($ARRAY) ){
 			if(!is_numeric($enabled)){continue;}
+			if($database=="zarafa"){continue;}
 			
 			if($enabled==1){
 				$c++;
@@ -217,24 +219,27 @@ function repair_all(){
 		$q=new mysql_squid_builder();
 		$sql="SHOW TABLE STATUS FROM `squidlogs`";
 		$results=$q->QUERY_SQL($sql);
-		$TableName=$ligne["Name"];
-		$comment=$ligne["Comment"];
-		$ligne2=mysql_fetch_array($q->QUERY_SQL("ANALYZE TABLE $TableName","squidsql"));
-		
-		if($ligne2["Msg_type"]=="error"){
-			if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
-				mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
-				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$TableName=trim($ligne["Name"]);
+			if($TableName==null){continue;}
+			$comment=$ligne["Comment"];
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("ANALYZE TABLE $TableName","squidlogs"));
+			
+			if($ligne2["Msg_type"]=="error"){
+				if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
+					mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+					shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+				}
+				
 			}
-			continue;
-		}
 		
-		if(trim($comment)==null){continue;}
 		
-		if(preg_match("#Incorrect key file for table#", $comment)){
-			if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
-				mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
-				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+		
+			if(preg_match("#Incorrect key file for table#", $comment)){
+				if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
+					mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+					shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+				}
 			}
 		}
 		

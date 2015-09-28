@@ -321,7 +321,7 @@ function winbindd(){
 	
 	
 	$html="
-	<div class=text-info>{make_samba_ad_text}</div>
+	<div class=explain>{make_samba_ad_text}</div>
 	<table style='width:99%;padding:9px' class=form>
 	<tr>
 		<td valign='top' align='center'>
@@ -596,7 +596,7 @@ function ads_infos(){
 	</table>";
 	
 	
-	echo $tpl->_ENGINE_parse_body("<div class=text-info>$html</div>$script");
+	echo $tpl->_ENGINE_parse_body("<div class=explain>$html</div>$script");
 	
 }
 
@@ -663,7 +663,7 @@ function avoptions_form(){
 		if($major>=3){if($minor>=6){$upTo36=1;$upTo357=1;}}
 	}
 
-	$html="<div class=text-info>{winbind_advoptions_text}</div>
+	$html="<div class=explain>{winbind_advoptions_text}</div>
 	<div id='winbind_advoptions' class=form style='width:95%'>
 	<table style='width:100%'>
 	<tbody>
@@ -699,7 +699,7 @@ function avoptions_form(){
 	</tr>
 	<tr>
 		<td colspan=3><div style='font-size:22px'>SPNEGO</div>
-				<div class=text-info style='font-size:14px'>{SPNEGO_explain}</div>
+				<div class=explain style='font-size:14px'>{SPNEGO_explain}</div>
 		</td>
 	<tr>
 		<td class=legend>Client Use SPNEGO:</td>

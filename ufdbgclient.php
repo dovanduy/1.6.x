@@ -1,37 +1,81 @@
 #!/usr/bin/php
 <?php
+error_reporting(0);
 include_once(dirname(__FILE__)."/ressources/class.ufdbguard-tools.inc");
 include_once(dirname(__FILE__)."/ressources/class.familysites.inc");
 include_once(dirname(__FILE__)."/ressources/class.ini.inc");
-include_once(dirname(__FILE__)."/ressources/class.HyperCache.inc");
+include_once(dirname(__FILE__)."/ressources/class.ufdbgclient.quotas.inc");
+include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
 
-//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+$GLOBALS["time_loop_start"]=tool_microtime_float();
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["UFDB_SOCKET_ERROR"]=0;
 $GLOBALS["VIDEOCACHE_DEBUG"]=false;
-$GLOBALS["HyperCacheDebug"]=true;
-$GLOBALS["DebugLoop"]=true;
+$GLOBALS["HyperCacheDebug"]=false;
+$GLOBALS["DebugLoop"]=false;
 $GLOBALS["GOOGLE_SAFE"]=false;
+$GLOBALS["DEBUG_UNLOCKED"]=false;
+$GLOBALS["DEBUG_PROTOCOL"]=false;
 $GLOBALS["OUTPUT"]=false;
 $GLOBALS["MYPID"]=getmypid();
 $GLOBALS["SquidGuardIPWeb"]=null;
 $GLOBALS["CACHE"]=array();
 $GLOBALS["AS_34"]=false;
-$GLOBALS["UFDBVERS"]="1.1.1";
-$cmdline=@implode(" ", $argv);
+$GLOBALS["DebugQuota"]=false;
+$GLOBALS["DEBUG_OUTPUT"]=false;
+$GLOBALS["DEBUG_WEBFILTERING"]=false;
+$GLOBALS["DEBUG_ITCHART"]=false;
+$GLOBALS["DEBUG_IN_MEM"]=false;
+$GLOBALS["DEBUG_WHITELIST"]=false;
+$GLOBALS["PHISHTANK"]=0;
+$GLOBALS["DEBUG_BLACKLIST"]=false;
 
-if(preg_match("#--black=(.+)#", $cmdline,$re)){
-	$GLOBALS["VERBOSE"]=true;
-	$GLOBALS["OUTPUT"]=true;
-	BlacklistedBase($re[1]);
-	die();
+
+if($GLOBALS["VERBOSE"]){
+	ini_set('display_errors', 1);
+	ini_set("log_errors", 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+	ini_set("error_log", "/var/log/squid/ufdbgclient.debug");
+}
+
+
+
+$GLOBALS["UFDBVERS"]="1.1.8";
+if(isset($argv)){
+	if(count($argv)>0){
+		$cmdline=@implode(" ", $argv);
+	
+		if(preg_match("#--black=(.+)#", $cmdline,$re)){
+			$GLOBALS["time_loop_start"]=tool_microtime_float();
+			$GLOBALS["VERBOSE"]=true;
+			$GLOBALS["OUTPUT"]=true;
+			BlacklistedBase($re[1]);
+			die();
+		}
+		if(isset($argv[1])){
+			if($argv[1]=="--quota"){
+				$GLOBALS["time_loop_start"]=tool_microtime_float();
+				$GLOBALS["VERBOSE"]=true;
+				$GLOBALS["OUTPUT"]=true;
+				$GLOBALS["DebugQuota"]=true;
+				QuotaSize($argv[2],$argv[3],null,$argv[4]);
+				die();
+			}
+			
+			if($argv[1]=="--headers"){
+				Curl_get_headers($argv[2]);
+			}
+		}
+	}
 }
 
 $GLOBALS["SQUID_VERSION"]=@file_get_contents("/var/log/squid/ufdbgclient.version");
-@mkdir("/var/log/squid/ufdbguard-blocks",0755,true);
+if(is_file("/var/log/squid/UFDB_SOCKET_ERROR")){@unlink("/var/log/squid/UFDB_SOCKET_ERROR");}
+
 $SquidGuardIPWeb=unserialize(@file_get_contents("/var/log/squid/SquidGuardIPWeb"));
-if(is_array($SquidGuardIPWeb)){
-	$GLOBALS["SquidGuardIPWeb"]=$SquidGuardIPWeb["SquidGuardIPWeb"];
-}
+if(is_array($SquidGuardIPWeb)){$GLOBALS["SquidGuardIPWeb"]=$SquidGuardIPWeb["SquidGuardIPWeb"]; }
 
 if(preg_match("#-S\s+([0-9\.]+)\s+-p\s+([0-9]+)#", $cmdline,$re)){$GLOBALS["UFDB_SERVER"]=$re[1]; $GLOBALS["UFDB_PORT"]=$re[2]; }
 if(!isset($GLOBALS["UFDB_SERVER"])){$GLOBALS["UFDB_SERVER"]="127.0.0.1";}
@@ -40,10 +84,22 @@ ufdbconfig();
 
 events("Web filtering service on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} Squid version = {$GLOBALS["SQUID_VERSION"]}");
 events("Web filtering Page error on {$GLOBALS["SquidGuardIPWeb"]}");
-events("VideoCache enabled:{$GLOBALS["EnableStreamCache"]}");
+events("url_rewrite_concurrency {$GLOBALS["url_rewrite_concurrency"]}");
+events("Phishtank: {$GLOBALS["PHISHTANK"]}");
+
+
+
+
 events("HyperCache enabled:{$GLOBALS["SquidEnforceRules"]} {$GLOBALS["HyperCacheMemEntries"]} Max entries");
 events("HyperCache: redirect to {$GLOBALS["HyperCacheListenAddr"]}:{$GLOBALS["HyperCacheHTTPListenPort"]}");
 events("Google Safe Browsing enabled:{$GLOBALS["EnableGoogleSafeBrowsing"]}");
+events("Squid Version: {$GLOBALS["SQUID_VERSION"]}");
+events("It Chart: {$GLOBALS["EnableITChart"]}");
+events("DEBUG_PROTOCOL: {$GLOBALS["DEBUG_PROTOCOL"]}");
+events("SquidGuardServerName: {$GLOBALS["SquidGuardServerName"]}");
+events("SquidGuardApachePort: {$GLOBALS["SquidGuardApachePort"]}");
+events("SquidGuardApacheSSLPort: {$GLOBALS["SquidGuardApacheSSLPort"]}");
+
 
 
 
@@ -56,40 +112,50 @@ $descriptorspec = array(
 		1 => array("pipe", "w"),  // stdout
 		2 => array("pipe", "w") );
 
-if($GLOBALS["EnableStreamCache"]==1){
-	
-	$GLOBALS["PROCESS_VIDEOCACHE"] = proc_open("/usr/share/videocache/videocache.py", $descriptorspec, $GLOBALS["pipes_videocache"]);
-	if (!is_resource($GLOBALS["PROCESS_VIDEOCACHE"])) {
-		events("proc_open /usr/share/videocache/videocache.py failed");
-		$GLOBALS["EnableStreamCache"]=0;
-	}else{
-		events("proc_open /usr/share/videocache/videocache.py Success");
-	}
-}
+
 
 if(preg_match("#^3\.4#", $GLOBALS["SQUID_VERSION"])){$AS_34=true;}
 if(preg_match("#^3\.5#", $GLOBALS["SQUID_VERSION"])){$AS_34=true;}
 $GLOBALS["AS_34"]=$AS_34;
 
+$IpClass=new IP();
+
 while (!feof(STDIN)) {
 	$XzLine = fgets(STDIN);
 	$szLine=trim($XzLine);
 	if (empty($szLine)) {continue;}
-	$CHANNEL=null;
-	//if($GLOBALS["VERBOSE"]){events("Receive $szLine");}
+	$GLOBALS["CHANNEL"]=0;
+	$GLOBALS["OUTPUT_CHANNEL"]=false;
+	if($GLOBALS["DEBUG_OUTPUT"]){events("Receive \"$szLine\"");}
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("Receive \"$szLine\"");}
 	$results=false;
-
-	
+	$GLOBALS["time_loop_start"]=tool_microtime_float();
 	$array=explode(" ", $szLine);
+	$extend_1=null;
+	$extend_2=null;
+	$GLOBALS["LOG_AR"]["MAC"]=null;
+	$GLOBALS["LOG_AR"]["SNI"]=null;
+	$DEBUGHOSTNAME_PORT=0;
+	$DEBUGHOSTNAME_PORT_EXT=null;
+	
+	if($GLOBALS["SquidUrgency"]==1){
+		Output_results(null,__FUNCTION__,__LINE__);
+		continue;
+	}
 	
 	if(is_numeric($array[0])){
-		$CHANNEL=$array[0];
+		if($GLOBALS["DEBUG_OUTPUT"]){events("Channel [{$array[0]}]");}
+		$GLOBALS["CHANNEL"]=$array[0];
+		$GLOBALS["OUTPUT_CHANNEL"]=true;
 		$URI=$array[1];
 		$IP=$array[2];
 		$userid=$array[3];
 		$PROTO=$array[4];
 		$myIP=$array[5];
 		$myPort=$array[6];
+		if(isset($array[7])){$extend_1=$array[7];}
+		if(isset($array[8])){$extend_2=$array[8];}
+		
 	}else{
 		$URI=$array[0];
 		$IP=$array[1];
@@ -97,11 +163,41 @@ while (!feof(STDIN)) {
 		$PROTO=$array[3];
 		$myIP=$array[4];
 		$myPort=$array[5];
+		if(isset($array[6])){$extend_1=$array[6];}
+		if(isset($array[7])){$extend_2=$array[7];}
+		
 	}
 	if(preg_match("#^(.+?)\/#", $IP,$re)){$IPS=$re[1];}
+	if($extend_1<>null){
+		if(preg_match("#mac=(.+)#", $extend_1,$re)){$GLOBALS["LOG_AR"]["MAC"]=trim($re[1]);}
+		if(preg_match("#sni=(.+)#", $extend_1,$re)){
+			$GLOBALS["LOG_AR"]["SNI"]=trim($re[1]);
+			if($GLOBALS["DEBUG_OUTPUT"]){events( "SNI: regex extend_1: '{$re[1]}' ".__LINE__);}
+		}
+	}
+	if($extend_2<>null){
+		if(preg_match("#mac=(.+)#", $extend_2,$re)){$GLOBALS["LOG_AR"]["MAC"]=trim($re[1]);}
+		if(preg_match("#sni=(.+)#", $extend_2,$re)){
+			$GLOBALS["LOG_AR"]["SNI"]=trim($re[1]);
+			if($GLOBALS["DEBUG_OUTPUT"]){events( "SNI: regex extend_2: '{$re[1]}' ".__LINE__);}
+		}
+	}	
+	
+	
 	$H=parse_url($URI);
+	$scheme=$H["scheme"];
 	$DEBUGHOSTNAME=$H["host"];
-	$GLOBALS["LOG_DOM"]=$H["host"];
+	if(preg_match("#^(.+?):([0-9]+)#", $DEBUGHOSTNAME,$re)){
+		$DEBUGHOSTNAME=$re[1];
+		$DEBUGHOSTNAME_PORT=intval($re[2]);
+		if($DEBUGHOSTNAME_PORT==80){$DEBUGHOSTNAME_PORT=0;}
+		if($DEBUGHOSTNAME_PORT==443){$DEBUGHOSTNAME_PORT=0;}
+	}
+	
+	
+	if($DEBUGHOSTNAME_PORT>0){$DEBUGHOSTNAME_PORT_EXT=":{$DEBUGHOSTNAME_PORT}";}
+	$GLOBALS["LOG_DOM"]=$DEBUGHOSTNAME;
+	
 	$GLOBALS["LOG_AR"]["URI"]=$URI;
 	$GLOBALS["LOG_AR"]["IP"]=$IP;
 	$GLOBALS["LOG_AR"]["userid"]=$userid;
@@ -109,48 +205,91 @@ while (!feof(STDIN)) {
 	$GLOBALS["LOG_AR"]["myIP"]=$myIP;
 	$GLOBALS["LOG_AR"]["myPort"]=$myPort;
 	$GLOBALS["LOG_AR"]["host"]=$GLOBALS["LOG_DOM"];
+
+
+	if($GLOBALS["DEBUG_OUTPUT"]){
+		events( "SNI: extend_1: '$extend_1' ".__LINE__);
+		events( "SNI: extend_2: '$extend_2' ".__LINE__);
+		events("MAC: '{$GLOBALS["LOG_AR"]["MAC"]}'");
+		events("SNI: '{$GLOBALS["LOG_AR"]["SNI"]}'");
+	}
+	if($GLOBALS["LOG_AR"]["MAC"]=="-"){$GLOBALS["LOG_AR"]["MAC"]=null;}
+	if($GLOBALS["LOG_AR"]["SNI"]=="-"){$GLOBALS["LOG_AR"]["SNI"]=null;}
 	
-	//if($GLOBALS["VERBOSE"]){while (list ($index, $b) = each ($array) ){events("[$index]: $b");}}
+	
+	if($GLOBALS["LOG_AR"]["SNI"]<>null){
+		if($GLOBALS["DEBUG_OUTPUT"]){events("SNI: '{$GLOBALS["LOG_AR"]["SNI"]}'/'$DEBUGHOSTNAME'");}
+		if($IpClass->isValid($DEBUGHOSTNAME)){
+			if($GLOBALS["DEBUG_OUTPUT"]){events( "SNI: $URI -->: 'https://{$GLOBALS["LOG_AR"]["SNI"]}{$DEBUGHOSTNAME_PORT_EXT}' ".__LINE__);}
+			$URI="https://{$GLOBALS["LOG_AR"]["SNI"]}{$DEBUGHOSTNAME_PORT_EXT}";
+			$DEBUGHOSTNAME=$GLOBALS["LOG_AR"]["SNI"];
+			$GLOBALS["LOG_DOM"]=$GLOBALS["LOG_AR"]["SNI"];
+		}else{
+			if($GLOBALS["DEBUG_OUTPUT"]){events( "SNI: '$DEBUGHOSTNAME' did not match ipaddr".__LINE__);}
+		}
+		
+	}
+	
 	$ToUfdb="$URI $IP $userid $PROTO $myIP $myPort\n";
-	$ToVideoCache="$URI $IPS/- - $PROTO $myIP $myPort\n";
+	if($GLOBALS["DEBUG_BLACKLIST"]){events("$ToUfdb");}
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("$PROTO $URI scheme: $scheme");}
+	
+	if($GLOBALS["EnableITChart"]==1){
+		if(ItCharted($GLOBALS["LOG_AR"])){
+			continue;
+		}
+		
+	}
+	
+	if($PROTO<>"CONNECT"){
+		if($GLOBALS["DEBUG_PROTOCOL"]){events("$PROTO / scheme: $scheme");}
+		if($scheme=="https"){
+			$PROTO="CONNECT"; 
+			if($GLOBALS["DEBUG_PROTOCOL"]){events("Change proto to CONNECT");}
+		}
+	}
+	
 	
 	
 	if($GLOBALS["EnableUfdbGuard"]==1){
 		if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME: WhitelistedBase ? ".__LINE__);}
 		if(WhitelistedBase($URI)){
-			if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME: StreamCache ? ".__LINE__);}
-			if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "StreamCache($IP..) ".__LINE__);}
-			if(StreamCache($PROTO,$ToVideoCache,$URI,$IP,$userid)){continue;}
-			if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "HyperCacheRules ?".__LINE__);}
-			if(HyperCacheRules($PROTO,$ToVideoCache,$URI,$IP,$userid,$DEBUGHOSTNAME)){continue;}
-			if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME: $ OUPTUT NULL $ ".__LINE__);}
-			Output_results(null);
+			Output_results(null,__FUNCTION__,__LINE__);
 			continue;
 		}
 		
-		if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME Is Blacklisted ?".__LINE__);}
-		if(BlacklistedBase($URI,$IP,$userid)){continue;}
+		$ToUfdbKey=md5(serialize($GLOBALS["LOG_AR"]));
+		if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME Is Blacklisted [$ToUfdbKey]?".__LINE__);}
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("$URI,$IP,$userid,$ToUfdbKey");}
+		if(BlacklistedBase($URI,$IP,$userid,$PROTO)){continue;}
 		
 		if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME Is Unlocked ?".__LINE__);}
 		if(Unlocked($URI,$IP,$userid)){
-			if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "StreamCache($IP..) ".__LINE__);}
-			if(StreamCache($PROTO,$ToVideoCache,$URI,$IP,$userid)){continue;}
 			continue;
 		}
+		
+		if($GLOBALS["PHISHTANK"]==1){
+			if($GLOBALS["DebugLoop"]){events( "$DEBUGHOSTNAME Is PHISHTANK ?".__LINE__);}
+			if(Phistank($GLOBALS["LOG_AR"])){
+				continue;
+			}
+				
+		}
+		
+		
+		if($GLOBALS["DebugLoop"]){events( "Quota size ?".__LINE__);}
+		if(QuotaSize($IP,$userid,$URI,$DEBUGHOSTNAME,$GLOBALS["LOG_AR"])){continue;}
+		
+		
 		if($GLOBALS["DebugLoop"]){events( "To ufdb ?".__LINE__);}
-		if(UfdbBlackList($ToUfdb)){continue;}
+		if(UfdbBlackList($ToUfdb,$GLOBALS["LOG_AR"],$ToUfdbKey)){continue;}
 	}
 	
 	if($GLOBALS["DebugLoop"]){events( "GoogleSafeBrowsing ?".__LINE__);}
 	if(GoogleSafeBrowsing($URI,$PROTO,$H["host"],$IP,$userid)){continue;}
 	
 	
-	if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "StreamCache($IP..) L.".__LINE__);}
-	if($GLOBALS["DebugLoop"]){events( "StreamCache ?".__LINE__);}
-	if(StreamCache($PROTO,$ToVideoCache,$URI,$IP,$userid)){
-		if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "StreamCache($IP..) -> CONTINUE".__LINE__);}
-		continue;
-	}
+	
 	if($GLOBALS["DebugLoop"]){events( "HyperCacheRules ?".__LINE__);}
 	if(HyperCacheRules($PROTO,$ToVideoCache,$URI,$IP,$userid,$DEBUGHOSTNAME)){
 		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules: SEND");}
@@ -162,9 +301,8 @@ while (!feof(STDIN)) {
 	
 	$results=trim($results);
 	if(trim($results)==null){
-		if($GLOBALS["VIDEOCACHE_DEBUG"]){events( "OUPTUT NULL ".__LINE__);}
 		if($GLOBALS["DebugLoop"]){events( "NOTHING -> NULL".__LINE__);}
-		Output_results(null);
+		Output_results(null,__FUNCTION__,__LINE__);
 		continue;
 	}
 	
@@ -174,26 +312,68 @@ while (!feof(STDIN)) {
 }
 
 events("Stopping Webfiltering client.");
-if(isset($GLOBALS["PROCESS_VIDEOCACHE"])){
-	if (is_resource($GLOBALS["PROCESS_VIDEOCACHE"])) {
-		events("Stopping VideoCache clients.");
-		fclose($GLOBALS["pipes_videocache"][0]);
-		fclose($GLOBALS["pipes_videocache"][1]);
-		fclose($GLOBALS["pipes_videocache"][2]);
-	}
-}
+HyperCacheCleanBuffer();
 events("Die Webfiltering client.");
 die();
 
 
-function HyperCacheRulesBlacklist($domain){
-	if(preg_match("#(^|\.)(dropbox|symcd|xiti|etracker)\.com#", $domain)){return true;}
-	if(preg_match("#(^|\.)doubleclick\.net#", $domain)){return true;}
+
+
+
+function QuotaSize($IP,$userid,$URI,$sitename,$PARAMS){
+	if(preg_match("#([0-9\.]+)#", $IP,$re)){$IP=$re[1];}
+	$CACHEKEY=md5("$IP,$userid,$URI,$sitename");
+	$CONNECT=false;
+	$PROTO=$PARAMS["PROTO"];
+	if($PROTO=="CONNECT"){$CONNECT=true;}
+	
+	if(isset($GLOBALS["QuotaSizeResults"][$CACHEKEY])){
+		$TimeExec=$GLOBALS["QuotaSizeResults"][$CACHEKEY]["TIME"];
+		if(tool_time_sec($TimeExec)<30){
+			if($GLOBALS["QuotaSizeResults"][$CACHEKEY]["RETURN"]<>null){
+				Output_results($GLOBALS["QuotaSizeResults"][$CACHEKEY]["RETURN"],__FUNCTION__,__LINE__);
+				return true;
+			}
+		}
+		return false;
+		
+	}
+	
+	$quota=new ufdbgquota($CACHEKEY);
+
+	if(count($GLOBALS["ARTICA_QUOTAS_RULES"])==0){
+		if($GLOBALS["DebugQuota"]){QuotaEvent( "ARTICA_QUOTAS_RULES == 0 [".__LINE__);}
+		return false;
+	}
+	
+	if($quota->parse_rules($IP,$userid,$URI,$sitename)){
+		QuotaEvent("Return true;");
+		Output_results($quota->returned,__FUNCTION__,__LINE__);
+		return true;
+	}
+	
 	
 	
 }
+function QuotaEvent($text,$line=0){
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
+	$logFile="/var/log/squid/ufdbgclient.quotas.debug";
+	$time_end=tool_microtime_float();
+	$tt = round($time_end - $GLOBALS["time_loop_start"],3);
 
+	$size=@filesize($logFile);
+	if($size>9000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+
+	@fwrite($f, "$date:[".basename(__FILE__)."/{$GLOBALS["UFDBVERS"]} $pid [{$GLOBALS["LOG_DOM"]}]:$text - {$tt}ms $line\n");
+	@fclose($f);
+}
 function HyperCacheRules($PROTO,$ToUfdb,$URI,$IP,$userid,$DEBUGHOSTNAME){
+	
+	
+	if($GLOBALS["SquidEnforceRules"]==0){return;}
 	
 	
 	if(preg_match("#([0-9\.]+)\/(.*)#", $IP,$re)){
@@ -219,11 +399,15 @@ function HyperCacheRules($PROTO,$ToUfdb,$URI,$IP,$userid,$DEBUGHOSTNAME){
 	$URI=HyperCacheCleanUri($URI);
 	
 	if($GLOBALS["HyperCacheOK"][md5($URI)]){
-		Output_results($GLOBALS["HyperCacheOK"][md5($URI)]);
+		Output_results($GLOBALS["HyperCacheOK"][md5($URI)],__FUNCTION__,__LINE__);
 		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules:`$URI` -> REDIRECT MEM");}
 		return true;
 		
 	}
+	
+	include_once(dirname(__FILE__)."/ressources/class.HyperCache.inc");
+	include_once(dirname(__FILE__)."/ressources/class.hyperCache-central.inc");
+	
 	
 	$HyperCache=new HyperCache();
 	if($HyperCache->HyperCacheRulesMatchPattern($GLOBALS["HyperCacheListenAddr"], $URI)){return false;}
@@ -233,9 +417,14 @@ function HyperCacheRules($PROTO,$ToUfdb,$URI,$IP,$userid,$DEBUGHOSTNAME){
 	
 	
 	$ID=$HyperCache->HyperCacheRulesMatches($URI);
-	if($ID==0){return false;}
+	if($ID==0){
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules: ID == $ID FALSE [".__LINE__."]");}
+		return false;
+	}
 	
-	if(HyperCacheRulesSave($URI,$ID)){return true;}
+	if(HyperCacheRulesSave($URI,$ID)){
+		return true;
+	}
 	
 	if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules:`$URI` no match");}
 }
@@ -265,7 +454,7 @@ function HyperCacheRulesMatches($URI){
 function HyperCacheRuleMirror($uri){
 	
 	if(isset($GLOBALS["HyperCacheOK"][md5($uri)])){
-		Output_results($GLOBALS["HyperCacheOK"][md5($uri)]);
+		Output_results($GLOBALS["HyperCacheOK"][md5($uri)],__FUNCTION__,__LINE__);
 		return true;
 	}
 	
@@ -284,7 +473,7 @@ function HyperCacheRuleMirror($uri){
 			$link="http://{$GLOBALS["HyperCacheListenAddr"]}:{$GLOBALS["HyperCacheHTTPListenPort"]}/$sitename$path$query";
 			if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRuleMirror: $link");}
 			$GLOBALS["HyperCacheOK"][md5($uri)]=$link;
-			Output_results($link);
+			Output_results($link,__FUNCTION__,__LINE__);
 			return true;
 			
 		}
@@ -336,7 +525,7 @@ function HyperCacheRulesIsStored($uri){
 	
 	if(!@dba_exists($md5,$db_con)){
 		@dba_close($db_con);
-		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesIsStored:`$uri` NONE");}
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesIsStored:`$uri` Not downloaded -> FALSE");}
 		return false;
 	}
 		
@@ -358,7 +547,7 @@ function HyperCacheRulesIsStored($uri){
 	$link="http://{$GLOBALS["HyperCacheListenAddr"]}:{$GLOBALS["HyperCacheHTTPListenPort"]}/$MD5File.$extention";
 	if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesIsStored: $link");}
 	$GLOBALS["HyperCacheOK"][md5($uri)]=$link;
-	Output_results($link);
+	Output_results($link,__FUNCTION__,__LINE__);
 	return true;
 }
 
@@ -370,47 +559,7 @@ function EnforceRules_extension($filename){
 }
 
 
-function ifTracker($uri){
-	
-	$H=parse_url($uri);
-	$host=$H["host"];
-	
-	
-	
-	if(preg_match("#(^|\.)(graph\.facebook|unica|google-analytics|coremetrics|googlesyndication|chango|pinterest)\.com$#", $host)){
-		$path=$H["path"];
-		$scheme=$H["scheme"];
-		return "$scheme://$host$path";
-		
-	}
-	
-	
-	
-	if(preg_match("#(^|\.)go2cloud\.org$#", $host)){
-		$path=$H["path"];
-		$scheme=$H["scheme"];
-		return "$scheme://$host$path";
-		
-	}
-	
-	if(preg_match("#(^|\.)(doubleclick|owneriq)\.net$#", $host)){
-		$path=$H["path"];
-		$scheme=$H["scheme"];
-		return "$scheme://$host$path";
-	
-	}	
-	
-	
-	if(preg_match("#^ads\.yahoo\.com$#", $host)){
-		$path=$H["path"];
-		$scheme=$H["scheme"];
-		return "$scheme://$host$path";
-	
-	}	
-	
-	return $uri;
-	
-}
+
 
 function HyperCacheWhiteUri($URI){
 	
@@ -458,30 +607,62 @@ function HyperCacheRules_get($URI,$ID){
 	$uri_md5=md5($URI);
 	$familysite=tool_get_familysite($URI);
 	
-	if(isset($GLOBALS["HyperCacheRulesSave"]["SAVED"][$uri_md5])){return true;}
+	if(isset($GLOBALS["HyperCacheRulesSave"]["SAVED"][$uri_md5])){
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules_get: IN QUEUE FROM MEM... [".__LINE__."]");}
+		return true;
+	}
 	$dbfile="/usr/share/squid3/HyperCacheQueue-$familysite-$ID.db";
 	
-	if(!is_file($dbfile)){return false;}
+	if(!is_file($dbfile)){
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules_get: /usr/share/squid3/HyperCacheQueue-$familysite-$ID.db no such file [".__LINE__."]");}
+		return false;
+	}
 	$db_con = @dba_open($dbfile, "r","db4");
 	if(!$db_con){events("HyperCacheRulesSave:: FATAL!!!::{$dbfile}, unable to open");return false; }
 	if(@dba_exists($uri,$db_con)){
 		@dba_close($db_con);
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules_get: IN QUEUE FROM HyperCacheQueue-$familysite-$ID.db... [".__LINE__."]");}
 		$GLOBALS["HyperCacheRulesSave"]["SAVED"][$uri_md5]=true;
 		return true;
 	}
 }
 
-function tool_create_berekley($dbfile){
-	if(is_file($dbfile)){return true;}
-	try {
-		events("tool_create_berekley:: Creating $dbfile database");
-		$db_desttmp = @dba_open($dbfile, "c","db4");
-		if(!$db_desttmp){ events("tool_create_berekley::FATAL Error on $dbfile");}
-	}
-	catch (Exception $e) {$error=$e->getMessage(); events("tool_create_berekley::FATAL ERROR $error on $dbfile");}
+function tool_create_berekley($db_path){
+	if(is_file($db_path)){return true;}
+	events("berekley_db_create:: Creating $db_path database");
+	$db_desttmp = @dba_open($db_path, "c","db4");
 	@dba_close($db_desttmp);
-	if(is_file($dbfile)){return true;}
-	return false;
+	if(is_file($db_path)){return true;}
+}
+
+function HyperCacheCleanBuffer(){
+	if(!isset($GLOBALS["HYPER_CACHE_BUFFER"])){
+		$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]=0;
+		$GLOBALS["HYPER_CACHE_BUFFER"]=array();
+		return;
+	}
+	
+	if(count($GLOBALS["HYPER_CACHE_BUFFER"])==0){
+		$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]=0;
+		$GLOBALS["HYPER_CACHE_BUFFER"]=array();
+		return;
+	}
+	
+	while (list ($dbfile, $array) = each ($GLOBALS["HYPER_CACHE_BUFFER"]) ){
+		if(!tool_create_berekley($dbfile)){return;}
+		$db_con = @dba_open($dbfile, "c","db4");
+		if(!$db_con){events("HyperCacheCleanBuffer:: FATAL!!!::{$dbfile}, unable to open");return false; }
+		while (list ($index, $url) = each ($array) ){
+			events("HyperCacheCleanBuffer:: Clean buffer $dbfile -> $url");
+			if(!@dba_replace($url,"NONE",$db_con)){events("HyperCacheCleanBuffer:: FAILED SAVING *** $URI ***"); @dba_close($db_con); return false; }
+		}
+		$GLOBALS["HYPER_CACHE_BUFFER"][$dbfile]=array();
+		@dba_close($db_con);
+	}
+	$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]=0;
+	$GLOBALS["HYPER_CACHE_BUFFER"]=array();
+	return true;
+	
 }
 
 function HyperCacheRules_set($URI,$ID){
@@ -494,25 +675,10 @@ function HyperCacheRules_set($URI,$ID){
 	$GLOBALS["HYPER_CACHE_BUFFER"][$dbfile][]=$URI;
 	$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]++;
 	
-	if($GLOBALS["HYPER_CACHE_BUFFER_COUNT"]<$HyperCacheBuffer){return true;}
+	if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRules_set: add to buffer {$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]}/$HyperCacheBuffer [".__LINE__."]");}
 	
-	events("HyperCacheRules_set:: Clean buffer with {$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]} elements...");
-		
-	while (list ($dbfile, $array) = each ($GLOBALS["HYPER_CACHE_BUFFER"]) ){
-		if(!tool_create_berekley($dbfile)){return;}
-		$db_con = @dba_open($dbfile, "c","db4");
-		if(!$db_con){events("HyperCacheRules_set:: FATAL!!!::{$dbfile}, unable to open");return false; }
-		while (list ($index, $url) = each ($array) ){
-			events("HyperCacheRules_set:: Clean buffer $dbfile -> $url");
-			if(!@dba_replace($url,"NONE",$db_con)){events("HyperCacheRules_set:: FAILED SAVING *** $URI ***"); @dba_close($db_con); return false; }
-		}
-		$GLOBALS["HYPER_CACHE_BUFFER"][$dbfile]=array();
-		@dba_close($db_con);
-	}
-	$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]=0;
-	$GLOBALS["HYPER_CACHE_BUFFER"]=array();
-	return true;
-
+	if($GLOBALS["HYPER_CACHE_BUFFER_COUNT"]<$HyperCacheBuffer){return;}
+	HyperCacheCleanBuffer();
 	
 }
 
@@ -530,8 +696,17 @@ function tool_get_familysite($uri){
 function HyperCacheRulesSave($uri,$ID){
 	$uri_md5=md5($uri);
 	
-	if(HyperCacheRulesIsStored($uri)){return true;}
-	if(HyperCacheRules_get($uri,$ID)){return;}
+	if(HyperCacheRulesIsStored($uri)){
+		if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesSave: HyperCacheRulesIsStored(..) -> TRUE [".__LINE__."]");}
+		return true;
+	}
+	
+	if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesSave: HyperCacheRulesIsStored(..) -> FALSE [".__LINE__."]");}
+	
+	if(HyperCacheRules_get($uri,$ID)){
+		return;
+	}
+	if($GLOBALS["HyperCacheDebug"]){events("HyperCacheRulesSave: HyperCacheRules_get(..) -> NONE -> ADD TO QUEUE BUFFER={$GLOBALS["HYPER_CACHE_BUFFER_COUNT"]} [".__LINE__."]");}
 	HyperCacheRules_set($uri,$ID);
 	
 	
@@ -540,34 +715,6 @@ function HyperCacheRulesSave($uri,$ID){
 }
 
 
-function StreamCache($PROTO,$ToUfdb,$URI,$IP,$userid){
-	$AS_34=$GLOBALS["AS_34"];
-	if($GLOBALS["EnableStreamCache"]==0){return false;}
-	if($PROTO<>"GET"){return false;}
-	
-	
-	if($GLOBALS["VIDEOCACHE_DEBUG"]){ events("ask_to_videocache..");}
-	$results=ask_to_videocache($ToUfdb);
-	$length=strlen(trim($results));
-	if($length<10){
-		if($GLOBALS["VIDEOCACHE_DEBUG"]){ events("**** VIDEO CACHE !NOT! DETECTED ****\n");}
-		return false;}
-	
-	if($GLOBALS["VIDEOCACHE_DEBUG"]){ events("**** VIDEO CACHE DETECTED ****\n");}
-	
-	if($AS_34){
-		if($GLOBALS["VIDEOCACHE_DEBUG"]){events("To squid -> 34 OK rewrite-url=\"$results\" + CRLF");}
-		print("OK rewrite-url=\"$results\"\n");
-		return;	
-	}
-	
-	
-	if($GLOBALS["VIDEOCACHE_DEBUG"]){events("To squid -> $results + CRLF");}
-	print($results."\n");
-	return true;
-	
-	
-}
 
 
 function GoogleSafeBrowsing($URI,$PROTO,$HOST,$IP,$userid){
@@ -594,7 +741,7 @@ function GoogleSafeBrowsing($URI,$PROTO,$HOST,$IP,$userid){
 		base64_encode($GLOBALS["SquidGuardIPWeb"])."&clientaddr=$IP&clientname=$IP&clientuser=$userid".
 		"&clientgroup=Default-$response&targetgroup=safebrowsing&url=$urlenc";
 		ufdbgevents($response,"safebrowsing");
-		Output_results($returned);
+		Output_results($returned,__FUNCTION__,__LINE__);
 		return true;
 		
 	}
@@ -689,7 +836,56 @@ function tool_time_min($timeFrom){
 	return $results;
 }
 
+function tool_time_sec($last_time){
+	$data1 = $last_time;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return $difference;
+}
+
+
+function FileWatcher($uri){
+	
+	
+	
+	
+}
+
+function Curl_get_headers($uri){
+	
+	
+	
+	$curl = curl_init($uri);
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+	curl_setopt($curl, CURLOPT_FAILONERROR, FALSE);
+	curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+	curl_setopt($curl, CURLOPT_FRESH_CONNECT, TRUE);
+	curl_setopt($curl, CURLOPT_FORBID_REUSE, TRUE);
+	curl_setopt($curl, CURLOPT_DNS_CACHE_TIMEOUT, 3600);
+	curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 3);
+	curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+	curl_setopt($curl, CURLOPT_HEADER, TRUE);
+	curl_setopt($curl, CURLOPT_FILETIME, TRUE);
+	curl_setopt($curl, CURLOPT_NOBODY, TRUE);
+	$header = curl_exec($curl);
+	$info = curl_getinfo($curl);
+	curl_close($curl);
+}
+
+
+
+
+
 function GoogleSafeBrowsingGet($PROTO,$servername){
+	
+	if(isset($GLOBALS["SafeBrowsingSTOP"])){
+		if($GLOBALS["SafeBrowsingSTOP"]>0){
+			if(tool_time_sec($GLOBALS["SafeBrowsingSTOP"])<300){return null;}
+			
+		}
+	}
+	
+	
 	$start_time = microtime(true);
 	if(!isset($GLOBALS["PROXY"]["ArticaProxyServerEnabled"])){
 		$GLOBALS["PROXY"]["ArticaProxyServerEnabled"]="no";
@@ -744,25 +940,56 @@ function GoogleSafeBrowsingGet($PROTO,$servername){
 	$http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 	$end_time = microtime(true);
 	$Infos= curl_getinfo($curl);
-	if($GLOBALS["GOOGLE_SAFE"]){events("GoogleSafeBrowsingGet: Connection ".($end_time - $start_time)."ms"); }
+	$TimedSec=$end_time - $start_time;
+	if($GLOBALS["GOOGLE_SAFE"]){events("GoogleSafeBrowsingGet: Connection {$TimedSec}ms"); }
 	
 	if(!$response){
 		if($http_status==204){
-			curl_close($curl);
+			@curl_close($curl);
 			return "clean";
 		}
 		$errno = curl_errno($curl);
 		$error_message=curl_strerror($errno);
-		events("GoogleSafeBrowsingGet: DNS...: {$GLOBALS["GoogleSafeBrowsingDNS"]}, Interface \"{$GLOBALS["GoogleSafeBrowsingInterface"]}\"");
-		events("GoogleSafeBrowsingGet: failed:HTTP:$http_status Error Number: $errno ($error_message) - ".curl_error($curl));
-		ufdbg_admin_mysql(1, "Google Safe Browsing failed with Error $errno ($error_message)", null,__FILE__,__LINE__);
+		
+		if($errno==28){
+			events("GoogleSafeBrowsingGet: DNS...: {$GLOBALS["GoogleSafeBrowsingDNS"]}, Interface \"{$GLOBALS["GoogleSafeBrowsingInterface"]}\"");
+			ufdbg_admin_mysql(1, "PID {$GLOBALS["MYPID"]}: Google Safe Browsing Timed Out, skipping protection for 5mn", "Requested URL: $url\nSleeping during 5 minutes",__FILE__,__LINE__);
+			$GLOBALS["SafeBrowsingSTOP"]=time();
+		}
 		curl_close($curl);
+		if(isset($GLOBALS["SafeBrowsingERROR"])){
+			if($GLOBALS["SafeBrowsingERROR"]>0){
+				if(tool_time_sec($GLOBALS["SafeBrowsingERROR"])<180){return null;}
+			}
+		}
+		ufdbg_admin_mysql(1, "PID {$GLOBALS["MYPID"]}: Google Safe Browsing HTTP Error code $errno ($error_message)", "Requested URL: $url\n",__FILE__,__LINE__);
+		$GLOBALS["SafeBrowsingERROR"]=time();
 		return null;
 	}
+	
+	if(isset($GLOBALS["SafeBrowsingSTOP"])){
+		if($GLOBALS["SafeBrowsingSTOP"]>0){
+			ufdbg_admin_mysql(1, "PID {$GLOBALS["MYPID"]}: Google Safe Browsing relinked", "",__FILE__,__LINE__);
+			$GLOBALS["SafeBrowsingSTOP"]=0;
+		}
+	}
+	
+	if(isset($GLOBALS["SafeBrowsingERROR"])){
+		if($GLOBALS["SafeBrowsingERROR"]>0){
+			ufdbg_admin_mysql(1, "PID {$GLOBALS["MYPID"]}: Google Safe Browsing relinked", "",__FILE__,__LINE__);
+			$GLOBALS["SafeBrowsingERROR"]=0;
+		}
+	}
+	
 	
 	
 	curl_close($curl);
 	return $response;
+}
+
+function tool_microtime_float(){
+	list($usec, $sec) = explode(" ", microtime());
+	return ((float)$usec + (float)$sec);
 }
 
 function curl_strerror($errno){
@@ -853,6 +1080,7 @@ function curl_strerror($errno){
 
 function reset_memory(){
 	if(!is_file("/var/log/squid/reload/{$GLOBALS["MYPID"]}.ufdbgclient.php")){return;}
+	events("reset_memory: Reseting memory...");
 	events("FREE MEMORY");
 	unset($GLOBALS["WhitelistedBase"]);
 	unset($GLOBALS["BlacklistedBase"]);
@@ -863,6 +1091,8 @@ function reset_memory(){
 	unset($GLOBALS["NOTIFS"]);
 	unset($GLOBALS["HyperCacheRules"]);
 	unset($GLOBALS["HyperCacheOK"]);
+	unset($GLOBALS["ARTICA_QUOTAS_RULES_CHECK_NO_FILE"]);
+	unset($GLOBALS["ARTICA_QUOTAS_RULES_CHECK"]);
 	HyperCacheRulesLoad();
 	
 	@unlink("/var/log/squid/reload/{$GLOBALS["MYPID"]}.ufdbgclient.php");
@@ -949,7 +1179,7 @@ function HyperCacheRulesLoad(){
 function Unlocked($url,$IP,$userid){
 	$dbfile="/var/log/squid/ufdbgclient.unlock.db";
 	if(!is_file($dbfile)){
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: $dbfile no such file");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: $dbfile no such file");}
 		return false;
 	}
 	$H=parse_url($url);
@@ -964,16 +1194,16 @@ function Unlocked($url,$IP,$userid){
 	$db_con = dba_open($dbfile, "r","db4");
 	
 	if(!$db_con){
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: berekley_db_size:: FATAL!!!::$dbfile, unable to open");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: berekley_db_size:: FATAL!!!::$dbfile, unable to open");}
 		return false;
 	}
 	
 	$mainkey=trim(dba_firstkey($db_con));
 	
-	if($GLOBALS["VERBOSE"]){events("ufdbunlock: mainkey: { $mainkey }");}
+	if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: mainkey: { $mainkey }");}
 	
 	if(strlen($mainkey)>3){
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: $mainkey");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: $mainkey");}
 		$array=unserialize(dba_fetch($mainkey,$db_con));
 		if(Unlocked_parse($array,$url,$IP,$userid)){
 			dba_close($db_con);
@@ -984,7 +1214,7 @@ function Unlocked($url,$IP,$userid){
 	while($mainkey !=false){
 		$val=0;
 	
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: { $mainkey }");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: { $mainkey }");}
 		if(trim($mainkey)==null){
 			$mainkey=dba_nextkey($db_con);
 			continue;
@@ -1010,36 +1240,40 @@ function Unlocked_parse($array,$url,$IP,$userid){
 	$ipaddr=$array["ipaddr"];
 	$www=$array["www"];
 	$finaltime=$array["finaltime"];
+	$www=str_replace(".", "\.", $www);
+	if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
 	
 	$H=parse_url($url);
 	$domain=$H["host"];
+	if(preg_match("#^www\.(.+)#", $domain,$re)){$domain=$re[1];}
 	
-	if($GLOBALS["VERBOSE"]){events("ufdbunlock: $uid,$ipaddr,$www,$finaltime -> $domain,$IP,$userid");}
+	if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: $uid,$ipaddr,$www,$finaltime -> $domain,$IP,$userid");}
 	
 	if($finaltime<time()){
-		events("$finaltime -> EXPIRED");
+	if($GLOBALS["DEBUG_UNLOCKED"]){events("$finaltime -> EXPIRED");}
 		return false;
 	}
-	$www=str_replace(".", "\.", $www);
+	
+	
 	if(!preg_match("#$www#i", $domain)){
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: '$domain'/$www -> NO MATCH");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: '$domain'/$www -> DOMAIN MISMATCH");}
 		return false;
 	}
 	
 	if($IP==$ipaddr){
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: '$IP'/'$ipaddr' -> MATCH");}
-		Output_results(null);
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: '$IP'/'$ipaddr' -> IP ADDRESS MATCH");}
+		Output_results(null,__FUNCTION__,__LINE__);
 		return true;
 	
 	}else{
-		if($GLOBALS["VERBOSE"]){events("ufdbunlock: '$IP'/'$ipaddr' -> NO MATCH");}
+		if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: '$IP'/'$ipaddr' -> IP ADDRESS MISSMATCH");}
 	}
 	
 	
 	if($userid<>null){
 		if($uid<>null){
 			if($userid<>$uid){
-				if($GLOBALS["VERBOSE"]){events("ufdbunlock: $userid -> NO MATCH");}
+				if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: $userid -> NO MATCH");}
 				return false;
 				
 			}
@@ -1048,8 +1282,8 @@ function Unlocked_parse($array,$url,$IP,$userid){
 	}
 
 	
-	
-	Output_results(null);
+	if($GLOBALS["DEBUG_UNLOCKED"]){events("ufdbunlock: OK!");}
+	Output_results(null,__FUNCTION__,__LINE__);
 	return true;
 	
 	
@@ -1057,18 +1291,104 @@ function Unlocked_parse($array,$url,$IP,$userid){
 	
 }
 
-function BlackListedBase($url,$IP,$userid){
-	$db_path="/var/log/squid/ufdbgclient.black.db";
+
+function Phistank($ARRAY){
+	$URI=$ARRAY["URI"];
+	if(!is_file("/etc/squid3/phistank.db")){
+		if($GLOBALS["VERBOSE"]){events("/etc/squid3/phistank.db no such file");}
+		return false;
+	}
 	
+	$H=parse_url($URI);
+	$domain=$H["host"];
+	
+	$md51=md5($domain);
+	$md52=md5($URI);
+	$md53=md5($URI."/");
+	
+	
+	$userid=$ARRAY["userid"];
+	$PROTO=$ARRAY["PROTO"];
+	$IP=$ARRAY["IP"];
+	
+	if(isset($GLOBALS["PHISHTANK_QUEUE"])){
+		if(count($GLOBALS["PHISHTANK_QUEUE"])>10000){$GLOBALS["PHISHTANK_QUEUE"]=array();}
+	}
+	
+	if(preg_match("#([0-9\.]+)\/(.*)#", $IP,$re)){
+		$hostname=$re[2];
+		$IP=$re[1];
+	}
+	
+	$SquidGuardIPWeb=$GLOBALS["SquidGuardIPWeb"];
+	$CONNECT=false;
+	$KEY=null;
+	if(isset($ARRAY["MAC"])){$MAC=$ARRAY["MAC"];}
+	$urlenc=urlencode($URI);
+	
+	$returned="{$GLOBALS["SquidGuardIPWeb"]}?rule-id=0SquidGuardIPWeb=".
+			base64_encode($GLOBALS["SquidGuardIPWeb"])."&clientaddr=$IP&clientname=$IP&clientuser=$userid".
+			"&clientgroup=default&targetgroup=phishtank&url=$urlenc";
+	
+	$md5Key=md5("$userid$IP$URI");
+	if(isset($GLOBALS["PHISHTANK_QUEUE"][$md5Key])){
+		ufdbgevents("default","phishtank");
+		Output_results($GLOBALS["PHISHTANK_QUEUE"][$md5Key],__FUNCTION__,__LINE__);
+		return true;
+	}
+	
+	$db_con = @dba_open("/etc/squid3/phistank.db", "r","db4");
+	if(!$db_con){
+		if($GLOBALS["VERBOSE"]){events("Phistank: FATAL!!!::/etc/squid3/phistank.db, unable to open");}
+		return false;
+	}
+	
+	if(@dba_exists($md51,$db_con)){
+		@dba_close($db_con);
+		ufdbgevents("phishtank","phishtank");
+		$GLOBALS["PHISHTANK_QUEUE"][$md5Key]=$returned;
+		Output_results($returned,__FUNCTION__,__LINE__);
+		return true;
+	}
+	if(@dba_exists($md52,$db_con)){
+		@dba_close($db_con);
+		ufdbgevents("default","phishtank");
+		$GLOBALS["PHISHTANK_QUEUE"][$md5Key]=$returned;
+		Output_results($returned,__FUNCTION__,__LINE__);
+		return true;
+	}
+	if(@dba_exists($md53,$db_con)){
+		@dba_close($db_con);
+		ufdbgevents("phishtank","phishtank");
+		$GLOBALS["PHISHTANK_QUEUE"][$md5Key]=$returned;
+		Output_results($returned,__FUNCTION__,__LINE__);
+		return true;
+	}	
+	
+	return false;
+	
+	
+	
+
+	
+}
+
+function BlackListedBase($url,$IP,$userid,$PROTO){
+	$db_path="/var/log/squid/ufdbgclient.black.db";
+	$CONNECT=false;
 	if(!is_file($db_path)){
-		if($GLOBALS["VERBOSE"]){events("$db_path -> no such file");}
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("$db_path -> no such file");}
 		return false;
 	}
 	
 	$H=parse_url($url);
 	$domain=$H["host"];
+	
+	if($GLOBALS["DEBUG_BLACKLIST"]){events("$url -> $domain PROTO: $PROTO");}
+	
 	reset_memory();
 	if($GLOBALS["SquidGuardIPWeb"]==null){
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("http://127.0.0.1/exec.squidguard.php");}
 		$GLOBALS["SquidGuardIPWeb"]="http://127.0.0.1/exec.squidguard.php";
 	}
 	$urlenc=urlencode($url);
@@ -1077,18 +1397,32 @@ function BlackListedBase($url,$IP,$userid){
 	$returned="{$GLOBALS["SquidGuardIPWeb"]}?rule-id=0SquidGuardIPWeb=".
 	base64_encode($GLOBALS["SquidGuardIPWeb"])."&clientaddr=$IP&clientname=$IP&clientuser=$userid".
 	"&clientgroup=default&targetgroup=blacklist&url=$urlenc";
+	
+	
+	if($PROTO=="CONNECT"){
+		$CONNECT=true;
+		if($GLOBALS["SquidGuardWebUseExternalUri"]==1){$returned=$GLOBALS["SquidGuardWebExternalUriSSL"];}else{
+		$returned="https://{$GLOBALS["SquidGuardServerName"]}:{$GLOBALS["SquidGuardApacheSSLPort"]}/exec.squidguard.php?rule-id=0SquidGuardIPWeb=".
+				base64_encode("https://{$GLOBALS["SquidGuardServerName"]}:{$GLOBALS["SquidGuardApacheSSLPort"]}")."&clientaddr=$IP&clientname=$IP&clientuser=$userid".
+				"&clientgroup=default&targetgroup=blacklist&url=$urlenc";
+		}
+	}
 
+	
 	if(isset($GLOBALS["BlacklistedBase"][$domain])){
-		
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase: $domain -> IN MEMORY [OK]"); }
 		if($GLOBALS["BlacklistedBase"][$domain]){
-			if($GLOBALS["VERBOSE"]){events("BlackListedBase: $domain -> MEM BLOCK"); }
+			if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase: $domain -> MEM BLOCK"); }
 			ufdbgevents("blacklist","default");
-			Output_results($returned);
+			Output_results($returned,__FUNCTION__,__LINE__,$CONNECT);
 			return true;
 		}else{
-			if($GLOBALS["VERBOSE"]){events("BlackListedBase: $domain -> MEM PASS"); }
+			if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase: $domain -> MEM [PASS]"); }
 			return false;
 		}
+	}else{
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("$domain -> MEMORY NOT BLACKLISTED");}
+		
 	}
 	
 	
@@ -1105,12 +1439,13 @@ function BlackListedBase($url,$IP,$userid){
 			continue;
 		}
 		
-		if($GLOBALS["VERBOSE"]){events("BlackListedBase:Checking $mainkey -> $domain"); }
+		if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase:Checking $mainkey -> $domain"); }
 		if(preg_match("#$mainkey#", $domain)){
 			$GLOBALS["BlacklistedBase"][$domain]=true;
-			if($GLOBALS["VERBOSE"]){events("BlackListedBase:  BLACKLIST MATCH $mainkey -> $domain"); }
+			if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase:  BLACKLIST MATCH $mainkey -> $domain"); }
 			ufdbgevents("blacklist","global-blacklist");
-			Output_results($returned);
+			if($GLOBALS["DEBUG_BLACKLIST"]){events("Output_results($returned)"); }
+			Output_results($returned,__FUNCTION__,__LINE__,$CONNECT);
 			dba_close($db_con);
 			return true;
 		}
@@ -1118,6 +1453,7 @@ function BlackListedBase($url,$IP,$userid){
 		$mainkey=dba_nextkey($db_con);
 	
 	}
+	if($GLOBALS["DEBUG_BLACKLIST"]){events("$domain -> STAMP MEMORY TO FALSE"); }
 	$GLOBALS["BlacklistedBase"][$domain]=false;
 	dba_close($db_con);
 	return false;	
@@ -1125,45 +1461,236 @@ function BlackListedBase($url,$IP,$userid){
 	
 }
 
-function Output_results($results=null){
-	$AS_34=$GLOBALS["AS_34"];
+function Output_results($results=null,$function=null,$line=null,$CONNECT=false){
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results::[".__LINE__."] ACCEPTING : [$results]");}
+	$called=null;
+	$prefix_channel=null;
+	$suffix_channel_loging=null;
+	$results_org=$results;
+	$results=trim($results);
+	$results=str_replace("POST  HTTP/1.1","",$results);
+	$results=str_replace("HTTP/1.1","",$results);
+	$results=str_replace("\n", "", $results);
+	$GLOBALS["SquidGuardWebSSLCompatibility"]=1;
+	$LineTOSend=null;
+	$statusCode=0;
+	$DonotChangeKey=false;
+	$URI=null;
+	$prefix_channel=null;
+	$suffix_channel_loging=null;
 	
-	if($results==null){
-		if($AS_34){
-			if($GLOBALS["VERBOSE"]){ events("PASS in 3.4 mode");}
-			print("OK\n");
-			return;
+	$key="url";
+	
+	$SquidGuardRedirectBehavior=trim($GLOBALS["SquidGuardRedirectBehavior"]);
+	if($SquidGuardRedirectBehavior=="url-rewrite"){$SquidGuardRedirectBehavior="rewrite-url";}
+	$results=str_replace("GET  HTTP/1.1","",$results);
+	$results=trim($results);
+	$results=str_replace("\n", "", $results);
+	$results=str_replace("\r", "", $results);
+	
+	if(is_numeric($GLOBALS["CHANNEL"])){
+		if($GLOBALS["CHANNEL"]>0){
+			$prefix_channel="{$GLOBALS["CHANNEL"]} ";
+			$suffix_channel_loging="Channel ID [{$GLOBALS["CHANNEL"]}]";
+			if($GLOBALS["DEBUG_OUTPUT"]){ events("Output_results:$suffix_channel_loging");}
 		}
 	}
 	
+	if(preg_match("#^OK\s+(.+)#", $results,$re)){$results=$re[1];}	
+	
+	
+	
+	
+	
 	if($results==null){
-		if($GLOBALS["VERBOSE"]){ events("PASS in 3.3 mode");}
-		print("\n");
+		$LineTOSend="{$prefix_channel}OK";
+		if($GLOBALS["DEBUG_OUTPUT"]){ events("Output_results: PASS \"$LineTOSend\" $suffix_channel_loging Line ".__LINE__);}
+		events_output("Output_results::[".__LINE__."] [$LineTOSend]");
+		print("$LineTOSend\n");
+		return;	
+	}
+	
+	events_output("PREPARE::[".__LINE__."] [$results]");
+	
+
+	
+	
+	if(strpos($results, " ")>0){
+		$MAIN=explode(" ", $results);
+		while (list ($index, $pattern) = each ($MAIN)){
+			$pattern=trim($pattern);
+			if($GLOBALS["DEBUG_OUTPUT"]){ events("Output_results: Analyze: <{$pattern}>");}
+			
+			
+			if(preg_match("#^status=([0-9]+)#", $pattern,$re)){
+				$statusCode=$re[1];
+				continue;
+			}
+			if(preg_match("#^rewrite-url=\"(.*)\"#", $pattern,$re)){
+				$key="rewrite-url";
+				$URI=$re[1];
+				$DonotChangeKey=true;
+				continue;
+			}
+			
+			if(preg_match("#^url=\"(.*)\"#", $pattern,$re)){
+				if($GLOBALS["DEBUG_OUTPUT"]){ events("Output_results: Found URL: [{$re[1]}]");}
+				$URI=$re[1];
+				$key="url";
+				$DonotChangeKey=true;
+				continue;
+			}
+			
+		}
+
+	}else{
+		if(preg_match("#^rewrite-url=\"(.*)\"#", $results,$re)){
+			$URI=$re[1];
+			$key="rewrite-url";
+			$DonotChangeKey=true;
+		}
+		if(preg_match("#^url=\"(.*)\"#", $results,$re)){
+			$URI=$re[1];
+			$key="url";
+			$DonotChangeKey=true;
+		}
+		
+		
+		if(!$DonotChangeKey){ $URI=$results; }
+	}
+	
+	
+	if(!$DonotChangeKey){
+		if($GLOBALS["SquidGuardWebUseExternalUri"]==1){$URI=$GLOBALS["SquidGuardWebExternalUri"]; }
+	}
+	$GLOBALS["SquidGuardWebExternalUri"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebExternalUri"));
+	$GLOBALS["SquidGuardWebExternalUriSSL"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebExternalUriSSL"));
+	
+	
+	$statusCode=$GLOBALS["SquidGuardRedirectHTTPCode"];
+	if(!is_numeric($statusCode)){$statusCode=302;}
+	if($statusCode<300){$statusCode=302;}
+	
+	if($GLOBALS["DEBUG_PROTOCOL"]){
+		events("Output_results: CONNECT=[$CONNECT] SquidGuardRedirectBehavior = $SquidGuardRedirectBehavior, key=$key, DonotChangeKey = $DonotChangeKey URI=[$URI]");
+	}
+	
+	
+	
+	if(!$DonotChangeKey){$key=trim($GLOBALS["SquidGuardRedirectBehavior"]);}
+	if($CONNECT){
+		if($GLOBALS["SquidGuardWebUseExternalUri"]==1){$URI=$GLOBALS["SquidGuardWebExternalUriSSL"];}
+		if(preg_match("#^https:\/\/(.*)#", $URI,$re)){$URI=$re[1];}
+		
+	}
+	
+	
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results::[".__LINE__."] URI=[$URI] KEY=[$key] ( SquidGuardWebSSLCompatibility={$GLOBALS["SquidGuardWebSSLCompatibility"]})");}
+	
+	if($key==null){$key="url";}
+	if($key=="url-rewrite"){$key="rewrite-url";}
+	
+	
+	if($key<>"rewrite-url"){
+		if($SquidGuardRedirectBehavior<>null){
+			if($key<>$SquidGuardRedirectBehavior){
+				if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results: $key transformed to $SquidGuardRedirectBehavior");}
+				$key=$SquidGuardRedirectBehavior;
+			}
+		}
+	}
+	
+	$URI=trim($URI);
+	if($URI==null){
+		events("Output_results: URI = NULL ! \"$results_org\" Line ".__LINE__);
+		$LineTOSend="{$prefix_channel}OK";
+		events_output("Output_results::[".__LINE__."] [$LineTOSend]");
+		print("$LineTOSend\n");
+		if($GLOBALS["DEBUG_PROTOCOL"]){events_output("**");}
 		return;
 	}
 	
-	$length=strlen($results);
-	if($AS_34){
-		if($GLOBALS["VERBOSE"]){ events("Query must be locked send $length bytes in 3.4 mode");}
-		if(preg_match("#^OK\s+#", $results)){print($results."\n");return;}
-		print("OK rewrite-url=\"$results\"");
-		return;
+	if($CONNECT){
+		$key="rewrite-url";
+		if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results::[".__LINE__."] CONNECT=TRUE: URI=[$URI] ( SquidGuardWebSSLCompatibility={$GLOBALS["SquidGuardWebSSLCompatibility"]})");}
 	}
-	if($GLOBALS["VERBOSE"]){ events("Query must be locked send $length bytes in 3.3 mode");}
-	print("$results\n");
+	
+	
+	if($key=="rewrite-url"){
+		if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results: REWRITE URL METHOD Line ".__LINE__);}
+		if($CONNECT){
+			$URI=str_replace("http://", "https://", $URI);
+			$URI=str_replace("https://", "", $URI);
+			$LineTOSend="{$prefix_channel}OK {$key}=\"$URI\"";
+			if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results::[".__LINE__."] FINAL SSL=[$LineTOSend]");}
+			print("$LineTOSend\n");
+			if($GLOBALS["DEBUG_PROTOCOL"]){events_output("**");}
+			return;
+		}
+		
+		if($GLOBALS["DEBUG_PROTOCOL"]){events("Output_results::[".__LINE__."] CONNECT FALSE URI=[$URI];");}
+		$LineTOSend="{$prefix_channel}OK {$key}=\"$URI\"";
+		print("$LineTOSend\n");
+		if($GLOBALS["DEBUG_PROTOCOL"]){events_output("**");}
+		return;
+		
+	}
+		
+	if(!preg_match("#^http:\/#", $URI)){$URI="http://$URI";}
+		
+	$LineTOSend="{$prefix_channel}OK status=$statusCode {$key}=\"$URI\"";
+	
+	
+	if($GLOBALS["DEBUG_OUTPUT"]){ 
+		if($GLOBALS["DebugQuota"]){QuotaEvent("Output_results: BLOCK \"$LineTOSend\" $suffix_channel_loging Line ".__LINE__);}
+		events("Output_results: BLOCK \"$LineTOSend\" $suffix_channel_loging Line ".__LINE__);
+	
+	}
+	if($GLOBALS["DEBUG_PROTOCOL"]){
+		events("Output_results: BLOCK \"$LineTOSend\" $suffix_channel_loging Line ".__LINE__);
+	}
+	
+	events_output("Output_results::[".__LINE__."] [$LineTOSend]");
+	if($GLOBALS["DEBUG_BLACKLIST"]){events("BlackListedBase: $LineTOSend\\n"); }
+	print("$LineTOSend\n");
 }
 
-function UfdbBlackList($ToUfdb){
+
+
+
+
+function UfdbBlackList($ToUfdb,$PARAMS,$ToUfdbKey){
 	
-	$results=trim(ask_to_ufdb($ToUfdb));
+	$results=trim(ask_to_ufdb($ToUfdb,$PARAMS,$ToUfdbKey));
 	if(preg_match("#SquidGuardIPWeb=(.+?)&#", $results,$re)){$GLOBALS["SquidGuardIPWeb"]=base64_decode($re[1]);}
 	
 	$length=strlen(trim($results));
-	if($GLOBALS["VERBOSE"]){ events("ask_to_ufdb return $length bytes");}
 	if($length<5){return false;}
 
-	Output_results($results);
+	$CONNECT=false;
+	$PROTO=$PARAMS["PROTO"];
+	if($PROTO=="CONNECT"){$CONNECT=true;}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("UfdbBlackList:[{$GLOBALS["UFDB_SERVER"]}] $results");}
+	Output_results($results,__FUNCTION__,__LINE__,$CONNECT);
 	return true;
+}
+
+function WhitelistedBase_domain($domain){
+	
+	if(isset($GLOBALS["WhitelistedBase"][$domain])){
+		
+		if($GLOBALS["WhitelistedBase"][$domain]){
+			if($GLOBALS["DEBUG_WHITELIST"]){events("WhitelistedBase MEM $domain WHITELISTED"); }
+			return 1;
+		}else{
+			if($GLOBALS["DEBUG_WHITELIST"]){events("WhitelistedBase MEM $domain NOT WHITELISTED"); }
+			return 2;
+		}
+		
+	}
+	
+	return 0;
+	
 }
 
 function WhitelistedBase($url){
@@ -1171,29 +1698,25 @@ function WhitelistedBase($url){
 	$H=parse_url($url);
 	$domain=$H["host"];
 	
+	$fam=new familysite();
+	$familysite=$fam->GetFamilySites($domain);
 	
-	
-	
-	if(isset($GLOBALS["WhitelistedBase"][$domain])){
-		
-		if($GLOBALS["WhitelistedBase"][$domain]){
-			if($GLOBALS["VERBOSE"]){events("WhitelistedBase MEM WHITELISTED"); }
-			Output_results(null);
-			return true;
-		}else{
-			if($GLOBALS["VERBOSE"]){events("WhitelistedBase MEM NOT WHITELISTED"); }
-			return false;
-		}
-	}
+	$WhitelistedBase_domain=WhitelistedBase_domain($domain);
+	if($WhitelistedBase_domain==1){return true;}
+	$WhitelistedBase_domain=WhitelistedBase_domain($familysite);
+	if($WhitelistedBase_domain==1){return true;}
+	if($WhitelistedBase_domain==2){return false;}
 	
 	if(!is_file($db_path)){
-		if($GLOBALS["VERBOSE"]){events("$db_path -> no such file");}
+		if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: $db_path -> no such file");}
 		return false;
 	}
 	$db_con = dba_open($db_path, "r","db4");
 	if(!$db_con){return false;}
 	$mainkey=dba_firstkey($db_con);
 	
+	$domain_regex=str_replace(".", "\.", $domain);
+	$family_regex=str_replace(".", "\.", $familysite);
 	
 	while($mainkey !=false){
 		$val=0;
@@ -1203,20 +1726,40 @@ function WhitelistedBase($url){
 			$mainkey=dba_nextkey($db_con);
 			continue;
 		}
-		if($GLOBALS["VERBOSE"]){events("WhitelistedBase: Checking $mainkey -> $domain"); }
+
+		if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: WhitelistedBase: Checking $mainkey -> $domain"); }
 		if(preg_match("#$mainkey#", $domain)){
-			if($GLOBALS["VERBOSE"]){events("WhitelistedBase $mainkey MATCH $domain"); }
+			if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: WhitelistedBase $mainkey MATCH $domain"); }
 			$GLOBALS["WhitelistedBase"][$domain]=true;
-			Output_results(null);
 			dba_close($db_con);
 			return true;
 		}
-	
+		
+		if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: #$mainkey# NO MATCH $domain"); }
+		
+		if(preg_match("#$mainkey#", $familysite)){
+			if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: WhitelistedBase $mainkey MATCH $familysite"); }
+			$GLOBALS["WhitelistedBase"][$familysite]=true;
+			dba_close($db_con);
+			return true;
+		}
+		if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: #$mainkey# NO MATCH $domain"); }
 		$mainkey=dba_nextkey($db_con);
 	
 	}
-	$GLOBALS["WhitelistedBase"][$domain]=false;
 	dba_close($db_con);
+	
+	
+	if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: Assume $domain FALSE"); }
+	if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: Assume $familysite FALSE"); }
+	
+	$CountOf=count($GLOBALS["WhitelistedBase"]);
+	if($GLOBALS["DEBUG_WHITELIST"]){events("WHITELIST:: $CountOf domains in memory"); }
+	if($CountOf>5000){$GLOBALS["WhitelistedBase"]=array();}
+	
+	$GLOBALS["WhitelistedBase"][$domain]=false;
+	$GLOBALS["WhitelistedBase"][$familysite]=false;
+	
 	return false;
 
 }
@@ -1380,92 +1923,205 @@ function videocache_checker($uri){
 	
 }
 
-function ask_to_ufdb_cache_get($datatosend){
-	$MD5=md5($datatosend);
-	$dbfile="/var/log/squid/UfdbguardCache.db";
-	if(isset($GLOBALS["CACHE"][$MD5])){return array(true,$GLOBALS["CACHE"][$MD5]);}
-	if(!is_file($dbfile)){return false;}
-	
-	$db_con = @dba_open($dbfile, "r","db4");
-	if(!$db_con){events("ask_to_ufdb_cache_get:: FATAL!!!::$dbfile, unable to open"); return false; }
-	
-	if(!@dba_exists($MD5,$db_con)){
-		@dba_close($db_con);
-		return array(false,null);
-	}
-	
-	$result = dba_fetch($MD5,$db_con);
-	$GLOBALS["CACHE"][$MD5]=$result;
-	@dba_close($db_con);
-	return array(true,$result);
-	
+function ask_to_ufdb_cache_get($ToUfdbKey){
+		
+	if($GLOBALS["DEBUG_IN_MEM"]){events("ask_to_ufdb: MEMORY = ".count($GLOBALS["CACHE"])." items");}
+	if(isset($GLOBALS["CACHE"][$ToUfdbKey])){return array(true,$GLOBALS["CACHE"][$ToUfdbKey]);}
+	return array(false,null);
 }
-function ask_to_ufdb_cache_set($datatosend,$buf){
-
-	$MD5=md5($datatosend);
-	$GLOBALS["CACHE"][$MD5]=$buf;
-	if(count($GLOBALS["CACHE"])>50000){unset($GLOBALS["CACHE"]);}
-	$dbfile="/var/log/squid/UfdbguardCache.db";
-	
-	
-	
-	if(!is_file($dbfile)){
-		try {
-			events("ask_to_ufdb_cache_set:: Creating $dbfile database"); $db_desttmp = @dba_open($dbfile, "c","db4"); }
-			catch (Exception $e) {
-				$error=$e->getMessage(); events("ask_to_ufdb_cache_set::FATAL ERROR $error on $dbfile");
-				@dba_close($db_desttmp);
-				return;
-			}
-		@dba_close($db_desttmp);
-	}
-	
-	$db_con = @dba_open($dbfile, "c","db4");
-	if(!$db_con){events("ask_to_ufdb_cache_set:: FATAL!!!::$dbfile, unable to open"); return null; }
-	
-	@dba_replace($MD5,$buf,$db_con);
-	@dba_close($db_con);
-
+function ask_to_ufdb_cache_set($ToUfdbKey,$buf){
+	$GLOBALS["CACHE"][$ToUfdbKey]=$buf;
+	if(count($GLOBALS["CACHE"])>5000){$GLOBALS["CACHE"]=array();}
 }
 
-function ask_to_ufdb($datatosend){
+function ask_to_ufdb_time_sec($last_modified){
+	$data1 = $last_modified;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return round($difference);
+}
+
+function ask_to_ufdb($datatosend,$PARAMS,$ToUfdbKey){
 	
-	$CachedZ=ask_to_ufdb_cache_get($datatosend);
-	if($CachedZ[0]){return $CachedZ[1];}
+	if(!isset($GLOBALS["UFDB_SOCKET_ERROR"])){$GLOBALS["UFDB_SOCKET_ERROR"]=0;}
+	if(!isset($GLOBALS["UfdbgclientMaxSockTimeOut"])){$GLOBALS["UfdbgclientMaxSockTimeOut"]=0;}
+	if($GLOBALS["UfdbgclientMaxSockTimeOut"]==0){$GLOBALS["UfdbgclientMaxSockTimeOut"]=6;}
 	
+	if(intval($GLOBALS["UFDB_SOCKET_ERROR"])>intval($GLOBALS["UfdbgclientMaxSockTimeOut"])){
+		if(!isset($GLOBALS["UFDB_SOCKET_ERROR_TIME"])){$GLOBALS["UFDB_SOCKET_ERROR_TIME"]=time();return false;}
+		if($GLOBALS["UFDB_SOCKET_ERROR_TIME"]==0){$GLOBALS["UFDB_SOCKET_ERROR_TIME"]=time();return false;}
+		$ask_to_ufdb_time_sec=ask_to_ufdb_time_sec($GLOBALS["UFDB_SOCKET_ERROR_TIME"]);
+		
+		if($ask_to_ufdb_time_sec==10){
+			ufdbg_admin_mysql(1, "Web filtering Current 10 seconds to wait retry working with webfiltering in 80 seconds...", null,__FILE__,__LINE__);
+		}
+		
+		if($ask_to_ufdb_time_sec==30){
+			ufdbg_admin_mysql(1, "Web filtering Current 30 seconds to wait retry working with webfiltering in 60 seconds...", null,__FILE__,__LINE__);
+		}
+		
+		if($ask_to_ufdb_time_sec==60){
+			ufdbg_admin_mysql(1, "Web filtering Current 60 seconds to wait retry working with webfiltering in 30 seconds...", null,__FILE__,__LINE__);
+		}
+		
+		if($ask_to_ufdb_time_sec==80){
+			ufdbg_admin_mysql(1, "Web filtering Current 80 seconds to wait retry working with webfiltering in 10 seconds...", null,__FILE__,__LINE__);
+		}		
+		
+		if($ask_to_ufdb_time_sec<89){
+			return false;
+		}
+		ufdbg_admin_mysql(1, "Web filtering retry working with webfiltering", null,__FILE__,__LINE__);
+		$GLOBALS["UFDB_SOCKET_ERROR"]=0;
+		$GLOBALS["UFDB_SOCKET_ERROR_TIME"]=0;
+	}
+	
+	
+	$prefix="http";
+	$sitename=$PARAMS["host"];
+	$uri=$PARAMS["URI"];
+	$IP=$PARAMS["IP"];
+	$userid=$PARAMS["userid"];
+	$PROTO=$PARAMS["PROTO"];
+	if($PROTO=="CONNECT"){$prefix="https";}
+	if($userid=="-"){$userid=null;}
+	
+	if(!preg_match("#^http#", $uri)){
+		$uri="{$prefix}://$uri";
+	}
+	
+	if(preg_match("#([0-9\.]+)\/(.*)#", $IP,$re)){
+		$hostname=$re[2];
+		$IP=$re[1];
+	}
+	
+	$uri=urlencode($uri);
+	
+	
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb: [{$GLOBALS["UFDB_SERVER"]}] Sitename: $sitename uri=$uri,IP=$IP,userid=$userid,PROTO=$PROTO");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb: [{$GLOBALS["UFDB_SERVER"]}] Send \"$datatosend\"");}
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("[{$GLOBALS["UFDB_SERVER"]}] Send \"$datatosend\"");}
 	$socket = @socket_create(AF_INET, SOCK_STREAM, 0);
 	
+	if (!is_resource($socket)) {
+		$GLOBALS["UFDB_SOCKET_ERROR"]++;
+		$error=@socket_strerror(socket_last_error());
+		events("FATAL!!!: Web filtering socket error $error on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} [".__LINE__."]");
+		ufdbg_admin_mysql(1, "Web filtering socket error $error on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
+		return false;
+		
+	}
+	
+	$ret = @socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => $GLOBALS["UfdbgclientSockTimeOut"], 'usec' => 0));
+	$ret = socket_set_option($socket, SOL_SOCKET, SO_SNDTIMEO, array('sec' => $GLOBALS["UfdbgclientSockTimeOut"], 'usec' => 0));
+	$ret = @socket_get_option($socket, SOL_SOCKET, SO_RCVTIMEO);
+	if($ret === false){
+		$error=socket_strerror(socket_last_error());
+		$GLOBALS["UFDB_SOCKET_ERROR"]++;
+		events("FATAL!!!: Web filtering socket error {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} socket_get_option SO_RCVTIMEO $error on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} [".__LINE__."]");
+		ufdbg_admin_mysql(1, "Web filtering socket error {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} socket_get_option SO_RCVTIMEO $error on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
+		return false;
+	}
+	
 	if(!@socket_connect($socket, $GLOBALS["UFDB_SERVER"], $GLOBALS["UFDB_PORT"])){
+		$GLOBALS["UFDB_SOCKET_ERROR"]++;	
+		$socket_last_error=socket_last_error($socket);
 		$socketerror=socket_strerror(socket_last_error($socket));
 		events("ask_to_ufdb: [{$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]}] ");
-		ufdbg_admin_mysql(1, "Web filtering socket error $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
+		events("FATAL!!!: Web filtering socket error [$socket_last_error] {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]}  [".__LINE__."]");
+		ufdbg_admin_mysql(1, "Web filtering socket error [$socket_last_error] {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
 		@socket_close($socket);
 		return false;
 	}
 	
-	//if($GLOBALS["VERBOSE"]){events("ask_to_ufdb:\"$datatosend\"");}
+	
 	
 	@socket_write($socket, $datatosend, strlen($datatosend));
+	
+	
+	
 	$buf = @socket_read($socket, 1024);
 	if(!$buf){
 		$socketerror=socket_strerror(socket_last_error($socket));
-		events("ask_to_ufdb: Socket error:$socketerror");
-		ufdbg_admin_mysql(1, "Web filtering socket error $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
+		$GLOBALS["UFDB_SOCKET_ERROR"]++;
+		events("ask_to_ufdb: [{$GLOBALS["UFDB_SERVER"]} Socket error:$socketerror");
+		events("FATAL!!!: Web filtering socket error {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} [".__LINE__."]");
+		ufdbg_admin_mysql(1, "Web filtering socket error {$GLOBALS["UFDB_SOCKET_ERROR"]}/{$GLOBALS["UfdbgclientMaxSockTimeOut"]} $socketerror on {$GLOBALS["UFDB_SERVER"]}:{$GLOBALS["UFDB_PORT"]} ", null,__FILE__,__LINE__);
 		@socket_close($socket);
 		return false;
 	}
-	@socket_close($socket);
 	
+
+	
+	
+	@socket_close($socket);
+	$GLOBALS["UFDB_SOCKET_ERROR"]=0;
 	$buf=str_replace("\r\n", "", $buf);
 	$buf=str_replace("\r", "", $buf);
 	$buf=str_replace("\n", "", $buf);
-	if($GLOBALS["VERBOSE"]){events("ask_to_ufdb: Receive \"$buf\"");}
-	ask_to_ufdb_cache_set($datatosend,$buf);
+	$buf=trim($buf);
+	
+	if($GLOBALS["DEBUG_PROTOCOL"]){events("[{$GLOBALS["UFDB_SERVER"]}] RECEIVE \"$buf\"");}
+	
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]}");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]} **********************");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]} [proto=$PROTO]");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]} Receive \"$buf\"");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]} **********************");}
+	if($GLOBALS["DEBUG_WEBFILTERING"]){events("ask_to_ufdb:[{$GLOBALS["UFDB_SERVER"]}");}
+	
+	if(strpos($buf, "loading-database")>0){return $buf;}
+	if(strpos($buf, "fatalerror")>0){return $buf;}
+	
+	if($buf=="OK"){
+		
+		return $buf;
+	}
+	
+	if($PROTO=="CONNECT"){
+		$url_matched=ask_to_ufdb_parse_response($buf);
+		if($url_matched<>null){
+			//if(!preg_match("#^https:#", $url_matched)){$url_matched="https://$url_matched";}
+			$url_matched=str_replace("&url=%u", "&url=$uri", $url_matched);
+			$url_matched=str_replace("&clientaddr=%a", "&clientaddr=$IP", $url_matched);
+			$url_matched=str_replace("&clientname=%n", "&clientname=$hostname", $url_matched);
+			$url_matched=str_replace("&clientuser=%i", "&clientuser=$userid", $url_matched);
+			$url_matched=str_replace("&clientgroup=%s&targetgroup=%t", "&rule-id=0&clientgroup=generic&targetgroup=https-locked", $url_matched);
+			return $url_matched;
+		}
+	}
+	
+	
+	
+	
+	if(strpos(" $buf", "GET")>0){
+		events_failed("{$buf}");
+	}
+	
+	if(strpos(" $buf", "HTTP/")>0){
+		events_failed("{$buf}");
+	}
+	
 	return $buf;
 }
 
+function ask_to_ufdb_parse_response($url){
+	if(preg_match('#^GET\s+(.+)#',$url,$re)){$url=$re[1];}
+	if(preg_match('#OK url="(.+?)"#', $url,$re)){return $re[1];}
+	return $url;
+}
+
+
+
+
+
+
 function ufdbconfig(){
 	
+	$quota=new ufdbgquota();
+	
+	
+	$GLOBALS["EnableITChart"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableITChart"));
 	
 	$GLOBALS["GoogleSafeBrowsingApiKey"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/GoogleSafeBrowsingApiKey"));
 	$GLOBALS["EnableGoogleSafeBrowsing"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableGoogleSafeBrowsing"));
@@ -1475,12 +2131,39 @@ function ufdbconfig(){
 	$GLOBALS["HyperCacheMemEntries"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/HyperCacheMemEntries"));
 	$GLOBALS["HyperCacheBuffer"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/HyperCacheBuffer"));
 	
+	$GLOBALS["SquidUrgency"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency"));
+	
 	
 	$GLOBALS["HyperCacheHTTPListenPort"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/HyperCacheHTTPListenPort"));
 	if($GLOBALS["HyperCacheHTTPListenPort"]==0){$GLOBALS["HyperCacheHTTPListenPort"]=8700;}
 	
 	$GLOBALS["HyperCacheListenAddr"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/HyperCacheListenAddr"));
 	
+	
+	$GLOBALS["PHISHTANK"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableSquidPhishTank"));
+	
+	
+	
+	$GLOBALS["SquidGuardRedirectSSLBehavior"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardRedirectSSLBehavior"));
+	$GLOBALS["SquidGuardRedirectBehavior"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardRedirectBehavior"));
+	$GLOBALS["SquidGuardRedirectHTTPCode"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardRedirectHTTPCode"));
+	if($GLOBALS["SquidGuardRedirectBehavior"]==null){$GLOBALS["SquidGuardRedirectBehavior="]="url";}
+	if($GLOBALS["SquidGuardRedirectSSLBehavior"]==null){$GLOBALS["SquidGuardRedirectSSLBehavior="]="url";}
+	if(!is_numeric($GLOBALS["SquidGuardRedirectHTTPCode"])){$GLOBALS["SquidGuardRedirectHTTPCode"]=302;}
+	
+	
+	$GLOBALS["SquidGuardWebUseExternalUri"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebUseExternalUri"));
+	$GLOBALS["SquidGuardWebExternalUri"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebExternalUri"));
+	$GLOBALS["SquidGuardWebExternalUriSSL"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebExternalUriSSL"));
+	$GLOBALS["SquidGuardWebSSLCompatibility"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardWebSSLCompatibility"));
+	
+	
+	$GLOBALS["SquidGuardServerName"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardServerName");
+	$GLOBALS["SquidGuardApachePort"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardApachePort"));
+	$GLOBALS["SquidGuardApacheSSLPort"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidGuardApacheSSLPort"));
+	if($GLOBALS["SquidGuardApachePort"]==0){$GLOBALS["SquidGuardApachePort"]=9025;}
+	if($GLOBALS["SquidGuardApacheSSLPort"]==0){$GLOBALS["SquidGuardApacheSSLPort"]=9020;}
+	if($GLOBALS["SquidGuardServerName"]==null){$GLOBALS["SquidGuardServerName"]=php_uname("n");}
 	
 	
 	
@@ -1511,7 +2194,7 @@ function ufdbconfig(){
 	if(isset($ini->_params["PROXY"])){$GLOBALS["PROXY"]=$ini->_params["PROXY"];}
 	
 	$GLOBALS["SquidEnforceRules"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidEnforceRules"));
-	$GLOBALS["EnableStreamCache"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableStreamCache"));
+	
 	$EnableUfdbGuard=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableUfdbGuard"));
 	$UseRemoteUfdbguardService=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UseRemoteUfdbguardService"));
 	$EnableRemoteStatisticsAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableRemoteStatisticsAppliance"));
@@ -1529,8 +2212,18 @@ function ufdbconfig(){
 		HyperCacheRulesLoad();
 	}
 	
+	if(!isset($datas["url_rewrite_children_concurrency"])){$datas["url_rewrite_children_concurrency"]=2;}
+	$GLOBALS["url_rewrite_concurrency"]=$datas["url_rewrite_children_concurrency"];
 	
-
+	
+	
+	$GLOBALS["UfdbgclientSockTimeOut"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbgclientSockTimeOut"));
+	if($GLOBALS["UfdbgclientSockTimeOut"]==0){$GLOBALS["UfdbgclientSockTimeOut"]=2;}
+	$GLOBALS["UfdbgclientMaxSockTimeOut"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbgclientMaxSockTimeOut"));
+	if($GLOBALS["UfdbgclientMaxSockTimeOut"]==0){$GLOBALS["UfdbgclientMaxSockTimeOut"]=5;}
+	if(!isset($datas["remote_port"])){$datas["remote_port"]=3977;}
+	if(!isset($datas["remote_server"])){$datas["remote_server"]="127.0.0.1";}
+	
 	if(!is_numeric($datas["remote_port"])){$datas["remote_port"]=3977;}
 	if(trim($datas["remote_server"]==null)){$datas["remote_server"]="127.0.0.1";}
 	if(!isset($datas["remote_server"])){$datas["remote_server"]=null;}
@@ -1587,6 +2280,11 @@ function ufdbconfig(){
 	if($GLOBALS["UFDB_SERVER"]==null){$GLOBALS["UFDB_SERVER"]="127.0.0.1";}
 	if(!is_numeric($GLOBALS["UFDB_PORT"])){$GLOBALS["UFDB_PORT"]=3977;}
 	events("Using local service {$interface}:{$effective_port} as Web filtering engine");
+	events("Redirect engine:{$GLOBALS["SquidGuardRedirectBehavior"]} CODE {$GLOBALS["SquidGuardRedirectHTTPCode"]}");
+	
+	
+	
+	
 }
 
 function ufdbguard_value($key){
@@ -1604,36 +2302,101 @@ function ufdbguard_value($key){
 
 }
 
-function events($text){
+function events($text,$line=0){
 	if(trim($text)==null){return;}
 	$pid=$GLOBALS["MYPID"];
 	$date=@date("H:i:s");
 	$logFile="/var/log/squid/ufdbgclient.debug";
+	$time_end=tool_microtime_float();
+	$tt = round($time_end - $GLOBALS["time_loop_start"],3);
+	$size=@filesize($logFile);
+	if($size>9000000){@unlink($logFile);}
+	$line="$date:[".basename(__FILE__)."/{$GLOBALS["UFDBVERS"]} $pid [{$GLOBALS["LOG_DOM"]}]:$text - {$tt}ms $line";
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, "$line\n");
+	@fclose($f);
+
+
+}
+function events_output($text,$line=0){
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
+	$logFile="/var/log/squid/ufdbgclient.OUT";
+	
 
 	$size=@filesize($logFile);
 	if($size>9000000){@unlink($logFile);}
 	$f = @fopen($logFile, 'a');
-	if($GLOBALS["OUTPUT"]){echo "$pid `[{$GLOBALS["LOG_DOM"]}]: $text`\n";}
-	@fwrite($f, "$date:[".basename(__FILE__)."/{$GLOBALS["UFDBVERS"]} $pid `[{$GLOBALS["LOG_DOM"]}]:$text`\n");
+
+	@fwrite($f, "$date:$text L.$line\n");
 	@fclose($f);
 }
-function ufdbgevents($category,$rulename){
-	$array["uid"]=$GLOBALS["LOG_AR"]["userid"];
-	$array["TIME"]=time();
-	$array["category"]=$category;
-	$array["rulename"]=$rulename;
-	$array["public_ip"]=null;
-	$array["blocktype"]="blocked domain";
-	$array["why"]="blocked domain";
-	$array["hostname"]=null;
-	$array["website"]=$GLOBALS["LOG_AR"]["host"];
-	$array["client"]=$GLOBALS["LOG_AR"]["IP"];
-	$LLOG=array();
-	$serialize=serialize($array);
-	$md5=md5($serialize);
-	if(is_file("/var/log/squid/ufdbguard-blocks/$md5.sql")){return;}
-	@file_put_contents("/var/log/squid/ufdbguard-blocks/$md5.sql",$serialize);
+
+
+function events_failed($text,$line=0){
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
+	$logFile="/var/log/squid/ufdbgclient.error";
+	$time_end=tool_microtime_float();
+	$tt = round($time_end - $GLOBALS["time_loop_start"],3);
+
+	$size=@filesize($logFile);
+	if($size>9000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+
+	@fwrite($f, "$date:[".basename(__FILE__)."/{$GLOBALS["UFDBVERS"]} $pid [{$GLOBALS["LOG_DOM"]}]:$text - {$tt}ms $line\n");
+	@fclose($f);
 }
+
+
+function ufdbgevents($category,$rulename){
+	$hostname=null;
+	if(preg_match("#([0-9\.]+)\/(.*)#", $GLOBALS["LOG_AR"]["IP"],$re)){
+		$hostname=$re[2];
+		$GLOBALS["LOG_AR"]["IP"]=$re[1];
+	}
+	
+	
+	$time=time();
+	ufdbguardd_log($category,$rulename);
+	
+	
+		
+	$user=$GLOBALS["LOG_AR"]["userid"];
+	$www=$GLOBALS["LOG_AR"]["host"];
+	$Clienthostname=gethostbyaddr($GLOBALS["LOG_AR"]["IP"]);
+	$public_ip=gethostbyaddr($www);
+	$local_ip=$GLOBALS["LOG_AR"]["IP"];
+	if($Clienthostname==null){$Clienthostname=$local_ip;}
+	$line="$time:::$user:::$category:::$rulename:::$public_ip:::blocked domain:::blocked domain:::$Clienthostname:::$www:::$local_ip";
+	
+	$file="/home/ufdb/relatime-events/ACCESS_LOG";
+	
+	
+	$h = @fopen($file, 'a');
+	@fwrite($h,$line."\n");
+	@fclose($h);
+	
+	
+	
+	
+	
+	
+}
+
+function ufdbguardd_log($category,$rulename){
+	$uid=$GLOBALS["LOG_AR"]["userid"];
+	if($uid==null){$uid="-";}
+	$line=date("Y-m-d H:i:s")." [".getmypid()."] BLOCK $uid    {$GLOBALS["LOG_AR"]["IP"]} $rulename $category {$GLOBALS["LOG_AR"]["URI"]} GET";
+	$fZ2 = @fopen("/var/log/squid/ufdbguardd.log", 'a');
+	@fwrite($fZ2, "$line\n");
+	@fclose($fZ2);
+}
+
+
+
 
 function ufdbg_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	if(!is_numeric($line)){$line=0;}
@@ -1687,3 +2450,114 @@ function ufdbg_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	
 
 }
+
+function ItCharted($ARRAY){
+	$MAC=null;
+	$IP=$ARRAY["IP"];
+	
+	
+if(preg_match("#([0-9\.]+)\/(.*)#", $IP,$re)){
+		$hostname=$re[2];
+		$IP=$re[1];
+	}
+	
+	
+	$userid=$ARRAY["userid"];
+	$PROTO=$ARRAY["PROTO"];
+	$URI=$ARRAY["URI"];
+	$SquidGuardIPWeb=$GLOBALS["SquidGuardIPWeb"];
+	$CONNECT=false;
+	$KEY=null;
+	if(isset($ARRAY["MAC"])){$MAC=$ARRAY["MAC"];}
+	if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");}
+	
+	if(!isset($GLOBALS["SQUID_SQL"])){$GLOBALS["SQUID_SQL"]=new mysql_squid_builder();}
+	
+	if($GLOBALS["DEBUG_ITCHART"]){
+		events("user:$userid $IP/$MAC");
+	}
+	
+	
+	$arrayNext["src"]=$URI;
+	$arrayNext["LOGIN"]=$userid;
+	$arrayNext["IPADDR"]=$IP;
+	$arrayNext["MAC"]=$MAC;
+	
+	if($userid<>null){
+		$FIELD="uid";
+		$KEY=$userid;}
+	if($KEY==null){
+		if($MAC<>null){
+			$FIELD="MAC";
+			$KEY=$MAC;}
+	}
+	if($KEY==null){
+		if($IP<>null){
+			$FIELD="ipaddr";
+			$KEY=$IP;
+		}
+	}	
+	
+	if($PROTO=="CONNECT"){$CONNECT=true;}
+	$SquidGuardIPWeb=str_replace("exec.squidguard.php", "itchart.php", $SquidGuardIPWeb);
+	
+	if(!isset($GLOBALS["ITCHARTS_ENABLED"])){
+		$GLOBALS["ITCHARTS_ENABLED"]=unserialize(@file_get_contents("/etc/squid3/itCharts.enabled.db"));
+		if(count($GLOBALS["ITCHARTS_ENABLED"])==0){
+			if($GLOBALS["DEBUG_ITCHART"]){events("/etc/squid3/itCharts.enabled.db = 0 entries");}
+			return false;
+		}
+	}
+	
+	
+	if($GLOBALS["DEBUG_ITCHART"]){events( count($GLOBALS["ITCHARTS_ENABLED"])." It Charts to query ($KEY)");}
+	$ITCHARTS=$GLOBALS["ITCHARTS_ENABLED"];
+	
+	while (list ($ID, $title) = each ($ITCHARTS) ){
+		if($GLOBALS["DEBUG_ITCHART"]){events("$ID - $title against $KEY");}
+		
+		if(isset($GLOBALS["IT_CHART_SUCCESS"][$ID][$KEY])){
+			if($GLOBALS["DEBUG_ITCHART"]){events("$ID - $KEY MEMORY = TRUE");}
+			continue;
+		}
+		
+		
+		$sql="SELECT ID FROM itchartlog WHERE `$FIELD`='$KEY' AND chartid='$ID'";
+		if($GLOBALS["DEBUG_ITCHART"]){events("$sql");}
+		$ligne=mysql_fetch_array($GLOBALS["SQUID_SQL"]->QUERY_SQL($sql));
+		if(!$GLOBALS["SQUID_SQL"]){
+			events("{$GLOBALS["SQUID_SQL"]->mysql_error}");
+			return false;
+		}
+		$RESULT_ID=intval($ligne["ID"]);
+		if($GLOBALS["DEBUG_ITCHART"]){events("$ID - $KEY = {$RESULT_ID}");}
+		
+		
+		if($RESULT_ID>0){
+			$GLOBALS["IT_CHART_SUCCESS"][$ID][$KEY]=true;
+			if($GLOBALS["DEBUG_ITCHART"]){events("$ID - $KEY -> continue");}
+			continue;
+		}
+		
+		if($GLOBALS["DEBUG_ITCHART"]){events("$ID - $KEY NONE -> REDIRECT");}
+		
+		
+		
+		$arrayNext["ChartID"]=$ID;
+		ufdbgevents($title,"itChart");
+		$arrayNextEnc=base64_encode(serialize($arrayNext));
+		$output="status=302 url=\"$SquidGuardIPWeb?request=$arrayNextEnc&xtime=".time()."\"";
+		Output_results($output,__FUNCTION__,__LINE__,$CONNECT);
+		return true;
+		
+	}
+	
+	
+	
+	
+	if($GLOBALS["DEBUG_ITCHART"]){events("DONE $KEY");}
+	
+}
+
+
+

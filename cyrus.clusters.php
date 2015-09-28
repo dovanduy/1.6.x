@@ -182,7 +182,7 @@ function popup(){
 	<tr>
 	<td valign='top'><img src='img/128-cluster.png'></td>
 	<td valign='top'>
-	<div class=text-info>{CYRUS_CLUSTER_EXPLAIN}</div>
+	<div class=explain>{CYRUS_CLUSTER_EXPLAIN}</div>
 	$form
 	</td>
 	<td valign='top'>$addreplica<br>$rebuild<br>$sync<br>$help_me</td>

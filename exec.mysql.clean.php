@@ -1,4 +1,5 @@
 <?php
+if(is_file("/usr/bin/cgclassify")){if(is_dir("/cgroups/blkio/php")){shell_exec("/usr/bin/cgclassify -g cpu,cpuset,blkio:php ".getmypid());}}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["FLUSH"]=false;
@@ -16,6 +17,7 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 	if($argv[1]=="--squid-stats"){clean_squid_stats_dbs();die();}
 	if($argv[1]=="--corrupted"){repair_corrupted();die();}
+	if($argv[1]=="--clean-tmd"){clean_tmd();die();}
 
 
 	$unix=new unix();
@@ -62,6 +64,79 @@ function ipband_clean(){
 		if($q->affected_rows>0){system_admin_events("$q->affected_rows deleted item in artica_events/ipband table", __FUNCTION__, __FILE__, __LINE__, "clean");}
 	}
 
+}
+
+function clean_tmd(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+	$pidfileTime="/etc/artica-postfix/pids/exec.mysql.clean.php.clean_tmd.time";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__,"clean");die();}
+	
+	$timeExec=$unix->file_time_min($pidfileTime);
+	if($timeExec<240){return;}
+	
+	@unlink($pidfileTime);
+	@file_put_contents($pidfileTime, time());
+	@file_put_contents($pidfile, getmypid());
+	
+	
+	$SIZES=0;
+	$Dirs=$unix->dirdir("/var/lib/mysql");
+	while (list ($directory, $none) = each ($Dirs) ){
+		
+		$Files=$unix->DirFiles($directory,"\.[0-9]+\.TMD$");
+		while (list ($filename, $none) = each ($Files) ){
+			$fullpath="$directory/$filename";
+			if($unix->file_time_min($fullpath)<240){continue;}
+			$SIZES=$SIZES+@filesize($fullpath);
+			@unlink($fullpath);
+				
+		}
+		
+		$Files=$unix->DirFiles($directory,"\.TMD-[0-9]+$");
+		while (list ($filename, $none) = each ($Files) ){
+			$fullpath="$directory/$filename";
+			if($unix->file_time_min($fullpath)<240){continue;}
+			$SIZES=$SIZES+@filesize($fullpath);
+			@unlink($fullpath);
+		
+		}		
+
+		
+	}
+	
+	if(is_dir("/opt/squidsql/data")){
+		
+		$Dirs=$unix->dirdir("/opt/squidsql/data");
+		while (list ($directory, $none) = each ($Dirs) ){
+		
+			$Files=$unix->DirFiles($directory,"\.[0-9]+\.TMD$");
+			while (list ($filename, $none) = each ($Files) ){
+				$fullpath="$directory/$filename";
+				if($unix->file_time_min($fullpath)<240){continue;}
+				$SIZES=$SIZES+@filesize($fullpath);
+				@unlink($fullpath);
+		
+			}
+		
+			$Files=$unix->DirFiles($directory,"\.TMD-[0-9]+$");
+			while (list ($filename, $none) = each ($Files) ){
+				$fullpath="$directory/$filename";
+				if($unix->file_time_min($fullpath)<240){continue;}
+				$SIZES=$SIZES+@filesize($fullpath);
+				@unlink($fullpath);
+		
+			}
+		
+		
+		}		
+		
+		
+	}
+	
+	
+	
 }
 
 function clean_maillogs(){
@@ -205,20 +280,7 @@ function clean_squid_stats_no_items(){
 		}
 	}	
 	
-	$tables=$q->LIST_TABLES_HOURS();
 	
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);
-		if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}	
 	
 	$tables=$q->LIST_TABLES_MEMBERS();
 	
@@ -263,72 +325,14 @@ function clean_squid_stats_no_items(){
 		
 	}	
 	
-	$tables=$q->LIST_TABLES_WORKSHOURS();
-	
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}	
 	
 	
-	$tables=$q->LIST_TABLES_BLOCKED_WEEK();
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);	if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}
 
-	$tables=$q->LIST_TABLES_BLOCKED_DAY();
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}	
 
-	$tables=$q->LIST_TABLES_VISITED();
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}		
+	
 
-	$tables=$q->LIST_TABLES_dansguardian_events();
-	if(!$q->ok){return;}
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$q->COUNT_ROWS($table);if(!$q->ok){return;}
-		if($rows==0){
-			if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-			$count_tables++;
-			ufdbguard_admin_events("$table was deleted (contains no row)", __FUNCTION__, __FILE__, __LINE__, "clean-stats");
-			$q->DELETE_TABLE($table);
-		}
-		
-	}
+
+	
 
 	if($count_tables>0){system_admin_events("$count_tables empy tables as been deleted in squid statistics database", __FUNCTION__, __FILE__, __LINE__, "clean");}
 	
@@ -458,15 +462,7 @@ function clean_squid_stats_dbs(){
 		
 	}	
 	
-	$tables=$q->LIST_TABLES_HOURS();
-	
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}	
+
 	
 	$tables=$q->LIST_TABLES_MEMBERS();
 	
@@ -498,53 +494,16 @@ function clean_squid_stats_dbs(){
 		
 	}	
 	
-	$tables=$q->LIST_TABLES_WORKSHOURS();
-	
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}	
-	
-	
-	$tables=$q->LIST_TABLES_BLOCKED_WEEK();
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}
 
-	$tables=$q->LIST_TABLES_BLOCKED_DAY();
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}	
-
-	$tables=$q->LIST_TABLES_VISITED();
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}		
-
-	$tables=$q->LIST_TABLES_dansguardian_events();
 	
-	while (list ($num, $table) = each ($tables) ){
-		$rows=$rows+$q->COUNT_ROWS($table);
-		if($GLOBALS["VERBOSE"]){echo " Delete table $table $rows rows \n";}
-		$count_tables++;
-		$q->DELETE_TABLE($table);
-		
-	}		
+	
+
+
+
+
+	
+
+	
 	
 	$q=new mysql_catz();
 	$tables=$q->LIST_TABLES_CATEGORIES();

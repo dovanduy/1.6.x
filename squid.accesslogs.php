@@ -14,7 +14,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-if(isset($_POST["DisableLogFileDaemonMySQL"])){logfile_daemon_save();exit;}
+if(isset($_POST["LogFileDaemonMaxEvents"])){logfile_daemon_save();exit;}
 if(isset($_GET["tabs-all"])){tabs_all();exit;}
 if(isset($_GET["external"])){external();exit;}
 if(isset($_GET["events-list"])){events_search();exit;}
@@ -125,7 +125,7 @@ function logfile_daemon_popup(){
 	
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if($SquidPerformance>1){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled_see_performance}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{artica_statistics_disabled_see_performance}"));
 		return;
 	}
 	
@@ -133,46 +133,34 @@ function logfile_daemon_popup(){
 	
 	
 	$t=time();
-	$DisableLogFileDaemonMySQL=intval($sock->GET_INFO("DisableLogFileDaemonMySQL"));
-	$DisableLogFileDaemonCategories=intval($sock->GET_INFO("DisableLogFileDaemonCategories"));
-	$DisableLogFileDaemonCategories_INV=1;
-	$DisableLogFileDaemonMySQL_INV=1;
+	$LogFileDaemonMaxEvents=intval($sock->GET_INFO("LogFileDaemonMaxEvents"));
 	
-	
-	
-	if($DisableLogFileDaemonCategories==1){
-		$DisableLogFileDaemonCategories_INV=0;
+	if($LogFileDaemonMaxEvents==0){
+		$LogFileDaemonMaxEvents=500;
 	}
 	
-	if($DisableLogFileDaemonMySQL==1){
-		$DisableLogFileDaemonMySQL_INV=0;
-	}	
-	
-	
-	$detect_categories=Paragraphe_switch_img("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
-	
-	
-	if($SquidPerformance>0){
-		$detect_categories=Paragraphe_switch_disable("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
-		$explain_RemoteUfdbCat="<div style='font-size:18px' class=text-info>{explain_SquidPerformance_nocat}</div>";
-	}
 	
 	if($RemoteUfdbCat==1){
 		$detect_categories=Paragraphe_switch_disable("{detect_categories}", "{logfile_detect_categories}","DisableLogFileDaemonCategories",$DisableLogFileDaemonCategories_INV,null,750);
-		$explain_RemoteUfdbCat="<div style='font-size:18px' class=text-info>{explain_RemoteUfdbCat}</div>";
+		$explain_RemoteUfdbCat="<div style='font-size:18px' class=explain>{explain_RemoteUfdbCat}</div>";
 	}
 	
 	
 	$html="<div style='width:98%' class=form>$explain_RemoteUfdbCat
-	".Paragraphe_switch_img("{direct_to_mysql}", "{logfile_direct_to_mysql_explain}","DisableLogFileDaemonMySQL",$DisableLogFileDaemonMySQL_INV,null,750)
-	."$detect_categories
+	<div style='font-size:18px' class=explain>{LogFileDaemonMaxEvents_explain}</div>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:22px'>{max_events_in_memory}:</td>
+		<td>". Field_text("LogFileDaemonMaxEvents",$LogFileDaemonMaxEvents,"font-size:22px;width:110px")."</td>
+	</tr>
+	</table>
 	 <div style='width:100%;text-align:right;margin-top:20px'><hr>".button("{apply}","Save$t()",26)."</div>
 <script>
 var xSave$t= function (obj) {
 	var res=obj.responseText;
 	if (res.length>3){alert(res);return;}
 	YahooWin2Hide();
-	Loadjs('squid.reconfigure.simple.php');
+	Loadjs('squid.reload.php');
 }
 function SaveCK$t(e){
 	if(!checkEnter(e)){return;}
@@ -181,8 +169,7 @@ function SaveCK$t(e){
 
 function Save$t(){
 	var XHR = new XHRConnection();
-	XHR.appendData('DisableLogFileDaemonMySQL',document.getElementById('DisableLogFileDaemonMySQL').value);
-	XHR.appendData('DisableLogFileDaemonCategories',document.getElementById('DisableLogFileDaemonCategories').value);
+	XHR.appendData('LogFileDaemonMaxEvents',document.getElementById('LogFileDaemonMaxEvents').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }				
 </script>
@@ -194,29 +181,10 @@ function Save$t(){
 
 function logfile_daemon_save(){
 	$sock=new sockets();
-	
-	
-	if(isset($_POST["DisableLogFileDaemonMySQL"])){
-		if($_POST["DisableLogFileDaemonMySQL"]==1){
-			$sock->SET_INFO("DisableLogFileDaemonMySQL", 0);
-		}else{
-			$sock->SET_INFO("DisableLogFileDaemonMySQL", 1);
-		}
+	if(isset($_POST["LogFileDaemonMaxEvents"])){
+		$sock->SET_INFO("LogFileDaemonMaxEvents", $_POST["LogFileDaemonMaxEvents"]);
 	}
-	
-	
-	
-	if(isset($_POST["DisableLogFileDaemonCategories"])){
-		
-		if($_POST["DisableLogFileDaemonCategories"]==1){
-			$sock->SET_INFO("DisableLogFileDaemonCategories", 0);
-			
-			
-		}else{
-			$sock->SET_INFO("DisableLogFileDaemonCategories", 1);
-			$sock->SET_INFO("EnableLocalUfdbCatService", 0);
-		}
-	}
+
 		
 	
 }
@@ -227,7 +195,7 @@ function page(){
 	$sock=new sockets();
 	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	if($SquidPerformance>1){
-		echo $tpl->_ENGINE_parse_body(FATAL_WARNING_SHOW_128("{artica_statistics_disabled}"));
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{artica_statistics_disabled}"));
 		return;
 	}
 	$t=time();
@@ -822,21 +790,7 @@ function change_date_js(){
 	
 }
 function change_date_popup(){
-	
-	$q=new mysql_squid_builder();
-	$tables=$q->LIST_TABLES_HOURS_TEMP();
 
-	
-	while (list ($table, $none) = each ($tables) ){
-		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){events_repair("No match `$table` abort... L: ".__LINE__);continue;}
-		$hour=$re[1];
-		$year=substr($hour,0,4);
-		$month=substr($hour,4,2);
-		$day=substr($hour,6,2);
-		$hour=substr($hour,8,2);
-		$time=strtotime("$year-$month-$day $hour:00:00");
-		
-	}
 }
 
 
@@ -953,12 +907,12 @@ function uncompress_file(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("$sql"));
 	
 	if(!$q->ok){
-		echo $tpl->_ENGINE_parse_body("<H1 style='color:red;background:none'>{failed} $q->mysql_error</H1>");
+		echo $tpl->_ENGINE_parse_body("<H1 style='color:#d32d2d;background:none'>{failed} $q->mysql_error</H1>");
 	}
 	
 	if(!uncompress($filepath, $uncompressedfile)){
 		@unlink($filepath);
-		echo $tpl->_ENGINE_parse_body("<H1 style='color:red;background:none'>{failed}</H1>");
+		echo $tpl->_ENGINE_parse_body("<H1 style='color:#d32d2d;background:none'>{failed}</H1>");
 		return;
 	}
 		
@@ -1007,7 +961,7 @@ function uncompress_file_check(){
 	}
 
 	if($_GET["force"]==1){
-		echo $tpl->_ENGINE_parse_body("<H1 style='color:red;background:none'>$uncompressedfile no such file</H1>");
+		echo $tpl->_ENGINE_parse_body("<H1 style='color:#d32d2d;background:none'>$uncompressedfile no such file</H1>");
 		
 	}
 	

@@ -33,10 +33,16 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_POST["time-save"])){time_save();exit;}
 	if(isset($_GET["generic"])){generic_tabs();exit;}
 	if(isset($_POST["EnableArticaAsGateway"])){EnableArticaAsGateway_save();exit;}
+	if(isset($_GET["FireHolInstall-js"])){FireHolInstall_js();exit;}
+	if(isset($_GET["FireHolInstall-wizard-js"])){FireHolInstall_wizard_js();exit;}
+	if(isset($_GET["FireHolInstall-popup"])){echo FireHolInstall();exit;}
+	if(isset($_GET["FireHolwizard-popup"])){echo FireHolWizard();exit;}
+	
+	
 	tabs();
 	
 function tabs(){
-	if(GET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__)){return;}
+	
 	$page=CurrentPageName();
 	$net=new networking();
 	$interfaces=$net->Local_interfaces();
@@ -45,17 +51,52 @@ function tabs(){
 	unset($interfaces["lo"]);
 	ksort($interfaces);
 	$fontsize="font-size:18px;";
+	$users=new usersMenus();
+	$sock=new sockets();
+	$FireHolConfigured=intval($sock->GET_INFO("FireHolConfigured"));
+	if(intval($sock->getFrameWork("firehol.php?is-installed=yes"))==1){
+		if($FireHolConfigured==0){FireHolWizard();return;}
+	}else{
+		FireHolInstall();
+		return;
+	}
 	
-	$html[]="<li><a href=\"$page?generic=yes\" style='$fontsize' ><span>$generic</span></a></li>\n";
+	
+	$array["cartes"]='{interfaces}';
+	$array["services"]='{services}';
 	
 	
-	while (list ($interface, $ligne) = each ($interfaces) ){
-		if(preg_match("#^dummy#", $interface)){continue;}
-		if(preg_match("#^ip6t#", $interface)){continue;}
-		if(preg_match("#^sit[0-9]+#", $interface)){continue;}
-		if(preg_match("#^tunl#", $interface)){continue;}
-		$eth=new system_nic($interface);
-		$html[]="<li><a href=\"$page?iptables=yes&eth=$interface\" style='$fontsize' ><span>$interface $eth->NICNAME</span></a></li>\n";
+	$fontsize="font-size:18px";
+	while (list ($index, $ligne) = each ($array) ){
+		if($index=="cartes"){
+			$html[]= "<li><a href=\"firehole.interfaces.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}
+		
+		if($index=="services"){
+			$html[]= "<li><a href=\"firehole.services.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}		
+	
+		if($index=="nat-proxy"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.nat.proxy.php\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($index=="l7filter"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.l7filter.php\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($index=="antihack"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.iptables.php?tab-iptables-rules=yes&sshd=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($index=="firewall-white"){
+			$html[]= "<li><a href=\"whitelists.admin.php?popup-hosts=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}
 	}
 	
 	
@@ -64,6 +105,50 @@ function tabs(){
 	
 	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
 	echo $html;
+}
+
+function FireHolWizard(){
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$t=time();
+	$html="<div style='width:98%' class=form>
+	<div style='font-size:42px;margin-bottom:10px'>{firewall_wizard}</div>
+		<center style='margin:50px'>". button("{router_mode_require_2nics}","Loadjs('firehol.wizard.router.php')",34)."</center>
+		<center style='margin:50px'>". button("{single_mode}","Loadjs('firehol.wizard.single.php')",34)."</center>
+	</div>";
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function FireHolInstall(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$html="<div style='width:98%' class=form>
+	<div style='font-size:42px;margin-bottom:10px'>{firewall_wizard_install}</div>
+	<div style='font-size:22px;margin-bottom:20px'>
+		{firewall_wizard_install_explain}
+	</div>
+		<center style='margin:50px'>". button("{install_firewall}","Loadjs('firehol.wizard.install.progress.php')",34)."</center>
+	</div>";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function FireHolInstall_js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{firewall_wizard}");
+	echo "YahooWin('1024','$page?FireHolInstall-popup=yes','$title')";
+	
+}
+function FireHolInstall_wizard_js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{install_firewall}");
+	echo "YahooWin('1024','$page?FireHolwizard-popup=yes','$title')";
+
 }
 
 function generic_tabs(){
@@ -874,6 +959,7 @@ function containers_from_eth($eth){
 function iptables_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$q=new mysql();
 	$eth=$_GET["eth"];
 	$sock=new sockets();
 	$EnableArticaAsGateway=intval($sock->GET_INFO("EnableArticaAsGateway"));
@@ -885,7 +971,7 @@ function iptables_status(){
 	if($ethC->Bridged==1){
 		$text=$tpl->_ENGINE_parse_body("{warn_this_interface_is_bridged_to}");
 		$text=str_replace("%s", $ethC->BridgedTo, $text);
-		$error_bridge=FATAL_WARNING_SHOW_128($text);
+		$error_bridge=FATAL_ERROR_SHOW_128($text);
 		
 	}
 	
@@ -896,6 +982,7 @@ function iptables_status(){
 		$isFW=$ligne["isFW"];
 		$isFWAcceptNet=$ligne["isFWAcceptNet"];
 		$isFWLogBlocked=$ligne["isFWLogBlocked"];
+		$isFWAcceptArtica=$ligne["isFWAcceptArtica"];
 		$error_bridge=null;
 		
 	}
@@ -904,10 +991,16 @@ function iptables_status(){
 	$t=time();
 	
 	$EnableArticaAsGateway=Paragraphe_switch_img('{ARTICA_AS_GATEWAY}','{ARTICA_AS_GATEWAY_EXPLAIN}',"EnableArticaAsGateway-$t",$EnableArticaAsGateway,null,550);
-	
 	$p=Paragraphe_switch_img("{activate_firewall_nic}", "{activate_firewall_nic_explain}","isFW-$t",$isFW,null,550);
 	$p1=Paragraphe_switch_img("{trust_local_networks}", "{trust_local_networks_explain}","isFWAcceptNet-$t",$isFWAcceptNet,null,550);
+	$p3=Paragraphe_switch_img("{isFWAcceptArtica}", "{isFWAcceptArtica_explain}","isFWAcceptArtica-$t",$isFWAcceptArtica,null,550);
 	$p2=Paragraphe_switch_img("{isFWLogBlocked}", "{isFWLogBlocked_explain}","isFWLogBlocked-$t",$isFWLogBlocked,null,550);
+	
+	
+	$CountOfRules=$q->COUNT_ROWS("iptables_webint","artica_backup");
+	if($CountOfRules>0){
+		$p3=Paragraphe_switch_disable("{isFWAcceptArtica}", "{isFWAcceptArtica_explain}","isFWAcceptArtica-$t",$isFWAcceptArtica,null,550);
+	}
 	
 	$html="<div style='width:98%' class=form>
 	$error_bridge
@@ -915,7 +1008,7 @@ function iptables_status(){
 		<tr>
 			<td colspan=2 align='right' style='font-size:22px'><hr>
 			". button("{firewall_rules}","Save$t();Loadjs('firewall.view.php')",22)."&nbsp;|&nbsp;
-			". button("{apply_firewall_rules}","Save$t();Loadjs('firewall.restart.php')",22)."
+			". button("{apply_firewall_rules}","Save$t();Loadjs('{ipto}')",22)."
 			<hr>		
 			</td>
 		</tr>
@@ -930,7 +1023,10 @@ function iptables_status(){
 		</tr>
 		<tr>
 			<td colspan=2>$p1</td>
-		</tr>	
+		</tr>
+		<tr>
+			<td colspan=2>$p3</td>
+		</tr>			
 		<tr>
 			<td colspan=2>$p2</td>
 		</tr>			
@@ -954,6 +1050,7 @@ function Save$t(){
 	XHR.appendData('isFW',  document.getElementById('isFW-$t').value);
 	XHR.appendData('isFWLogBlocked',  document.getElementById('isFWLogBlocked-$t').value);
 	XHR.appendData('isFWAcceptNet',  document.getElementById('isFWAcceptNet-$t').value);
+	XHR.appendData('isFWAcceptArtica',  document.getElementById('isFWAcceptArtica-$t').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 		
 	}	
@@ -981,7 +1078,8 @@ function isFW_save(){
 		$q->QUERY_SQL("UPDATE `nics_bridge` SET 
 		`isFW`='{$_POST["isFW"]}',
 		`isFWLogBlocked`='{$_POST["isFWLogBlocked"]}',
-		`isFWAcceptNet`='{$_POST["isFWAcceptNet"]}'		
+		`isFWAcceptNet`='{$_POST["isFWAcceptNet"]}',
+		`isFWAcceptArtica`='{$_POST["isFWAcceptArtica"]}',	
 		WHERE `ID`='{$re[1]}'","artica_backup");
 		if(!$q->ok){echo $q->mysql_error;}
 		return;
@@ -991,6 +1089,7 @@ function isFW_save(){
 	$ethC=new system_nic($eth);
 	$ethC->isFW=$_POST["isFW"];
 	$ethC->isFWAcceptNet=$_POST["isFWAcceptNet"];
+	$ethC->isFWAcceptArtica=$_POST["isFWAcceptArtica"];
 	$ethC->isFWLogBlocked=$_POST["isFWLogBlocked"];
 	$ethC->SaveNic();
 }
@@ -1077,7 +1176,7 @@ function DeleteRule$t(ID){
 }
 
 function Apply$t(){
-	Loadjs('firewall.restart.php');
+	Loadjs('firehol.progress.php');
 }
 
 function ChangEnabled$t(ID){

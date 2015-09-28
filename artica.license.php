@@ -16,7 +16,7 @@ if($usersmenus->AsArticaAdministrator==false){header('location:users.index.php')
 
 if(isset($_GET["tabs-js"])){tab_js();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
-
+if(isset($_GET["lic-status"])){license_status();exit;}
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_POST["REGISTER"])){REGISTER();exit;}
 tab_js();
@@ -77,11 +77,19 @@ function popup(){
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
 	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}	
 	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	$RegisterCloudBadEmail=intval($sock->GET_INFO("RegisterCloudBadEmail"));
+	$RegisterCloudBadEmail_text=null;
 	$t=time();
 	$ASWEB=false;
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
 	if($users->KASPERSKY_WEB_APPLIANCE){$ASWEB=true;}
+	
+	
+	if($RegisterCloudBadEmail){
+		$RegisterCloudBadEmail_text="<p class=text-error style='font-size:18px'>{incorrect_email_address_cloud}</p>";
+	}
+	
 	$titleprice="<strong>{start_99_euros}</strong><hr>";
 	if(!$users->CORP_LICENSE){
 
@@ -216,98 +224,17 @@ function popup(){
 	}
 
 	if($explain<>null){
-		$explain="<div style='font-size:16px' class=text-info>$titleprice<br>$explain$quotation</div>";
+		$explain="<div style='font-size:16px' class=explain>$titleprice<br>$explain$quotation</div>";
 	}	
 	
 	
 	$html="
-	
+	$RegisterCloudBadEmail_text
 	$explain
 	$paypal
 	
 	<div id='$t' ></div>
-	<div  style='width:98%' class=form>
-<table style='width:100%'>
-<tr>
-<td valign='top'>
-	<table style='width:100%'>
-<tr>
-	<td class=legend style='font-size:18px'>{step}:</td>
-	<td style='font-size:28px;font-weight:bold'>$step: $step_text<br></td>
-</tr>	
-	$last_access
-	
-	<tr>
-		<td class=legend style='font-size:18px'>{uuid}:</td>
-		<td style='font-size:16px'>$uuid</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:18px'>{company}:</td>
-	<td>". Field_text("COMPANY-$t",$LicenseInfos["COMPANY"],"font-size:16px;width:240px")."</td>
-</tr>	
-<tr>
-	<td class=legend style='font-size:18px'>{your_email_address}:</td>
-	<td>". Field_text("EMAIL-$t",$LicenseInfos["EMAIL"],"font-size:16px;width:240px")."</td>
-</tr>	
-</tr>
-	<td class=legend style='font-size:18px'>{nb_employees}:</td>
-	<td>". Field_text("EMPLOYEES-$t",$LicenseInfos["EMPLOYEES"],"font-size:16px;width:80px")."</td>
-</tr>
-<tr>
-	<td class=legend style='font-size:18px'>{license_number}:</td>
-	<td style='font-size:16px'>{$LicenseInfos["license_number"]}</td>
-</tr>
-</tr>
-	<td class=legend style='font-size:18px'>{unlock_license}:</td>
-	$unlocklick
-</tr>	
-<tr>
-	<td class=legend style='font-size:18px'>{license_status}:</td>
-	<td style='font-size:28px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
-</tr>			
-<tr>
-	<td colspan=2 align='right'>$bt</td>
-</tr>	
-</table>
-</td>
-<td valign='top' style='width:220px'>
-".Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}","javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');")."</td>
-</tr>
-</table>
-
-</div>
-	
-	<script>
-	var x_RegisterSave$t= function (obj) {
-		var tempvalue=obj.responseText;
-		document.getElementById('$t').innerHTML='';
-		if(tempvalue.length>3){alert(tempvalue);return;}
-		Loadjs('artica.license.progress.php');
-		}	
-	
-		function RegisterSave$t(){
-			var XHR = new XHRConnection();
-			XHR.appendData('COMPANY',document.getElementById('COMPANY-$t').value);
-			XHR.appendData('EMAIL',document.getElementById('EMAIL-$t').value);
-			XHR.appendData('EMPLOYEES',document.getElementById('EMPLOYEES-$t').value);
-			XHR.appendData('UNLOCKLIC',document.getElementById('UNLOCKLIC-$t').value);
-			XHR.appendData('REGISTER','1');
-			XHR.sendAndLoad('$page', 'POST',x_RegisterSave$t);
-		}
-		
-		function CheckCorpLic(){
-			var lic=$CORP_LICENSE;
-			if(lic==1){
-				document.getElementById('COMPANY-$t').disabled=true;
-				document.getElementById('EMAIL-$t').disabled=true;
-				document.getElementById('EMPLOYEES-$t').disabled=true;
-				
-				
-			}
-		}
-	CheckCorpLic();
-	</script>
-	";
+	<script>LoadAjaxRound('$t','$page?lic-status=yes');</script>";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 }
@@ -326,3 +253,242 @@ function REGISTER(){
 	//
 	
 }
+
+
+function license_status(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$RegisterCloudBadEmail=intval($sock->GET_INFO("RegisterCloudBadEmail"));
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	$licenseTime=null;
+	$t=time();
+	$ASWEB=false;
+	if($users->SQUID_INSTALLED){$ASWEB=true;}
+	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
+	if($users->KASPERSKY_WEB_APPLIANCE){$ASWEB=true;}
+	$unlocklick_hidden=null;
+	$your_email_address_color=null;
+	$RegisterCloudBadEmail_text=null;
+	if($RegisterCloudBadEmail==1){
+		$RegisterCloudBadEmail_text="<p class=text-error style='font-size:18px'>{incorrect_email_address_cloud}</p>";
+		$your_email_address_color=";color:#d32d2d !important";
+	}
+	
+	
+	
+	
+	$License_explain=
+	"<div class=explain style='font-size:20px;margin:20px'>".
+	$tpl->_ENGINE_parse_body("{artica_license_explain}")."</div>";
+	
+	$WhichLicense[null]="{select}";
+	$WhichLicense["evaluation"]="{request_an_evaluation_license}";
+	$WhichLicense["cotation"]="{request_an_corporate_license}";
+	
+	$LICENCE_REQUEST_ERROR=$tpl->javascript_parse_text("{LICENCE_REQUEST_ERROR}");
+	if(!isset($LicenseInfos["LICENCE_REQUEST"])){$LicenseInfos["LICENCE_REQUEST"]=null;}
+	
+	$WhichLicense_field="<tr>
+				<td class=legend style='font-size:24px'>{license_request}:</td>
+				<td>". Field_array_Hash($WhichLicense,"LICENCE_REQUEST-$t",
+						$LicenseInfos["LICENCE_REQUEST"],"style:font-size:24px;")."</td>
+			</tr>";
+	
+
+	$unlocklick="<td>". Field_text("UNLOCKLIC-$t",$LicenseInfos["UNLOCKLIC"],"font-size:24px;width:240px")."</td>";
+	if($LicenseInfos["license_status"]==null){
+		$step=1;
+		$LicenseInfos["license_status"]="{waiting_registration}";
+		$star="{explain_license_free}";
+		$button_text="{request_a_quote}/{license2}";
+	}else{
+		$step=2;
+		$step_text="{waiting_order}";
+		$button_text="{update_the_request}";
+		$star="{explain_license_order}";
+		if($LicenseInfos["LICENCE_REQUEST"]=="evaluation"){
+			$step_text="{request_an_evaluation_license}";
+		}
+		
+	}
+	
+	if($LicenseInfos["license_status"]=="{license_active}"){
+		$users->CORP_LICENSE=true;
+		$WhichLicense_field=null;
+		$titleprice=null;
+		$License_explain=null;
+		$unlocklick_hidden="<td style='font-size:24px;font-weight:bold'><input type='hidden' id='UNLOCKLIC-$t' value='{$LicenseInfos["UNLOCKLIC"]}'>{$LicenseInfos["UNLOCKLIC"]}</td>";
+	}
+	
+	if($users->CORP_LICENSE){
+		$star=null;$titleprice=null;
+		$WhichLicense_field=null;
+		$step=3;
+		$step_text="{license_active}";
+	}
+	
+	if(is_numeric($LicenseInfos["TIME"])){
+		$tt=distanceOfTimeInWords($LicenseInfos["TIME"],time());
+		$last_access="
+			<tr>
+				<td class=legend style='font-size:24px'>{last_update}:</td>
+				<td style='font-size:24px'>{since} $tt</td>
+			</tr>";
+	}
+	if($LicenseInfos["GoldKey"]<>null){
+		$LicenseInfos["license_number"]=$LicenseInfos["GoldKey"];
+	}
+	
+	
+	if(trim($LicenseInfos["license_number"])<>null){
+		$explain="{explain_license_order}";
+	}
+	
+	
+	$CORP_LICENSE=0;
+	$textcolor="black";
+	$bt="<hr>".button($button_text,"RegisterSave$t()",26);
+	
+	
+	$unlock_license="<tr>
+			<td class=legend style='font-size:24px'>{unlock_license}:</td>
+			$unlocklick
+		</tr>";
+
+				
+	if($users->CORP_LICENSE){
+		$CORP_LICENSE=1;
+		$textcolor="#23A83E";
+		$paypal=null;
+		$explain=null;
+		$unlock_license=null;
+		$LicenseInfos["license_status"]="{license_active}";
+	}
+	
+	if($explain<>null){
+		$explain="<div style='font-size:16px' class=explain>$titleprice<br>$explain</div>";
+	}
+	
+	$FINAL_TIME=0;
+	
+	if(isset($LicenseInfos["FINAL_TIME"])){$FINAL_TIME=intval($LicenseInfos["FINAL_TIME"]);}
+	
+	
+	
+	if($FINAL_TIME>0){
+		$ExpiresSoon=intval(time_between_day_Web($FINAL_TIME));
+		if($ExpiresSoon<7){
+			$ExpiresSoon_text="<strong style='color:red;font-size:16px'>&nbsp;{ExpiresSoon}</strong>";
+		}
+		$licenseTime="
+			<tr>
+				<td class=legend style='font-size:24px'>{expiredate}:</td>
+				<td style='font-size:24px'>". $tpl->time_to_date($FINAL_TIME)." (".distanceOfTimeInWords(time(),$FINAL_TIME)."$ExpiresSoon_text)</td>
+			</tr>";
+		
+	}
+	
+
+	
+	$html="
+$License_explain
+<div  style='width:98%' class=form>
+$RegisterCloudBadEmail_text
+<table style='width:100%'>
+<tr>
+	<td valign='top'>
+		<table style='width:100%'>
+			<tr>
+				<td class=legend style='font-size:24px;vertical-align:middle;'>{step}:</td>
+				<td style='font-size:28px;font-weight:bold;color:$textcolor'>$step: $step_text<br>
+
+				</td>
+			</tr>
+			<tr>
+				<td colspan=2 align=right'>
+									<div style='text-align:right'><a href=\"javascript:blur();\" 
+							OnClick=\"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');\"
+				style='text-decoration:underline;font-size:16px'>{http_proxy}</a>
+			</td>
+			</tr>
+			$last_access
+			<tr>
+				<td class=legend style='font-size:24px'>{uuid}:</td>
+				<td style='font-size:24px'>$uuid</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:24px'>{company}:</td>
+				<td>". Field_text("COMPANY-$t",$LicenseInfos["COMPANY"],"font-size:24px;width:450px")."</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:24px$your_email_address_color'>{your_email_address}:</td>
+				<td>". Field_text("EMAIL-$t",$LicenseInfos["EMAIL"],"font-size:24px;width:450px$your_email_address_color")."</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:24px'>{nb_employees}:</td>
+				<td>". Field_text("EMPLOYEES-$t",FormatNumber($LicenseInfos["EMPLOYEES"]),"font-size:24px;width:80px")."</td>
+			</tr>
+			
+			$WhichLicense_field
+			<tr>
+				<td class=legend style='font-size:24px'>{license_number}:</td>
+				<td style='font-size:24px'>{$LicenseInfos["license_number"]}</td>
+			</tr>
+			$unlock_license
+			$unlocklick_hidden
+		<tr>
+			<td class=legend style='font-size:24px'>{license_status}:</td>
+			<td style='font-size:28px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
+		</tr>
+		$licenseTime
+		<tr>
+			<td colspan=2 align='right'>$bt</td>
+		</tr>
+	</table>
+</td>
+</table>
+
+	
+<script>
+var x_RegisterSave$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	Loadjs('artica.license.progress.php');
+}
+	
+function RegisterSave$t(){
+	var XHR = new XHRConnection();
+	
+	if(document.getElementById('LICENCE_REQUEST-$t')){
+		var LICENCE_REQUEST=document.getElementById('LICENCE_REQUEST-$t').value;
+		if(LICENCE_REQUEST==''){alert('$LICENCE_REQUEST_ERROR'); return;}
+		XHR.appendData('LICENCE_REQUEST',LICENCE_REQUEST);
+	}
+	
+	XHR.appendData('COMPANY',document.getElementById('COMPANY-$t').value);
+	XHR.appendData('EMAIL',document.getElementById('EMAIL-$t').value);
+	XHR.appendData('EMPLOYEES',document.getElementById('EMPLOYEES-$t').value);
+	if( document.getElementById('UNLOCKLIC-$t') ){
+		XHR.appendData('UNLOCKLIC',document.getElementById('UNLOCKLIC-$t').value);
+	}
+	XHR.appendData('REGISTER','1');
+	XHR.sendAndLoad('$page', 'POST',x_RegisterSave$t);
+}
+	
+function CheckCorpLic(){
+	var lic=$CORP_LICENSE;
+}
+CheckCorpLic();
+</script>
+";
+	
+		echo $tpl->_ENGINE_parse_body($html);
+}
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){$tmp1 = round((float) $number, $decimals); while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)$tmp1 = $tmp2; return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));}

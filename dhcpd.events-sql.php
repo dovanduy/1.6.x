@@ -138,7 +138,7 @@ function search(){
 		$color="black";
 		$uid=null;
 		$mac=null;
-		$js="zBlur()";
+		$js="zblur()";
 		if(preg_match("#to\s+([0-9a-z:]+)\s+via#",$ligne["description"],$re)){$mac=$re[1];}
 		if(preg_match("#from\s+([0-9a-z:]+)\s+via#",$ligne["description"],$re)){$mac=$re[1];}
 		

@@ -391,7 +391,6 @@ this mailing list runs on as a machine capable of reading and posting news.</nnt
 <nonmember_rejection_notice>Rejection notice</nonmember_rejection_notice>
 <nonmember_rejection_notice_text>Text to include in any rejection notice to be sent to non-members who post to this list.[br]
 This notice can include the list's owner address by %(listowner)s and replaces the internally crafted default message.</nonmember_rejection_notice_text>
-<notifications>notifications</notifications>
 <obscure_addresses>Obscure addresses</obscure_addresses>
 <obscure_addresses_text>Show member addresses so they're not directly recognizable as email addresses?[br]
 Setting this option causes member email addresses to be transformed when they are presented on list web pages (both in text and as links),[br]

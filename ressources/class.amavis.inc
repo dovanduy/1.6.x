@@ -573,7 +573,7 @@ function buildconf(){
 		if($this->EnableAmavisInMasterCF==1){$EnableAmavisInMasterCF=true;}
 		$conf=$conf."use strict;\n";
 		$conf=$conf."\n";
-		$conf=$conf."# Configuration file with artica builder " . date('Y-m-d H::i:s')."\n";
+		$conf=$conf."# Configuration file with Engine builder " . date('Y-m-d H::i:s')."\n";
 		$conf=$conf."\n";
 		if($ArticaAmavisEnablePlugin==1){$conf=$conf."include_config_files('/var/amavis-plugins/check-external-users.conf');\n";}
 		$conf=$conf."\n";

@@ -14,7 +14,7 @@ if(function_exists("posix_getuid")){
 
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.html.pages.inc');
-	include_once('class.highcharts.inc');
+	include_once('ressources/class.highcharts.inc');
 	
 	if(isset($_GET["graphProtoHits"])){proto_hits();exit;}
 	if(isset($_GET["graphProtoSize"])){proto_size();exit;}

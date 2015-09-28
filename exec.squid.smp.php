@@ -25,10 +25,20 @@ function fstab(){
 	$unix=new unix();
 	$mkdir=$unix->find_program("mkdir");
 	$mount=$unix->find_program("mount");
-	if(!is_dir("/dev/shm")){
-		echo "Starting......: ".date("H:i:s")." [SMP] creating /dev/shm directory..\n";
-		shell_exec("$mkdir -m 1777 /dev/shm");
+	$rm=$unix->find_program("rm");
+	$ln=$unix->find_program("ln");
+	
+	if(!is_link("/run/shm")){
+	
+		if(!is_dir("/run/shm")){shell_exec("$mkdir -m 1777 /run/shm");}
+	
+		if(!is_link("/dev/shm")){
+			shell_exec("$rm -rf /dev/shm");
+			shell_exec("$ln -s /run/shm /dev/shm");
+		}
 	}
+	
+	
 	echo "Starting......: ".date("H:i:s")." [SMP] checking fstab...\n";
 	$datas=explode("\n",@file_get_contents("/etc/fstab"));
 	

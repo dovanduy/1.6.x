@@ -1,5 +1,8 @@
 <?php
-
+$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+if($EnableIntelCeleron==1){die("EnableIntelCeleron==1\n");}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
@@ -8,7 +11,7 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 // SSD :  VM Artica XEN 4074 seeks/second, 0.25 ms
 xtart();
 
-function events($text,$line){
+function events($text,$line=0){
 	$unix=new unix();
 	$unix->events($text,"/var/log/seeker.log",false,"MAIN",$line,basename(__FILE__));
 	
@@ -34,16 +37,18 @@ function xtart(){
 	}
 	
 	if(system_is_overloaded(basename(__FILE__))){
-		events("Overloaded system, schedule it later");
+		events("Overloaded system, schedule it later",__LINE__);
 		$unix->THREAD_COMMAND_SET("$php ".__FILE__);
 		return;
 	}
 	
 	@file_put_contents($pidfile, getmypid());
 	$timefile=$unix->file_time_min($pidTime);
-	if($timefile<30){
-		events("{$timefile}mn, require at least 30mn",__LINE__);
-		return;
+	if(!$GLOBALS["FORCE"]){
+		if($timefile<30){
+			events("{$timefile}mn, require at least 30mn",__LINE__);
+			return;
+		}
 	}
 	@unlink($pidTime);
 	@file_put_contents($pidTime, time());
@@ -80,7 +85,7 @@ function xtart(){
 			if(!preg_match("#^Results:\s+([0-9]+)\s+seeks.*?,\s+([0-9\.]+)\s+ms#", $line,$re)){continue;}
 			$seeks=$re[1];
 			$ms=$re[2];
-			events("$disk $seeks seeks, $ms ms");
+			events("$disk $seeks seeks, $ms ms",__LINE__);
 			$array=array();
 			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/seeker-queue",0755,true);
 			$array["SEEKS"]=$seeks;
@@ -88,7 +93,7 @@ function xtart(){
 			$array["MS"]=$ms;
 			$array["time"]=time();
 			$unix->ToSyslog("Bench disk $disk $ms ms for $seeks seeks");
-			events("{$GLOBALS["ARTICALOGDIR"]}/seeker-queue/$md5.ay");
+			events("{$GLOBALS["ARTICALOGDIR"]}/seeker-queue/$md5.ay",__LINE__);
 			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/seeker-queue/$md5.ay", serialize($array));
 			$RUN=true;
 			break;

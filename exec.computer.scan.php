@@ -1,4 +1,5 @@
 <?php
+$GLOBALS["VERBOSE"]=false;
 	include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 	include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 	include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
@@ -11,11 +12,11 @@
 	include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
 
 if(is_file("/etc/artica-postfix/AS_KIMSUFFI")){echo "AS_KIMSUFFI!\n";die();}	
+if(preg_match("#--verbose#",implode(' ',$argv))){$GLOBALS["VERBOSE"]=true;}
 if($argv[1]=="--schedules"){set_computer_schedules();exit;}
 if($argv[1]=="--import-list"){importcomputersFromList();exit;}		
 $computer=$argv[1];
-$cmdlines=implode(' ',$argv);
-if(preg_match("#--verbose#",$cmdlines)){$_GET["DEBUG"]=true;}
+
 
 LaunchScan($computer);
 
@@ -48,55 +49,190 @@ function LaunchScan($host){
 	
 }
 
+function build_progress($text,$pourc){
+	$echotext=$text;
+	$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+	echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/ocs.import.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
+function arp_scan_IpToMac($ipaddr){
+	if(!is_file("/usr/bin/arp-scan")){return null;}
+	$ipaddr_regex=str_replace(".", "\.", $ipaddr);
+	exec("/usr/bin/arp-scan --quiet --retry=1 $ipaddr 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(preg_match("#$ipaddr_regex\s+(.+)#", $line,$re)){
+			return trim($re[1]);
+		}
+		
+	}
+	
+	
+}
+
+
 function importcomputersFromList(){
+	$unix=new unix();
+	
+	if(!is_file("/usr/bin/arp-scan")){
+		$unix->DEBIAN_INSTALL_PACKAGE("arp-scan");
+		
+	}
+	
+	
+	
 	
 	$sock=new sockets();
 	$ipClass=new IP();
 	$tbl=explode("\n",$sock->GET_INFO("ComputerListToImport"));
-	writelogs("ComputerListToImport=" . count($tbl)." values",__FUNCTION__,__FILE__,__LINE__);
+	
+	$CountOfLines=count($tbl);
+	
+	build_progress("$CountOfLines {computers}",10);
+	
+	echo "[".__LINE__."] $CountOfLines lines\n";
+	
+	
 	$i=0;
-	$max=count($tbl);
-	while (list ($num, $computername) = each ($tbl)){
-		$z=$z+1;
+	$z=0;
+	$max=$CountOfLines;
+	$FAILED=0;
+	$SUCCESS=0;
+	while (list ($num, $line) = each ($tbl)){
+		$z++;
+		$prc=($z/$CountOfLines)*100;
+		$prc=round($prc);
+		if($prc<10){$prc=10;}
+		if($prc>90){$prc=90;}
+		
+		$proxy_alias=null;
+		$computername=null;
+		$IPADDR=null;
+		$MAC=null;
+		//pc001,192.168.1.5,d8:9e:3f:34:2d:8d,jhon_pc[br]
+		$EXPLODED=explode(",",$line);
+		$computername=$EXPLODED[0];
+		$IPADDR=$EXPLODED[1];
+		$MAC=$EXPLODED[2];
+		$MAC=str_replace("-", ":", $MAC);
+		$MAC=strtolower($MAC);
+		
+		if(isset($EXPLODED[3])){$proxy_alias=trim(strtolower($EXPLODED[3]));}
+		
+		if($proxy_alias<>null){proxy_alias_add($IPADDR,$MAC,$proxy_alias);}
+		
 		$computername=trim($computername);
-		$ip=null;
-		$mac=null;
-		if($computername==null){continue;}
 		
-		if(strpos($computername, " ")>0){
-			$TRB=explode(" ",$computername);
-			$computername=$TRB[0];
-			unset($TRB[0]);
-			while (list ($a, $b) = each ($TRB)){
-				if($b==null){continue;}
-				if($ipClass->isValid($b)){$ip=$b;continue;}
-				if($ipClass->IsvalidMAC($b)){$mac=$b;continue;}	
-				}
-			}
-			
-		if(isset($_GET["arp-ip"])){
-			$ip_arp=unserialize(base64_decode($sock->getFrameWork("cmd.php?arp-ip=".$_GET["arp-ip"])));
-			if(is_array($ip_arp)){$ip=$ip_arp[0];$mac=$ip_arp[1];unset($ip_arp);}
+		
+		if($MAC==null){$MAC=arp_scan_IpToMac($IPADDR);}
+		
+		if($computername==null){
+			echo "[".__LINE__."] Computer Name is null, aborting\n";
+			$FAILED++;
+			continue;
 		}
-		$pourc=round(($z/$max)*100);
-		writelogs("$pourc) $computername",__FUNCTION__,__FILE__,__LINE__);
 		
-		WriteCOmputerBrowseProgress($pourc,"{import}: $computername ($ip/$mac)");
+	
+		if(!$ipClass->isValid($IPADDR)){$IPADDR=null;}
+		if(!$ipClass->IsvalidMAC($MAC)){$MAC=null;}
+		build_progress("$computername $IPADDR/$MAC/$proxy_alias",$prc);
+		
 		$cmp=new computers();
 		
-		if($mac<>null){$uid=$cmp->ComputerIDFromMAC($mac);}else{$uid="$computername$";}
+		if($MAC<>null){$uid=$cmp->ComputerIDFromMAC($MAC);}else{$uid="$computername$";}
 		if($uid==null){$uid="$computername$";}
 		
-		$cmp=new computers($uid);
-		if($ip<>null){$cmp->ComputerIP=$ip;}
-		if($mac<>null){$cmp->ComputerMacAddress=$mac;}
-		$cmp->ComputerRealName=$computername;
-		$cmp->Add();
-		$i=$i+1;
+		if($IPADDR==null){
+			echo "Try to resolve $computername\n";
+			$IPADDR=@gethostbyname($computername);
+			if(!$ipClass->isValid($IPADDR)){$IPADDR=null;}
 		}
-		WriteCOmputerBrowseProgress(0,"{waiting}");
+		
+		$cmp=new computers($uid);
+		if($IPADDR<>null){$cmp->ComputerIP=$IPADDR;}
+		if($MAC<>null){$cmp->ComputerMacAddress=$MAC;}
+		$cmp->ComputerRealName=$computername;
+		if(!$cmp->Add()){
+			echo "$computername: $cmp->ldap_error\n";
+			$FAILED++;}else{$SUCCESS++;}
+		$i=$i+1;
+	}
+	
+	echo "Success: $SUCCESS\n";
+	echo "Failed : $FAILED\n";
+	build_progress("$SUCCESS {added_computers}",95);
+	sleep(10);
+	build_progress("{done}",100);
 	
 }
+
+function proxy_alias_add($IPADDR=null,$MAC=null,$UID=null){
+	if($IPADDR==null){
+		if($MAC==null){
+			return;
+		}
+		
+	}
+
+	$ipClass=new IP();
+	if(!$ipClass->IsvalidMAC($MAC)){$MAC=null;}
+	if(!$ipClass->isValid($IPADDR)){$IPADDR=null;}
+	if(!class_exists("mysql_squid_builder")){include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");}
+
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("webfilters_ipaddr", "ip")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_ipaddr` ADD `ip` int(10) unsigned NOT NULL default '0',ADD INDEX ( `ip` )");
+	}
+
+	$UID=mysql_escape_string2($UID);
+
+
+
+	if($MAC<>null){
+		$sql="UPDATE webfilters_nodes SET uid='{$UID}' WHERE MAC='{$MAC}'";
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$MAC}'"));
+
+		if($ligne["MAC"]==null){
+			$sql="INSERT INTO webfilters_nodes (MAC,uid,hostname,nmapreport,nmap)
+			VALUES ('{$MAC}','{$UID}','','',0)";
+		}
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){
+		echo "Fatal:".$q->mysql_error."\n";
+		return;
+		}
+
+		return;
+	}
+
+
+	if($IPADDR<>null){
+	$ip2Long2=ip2Long2($IPADDR);
+		$sql="UPDATE webfilters_ipaddr SET uid='{$UID}',`ip`='$ip2Long2' WHERE ipaddr='{$IPADDR}'";
+				$q=new mysql_squid_builder();
+				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM webfilters_ipaddr WHERE ipaddr='{$IPADDR}'"));
+
+				if($ligne["ipaddr"]==null){ $sql="INSERT INTO webfilters_ipaddr (ipaddr,uid,ip,hostname) VALUES ('{$IPADDR}','{$UID}','$ip2Long2','')"; }
+				$q->QUERY_SQL($sql);
+				if(!$q->ok){echo "Fatal:".$q->mysql_error."\n";return;}
+				return;
+}
+
+
+
+
+}
+
+
+
 function WriteCOmputerBrowseProgress($pourc,$text){
 	$ini=new Bs_IniHandler();
 	$ini->set('NMAP','pourc',$pourc);

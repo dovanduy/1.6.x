@@ -68,7 +68,7 @@ function js(){
 	
 	
 	
-	$html="YahooWin2(600,'$page?tabs=yes&ou={$_GET["ou"]}&domain=$domain&local={$_GET["local"]}','$title');";
+	$html="YahooWin2(995,'$page?tabs=yes&ou={$_GET["ou"]}&domain=$domain&local={$_GET["local"]}','$title');";
 	echo $html;	
 }
 
@@ -91,32 +91,26 @@ function tabs(){
 	$array["antispam"]="{spam_rules}";
 	
 	
-	
+	$fontsize=22;
 	
 	while (list ($num, $ligne) = each ($array) ){
 			if($num=="antispam"){
-				$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.amavis.php?domain=".urlencode($domain)."&ou={$_GET["ou"]}&bytabs=yes\"><span>$ligne</span></a></li>\n");
+				$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.amavis.php?domain=".urlencode($domain)."&ou={$_GET["ou"]}&bytabs=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 				continue;
 			}
 			if($num=="catch-all"){
-				$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.catchall.php?domain=".urlencode($domain)."&ou={$_GET["ou"]}&bytabs=yes\"><span>$ligne</span></a></li>\n");
+				$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.catchall.php?domain=".urlencode($domain)."&ou={$_GET["ou"]}&bytabs=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 				continue;
 			}
 					
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&domain=".urlencode($domain)."&ou={$_GET["ou"]}\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&domain=".urlencode($domain)."&ou={$_GET["ou"]}\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		
 	}
 	
 	
-	echo "
-	<div id=main_config_relay_domain style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_relay_domain\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_relay_domain");
+	
 }
 
 function config_local(){
@@ -202,7 +196,7 @@ function duplicate(){
 	<table style='width:100%'>
 	<tr>
 	<td width=99%'>
-		<div class=text-info id='div-duplicate-{$_GET["domain"]}'>{duplicate_domain_explain}</div>
+		<div class=explain id='div-duplicate-{$_GET["domain"]}'>{duplicate_domain_explain}</div>
 	</td>
 	<td width=1%>$delete</td>
 	</tr>
@@ -299,6 +293,7 @@ function config(){
 	$ou=$_GET["ou"];
 	$domain=$_GET["domain"];
 	$HashDomains=$ldap->Hash_relay_domains($_GET["ou"]);
+	
 	$routage=$HashDomains[$_GET["domain"]];
 	$tools=new DomainsTools();
 	$arr=$tools->transport_maps_explode($routage);
@@ -307,26 +302,27 @@ function config(){
 
 
 	$html="
-	<div style='font-size:16px'>{$_GET["domain"]}</div>
-	<div class=text-info id='div-{$_GET["domain"]}'>{relaydomain_explain}</div>
+	<div style='font-size:30px;margin-bottom:20px'>{$_GET["ou"]}: {$_GET["domain"]}</div>
+	<div class=explain id='div-{$_GET["domain"]}' style='font-size:18px'>{relaydomain_explain}</div>
 	<p>&nbsp;</p>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{target_computer_name}:</td>
-		<td style='font-size:16px'>". Field_text("target_computer_name","{$arr[1]}","font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:22px'>{target_computer_name}:</td>
+		<td style='font-size:16px'>". Field_text("target_computer_name","{$arr[1]}","font-size:22px;width:490px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{port}:</td>
-		<td style='font-size:16px'>". Field_text("remote-port","{$arr[2]}","font-size:16px;width:60px;text-align:right")."</td>
+		<td class=legend style='font-size:22px'>{port}:</td>
+		<td style='font-size:16px'>". Field_text("remote-port","{$arr[2]}","font-size:22px;width:110px;text-align:right")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","SaveRelayDomainNew()")."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveRelayDomainNew()",40)."</td>
 	</tr>
 	</table>
 	
-	
+	</div>
 	<script>
 		
 		var x_SaveRelayDomainNew= function (obj) {
@@ -393,7 +389,7 @@ $tpl=new templates();
 	$domain=$_GET["domain"];
 	$md5=md5($domain);
 	$html="
-	<div class=text-info>{aliases_domains_explain}</div>
+	<div class=explain>{aliases_domains_explain}</div>
 	
 		<center>
 		<table style='width:450px' class=form>
@@ -602,7 +598,7 @@ function users_database(){
 	if($ldap->ExistsDN($dn)){$trusted_smtp_domain=1;}
 	
 	if($trusted_smtp_domain==1){
-		$html="<div class=text-info>{DOMAIN_TRUSTED_NO_USERDB_TEXT}</div>";
+		$html="<div class=explain>{DOMAIN_TRUSTED_NO_USERDB_TEXT}</div>";
 		echo $tpl->_ENGINE_parse_body($html);return;
 	}
 	
@@ -652,7 +648,7 @@ function users_import_form(){
 	$domain=$_GET["domain"];	
 	$importing=$tpl->javascript_parse_text("{importing}");
 	$html="
-	<div class=text-info>{DOMAIN_NO_TRUSTED_IMPORT_TEXT}</div>
+	<div class=explain>{DOMAIN_NO_TRUSTED_IMPORT_TEXT}</div>
 	<p>&nbsp;</p>
 	<div style='text-align:right;width:100%'>". button("{import}","ImportUsersIntoDB()")."</div><hr>
 	<textarea style='width:100%;height:350px;overflow:auto' id='domain-relay-import-field'></textarea>
@@ -690,7 +686,7 @@ function aliases_import_form(){
 	$domain=$_GET["domain"];	
 	$importing=$tpl->javascript_parse_text("{importing}");
 	$html="
-	<div class=text-info>{DOMAIN_ALIASES_IMPORT_TEXT}</div>
+	<div class=explain>{DOMAIN_ALIASES_IMPORT_TEXT}</div>
 	<p>&nbsp;</p>
 	<div style='text-align:right;width:100%'>". button("{import}","ImportAliasesIntoDB()")."</div><hr>
 	<textarea style='width:100%;height:350px;overflow:auto' id='domain-relay-import-field'></textarea>

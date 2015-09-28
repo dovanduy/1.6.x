@@ -642,7 +642,7 @@ function page_fetchmail_aliases_index(){
 	
 	
 	$html="
-	<div class=text-info>{fetchmail_aliases_text}</div>
+	<div class=explain>{fetchmail_aliases_text}</div>
 	$form
 	";
 	
@@ -732,7 +732,7 @@ function find_isp_popup(){
 	$isp_list[null]="{select}";
 	
 	$html="
-	<div class=text-info style='font-size:14px'>{GET_RIGHT_ISP_SETTINGS_TEXT}</div>
+	<div class=explain style='font-size:14px'>{GET_RIGHT_ISP_SETTINGS_TEXT}</div>
 	<table class=form style='width:99%'>
 	<tr>
 		<td valign='top' class=legend style='font-size:14px'>{ISP}:</td>

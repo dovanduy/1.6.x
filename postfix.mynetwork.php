@@ -219,7 +219,7 @@ function new_address_popup(){
 	$tpl=new templates();	
 	$t=$_GET["t"];		
 	
-$html="<div style='font-size:18px;' class=text-info>{mynetworks_text}</div>
+$html="<div style='font-size:18px;' class=explain>{mynetworks_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -258,7 +258,7 @@ function new_range_popup(){
 	$calculate=$tpl->javascript_parse_text("{calculate}");
 $html="
 <center><span id='mynetworks-text-$t' style='font-size:40px'></span></center>
-<div style='font-size:14px;' class=text-info style='font-size:18px'>{give_ip_from_ip_to}<br></div>
+<div style='font-size:14px;' class=explain style='font-size:18px'>{give_ip_from_ip_to}<br></div>
 <input type='hidden' id='mynetworks-$t' value=''>
 <div style='width:98%' class=form>
 	<table style='width:100%' >

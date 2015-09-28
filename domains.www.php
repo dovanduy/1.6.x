@@ -276,7 +276,7 @@ if($_GET["host"]<>null){
 			if($_GET["host"]<>null){
 				$port=$ApacheGroupWarePort;
 				if($LoadVhosts["wwwsslmode"]==1){$port=$ApacheGroupWarePortSSL;}
-				$sugar_warn="<strong style='color:red'>{SUGAR_WARNING_FINISH_INSTALL}:<br>
+				$sugar_warn="<strong style='color:#d32d2d'>{SUGAR_WARNING_FINISH_INSTALL}:<br>
 				<a style='font-size:12px;font-weight:bold;text-decoration:underline' href='http://{$_GET["host"]}:$ApacheGroupWarePort/install.php?goto=SilentInstall&cli=true'>http://{$_GET["host"]}:$ApacheGroupWarePort/install.php?goto=SilentInstall&cli=true<a>
 
 				";

@@ -62,19 +62,19 @@ function table(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$SQUID_INSTALLED=1;
-	$newdns="{name: '$new_dns', bclass: 'add', onpress : dnsadd},";
+	$newdns="{name: '<strong style=font-size:18px>$new_dns</strong>', bclass: 'add', onpress : dnsadd},";
 	if($EnableRemoteStatisticsAppliance==1){$newdns=null;}
 	if(!$users->SQUID_INSTALLED){$SQUID_INSTALLED=0;}
 	$buttons="
 	buttons : [
 		$newdns
-		{name: '$domains: $blacklist', bclass: 'Copy', onpress : BlackList$t},
-		{name: '$restart_service', bclass: 'ReConf', onpress : RestartService$t},
+		{name: '<strong style=font-size:18px>$domains: $blacklist</strong>', bclass: 'Copy', onpress : BlackList$t},
+		{name: '<strong style=font-size:18px>$restart_service</strong>', bclass: 'ReConf', onpress : RestartService$t},
 	],";
 
 	
 
-$html="	$texttoadd<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
+$html="<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var xmemnum=0;
 $(document).ready(function(){
@@ -82,12 +82,11 @@ $('#table-$t').flexigrid({
 	url: '$page?details-tablerows=yes&t=$t&field={$_GET["field"]}&value={$_GET["value"]}&EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'zOrder', width :40, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'none', width :45, sortable : false, align: 'center'},
-		{display: '$dns_nameservers', name : 'server', width :386, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'zOrder', width :42, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'},		
-		{display: '&nbsp;', name : 'none2', width :45, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'zOrder', width :50, sortable : true, align: 'center'},
+		{display: '$dns_nameservers', name : 'server', width :632, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'zOrder', width :122, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'dup', width :122, sortable : false, align: 'center'},		
+		{display: '&nbsp;', name : 'none2', width :122, sortable : false, align: 'center'},
 	],
 	$buttons
 	sortname: 'zOrder',
@@ -98,7 +97,7 @@ $('#table-$t').flexigrid({
 	rp: 15,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 250,
+	height: 550,
 	singleSelect: true
 	
 	});   
@@ -259,19 +258,18 @@ function details_tablerows(){
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
-		$delete=imgtootltip('delete-24.png','{delete}',"DnsDelete$t('{$ligne["dnsserver"]}')");
+		$delete=imgtootltip('delete-32.png','{delete}',"DnsDelete$t('{$ligne["dnsserver"]}')");
 		$up=imgsimple("arrow-up-32.png","","SquidDNSUpDown('{$ligne['ID']}',1)");
 		$down=imgsimple("arrow-down-32.png","","SquidDNSUpDown('{$ligne['ID']}',0)");
 		
 		$data['rows'][] = array(
 				'id' => "squid-dns-{$ligne["ID"]}",
 				'cell' => array(
-						"<span style='font-size:18px'>{$ligne["zOrder"]}</span>",
-						"<span style='font-size:12.5px'><img src='img/32-samba-pdc.png'></span>",
-						"<span style='font-size:18px'>{$ligne["dnsserver"]}</span>",
-						"<span style='font-size:12.5px'>$up</span>",
-						"<span style='font-size:12.5px'>$down</span>",
-						"<span style='font-size:12.5px'>$delete</span>",
+						"<span style='font-size:26px'>{$ligne["zOrder"]}</span>",
+						"<span style='font-size:26px'>{$ligne["dnsserver"]}</span>",
+						"<center style='font-size:12.5px'>$up</center>",
+						"<center style='font-size:12.5px'>$down</center>",
+						"<center style='font-size:12.5px'>$delete</center>",
 				)
 		);		
 

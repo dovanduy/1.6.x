@@ -163,6 +163,7 @@ $ArticaScheduleUpdates=$sock->GET_INFO("ArticaScheduleUpdates");
 $DisableInstantLDAPBackup=$sock->GET_INFO("DisableInstantLDAPBackup");
 $EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
 $EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+$ArticaUpdateIntervalAllways=intval($sock->GET_INFO("ArticaUpdateIntervalAllways"));
 
 if(!is_numeric($DisableInstantLDAPBackup)){$DisableInstantLDAPBackup=0;}
 if(!is_numeric($EnableNightlyInFrontEnd)){$EnableNightlyInFrontEnd=1;}
@@ -203,6 +204,21 @@ if($EnableArticaMetaClient==1){
 }
 
 $CURVER=@file_get_contents("VERSION");
+
+if(preg_match("#^2\.#", $CURVER)){
+	$UpgradeTov10=intval($sock->GET_INFO("UpgradeTov10"));
+	if($UpgradeTov10==0){
+		
+		$html=FATAL_INFO_SHOW_128("{need_to_upgrade_to_v10}").
+		"<center style='margin:50px'>".button("{perform_upgrade}","Loadjs('squid.upgradev10.progress.php')",42)."</center>";
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+	
+}
+
+
+
 $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	$html="
 	<input type='hidden' id='perform_update_text' value='{perform_update_text}'>
@@ -219,6 +235,18 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	</table>
 	";
 	
+	
+	
+	if($AUTOUPDATE["nightlybuild"]=="yes"){$AUTOUPDATE["nightlybuild"]=1;}else{$AUTOUPDATE["nightlybuild"]=0;}
+	if($AUTOUPDATE["front_page_notify"]=="yes"){$AUTOUPDATE["front_page_notify"]=1;}else{$AUTOUPDATE["front_page_notify"]=0;}
+	
+	if($AUTOUPDATE["autoinstall"]=="yes"){$AUTOUPDATE["autoinstall"]=1;}else{$AUTOUPDATE["autoinstall"]=0;}
+	if($AUTOUPDATE["enabled"]=="yes"){$AUTOUPDATE["enabled"]=1;}else{$AUTOUPDATE["enabled"]=0;}
+	if($AUTOUPDATE["samba_notify"]=="yes"){$AUTOUPDATE["samba_notify"]=1;}else{$AUTOUPDATE["samba_notify"]=0;}
+	
+	
+	
+	
 	$form=
 	Field_hidden("EnablePatchUpdates", $EnablePatchUpdates).
 	Field_hidden("EnableSystemUpdates", $EnableSystemUpdates).
@@ -230,7 +258,7 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<tr>
 		<td style='width:30%' valign=middle><div id='status-versions'></div></td>
 		<td style='width:70%'>
-	<div class=text-info style='font-size:16px'>
+	<div class=explain style='font-size:16px'>
 		<div style='margin-bottom:5px;text-align:right;padding-bottom:1px;border-bottom:1px solid #999999;width:97%'>
 			<strong style='font-size:22px'>{current} Artica v.$CURVER Branch v.$CUR_BRANCH</strong>
 		</div>{autoupdate_text}
@@ -247,28 +275,32 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<table style='width:99%' >
 	<tr>
 		<td width=1% nowrap align='right' class=legend class=legend style='font-size:16px'>{enable_autoupdate}:</strong></td>
-		<td align='left'>" . Field_yesno_checkbox('enabled',$AUTOUPDATE["enabled"])."</td>
+		<td align='left'>" . Field_checkbox_design('enabled',1,$AUTOUPDATE["enabled"])."</td>
 	</tr>
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{enable_autoinstall}:</strong></td>
-		<td align='left'>" . Field_yesno_checkbox('autoinstall',$AUTOUPDATE["autoinstall"])."</td>
+		<td align='left'>" . Field_checkbox_design('autoinstall',1,$AUTOUPDATE["autoinstall"])."</td>
 	</tr>
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{enable_nightlybuild}:</strong></td>
-		<td align='left'>" . Field_yesno_checkbox('nightlybuild',$AUTOUPDATE["nightlybuild"])."</td>
+		<td align='left'>" . Field_checkbox_design('nightlybuild',1,$AUTOUPDATE["nightlybuild"])."</td>
 	</tr>
 	<tr>
+		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{free_update_during_the_day}:</strong></td>
+		<td align='left'>" . Field_checkbox_design('ArticaUpdateIntervalAllways',1,$ArticaUpdateIntervalAllways)."</td>
+	</tr>				
+	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{EnableNightlyInFrontEnd}:</strong></td>
-		<td align='left'>" . Field_checkbox('EnableNightlyInFrontEnd',1,$EnableNightlyInFrontEnd)."</td>
+		<td align='left'>" . Field_checkbox_design('EnableNightlyInFrontEnd',1,$EnableNightlyInFrontEnd)."</td>
 	</tr>
 
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{front_page_notify}:</strong></td>
-		<td align='left'>" . Field_yesno_checkbox('front_page_notify',$AUTOUPDATE["front_page_notify"])."</td>
+		<td align='left'>" . Field_checkbox_design('front_page_notify',1,$AUTOUPDATE["front_page_notify"])."</td>
 	</tr>";
 	if($users->SAMBA_INSTALLED){
 	$form=$form."<td width=1% nowrap align='right' class=legend style='font-size:16px'>{samba_notify}:</strong></td>
-	<td align='left'>" . Field_yesno_checkbox('samba_notify',$AUTOUPDATE["samba_notify"])."</td>
+	<td align='left'>" . Field_checkbox_design('samba_notify',1,$AUTOUPDATE["samba_notify"])."</td>
 	</tr>";
 	}	
 	
@@ -277,7 +309,7 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	<tr><td colspan=2>&nbsp;</td></tr>
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{DisableInstantLDAPBackup}:</strong></td>
-		<td align='left'>" . Field_checkbox('DisableInstantLDAPBackup',1,$DisableInstantLDAPBackup)."</td>
+		<td align='left'>" . Field_checkbox_design('DisableInstantLDAPBackup',1,$DisableInstantLDAPBackup)."</td>
 	</tr>	
 	
 	";
@@ -321,7 +353,7 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	</tr>	
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{NoCheckSquid}:</strong></td>
-		<td align='left'>" . Field_checkbox('NoCheckSquid',1,$NoCheckSquid)."&nbsp;</td>
+		<td align='left'>" . Field_checkbox_design('NoCheckSquid',1,$NoCheckSquid)."&nbsp;</td>
 	</tr>
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{HTTP_TIMEOUT}:</strong></td>
@@ -333,12 +365,12 @@ $CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	</tr>										
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{EnableScheduleUpdates}:</strong></td>
-		<td align='left'>" . Field_checkbox('EnableScheduleUpdates',1,$EnableScheduleUpdates,"CheckSchedules()" )."&nbsp;
+		<td align='left'>" . Field_checkbox_design('EnableScheduleUpdates',1,$EnableScheduleUpdates,"CheckSchedules()" )."&nbsp;
 		<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('cron.php?field=ArticaScheduleUpdates&function2=SaveArticaUpdateForm')\" style='font-size:16px;text-decoration:underline;color:black' id='scheduleAID'>{schedule}</a>
 	</td>
 	<tr>
 		<td width=1% nowrap align='right' class=legend style='font-size:16px'>{RebootAfterArticaUpgrade}:</strong></td>
-		<td align='left'>" . Field_checkbox('RebootAfterArticaUpgrade',1,$RebootAfterArticaUpgrade,"RebootAfterArticaUpgradeCheck()" )."&nbsp;
+		<td align='left'>" . Field_checkbox_design('RebootAfterArticaUpgrade',1,$RebootAfterArticaUpgrade,"RebootAfterArticaUpgradeCheck()" )."&nbsp;
 	</tr>	
 	
 	
@@ -406,7 +438,8 @@ var x_SaveArticaUpdateForm= function (obj) {
 		}
 		
 		if(document.getElementById('nightlybuild')){
-			if(document.getElementById('nightlybuild').checked){XHR.appendData('nightlybuild','yes');}else{XHR.appendData('nightlybuild','no');}
+			if(document.getElementById('nightlybuild').checked){
+				XHR.appendData('nightlybuild','yes');}else{XHR.appendData('nightlybuild','no');}
 		}		
 		
 		if(document.getElementById('front_page_notify')){
@@ -416,6 +449,12 @@ var x_SaveArticaUpdateForm= function (obj) {
 		if(document.getElementById('EnableNightlyInFrontEnd')){
 			if(document.getElementById('EnableNightlyInFrontEnd').checked){XHR.appendData('EnableNightlyInFrontEnd','1');}else{XHR.appendData('EnableNightlyInFrontEnd','0');}
 		}
+		
+		if(document.getElementById('ArticaUpdateIntervalAllways')){
+			if(document.getElementById('ArticaUpdateIntervalAllways').checked){XHR.appendData('ArticaUpdateIntervalAllways','1');}else{XHR.appendData('ArticaUpdateIntervalAllways','0');}
+		}		
+		
+		
 		if(document.getElementById('EnablePatchUpdates')){
 			if(document.getElementById('EnablePatchUpdates').checked){XHR.appendData('EnablePatchUpdates','1');}else{XHR.appendData('EnablePatchUpdates','0');}
 		}
@@ -656,8 +695,9 @@ function main_artica_update_switch(){
 
 function webfiltering_tabs(){
 	$array["databases"]='{databases}';
-	$array["status"]='{status}';
+	$array["status"]='{parameters}';
 	$array["schedule"]='{update_schedule}';
+	$array["update"]='{update_events}';
 	$array["categories"]='{categories}';
 	$tpl=new templates();
 	$fontsize=22;
@@ -691,6 +731,12 @@ function webfiltering_tabs(){
 			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
+		if($num=="update"){
+			$html[]= "<li>
+			<a href=\"squid.articadb-events.php\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}		
 	}
 	
 	echo build_artica_tabs($html, "main_webfiltering_updates")."<script>LeftDesign('update-256-white-opac20.png');</script>";
@@ -703,61 +749,92 @@ function main_artica_update_tabs(){
 	
 	$sock=new sockets();
 	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
+	$EnableArticaMetaServer=intval($sock->GET_INFO("EnableArticaMetaServer"));
+	
 	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	if($EnableSystemUpdates==1){
 		$array["apt"]='{system}';
 	}
 	$array["config"]='{parameters}';
-	$array["softwares"]='{softwares}';
 	
-	if($users->SQUID_INSTALLED){
-		$array["articadb"]='{webfiltering_databases}';
+	if($EnableArticaMetaServer==1){
+		$array["webfilter"]="{webfilter_databases}";
 		
 	}
+	
+	$array["influx"]='{APP_INFLUXDB}';
+	$array["softwares"]='{softwares}';
+	
+	
 	
 	if($users->VMWARE_TOOLS_INSTALLED){
 		$array["vmware"]='{APP_VMTOOLS}';
 	}
 	
 	$array["events"]='{events}';
+	
+	
+	
+	
 	$tpl=new templates();
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.admin.events.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");	
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.admin.events.php\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");	
+			continue;
+		}
+		
+		if($num=="webfilter"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"ufdb.categories.status.php\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		if($num=="influx"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"influx.update.php\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="vmware"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"VMWareTools.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"VMWareTools.php?popup=yes\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
-		}
-				
+		}		
+		
+		if($num=="config"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.updatev10.php\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
+			continue;
+		}				
 		
 		if($num=="softwares"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.softwares.php\">
-					<span style='font-size:18px'>$ligne</span></a></li>\n");
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		if($num=="articadb2"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php?status=yes&maximize=yes\">
-					<span style='font-size:18px'>$ligne</span></a></li>\n");
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="articadb"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?webfiltering-tabs=yes\">
-					<span style='font-size:18px'>$ligne</span></a></li>\n");
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main_artica_update=$num\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main_artica_update=$num\">
+				<span style='font-size:22px'>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_config_artica_update")."<script>LeftDesign('update-256-white-opac20.png');</script>";
+	echo build_artica_tabs($html, "main_config_artica_update",1490)."<script>LeftDesign('update-256-white-opac20.png');</script>";
 	
 	
 }
@@ -779,6 +856,10 @@ $ini->loadString($configDisk);
 	$sock->SET_INFO("ArticaScheduleUpdates",$_GET["ArticaScheduleUpdates"]);
 	$sock->SET_INFO("RebootAfterArticaUpgrade",$_GET["RebootAfterArticaUpgrade"]);
 	$sock->SET_INFO("EnableSystemUpdates",$_GET["EnableSystemUpdates"]);
+	$sock->SET_INFO("ArticaUpdateIntervalAllways",$_GET["ArticaUpdateIntervalAllways"]);
+	
+	
+	
 	
 	if(isset($_GET["CurlBandwith"])){
 		$sock->SET_INFO("CurlBandwith",$_GET["CurlBandwith"]);
@@ -831,7 +912,7 @@ while (list ($num, $ligne) = each ($tbl) ){
 		  
 		  
 		  
-		  if($color){$colorw="color:red";}
+		  if($color){$colorw="color:#d32d2d";}
 		  if($color_blue){$colorw="color:blue";}
 		  
 		  if(preg_match("#Downloading new version#",$ligne)){
@@ -883,7 +964,7 @@ function main_artica_update_events(){
 	  $maintenant=date('Y-m-d H:00:00');
 	  $today=date('Y-m-d');
 	  while (list ($num, $ligne) = each ($tbl2) ){
-	  		if($ligne["DATE"]==$maintenant){$color="color:red";$text="({today})";}else{$color=null;$text=null;}
+	  		if($ligne["DATE"]==$maintenant){$color="color:#d32d2d";$text="({today})";}else{$color=null;$text=null;}
 	  		if(preg_match("#$today#",$ligne["DATE"])){$text="({today})";}else{$text=null;}
 	  		
 		  $table=$table . "<tr ". CellRollOver("ShowArticaUpdateEvents('{$ligne["FILE"]}')").">

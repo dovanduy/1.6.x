@@ -31,10 +31,10 @@ function build(){
 	$sql="SELECT * FROM computers_time WHERE `enabled`=1";
 	
 	
-	build_progress("Starting query",10);
+	build_progress_computaccess("Starting query",10);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){
-		build_progress("MySQL error",110);
+		build_progress_computaccess("MySQL error",110);
 		echo $q->mysql_error;
 		die();
 	}
@@ -50,7 +50,7 @@ function build(){
 		$MAC=$ligne["MAC"];
 		$c++;
 		reset($ARRAYF);
-		build_progress("Settings for $MAC",15);
+		build_progress_computaccess("Settings for $MAC",15);
 		
 		while (list ($DAY, $indexDay) = each ($ARRAYF)){
 			$AM=explode(";",$ligne["{$DAY}_AM"]);
@@ -66,40 +66,41 @@ function build(){
 	
 	@unlink("/etc/squid3/MacRestrictAccess.db");
 	if($c>0){
-		build_progress("Building configuration",50);
+		build_progress_computaccess("Building configuration",50);
 		@file_put_contents("/etc/squid3/MacRestrictAccess.db", serialize($array));
 		if(!$GLOBALS["nocheck"]){
-			build_progress("Checking configuration",55);
+			build_progress_computaccess("Checking configuration",55);
 			if(!CheckConf()){return;}
 		}
 	}else{
-		build_progress("{no_activated_rule}",110);
+		build_progress_computaccess("{no_activated_rule}",110);
 		return;
 	}
-	build_progress("{done}",100);
+	build_progress_computaccess("{done}",100);
 	
 }
 
 function CheckConf(){
 	$unix=new unix();
-	build_progress("Check Proxy service",60);
+	build_progress_computaccess("Check Proxy service",60);
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	
 	if(!IsInConf()){
-		build_progress("Rebuild Proxy service",70);
+		build_progress_computaccess("Rebuild Proxy service",70);
 		system("$php /usr/share/artica-postfix/exec.squid.php --build --force");
-		if(!IsInConf()){build_progress("{failed}",110);return false;}
+		if(!IsInConf()){build_progress_computaccess("{failed}",110);return false;}
+		build_progress_computaccess("{done}",100);
 		return true;
 	}	
 	
-	build_progress("{reloading_proxy_service}",70);
+	build_progress_computaccess("{reloading_proxy_service}",70);
 	system("$nohup $php /usr/share/artica-postfix/exec.squid.watchdog.php --reload --script=".basename(__FILE__)." >/dev/null 2>&1 &");
 	return true;
 	
 }
 
-function build_progress($text,$pourc){
+function build_progress_computaccess($text,$pourc){
 
 
 
@@ -117,7 +118,7 @@ function build_progress($text,$pourc){
 
 function IsInConf(){
 
-	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
+	$f=explode("\n",@file_get_contents("/etc/squid3/external_acls.conf"));
 	while (list ($index, $line) = each ($f)){
 		if(preg_match("#external_acl_type ArticaRestrictAccess#i", $line)){return true;}
 	}

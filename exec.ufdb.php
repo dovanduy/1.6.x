@@ -10,6 +10,7 @@ $GLOBALS["UFDBTAIL"]=false;
 $GLOBALS["TITLENAME"]="Webfilter Daemon";
 $GLOBALS["AFTER-FATAL-ERROR"]=false;
 $GLOBALS["BYSCHEDULE"]=false;
+$GLOBALS["UPDATER"]=false;
 $GLOBALS["HUMAN"]=false;
 $GLOBALS["PID_PATH"]="/var/run/urlfilterdb/ufdbguardd.pid";
 $GLOBALS["CACHE_IHM"]="/usr/share/artica-postfix/ressources/logs/web/ufdb.rules_toolbox_left.html";
@@ -25,6 +26,7 @@ if(preg_match("#--watchdog#",implode(" ",$argv),$re)){$GLOBALS["WATCHDOG"]=true;
 if(preg_match("#--ufdbtail#",implode(" ",$argv),$re)){$GLOBALS["UFDBTAIL"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--fatal-error#",implode(" ",$argv),$re)){$GLOBALS["AFTER-FATAL-ERROR"]=true;$GLOBALS["FORCE"]=true;}
 if(preg_match("#--human#",implode(" ",$argv),$re)){$GLOBALS["HUMAN"]=true;$GLOBALS["FORCE"]=true;}
+if(preg_match("#--updater#",implode(" ",$argv),$re)){$GLOBALS["UPDATER"]=true;$GLOBALS["FORCE"]=true;}
 
 
 
@@ -74,9 +76,9 @@ function restart() {
 	}
 	
 	
-	if($GLOBALS["SCHEDULE_ID"]>0){$NOTIFY=true;squid_admin_mysql(2, "Scheduled task executed: Restart Web filtering service$FORCED_TEXT", "This is a schedule task ID:{$GLOBALS["SCHEDULE_ID"]}",__FILE__,__LINE__);}
-	if($GLOBALS["WATCHDOG"]){$NOTIFY=true;squid_admin_mysql(2, "Restart Web filtering service$FORCED_TEXT ( by Watchdog )", "nothing",__FILE__,__LINE__);}
-	if($GLOBALS["UFDBTAIL"]){$NOTIFY=true;squid_admin_mysql(2, "Restart Web filtering service$FORCED_TEXT ( by Artica Tailer )", "nothing",__FILE__,__LINE__);}
+	if($GLOBALS["SCHEDULE_ID"]>0){$NOTIFY=true;squid_admin_mysql(1, "Scheduled task executed: Restart Web filtering service$FORCED_TEXT", "This is a schedule task ID:{$GLOBALS["SCHEDULE_ID"]}",__FILE__,__LINE__);}
+	if($GLOBALS["WATCHDOG"]){$NOTIFY=true;squid_admin_mysql(1, "Restart Web filtering service$FORCED_TEXT ( by Watchdog )", "nothing",__FILE__,__LINE__);}
+	if($GLOBALS["UFDBTAIL"]){$NOTIFY=true;squid_admin_mysql(1, "Restart Web filtering service$FORCED_TEXT ( by Artica Tailer )", "nothing",__FILE__,__LINE__);}
 	
 	if(!$NOTIFY){
 		squid_admin_mysql(2, "Restart Web filtering service$FORCED_TEXT ( by -- )", "nothing",__FILE__,__LINE__);
@@ -122,14 +124,15 @@ function force_restart_squid(){
 		system("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 	}
 	start(true,true);
-	
-	
 	build_progress("{reconfiguring} {done}",100);
 }
 
 function ChecksConfig(){
 	$sock=new sockets();
 	$unix=new unix();
+	$Urgency=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency"));
+	if($Urgency==1){return true;}
+	
 	$ufdbguardConfig=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	$ufdbClass=new compile_ufdbguard();
 	$datas=$ufdbClass->SetDefaultsConfig($ufdbguardConfig);
@@ -155,15 +158,8 @@ function ChecksConfig(){
 	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 	while (list ($index, $ligne) = each ($f) ){
 		$ligne=trim($ligne);
-		if(preg_match("#url_rewrite_program.*?ufdbgclient.*?-S\s+(.+?)\s+-p\s+([0-9]+)\s+#", $ligne,$re)){
-			$squid_listen=trim($re[1]);
-			$squid_port=intval($re[2]);
-			build_progress("{APP_UFDBGUARD} $uri",20);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Squid is configured to $squid_listen:$squid_port\n";}
-			if($squid_listen==$listen_addr){
-				if($squid_port==$port){return true;}
-			}
-		}
+		if(preg_match("#^url_rewrite_program.*?ufdbgclient#", $ligne,$re)){return true;}
+		
 	}
 	build_progress("{APP_UFDBGUARD} $uri",20);
 	return false;
@@ -308,9 +304,16 @@ function start($aspid=false,$nochecksquid=false){
 		return;
 	}
 	
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$UseRemoteUfdbguardService=intval($sock->GET_INFO("UseRemoteUfdbguardService"));
 	if($UseRemoteUfdbguardService==1){$EnableUfdbGuard=0;}
+	$SquidUFDBUrgency=intval($sock->GET_INFO("SquidUFDBUrgency"));
+	if($SquidUFDBUrgency==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} * * * * Your Web filtering is on Emergency mode ! * * * *\n";}
+		stop();
+		return;		
+		
+	}
 
 	if($EnableUfdbGuard==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableUfdbGuard)\n";}
@@ -367,8 +370,8 @@ function start($aspid=false,$nochecksquid=false){
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	if(!isset($datas["listen_port"])){$datas["listen_port"]=3977;}
 	if(!isset($datas["tcpsockets"])){$datas["tcpsockets"]=1;}
-	$Threads=@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbGuardThreads");
-	if(!is_numeric($Threads)){$Threads=65;}
+	$Threads=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbGuardThreads"));
+	if($Threads==0){$Threads=64;}
 	if($Threads>140){$Threads=140;}
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} pid path: {$GLOBALS["PID_PATH"]}\n";}
@@ -393,7 +396,7 @@ function start($aspid=false,$nochecksquid=false){
 	shell_exec("$chown squid:squid /etc/squid3/ufdbGuard.conf");
 	@unlink("/etc/artica-postfix/pids/UfdbGuardReload.time");
 	@file_put_contents("/etc/artica-postfix/pids/UfdbGuardReload.time", time());
-	
+	squid_admin_mysql(1, "Starting the Web filtering Daemon...", "This is a notification in order to inform:\n".basename(__FILE__)." script start the Web filtering Dameon service",__FILE__,__LINE__);
 	$cmd="$Masterbin -c /etc/squid3/ufdbGuard.conf -U squid -w $Threads -N >/dev/null 2>&1 &";
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	system($cmd);
@@ -408,7 +411,7 @@ function start($aspid=false,$nochecksquid=false){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
 	}
-
+	@unlink("/var/log/squid/UFDB_SOCKET_ERROR");
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if(IsPortListen()==0){
@@ -420,8 +423,10 @@ function start($aspid=false,$nochecksquid=false){
 		if(!$nochecksquid){build_progress("{checking_configuration}",50);
 		if(!ChecksConfig()){
 			build_progress("{reconfiguring} {APP_SQUID}",70);
+			squid_admin_mysql(1,"Web filtering is not linked with the proxy service [action=reconfigure]", null, __FILE__,__LINE__);
 			system("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 		}}
+		@unlink("/var/log/squid/UFDB_SOCKET_ERROR");
 		return true;
 	}
 	
@@ -477,6 +482,7 @@ function stop($aspid=false){
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		killbyports();
+		@unlink("/var/log/squid/UFDB_SOCKET_ERROR");
 		return;
 	}
 
@@ -491,10 +497,12 @@ function stop($aspid=false){
 
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		@unlink("/var/log/squid/UFDB_SOCKET_ERROR");
 		return;
 	}
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 	killbyports();
+	@unlink("/var/log/squid/UFDB_SOCKET_ERROR");
 }
 
 function IsPortListen(){

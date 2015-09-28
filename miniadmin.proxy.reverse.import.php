@@ -82,7 +82,7 @@ function popup(){
 	
 	<div style='font-size:40px;margin-bottom:20px;margin-top:10px'>{import}</div>
 	<div style='width:98%' class=form>
-	<p class=text-info style='font-size:18px'>{nginx_import_explain}</p>
+	<p class=explain style='font-size:18px'>{nginx_import_explain}</p>
 	<textarea style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:98%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:14px !important' 
 		id='textToParseCats$t'></textarea>
@@ -151,7 +151,7 @@ function export_domains(){
 
 $html="<div style='font-size:40px;margin-bottom:20px;margin-top:10px'>{dns_export}</div>
 		<div style='width:98%' class=form>
-		<p class=text-info style='font-size:18px'>{nginx_dns_export_explain}</p>
+		<p class=explain style='font-size:18px'>{nginx_dns_export_explain}</p>
 		<textarea style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:98%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:14px !important'
 				id='textToParseCats$t'>".@implode("\n", $f)."</textarea>
@@ -207,7 +207,7 @@ function export_websites(){
 	
 	$html="<div style='font-size:40px;margin-bottom:20px;margin-top:10px'>{websites_export}</div>
 	<div style='width:98%' class=form>
-	<p class=text-info style='font-size:18px'>{nginx_websites_export_explain}</p>
+	<p class=explain style='font-size:18px'>{nginx_websites_export_explain}</p>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:98%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:14px !important'
 	id='textToParseCats$t'>".@implode("\n", $f)."</textarea>

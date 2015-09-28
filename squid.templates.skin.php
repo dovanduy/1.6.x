@@ -156,7 +156,7 @@ function TEMPLATE_LOGO(){
 	</tr>
 	<tr>
 		<td class=legend style='font-size:26px'>{position} LEFT:</td>
-		<td>". Field_text("SquidHTTPTemplateLogoPositionL-$t",$SquidHTTPTemplateLogoPositionH,"font-size:26px;width:150px")."</td>
+		<td>". Field_text("SquidHTTPTemplateLogoPositionL-$t",$SquidHTTPTemplateLogoPositionL,"font-size:26px;width:150px")."</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:26px'>{type}:</td>
@@ -226,14 +226,14 @@ function TEMPLATE_CONTENT(){
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{subject}:</td>
-		<td>". Field_text("TITLE-$t",$xtpl->TITLE,"font-size:16px")."</td>	
+		<td>". Field_text("TITLE-$t",utf8_decode($xtpl->TITLE),"font-size:16px")."</td>	
 	</tr>
 	<tr><td colspan=2 align='right'>". button("{help}", "Loadjs('$page?help-js=yes')")."</td></tr>
 	<tr>
 		<td class=legend style='font-size:16px;vertical-align:middle'>{content}:</td>
 		<td><textarea
 		style='width:100%;height:350px;font-size:16px !important;border:4px solid #CCCCCC;font-family:\"Courier New\",
-		Courier,monospace;background-color:white;color:black' id='BODY-$t'>$xtpl->BODY</textarea>
+		Courier,monospace;background-color:white;color:black' id='BODY-$t'>".utf8_decode($xtpl->BODY)."</textarea>
 	</tr>	
 <tr>
 	<td colspan=2 align='right'>$button</td>
@@ -457,6 +457,8 @@ if(!$users->CORP_LICENSE){
 
 if($cache_mgr_user==null){$cache_mgr_user=$LicenseInfos["EMAIL"];}
 
+
+
 $languages=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db"));
 while (list ($lang, $line) = each ($languages)){
 	if($lang=="templates"){continue;}
@@ -471,11 +473,13 @@ while (list ($lang, $xarr) = each ($xtpl->arrayxLangs)){
 		unset($flang[$z]);
 	}
 }
+$flang[null]="{not_defined}";
+$flang[$SquidHTTPTemplateLanguage]=$SquidHTTPTemplateLanguage;
 unset($flang["templates"]);
 ksort($flang);
 	
 $html="$error
-<div class=text-info style='font-size:18px'>{simple_template_gene_explain}</div>
+<div class=explain style='font-size:22px'>{simple_template_gene_explain}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
@@ -488,7 +492,7 @@ $html="$error
 </tr>
 <tr>
 	<td class=legend style='font-size:22px' width=1% nowrap>{remove_artica_version}:</td>
-	<td width=99%>". Field_checkbox("SquidHTTPTemplateNoVersion-$t",1,$SquidHTTPTemplateNoVersion)."</td>
+	<td width=99%>". Field_checkbox_design("SquidHTTPTemplateNoVersion-$t",1,$SquidHTTPTemplateNoVersion)."</td>
 </tr>
 <tr>
 	<td class=legend style='font-size:22px'>{background_color}:</td>
@@ -612,8 +616,8 @@ function table(){
 	url: '$page?searchTemplates=yes&lang=$SquidHTTPTemplateLanguage',
 	dataType: 'json',
 	colModel : [
-		{display: '$template_name', name : 'template_name', width :$row2, sortable : false, align: 'left'},
-		{display: '$title', name : 'template_title', width : $rows3, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$template_name</span>', name : 'template_name', width :513, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$title</span>', name : 'template_title', width : 768, sortable : false, align: 'left'},
 	],
 	
 	
@@ -626,12 +630,12 @@ function table(){
 	sortname: 'template_time',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$squid_choose_template',
+	title: '<span style=font-size:30px>$squid_choose_template ($SquidHTTPTemplateLanguage)</span>',
 	useRp: true,
 	rp: 250,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 400,
+	height: 550,
 	singleSelect: true
 	
 	});
@@ -748,13 +752,14 @@ function table_items(){
 	$data['rows'] = array();
 	
 	$delete_icon="delete-24.png";
-	$fontsize=18;
+	$fontsize=22;
 	if(isset($_GET["viatabs"])){$fontsize=18;$delete_icon="delete-32.png";}
 	$span="<span style='font-size:{$fontsize}px'>";
 	$searchstring=string_to_flexregex();
 	
 	$templates=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/databases/squid.default.templates.db"));
 	$templates[$lang]["ERR_BLACKLISTED_SITE"]["TITLE"]="ERROR: Blacklisted Website";
+	$templates[$lang]["ERR_PARANOID"]["TITLE"]="ERROR: Banned access";
 	
 	
 	$TemplateConfig=unserialize($sock->GET_INFO("TemplateConfig"));
@@ -767,16 +772,24 @@ function table_items(){
 	
 	while (list ($TEMPLATE_TITLE, $subarray) = each ($MAIN)){
 		$zmd5=md5(serialize($subarray));
+		$subtitle2=null;
 		if($searchstring<>null){
 			if(!preg_match("#$searchstring#", $TEMPLATE_TITLE)){continue;}
 		}
 		
 		$title=utf8_decode($TemplateConfig[$TEMPLATE_TITLE][$lang]["TITLE"]);
 		if($title==null){ $title=$subarray["TITLE"]; }
+		$xtpl=new template_simple($TEMPLATE_TITLE,$lang);
+		$subtitle=utf8_decode($xtpl->TITLE);
+		if($subtitle<>$title){
+		$subtitle2="<br><i style='font-size:16px;color:#46a346;font-weight:bold'>&laquo;&nbsp;$subtitle&nbsp;&raquo;&nbsp;<i>";
+		}
+		
+		
 		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js=$TEMPLATE_TITLE&lang=$lang');\" style='font-size:{$fontsize}px;text-decoration:underline'>";
 		$cell=array();
 		$cell[]="$span$linkZoom$TEMPLATE_TITLE</a></span>";
-		$cell[]="$span$linkZoom$title</a></span>";
+		$cell[]="$span$linkZoom$title</a></span>$subtitle2";
 		
 		
 		$data['rows'][] = array(

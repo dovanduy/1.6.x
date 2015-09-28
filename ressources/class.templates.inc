@@ -1,6 +1,7 @@
 <?php
 if(!isset($GLOBALS["SESSION_ID"])){$GLOBALS["SESSION_ID"]=session_id();}
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+//$GLOBALS["DEBUG_LANG"]=true;
 @header("Pragma: no-cache");
 @header("Expires: 0");
 @header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -16,7 +17,9 @@ define("BECALL",base64_decode("T05MWV9DT1JQX0hUTUw="));
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 debug_mem();
 if(isset($_GET["debug-page"])){	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-if(!$GLOBALS["EXECUTED_AS_ROOT"]){if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
+if(!$GLOBALS["EXECUTED_AS_ROOT"]){
+	if(isset($GLOBALS["KAV4PROXY_NOSESSION"])){
+		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){session_start();}}}
 debug_mem();
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__) . "/class.sockets.inc");
@@ -117,6 +120,7 @@ class templates{
 	var $AutomaticConfig=false;
 	var $pattern_array;
 	function templates($title=null,$body=null,$js_add=null,$do_nothing=0,$arrayConfig=array()){
+		if($GLOBALS["AS_ROOT"]){$users=new usersMenus();}
 		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		if($GLOBALS["VERBOSE"]){
 			$trace=debug_backtrace();
@@ -255,9 +259,11 @@ class templates{
 		
 		if($noremovecrlf==0){
 			$content=nl2br($content);
+			$content=str_replace("<br>",'\n',$content);
+			$content=str_replace("<br />",'\n',$content);
+			$content=str_replace("\n\n",'\n',$content);
 			$content=str_replace("\n",'\\n',$content);
-			$content=str_replace("<br>",'\\n',$content);
-			$content=str_replace("<br />",'\\n',$content);
+
 			
 		}else{
 			$content=str_replace("<br />",'',$content);
@@ -266,6 +272,7 @@ class templates{
 		}
 		$content=str_replace("'","`",$content);
 		$content=str_replace("\`","`",$content);
+		$content=str_replace("\\n\\n","\\n",$content);
 		
 		return $content;
 	}
@@ -281,6 +288,10 @@ class templates{
 		
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 		if($this->language<>null){$lang=$this->language;}else{$lang=$this->_detect_lang();$this->language=$lang;}
+		
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>LANGUAGE $this->language</strong><br>\n";}
+		
+		
 		if($this->language=="undefined"){
 			writelogs("WARNING language = undefined !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
@@ -312,23 +323,32 @@ class templates{
 		
 		$_SESSION["detected_lang"]=$this->language;
 		if(!isset($GLOBALS["translation"])){$GLOBALS["translation"]=array();}
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>LANGUAGE $this->language</strong><br>\n";}
+		
 		
 		if(count($GLOBALS["translation"])<100){
-			writelogs("Dumping $this->language translation=".count($GLOBALS["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>DUMP LANGUAGE $this->language</strong><br>\n";}
 			$GLOBALS["translation"]=$sock->LANGUAGE_DUMP($this->language);
-			
-			writelogs("Dumping $this->language DONE: translation=".count($GLOBALS["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Load ". count($GLOBALS["translation"])." rows into $this->language session language" . basename(__FILE__). " line ".__LINE__);} 
-			
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>DUMP LANGUAGE ". count($GLOBALS["translation"])." items</strong><br>\n";}
 		}
 		
 		$value=null;
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:blue'>Find $text</strong><br>\n";}
+		
+	
+		
 		if(!isset($GLOBALS["translation-en"])){$GLOBALS["translation-en"]=array();}
-		if(isset($GLOBALS["translation"][$text])){$value=$GLOBALS["translation"][$text];}
+		if(isset($GLOBALS["translation"][$text])){
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:blue'>$value {$GLOBALS["translation"][$text]}</strong><br>\n";}
+				$value=$GLOBALS["translation"][$text];
+		}
 		if($value==null){
-		//	writelogs("Warning !! _SESSION[\"translation\"][$text] as no translation... choose the en traslation",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			if(count($GLOBALS["translation-en"])<100){$GLOBALS["translation-en"]=$sock->LANGUAGE_DUMP("en");}
-			if(isset($GLOBALS["translation-en"][$text])){$value=$GLOBALS["translation-en"][$text];}
+			if(count($GLOBALS["translation-en"])<100){
+				if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>DUMP LANGUAGE EN for en translation</strong><br>\n";}
+				$GLOBALS["translation-en"]=$sock->LANGUAGE_DUMP("en");}
+			if(isset($GLOBALS["translation-en"][$text])){
+				if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:blue'>$text ONLY FOUND IN US MODE</strong><br>\n";}
+				$value=$GLOBALS["translation-en"][$text];}
 		}
 		
 		return $value;
@@ -367,7 +387,7 @@ class templates{
 	
 	
 	function time_to_date($xtime,$time=false){
-		
+		if(intval($xtime)==0){return "-";}
 		$dateT=date("{l} {F} d",$xtime);
 		if($time){$dateT=date("{l} {F} d H:i:s",$xtime);}
 		if($this->language=="fr"){$dateT=date("{l} d {F} ",$xtime);if($time){$dateT=date("{l} d {F} H:i:s",$xtime);}}
@@ -410,8 +430,15 @@ class templates{
 			if($GLOBALS["DEBUG_TEMPLATE"]){writelogs("Language is null...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
 		
+		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong style='color:#d32d2d'>LANGUAGE $this->language</strong><br>\n";}
+		
 		
 		if(is_array($content)){$content=implode(" ",$content);}
+		
+		
+		
+
+		
 		
 		if(preg_match_all('#{(.+?)}#is',$content,$regs)){
 			while (list ($num, $val) = each ($regs[1]) ){
@@ -435,7 +462,7 @@ class templates{
 							$text=str_ireplace('[/h4]','</h4>',$text);
 							$text=str_ireplace('[h4]','<h4>',$text);
 							$text=str_ireplace('[h5]','<h5>',$text);
-							$text=str_ireplace('[h5r]','<h5 style="color:red">',$text);
+							$text=str_ireplace('[h5r]','<h5 style="color:#d32d2d">',$text);
 							$text=str_ireplace('[/h5r]','</h5>',$text);														
 							$text=str_ireplace('[/h5]','</h5>',$text);
 							$text=str_ireplace('[i]','<i>',$text);	
@@ -493,12 +520,20 @@ class templates{
 			$backcoulor=@file_get_contents(dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/top-bar-color.conf");
 			$content=str_replace("#005447",$backcoulor,$content);
 		}
+		
+		if(preg_match_all('#\[url\](.+?)\[\/url\]#is',$content,$regs)){
+			while (list ($num, $val) = each ($regs[1]) ){
+				$content=str_replace($regs[0][$num],"<a href=\"$val\">$val</a>",$content);
+			}
+				
+		}
 					
 		
 		$content=str_replace("<input type='button'","<input type='button' class='button'",$content);
 		$content=str_replace("web sites","websites",$content);
 		$content=str_replace("\`","`",$content);
 		$content=str_replace('\"',"&quot;",$content);
+		$content=str_replace('%C3%89',"&Eacute;",$content);
 		
 		//$content=str_replace("Loadjs(",'$.getScript(',$content);
 		if(strlen($content)<400){
@@ -861,8 +896,8 @@ function Field_checkbox_design($name,$enabledatas,$value=null,$js=null,$help=nul
 	$checked=false;
 	$CheckBoxDesignHidden=null; 
 	$GLOBALS["AUTO_FORM"][$name]="check";
-	
-	$default_text="// js:$js, help=$help";
+	$help=str_replace("\n", "<br>", $help);
+	$default_text="// js:$js,";
 	
 	
 	if($value<>null){if($value==$enabledatas){$value="checked";$checked=true;}else{$value="";}}else{$value=null;}
@@ -895,12 +930,12 @@ function Field_checkbox_design($name,$enabledatas,$value=null,$js=null,$help=nul
 		
 if(!isset($disabled_infos)){$disabled_infos=null ;}
 if(!isset($GLOBALS["CheckBoxDesignHidden"])){$CheckBoxDesignHidden="<script>setTimeout('CheckBoxDesignHidden()',900);</script>";$GLOBALS["CheckBoxDesignHidden"]=true;}
-$md5=md5($name);
-$id_picture="pic-".md5($name);
+$md5=md5($name.microtime());
+$id_picture="pic-".md5($name.microtime());
 
 
 if($js==null){$js="blur();";}
-$html="<p style='padding-top:1px;padding-bottom:10px' id='$name-form' checkboxfunc='Design$md5()'>
+$html="<p style='padding-top:1px;padding-bottom:10px' id='$md5-form' checkboxfunc='Design$md5()'>
 <input type=\"checkbox\" id='$name' assoc='$id_picture' name=\"$name\" value=\"$enabledatas\" $value 
 $help $disabled_infos><label for=\"$name\" OnClick=\"javascript:Check$md5()\"><span class=\"ui\" id='uid-$name'></span></label></p>
 <script>
@@ -920,23 +955,23 @@ function run$md5(){
 
 function Design$md5(){
 var addclass='';
-	document.getElementById('$name-form').onmouseover=document.getElementById('$name-form').style.cursor='pointer';
-	document.getElementById('$name-form').onmouseout=document.getElementById('$name-form').style.cursor='default';
+	document.getElementById('$md5-form').onmouseover=document.getElementById('$md5-form').style.cursor='pointer';
+	document.getElementById('$md5-form').onmouseout=document.getElementById('$md5-form').style.cursor='default';
 	
 if(document.getElementById('$name').disabled){	
 	addclass=' CheckBoxDisabled';
-	document.getElementById('$name-form').onmouseover=document.getElementById('$name-form').style.cursor='default';
-	document.getElementById('$name-form').onmouseout=document.getElementById('$name-form').style.cursor='default';
+	document.getElementById('$md5-form').onmouseover=document.getElementById('$md5-form').style.cursor='default';
+	document.getElementById('$md5-form').onmouseout=document.getElementById('$md5-form').style.cursor='default';
 }
 
 
 
 if(!document.getElementById('$name').checked){
-	document.getElementById('$name-form').className='CheckBoxUnChecked'+addclass;
+	document.getElementById('$md5-form').className='CheckBoxUnChecked'+addclass;
 
 		
 	}else{
-	document.getElementById('$name-form').className='CheckBoxChecked'+addclass;
+	document.getElementById('$md5-form').className='CheckBoxChecked'+addclass;
 	
 	}
 	
@@ -949,6 +984,109 @@ setTimeout('Design$md5()',150);
 
 </script>
 ";
+return $html;
+
+}
+
+function Field_checkbox_yesno_design($name,$value=null,$js=null,$help=null,$DISABLED=false){
+	$def=$value;
+	$checked=false;
+	$CheckBoxDesignHidden=null;
+	$GLOBALS["AUTO_FORM"][$name]="check";
+	$help=str_replace("\n", "<br>", $help);
+	$default_text="// js:$js,";
+	$enabledatas="no";
+
+	if($value<>null){
+			if($value=="yes"){
+					$value="checked";
+					$checked=true;
+					$enabledatas="yes";
+			}else{$value="";}}else{$value=null;$enabledatas="no";}
+	if($js<>null){
+		$js="$js;";
+	}
+
+
+	if($help<>null){
+		$tpl=new templates();
+		$help=str_replace("[br][br]","[br]",$help);
+		$help=str_replace("\n","",$help);
+		$help=str_replace("\r\n","",$help);
+		$help=str_replace("\r","",$help);
+		$help=str_replace('"',"`",$help);
+		$help=$tpl->_ENGINE_parse_body($help);
+		$help=htmlentities($help);
+		$help=str_replace("\n","",$help);
+		$help=str_replace("\r\n","",$help);
+		$help=str_replace("\r","",$help);
+		$help="OnMouseOver=\"javascript:AffBulle('$help');\" OnMouseOut=\"javascript:HideBulle();\"";
+	}
+
+	if($DISABLED){
+		$disabled_infos=" DISABLED";
+	}
+
+	$pic="checkbox-off-24.png";
+	if($checked){$pic="checkbox-on-24.png";}
+
+	if(!isset($disabled_infos)){$disabled_infos=null ;}
+	if(!isset($GLOBALS["CheckBoxDesignHidden"])){$CheckBoxDesignHidden="<script>setTimeout('CheckBoxDesignHidden()',900);</script>";$GLOBALS["CheckBoxDesignHidden"]=true;}
+	$md5=md5($name.microtime());
+	$id_picture="pic-".md5($name.microtime());
+
+
+	if($js==null){$js="blur();";}
+	$html="<p style='padding-top:1px;padding-bottom:10px' id='$md5-form' checkboxfunc='Design$md5()'>
+	<input type=\"checkbox\" id='$name' assoc='$id_picture' name=\"$name\" value=\"$enabledatas\" $value
+	$help $disabled_infos><label for=\"$name\" OnClick=\"javascript:Check$md5()\"><span class=\"ui\" id='uid-$name'></span></label></p>
+	<script>
+	// $default_text
+	function Check$md5(){
+	if(document.getElementById('$name').disabled){setTimeout('Design$md5()',150);return;}
+			setTimeout('Design$md5()',150);
+			setTimeout('run$md5()',250);
+					setTimeout('CheckBoxDesignRebuild()',350);
+
+}
+
+					function run$md5(){
+					{$js};
+
+}
+
+function Design$md5(){
+	var addclass='';
+	document.getElementById('$md5-form').onmouseover=document.getElementById('$md5-form').style.cursor='pointer';
+	document.getElementById('$md5-form').onmouseout=document.getElementById('$md5-form').style.cursor='default';
+
+	if(document.getElementById('$name').disabled){
+		addclass=' CheckBoxDisabled';
+		document.getElementById('$md5-form').onmouseover=document.getElementById('$md5-form').style.cursor='default';
+		document.getElementById('$md5-form').onmouseout=document.getElementById('$md5-form').style.cursor='default';
+	}
+
+
+
+	if(!document.getElementById('$name').checked){
+		document.getElementById('$md5-form').className='CheckBoxUnChecked'+addclass;
+		document.getElementById('$name').value='no';
+		
+	
+	}else{
+		document.getElementById('$md5-form').className='CheckBoxChecked'+addclass;
+		document.getElementById('$name').value='yes'
+	}
+
+
+
+}
+
+
+setTimeout('Design$md5()',150);
+
+	</script>
+	";
 return $html;
 
 }
@@ -1008,77 +1146,9 @@ function help_icon($help,$no_float=false,$additional_langfile=null){
 	$DisableHelpToolTips=0;
 	if(isset($_COOKIE["DisableHelpToolTips"])){$DisableHelpToolTips=$_COOKIE["DisableHelpToolTips"];}
 	if($DisableHelpToolTips==1){return null;}
-	if($_SESSION["MINIADM"]==true){return miniadm_BuildFieldToolTip($help);}
-	
-	
-$tpl=new templates();
-		$n = rand(10e16, 10e20);
-		$rand=base_convert($n, 10, 36);	
-		$id=md5($help.$rand);
-		$help_source=$help;
+	$myfloat="float:right";
 		
-		$help_source=urlencode(base64_encode($help_source));
-		$myfloat="float:right";
-		if($no_float>0){$myfloat=null;}
-		if($additional_langfile==null){$additional_langfile=CurrentPageName();}
-	$img="
-		<input type='hidden' id='Text_$id' value='$help<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" 
-		OnClick=javascript($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
-		<div style='$myfloat;margin-top:-5px'>
-		<img src='img/help.png'  id='$id'
-		onMouseOver=\"lightup(this, 100);\" 
-		OnMouseOut=\"lightup(this, 50);\" 
-		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		OnClick=\"javascript:Loadjs('admin.help.php?text=$help_source');\">
-		</div>	
-	<script>
-	function qtyp_{$id}(){
-			$(document).ready(function(){		
-				$('#$id').qtip({
-		  			content: $('#Text_$id').val(),
-		  			show: 'mouseover',
-		   			hide: 'mouseout',
-		   			style: 'cream',
-		   			hide: {event: 'click mouseleave',inactive: 3000},
-		   			tip: true
-					});	
-		});
-	}
-	qtyp_{$id}();
-	</script>\n";
-	return "$img";
-
-
-
-$help_source=$help;
-$help_source1=urlencode(base64_encode($help));
-		$help_source=str_replace('{','',$help_source);
-		$help_source=str_replace('}','',$help_source);
-		$help=str_replace("[br][br]","[br]",$help);
-		$help=str_replace("\n","",$help);
-		$help=str_replace("\r\n","",$help);
-		$help=str_replace("\r","",$help);
-		$help=str_replace('"',"`",$help);		
-		$help=$tpl->_ENGINE_parse_body($help,$additional_langfile);
-		$help=htmlentities($help);
-		$help=str_replace("\n","",$help);
-		$help=str_replace("\r\n","",$help);
-		$help=str_replace("\r","",$help);		
-
-		$myfloat="float:right";
-		if($no_float>0){$myfloat=null;}
-		if($additional_langfile==null){$additional_langfile=CurrentPageName();}
-		
-return "
-		<div style='$myfloat;margin-top:-5px'>
-		<img src='img/help.png'  
-		onMouseOver=\"javascript:AffBulle('$help');lightup(this, 100);\" 
-		OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" 
-		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		OnClick=\"javascript:Loadjs('admin.help.php?text=$help_source1');\">
-		</div>";	
+return "<div style='$myfloat;margin-top:-5px'>". imgtootltip("help-32.png",$help)."</div>";
 	
 }
 
@@ -1108,6 +1178,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 		if($defined_size>16){$width=170;}
 		if($defined_size>21){$width=204;}
 		if($defined_size>24){$width=210;}
+		if($defined_size>25){$width=256;}
 		if($defined_size>30){$width=320;}
 	}
 	
@@ -1534,8 +1605,8 @@ function Field_button_table_autonome($name,$function,$size=22){
 	if($GLOBALS["AUTO_FORM_LOCK"]==true){return null;}
 	$t=time();
 	$GLOBALS["AUTO_FORM_FUNC"]="Save$t";
-	return "<tr><td colspan=2 style='text-align:right;padding-top:20px;font-size:{$size}px'>
-			<div style='text-align:right;width:100%;border-top:2px solid #CCCCCC;padding-top:5px'>
+	return "<tr style='height:70px'><td colspan=2 style='text-align:right;padding-top:20px;font-size:{$size}px'>
+			<div style='text-align:right;width:100%;border-top:1px solid #CCCCCC;padding-top:5px;padding-bottom:20px'>
 			".button($name,"$function()",$size)."</div></td></tr>";
 }
 
@@ -1568,19 +1639,24 @@ function Field_text_table($name,$caption,$value=null,$fontsize=18,$explain=null,
 		$explain=null;
 	}
 	
+	if($explain<>null){
+		$caption=texttooltip($caption,"$explain");
+	}
+		
+	
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
-	if($explain<>null){$explain="explain=$explain;";}
+	
 	
 	//$name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null
 	
 	$html[]="<td style='font-size:18px'>".Field_text(
-			$name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px",null,null,null,false,$script)."</td></tr>";
+			$name,$value,"width:{$fieldsize}px;font-size:{$fontsize}px",null,null,null,false,$script)."</td></tr>";
 	return @implode("\n", $html);
 }
 
 function Field_area_table($name,$caption,$value=null,$fontsize=18,$explain=null,$height=145){
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
-	if($explain<>null){$explain="<div class=text-info>$explain</div>";}
+	if($explain<>null){$explain="<div class=explain>$explain</div>";}
 	$html[]="<td style='font-size:18px'>
 			$explain
 			<textarea style='margin-top:5px;font-family:Courier New;
@@ -1611,6 +1687,9 @@ function Field_ipv4_table($name,$caption,$value=null,$fontsize=18,$explain=null,
 	return @implode("\n", $html);
 }
 function Field_checkbox_table($name,$caption,$value=null,$fontsize=18,$explain=null,$javascript=null){
+	
+	
+	if($explain<>null){$caption=texttooltip($caption,$explain);$explain=null;}
 	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
 	
 	$html[]="<td style='font-size:{$fontsize}px'>".Field_checkbox_design($name,1,$value,$javascript,$explain)."</td></tr>";
@@ -1634,6 +1713,92 @@ function field_textarea($name,$value,$fontsize,$width="100%",$height=450){
 			overflow:auto;font-size:{$fontsize}px !important' 
 			id='$name' name=\"$name\">$value</textarea>";
 	
+}
+
+function Field_autocomplete($name,$value=null,$style=null,$autocomplete_script=null,$jsPressKey=null,$autocomplete_function=null){
+	$value=trim($value);
+	$GLOBALS["AUTO_FORM"][$name]="text";
+	$OnMouseOver=null;
+	$OnMouseOut=null;
+	$size=null;
+	$disa=null;
+	$shadow=null;
+	$shadowjs=null;
+	$helptxt=null;
+
+
+	if(preg_match("#explain=(.+?);#", $style,$re)){
+		$help=$re[1];
+		$style=str_replace("explain={$re[1]};", "", $style);
+	}
+
+
+	if(preg_match("#^shadow:(.*)#", $value,$re)){
+		$shadow=$re[1];
+		$value=null;
+	}
+
+
+	
+
+	if(preg_match("#^focus:(.*)#", $value,$re)){
+		$OnFocus="OnFocus=\"javascript:this.value='';\"";
+		$value=$re[1];
+	}
+
+	if($style==null){$style='width:98%;font-size:12px';$size="size=50";}
+	if($class<>null){$class="class='$class'";}
+	if($jsPressKey<>null){$jsPressKey="\nonkeypress=\"javascript:$jsPressKey;\"";}
+	
+
+
+
+	if(!preg_match("#font-size#",$style)){$style=$style.";font-size:12px";}
+
+	if($help<>null){
+		$tpl=new templates();
+		$helptxt=$tpl->_ENGINE_parse_body($help);
+		$helptxt=str_replace("\"", "'", $helptxt);
+		$helptxt=str_replace("\n", "", $helptxt);
+		$OnMouseOver="\nOnMouseOver=\"javascript:$(this).tooltip('show');\"";
+		$OnMouseOut="\nOnMouseOut=\"javascript:$(this).tooltip('hide');\"\n";
+		$OnMouseOut="{$OnMouseOut}data-toggle=\"tooltip\" data-html='true'\n";
+		$OnMouseOut="{$OnMouseOut}data-title=\"<div style=font-size:12px>$helptxt</div>\"\n";
+
+
+	}
+
+
+
+
+
+
+	$FocusCss="\nonfocus=\"this.setAttribute('class','active')\"\nonblur=\"this.removeAttribute('class');\" $class";
+	if($_SESSION["MINIADM"]==true){
+		$FocusCss=null;
+	}
+
+	
+
+	if($shadow<>null){
+		$shadowjs=" <script>$(function(){ $('#$name').watermark('$shadow'); }); </script>";
+	}
+	$autojs=null;
+	if($autocomplete_function<>null){
+		$autojs=",
+   	 		onSelect: function(e, term, item){ $autocomplete_function(term); }";
+		
+	}
+
+	$autocomplete="<script>
+	$('#$name').autoComplete({
+		source: function(term, response){
+        $.getJSON('$autocomplete_script', { q: term }, function(data){ response(data); });
+    	}$autojs
+	});</script>";
+
+	return "<!-- help=$helptxt -->
+	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\"$FocusCss$jsPressKey$size$OnMouseOver $OnMouseOut$disa>$shadowjs$autocomplete";
 }
 
 function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null){
@@ -1896,49 +2061,28 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	$DisableToolTips=0;
 	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
 	$tpl=new templates();
-	$tooltip=$tpl->_parse_body("$tooltip");
-	$tooltip=str_replace("\n", "", $tooltip);
-	$tooltip=str_replace("\r", "", $tooltip);
-	$tooltip=str_replace("		"," ",$tooltip);
-	$tooltip=str_replace(" 	"," ",$tooltip);
-	$tooltip=str_replace(" <table","<table",$tooltip);
+	$tooltip_pos=null;
+	if(preg_match("#^position:(.+?):(.+)#",$tooltip,$re)){
+		$tooltip_pos="position:'{$re[1]}',";
+		$tooltip=$re[2];
+	}
+	$curs="OnMouseOver=\"this.style.cursor='pointer';\" OnMouseOut=\"this.style.cursor='auto'\"";
+	$tooltipencode=urlencode(base64_encode($tooltip));
 	$float=null;
 	$n = rand(10e16, 10e20);
 	$rand=base_convert($n, 10, 36);
-	if(!isset($_SESSION["uid"])){if($GLOBALS["EXECUTED_AS_ROOT"]){$_SESSION["uid"]=-100;}}	
-	$uid=$_SESSION["uid"];
-	if($uid==-100){$uid="RootMaster";}
 	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
-	
-	
+	$width=null;
+	if(preg_match("#Mozilla.*?Chrome\/#",$_SERVER["HTTP_USER_AGENT"])){$Chrome=true;}else{$Chrome=false;}
 	
 	$filecache=null;
 	if($tooltip==null){$tooltip="&nbsp;";}
-	$textToolTip=$tooltip;
-	$md5=md5("$img$tooltip$js$align$imgid$rand".time());
-	if(!$GLOBALS["EXECUTED_AS_ROOT"]){
-		if(isset($_COOKIE["artica-language"])){$lang=$_COOKIE["artica-language"];}
-		if($lang==null){
-				if(isset($GLOBALS["artica-language"])){
-					$lang=$GLOBALS["artica-language"];
-				}else{
-					$tpl=new templates();
-					$GLOBALS["artica-language"]=$tpl->language;
-					$lang=$GLOBALS["artica-language"];
-				}
-		}
-		
-		
-		if($lang==null){$lang="en";}
-		$md5=md5("$img$tooltip$js$align$imgid");
-		$datas=GET_CACHED(__FILE__,__FUNCTION__,$md5,true);
-		if($datas<>null){return $datas;}
-		
-	}
+	$md5=md5("$img$tooltipencode$js$align$imgid$rand".microtime());
+
 	
 	
 	//$tooltip=ParseTooltip($tooltip);
-	if($imgid<>null){$id=$imgid;}else{$id=null;}
+	if($imgid<>null){$id=$imgid;}else{$id=$md5;}
 	if($align<>null){$align=' align=\''.$align.'\' ';}
 
 	$image_path="img/$img";
@@ -1946,60 +2090,48 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	if(preg_match('#^ressources#',$img)){$image_path=$img;}	
 	if(preg_match('#img\/(.+)#',$img,$re)){$image_path=$img;}
 	if(is_file($img)){$image_path=$img;}
-	
-	
-	
-	if(preg_match("#SwitchPassword#",$js)){
-		$float="float:right;";
-	}
-	//$('.selector').qtip('toggle', false);
-	
-	
+	if(preg_match("#SwitchPassword#",$js)){$float="float:right;"; }
 	if($js<>null){$js="OnClick=\"javascript:$js;\"";}
-	
-	if(!$GLOBALS["EXECUTED_AS_ROOT"]){$tpl=new templates();$textToolTip=$tpl->_ENGINE_parse_body($textToolTip);}
-	if($textToolTip==null){$textToolTip=".";}	
-	
-	
-		$tpl=new templates();
-		$helptxt=$tpl->_ENGINE_parse_body($textToolTip);
-		$helptxt=str_replace("\"", "'", $helptxt);
-		$helptxt=str_replace("\n", "", $helptxt);
-		$OnMouseOver="\nOnMouseOver=\"javascript:$(this).tooltip('show');this.style.cursor='pointer'\"";
-		$OnMouseOut="\nOnMouseOut=\"javascript:$(this).tooltip('hide');this.style.cursor='default'\"\n";
-		$OnMouseOut="{$OnMouseOut}data-toggle=\"tooltip\" data-html='true'\n";
-		$OnMouseOut="{$OnMouseOut}data-title=\"<div style=font-size:14px>$helptxt</div>\"\n";
-
-	if($DisableToolTips==1){$jsTool=null;}
-	if(!isset($_SESSION["MINIADM"])){$_SESSION["MINIADM"]=false;}
-	if($_SESSION["MINIADM"]==true){$jsTool=null;}
-	if(isset($_COOKIE["MINIADM"])){
-		if($_COOKIE["MINIADM"]=="YES"){$jsTool=null;}
+	if(preg_match("#-([0-9]+)\.(png|gif|jpeg)$#", basename($image_path),$re)){
+		$width=";max-width:{$re[1]}px;width:{$re[1]}px";
 	}
+	if(preg_match("#-([0-9]+)-grey\.(png|gif|jpeg)$#",basename($image_path),$re)){
+			$width=";max-width:{$re[1]}px;width:{$re[1]}px";
+	}	
 	
-	$IMAGE="
-	<div $OnMouseOver $OnMouseOut style='$float'>
-		<img src='/$image_path' $align id='$id' $js>
-	</div>
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/help/$md5")){
+		$tpl=new templates();
+		$content=$tpl->_ENGINE_parse_body($tooltip);
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/help/$md5",$content );
+	}else{
+		$content=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/help/$md5");
+	}	
+
 	
-	\n";
-	if($filecache<>null){@file_put_contents($filecache,$IMAGE);}
-	return $IMAGE;
-	//$(this).fadeIn(500);
-	$IMAGE="
-	<div OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" style='$float'>
-		<img src='/$image_path' $align id='$id' $js>
-	</div>
+	$javascript_final="	
+<script>
+	$('#$id').tooltipster({
+			$tooltip_pos
+			contentAsHTML: true,
+			onlyOne:true,
+			functionReady: function(){
+				$('#$id').attr('aria-hidden', false);
+			},
+			functionAfter: function(){
+				$('#$id').attr('aria-hidden', true);
+			}
+		});
+</script>
 ";
 	
-	//	if(ae_detect_ie()){
-	//		list($width, $height, $type, $attr) = getimagesize("$image_path");
-	//		$IMAGE="<div STYLE=\"height:$width; width:$height;filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='/$image_path', sizingMethod='scale');\" $js></div>";
-	//	}
-	$tpl=new templates;	
-	$IMAGE=$tpl->_ENGINE_parse_body($IMAGE);
-	SET_CACHED(__FILE__, __FUNCTION__, $md5, $IMAGE);
-	return "$IMAGE";
+	//if($Chrome){$javascript_final=null;}
+	
+	
+	
+	return "
+	<!-- $image_path L.".__LINE__." $width -->
+	<img src='/$image_path' $align id='$id' $js $curs style='$float$width' title='$content'>
+	$javascript_final";
 	
 }
 
@@ -2119,7 +2251,7 @@ function CellRollOver_rouge($jsOnClick=null,$tooltips=null){
 		$mtips_2="HideBulle();";
 	}
 	
-	return "style='background-color:red;color:white' OnMouseOver=\"this.style.background='black';this.style.color='white';$cursor;$mtips_1\" OnMouseOut=\"this.style.background='red';this.style.color='white';this.style.cursor='default';$mtips_2\" $java ";
+	return "style='background-color:#d32d2d;color:white' OnMouseOver=\"this.style.background='black';this.style.color='white';$cursor;$mtips_1\" OnMouseOut=\"this.style.background='red';this.style.color='white';this.style.cursor='default';$mtips_2\" $java ";
 	
 }
 
@@ -2174,40 +2306,91 @@ function icon_help($help,$nofloat=0){
 }
 
 function texttooltip($text,$tooltip=null,$js=null,$dbclk=null,$NOHREF=0,$style=null,$forcejs=0){
-	$js_dblclik=null;
-	$jshref=null;
-	if($js==null){$js='void(0)';}
-	if($dbclk<>null){$js_dblclik="ondblclick=\"javascript:$dbclk\"";}
+	$lang=null;
+	$DisableToolTips=0;
+	$curs="OnMouseOver=\"this.style.cursor='pointer';\" OnMouseOut=\"this.style.cursor='auto'\"";
 	
-	$pointer_on="this.style.cursor='pointer'"; 
-	$pointer_off="this.style.cursor='default'";
+	if(preg_match("#SwitchPassword#",$js)){$float="float:right;"; }
+	$tooltip=str_replace("'", "\"", $tooltip);
 	
-if($style<>null){$style=" style='$style'";}
-	if($tooltip<>null){
-		$tooltip=ParseTooltip($tooltip);
-		$tooltip="onMouseOver=\"javascript:$pointer_on;AffBulle('$tooltip');this.style.textDecoration='underline';this.style.backgroundColor='none'\"  OnMouseOut=\"javascript:$pointer_off;HideBulle();this.style.textDecoration='none'\"";
-		}
 	
+	if($tooltip==null){
+		if($js<>null){$js="OnClick=\"javascript:$js;\"";}
+		return "<span style='background-image: linear-gradient(to right, black 33%, rgba(255,255,255,0) 0%);
+		background-position: bottom;
+		background-size: 3px 1px;
+		background-repeat: repeat-x;$style' $curs $js >$text</span>";
 		
-	if($forcejs==0){	
-		if($js<>null){
-			if(strpos($js,'ttp://')>0){$jshref="<a href=\"$js;\" target=_new $js_dblclik$style>";$jsafter="</a>";}else{$js="OnClick=\"$js;\" $js_dblclik";$jsafter="</a>";}
+	}
+	
+	
+	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
+	$tpl=new templates();
+	$tooltip_pos=null;
+	if(preg_match("#^position:(.+?):(.+)#",$tooltip,$re)){
+		$tooltip_pos="position:'{$re[1]}',";
+		$tooltip=$re[2];
+	}
+	
+	$tooltipencode=base64_encode($tooltip);
+	$float=null;
+	$n = rand(10e16, 10e20);
+	$rand=base_convert($n, 10, 36);
+	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
+	
+	
+	
+	$filecache=null;
+	if($tooltip==null){$tooltip="&nbsp;";}
+	$md5=md5("$text$tooltip$js$n".time());
+	if($js<>null){$js="OnClick=\"javascript:$js;\"";}
+
+
+	if(isset($_SESSION["detected_lang"])){
+		$lang=$_SESSION["detected_lang"];
+		
+	}
+	if($lang==null){
+		if(isset($_COOKIE["artica-language"])){
+			$lang= $_COOKIE["artica-language"];
 		}
+	}
+	
+	$time=microtime();
+	$md5=md5($tooltipencode.$lang.$time);
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/help/$md5")){
+		$tpl=new templates();
+		$content=$tpl->_ENGINE_parse_body($tooltip);
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/help/$md5",$content );
 	}else{
-		 $js="OnClick=\"$js;\" $js_dblclik";$jsafter="</a>";	
-		}
-	if($NOHREF==1){
-		$js=null;
-		$jsafter=null;
+		$content=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/help/$md5");
 	}
 	
-	if(preg_match("#nodiv#", $style)){
-		$style=str_replace("nodiv", "", $style);
-		return "<span $style $js $tooltip>$jshref$text$jsafter$jsafter</span>";
-	}
+	$content=str_replace("\n", "", $content);
+	$content=htmlspecialchars($content);
 	
+	return "<span 
+		title='$content'
+		style='background-image: linear-gradient(to right, black 33%, rgba(255,255,255,0) 0%);
+		background-position: bottom;
+		background-size: 3px 1px;
+		background-repeat: repeat-x;$style' $js id='$md5' $curs>$text</span>
+		<script>
+		$('#$md5').tooltipster({
+			$tooltip_pos
+			contentAsHTML: true,
+			onlyOne:true,
+			functionReady: function(){
+				$('#$md5').attr('aria-hidden', false);
+			},
+			functionAfter: function(){
+				$('#$md5').attr('aria-hidden', true);
+			}
+		});
+		</script>";
 	
-	return "<div $style $js $tooltip>$jshref$text$jsafter$jsafter</div>";
+
 	
 }
 function LinkToolTipjs($tooltip=null,$js=null,$style=null){
@@ -2570,6 +2753,7 @@ function statusLogs($line){
 	"Binding to TCP port"=>"S",
 	"starting! pid"=>"S",
 	"Recipient address rejected"=>"W",
+	"Permission denied"=>"W",
 	"status=deferred"=>"W",
 	"Server closing!"=>"SS",
 	"stopping authdaemond"=>"SS",
@@ -2619,6 +2803,7 @@ function statusLogs($line){
 	"accepted connection"=>"NET",
 	"refreshing the Postfix"=>"S",
 	"authenticate failed"=>"C",
+	"is not running"=>"C",
 	"access denied"=>"W",
 	"reload.+?version"=>"S",
 	"1.1\" 40[2-9]"=>"UK",
@@ -3301,6 +3486,8 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	$fontsize_title=14;
 	if($width>400){$fontsize=14;$fontsize_title=16;}
 	if($width>550){$fontsize=16;$fontsize_title=18;$margin="margin-bottom:15px;";}
+	if($width>849){$fontsize=18;$fontsize_title=22;$margin="margin-bottom:15px;";}
+	if($width>1000){$fontsize=22;$fontsize_title=24;$margin="margin-bottom:20px;";}
 	$class="BodyContent";
 	if($MINIADM){$class="MiniAdmParagrapheSwitchIm";}
 	
@@ -3309,7 +3496,7 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	$text=stripslashes($text);
 	
 	$html="
-	<div style='width:{$width}px;$margin' class=$class>
+	<div style='width:{$width}px;$margin' class='$class'>
 		<table style='width:100%;'>
 		<tr>
 			<td width=1% valign='top' style='line-height:normal;'><div style='min-height: 120px;'>$img</a></div></td>
@@ -3908,25 +4095,32 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 }
 
 function paragrapheWin($img,$title,$link){
+	
+	
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body($title);
-	$ff=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/vignettes-color.conf";
+	$TEMPLATE=$_COOKIE["artica-template"];
+	if(isset($GLOBALS["CHANGE_TEMPLATE"])){if($GLOBALS["CHANGE_TEMPLATE"]<>null){$TEMPLATE=$GLOBALS["CHANGE_TEMPLATE"];}}
 	
-	if(!isset($GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]])){
+	
+	
+	$ff=dirname(__FILE__) . "/templates/$TEMPLATE/vignettes-color.conf";
+	
+	if(!isset($GLOBALS["paragrapheWinBG"][$TEMPLATE])){
 		if(is_file($ff)){
-			$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]=@file_get_contents($ff);
+			$GLOBALS["paragrapheWinBG"][$TEMPLATE]=@file_get_contents($ff);
 		}else{
-			$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]="#0C9C86";
+			$GLOBALS["paragrapheWinBG"][$TEMPLATE]="#0C9C86";
 		}
 	
 	}
-	if($GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]==null){$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]="#0C9C86";}
+	if($GLOBALS["paragrapheWinBG"][$TEMPLATE]==null){$GLOBALS["paragrapheWinBG"][$TEMPLATE]="#0C9C86";}
 	
 	$html="<div style='width:120px;height:120px;text-align:center;
-	vertical-align:bottom;background-color:{$GLOBALS["paragrapheWinBG"][$_COOKIE["artica-template"]]};padding:10px;border:2px solid #ABABAB'
+	vertical-align:bottom;background-color:{$GLOBALS["paragrapheWinBG"][$TEMPLATE]};padding:10px;border:2px solid #ABABAB'
 	onmouseout=\"javascript:this.BorderColor='#ABABAB';this.style.cursor='default'\" 
 		onmouseover=\"javascript:this.BorderColor='#FFFFFF';this.style.cursor='pointer'\"
-		template=\"{$_COOKIE["artica-template"]}\"
+		template=\"{$TEMPLATE}\"
 		OnClick=\"javascript:$link\">
 		<table style='width:100%'>
 		<tr>
@@ -4206,6 +4400,13 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		$textfontsize=16;
 	}	
 	
+	if($width>749){
+		$max_caracts=90;
+		$max_text_caracts=350;
+		$titlefontsize=22;
+		$textfontsize=18;
+	}
+	
 	$title_entity_decode=html_entity_decode($title);
 
 	if(trim($title)<>null){
@@ -4353,6 +4554,7 @@ $html="
 <textarea id=\"$FiledName\" name=\"$FiledName\" rows=\"15\" cols=\"80\" style=\"width: 100%\">$datas</textarea>		
 $js
 <script language=\"javascript\" type=\"text/javascript\">
+tinymce.baseURL = \"/js/tiny_mce\";
 	tinymce.init({
 		mode : \"textareas\",
 		plugins : \"pagebreak,layer,table,save,insertdatetime,preview,media,searchreplace,print,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,template code\",
@@ -4525,7 +4727,7 @@ function BuildSessionAuth(){
 	}
 	
 function DefineSessions(){
-$Lifetime = 3600;
+
 
 if (ini_get("session.use_trans_sid") == true) {
     ini_set("url_rewriter.tags", "");
@@ -4533,10 +4735,7 @@ if (ini_get("session.use_trans_sid") == true) {
 
 }
 
-ini_set("session.gc_maxlifetime", $Lifetime);
-ini_set("session.gc_divisor", "1");
-ini_set("session.gc_probability", "1");
-ini_set("session.cookie_lifetime", "0");
+
 
 }
 
@@ -4637,6 +4836,10 @@ function CheckSessions(){
 					return true;
 				}
 		}}	
+		
+		$noback["SquidReloadInpublicAlias.php"]=true;
+		$noback["itchart.php"]=true;
+		$noback["ufdbgclient.php"]=true;
 		$noback["public.logon.php"]=true;
 		$noback["squid.categories.url.export.php"]=true;
 		$noback["squid.categories.export.php"]=true;
@@ -4660,10 +4863,7 @@ function CheckSessions(){
 		$noback["logon.form.php"]=true;
 		$noback["squid.logon.php"]=true;
 		$noback["miniadm.php"]=true;
-		$noback["miniadm.logon.php"]=true;
 		$noback["squid.access-sql.php"]=true;
-		$noback["miniadm.register.php"]=true;
-		$noback["miniadm.logoff.php"]=true;
 		$noback["exec.shm.php"]=true;
 		$noback["cron.notifs.php"]=true;
 		$noback["change.title.php"]=true;
@@ -4703,6 +4903,7 @@ function CheckSessions(){
 		$noback["import.squid.zip.php"]=true;
 		$noback["squid.access.webfilter.log.php"]=true;
 		$noback["artica.meta.listener.php"]=true;
+		$noback["pfx.php"]=true;
 		
 		$noback["artica.stats.receiver.php"]=true;
 		$noback["smtp.autoconfig.php"]=true;
@@ -4741,18 +4942,7 @@ function CheckSessions(){
 			include_once(dirname(__FILE__)."/class.users.menus.inc");
 		}
 		
-		if(isset($_SESSION["uid"])){
-			if(isset($_SESSION["InterfaceType"])){
-				if(!is_dir("ressources/logs/web/queue/sessions")){@mkdir("ressources/logs/web/queue/sessions",644,true);}
 
-				$array=array(
-				"SESSION_ID"=>session_id(),
-				"uid"=>$_SESSION["uid"],"ipaddr"=>$_SERVER["REMOTE_ADDR"],"myname"=>$_SERVER["SERVER_NAME"],
-				"interface"=>$_SESSION["InterfaceType"]);
-				$filename=dirname(__FILE__)."/logs/web/queue/sessions/".time().".".md5($GLOBALS["SESSION_ID"].$_SERVER["REMOTE_ADDR"].$_SERVER["SERVER_NAME"].$_SESSION["InterfaceType"]);
-				if(!is_file($filename)){@file_put_contents($filename,serialize($array));}
-			}
-		}
 		
 
 		
@@ -4812,7 +5002,7 @@ function CheckSessions(){
 function FormatBytes($kbytes,$nohtml=false){
 	
 	$spacer="&nbsp;";
-	if($nohtml){$spacer=" ";}
+	if($nohtml){$spacer="";}
 	
 	if($kbytes>1048576){
 		$value=round($kbytes/1048576, 2);
@@ -4822,7 +5012,7 @@ function FormatBytes($kbytes,$nohtml=false){
 		}
 		return "$value{$spacer}GB";
 	}
-	elseif ($kbytes>1024){
+	elseif ($kbytes>=1024){
 		$value=round($kbytes/1024, 2); 
 		return "$value{$spacer}MB";
 	}
@@ -5088,6 +5278,16 @@ function button_browse_computer($computer,$field_name){
 	
 function js_browse_direct($startfolder,$fieldname){
 	return "Loadjs('SambaBrowse.php?jdisk=disk&mounted=$startfolder&t=&homeDirectory=&no-shares=yes&field=$fieldname&without-start=yes')";
+	
+}
+
+function button_browse_direct($field_name,$startfolder,$size=18){
+
+	$btid=md5($field_name.time());
+	$js="Loadjs('SambaBrowse.php?jdisk=disk&mounted=$startfolder&t=&homeDirectory=&no-shares=yes&field=$field_name&without-start=yes')";
+	
+	$button=button("{browse}...&nbsp;", "$js",$size);
+	return $button;	
 	
 }
 	
@@ -5942,8 +6142,9 @@ class tweak_array{
 			return $array;
 		}
 } 
-function button($text,$js,$fontsize=12.5){
+function button($text,$js,$fontsize=12.5,$width=0){
 	$fontsizeSrc=$fontsize;
+	$width_text=null;
 	$tpl=new templates();
 	if(is_numeric($fontsize)){if($fontsize>0){$fontsize="{$fontsize}px";}}
 	if($fontsize==null){$fontsize="12px";}
@@ -5976,19 +6177,14 @@ function button($text,$js,$fontsize=12.5){
 		return "<button class=\"btn btn-primary\" type=\"button\">$text</button>$script";
 	}
 	
-	
+	if($width>0){$width_text=";width:{$width}px";}
 	return "<a href=\"javascript:blur()\" OnClick=\"javascript:$js\" 
-	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:{$fontsize}px;text-transform:capitalize\" 
+	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:{$fontsize}px;text-transform:capitalize$width_text\" 
 	data-loading-text=\"$Loading...\" >&laquo;&nbsp;$text&nbsp;&raquo;</a>";
 	
 	
 	
-	$over="OnMouseOut=\"javascript:this.className='ui-state-default ui-corner-all';this.style.cursor='auto'\"";
-	$out="OnMouseOver=\"javascript:this.className='ui-state-active ui-corner-all';this.style.cursor='pointer'\"";
 	
-	return "<button type='button' style='padding:3px;font-size:$fontsize;text-transform:capitalize' 
-	$over $out class='ui-state-default ui-corner-all' 
-	OnClick=\"javascript:this.className='ui-state-over';$js;\">&nbsp;$text&nbsp;&nbsp;&raquo;</button>";
 }
 
 function pourcentage_basic($pourc,$bandwith_color,$text){
@@ -6174,7 +6370,7 @@ function GET_CACHED_KEY($file,$function,$token){
 	
 }
 
-function SET_CACHED($file,$function,$token,$datas){
+function SET_CACHED($file,$function=null,$token=null,$datas=null){
 	if(strlen($datas)<5){return;}
 	if($GLOBALS["AS_ROOT"]){$uid=-100;}
 	
@@ -6311,11 +6507,11 @@ return array(
 				OnClick=\"javascript:s_PopUp('edit.thumbnail.php?$keyimg',550,250);\">
 				<img src='{$array["img"]}'></a>",
 		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" 
-		style='font-size:18px;text-decoration:underline;color:$color'>$uid</a>
-		<div style='font-size:16px;margin-bottom:-10px;text-transform:capitalize'>$disp</div>
-		<div style='font-size:12px'><i>$ou$title$phone$uidn</i>",
+		style='font-size:20px;text-decoration:underline;color:$color'>$uid</a>
+		<br><span style='font-size:18px;margin-bottom:-10px;text-transform:capitalize'>$disp</span>
+		<br><span style='font-size:16px'><i>$ou$title$phone$uidn</i>",
 		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" 
-			style='font-size:18px;text-decoration:underline;color:$color'>$mail</a>",
+			style='font-size:20px;text-decoration:underline;color:$color'>$mail</a></span>",
 		
 		
 		)
@@ -6749,7 +6945,32 @@ function CompileTr6_win($array){
 			</table>";
 	return implode("\n",$tables);
 }
+function CompileTr7_win($array){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
 
+
+	$tables[]="<table style='width:765px' cellspacing='15px' cellpadding='15px'><tr>";
+
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=25% valign='top'>$line</td>";
+		if($t==7){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<7){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=25% valign='top'>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr>
+			</table>";
+	return implode("\n",$tables);
+}
 function CompileTr4($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
@@ -6841,6 +7062,54 @@ function file_time_min_Web($path){
 	$difference = ($data2 - $data1); 	 
 	return round($difference/60);	 
 }
+
+function file_time_sec_Web($path){
+	if(!is_file($path)){
+		if($GLOBALS["VERBOSE"]){echo "file_time_sec_Web() -> unable to stat $path\n";}
+		return 100000;
+	}
+	$last_modified = filemtime($path);
+	$data1 = $last_modified;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	return $difference;
+}
+function time_between_day_Web($xtime){
+	$now = time(); // or your date as well
+     $your_date = $xtime;
+     $datediff = $your_date - $now ;
+     return floor($datediff/(60*60*24));
+}
+
+function TCP_LIST_NICS(){
+	$datas=explode("\n",@file_get_contents("/proc/net/dev"));
+	while (list ($num, $line) = each ($datas) ){
+		if($GLOBALS["VERBOSE"]){echo "<br>TCP_LIST_NICS: Found: $line\n";}
+		if(preg_match("#^(.+?):#",$line,$re)){
+			if(trim($re[1])=="lo"){continue;}
+			if(preg_match("#pan[0-9]+#",$re[1])){continue;}
+			if(preg_match("#tun[0-9]+#",$re[1])){continue;}
+			if(preg_match("#vboxnet[0-9]+#",$re[1])){continue;}
+			if(preg_match("#wmaster[0-9]+#",$re[1])){continue;}
+			if(preg_match('#master#',$re[1])){continue;}
+			if(preg_match("#^veth.+?#",$re[1])){continue;}
+			if(preg_match("#^tunl[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^dummy[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^gre[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^ip6tnl[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^sit[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^vlan[0-9]+#",$re[1])){continue;}
+			if(preg_match("#^virt[0-9]+#",$re[1])){continue;}
+			$re[1]=trim($re[1]);
+			$array[]=trim($re[1]);
+		}
+	}
+	return	$array;
+
+}
+
+
+
 function CompileTr2($array,$class=null){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}	
@@ -6933,22 +7202,31 @@ function table_error_showZoom($error,$underline=1){
 }
 
 function json_error_show($error,$indexColumn=0,$full=false){
+	
+	$trace=@debug_backtrace();
+	if(is_array($trace)){
+		$filename=basename($trace[1]["file"]);
+		$function=$trace[1]["function"];
+		$line=$trace[0]["line"];
+	}
+	
 	$error=str_replace("no data", "{this_request_contains_no_data}", $error);
 	$error=str_replace("No data", "{this_request_contains_no_data}", $error);
 	$error=str_replace("Not found...", "{this_request_contains_no_data}", $error);
 	$error=str_replace("no item", "{this_request_contains_no_data}", $error);
 	$error=str_replace("no schedule", "{no_schedule}", $error);
-	
+	$error=str_replace("QUERY_SQL","MySQL Error<br>Script:$filename<br>function $function in line $line<br>", $error);
 	
 	$tpl=new templates();
 	$id=md5($error);
-	$error=$tpl->javascript_parse_text($error);
+	$error=$tpl->javascript_parse_text($error,1);
+	$error=str_replace("\n", "<br>", $error);
 	if(strlen($error)>10){
 		$full=urlencode(base64_encode($error));
 		if(!$full){$error="<a href=\"javascript:Blurz();\" Onclick=\"javascript:Loadjs('admin.index.php?json-error-js=$full');\" style=\"font-size:14px;color:#AC0909;text-decoration:underline\">".
 		substr($error, 0,10)."...";
 		}else{
-			$error="<span style=\"font-size:14px;color:#AC0909;text-decoration:underline\">$error</span>";
+			$error="<span style=\"font-size:12px;color:#AC0909;\">$error</span>";
 		}
 		
 	}
@@ -6956,7 +7234,7 @@ function json_error_show($error,$indexColumn=0,$full=false){
 	for($i=0;$i<13;$i++){
 		$tf[$i]="&nbsp;";
 	}
-	$tf[$indexColumn]="<strong style=\"font-size:14px;color:#AC0909\">$error</a></strong>";
+	$tf[$indexColumn]="<strong style=\"font-size:12px;color:#AC0909\">$error</a></strong>";
 	for($i=0;$i<13;$i++){
 		$finalArray[$i]=$tf[$i];
 		
@@ -7027,6 +7305,34 @@ function SimpleXMLElementToArray(SimpleXMLElement $xml) {
         return $array;
     }
     
+    
+    function FATAL_INFO_SHOW_128($text,$noform=false,$nomargin=false){
+    	$tpl=new templates();
+    	$margin=null;
+    	$width="95%";
+    	$classform="class=form";
+    	if($noform){$classform=null;$width="99%";}
+    	if(!$nomargin){$margin="margin:30px";}
+    	$text=$tpl->_ENGINE_parse_body($text);
+    	$html="
+    	<center style='$margin'>
+    	<div style='width:95%' $classform>
+    	<table style='width:{$width}'>
+    	<tr>
+    	<td valign='top' style='width:1%'>
+    	<img src='img/info-128.png'>
+    	</td>
+    	<td><div style='font-size:18px;color:#2975b8'>$text</div></td>
+    	</tr>
+    	</table>
+    	</div>
+    	</center>
+    	";
+    	return $tpl->_ENGINE_parse_body($html);
+    
+    
+    }    
+    
 function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 	$tpl=new templates();
 	$margin=null;
@@ -7043,7 +7349,7 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
 		</td>
-		<td><div style='font-size:18px;color:#ed0d0d'>$text</div></td>
+		<td><div style='font-size:18px;color:#d32d2d'>$text</div></td>
 	</tr>
 	</table>
 	</div>
@@ -7054,25 +7360,41 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 	
 }
 
-function FATAL_WARNING_SHOW_128($text){
+function FATAL_ERROR_SHOW_128_DESIGN($title,$text,$javascript=null){
 	$tpl=new templates();
+	$margin=null;
+	$width="95%";
+	$button=null;
+	
+	if($javascript<>null){
+		$button="<div style='text-align:right;margin-bottom:20px'>".button("{goto}",$javascript,28)."</div>";
+		
+	}
+	
+	$text=$tpl->_ENGINE_parse_body($text);
 	$html="
-	<center style='margin:30px'>
-	<table style='width:99%' class=form>
+	<center style='margin:10px'>
+	<div style='width:95%;border: 2px solid #d32d2d;border-radius: 5px 5px 5px 5px;'>
+	<table style='width:100%'>
 	<tr>
-	<td valign='top' style='width:1%'>
-	<img src='img/light-bulb-warning-128.png'>
+	<td valign='top' style='width:140px'>
+	<center style='margin:5px'><img src='img/att-red-128.png'></center>
 	</td>
-	<td><div style='font-size:18px;color:#ed0d0d'>$text</div></td>
+	<td style='vertical-align:top;padding:10px'>
+		<div style='font-size:28px;color:#d32d2d;font-weight:bold;margin-bottom:20px'>$title</div>
+		<div style='font-size:22px;color:#d32d2d;font-weight:bold;margin-bottom:20px'>$text</div>
+		$button
+	</td>
 	</tr>
 	</table>
+	</div>
 	</center>
-	<script>UnlockPage();</script>
 	";
 	return $tpl->_ENGINE_parse_body($html);
 
 
 }
+
 
 
 function SIMPLE_PARAGRAPHE_BLUE_ARROWTR($title,$text,$js,$img="arrow-blue-left-24.png"){
@@ -7277,6 +7599,7 @@ if(isset($GLOBALS["DEBUG_PROCESS"])){
 	writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 }
 
+
 function header_location($returnpage){
 	if(strpos($_SERVER["HTTP_ACCEPT"], "/javascript")>0){
 		header("content-type: application/x-javascript");
@@ -7330,5 +7653,72 @@ function strip_bad_characters($servername){
 	return $servername;
 	
 }
+function squid_stats_default_values(){
+	if(!isset($_SESSION["SQUID_STATS_MEMBER"])){$_SESSION["SQUID_STATS_MEMBER"]="IPADDR";}
+	if(!isset($_SESSION["SQUID_STATS_MEMBER_SEARCH"])){$_SESSION["SQUID_STATS_MEMBER_SEARCH"]="*";}
+	if(!isset($_SESSION["SQUID_STATS_DATE1"])){$_SESSION["SQUID_STATS_DATE1"]=date("Y-m-d");}
+	if(!isset($_SESSION["SQUID_STATS_TIME1"])){$_SESSION["SQUID_STATS_TIME1"]="00:00";}
+	if(!isset($_SESSION["SQUID_STATS_DATE2"])){$_SESSION["SQUID_STATS_DATE2"]=date("Y-m-d");}
+	if(!isset($_SESSION["SQUID_STATS_TIME2"])){$_SESSION["SQUID_STATS_TIME2"]="23:00";}
+	if(!isset($_SESSION["SQUID_STATS_MAX_LINES"])){$_SESSION["SQUID_STATS_MAX_LINES"]=100;}
+}
 
+function InfluxToTime($influxtime){
+	if(preg_match("#^(.+?)T(.+?)\.[0-9]+Z$#", $influxtime,$re)){return QueryFromUTC(strtotime("{$re[1]} {$re[2]}"));}
+	if(preg_match("#^(.+?)T(.+?)Z$#", $influxtime,$re)){return QueryFromUTC(strtotime("{$re[1]} {$re[2]}"));}
+	
+}
+
+function QueryFromUTC($time){
+	if(!isset($GLOBALS["QueryFromUTC"])){$GLOBALS["QueryFromUTC"]=_QueryFromUTC();}
+	return strtotime(date("Y-m-d H:i:s",$time)." {$GLOBALS["QueryFromUTC"]} seconds");
+	
+	
+}
+
+function _QueryFromUTC(){
+	$UTC_TIME=strtotime(gmdate("Y-m-d H:i:s"));
+	$CURRENTIME=time();
+	if($CURRENTIME>$UTC_TIME){
+		$diff=$CURRENTIME-$UTC_TIME;
+		$sep="+";
+	}
+	if($UTC_TIME>$CURRENTIME){
+		$diff=$UTC_TIME-$CURRENTIME;
+		$sep="-";
+	}
+	
+	return "$sep$diff";
+	
+}
+
+function InfluxQueryFromUTC($time){return QueryToUTC($time);}
+
+function QueryToUTC($time){
+
+	$UTC_TIME=strtotime(gmdate("Y-m-d H:i:s"));
+	$CURRENTIME=time();
+	if($CURRENTIME>$UTC_TIME){
+		$diff=$CURRENTIME-$UTC_TIME;
+		$sep="-";
+	}
+	if($UTC_TIME>$CURRENTIME){
+		$diff=$UTC_TIME-$CURRENTIME;
+		$sep="+";
+	}
+	
+	$DateStr=date("Y-m-d H:i:s",$time);
+	$TimeIntval=strtotime(date("Y-m-d H:i:s",$time)." $sep$diff seconds");
+	return $TimeIntval;
+	
+}
+function is_iterable($var)
+{
+	return $var !== null
+	&& (is_array($var)
+			|| $var instanceof Traversable
+			|| $var instanceof Iterator
+			|| $var instanceof IteratorAggregate
+	);
+}
 ?>

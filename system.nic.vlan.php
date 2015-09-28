@@ -534,7 +534,7 @@ function vlan_list_list(){
 		}
 		
 		if(trim($ligne["org"])==null){
-			$ligne["org"]=$tpl->_ENGINE_parse_body("<strong style='color:red'>{no_organization}</strong>");
+			$ligne["org"]=$tpl->_ENGINE_parse_body("<strong style='color:#d32d2d'>{no_organization}</strong>");
 		}
 		
 		$edit=imgsimple("24-administrative-tools.png","{apply}","VLANEdit({$ligne["ID"]})");
@@ -548,7 +548,7 @@ function vlan_list_list(){
 		$a=$ip->parseCIDR($cdir);
 		if($a[0]==0){
 			$img="warning-panneau-24.png";
-			$cdir="<span style='color:red'>$cdir</span>";
+			$cdir="<span style='color:#d32d2d'>$cdir</span>";
 		}
 		
 		
@@ -637,7 +637,7 @@ function vlan_list_old(){
 		}
 		
 		if(trim($ligne["org"])==null){
-			$ligne["org"]="<strong style='color:red'>{no_organization}</strong>";
+			$ligne["org"]="<strong style='color:#d32d2d'>{no_organization}</strong>";
 		}
 		
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}

@@ -8,7 +8,7 @@ include_once('ressources/class.system.nics.inc');
 $users=new usersMenus();
 if(!$users->AsArticaMetaAdmin){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 
@@ -117,6 +117,7 @@ function group_tab(){
 	$array["group-popup"]=$ligne["groupname"];
 	$array["hosts"]='{hosts}';
 	$array["policies"]='{policies}';
+	$array["categories"]='{Webfiltering_categories}';
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -131,7 +132,10 @@ function group_tab(){
 			continue;
 		}
 		
-		
+		if($num=="categories"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica-meta.group.categories.php?ID=$ID\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}		
 	
 		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID=$ID\"><span style='font-size:18px'>$ligne</span></a></li>\n");
@@ -208,6 +212,7 @@ function page(){
 	$global_whitelist=$tpl->javascript_parse_text("{whitelist} (Meta)");
 	$policies=$tpl->javascript_parse_text("{policies}");
 	$packages=$tpl->javascript_parse_text("{packages}");
+	$transparent=$tpl->javascript_parse_text("{transparent}");
 	$switch=$tpl->javascript_parse_text("{switch}");
 	$new_server=$tpl->javascript_parse_text("{new_server}");
 	$hosts=$tpl->javascript_parse_text("{hosts}");
@@ -220,7 +225,7 @@ function page(){
 	
 	$buttons="	
 	buttons : [
-		{name: '$new_group', bclass: 'add', onpress : NewGroup$t},
+		{name: '<storng style=font-size:18px>$new_group</strong>', bclass: 'add', onpress : NewGroup$t},
 	],";
 
 	
@@ -237,7 +242,8 @@ $(document).ready(function(){
 	{display: 'status', name : 'icon1', width : 70, sortable : false, align: 'center'},
 	{display: '$groups', name : 'groupname', width : 540, sortable : true, align: 'left'},
 	{display: '$hosts', name : 'hosts', width : 70, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'settings', width : 70, sortable : false, align: 'center'},
+	{display: '$transparent', name : 'transparent', width : 98, sortable : false, align: 'center'},
 	{display: '&nbsp;', name : 'delete', width : 70, sortable : false, align: 'center'},
 
 	],
@@ -249,7 +255,7 @@ $(document).ready(function(){
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<strong style=font-size:22px>Artica Meta: $groups</strong>',
+	title: '<strong style=font-size:22px>Meta Server: $groups</strong>',
 	useRp: true,
 	rpOptions: [10, 20, 30, 50,100,200],
 	rp:50,
@@ -357,6 +363,10 @@ function search(){
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:$urijs\" $styleHref>";
 		
 		$orders=imgtootltip("48-settings.png",null,"Loadjs('artica-meta.menus.php?gpid={$ligne["ID"]}');");
+		$transparent=imgtootltip("ok-pass-48.png",null,"Loadjs('artica-meta.squidtransparent-white.php?gpid={$ligne["ID"]}');");
+		
+		
+		
 		$delete=imgtootltip("delete-32.png",null,"Loadjs('$MyPage?delete-group-js={$ligne["ID"]}')");
 		
 		
@@ -364,11 +374,12 @@ function search(){
 		
 		
 		$cell=array();
-		$cell[]="<img src=\"img/$icon\">";
+		$cell[]="<center><img src=\"img/$icon\"></center>";
 		$cell[]="<span $style>$link$groupname</a></span>";
-		$cell[]="<span $style>$link$count</a></span>";
-		$cell[]="<span $style>$orders</a></span>";
-		$cell[]="<span $style>$delete</a></span>";
+		$cell[]="<center $style>$link$count</a></center>";
+		$cell[]="<center $style>$orders</a></center>";
+		$cell[]="<center $style>$transparent</a></center>";
+		$cell[]="<center $style>$delete</a></center>";
 
 		$data['rows'][] = array(
 		'id' => $ligne['uuid'],

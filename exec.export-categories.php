@@ -46,7 +46,6 @@ $GLOBALS["CATS"][]="music";
 $GLOBALS["CATS"][]="news";
 $GLOBALS["CATS"][]="passwords";
 $GLOBALS["CATS"][]="phishing";
-$GLOBALS["CATS"][]="pictures";
 $GLOBALS["CATS"][]="porn";
 
 $GLOBALS["CATS"][]="publicite";
@@ -63,7 +62,6 @@ $GLOBALS["CATS"][]="recreation/wellness";
 $GLOBALS["CATS"][]="redirector";
 $GLOBALS["CATS"][]="religion";
 $GLOBALS["CATS"][]="remote-control";
-$GLOBALS["CATS"][]="ringtones";
 $GLOBALS["CATS"][]="science/computing";
 $GLOBALS["CATS"][]="science/weather";
 $GLOBALS["CATS"][]="searchengines";

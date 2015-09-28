@@ -114,7 +114,7 @@ function popup(){
 		
 		</table>
 		<br>
-		<div class=text-info>$recipient_bcc_maps_text</div>
+		<div class=explain>$recipient_bcc_maps_text</div>
 		<div style='width:100%;height:150px;overflow:auto' id='RecipientToAddID'></div>
 		
 		
@@ -202,17 +202,17 @@ function REDIRECT_QUERIES($mail){
 		$ok=@mysql_select_db($array["mysql_database"]);
 		if(!$ok){
 			$des=mysql_error();
-			echo "<span style='color:red'>redirect: $des L.".__LINE__."</span>";
+			echo "<span style='color:#d32d2d'>redirect: $des L.".__LINE__."</span>";
 			@mysql_close($bd);
 			return false;
 		}
 		$results=mysql_query($sql);
-		if(mysql_error()){$des=mysql_error();@mysql_close($bd);echo "<span style='color:red'>redirect: $des L.".__LINE__."</span>";return false;}
+		if(mysql_error()){$des=mysql_error();@mysql_close($bd);echo "<span style='color:#d32d2d'>redirect: $des L.".__LINE__."</span>";return false;}
 	}else{
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
-			echo "<span style='color:red'>redirect: $des L.".__LINE__."</span>";
+			echo "<span style='color:#d32d2d'>redirect: $des L.".__LINE__."</span>";
 			@mysql_close($q->mysql_connection);
 			return false;
 		}

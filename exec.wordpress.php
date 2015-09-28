@@ -48,9 +48,6 @@ function build_progress($text,$pourc){
 }
 
 function config($servername){
-	
-	
-	
 	$GLOBALS["SERVICE_NAME"]="Wordpress $servername";
 	$unix=new unix();
 	
@@ -358,7 +355,7 @@ if(is_file("$WORKING_DIRECTORY/wp-content/plugins/wp-super-cache/wp-cache-config
 	@file_put_contents("$WORKING_DIRECTORY/wp-content/plugins/wp-super-cache/wp-cache-config.php",@implode("\n", $f));
 }
 
-@file_put_contents("$WORKING_DIRECTORY/wp-config.php", @implode("\n", $f));
+
 build_progress("$servername: wp-config.php {done}...",50);
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $WORKING_DIRECTORY/wp-config.php done...\n";}
 
@@ -984,8 +981,10 @@ function duplicate_wordpress($servername){
 	
 	@mkdir($WORKING_DIRECTORY,0755,true);
 	build_progress("$servername: {installing} {from} $srcdir...",42);
-	shell_exec("$cp -rf $srcdir/* $WORKING_DIRECTORY/");
+	shell_exec("$cp -rfv $srcdir/* $WORKING_DIRECTORY/");
 	$wordpressDB=$free->mysql_database;
+	
+	build_progress("$servername: {creating_databases}...",42);
 	if($wordpressDB==null){$wordpressDB=$free->CreateDatabaseName();}
 	
 	
@@ -1008,7 +1007,7 @@ function duplicate_wordpress($servername){
 		return false;
 		}
 	}
-	build_progress("$servername: {backup_database} {from} $free2->mysql_database...",42);
+	build_progress("$servername: {backup_database} $free2->mysql_database...",42);
 	$mysqldump=$unix->find_program("mysqldump");
 	$q=new mysql();
 	if($q->mysql_password<>null){$Mysqlpassword=" -p".$unix->shellEscapeChars($q->mysql_password);}

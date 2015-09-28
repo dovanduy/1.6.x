@@ -87,6 +87,7 @@ function events(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$events=$tpl->javascript_parse_text("{events}");
+	$t=time();
 	$html="
 <table class='node-table-$t' style='display: none' id='node-table-$t' style='width:99%'></table>
 <script>
@@ -96,7 +97,7 @@ $('#node-table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'zdate', width :115, sortable : false, align: 'left'},
-		{display: '$events', name : 'event', width :770, sortable : true, align: 'left'},
+		{display: '<span style=font-size:22px>$events</span>', name : 'event', width :1298, sortable : true, align: 'left'},
 
 		
 		
@@ -106,12 +107,12 @@ $('#node-table-$t').flexigrid({
 	sortname: '	ipaddr',
 	sortorder: 'asc',
 	usepager: true,
-	title: 'C-ICAP $events',
+	title: '<strong style=font-size:30px>C-ICAP $events</strong>',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: true,
 	width: '99%',
-	height: 400,
+	height: 550,
 	singleSelect: true
 	
 	});   
@@ -149,6 +150,21 @@ function status(){
 		$error_page_js="alert('".$tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}")."');";
 	}
 	
+	$sock->getFrameWork("clamav.php?sigtool=yes");
+	$bases=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/ClamAVBases"));
+	if(count($bases)<2){
+		
+		echo FATAL_ERROR_SHOW_128("<span style='font-size:48px'>{missing_clamav_pattern_databases}</span>
+				<center style='margin:50px'>
+					". button("{update_now}", "Loadjs('clamav.update.progress.php')",52).
+				"</center>
+				
+				");
+		return;
+	}
+	
+
+	
 	
 	$vir="32-virus-find-grey.png";
 	$virtxt="{enable_antivirus}";
@@ -173,6 +189,7 @@ function status(){
 	
 	
 	$html="
+	<div style='font-size:30px;margin-bottom:20px'>{http_antivirus_for_proxy}</div>
 	<div id='$t'>
 	<table style='width:100%'>
 	<tr>
@@ -183,36 +200,53 @@ function status(){
 		</td>
 		<td valign='top'>
 		<div style='width:98%' class=form>
+		
 		<table style='width:100%'>
+			
 			<tr>
-				<td valign='middle' width=1%><img src='img/$vir'></td>
-				<td width=99%><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:$js;\" 
-				style='font-size:16px;text-decoration:underline'>$virtxt</td>
-			</tr>	
-			<tr>
-				<td valign='middle' width=1%><img src='img/webpage-settings-32.png'></td>
-				<td width=99%><a href=\"javascript:blur();\" 
+				
+				<td width=50% nowrap><a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$error_page_js;\" 
-				style='font-size:16px;text-decoration:underline'>{alert_page}</td>
-			</tr>
-			<tr>
-				<td valign='middle' width=1%><img src='img/memory-32.png'></td>
-				<td width=99%><a href=\"javascript:blur();\" 
+				style='font-size:22px;text-decoration:underline'>{alert_page}</td>
+			
+				
+				<td width=50%><a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$memory_booster_js;\" 
-				style='font-size:16px;text-decoration:underline'>{memory_booster}</td>
+				style='font-size:22px;text-decoration:underline'>{memory_booster}</td>
+		</tr>
+		<tr style='height:70px'>
+		<td>
+				
+				<td colspan=2 align=right><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:GotoClamavUpdates();\" 
+				style='font-size:16px;text-decoration:underline'>{also_see_update_databases}</td>
+				
+				
 			</tr>			
 			
 		</table>
 		</div>
 			<div style='width:98%' class=form>
-	". Paragraphe_switch_img("{ACTIVATE_ICAP_AV}", "{ACTIVATE_ICAP_AV_TEXT}","CicapEnabled-$t",$CicapEnabled, null,450)."
+			<div style='padding:20px;-webkit-border-radius: 4px;-moz-border-radius: 4px;border-radius: 4px;border:2px solid #CCCCCC'>
+	". Paragraphe_switch_img("{ACTIVATE_ICAP_AV}", "{ACTIVATE_ICAP_AV_TEXT}",
+			"CicapEnabled-$t",$CicapEnabled, null,900)."
 	<hr>
-	<div style='text-align:right'>". button("{apply}","SaveEnable$t()",32)."</td>
+	<div style='text-align:right'>". button("{apply}","SaveEnable$t()",42)."
+			</div>
+	</div>
+	<p>&nbsp;</p>
+	
+	".@implode("\n", $DBS)."		
+			
+	</td>
 	</td>
 	</tr>
 
 	</table>
+	
+	
+	
+	
 	</div>
 <script>
 	var x_cicapdefault=function(obj){
@@ -302,7 +336,7 @@ function index(){
 
 	
 	//$array["logs"]='{icap_logs}';
-	$fontsize="16";
+	$fontsize="22";
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="rules"){
 			$html[]= "<li><a href=\"c-icap.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
@@ -408,13 +442,13 @@ function clamav(){
 	
 	if(!is_numeric($EnableClamavInCiCap)){$EnableClamavInCiCap=1;}			
 	$html="
-	<div style='font-size:16px;margin:8px' class=text-info>{clamav_settings_text}</div>
+	<div style='font-size:26px;margin-bottom:20px'>{clamav_settings_text}</div>
 	
 	<div id='ffmcc2' style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{ENABLE_CLAMAV}:</td>
-		<td style=';font-size:14px'>" . Field_checkbox('EnableClamavInCiCap',1,$EnableClamavInCiCap,'EnableClamavInCiCapCheck()')."</td>
+		<td class=legend style='font-size:22px'>{ENABLE_CLAMAV}:</td>
+		<td style=';font-size:14px'>" . Field_checkbox_design('EnableClamavInCiCap',1,$EnableClamavInCiCap,'EnableClamavInCiCapCheck()')."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	
@@ -422,54 +456,50 @@ function clamav(){
 	
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.SendPercentData}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.SendPercentData',$ci->main_array["CONF"]["srv_clamav.SendPercentData"],'width:55px;font-size:16px;padding:3px')."&nbsp;%</td>
-		<td>" . help_icon('{srv_clamav.SendPercentData_text}')."</td>
+		<td class=legend style='font-size:22px'>". texttooltip("{srv_clamav.SendPercentData}","{srv_clamav.SendPercentData_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.SendPercentData',
+				$ci->main_array["CONF"]["srv_clamav.SendPercentData"],'width:55px;font-size:22px;padding:3px')."&nbsp;%</td>
 	</tr>
 
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.StartSendPercentDataAfter}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.StartSendPercentDataAfter',$ci->main_array["CONF"]["srv_clamav.StartSendPercentDataAfter"],'width:55px;font-size:16px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.StartSendPercentDataAfter_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.StartSendPercentDataAfter}","{srv_clamav.StartSendPercentDataAfter_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.StartSendPercentDataAfter',$ci->main_array["CONF"]["srv_clamav.StartSendPercentDataAfter"],'width:125px;font-size:22px;padding:3px')."&nbsp;M</td>
+		<td>" . help_icon()."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.MaxObjectSize}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.MaxObjectSize',$ci->main_array["CONF"]["srv_clamav.MaxObjectSize"],'width:55px;font-size:16px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.MaxObjectSize_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.MaxObjectSize}","{srv_clamav.MaxObjectSize_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.MaxObjectSize',$ci->main_array["CONF"]["srv_clamav.MaxObjectSize"],'width:150px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>
 
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.ClamAvMaxFilesInArchive}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.ClamAvMaxFilesInArchive',
-		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"],'width:55px;font-size:16px;padding:3px')."&nbsp;{files}</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxFilesInArchive}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.ClamAvMaxFilesInArchive}","{srv_clamav.ClamAvMaxFilesInArchive}").":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.ClamAvMaxFilesInArchive',
+		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxFilesInArchive"],'width:150px;font-size:22px;padding:3px')."&nbsp;{files}</td>
+
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.ClamAvMaxFileSizeInArchive}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.ClamAvMaxFileSizeInArchive',
-		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxFileSizeInArchive"],'width:55px;font-size:16px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxFileSizeInArchive}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.ClamAvMaxFileSizeInArchive}","{srv_clamav.ClamAvMaxFileSizeInArchive}").":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.ClamAvMaxFileSizeInArchive',
+		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxFileSizeInArchive"],'width:150px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>
 
 	<tr>
-		<td class=legend style='font-size:16px'>{srv_clamav.ClamAvMaxRecLevel}:</td>
-		<td style=';font-size:14px'>" . Field_text('srv_clamav.ClamAvMaxRecLevel',
-		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxRecLevel"],'width:55px;font-size:16px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxRecLevel}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.ClamAvMaxRecLevel}",'{srv_clamav.ClamAvMaxRecLevel}').":</td>
+		<td style=';font-size:22px'>" . Field_text('srv_clamav.ClamAvMaxRecLevel',
+		$ci->main_array["CONF"]["srv_clamav.ClamAvMaxRecLevel"],'width:150px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{temp_dir}:</td>
-		<td style=';font-size:14px'>" . Field_text('ClamavTemporaryDirectory',
-		$ClamavTemporaryDirectory,'width:250px;font-size:16px;padding:3px').button_browse("ClamavTemporaryDirectory")."</td>
-		<td></td>
+		<td class=legend style='font-size:22px'>".texttooltip("{temp_dir}","{temp_dir}").":</td>
+		<td style=';font-size:22px;valign:middle'>" . Field_text('ClamavTemporaryDirectory',
+		$ClamavTemporaryDirectory,'width:450px;font-size:22px;padding:3px')."&nbsp;".button_browse("ClamavTemporaryDirectory")."</td>
 	</tr>				
 				
 	
 	<tr>
-		<td colspan=3 align='right'><hr>
-		". button("{apply}","SaveICapCLam()",18)."
+		<td colspan=2 align='right'><hr>
+		". button("{apply}","SaveICapCLam()",28)."
 			
 		</td>
 	</tr>
@@ -543,7 +573,7 @@ function daemons(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 	$MaxCICAPWorkTimeMin=$sock->GET_INFO("MaxCICAPWorkTimeMin");
 	$MaxCICAPWorkSize=$sock->GET_INFO("MaxCICAPWorkSize");
@@ -585,7 +615,7 @@ function daemons(){
 	}}
 	
 	if($notifyVirHTTPServer==true){
-		$color="color:red;font-weight:bolder";
+		$color="color:#d32d2d;font-weight:bolder";
 	}
 	
 	
@@ -595,70 +625,70 @@ function daemons(){
 	
 	
 	$html="
-	<div style='font-size:22px' class=text-info >{daemon_settings_text}</div>
+	
+	<div style='font-size:26px;margin-bottom:20px'>{daemon_settings_text}</div>
+	
 	<input type='hidden' id='EnableClamavInCiCapCheck' value='$EnableClamavInCiCap'>
 	<div id='ffmcc1' style='width:95%'  class=form>
 	<table  style='width:100%'>	
 	
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{listen_address}:</td>
-		<td style='font-size:16px'>" . Field_array_Hash($ips,'CICAPListenAddress',$CICAPListenAddress,null,null,0,'font-size:16px;padding:3px')."</td>
+		<td class=legend style='font-size:22px'>{listen_address}:</td>
+		<td style='font-size:22px'>" . Field_array_Hash($ips,'CICAPListenAddress',
+				$CICAPListenAddress,null,null,0,'font-size:22px;padding:3px')."</td>
 		<td></td>
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{Timeout}:</td>
-		<td style='font-size:16px'>" . Field_text('Timeout',$ci->main_array["CONF"]["Timeout"],'width:55px;font-size:16px;padding:3px')."&nbsp;{seconds}</td>
-		<td>" . help_icon('{Timeout_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{Timeout}","{Timeout_text}").":</td>
+		<td style='font-size:22px'>" . Field_text('Timeout',$ci->main_array["CONF"]["Timeout"],
+				'width:150px;font-size:22px;padding:3px')."&nbsp;{seconds}</td>
 	</tr>
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{MaxKeepAliveRequests}:</td>
-		<td>" . Field_text('MaxKeepAliveRequests',$ci->main_array["CONF"]["MaxKeepAliveRequests"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{MaxKeepAliveRequests_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{MaxKeepAliveRequests}","{MaxKeepAliveRequests_text}").":</td>
+		<td>" . Field_text('MaxKeepAliveRequests',$ci->main_array["CONF"]["MaxKeepAliveRequests"],
+				'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
+
 	</tr>	
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{KeepAliveTimeout}:</td>
-		<td style='font-size:16px'>" . Field_text('KeepAliveTimeout',$ci->main_array["CONF"]["KeepAliveTimeout"],'width:55px;font-size:16px;padding:3px')."&nbsp;{seconds}</td>
-		<td>" . help_icon('{KeepAliveTimeout_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{KeepAliveTimeout}","{KeepAliveTimeout_text}").":</td>
+		<td style='font-size:22px'>" . Field_text('KeepAliveTimeout',
+				$ci->main_array["CONF"]["KeepAliveTimeout"],'width:150px;font-size:22px;padding:3px')."&nbsp;{seconds}</td>
 	</tr>
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{MaxServers}:</td>
-		<td>" . Field_text('MaxServers',$ci->main_array["CONF"]["MaxServers"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{MaxServers_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{MaxServers}","{MaxServers_text}").":</td>
+		<td>" . Field_text('MaxServers',$ci->main_array["CONF"]["MaxServers"],'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>	
 	
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{MinSpareThreads}:</td>
-		<td>" . Field_text('MinSpareThreads',$ci->main_array["CONF"]["MinSpareThreads"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{MinSpareThreads_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{MinSpareThreads}","{MinSpareThreads_text}").":</td>
+		<td>" . Field_text('MinSpareThreads',$ci->main_array["CONF"]["MinSpareThreads"],
+				'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>		
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{MaxSpareThreads}:</td>
-		<td>" . Field_text('MaxSpareThreads',$ci->main_array["CONF"]["MaxSpareThreads"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{MaxSpareThreads_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{MaxSpareThreads}","{MaxSpareThreads_text}").":</td>
+		<td>" . Field_text('MaxSpareThreads',$ci->main_array["CONF"]["MaxSpareThreads"],'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>	
 
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{ThreadsPerChild}:</td>
-		<td>" . Field_text('ThreadsPerChild',$ci->main_array["CONF"]["ThreadsPerChild"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{ThreadsPerChild_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{ThreadsPerChild}","{ThreadsPerChild_text}").":</td>
+		<td>" . Field_text('ThreadsPerChild',$ci->main_array["CONF"]["ThreadsPerChild"],'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>	
 
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{MaxRequestsPerChild}:</td>
-		<td>" . Field_text('MaxRequestsPerChild',$ci->main_array["CONF"]["MaxRequestsPerChild"],'width:55px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{MaxRequestsPerChild_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{MaxRequestsPerChild}","{MaxRequestsPerChild_text}").":</td>
+		<td>" . Field_text('MaxRequestsPerChild',$ci->main_array["CONF"]["MaxRequestsPerChild"],'width:150px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>	
 		<tr>
-		<td class=legend style='font-size:16px'>{debug_mode}:</td>
-		<td>" . Field_array_Hash($f,"DebugLevel",$ci->main_array["CONF"]["DebugLevel"],null,null,0,'font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{log level_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{debug_mode}","{log level_text}").":</td>
+		<td>" . Field_array_Hash($f,"DebugLevel",$ci->main_array["CONF"]["DebugLevel"],null,null,0,
+				'font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>
 				
 				
@@ -673,15 +703,15 @@ function daemons(){
 				
 	</tr>	
 		<tr>
-		<td class=legend style='font-size:16px'>{max_time_in_tmp}:</td>
-		<td style='font-size:16px'>" . Field_text("MaxCICAPWorkTimeMin",$MaxCICAPWorkTimeMin,'width:55px;font-size:16px;padding:3px')."&nbsp;{minutes}</td>
-		<td>" . help_icon('{max_time_in_tmp_explain}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{max_time_in_tmp}","{max_time_in_tmp_explain}").":</td>
+		<td style='font-size:22px'>" . Field_text("MaxCICAPWorkTimeMin",$MaxCICAPWorkTimeMin,
+				'width:150px;font-size:22px;padding:3px')."&nbsp;{minutes}</td>
 	</tr>				
 	</tr>	
 		<tr>
-		<td class=legend style='font-size:16px'>{max_tempdir_size}:</td>
-		<td style='font-size:16px'>" . Field_text("MaxCICAPWorkSize",$MaxCICAPWorkSize,'width:55px;font-size:16px;padding:3px')."&nbsp;MB</td>
-		<td>" . help_icon('{max_tempdir_size_explain}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{max_tempdir_size}","{max_tempdir_size_explain}").":</td>
+		<td style='font-size:22px'>" . Field_text("MaxCICAPWorkSize",$MaxCICAPWorkSize,
+				'width:150px;font-size:22px;padding:3px')."&nbsp;MB</td>
 	</tr>					
 
 				
@@ -693,19 +723,19 @@ function daemons(){
 	</tr>
 	
 	<tr>
-		<td class=legend nowrap style='font-size:16px'>{ViralatorMode}:</td>
-		<td>" . Field_checkbox("ViralatorMode",1,$ci->main_array["CONF"]["ViralatorMode"],"EnableDisableViralatorMode()")."</td>
-		<td>" . help_icon('{ViralatorMode_text}')."</td>
+		<td class=legend nowrap style='font-size:22px'>".texttooltip("{ViralatorMode}","{ViralatorMode_text}").":</td>
+		<td>" . Field_checkbox_design("ViralatorMode",1,$ci->main_array["CONF"]["ViralatorMode"],"EnableDisableViralatorMode()")."</td>
+
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{VirSaveDir}:</td>
-		<td>" . Field_text('VirSaveDir',$ci->main_array["CONF"]["VirSaveDir"],'width:290px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{VirSaveDir_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{VirSaveDir}","{VirSaveDir_text}").":</td>
+		<td>" . Field_text('VirSaveDir',$ci->main_array["CONF"]["VirSaveDir"],
+				'width:490px;font-size:22px;padding:3px')."&nbsp;</td>
+
 	</tr>		
 	<tr>
-		<td class=legend style='$color;font-size:16px'>{VirHTTPServer}:</td>
-		<td>" . Field_text('VirHTTPServer',$ci->main_array["CONF"]["VirHTTPServer"],'width:290px;font-size:16px;padding:3px')."&nbsp;</td>
-		<td>" . help_icon('{VirHTTPServer_text}')."</td>
+		<td class=legend style='$color;font-size:22px'>".texttooltip("{VirHTTPServer}","{VirHTTPServer_text}").":</td>
+		<td>" . Field_text('VirHTTPServer',$ci->main_array["CONF"]["VirHTTPServer"],'width:290px;font-size:22px;padding:3px')."&nbsp;</td>
 	</tr>
 	<tr>	
 		<td class=legend>{example}:</td>
@@ -717,7 +747,7 @@ function daemons(){
 	<tr>
 		<td colspan=3 align='right'>
 		<hr>
-			". button("{apply}","SaveIcapDaemonSet()",18)."
+			". button("{apply}","SaveIcapDaemonSet()",26)."
 		</td>
 	</tr>
 	</table>
@@ -935,6 +965,7 @@ function CicapEnabled(){
 	$sock->SET_INFO("CicapEnabled",$_POST["CicapEnabled"]);
 	
 }
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){$tmp1 = round((float) $number, $decimals); while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)$tmp1 = $tmp2; return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));}
 //
 	
 ?>	

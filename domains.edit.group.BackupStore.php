@@ -28,7 +28,7 @@ function page(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM storage_containers WHERE `groupid`='".mysql_escape_string2($gid)."'","artica_backup"));
 	if(!is_numeric($ligne["maxsize"])){$ligne["maxsize"]="5000";}
 	$html="
-	<div style='font-size:16px' class=text-info>{BACKUP_STORAGE_ENDUSERS_CONTAINER_EXPLAIN}</div>
+	<div style='font-size:16px' class=explain>{BACKUP_STORAGE_ENDUSERS_CONTAINER_EXPLAIN}</div>
 	<div id='animate-$t'></div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>

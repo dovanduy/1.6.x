@@ -1084,15 +1084,17 @@ mv ngx_http_substitutions_filter_module ngx_http_substitutions_filter_module-1.0
 git clone https://github.com/kvspb/nginx-auth-ldap.git  
 mv nginx-auth-ldap ngx_http_auth_ldap_module-1.0
 
+// ************************************************** MARCHE PLUS avec la 1.7.10
 cd ngx_openresty-1.2.8.6/bundle
 git clone  https://github.com/yaoweibin/nginx_tcp_proxy_module.git 
 cd ...
 patch -p1 < bundle/nginx_tcp_proxy_module/tcp.patch
+// *************************************************************************************
 
-wget http://mdounin.ru/hg/ngx_http_auth_request_module/archive/a29d74804ff1.tar.gz
-tar -xf a29d74804ff1.tar.gz
-mv ngx_http_auth_request_module-a29d74804ff1 ngx_http_auth_request_module-1.0
 
+
+
+// ************************************************** MARCHE PLUS avec la 1.7.10
 git clone https://github.com/yaoweibin/nginx_syslog_patch.git
 mv nginx_syslog_patch ngx_nginx_syslog_patch-1.0
 cd ngx_nginx_syslog_patch-1.0
@@ -1102,34 +1104,13 @@ répondre par :
 /root/ngx_openresty-1.7.2.1/bundle/nginx-1.7.2/src/core/ngx_log.h
 /root/ngx_openresty-1.7.2.1/bundle/nginx-1.7.2/src/http/modules/ngx_http_log_module.c
 [nginx_syslog_patch=>'ngx_nginx_syslog_patch'],
+// *************************************************************************************
 
-git clone https://github.com/pagespeed/ngx_pagespeed.git
-mv nginx-auth-ldap ngx_http_auth_ldap_module-1.0
-
-
-// MArche pas
-wget https://github.com/downloads/SpiderLabs/ModSecurity/modsecurity-apache_2.7.1.tar.gz
-tar -xf modsecurity-apache_2.7.1.tar.gz
-cd modsecurity-apache_2.7.1
-./configure --enable-standalone-module --prefix=/usr
-make 
-make install
-cp -rfv /modsecurity-apache_2.7.1/nginx/modsecurity /root/ngx_openresty-1.4.3.9/bundle/
-mv modsecurity ngx_http_modsecurity-1.0
-//
 
  *****
 dans configure
 [http_substitutions_filter_module=>'ngx_http_substitutions_filter_module'],
 [http_auth_ldap_module=>'ngx_http_auth_ldap_module'],
-
-
-// marche pas pour l'instant [http_modsecurity=>'ngx_http_modsecurity'],
-
-
-// ne semble nécéssaire à partir de la v 1.3.9
-[http_auth_request_module=>'ngx_http_auth_request_module'],
-
 *****
 * Inutile de rajouter l'option du module dans la ligne de commande.
 

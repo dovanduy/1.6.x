@@ -144,7 +144,7 @@ function SaveBlockSettings(){
 	$sock->SET_INFO("SquidGuardWebAllowUnblockSinglePass",$_POST["SquidGuardWebAllowUnblockSinglePass"]);
 	$sock->SET_INFO("SquidGuardWebAllowUnblockSinglePassContent",$_POST["SquidGuardWebAllowUnblockSinglePassContent"]);	
 	$sock->SET_INFO("SquidGuardWebUseLocalDatabase",$_POST["SquidGuardWebUseLocalDatabase"]);
-	
+	$sock->getFrameWork("squid.php?weberror-cache-remove=yes");
 	
 	
 }

@@ -1,5 +1,5 @@
 <?php
-
+$GLOBALS["OVERLOAD"]=false;
 class processes_php{
 	
 	function processes_php(){
@@ -151,6 +151,7 @@ function MemoryInstances(){
 		$arrayK["exec.mysql.start.php"]=15;
 		$arrayK["exec.squid-rrd.php"]=20;
 		$arrayK["exec.postfix.parse.awstats.php"]=20;
+		$arrayK["exec.squid.statistics.buildmembers.php"]=15;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
@@ -282,6 +283,21 @@ function MemoryInstances(){
 		$line=0;
 		$function="NONE";
 		$file=basename(__FILE__);
+		$systemForkProcessesNumber=4;
+		$EnableIntelCeleron=0;
+		if(is_file("/etc/artica-postfix/settings/Daemons/systemForkProcessesNumber")){
+			$systemForkProcessesNumber=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/systemForkProcessesNumber"));
+		}
+		
+		if(is_file("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron")){
+			$EnableIntelCeleron=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+			
+			
+		}
+		
+		if($systemForkProcessesNumber==0){$systemForkProcessesNumber=4;}
+		if($EnableIntelCeleron==1){$systemForkProcessesNumber=2;}
+		
 		
 		if(isset($trace[0])){
 			$file=basename($trace[0]["file"]);
@@ -307,7 +323,7 @@ function MemoryInstances(){
 	
 		$MemoryInstances=$this->MemoryInstances();
 		if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
-		if($MemoryInstances>4){$this->ToSyslog("$file:: $function/$line Too much php processes in memory ( $MemoryInstances ), aborting");return;}
+		if($MemoryInstances>$systemForkProcessesNumber){$this->ToSyslog("$file:: $function/$line Too much php processes in memory ( $MemoryInstances / $systemForkProcessesNumber ), aborting");return;}
 		
 	
 		if(is_file("/etc/artica-postfix/orders.queue")){
@@ -345,8 +361,36 @@ function MemoryInstances(){
 	
 	
 		if(count($orders)==0){return null;}
-		
+		$cgroupsEnabled=0;
 		$nice=$GLOBALS["EXEC_NICE"];
+		$error_cgroup=array();
+		
+		if(is_file("/usr/bin/cgexec")){
+			if(is_file("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron")){
+				$EnableIntelCeleron=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+			}else{
+					$error_cgroup[]="EnableIntelCeleron no such file";
+				}
+			
+			
+			
+			if($EnableIntelCeleron==1){$cgroupsEnabled=1;}else{$error_cgroup[]="EnableIntelCeleron = 0";}
+			if($cgroupsEnabled==1){
+				if(is_file("/cgroups/cpu/php/cpu.shares")){
+					$nice="/usr/bin/cgexec -g cpu,cpuset,blkio:php ";
+				}
+			}else{
+				$error_cgroup[]="cgroupsEnabled = 0";
+			}
+			
+		}else{
+			$error_cgroup[]="/usr/bin/cgexec no such file";
+		}
+
+		
+		if(count($error_cgroup)>0){writelogs_framework(@implode("; ", $error_cgroup),__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		
+		
 		$nohup=$GLOBALS["NOHUP"];		
 		$orders_number=count($orders);
 		$count_max=$orders_number;
@@ -355,6 +399,10 @@ function MemoryInstances(){
 		$count=0;
 		$array_load=sys_getloadavg();
 		$internal_load=$array_load[0];
+		
+		
+		
+		
 	
 	
 		if($count_max+$MemoryInstances>10){$count_max=10-$MemoryInstances;}
@@ -419,7 +467,7 @@ function MemoryInstances(){
 		}
 	
 	
-		$this->ToSyslog("$file:: $function/$line $count/$orders_number order(s) executed...end;");
+		$this->ToSyslog("$count/$orders_number order(s) executed...end;");
 		$this->flush_queue($orders);
 	}	
 	
@@ -434,7 +482,7 @@ function MemoryInstances(){
 			fwrite($fh, $datas);
 		}
 		fclose($fh);
-		$this->ToSyslog("$file:: $function/$line Queued ". count($orders)." order(s)");
+		$this->ToSyslog("Queued ". count($orders)." order(s)");
 	}
 	
 }

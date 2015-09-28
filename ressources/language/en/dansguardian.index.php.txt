@@ -288,7 +288,6 @@ Caches good pages so they don't need to be scanned again.[br]
 [li]If you're using an AV plugin then use at least 5000.[/li]
 [/ul]</urlcachenumber_text>
 <url_rules>URL/Domains rules</url_rules>
-<violence>Violence related sites</violence>
 <warez>Warez sites.</warez>
 <warezhacking>Warez & hacking related sites</warezhacking>
 <weapons>Weapons related sites</weapons>

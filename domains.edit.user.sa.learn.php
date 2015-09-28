@@ -59,7 +59,7 @@ $page=CurrentPageName();
 	'{EnableUserSpamLearning_text}','EnableUserSpamLearning',$users->EnableUserSpamLearning,null,350);
 	$html="
 	
-	<div class=text-info style='font-size:13px'>{EnableUserSpamLearning_explain}</div>
+	<div class=explain style='font-size:13px'>{EnableUserSpamLearning_explain}</div>
 	<table style='width:100%'>
 	<tr>
 	<td valign='top'><img src='img/bg_spam-assassin-250.png'></td>

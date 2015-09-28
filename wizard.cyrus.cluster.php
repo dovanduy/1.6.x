@@ -110,7 +110,7 @@ function popup(){
 		$html="
 		<H1>{WIZARD_CLUSTER_CYRUS_WELCOME}</H1>
 		<p style='font-size:12px'>{WIZARD_CLUSTER_CYRUS_EXPLAIN}</p>
-		<p style='font-size:12px;color:red'>{failed} {sync_tools_not_compiled}</p>
+		<p style='font-size:12px;color:#d32d2d'>{failed} {sync_tools_not_compiled}</p>
 		";
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body($html);
@@ -165,8 +165,8 @@ function popup_cluster_infos(){
 		$_SESSION["WIZARD_CYRUS"]["REMOTE_ARTICA_PASS"])){
 		$error=$cyr->error_text;
 
-		$html="<p style='font-size:12px;color:red'>{WIZARD_CLUSTER_ERROR}</p>
-		<p style='font-size:13px;color:red;font-weight:bold'>$error</p>	<hr>
+		$html="<p style='font-size:12px;color:#d32d2d'>{WIZARD_CLUSTER_ERROR}</p>
+		<p style='font-size:13px;color:#d32d2d;font-weight:bold'>$error</p>	<hr>
 		<table style='width:100%'>
 			<tr>
 				<td width=50%>". button("{back}","WizardCyrusClusterLoad()")."</td>

@@ -23,42 +23,25 @@ class mysql_catz{
 	var $arrayConfig=array();
 	var $TimeExec=0;
 	var $evArray=array();
-	var $CacheDatabase="/usr/share/artica-postfix/ressources/logs/web/categories_caches.db";
+	var $CacheDatabase="/usr/share/squid3/categories_caches.db";
+	public $UfdbCatEnabled=0;
+	public $FinalUsedServer;
 	
+
 	
 	
 	
 	
 	function mysql_catz($nomysql=false){
 		
-		if(!isset($GLOBALS["SquidPerformance"])){
-			if($GLOBALS["AS_ROOT"]){
-				$GLOBALS["SquidPerformance"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidPerformance"));
-			}else{
-				
-				$GLOBALS["SquidPerformance"]=intval($this->GET_INFO("SquidPerformance"));
-			}
-		
-		}
-		
-		
-		if(!isset($GLOBALS["EnableLocalUfdbCatService"])){
 			
-			if($GLOBALS["AS_ROOT"]){
-				$GLOBALS["EnableLocalUfdbCatService"]=trim(intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableLocalUfdbCatService")));
-			}else{
-				
-				$GLOBALS["EnableLocalUfdbCatService"]=intval($this->GET_INFO("EnableLocalUfdbCatService"));
-				
-			}
-			
-		}
+		$this->LoadParams();
 		if($GLOBALS["EnableLocalUfdbCatService"]==1){
-			
+			$this->UfdbCatEnabled=1;
 			if($this->isRemoteSockets()){
 				$GLOBALS["RemoteUfdbCat"]=1;
-				$GLOBALS["ufdbCatInterface"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbCatInterface");
-				$GLOBALS["ufdbCatPort"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbCatPort");
+				$GLOBALS["ufdbCatInterface"]=$this->GET_INFO("ufdbCatInterface");
+				$GLOBALS["ufdbCatPort"]=intval($this->GET_INFO("ufdbCatPort"));
 				return;
 			}
 			
@@ -67,116 +50,71 @@ class mysql_catz{
 			return;
 		}
 		
-		
-		if(!isset($GLOBALS["RemoteUfdbCat"])){
-			if($GLOBALS["AS_ROOT"]){
-				$GLOBALS["RemoteUfdbCat"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/RemoteUfdbCat"));
-			}else{
-				
-				$GLOBALS["RemoteUfdbCat"]=intval($this->GET_INFO("RemoteUfdbCat"));
-			}
+		if($GLOBALS["AsCategoriesAppliance"]==1){
+			$this->UfdbCatEnabled=1;
+			$GLOBALS["RemoteUfdbCat"]=1;
+			$GLOBALS["ufdbCatInterface"]="127.0.0.1";
+			$GLOBALS["ufdbCatPort"]=intval($this->GET_INFO("ufdbCatPort"));
+			$GLOBALS["SquidPerformance"]=0;
 			
 		}
 		
-
-
+		
+		if(!isset($GLOBALS["RemoteUfdbCat"])){$GLOBALS["RemoteUfdbCat"]=intval($this->GET_INFO("RemoteUfdbCat"));}
+			
 		if($GLOBALS["RemoteUfdbCat"]==1){
-			if(!isset($GLOBALS["ufdbCatPort"])){
-				if($GLOBALS["AS_ROOT"]){
-					$GLOBALS["ufdbCatPort"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbCatPort"));
-				}else{
-					
-					$GLOBALS["ufdbCatPort"]=intval($this->GET_INFO("ufdbCatPort"));
-				}
-			
-			}
-			
-			if(!isset($GLOBALS["ufdbCatInterface"])){
-				if($GLOBALS["AS_ROOT"]){
-					$GLOBALS["ufdbCatInterface"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbCatInterface");
-				}else{
-					
-					$GLOBALS["ufdbCatInterface"]=$this->GET_INFO("ufdbCatInterface");
-				}
-			}
-			
+			$this->UfdbCatEnabled=1;
+			if(!isset($GLOBALS["ufdbCatPort"])){$GLOBALS["ufdbCatPort"]=intval($this->GET_INFO("ufdbCatPort"));}
+			if(!isset($GLOBALS["ufdbCatInterface"])){$GLOBALS["ufdbCatInterface"]=$this->GET_INFO("ufdbCatInterface");}
 		}
 		
+		if(!isset($GLOBALS["ufdbCatInterface"])){$GLOBALS["ufdbCatInterface"]=null;}
 		if($GLOBALS["ufdbCatInterface"]==null){$GLOBALS["RemoteUfdbCat"]=0;}
 		
 
 	}
 	
 	private function GET_INFO($key){
+		if(!is_file("/etc/artica-postfix/settings/Daemons/$key")){return null;}
 		return trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
+		
+	}
+	
+	private function LoadParams(){
+		
+		if(!isset($GLOBALS["EnableLocalUfdbCatService"])){$GLOBALS["EnableLocalUfdbCatService"]=intval($this->GET_INFO("EnableLocalUfdbCatService"));}
+		if(!isset($GLOBALS["AsCategoriesAppliance"])){$GLOBALS["AsCategoriesAppliance"]=intval($this->GET_INFO("AsCategoriesAppliance")); }
+		if(!isset($GLOBALS["UfdbgclientSockTimeOut"])){$GLOBALS["UfdbgclientSockTimeOut"]=intval($this->GET_INFO("UfdbgclientSockTimeOut"));}
+		if($GLOBALS["UfdbgclientSockTimeOut"]==0){$GLOBALS["UfdbgclientSockTimeOut"]=2;}
+		if(!isset($GLOBALS["SquidPerformance"])){$GLOBALS["SquidPerformance"]=intval($this->GET_INFO("SquidPerformance"));}
+		
+		if($GLOBALS["AsCategoriesAppliance"]==1){$this->UfdbCatEnabled=1;return;}
+		if($GLOBALS["SquidPerformance"]==0){$this->UfdbCatEnabled=1;return;}
+
+		
+		
 		
 	}
 	
 	
 	function isRemoteSockets(){
-		$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
-		$EnableLocalUfdbCatService=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableLocalUfdbCatService"));
+		$AsCategoriesAppliance=intval($this->GET_INFO("AsCategoriesAppliance"));
+		$EnableLocalUfdbCatService=intval($this->GET_INFO("EnableLocalUfdbCatService"));
 		if($AsCategoriesAppliance==1){return true;}
 	
 		if($EnableLocalUfdbCatService==1){
-			$ufdbCatInterface=@file_get_contents("/etc/artica-postfix/settings/Daemons/ufdbCatInterface");
+			$ufdbCatInterface=$this->GET_INFO("ufdbCatInterface");
 			if($ufdbCatInterface<>null){return true;}
 		}
 		return false;
 	
 	}
 	
-	public function SHOW_VARIABLES(){
-		
-	}	
-	
-	public function TestingConnection(){
-		return true;
-	}
-	
-	public function EXECUTE_SQL($sql){
-
-	}	
-	
-	public function COUNT_ROWS($table,$database=null){
-
-		
-	}
-	
-	
-	public function TABLE_SIZE($table,$database=null){
-	
-	}
-	
-	public function TABLE_EXISTS($table,$database=null,$nocache=false){
-		if(is_file("/home/artica/categories_databases/$table.db")){return true;}
-		
+	public function TestingConnection(){return true;}
 	
 		
-	}
-	private function DATABASE_EXISTS($database){
-		return true;
-	}
 	
-	private function FIELD_EXISTS($table,$field,$database=null){
-		
-	}
 	
-	public function QUERY_SQL($sql,$database=null){
-		
-	}
-	
-	private function FIELD_TYPE($table,$field,$database=null){
-		
-	}
-	
-	private FUNCTION INDEX_EXISTS($table,$index,$database=null){
-		
-	}
-	
-	private FUNCTION CREATE_DATABASE($database){
-		
-	}
 	
 	function category_transform_name($category){
 			if($category=="teans"){$category="teens";}
@@ -188,38 +126,57 @@ class mysql_catz{
 			return $category;	
 	}
 	
-private function ToSyslog($text){
-	$LOG_SEV=LOG_INFO;
-	if(function_exists("openlog")){openlog("artica-categorize", LOG_PID , LOG_SYSLOG);}
-	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
-	if(function_exists("closelog")){closelog();}
-}
+	private function ToSyslog($text){
+		$LOG_SEV=LOG_INFO;
+		if(function_exists("openlog")){openlog("artica-categorize", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}
 
-private function microtime_float(){
-	list($usec, $sec) = explode(" ", microtime());
-	return ((float)$usec + (float)$sec);
-}
+	private function microtime_float(){
+		list($usec, $sec) = explode(" ", microtime());
+		return ((float)$usec + (float)$sec);
+	}
 
 	private function ufdbcat_remote($sitename,$forcecache=false){
 		$time_start = $this->microtime_float();
-		$sock = @fsockopen($GLOBALS["ufdbCatInterface"], $GLOBALS["ufdbCatPort"], $errno, $errst, 2);
-		if(!$sock){
-			$GLOBALS["ufdbcat"][date("i")]=false;
-			if($GLOBALS["VERBOSE"]){echo "*************\n**************\n/var/run/ufdbcat-03977 $errno $errst\n*************\n**************\n";}
-			$this->ToSyslog("Error tcp://{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]} $errno $errst");
-			$this->ok=false;
-			$this->mysql_error="tcp://{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]} $errno $errst";
+		$this->FinalUsedServer="tcp:{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]}";
+		$socket = @socket_create(AF_INET, SOCK_STREAM, 0);
+		$ret = @socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec' => $GLOBALS["UfdbgclientSockTimeOut"], 'usec' => 0));
+		$ret = socket_set_option($socket, SOL_SOCKET, SO_SNDTIMEO, array('sec' => $GLOBALS["UfdbgclientSockTimeOut"], 'usec' => 0));
+		$ret = @socket_get_option($socket, SOL_SOCKET, SO_RCVTIMEO);
+		
+		
+		if($ret === false){
+			$error=socket_strerror(socket_last_error());
+			$this->ToSyslog("Error category socket tcp://{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]} $error");
+			return null;
+		
+		}
+		
+		if(!@socket_connect($socket, $GLOBALS["ufdbCatInterface"], $GLOBALS["ufdbCatPort"])){
+			$socketerror=socket_strerror(socket_last_error($socket));
+			$this->ToSyslog("Error category socket tcp://{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]} $socketerror");
+			if(is_resource($socket)){@socket_close($socket);}
+			return null;
+		}
+				
+		
+
+		$datatosend="http://$sitename 192.168.1.158/- - GET myip=192.168.1.238 myport=3128\n";
+		@socket_write($socket, $datatosend, strlen($datatosend));
+		
+		$resp = @socket_read($socket, 1024);
+		if(!$resp){
+			$socketerror=socket_strerror(socket_last_error($socket));
+			$this->ToSyslog("Error category socket tcp://{$GLOBALS["ufdbCatInterface"]}:{$GLOBALS["ufdbCatPort"]} $socketerror");
+			if(is_resource($socket)){@socket_close($socket);}
 			return null;
 		}
 		
-		fwrite($sock, "http://$sitename 192.168.1.158/- - GET myip=192.168.1.238 myport=3128\n");
-		
-		$resp = trim(fread($sock, 4096));
-		fclose($sock);
-		
 		$time_end = $this->microtime_float();
 		$this->TimeExec = round($time_end - $time_start,3);
-		
+		if(is_resource($socket)){@socket_close($socket);}
 		if($GLOBALS["VERBOSE"]){echo " **** > **** $resp\n";}
 		if(preg_match("#\/none\/(.+?)$#", $resp,$re)){
 			$re[1]=urldecode($re[1]);
@@ -238,17 +195,59 @@ private function microtime_float(){
 	
 	public function ufdbcat($sitename,$forcecache=false){
 		if($GLOBALS["RemoteUfdbCat"]==1){ return $this->ufdbcat_remote($sitename,$forcecache=false);}
-		if($GLOBALS["EnableLocalUfdbCatService"]==0){
-		if($GLOBALS["SquidPerformance"]>0){if($GLOBALS["SquidPerformance"]) return null;}}
 		
+		if($GLOBALS["VERBOSE"]){echo "ufdbcat($sitename) RemoteUfdbCat 			   = 0<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "ufdbcat($sitename) EnableLocalUfdbCatService = {$GLOBALS["EnableLocalUfdbCatService"]}<br>\n";}
+		if($GLOBALS["VERBOSE"]){echo "ufdbcat($sitename) AsCategoriesAppliance     = {$GLOBALS["AsCategoriesAppliance"]}<br>\n";}
+		
+		if($GLOBALS["AsCategoriesAppliance"]==1){
+			return $this->ufdbcat_remote($sitename,$forcecache=false);
+		}
+		
+		
+		if($GLOBALS["EnableLocalUfdbCatService"]==0){
+			if($GLOBALS["SquidPerformance"]>0){
+					$GLOBALS["CATZ"][$sitename]="NULL";
+					return null;
+			}
+		}
+		
+		if(!isset($GLOBALS["UFDBCAT_SOCKET_PATH"])){$GLOBALS["UFDBCAT_SOCKET_PATH"]=null;}
+			
+		
+		if($GLOBALS["UFDBCAT_SOCKET_PATH"]==null){
+			if($this->is_socket("/var/run/ufdbcat-03978")){
+				$GLOBALS["UFDBCAT_SOCKET_PATH"]="/var/run/ufdbcat-03978";
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "/var/run/ufdbcat-03978 No such socket<br>\n";}
+			}
+				
+		}
+		
+		if($GLOBALS["UFDBCAT_SOCKET_PATH"]==null){
+			if($this->is_socket("/var/run/ufdbcat-03977")){
+				$GLOBALS["UFDBCAT_SOCKET_PATH"]="/var/run/ufdbcat-03977";
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "/var/run/ufdbcat-03977 No such socket<br>\n";}
+			}
+		}		
+		
+		
+		if($GLOBALS["UFDBCAT_SOCKET_PATH"]==null){
+			$this->mysql_error="Error No unix socket found";
+			$this->ok=false;
+			return false;
+		}
+		
+		$this->FinalUsedServer="unix:{$GLOBALS["UFDBCAT_SOCKET_PATH"]}";
 		$time_start = $this->microtime_float();
-		$sock = stream_socket_client('unix:///var/run/ufdbcat-03977', $errno, $errst);
+		$sock = @stream_socket_client("unix://{$GLOBALS["UFDBCAT_SOCKET_PATH"]}", $errno, $errst,$GLOBALS["UfdbgclientSockTimeOut"]);
 		if(!$sock){
-			if($GLOBALS["VERBOSE"]){echo "<li><strong> unix:///var/run/ufdbcat-03977 socket error</strong></li>\n";}
-			$this->mysql_error="Error Unix N.$errno $errst";
+			if($GLOBALS["VERBOSE"]){echo "<li><strong> unix://{$GLOBALS["UFDBCAT_SOCKET_PATH"]} socket error</strong></li>\n";}
+			$this->mysql_error="Error UnixSocket N.$errno $errst";
 			$GLOBALS["ufdbcat"][date("i")]=false;
-			if($GLOBALS["VERBOSE"]){echo "*************\n**************\n/var/run/ufdbcat-03977 $errno $errst\n*************\n**************\n";}
-			$this->ToSyslog("Error unix:///var/run/ufdbcat-03977 $errno $errst");
+			if($GLOBALS["VERBOSE"]){echo "*************\n**************\n{$GLOBALS["UFDBCAT_SOCKET_PATH"]} $errno $errst\n*************\n**************\n";}
+			$this->ToSyslog("Error unix://{$GLOBALS["UFDBCAT_SOCKET_PATH"]} $errno $errst");
 			$this->ok=false;
 			return false;
 		}
@@ -261,18 +260,123 @@ private function microtime_float(){
 		$this->TimeExec = round($time_end - $time_start,3);
 		$this->ok=true;
 		
-		if($GLOBALS["VERBOSE"]){echo " **** > **** $resp\n";}
+		if($GLOBALS["VERBOSE"]){echo " **** > **** $resp ". strlen($resp)." characters<br>\n";}
+		if(strlen($resp)==0){
+			if($forcecache){$this->SetMemoryCache($sitename, null);}
+			return null;
+		}
+		
 		if(preg_match("#\/none\/(.+?)$#", $resp,$re)){
-			$re[1]=urldecode($re[1]);
-			if(preg_match("#^category_(.+)#", $re[1])){$re[1]=$this->tablename_tocat($re[1]);}
-			$this->SetMemoryCache($sitename, $re[1]);
-			return $re[1];
+			$category=urldecode($re[1]);
+
+			if(preg_match("#^category_(.+)#", $category)){$category=$this->tablename_tocat($category);}
+			$this->SetMemoryCache($sitename, $category);
+			return $category;
 		}
 		
 		
 		if($forcecache){$this->SetMemoryCache($sitename, null);}
 		return true;
 		
+	}
+	
+	private function is_socket($socketpath){
+		$stat=$this->alt_stat($socketpath);
+		$type=$stat["filetype"]["type"];
+		if($type=="socket"){return true;}
+		return false;
+	}
+	
+	private function alt_stat($file=null) {
+		if($file==null){return;}
+		$ss=@stat($file);
+		if(!$ss) return false; //Couldnt stat file
+	
+		$ts=array(
+		  0140000=>'ssocket',
+		  0120000=>'llink',
+		  0100000=>'-file',
+		  0060000=>'bblock',
+		  0040000=>'ddir',
+		  0020000=>'cchar',
+		  0010000=>'pfifo'
+		);
+	
+		$p=$ss['mode'];
+		$t=decoct($ss['mode'] & 0170000); // File Encoding Bit
+	
+		$str =(array_key_exists(octdec($t),$ts))?$ts[octdec($t)]{0}:'u';
+		$str.=(($p&0x0100)?'r':'-').(($p&0x0080)?'w':'-');
+		$str.=(($p&0x0040)?(($p&0x0800)?'s':'x'):(($p&0x0800)?'S':'-'));
+		$str.=(($p&0x0020)?'r':'-').(($p&0x0010)?'w':'-');
+		$str.=(($p&0x0008)?(($p&0x0400)?'s':'x'):(($p&0x0400)?'S':'-'));
+		$str.=(($p&0x0004)?'r':'-').(($p&0x0002)?'w':'-');
+		$str.=(($p&0x0001)?(($p&0x0200)?'t':'x'):(($p&0x0200)?'T':'-'));
+	
+		$s=array(
+			 'perms'=>array(
+			 		'umask'=>sprintf("%04o",@umask()),
+			 		'human'=>$str,
+			 		'octal1'=>sprintf("%o", ($ss['mode'] & 000777)),
+			 		'octal2'=>sprintf("0%o", 0777 & $p),
+			 		'decimal'=>sprintf("%04o", $p),
+			 		'fileperms'=>@fileperms($file),
+			 		'mode1'=>$p,
+			 		'mode2'=>$ss['mode']),
+					
+			 'owner'=>array(
+			 		'fileowner'=>$ss['uid'],
+			 		'filegroup'=>$ss['gid'],
+			 		'owner'=>
+			 		(function_exists('posix_getpwuid'))?
+			 		@posix_getpwuid($ss['uid']):'',
+			 		'group'=>
+			 		(function_exists('posix_getgrgid'))?
+			 		@posix_getgrgid($ss['gid']):''
+			 ),
+					
+			 'file'=>array(
+			 		'filename'=>$file,
+			 		'realpath'=>(@realpath($file) != $file) ? @realpath($file) : '',
+			 		'dirname'=>@dirname($file),
+			 		'basename'=>@basename($file)
+			 ),
+	
+			 'filetype'=>array(
+			 		'type'=>substr($ts[octdec($t)],1),
+			 		'type_octal'=>sprintf("%07o", octdec($t)),
+			 		'is_file'=>@is_file($file),
+			 		'is_dir'=>@is_dir($file),
+			 		'is_link'=>@is_link($file),
+			 		'is_readable'=> @is_readable($file),
+			 		'is_writable'=> @is_writable($file)
+			 ),
+					
+			 'device'=>array(
+			 		'device'=>$ss['dev'], //Device
+			 		'device_number'=>$ss['rdev'], //Device number, if device.
+			 		'inode'=>$ss['ino'], //File serial number
+			 		'link_count'=>$ss['nlink'], //link count
+			 		'link_to'=>($s['type']=='link') ? @readlink($file) : ''
+			 ),
+					
+			 'size'=>array(
+			 		'size'=>$ss['size'], //Size of file, in bytes.
+			 		'blocks'=>$ss['blocks'], //Number 512-byte blocks allocated
+			 		'block_size'=> $ss['blksize'] //Optimal block size for I/O.
+			 ),
+					
+			 'time'=>array(
+			 		'mtime'=>$ss['mtime'], //Time of last modification
+			 		'atime'=>$ss['atime'], //Time of last access.
+			 		'ctime'=>$ss['ctime'], //Time of last status change
+			 		'accessed'=>@date('Y M D H:i:s',$ss['atime']),
+			 		'modified'=>@date('Y M D H:i:s',$ss['mtime']),
+			 		'created'=>@date('Y M D H:i:s',$ss['ctime'])
+			 ),
+		);
+	
+		return $s;
 	}
 	
 	private function tablename_tocat($tablename){
@@ -284,6 +388,8 @@ private function microtime_float(){
 	
 	
 	private function setevents($line){
+		$this->WLOGS($line);
+		if($GLOBALS["VERBOSE"]){echo "$line<br>\n";}
 		if(count($this->evArray)>500){$this->evArray=array();}
 		$this->evArray[]=$line;
 		
@@ -301,26 +407,50 @@ private function microtime_float(){
 		@dba_close($db_con);
 		return $catz;
 	}
+	
+	private function berekley_db_create($db_path){
+		if(is_file($db_path)){return true;}
+		$db_desttmp = @dba_open($db_path, "c","db4");
+		@chmod($db_path,0777);
+		@dba_close($db_desttmp);
+		if(!is_file($db_path)){return false;}
+		return true;
+	
+	}
+	
+	private function SET_LOCAL_DB($sitename,$category){
+		if(!$GLOBALS["AS_ROOT"]){return;}
+		if(trim($category)==null){return;}
+		$key=md5("$sitename$category");
+		if(isset($GLOBALS["SET_LOCAL_DB"][$key])){return;}
+		if(!$this->berekley_db_create($this->CacheDatabase)){return;}
+		$db_con = @dba_open($this->CacheDatabase, "w","db4");
+		$GLOBALS["SET_LOCAL_DB"][$key]=true;
+		if(!$db_con){@dba_close($db_con);return;}
+		@dba_replace($sitename,$category,$db_con);
+		@dba_close($db_con);
+	}
 
 	
 	public function GET_CATEGORIES($sitename){
+		
 		$this->evArray=array();
 		if($GLOBALS["RemoteUfdbCat"]==0){
-			if($GLOBALS["SquidPerformance"]>1){return null;}
+			if($GLOBALS["SquidPerformance"]>1){
+				$this->setevents("RemoteUfdbCat = 0 AND  SquidPerformance={$GLOBALS["SquidPerformance"]} return null...");
+				return null;
+			}
 		}
-		if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-		$f = @fopen("/usr/share/artica-postfix/ressources/logs/web/CATZ_GET_CATEGORIES", 'a');
-		@fwrite($f, "$trace\n");
-		@fclose($f);
-		
 		
 		$keyMem=date("Ymdh");
 		$orgsitename=$sitename;
 		$cat=$this->GetMemoryCache($orgsitename);
 		if($cat<>null){
-			$this->setevents("GET_CATEGORIES $orgsitename is in cache");
+			if($cat=="NULL"){$cat=null;}
 			return $cat;
 		}
+		
+		
 		
 		
 		
@@ -332,51 +462,38 @@ private function microtime_float(){
 		if($cat<>null){return $cat;}
 	}
 	
+	
+	private function WLOGS($event){
+		if(!isset($GLOBALS["DEBUG"])){return;}
+		if(!$GLOBALS["DEBUG"]){return;}
+		if(!function_exists("WLOG")){return;}
+		WLOG($event);
+	}
+	
 	public function GetMemoryCache($sitename,$categorize=false){
 		$fill=false;
+		if(!isset($GLOBALS["CATZ"])){$GLOBALS["CATZ"]=array();}
 		if(count($GLOBALS["CATZ"])>65000){unset($GLOBALS["CATZ"]);}
 		if(isset($GLOBALS["CATZ"][$sitename])){
-			if(strlen($GLOBALS["CATZ"][$sitename])>3){return $GLOBALS["CATZ"][$sitename];}
+			if(strlen($GLOBALS["CATZ"][$sitename])>3){
+				return $GLOBALS["CATZ"][$sitename];
+			}
 		}
 		
-		$catz=$this->GET_LOCAL_DB($sitename);
-		if($catz<>null){
-			$GLOBALS["CATZ"][$sitename]=$catz;
-			return $catz;
-		}
 		$catz=$this->ufdbcat($sitename,true);
-		if($catz<>null){
-			$GLOBALS["CATZ"][$sitename]=$catz;
-			return $catz;
-		}
+		if($catz==null){$catz="NULL";}
 		
 		
-		
-		
-		
-		
+		$this->setevents("GET_CATEGORIES:: ufdbcat($sitename,true) return $catz");
+		$GLOBALS["CATZ"][$sitename]=$catz;
+		return $catz;
 	}
 	
 	public function SetMemoryCache($sitename,$category=null){
-		if($category==null){return;}
+		if($category==null){$category="NULL";}
 		$GLOBALS["CATZ"][$sitename]=$category;
-		$database=$this->CacheDatabase;
 		
-		if(!is_file($database)){
-			try {
-				$db_desttmp = @dba_open($database, "c","db4");
-			}
-			catch (Exception $e) {
-				@dba_close($db_con);
-				return;
-			}
-			@dba_close($db_con);
-		}
 		
-		$db_con = @dba_open($database, "c","db4");
-		if(!$db_con){return;}
-		dba_replace($sitename,$category,$db_con);
-		@dba_close($db_con);
 	}
 	
 	
@@ -556,7 +673,7 @@ function TransArray(){
 			$trans["category_games"]="games";
 			$trans["category_genealogy"]="genealogy";
 			$trans["category_gifts"]="gifts";
-			$trans["category_governements"]="governments";
+			$trans["category_governements"]="governements";
 			$trans["category_governments"]="governments";
 			$trans["category_green"]="green";
 			$trans["category_hacking"]="hacking";
@@ -574,14 +691,12 @@ function TransArray(){
 			$trans["category_housing_accessories"]="housing/accessories";
 			$trans["category_housing_doityourself"]="housing/doityourself";
 			$trans["category_housing_builders"]="housing/builders";
-			$trans["category_housing_reale_state"]="housing/reale_state";
 			$trans["category_humanitarian"]="humanitarian";
 			$trans["category_imagehosting"]="imagehosting";
 			$trans["category_industry"]="industry";
 			$trans["category_internal"]="internal";
 			$trans["category_isp"]="isp";
 			$trans["category_smalladds"]="smalladds";
-			$trans["category_stockexchnage"]="stockexchange";
 			$trans["category_jobsearch"]="jobsearch";
 			$trans["category_jobtraining"]="jobtraining";
 			$trans["category_justice"]="justice";
@@ -605,13 +720,11 @@ function TransArray(){
 			$trans["category_passwords"]="passwords";
 			$trans["category_phishing"]="phishing";
 			$trans["category_photo"]="photo";
-			$trans["category_pictures"]="pictures";
 			$trans["category_pictureslib"]="pictureslib";
 			$trans["category_politic"]="politic";
 			$trans["category_porn"]="porn";
 			$trans["category_press"]="news";
 			$trans["category_proxy"]="proxy";
-			$trans["category_publicite"]="publicite";
 			$trans["category_reaffected"]="reaffected";
 			$trans["category_recreation_humor"]="recreation/humor";
 			$trans["category_recreation_nightout"]="recreation/nightout";
@@ -624,7 +737,7 @@ function TransArray(){
 			$trans["category_redirector"]="redirector";
 			$trans["category_religion"]="religion";
 			$trans["category_remote_control"]="remote-control";
-			$trans["category_ringtones"]="ringtones";
+			
 			$trans["category_sciences"]="sciences";
 			$trans["category_science_astronomy"]="science/astronomy";
 			$trans["category_science_computing"]="science/computing";
@@ -635,6 +748,7 @@ function TransArray(){
 			$trans["category_sexual_education"]="sexual_education";
 			$trans["category_sex_lingerie"]="sex/lingerie";
 			$trans["category_smallads"]="smallads";
+			
 			$trans["category_socialnet"]="socialnet";
 			$trans["category_spyware"]="spyware";
 			$trans["category_sslsites"]="sslsites";

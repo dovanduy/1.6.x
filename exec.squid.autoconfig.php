@@ -53,6 +53,7 @@ function build_progress($text,$pourc){
 
 function execute_autconfig(){
 	$sock=new sockets();
+	$unix=new unix();
 	build_progress("Execute....",5);
 	
 	build_progress("Loading settings....",5);
@@ -175,7 +176,7 @@ function execute_autconfig(){
 	
 	if($NetWorkGroupID==0){
 		$sql="INSERT IGNORE INTO webfilters_sqgroups (GroupName,GroupType,enabled,`acltpl`,`params`) 
-				VALUES ('WPAD - Local networks','src','1','','');";
+				VALUES ('WPAD - Local networks','dst','1','','');";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
 			echo $q->mysql_error."\n";
@@ -245,6 +246,12 @@ function execute_autconfig(){
 		build_progress("MySQL error",110);
 		return;
 	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	system("$php /usr/share/artica-postfix/exec.squid.global.access.php --freewebs");
+	
+	
+	
 	build_progress("{success}",100);
 		
 }

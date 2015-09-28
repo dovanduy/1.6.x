@@ -27,7 +27,19 @@ function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	$sock=new sockets();
+	$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
 	
+	if($SquidUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+			"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline'>{disable_emergency_mode}</a></div>	
+			");
+		return;
+		
+	}
 	
 	$array["thishour"]='{this_hour}';
 	$array["thishour2"]='{this_hour} ({compressed})';

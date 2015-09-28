@@ -9,6 +9,7 @@ class qqUploadedFileXhr {
      * @return boolean TRUE on success
      */
     function save($path) {    
+    	ini_set('memory_limit','1000M');
         $input = fopen("php://input", "r");
         $temp = tmpfile();
         $realSize = stream_copy_to_stream($input, $temp);
@@ -106,7 +107,17 @@ class qqFileUploader {
      * Returns array('success'=>true) or array('error'=>'error message')
      */
     function handleUpload($uploadDirectory, $replaceOldFile = FALSE){
-        if (!is_writable($uploadDirectory)){
+    	
+    	
+    	if (!is_writable($uploadDirectory)){
+    		include_once(dirname(__FILE__)."/class.sockets.inc");
+    		$sock=new sockets();
+    		$sock->getFrameWork("system.php?make-writable=".urlencode($uploadDirectory));
+    		
+    	}
+    	
+    	
+    	if (!is_writable($uploadDirectory)){
             return array('error' => "Server error. Upload directory isn't writable.");
         }
         

@@ -64,23 +64,9 @@ function popup(){
 	$array["heap_LFUDA"]="{heap_LFUDA}";
 	$array["heap_LRU"]="{heap_LRU}";
 	
-	if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size"],$re)){
-		$maximum_object_size=$re[1];
-		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size"],$re)){$unit=$re[1];}
-		if($unit=="KB"){$maximum_object_size_in_memory=round($maximum_object_size_in_memory/1024);}
-		
-		
-		
-	}
+
 	
-	if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){
-		$maximum_object_size_in_memory=$re[1];
-		if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){$unit=$re[1];}
-		if($unit=="KB"){$maximum_object_size_in_memory=round($maximum_object_size_in_memory/1024);}
-	
-	
-	
-	}
+
 
 	$html="
 	<div id='$t'></div>
@@ -106,11 +92,7 @@ function popup(){
 			<td align='left' style='font-size:14px'>" . Field_text("maximum_object_size-$t",$maximum_object_size,'width:90px;font-size:14px')."&nbsp;MB</td>
 			<td width=1%>" . help_icon('{maximum_object_size_text}',true)."</td>
 	</tr>
-	<tr>
-			<td style='font-size:14px' class=legend>{maximum_object_size_in_memory}:</td>
-			<td align='left' style='font-size:14px'>" . Field_text("maximum_object_size_in_memory-$t",$maximum_object_size_in_memory,'width:90px;font-size:14px')."&nbsp;MB</td>
-			<td width=1%>" . help_icon('{maximum_object_size_in_memory_text}',true)."</td>
-	</tr>					
+				
 	<tr>
 			<td style='font-size:14px' class=legend>{debug_cache_processing}:</td>
 			<td align='left' style='font-size:14px'>" . Field_checkbox("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
@@ -140,7 +122,6 @@ function popup(){
 			
 			XHR.appendData('CacheReplacementPolicy',document.getElementById('CacheReplacementPolicy-$t').value);
 			XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size-$t').value);
-			XHR.appendData('maximum_object_size_in_memory',document.getElementById('maximum_object_size_in_memory-$t').value);
 			XHR.appendData('SquidDebugCacheProc',SquidDebugCacheProc);
 			XHR.appendData('ForceWindowsUpdateCaching',ForceWindowsUpdateCaching);
 			XHR.appendData('ProxyDedicateMicrosoftRules',ProxyDedicateMicrosoftRules);
@@ -167,7 +148,6 @@ function save(){
 	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
 	$squid=new squidbee();
 	$squid->global_conf_array["maximum_object_size"]=$_POST["maximum_object_size"]." MB";
-	$squid->global_conf_array["maximum_object_size_in_memory"]=$_POST["maximum_object_size_in_memory"]." MB";
 	$squid->SaveToLdap(true);
 	$tpl=new templates();
 	echo $tpl->javascript_parse_text("{must_restart_proxy_settings}");

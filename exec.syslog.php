@@ -24,6 +24,7 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 }
 
 
+
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $GLOBALS["BASE_ROOT"]="/usr/share/artica-postfix";
@@ -56,6 +57,8 @@ $GLOBALS["nohup"]=$unix->find_program("nohup");
 $GLOBALS["sysctl"]=$unix->find_program("sysctl");
 $GLOBALS["CHMOD_BIN"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN_BIN"]=$unix->find_program("chown");
+$GLOBALS["SMARTCTL_BIN"]=$unix->find_program("smartctl");
+$GLOBALS["NICE"]=$unix->EXEC_NICE();
 $GLOBALS["REBOOT_BIN"]=$unix->find_program("reboot");
 $GLOBALS["SYNC_BIN"]=$unix->find_program("sync");
 $GLOBALS["DF_BIN"]=$unix->find_program("df");
@@ -123,12 +126,16 @@ function Parseline($buffer){
 		
 	}
 	
-	
+	if(strpos($buffer, "FIREHOL:")>0){FIREHOL_PARSER($buffer);return;}
 	if(strpos($buffer,'):  operation="file_perm" pid=')>0){return;}
 
 
 	$dust=new syslogger();
 	if(strpos($buffer,"]: [DEBUG]")>0){return;}
+	if(strpos($buffer,"class.process.inc[")>0){return;}
+	if(strpos($buffer,"caches_infos()")>0){return;}
+	if(strpos($buffer,"MemorySync(){")>0){return;}
+	if(strpos($buffer,"ufdbguard-tail[")>0){return;}
 	if($dust->MailDustbin($buffer)){return;}
 //kernel dustbin
 	if(strpos($buffer,"ext4_dx_add_entry: Directory index full")>0){return true;}
@@ -406,7 +413,35 @@ function Parseline($buffer){
 	if(strpos($buffer,": monit HTTP server started")>0){return;}
 	if(strpos($buffer,"Awakened by the")>0){return;}
 	
+
 	
+	
+	
+//Clamd	
+	// ******************************************************************************************************************************************
+if(preg_match("#clamd.*?Can.*?create (new file|temporary directory) ERROR#", $buffer)){
+		$ClamavTemporaryDirectory=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ClamavTemporaryDirectory"));
+		if($ClamavTemporaryDirectory==null){$ClamavTemporaryDirectory="/home/clamav";}
+		@mkdir($ClamavTemporaryDirectory,0755,true);
+		@chmod($ClamavTemporaryDirectory, 0755);
+		@chmod(dirname($ClamavTemporaryDirectory), 0755);
+		@chown($ClamavTemporaryDirectory, "clamav");
+		@chgrp($ClamavTemporaryDirectory, "clamav");
+		$file="/etc/artica-postfix/croned.1/clamd.tempdir.error";
+		if(IfFileTime($file,5)){
+			squid_admin_mysql(1, "File operation error on $ClamavTemporaryDirectory [action=check permissions]",
+			"The directory $ClamavTemporaryDirectory was created and owned by user/group clamav:clamav",__FILE__,__LINE__);
+		}
+}
+// ******************************************************************************************************************************************
+	
+	
+// SS5 
+
+if(preg_match("#ss5:.*SS5 Version [0-9\.]+ - Release [0-9]+ starting#",$buffer)){
+	squid_admin_mysql(2, "Socks Proxy started", $buffer,__FILE__,__LINE__);
+	return;
+}
 	
 //nginx
 if(preg_match("#nginx:.*?notice.+?gracefully shutting down#", $buffer)){
@@ -438,6 +473,17 @@ if(preg_match("#wifidog\[.*?Removing Firewall rules#",$buffer,$re)){
 	
 	
 //Crash kernel
+
+
+if(preg_match("#smartd.*?Try 'smartctl(.*?)'\s+to turn on SMART features#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/smartd.smartctl".md5($re[1]);
+	if(IfFileTime($file,5)){
+		system("{$GLOBALS["SMARTCTL_BIN"]} {$re[1]}");
+		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(2, "Running {$GLOBALS["SMARTCTL_BIN"]} {$re[1]}",__FILE__,__LINE__);}
+	}
+	return;
+}
+
 
 if(preg_match("#nf_queue: full at [0-9]+ entries,\s+dropping packets#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/nf_queue.full";
@@ -550,13 +596,13 @@ if(preg_match("#kernel:.*?:\s+(.+?):\s+link down#", $buffer,$re)){
 	
 if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link is not ready#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface not ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(0, "{$re[1]}: Network Interface not ready", $buffer,__FILE__,__LINE__);
+	squid_admin_mysql(0, "{$re[1]}: Network Interface not ready [action=nothing]", $buffer,__FILE__,__LINE__);
 	return;
 }
 
 if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link becomes ready#", $buffer,$re)){
 	system_admin_events("{$re[1]}: Network Interface becomes ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
-	squid_admin_mysql(0, "{$re[1]}: Network Interface becomes ready", $buffer,__FILE__,__LINE__);
+	squid_admin_mysql(2, "{$re[1]}: Network Interface becomes ready", $buffer,__FILE__,__LINE__);
 	return;
 }
 
@@ -617,7 +663,7 @@ if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,
 			system_admin_events("HotSpot Failed to bin address, disable hotSpot system!", __FUNCTION__, __FILE__, __LINE__, "system");
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableChilli", 0);
 			ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
-			$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-ifup start >/dev/null 2>&1 &";
+			$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-ifup start --script=".basename(__FILE__)."/".__FUNCTION__." >/dev/null 2>&1 &";
 			shell_exec($cmd);
 			$cmd="{$GLOBALS["nohup"]} /etc/init.d/chilli stop >/dev/null 2>&1 &";
 			shell_exec($cmd);
@@ -679,7 +725,7 @@ if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,
 		events("invalid pointer haarp:".__LINE__);
 		squid_admin_mysql(1,"Haarp issue: {$GLOBALS["HAARP_FATAL"]}/5 invalid pointer","Proxy service have issues with haarp,\n$buffer\n the service will be restarted",__FILE__,__LINE__);
 		if(IfFileTime($file,3)){
-			squid_admin_notifs("Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
+			squid_admin_mysql(0,"Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
 			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp start >/dev/null 2>&1 &");
 			WriteFileCache($file);
 		}
@@ -694,7 +740,7 @@ if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,
 		events("general protection haarp:".__LINE__);
 		squid_admin_mysql(1,"Haarp issue: {$GLOBALS["HAARP_FATAL"]}/5 general protection libmysqlclient","Proxy service have issues with haarp,\n$buffer\n the service will be restarted",__FILE__,__LINE__);
 		if(IfFileTime($file,1)){
-			squid_admin_notifs("Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
+			squid_admin_mysql(0,"Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
 			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp start >/dev/null 2>&1 &");
 			WriteFileCache($file);
 		}
@@ -1746,6 +1792,8 @@ if(preg_match("#nmbd.+?:\s+Cannot sync browser lists#",$buffer,$re)){
 		}		
 }
 
+// ********************************************** CLAMAV **********************************************
+
 if(preg_match("#freshclam.+?:\s+Database updated \(([0-9]+)\s+signatures\) from .+?#",$buffer,$re)){
 			email_events("ClamAV Database Updated {$re[1]} signatures","$buffer",'update');
 			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} " .basename(__FILE__)."/exec.clamavsig.php >/dev/null 2>&1 &");
@@ -1770,6 +1818,8 @@ if(preg_match("#freshclam.+?Can.+?t\s+connect to port\s+([0-9]+)\s+of\s+host\s+(
 	}		
 		
 
+
+	
 
 if(preg_match("#KASERROR.+?NOLOGID.+?Can.+?find user mailflt3#",$buffer)){
 	$file="/etc/artica-postfix/croned.1/KASERROR.NOLOGID.mailflt3";
@@ -2161,11 +2211,25 @@ function squid_parser($buffer){
 	if(strpos($buffer,"Target number of buckets")>0){return;}
 	
 	
+	if(preg_match("#squid.*?httpAccept: FD [0-9]+: accept failure:.*?22.*?Invalid argument#",$buffer)){
+		$file="/etc/artica-postfix/croned.1/squid.httpAccept.FR.22";
+		if(IfFileTime($file,5)){
+			UcarpDown();
+			squid_admin_mysql(0,"File descriptor error 22 [action=emergency]",$buffer,__FILE__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency", 1);
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
+			WriteFileCache($file);
+		}else{events("File descriptor error 22 (but timed out)");}
+		return;
+		
+	}
+	
+	
 	if(preg_match("#squid.*?swap directories, Check cache.*?squid -z#",$buffer)){
-		events("Squid Must reconfigure squid caches");
 		$file="/etc/artica-postfix/croned.1/squid-caches-failed-1";
 		if(IfFileTime($file,5)){
-			email_events("Squid failed to load (error swap directories)","Squid claim \"$buffer\"\nArtica will try to repair caches",'proxy');
+			UcarpDown();
+			squid_admin_mysql(2,"Proxy Must reconfigure squid caches [action=build caches]",$buffer,__FILE__,__LINE__);
 			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --caches >/dev/null 2>&1 &");
 			WriteFileCache($file);
 		}else{events("Squid Must reconfigure squid caches (but timed out)");}
@@ -2174,11 +2238,9 @@ function squid_parser($buffer){
 	
 	
 	if(preg_match("#squid.*?Write failure -- check your disk space#",$buffer)){
-		events("Write failure -- check your disk space");
-		squid_admin_mysql(0, "Write failure !!!\n",null,__FILE__,__LINE__);
 		$file="/etc/artica-postfix/croned.1/check-disk-space";
 		if(IfFileTime($file,5)){
-			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
+			squid_admin_mysql(0, "Write failure check your disk space [action=reload]",$buffer,__FILE__,__LINE__);
 			$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
 			shell_exec("{$GLOBALS["nohup"]} $cmd >/dev/null 2>&1 &");
 			WriteFileCache($file);
@@ -2208,9 +2270,10 @@ function squid_parser($buffer){
 if(preg_match("#httpAccept:\s+FD\s+[0-9]+:\s+accept failure:\s+\([0-9]+\)\s+Invalid argument#",$buffer)){
 	$file="/etc/artica-postfix/croned.1/squid_accept_failure";	
 	if(IfFileTime($file)){
-			events("FD failure !!");
-			email_events("Squid File System error","SQUID claim \"$buffer\" the squid service will be restarted",'proxy');
-			$GLOBALS["CLASS_UNIX"]->RECONFIGURE_SQUID();
+			UcarpDown();
+			squid_admin_mysql(0, "File descriptor error ! [action=emergency]",$buffer,__FILE__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency", 1);
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
 			WriteFileCache($file);
 			return;
 		}else{
@@ -2222,7 +2285,7 @@ if(preg_match("#squid.*?Failed to verify one of the swap directories, Check cach
 		events("Squid Must reconfigure squid caches");
 		$file="/etc/artica-postfix/croned.1/squid-caches-failed";
 		if(IfFileTime($file,5)){
-			email_events("Squid failed to load (error swap directories)","Squid claim \"$buffer\"\nArtica will try to repair caches",'proxy');
+			squid_admin_mysql(1, "failed to load (error swap directories)","Proxy claim \"$buffer\"\nArtica will try to repair caches",__FILE__,__LINE__);
 			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --caches >/dev/null 2>&1 &");
 			WriteFileCache($file);
 		}else{events("Squid Must reconfigure squid caches (but timed out)");}
@@ -2231,14 +2294,14 @@ if(preg_match("#squid.*?Failed to verify one of the swap directories, Check cach
 	
 
 	if(preg_match("#squid\[([0-9]+)\]:\s+Starting Squid Cache version\s+([0-9\.]+)\s+#",$buffer)){
-			events("Squid start pid {$re[1]}");	
+			squid_admin_mysql(2, "Proxy start PID {$re[1]} version {$re[2]}","Proxy claim \"$buffer\"\n",__FILE__,__LINE__);
 			email_events("Squid started pid {$re[1]} version {$re[2]}","Squid has been started \"$buffer\"\n",'proxy');
 			return;
 	}
 
 	if(preg_match("#Your cache is running out of filedescriptors#",$buffer)){
-			events("Squid Your cache is running out of filedescriptors");	
-			email_events("SQUID: Your cache is running out of filedescriptors","Squid claim \"$buffer\"\nArtica will reload squid",'proxy');
+			UcarpDown();
+			squid_admin_mysql(2, "Proxy service is running out of file descriptors [action=reload]","Proxy claim \"$buffer\"\n",__FILE__,__LINE__);
 			shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.squid.php --reload-squid &");
 			return;
 		}	
@@ -2248,9 +2311,9 @@ if(preg_match("#squid.*?Failed to verify one of the swap directories, Check cach
 if(preg_match("#squid\[.+?comm_old_accept:\s+FD\s+[0-9]+:.+?Invalid argument#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/comm_old_accept.FD15";
 	if(IfFileTime($file)){
-			events("comm_old_accept FD15 SQUID");
-			email_events("Squid File System error","SQUID claim \"$buffer\" the squid service will be restarted",'proxy');
-			$GLOBALS["CLASS_UNIX"]->RECONFIGURE_SQUID();
+			squid_admin_mysql(0, "File descriptor error ! [action=emergency]",$buffer,__FILE__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency", 1);
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
 			WriteFileCache($file);
 			return;
 		}else{
@@ -2261,9 +2324,9 @@ if(preg_match("#squid\[.+?comm_old_accept:\s+FD\s+[0-9]+:.+?Invalid argument#",$
 if(preg_match("#httpAccept: FD [0-9]+: accept failure: \([0-9]+\) Invalid argument#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/comm_old_accept.FD15";
 	if(IfFileTime($file)){
-			events("FD 83: accept failure SQUID");
-			email_events("Squid File System error","SQUID claim \"$buffer\" the squid service will be restarted",'proxy');
-			$GLOBALS["CLASS_UNIX"]->RECONFIGURE_SQUID();
+			squid_admin_mysql(0, "File descriptor error ! [action=emergency]",$buffer,__FILE__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidUrgency", 1);
+			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
 			WriteFileCache($file);
 			return;
 		}else{
@@ -2276,8 +2339,7 @@ if(preg_match("#create_local_private_krb5_conf_for_domain.*?smb_mkstemp failed.*
 	$file="/etc/artica-postfix/croned.1/create_local_private_krb5_conf_for_domain.smb_mkstemp";
 	if(IfFileTime($file)){
 			$directory=basename($re[1]);
-			events("create_local_private_krb5_conf_for_domain : smb_mkstemp dir:$directory");
-			email_events("Squid File System error (permission denied)","SQUID claim \"$buffer\" The $directory directory access will be granted",'proxy');
+			squid_admin_mysql(1,"Squid File System error (permission denied) [action=chmod]","SQUID claim \"$buffer\" The $directory directory access will be granted",'proxy');
 			shell_exec("{$GLOBALS["CHMOD_BIN"]} 1777 $directory");
 			
 			WriteFileCache($file);
@@ -2303,7 +2365,7 @@ if(preg_match("#NetfilterInterception.+?failed on FD.+?No such file or directory
 if(preg_match("#squid.+?:\s+essential ICAP service is down after an options fetch failure:\s+icap:\/\/:1344\/av\/respmod#",$buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/squid.icap1.error";
 		if(IfFileTime($file)){
-			email_events("Kaspersky for Squid Down","$buffer",'proxy');
+			squid_admin_mysql(1,"Kasperky for Proxy is DOWN [action=start-kav]","Proxy claim \"$buffer\"",'proxy');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix start kav4proxy');
 			WriteFileCache($file);
 		}else{
@@ -2527,6 +2589,23 @@ function UcarpDown(){
 	ToSyslog("Shutdown VIP {$GLOBALS["UCARP_MASTER"]}");
 	shell_exec("{$GLOBALS["nohup"]} $downfile >/dev/null 2>&1 &");
 }
+
+function FIREHOL_PARSER($buffer){
+	if(!preg_match("#kernel:.*?FIREHOL:(.+)#",$buffer,$re)){return true;}
+	$lines=explode(" ",$re[1]);
+	
+	
+	while (list ($num, $line) = each ($lines)){
+		$line=trim($line);
+		if(!preg_match("#(.+?)=(.*)#", $line,$re)){continue;}
+			$re[1]=trim($re[1]);
+			$re[2]=$re[2];
+			events_not_filtered("'{$re[1]}'->'{$re[2]}'");
+			
+	}	
+}
+
+
 function ToSyslog($text){
 	if(!function_exists("syslog")){return;}
 	$file=basename(__FILE__);

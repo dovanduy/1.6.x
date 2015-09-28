@@ -149,18 +149,18 @@ $ArticaMetaPort=intval($sock->GET_INFO("ArticaMetaPort"));
 if($ArticaMetaPort==0){$ArticaMetaPort=9000;}
 
 $f[]="########################################";
-$f[]="######          Artica Meta      ######";
+$f[]="######          Meta Server      ######";
 $f[]="########################################";
 $f[]="";
-$f[]="# Use an Artica Meta Global Management console 0/1";
+$f[]="# Use an Meta Server Global Management console 0/1";
 $f[]="EnableArticaMetaClient=0";
-$f[]="# Artica Meta server user name";
+$f[]="# Meta Server server user name";
 $f[]="#ArticaMetaUsername=Manager";
-$f[]="# Artica Meta server password";
+$f[]="# Meta Server server password";
 $f[]="#ArticaMetaPassword=secret";
-$f[]="# Artica Meta server address";
+$f[]="# Meta Server server address";
 $f[]="#ArticaMetaHost=1.2.3.4";
-$f[]="# Artica Meta server port";
+$f[]="# Meta Server server port";
 $f[]="#ArticaMetaPort=9000";
 
 
@@ -262,7 +262,7 @@ $f[]="# Watchdog";
 $f[]="";
 
 $MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
-if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=0;}
 if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
 if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
@@ -299,8 +299,8 @@ $f[]="#forums,socialnet,jobsearch,jobtraining,learning,humanitarian,associations
 $f[]="#hobby/cooking,hobby/fishing,hobby/arts,hobby/other,isp,webmail,liste_bu,mobile-phone,marketingware,";
 $f[]="#webradio,audio-video,webtv,music,movies,blog,news,press,society,books,manga,dictionaries,phishing,";
 $f[]="#redirector,proxy,paytosurf,reaffected,tricheur,webphone,weapons,";
-$f[]="#games,hobby/pets,animals,horses,filehosting,pictures,photo,pictureslib,imagehosting,religion,sect,";
-$f[]="#genealogy,ringtones,recreation/wellness,recreation/travel,recreation/nightout,governments,";
+$f[]="#games,hobby/pets,animals,horses,filehosting,photo,pictureslib,imagehosting,religion,sect,";
+$f[]="#genealogy,recreation/wellness,recreation/travel,recreation/nightout,governments,";
 $f[]="#recreation/schools,housing/doityourself,housing/builders,housing/accessories,houseads,smallads,";
 $f[]="#electricalapps,justice,police,converters,meetings,getmarried,tobacco,recreation/sports,recreation/humor,";
 $f[]="#children,teens,shopping,gifts,luxury,cosmetics,clothing,electronichouse,models,celebrity,womanbrand,";
@@ -329,7 +329,7 @@ $f[]="#";
 $f[]="# Activate FreeWebs Web servers management";
 $f[]="EnableFreeWeb=0";
 $f[]="# If 1 then Artica Proxy Statistics are disabled, if 0 Artica Proxy Statistics are enabled";
-$f[]="DisableArticaProxyStatistics=1";
+$f[]="DisableArticaProxyStatistics=0";
 $f[]="# Activate SARG statistics generation";
 $f[]="EnableSargGenerator=0";
 $f[]="# Activate Hostnames logging in Proxy statistics";
@@ -465,7 +465,7 @@ $text=@implode("\n", $f);
 $button=button($apply, "Save$t()",22);
 
 $html="
-<div style='font-size:22px;margin:15px' class=text-info>{automation_script_explain}</div>
+<div style='font-size:22px;margin:15px' class=explain>{automation_script_explain}</div>
 <center id='$t' style='margin:10px'></center>
 <center>
 <div style='text-align:center;width:100%;background-color:white;margin-bottom:10px;padding:5px;'>$importsquid$button<br></div>
@@ -644,14 +644,16 @@ function setup_1(){
 	if($users->WEBSECURIZE){
 		$_SESSION["change-artica-name"]="WebSecurize";
 		$WELCOME_WIZARD_2=str_ireplace("artica", $_SESSION["change-artica-name"], $WELCOME_WIZARD_2);
-		
-		
 	}
 	
 	if($users->LANWANSAT){
 		$_SESSION["change-artica-name"]="LanWanSat Proxy";
 		$WELCOME_WIZARD_2=str_ireplace("artica", $_SESSION["change-artica-name"], $WELCOME_WIZARD_2);
-		
+	}
+	
+	if($users->BAMSIGHT){
+		$_SESSION["change-artica-name"]="BamSight";
+		$WELCOME_WIZARD_2=str_ireplace("artica", $_SESSION["change-artica-name"], $WELCOME_WIZARD_2);		
 	}
 	
 	$WELCOME_ON_ARTICA_PROJECT=$tpl->_ENGINE_parse_body("{WELCOME_ON_ARTICA_PROJECT}");
@@ -820,11 +822,30 @@ function setup_features(){
 	
 	$sock->SET_INFO("AsSeenPerformanceFeature",1);
 	$AsReverseProxyAppliance=intval($savedsettings["AsReverseProxyAppliance"]);
-	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$SquidPerformance=1;
 	
 	$t=time();
 	
-	
+
+	$text_info_style="
+margin: 0 0 20px;
+padding: 5px 0 5px 15px;
+color: black;
+margin:5px;
+margin-top:15px;
+padding:3px;
+text-align:left;
+font-weight:normal;
+font-size: 22px;
+margin-bottom: 20px;
+padding: 8px 35px 8px 14px;
+text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+border:2px solid #73AD65;
+border-radius:5px 5px 5px 5px;
+-moz-border-radius:5px;
+-webkit-border-radius:5px;
+background-color: white;
+";	
 
 	$AsCategoriesAppliance=intval($savedsettings["AsCategoriesAppliance"]);
 	
@@ -861,14 +882,12 @@ function setup_features(){
 	
 	
 	$html="<div style='width:98%' class=form>
-<table style='width:100%'>
-<tr>
-	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
 	<div style='font-size:50px;margin-bottom:30px;'>{global_performance}</div>
-	<div class=text-info style='font-size:20px'>{artica_squid_performance_text}</div>
+	<div style='$text_info_style' >{artica_squid_performance_text}</div>
 	<p>&nbsp;</p>	
-	<div class=text-info style='font-size:20px;margin-bottom:30px' id='explain-$t'></div>	
-</tr>
+	<div class=explain style='font-size:20px;margin-bottom:30px' id='explain-$t'></div>	
+
+	<div style='$text_info_style' >
 	<table style='width:100%'>
 	<tr>
 		<td style='font-size:28px'>{performance_level}:</td>
@@ -878,20 +897,18 @@ function setup_features(){
 		<td style='font-size:28px'>{webfiltering}:</td>
 		<td>". Field_array_Hash($ARRAYF, "WizardWebFilteringLevel-$t",$WizardWebFilteringLevel,null,null,0,"font-size:28px")."</td>
 	</tr>				
+	</table>
+	</div>
 				
-	<tr>
-		<td colspan=2>
-		<table style='width:100%;margin-top:50px'>
-			<tr>
+
+	<table style='width:100%;margin-top:50px'>
+		<tr>
 			<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
 			<td>&nbsp;</td>
 			<td  align='right'>". button("{next}","Save$t()","30px")."</td>
-			</tr>
-			</table>
-		</td>
-	</tr>
-	</tr>
-	</table>		
+		</tr>
+	</table>
+		
 </div>		
 	<script>
 	var xSave$t= function (obj) {
@@ -952,19 +969,23 @@ margin: 0 0 20px;
 padding: 5px 0 5px 15px;
 color: black;
 margin:5px;
+margin-top:15px;			
 padding:3px;
 text-align:left;
 font-weight:normal;
-font-size: 14px;
+font-size: 18px;
 margin-bottom: 20px;
 padding: 8px 35px 8px 14px;
 text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-border:1px solid #73AD65;
+border:2px solid #73AD65;
 border-radius:5px 5px 5px 5px;
 -moz-border-radius:5px;
 -webkit-border-radius:5px;
 background-color: white;
 ";
+	
+	$explain_http_proxy_connected=$tpl->_ENGINE_parse_body("{explain_http_proxy_connected}");
+	$explain_http_proxy_connected=str_ireplace("active directory", "<strong>Active Directory/Open LDAP</strong>", $explain_http_proxy_connected);
 
 	$html[]="
 	<div style='font-size:50px;margin-bottom:30px'>{select_main_service}</div><center>";
@@ -972,23 +993,17 @@ background-color: white;
 
 	
 	
-	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{connected_http_proxy}", "ConnectedProxy()",36)."
+	$html[]="<center style='margin:30px;width:85%;padding:20px' class=form >".button("{webproxy_service} {or} {transparent_mode}", "ConnectedProxy()",36)."
 			<div style='$text_info_style'>
-				{explain_http_proxy_connected}		
+				$explain_http_proxy_connected
 			</div>
 			
 			</center>";
 	
-	
-	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{transparent_http_proxy}", "TransparentProxy()",36)."
-			<div style='$text_info_style'>
-				{explain_http_proxy_transparent}		
-			</div>
-			
-			</center>";
+
 	
 	
-	$html[]="<center style='margin:30px;width:80%;padding:20px' class=form >".button("{categories_appliance}", "CategoriesAppliance()",36)."
+	$html[]="<center style='margin:30px;width:85%;padding:20px' class=form >".button("{categories_appliance}", "CategoriesAppliance()",36)."
 			<div style='$text_info_style'>
 				{explain_categories_appliance}		
 			</div>
@@ -997,7 +1012,7 @@ background-color: white;
 	
 	if($users->NGINX_INSTALLED){
 		$html[]="
-		<center style='margin:30px;width:80%;padding:20px' class=form >".button("{reverse_proxy_service}", "ReverseProxy()",36)."
+		<center style='margin:30px;width:85%;padding:20px' class=form >".button("{reverse_proxy_service}", "ReverseProxy()",36)."
 			<div style='$text_info_style'>
 			{explain_reverse_proxy}
 			</div>
@@ -1007,7 +1022,7 @@ background-color: white;
 	}
 
 	$html[]="
-		<center style='margin:30px;width:80%;padding:20px' class=form >".button("{artica_meta_server}", "MetaServer()",36)."
+		<center style='margin:30px;width:85%;padding:20px' class=form >".button("{artica_meta_server}", "MetaServer()",36)."
 			<div style='$text_info_style'>
 			{artica_meta_server_explain}
 			</div>
@@ -1169,7 +1184,7 @@ function setup_active_directory(){
 	}
 	
 	$html="
-<div style='width:98%' class=form>
+<div style='width:98%;visibility:hidden' class=form>
 <table style='width:100%'>
 <tr>
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
@@ -1285,7 +1300,8 @@ function setup_active_directory(){
 			
 		}
 		EnableKerbAuthCheck();
-		document.getElementById('content').style.height='670px';
+		document.getElementById('content').style.height='685px';
+		JoinActiveDirectory();
 	</script>	";
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -1340,10 +1356,10 @@ function setup_active_directory_save(){
 }
 
 function setup_2(){
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] setup_2()</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>[".__LINE__."] setup_2()</span><br>\n";}
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] articaLang()</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>[".__LINE__."] articaLang()</span><br>\n";}
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
@@ -1353,13 +1369,13 @@ function setup_2(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$users=new usersMenus();
-	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] OK</span><br>\n";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>[".__LINE__."] OK</span><br>\n";}
 	
 	$netbiosname_field=$tpl->javascript_parse_text("{netbiosname}");
 	$domain_field=$tpl->javascript_parse_text("{domain}");
 	
 	if(count($savedsettings)<3){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] network.php?fqdn=yes</span><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>[".__LINE__."] network.php?fqdn=yes</span><br>\n";}
 			$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));	
 			if($hostname==null){$users=new usersMenus();$hostname=$users->fqdn;}	
 			$arrayNameServers=GetNamesServers();
@@ -1419,18 +1435,8 @@ function setup_2(){
 	
 	
 	
-	if($users->dhcp_installed){
-		$dhcpd="	
-		<tr>
-			<td colspan=2>". Paragraphe_switch_img("{activate_dhcp_service}", 
-					"{activate_dhcp_service_wizard}","EnableDHCPServer",$savedsettings["EnableDHCPServer"],null,940)."</td>		
-		</tr>		
-		";
-	}	
 	
-	$SERVICES_TITLE="<div style='margin-bottom:40px'>{services}</div>";
-	
-	if($users->WORDPRESS_APPLIANCE){$dhcpd=null;$SERVICES_TITLE=null;}
+	$dhcpd=null;$SERVICES_TITLE=null;
 	
 	//FIRST_WIZARD_NIC2 -> fini -> demande de reboot
 	$t=time();
@@ -1458,6 +1464,10 @@ function setup_2(){
 	$NICS=new networking();
 	$Local_interfaces=$NICS->Local_interfaces(true);
 	
+	if(count($Local_interfaces)==0){
+		$error=FATAL_ERROR_SHOW_128("{unable_to_retreive_network_information_refresh}");
+	}
+	
 	
 	
 	$timezone=timezonearray();
@@ -1468,7 +1478,7 @@ function setup_2(){
 	
 	$timezone_def=getLocalTimezone();
 	
-	$FORM="
+	$FORM="$error
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
@@ -1549,11 +1559,6 @@ function setup_2(){
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
 	</tr>	
-	<tr>
-		<td colspan=2 style='font-size:50px;'>$SERVICES_TITLE</td>
-	</tr>	
-	$proxy			
-	$dhcpd	
 	<tr>
 		<td colspan=2 style='font-size:25px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","30px")."</div></td>
 	</tr>
@@ -1695,7 +1700,7 @@ function setup_2(){
 			
 		}
 		KeepNetCheck();
-		document.getElementById('content').style.height='1850px';
+		document.getElementById('content').style.height='1250px';
 	</script>
 	
 	";
@@ -1828,7 +1833,12 @@ function setup_3(){
 	}		
 	if($users->WEBSTATS_APPLIANCE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Web statistics Appliance'>";
-	}		
+	}
+
+	if($users->STATS_APPLIANCE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Statistics Appliance'>";
+	}	
+	
 	if($users->KASPERSKY_SMTP_APPLIANCE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Kaspersky SMTP Appliance'>";
 	}	
@@ -1870,7 +1880,11 @@ function setup_3(){
 	}	
 	if($users->WEBSECURIZE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='WebSecurize Appliance' >";
-	}	
+	}
+
+	if($users->BAMSIGHT){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='BamSight' >";
+	}
 	
 	if($users->LANWANSAT){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='LANWANSAT Appliance' >";
@@ -1886,6 +1900,7 @@ function setup_3(){
 	$noticeregisterform="<div style='font-size:11px;text-align:right'>{noticeregisterform}</div>";
 	if($users->WEBSECURIZE){$noticeregisterform=null;}
 	if($users->LANWANSAT){$noticeregisterform=null;}
+	if($users->BAMSIGHT){$noticeregisterform=null;}
 	
 	$company_name_txtjs=$tpl->javascript_parse_text("{company_name}");
 	$FORM="
@@ -1926,7 +1941,7 @@ function setup_3(){
 		<td>". Field_text("telephone",$telephone,"font-size:25px;width:440px")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:25px'>{nb_employees}:</td>
+		<td class=legend style='font-size:25px'>{nb_employees}</td>
 		<td>". Field_text("employees",$employees,"font-size:25px;width:440px")."</td>
 	</tr>
 
@@ -2168,16 +2183,22 @@ function setup_4(){
 			$wizard_warn_memory=str_replace("%F", "2.5G", $wizard_warn_memory);
 			$WIZMEM=true;
 			
-			$warn_memory="
-			<div style='width:98%' class=form>
-				<table style='width:100%'>
-				<tr>
-					<td valign='top' width=1%><img src='img/error-64.png'></td>
-					<td style='font-size:16px'>$wizard_warn_memory</td>
-				</tr>
-				</table>
-			</div>
-			<p>&nbsp;</p>
+			
+			$error_style="color: #b94a48;margin:5px;
+	padding:3px;
+	border:1px solid #E40501;
+	border-radius:5px 5px 5px 5px;
+	 -moz-border-radius:5px;
+	-webkit-border-radius:5px;
+    background-color: #F7E5D9;
+ 	font-weight:bold;
+    font-size: 16px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);";
+			
+			$warn_memory="<div style='$error_style'>$wizard_warn_memory</div>
+			
 			";
 			
 			if($users->SQUID_INSTALLED){
@@ -2272,7 +2293,7 @@ function setup_4(){
 	
 	$superAdminForm="
 	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px;margin-top:25px'>{artica_manager}:</div>
-	<div style='font-size:18px' class=text-info>{miniadm_wizard_admin_explain}</div>
+	<div style='font-size:18px' class=explain>{miniadm_wizard_admin_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>	
 				<tr>
@@ -2293,7 +2314,7 @@ function setup_4(){
 	
 	$miniadm_form="<div style='width:98%' class=form>
 	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px;margin-top:25px'>End-Users WebAccess</div>
-		<div style='font-size:18px' class=text-info>{miniadm_wizard_explain}<p>
+		<div style='font-size:18px' class=explain>{miniadm_wizard_explain}<p>
 		{miniadm_wizard_explain2}</p></div>
 		<table style='width:100%'>
 				<tr>
@@ -2319,11 +2340,11 @@ function setup_4(){
 						
 		</table>
 	</div>";
+	$miniadm_form=null;
 	
-	
-	$meta_client_form="	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>{artica_meta}</div>
+	$meta_client_form="	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>{artica_meta} - Central Management</div>
 		". Paragraphe_switch_img("{enable_artica_meta}", "{artica_meta_client_howto}",
-				"EnableArticaMetaClient-$t",$EnableArticaMetaClient,null,700)."
+				"EnableArticaMetaClient-$t",$EnableArticaMetaClient,null,850)."
 		
 	
 		<table style='width:100%'>
@@ -2348,7 +2369,7 @@ function setup_4(){
 	</div>";
 	
 	
-	$size_form="1674px";
+	$size_form="1205px";
 	
 	$meta_server_form="
 			<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>{artica_meta}</div>
@@ -2374,9 +2395,9 @@ function setup_4(){
 	$AsCategoriesAppliance=intval($savedsettings["AsCategoriesAppliance"]);
 	$AsReverseProxyAppliance=intval($savedsettings["AsReverseProxyAppliance"]);
 	$AsMetaServer=intval($savedsettings["AsMetaServer"]);
-	if($AsCategoriesAppliance==1){$miniadm_form=null;$size_form="800px";}
-	if($AsReverseProxyAppliance==1){$miniadm_form=null;$size_form="800px";}
-	if($AsMetaServer==1){$miniadm_form=null;$meta_client_form=null;$size_form="800px";}
+	if($AsCategoriesAppliance==1){$miniadm_form=null;$size_form="1205px";}
+	if($AsReverseProxyAppliance==1){$miniadm_form=null;$size_form="1205px";}
+	if($AsMetaServer==1){$miniadm_form=null;$meta_client_form=null;$size_form="1205px";}
 	if($AsMetaServer==0){$meta_server_form=null;}
 	
 	
@@ -2387,13 +2408,13 @@ function setup_4(){
 	<div style='width:98%' class=form>
 		$superAdminForm
 	</div>
+	<p>&nbsp;</p>
 	<div style='width:98%' class=form>
 	$meta_client_form
+	<p>&nbsp;</p>
 	$meta_server_form
 	<p>&nbsp;</p>
 
-	<p>&nbsp;</p>
-	$miniadm_form
 	<table style='width:100%'>
 				<tr><td colspan=2><p>&nbsp;</p></td></tr>
 				<tr>
@@ -2493,7 +2514,6 @@ function setup_5(){
 	<div id='settings-final'>
 		<table style='width:99%' class=form>
 		<tr>
-			<td valign='top'><img src='img/ok64.png'></td>
 			<td style='padding-left:15px'><strong style='font-size:18px'>{build_parameters}</strong>
 			
 		</td>
@@ -2503,7 +2523,7 @@ function setup_5(){
 	<div id='settings-dns'></div>
 	<div id='settings-ou'></div>
 	</div>
-	<center>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","22px")."</center>
+	<center style='margin-top:20px'>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","22px")."</center>
 	<script>
 		LoadAjax('settings-dns','$page?settings-dns=yes&savedsettings={$_GET["savedsettings"]}');
 	</script>

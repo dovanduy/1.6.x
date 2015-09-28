@@ -19,7 +19,7 @@ page();
 function page(){
 $usersmenus=new usersMenus();
 $page=CurrentPageName();
-if($usersmenus->AsPostfixAdministrator==true){}else{header('location:users.index.php');exit;}	
+if(!$usersmenus->AsPostfixAdministrator==true){die();}
 $html="<table style='width:600px' align=center>
 <tr>
 <td width=50% valign='top' class='caption' style='text-align:justify'>
@@ -79,19 +79,10 @@ function fetch_quicklinks_start(){
 		$title=$tpl->javascript_parse_text('{ERROR_NOT_INSTALLED_REDIRECT}');
 		$html="
 		<center>
-		<div style='width:98%' class=form>
-		<table style='width:80%'>
-		<tr>
-			<td valign='top' width=1%><img src='img/software-remove-128.png'></td>
-			<td valign='top' width=99%><div style='font-size:18px'>{ERROR_NOT_INSTALLED_REDIRECT}</div>
-			<div style='float:right'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');")."</div>
-			<p style='font-size:16px'>{fetchmail_about}
-			</p>
-			<div style='text-align:right'><hr>". button("{install}","InstallFetchmail()",24)."</div>
-		</td>
-		</tr>
-		</table>
-		</div>
+		
+		". FATAL_ERROR_SHOW_128("{ERROR_NOT_INSTALLED_REDIRECT}<p>{fetchmail_about}</p>
+				<div style='text-align:right'><hr>". button("{install_now}","InstallFetchmail()",24)."</div")."
+
 		</center>
 			<script>
 				function InstallFetchmail(){
@@ -313,7 +304,7 @@ $html="
 	
 	
 	<tr>
-		<td colspan=2><div class=text-info style='text-align:left;font-size:16px'>{fetchmail_about}</div></td>
+		<td colspan=2><div class=explain style='text-align:left;font-size:16px'>{fetchmail_about}</div></td>
 	</tr>
 	</table>
 	
@@ -365,7 +356,7 @@ function fetch_popup_enable(){
 			<div style='text-align:right'><hr>
 			". button("{apply}","FetchMailEnable$t()",42)."</div>
 			
-			<div class=text-info style='font-size:18px;margin-top:30px'>{fetchmail_about}</div>
+			<div class=explain style='font-size:18px;margin-top:30px'>{fetchmail_about}</div>
 			</td>
 		</tr>
 	</table>

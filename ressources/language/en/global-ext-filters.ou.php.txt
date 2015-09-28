@@ -9,7 +9,6 @@
 <delete_default_dangerous_extensions>Delete predefined dangerous extensions list</delete_default_dangerous_extensions>
 <filters_list>Filters lists</filters_list>
 <groupslisttext>Here it is the list of all user's groups using this attachment policy</groupslisttext>
-<notifications>Notifications settings</notifications>
 <search_zip>Search for filenames within ZIP</search_zip>
 <search_zip_text>Search for filenames within ZIP archives using the internal ZIP parsing[br]Any filenames found are subject to the same checks, for instance Forbidden attachments or good list, with the
 notable difference that the rename action has no effect on ZIP files.[br]

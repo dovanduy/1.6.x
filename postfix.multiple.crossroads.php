@@ -66,7 +66,7 @@ function config(){
 	$tpl=new templates();
 	$ipaddr=$_GET["ipaddr"];
 	$html="
-	<div class=text-info>{load_balancer_instances_explain}</div>
+	<div class=explain>{load_balancer_instances_explain}</div>
 	<center>
 		<table style='width:450px' class=form>
 		<tr>
@@ -241,7 +241,7 @@ function client_settings_form(){
 	if(!is_numeric($instancesParams["WEIGTH"][$client])){$instancesParams["WEIGTH"][$client]=1;}	
 	
 	$html="
-	<div class=text-info>{crossroads_multiple_weight_roundrobbinexplain}</div>
+	<div class=explain>{crossroads_multiple_weight_roundrobbinexplain}</div>
 	<p>&nbsp;</p>
 	<table style='width:99%' class=form>
 	<tr>

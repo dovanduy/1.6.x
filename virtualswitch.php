@@ -1,5 +1,4 @@
 <?php
-	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -82,7 +81,7 @@ function tabs(){
 	
 	
 	
-	$fontsize=14;
+	$fontsize=22;
 	ksort($array);
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -91,7 +90,7 @@ function tabs(){
 	
 	}
 	
-	echo build_artica_tabs($tab, "main_virtualswitch",915)."<script>LeftDesign('nic-white-255-opac20.png');</script>";
+	echo build_artica_tabs($tab, "main_virtualswitch",1490)."<script>LeftDesign('nic-white-255-opac20.png');</script>";
 	
 	
 }
@@ -100,7 +99,7 @@ function switch_tab(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
-	$fontsize=14;
+	$fontsize=22;
 	$eth=$_GET["switch-tab"];
 	
 	$array["switch-status-section"]="{status}";
@@ -518,7 +517,7 @@ function main_switch(){
 	
 	],";
 	$html="
-	<div style='font-size:14px' class=text-info>$vde_switch_explain</div>
+	<div style='font-size:14px' class=explain>$vde_switch_explain</div>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 	<script>
 	VirtualIPMem$t='';

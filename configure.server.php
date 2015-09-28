@@ -75,7 +75,6 @@ if(!isset($_SESSION["DISTRI"])){
 	$distri=$sys->ditribution_name;
 	$kernel=$sys->kernel_version;
 	$LIBC=$sys->libc_version;
-	$temp=$sys->GetCpuTemp();
 	$users=new usersMenus();
 	$os=new os_system();
 	$arraycpu=$os->cpu_info();
@@ -89,7 +88,7 @@ if(!isset($_SESSION["DISTRI"])){
 						<strong>{server}</strong>:&nbsp;$host<br><br>{public_ip}:&nbsp;<strong>$publicip</strong><br><strong> {$arraycpu["cpus"]} cpu(s):{$cpuspeed}GHz</strong>
 					</td>
 					<td valign='top' style='font-size:12px'>
-						<strong>Artica&nbsp;$users->ARTICA_VERSION&nbsp;$distri&nbsp;kernel $kernel<br>libc $LIBC&nbsp;&nbsp;&Temp $temp&nbsp;C</strong>
+						<strong>Artica&nbsp;$users->ARTICA_VERSION&nbsp;$distri&nbsp;kernel $kernel<br>libc $LIBC&nbsp;&nbsp;</strong>
 					</td>
 				</tr>
 			</table>";
@@ -802,7 +801,7 @@ function icon_openvpn(){
 function icon_memory(){
 $users=new usersMenus();
 	if(!$users->AsAnAdministratorGeneric){return null;}
-	$js="Loadjs('system.memory.php?js=yes')";
+	$js="GotoSystemMemory()";
 	$img="48-memory.png";
 	return LocalParagraphe("system_memory","system_memory_text",$js,$img);	
 	}
@@ -1415,7 +1414,7 @@ function main_fetchmail_build_results($failed=false,$info){
 	if(!$failed){
 		return $tpl->_ENGINE_parse_body(Paragraphe('ok32.png','{success}',"<br><strong style='color:black'>$info</strong>").$bottom);
 	}else{
-		return $tpl->_ENGINE_parse_body(Paragraphe('danger32.png','{failed}',"{failed_fetchmail}<br><strong style='color:red'>$info</strong>").$bottom);
+		return $tpl->_ENGINE_parse_body(Paragraphe('danger32.png','{failed}',"{failed_fetchmail}<br><strong style='color:#d32d2d'>$info</strong>").$bottom);
 	}
 
 }
@@ -1425,7 +1424,7 @@ function main_result($failed=false,$info,$title){
 if(!$failed){
 		return $tpl->_ENGINE_parse_body(Paragraphe('ok32.png','{success}',"<br><strong style='color:black'>$info</strong>").$bottom);
 	}else{
-		return $tpl->_ENGINE_parse_body(Paragraphe('danger32.png','{failed}',"$title<br><strong style='color:red'>$info</strong>").$bottom);
+		return $tpl->_ENGINE_parse_body(Paragraphe('danger32.png','{failed}',"$title<br><strong style='color:#d32d2d'>$info</strong>").$bottom);
 	}	
 }
 

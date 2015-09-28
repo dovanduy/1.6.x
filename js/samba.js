@@ -6,7 +6,7 @@ function SambaBrowser(){
 }
 
 function FolderProp(folder){
-    YahooWin4(588,'samba.index.php?prop='+folder,folder);
+    YahooWin4(990,'samba.index.php?prop='+folder,folder);
 }
 
 var x_FindUserGroup=function (obj) {

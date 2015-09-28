@@ -32,6 +32,7 @@ if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSM
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS",0755,true);
 
 
+if($argv[1]=='--postqueue'){postqueue();exit;}
 
 if($argv[1]=='--cnx-errors'){
 	events("Starting cnx-errors ...");
@@ -1331,6 +1332,8 @@ function postqueue(){
 		$q=new mysql();
 		$q->QUERY_SQL("truncate table postqueue","artica_events");
 				
+		if($GLOBALS["VERBOSE"]){echo "Scanning $DirPath\n";}
+		
 		if (!$handle = opendir($DirPath)) {if($GLOBALS["VERBOSE"]){echo "$DirPath ERROR\n";}return;}
 		$c=0;
 		while (false !== ($file = readdir($handle))) {
@@ -1338,7 +1341,7 @@ function postqueue(){
 			if ($file == ".."){continue;}
 			if(is_dir("$DirPath/$file")){if($GLOBALS["VERBOSE"]){echo "$DirPath/$file -> DIR\n";} continue;}
 			$filename="$DirPath/$file";
-			
+			if($GLOBALS["VERBOSE"]){echo "Scanning $filename\n";}
 			if(postqueue_parse($filename)){
 				events("postqueue():: Success parsing ".basename($filename));
 				@unlink($filename);
@@ -1427,6 +1430,7 @@ function postqueue_parse($filename){
 				if(preg_match("#Trend Micro Email Reputation Service#",$content["STATUS"])){$context="You are a spammer";}
 				if(preg_match("#Trend Micro Email Reputation database#",$content["STATUS"])){$context="You are a spammer";}
 				if(preg_match("#barracudanetworks#",$content["STATUS"])){$context="You are a spammer";}
+				if(preg_match("#host.*?451.*?can.*?connect.*?psmtp#i", $content["STATUS"])){$context="Remote PSMTP error";}
 				
 				if(preg_match("#451 qqt failure#",$content["STATUS"])){$context="Remote problem";}
 				if(preg_match("#qq read error#",$content["STATUS"])){$context="Remote problem";}
@@ -1462,14 +1466,13 @@ function postqueue_parse($filename){
 				if(preg_match("#Your subject had too many subsequent spaces#",$content["STATUS"])){$context="Header regex rule";}
 				if(preg_match("#Too much Spam from your domain \!#",$content["STATUS"])){$context="Header regex rule";}
 				if(preg_match("#Message content rejected - No spam please#",$content["STATUS"])){$context="Header regex rule";}
-				if($context==null){
-					if($GLOBALS["VERBOSE2"]){
-						echo "\n\nnot filtered {$content["STATUS"]}\n";
-					}
-				}
+				if(preg_match("#Connection timed out#i", $content["STATUS"])){$context="Timed out";}
+				if(preg_match("#451.*?Server configuration problem#i", $content["STATUS"])){$context="Remote problem";}
 				
 				
-				if($context==null){$context=addslashes($content["STATUS"]);}
+			if($context==null){
+				if($GLOBALS["VERBOSE"]){echo "\n\nnot filtered {$content["STATUS"]}\n";}
+				$context=addslashes($content["STATUS"]);}
 				$content["STATUS"]=addslashes($content["STATUS"]);				
 			}else{
 				if($content["ACTIVE"]=="YES"){$context="Active queue";}
@@ -1497,12 +1500,13 @@ function postqueue_parse($filename){
 		
 	}
 	
-			if(count($suffix)>0){
-				$sql=$prefix.@implode(",",$suffix);
-				$q->QUERY_SQL($sql,"artica_events");
-				if(!$q->ok){echo $q->mysql_error."\n\n\n\n";return false;}
-				$suffix=array();
-			}	
+	if(count($suffix)>0){
+		$sql=$prefix.@implode(",",$suffix);
+		if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+		$q->QUERY_SQL($sql,"artica_events");
+		if(!$q->ok){echo $q->mysql_error."\n\n\n\n";return false;}
+		$suffix=array();
+	}	
 	
 	return true;
 	}

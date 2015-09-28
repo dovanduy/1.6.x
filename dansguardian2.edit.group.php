@@ -17,9 +17,11 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-
+if(isset($_GET["ID-js"])){js_edit_group();exit;}
 if(isset($_GET["tabs"])){tabs2();exit;}
 if(isset($_GET["group"])){group_edit();exit;}
+
+if(isset($_GET["members-js"])){members_js();exit;}
 if(isset($_GET["members"])){members();exit;}
 if(isset($_GET["members-search"])){members_search();exit;}
 if(isset($_POST["SaveDansGUardianGroupRuleMinim"])){group_edit_save_minimal();exit;}
@@ -38,6 +40,27 @@ if(isset($_GET["explain-group-button"])){group_display_button();exit;}
 if(isset($_GET["member-check-already-exists"])){member_check_already_exists();exit;}
 
 tabs();
+
+
+function js_edit_group(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$group=$tpl->javascript_parse_text("{group2}");
+	$t=$_GET["t"];
+	echo "LoadWinORG('950','dansguardian2.edit.group.php?ID={$_GET["ID-js"]}&t={$_GET["t"]}&tt={$_GET["tt"]}&yahoo={$_GET["yahoo"]}','$group::{$_GET["ID-js"]}::');";
+}
+function members_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$group=$tpl->javascript_parse_text("{group2}");
+	$t=$_GET["t"];
+	echo "LoadWinORG('950','$page?members=yes&ID={$_GET["ID"]}&t={$_GET["t"]}','$group::{$_GET["groupname"]}');";	
+	
+}
 
 
 function tabs(){
@@ -74,7 +97,7 @@ function tabs2(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){echo "<H1>$q->mysql_error</H1>";}
 		$dn=$ligne["dn"];
-		$array["members"]='{members}';
+		$array["members"]='{items}';
 		$array["blacklist"]='{blacklists}';
 		$array["whitelist"]='{whitelist}';
 		if($ligne["localldap"]==2){unset($array["members"]);$array["members-ad"]='{members}';}
@@ -83,6 +106,9 @@ function tabs2(){
 				unset($array["members"]);
 			}
 		}
+		
+		if($ligne["localldap"]==3){unset($array["members"]);}
+		
 	}
 
 	$gpid=$ligne["gpid"];
@@ -94,14 +120,14 @@ function tabs2(){
 		if($num=="members-ad"){
 			$html[]= $tpl->_ENGINE_parse_body("<li>
 					<a href=\"dansguardian2.group.membersad.php?dn=$dn&yahoo={$_GET["yahoo"]}&t=$t&tt=$tt\">
-			<span style='font-size:18px'>$ligne</span></a></li>\n");
+			<span style='font-size:24px'>$ligne</span></a></li>\n");
 			continue;
 			
 		}
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li>
 				<a href=\"$page?$num=yes&ID={$_GET["ID"]}&t=$t&tt=$tt&yahoo={$_GET["yahoo"]}\">
-					<span style='font-size:18px'>$ligne</span></a></li>\n");
+					<span style='font-size:24px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -113,6 +139,7 @@ function tabs2(){
 
 
 function group_edit(){
+	$explain2=null;
 	$ID=$_GET["ID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
@@ -152,11 +179,21 @@ function group_edit(){
 		
 	}
 	
+	$LDAP_EXTERNAL_AUTH=$squid->LDAP_EXTERNAL_AUTH;
+	if(!is_numeric($LDAP_EXTERNAL_AUTH)){$LDAP_EXTERNAL_AUTH=0;}
+	
+	
+	
 	$localldap[0]="{ldap_group}";
 	$localldap[1]="{virtual_group}";
 	if($EnableKerbAuth==1){
 		$localldap[2]="{active_directory_group}";
 	}
+	
+	if($LDAP_EXTERNAL_AUTH==1){
+		$localldap[3]="{remote_ladp_group}";
+	}
+	
 	
 	if(!is_numeric($ligne["localldap"])){$ligne["localldap"]=1;}
 	$users=new usersMenus();
@@ -172,6 +209,7 @@ function group_edit(){
 	}
 	
 	
+	
 	if(preg_match("#^ExtLdap#", $ligne["dn"])){
 		$ligne["gpid"]=$ligne["dn"];
 	}
@@ -185,46 +223,55 @@ function group_edit(){
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=$bt_bt2;$bt_browse=null;$LaunchBTBrowse=0;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
 	
-	$LDAP_EXTERNAL_AUTH=$squid->LDAP_EXTERNAL_AUTH;
-	if(!is_numeric($LDAP_EXTERNAL_AUTH)){$LDAP_EXTERNAL_AUTH=0;}
+
+	if($ID>0){
+		if($ligne["localldap"]==3){
+			if(preg_match("#ExtLDAP:(.+?):(.+)#", $ligne["groupname"],$re)){
+				$DN=base64_decode($re[2]);
+				$explain2="<div style='font-size:22px;margin-bottom:10px'>{$re[1]}
+				<div style='text-align:right;font-size:16px;float:right'>$DN</div></div>";
+			}
+		}
+	}
 	
 	$html="
 	<div id='dansguardinMainGroupDiv' style='width:98%' class=form>
-	
+	$explain2
 	<table style='width:100%' >
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:20px' nowrap>{groupname}:</td>
-		<td colspan=2>". Field_text("groupname-$t",$ligne["groupname"],"font-size:26px;width:470px")."</td>
+		<td class=legend style='font-size:26px' nowrap>{groupname}:</td>
+		<td >". Field_text("groupname-$t",$ligne["groupname"],"font-size:26px;width:95%")."</td>
 		
 	</tr>
 	<tr>
-		<td class=legend style='font-size:20px'{groupmode}:</td>
-		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,"font-size:20px")."</td>
-		<td>&nbsp;</td>
+		<td colspan=2 align='right'><span id='button-$t'>$bt_browse</span></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:26px'>{groupmode}:</td>
+		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,
+				"font-size:26px")."
+		</td>
+
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:20px'>{groupid}:</td>
-		<td>". Field_text("gpid",$ligne["gpid"],"font-size:20px;width:65px")."</td>
-		<td><span id='button-$t'>$bt_browse</span></td>
+		<td class=legend style='font-size:26px'>{groupid}:</td>
+		<td>". Field_text("gpid",$ligne["gpid"],"font-size:26px;width:65px")."</td>
 	</tr>		
 	
 	<tr>
-		<td class=legend style='font-size:20px'>{enabled}:</td>
+		<td class=legend style='font-size:26px'>{enabled}:</td>
 		<td>". Field_checkbox_design("enabled",1,$ligne["enabled"],"CheckEnabled$t()")."</td>
-		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:20px'>{description}:</td>
-		<td><textarea name='description' id='description' 
-					style='width:100%;height:50px;overflow:auto;font-size:18px !important'>". $ligne["description"]."</textarea></td>
-		<td>&nbsp;</td>
+		<td class=legend style='font-size:26px'>{description}:</td>
+		<td>". Field_text("description",$ligne["description"],"font-size:26px;width:95%")."</td>
 	</tr>
 	<tr>
-		<td colspan=3><span id='explain-$t'></span></td>
+		<td colspan=2><span id='explain-$t'></span></td>
 	</tr>		
 	<tr>
-		<td colspan=3 align='right'><hr>$bt_bt</td>
+		<td colspan=2 align='right'><hr>$bt_bt</td>
 	</tr>
 	</tbody>
 	</table>
@@ -246,6 +293,14 @@ function group_edit(){
 				if(tt.length>0){if(t2.length==0){document.getElementById('description').value=tt;}}
 			}
 		}
+		
+		if(v==3){
+			document.getElementById('groupname-$t').disabled=true;
+		
+		}
+		
+		
+		
 		var localldap=document.getElementById('localldap').value;
 		if(ID>-1){document.getElementById('localldap').disabled=true;}
 		LoadAjax('explain-$t','$page?explain-group-type=yes&type='+localldap+'&t=$t&ID=$ID&LaunchBTBrowse=$LaunchBTBrowse');
@@ -271,8 +326,8 @@ function group_edit(){
 			return;
 		}
 		
-		if( LDAP_EXTERNAL_AUTH == 1){
-			Loadjs('MembersBrowseExt.php?callback=FillExtLdap&OnlyGroups=1');
+		if( Selected == 3){
+			Loadjs('browse-extldap-groups.php?field-user=groupname-$t&field-type=4');
 			return;
 		}
 		
@@ -288,6 +343,16 @@ function group_edit(){
 		RefreshMainFilterTable();
 		$('#flexRT$t').flexReload(); 
 		$('#flexRT$tt').flexReload(); 
+		
+		if( document.getElementById('DANSGUARDIAN_EDIT_GROUP_LIST') ){
+			$('#'+document.getElementById('DANSGUARDIAN_EDIT_GROUP_LIST').value).flexReload();
+		}
+		if( document.getElementById('MAIN_TABLE_UFDB_GROUPS_ALL') ){
+			$('#'+document.getElementById('MAIN_TABLE_UFDB_GROUPS_ALL').value).flexReload();
+		}
+		
+	
+		
 		if (res.length>3){alert(res);}
 		if(ID<0){ $closeYahoo;}else{RefreshTab('main_filter_rule_edit_group');}
 		if(t>0){
@@ -313,7 +378,6 @@ function CheckEnabled$t(){
 		      XHR.appendData('gpid', document.getElementById('gpid').value);
 		      if(document.getElementById('enabled').checked){ XHR.appendData('enabled',1);}else{ XHR.appendData('enabled',0);}
 		      XHR.appendData('ID','$ID');
-		      
 		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianGroupRule);  		
 		}
 		
@@ -357,8 +421,8 @@ function group_explain_type(){
 	$ID=$_GET["ID"];
 	$LaunchBTBrowse=$_GET["LaunchBTBrowse"];
 	$page=CurrentPageName();
-	$html="<div style='border-top:1px solid #CCCCCC;margin-top:20px;padding-top:18px'>
-		<i style='font-size:16px;'>{group_explain_proxy_acls_type_{$type}}</i>
+	$html="<div class=explain style='font-size:18px'>
+			{group_explain_proxy_acls_type_{$type}}
 		</div>
 	<script>
 		function LaunchBTBrowse$t(){
@@ -383,7 +447,18 @@ function group_display_button(){
 	$type=$_GET["type"];
 	if($type==1){return;}
 	
-	$bt_browse=button("{browse}...","MemberBrowsePopup()");
+	
+	if($type==3){
+		echo "<div style='margin-top:10px;margin-rigth:5px'>";
+		$bt_browse=button("{browse_remote_ldap_server}","MemberBrowsePopup()",18);
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body($bt_browse);
+		echo "</div>";
+		return;
+	}
+	echo "<div style='margin-top:10px;margin-rigth:5px'>";
+	$bt_browse=button("{browse}...","MemberBrowsePopup()",18);
+	echo "</div>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($bt_browse);
 	
@@ -489,20 +564,26 @@ function members(){
 	$members=$tpl->_ENGINE_parse_body("{members}");
 	$new_member=$tpl->_ENGINE_parse_body("{new_member}");
 	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
+	$import=$tpl->javascript_parse_text("{import}");
 	$memberssearch="{display: '$members', name : 'members'},";
 	if($OnlyGroups==1){$memberssearch=null;}
 	
+	$q=new mysql_squid_builder();
+	$sql="SELECT groupname FROM webfilter_group WHERE ID={$_GET["ID"]}";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$group_text=$ligne["groupname"];
+	$group_textenc=urlencode($group_text);
 	$buttons="
 	buttons : [
-	{name: '<b>$new_item</b>', bclass: 'Add', onpress : DansGuardianNewMember},
+	{name: '<strong style=font-size:18px>$new_item</strong>', bclass: 'Add', onpress : DansGuardianNewMember},
+	{name: '<strong style=font-size:18px>$import</strong>', bclass: 'Down', onpress : DansGuardianImportMember},
 	
 		],";		
 	
 	$html="
-	<div class=text-info>{dansguardian2_addedit_members_explain}</div>
-	<div style='margin-right:-10px;margin-left:-15px'>
+	
+	
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>	
 	<script>
 var tmp$t='';
 $(document).ready(function(){
@@ -510,9 +591,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?members-search=yes&group_id=$group_id',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'zDate', width :31, sortable : false, align: 'left'},
-		{display: '$members', name : 'pattern', width : 556, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'select', width : 31, sortable : false, align: 'left'},
+		{display: '<span style=font-size:20px>$members</span>', name : 'pattern', width : 722, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'select', width : 65, sortable : false, align: 'left'},
 		],$buttons
 	
 	searchitems : [
@@ -535,6 +615,11 @@ $('#flexRT$t').flexigrid({
 });
 	function DansGuardianNewMember(){
 		DansGuardianEditMember(-1);
+	}
+	
+	function DansGuardianImportMember(){
+		Loadjs('dansguardian2.import.items.php?group_id=$group_id&group_text=$group_textenc&tableid=flexRT$t')
+	
 	}
 	
 
@@ -577,14 +662,8 @@ function members_search(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
@@ -632,9 +711,10 @@ function members_search(){
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array(
-			"<span style='font-size:12px;'>$select</span>",
-			"<span style='font-size:16px;font-weight:bold;color:$color'>{$ligne["pattern"]}</a></span>",
-			"<span style='font-size:12px;'>$delete</a></span>",
+			
+			"<a href=\"javascript:blur();\" OnClick=\"javascript:DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')\"
+			style='font-size:20px;color:$color'>{$ligne["pattern"]}</a></span>",
+			"<center style='font-size:12px;'>$delete</a></span>",
 			)
 		);
 	}
@@ -694,15 +774,16 @@ function members_edit(){
 	<div id='members-edit-group'  style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{enabled}:</td>
-		<td>". Field_checkbox("member_enabled",1,$ligne["enabled"])."</td>
+		<td class=legend style='font-size:22px'>{enabled}:</td>
+		<td>". Field_checkbox_design("member_enabled",1,$ligne["enabled"])."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{member_type}:</td>
-		<td>". field_array_Hash($membertype,"membertype",$ligne["membertype"],"membertypeSwitch()",null,0,"font-size:16px")."</td>
+		<td class=legend style='font-size:22px'>{member_type}:</td>
+		<td>". field_array_Hash($membertype,"membertype",$ligne["membertype"],"membertypeSwitch()",null,0,
+				"font-size:22px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{member}:</td>
+		<td class=legend style='font-size:22px'>{member}:</td>
 		<td><span id='member-type-div'></span>
 	</tr>
 	<tr>
@@ -801,9 +882,9 @@ function members_type_field(){
 	$script="<script>document.getElementById('pattern').focus();</script>";
 	
 	// $name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null
-	if($_GET["member-type-field"]==0){echo field_ipv4("pattern", $_GET["default"],"font-size:16px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
-	if($_GET["member-type-field"]==1){echo Field_text("pattern", $_GET["default"],"font-size:16px",null,null,null,false,"SaveMemberTypeCheck(event)").$script;}
-	if($_GET["member-type-field"]==2){echo field_ipv4_cdir("pattern", $_GET["default"],"font-size:16px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
+	if($_GET["member-type-field"]==0){echo field_ipv4("pattern", $_GET["default"],"font-size:22px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
+	if($_GET["member-type-field"]==1){echo Field_text("pattern", $_GET["default"],"font-size:22px",null,null,null,false,"SaveMemberTypeCheck(event)").$script;}
+	if($_GET["member-type-field"]==2){echo field_ipv4_cdir("pattern", $_GET["default"],"font-size:22px",false,"OnKeyPress=\"javascript:SaveMemberTypeCheck(event)\"").$script;}
 	
 }
 

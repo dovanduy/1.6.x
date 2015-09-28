@@ -38,7 +38,7 @@ if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 if($argv[1]=="--rotatelog"){$GLOBALS["OUTPUT"]=true;rotate();die();}
-if($argv[1]=="--force-restart-squid"){$GLOBALS["OUTPUT"]=true;force_restart_squid();die();}
+
 
 
 

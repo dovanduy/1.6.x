@@ -240,7 +240,6 @@ class squid_stats_appliance{
 		$array["SplashScreenURI"]=true;	
 		$array["HotSpotConfig"]=true;
 		$array["CicapEnabled"]=true;
-		$array["EnableKerberosAuthentication"]=true;
 		$array["EnableKerbAuth"]=true; 
 		$array["SquidBubbleMode"]=true;
 		$array["SquidClientParams"]=true;

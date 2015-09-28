@@ -60,7 +60,7 @@ function expression_js(){
 	$tpl=new templates();
 	$expression=$tpl->_ENGINE_parse_body("{expression}");
 	$title="$expression:: {$_GET["ID"]}";	
-	echo "LoadWinORG('600','$page?expression-popup=yes&ID={$_GET["ID"]}','$title');";
+	echo "LoadWinORG('800','$page?expression-popup=yes&ID={$_GET["ID"]}&t={$_GET["t"]}','$title');";
 }
 
 
@@ -82,11 +82,11 @@ function expression_popup(){
 	$t=time();
 	$html="
 	<center id='center-$t'></center>
-	<div class=text-info style='font-size:11px' id='$t'>{addexpression_ufdbguard_explain}</div>
+	<div class=explain style='font-size:14px' id='$t'>{addexpression_ufdbguard_explain}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td><textarea id='pattern-$t' style='font-size:16px;margin-top:10px;margin-bottom:10px;
+		<td><textarea id='pattern-$t' style='font-size:18px !important;margin-top:10px;margin-bottom:10px;
 		font-family:\"Courier New\",Courier,monospace;padding:3px;
 		border:3px solid #5A5A5A;font-weight:bolder;color:#5A5A5A;
 		width:100%;height:120px;overflow:auto;font-size:16px !important'
@@ -99,11 +99,11 @@ function expression_popup(){
 			<table style='width:99%'>
 			<tr>
 				<td class=legend style='font-size:18px'>{isaregex_pattern}:</td>
-				<td>". Field_checkbox("xregex-$t", 1,$ligne["xregex"])."</td>
+				<td>". Field_checkbox_design("xregex-$t", 1,$ligne["xregex"])."</td>
 				</tr> 		
 			<tr>
 				<td class=legend style='font-size:18px'>{enabled}:</td>
-				<td>". Field_checkbox("enabled-$t", 1,$ligne["enabled"])."</td>
+				<td>". Field_checkbox_design("enabled-$t", 1,$ligne["enabled"])."</td>
 				</tr>
 			</table>
 		</td>
@@ -120,7 +120,7 @@ function expression_popup(){
 			if(results.length>3){alert('\"'+results+'\"');}
 			if(ID==0){WinORGHide();}
 			GenericReload$t();
-			document.getElementById('center-$t').innerHTML='';
+			
 		}
 
 		function  CheckBrowseExprField(e){
@@ -129,6 +129,17 @@ function expression_popup(){
 		
 
 	function GenericReload$t(){
+		if(document.getElementById('flexRT_terms_expressions_main')){
+			var t=document.getElementById('flexRT_terms_expressions_main').value;
+			$('#flexRT'+t).flexReload();
+		}
+		if(document.getElementById('FlexRT_browse_expression_list')){
+			var t=document.getElementById('FlexRT_browse_expression_list').value;
+			$('#'+t).flexReload();
+		}		
+		
+	
+	
 		if(document.getElementById('tableau-termgroupsW-regles')){FlexReloadRulesWTermGroups();}
 		if(document.getElementById('tableau-termgroups-regles')){FlexReloadRulesTermGroups();}
 		if(document.getElementById('tableau-termgroupsEXP-regles')){FlexReloadBrowseExpressions();}
@@ -232,7 +243,7 @@ $page=CurrentPageName();
 
 	
 $html="
-<div id='tableau-termgroupsEXP-regles' class=text-info style='font-size:14px'>$squid_tgroups_expression_explain</div>
+<input type='hidden' id='FlexRT_browse_expression_list' value='$t1$t'>
 <table class='$t1$t' style='display: none' id='$t1$t' style='width:100%'></table>
 
 	
@@ -269,10 +280,20 @@ $('#$t1$t').flexigrid({
 
 
 	function AddNewTermExpression(){
-			LoadWinORG('600','$page?expression-popup=yes','$new_expression');
+			LoadWinORG('800','$page?expression-popup=yes&t=$t1$t','$new_expression');
 	}
 	
 	function GenericReload$t(){
+		if(document.getElementById('flexRT_terms_expressions_main')){
+			var t=document.getElementById('flexRT_terms_expressions_main').value;
+			$('#flexRT'+t).flexReload();
+		}
+		
+		if(document.getElementById('FlexRT_browse_expression_list')){
+			var t=document.getElementById('FlexRT_browse_expression_list').value;
+			$('#'+t).flexReload();
+		}			
+	
 		if(document.getElementById('tableau-termgroupsW-regles')){FlexReloadRulesWTermGroups();}
 		if(document.getElementById('tableau-termgroups-regles')){FlexReloadRulesTermGroups();}
 		if(document.getElementById('TableExpressionsParReglesLiees')){RefreshTableExpressionsParReglesLiees();}
@@ -396,7 +417,7 @@ function browse_expressions_list(){
 	$data['rows'][] = array(
 		'id' => "term".$ligne['ID'],
 		'cell' => array("<span style='font-size:16px;font-weight:bold'>{$ligne["term"]}</span>",
-		"<div style='margin-top:5px'>$enable</div>",$select,$delete )
+		"$enable",$select,$delete )
 		);
 	}
 	
@@ -430,7 +451,7 @@ function term_group_expression_popup(){
 
 	
 $html="
-<div id='tableau-termgroupsW-regles' class=text-info style='font-size:14px'>$squid_tgroups_expression_explain</div>
+<div id='tableau-termgroupsW-regles' class=explain style='font-size:14px'>$squid_tgroups_expression_explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -441,7 +462,7 @@ $('#flexRT$t').flexigrid({
 	url: '$page?group-expressions-list=yes&groupid={$_GET["groupid"]}&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$expression', name : 'term', width : 516, sortable : true, align: 'left'},	
+		{display: '$expression', name : 'term', width : 499, sortable : true, align: 'left'},	
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
 		],
 	$buttons
@@ -489,6 +510,18 @@ $('#flexRT$t').flexigrid({
 	}
 	
 	function GenericReload$t(){
+		if(document.getElementById('flexRT_terms_expressions_main')){
+			var t=document.getElementById('flexRT_terms_expressions_main').value;
+			$('#flexRT'+t).flexReload();
+		}
+		
+		if(document.getElementById('FlexRT_browse_expression_list')){
+			var t=document.getElementById('FlexRT_browse_expression_list').value;
+			$('#'+t).flexReload();
+		}			
+	
+	
+		$('#flexRT{$_GET["t"]}').flexReload();
 		if(document.getElementById('tableau-termgroupsW-regles')){FlexReloadRulesWTermGroups();}
 		if(document.getElementById('tableau-termgroups-regles')){FlexReloadRulesTermGroups();}
 		if(document.getElementById('TableExpressionsParReglesLiees')){RefreshTableExpressionsParReglesLiees();}
@@ -498,7 +531,7 @@ $('#flexRT$t').flexigrid({
 	
 	
 	function AddWordsInGroup$t(ID,name){
-		YahooWin5('600','$page?group-expressions-popup=yes&groupid='+ID);
+		YahooWin5('600','$page?group-expressions-popup=yes&t=$t&groupid='+ID);
 	
 	}
 	
@@ -521,21 +554,24 @@ function term_group(){
 	$explain=$tpl->_ENGINE_parse_body("{explain}");
 	$new_group=$tpl->javascript_parse_text("{new_group}");
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
-	$squid_termsgroups_explain=$tpl->_ENGINE_parse_body("{squid_termsgroups_explain}");
+	$squid_termsgroups_explain=$tpl->javascript_parse_text("{squid_termsgroups_explain}");
 	$delete_rule=$tpl->javascript_parse_text("{delete_rule}");
 	$words=$tpl->javascript_parse_text("{expressions}");
 	$delete_group=$tpl->javascript_parse_text("{delete_group}");
 	$group=$tpl->_ENGINE_parse_body("{group}");
-	
+	$about2=$tpl->_ENGINE_parse_body("{about2}");
+	$terms_groups=$tpl->javascript_parse_text("{terms_groups}");
 	$buttons="
 	buttons : [
 	{name: '$new_group', bclass: 'add', onpress : AddTermGroup},
+	{name: '$about2', bclass: 'Help', onpress : About$t},
+	
 	],";		
 		
 
 	
 $html="
-<div id='tableau-termgroups-regles' class=text-info style='font-size:18px'>$squid_termsgroups_explain</div>
+<input type='hidden' id='flexRT_terms_expressions_main' value='$t'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -548,9 +584,9 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: '$groupname', name : 'groupname', width : 202, sortable : true, align: 'left'},	
 		{display: '$explain', name : 'ItemsNumber', width :724, sortable : false, align: 'left'},
-		{display: '$words', name : 'WordCount', width : 48, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'delete2', width : 32, sortable : false, align: 'center'},
+		{display: '$words', name : 'WordCount', width : 60, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 60, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'delete2', width : 60, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -559,17 +595,21 @@ $('#flexRT$t').flexigrid({
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:30px>$terms_groups</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 350,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
 });
+
+function About$t(){
+	alert('$squid_termsgroups_explain');
+}
 
 	function x_AddTermGroup(obj){
 		var tempvalue=obj.responseText;
@@ -781,10 +821,11 @@ function term_group_list(){
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
-	
+	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne['groupname']=str_replace("'", "`", $ligne['groupname']);
 		$tt=array();
+		$c++;
 		$delete=imgtootltip("delete-24.png","{delete} {$ligne["groupname"]}","DelTermGroup('{$ligne['ID']}','{$ligne["groupname"]}')");
 		$addwords=imgtootltip("plus-24.png","{add} {$ligne["groupname"]}","AddWordsInGroup{$_GET["t"]}('{$ligne['ID']}','{$ligne['groupname']}')");
 		$maincolor="black";
@@ -808,11 +849,11 @@ function term_group_list(){
 		'id' => "group".$ligne['ID'],
 		'cell' => array("<span style='font-size:16px;font-weight:bold;color:$maincolor'>{$ligne["groupname"]}</span>"
 		,"<span style='font-size:16px'>$js". @implode(" $or ", $tt)." $petitspoints</a></span>",
-		"<span style='font-size:14px'>$wordscount</span>",$addwords,$delete )
+		"<span style='font-size:16px'>$wordscount</span>",$addwords,$delete )
 		);
 	}
 	
-	
+	if($c==0){json_error_show("No data",1);}	
 echo json_encode($data);		
 
 }

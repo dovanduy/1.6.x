@@ -52,7 +52,7 @@ $f[]=" ";
 $f[]=" ";
 $f[]="[mysqldump] ";
 $f[]="quick ";
-$f[]="max_allowed_packet = 16M ";
+$f[]="max_allowed_packet = 256M ";
 $f[]=" ";
 $f[]="[mysql] ";
 $f[]="no-auto-rehash ";

@@ -1,1 +1,0 @@
-../artica-install/confiles.pas

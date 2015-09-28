@@ -132,7 +132,7 @@ function home_b(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$tr[]=icon_memory();
-	$tr[]=Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
+	
 	$tr[]=Paragraphe("ChemicalsMoveDown-64.png","{clean_memory}","{clean_memory_text}","javascript:Loadjs('$page?clean-mem-js=yes&t=$t');");
 	
 	$table=CompileTr2($tr,"form");
@@ -144,7 +144,7 @@ function icon_memory(){
 	$GLOBALS["ICON_FAMILY"]="SYSTEM";
 	if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();$users=$GLOBALS["CLASS_USERS"];}else{$users=$GLOBALS["CLASS_USERS"];}
 	if(!$users->AsAnAdministratorGeneric){return null;}
-	$js="Loadjs('system.memory.php?js=yes')";
+	$js="GotoSystemMemory()";
 	$img="bg_memory-64.png";
 	return Paragraphe($img,"{system_memory}","{system_memory_text}","javascript:$js");
 }
@@ -362,7 +362,7 @@ function getLoad(){
 	
 	if($load>=$max_over){
 		$color="#640000";
-		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:red");
+		$text="<br>".texttooltip("{overloaded}","{overloaded}","Loadjs('overloaded.php')",null,0,"font-size:9px;font-weight:bold;color:#d32d2d");
 	}	
 
 	if($pourc>100){$pourc=100;}

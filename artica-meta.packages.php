@@ -69,8 +69,7 @@ function update_js(){
 	$q=new mysql_meta();
 	
 	if($_GET["gpid"]>0){
-		
-		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$q->gpid_to_name($_GET["gpid"]);
 	}else{
 		$hostname=$q->uuid_to_host($_GET["uuid"]);
 	}

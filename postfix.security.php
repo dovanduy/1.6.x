@@ -590,7 +590,7 @@ function section_content_filtering(){
 	$keywords_disabled=Paragraphe('keywords-64-grey.png','{block_keywords}','{block_keywords_text}',"javascript:blur()",null,210,null,0,true);
 	$global_smtp_rules=Buildicon64('DEF_ICO_POSTFIX_REGEX');
 	$extensions_block=Paragraphe("bg_forbiden-attachmt-64.png","{attachment_blocking}","{attachment_blocking_text}","javascript:Loadjs('domains.edit.attachblocking.ou.php?ou=$ou_encoded')",null,210,null,0,true);
-	$tests_eml=Paragraphe("email-info-64.png","{message_analyze}","{message_as_analyze_text}","javascript:Loadjs('spamassassin.analyze.php')",null,210,null,0,true);
+	$tests_eml=Paragraphe("email-64-infos.png","{message_analyze}","{message_as_analyze_text}","javascript:Loadjs('spamassassin.analyze.php')",null,210,null,0,true);
 	$tests_eml_disabled=Paragraphe("email-info-64-grey.png","{message_analyze}","{message_as_analyze_text}","",null,210,null,0,true);
 	$message_analyze=$tests_eml;
 	$sa_update_disabled=Paragraphe("64-spam-update-grey.png","{UPDATE_SA_UPDATE}","{UPDATE_SA_UPDATE_TEXT}","",null,210,null,0,true);

@@ -185,7 +185,7 @@ function rule(){
 		<tr>
 			<td class=legend style='font-size:18px'>{pattern}:</td>
 			<td>
-			<div class=text-info style='font-size:16px'>{browser_pattern_explain}</div>
+			<div class=explain style='font-size:16px'>{browser_pattern_explain}</div>
 			<textarea style='margin-top:5px;font-family:Courier New; font-weight:bold;
 			width:99%;height:90px;border:5px solid #8E8E8E; overflow:auto;font-size:16px !important' id='pattern-$t'>{$ligne["pattern"]}</textarea></td>
 		</tr>

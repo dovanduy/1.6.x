@@ -49,7 +49,7 @@ function popup(){
 
 	$html="
 	<div id='div-$t'></div>
-	<div class=text-info style='font-size:16px'>{delivery_agent_parameters_text}</div>
+	<div class=explain style='font-size:16px'>{delivery_agent_parameters_text}</div>
 		<div style='text-align:right'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=328','1024','900');\" 
 		style='font-size:16px;text-decoration:underline'>{online_help}</a></div>

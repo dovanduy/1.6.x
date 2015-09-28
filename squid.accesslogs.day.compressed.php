@@ -30,6 +30,19 @@ if(isset($_GET["list"])){showlist();exit;}
 function table(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$sock=new sockets();
+	$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+	
+	if($SquidUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline'>{disable_emergency_mode}</a></div>
+			");
+		return;
+	
+	}
 
 	
 	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
@@ -147,7 +160,7 @@ function showlist(){
 
 	$data = array();
 	$data['page'] = 1;
-	$data['total'] = mysql_num_rows($results);
+	$data['total'] = $total;
 	$data['rows'] = array();
 
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}

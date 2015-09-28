@@ -1061,7 +1061,7 @@ function toolbox(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 

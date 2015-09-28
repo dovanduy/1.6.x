@@ -23,15 +23,17 @@ function js_popup_ad(){
 	$page=CurrentPageName();
 	header("content-type: application/x-javascript");
 	$md5=$_GET["md5"];
+	$ruleid=$_GET["ruleid"];
 	$title=$tpl->javascript_parse_text("{new_connection}");
 	if($_GET["md5"]<>null){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT hostname FROM hotspot_activedirectory WHERE zmd5='$md5'"));
 		$title=$ligne["hostname"];
+		$ruleid=$ligne["ruleid"];
 	}
 	
 	$md5=urlencode($_GET["md5"]);
-	echo "YahooWin4('750','$page?popup-ad-tab=yes&t={$_GET["t"]}&md5=$md5','$title');";
+	echo "YahooWin4('750','$page?popup-ad-tab=yes&t={$_GET["t"]}&md5=$md5&ruleid=$ruleid','$title');";
 	
 }
 
@@ -39,6 +41,7 @@ function tab_ad(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$md5=$_GET["md5"];
+	$ruleid=$_GET["ruleid"];
 	$title=$tpl->javascript_parse_text("{new_connection}");
 	$array["popup"]=$title;
 	if($md5<>null){
@@ -52,7 +55,7 @@ function tab_ad(){
 	
 	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup-ad-$num=yes&t={$_GET["t"]}&md5=$md5\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup-ad-$num=yes&t={$_GET["t"]}&md5=$md5&ruleid=$ruleid\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 	
 	echo build_artica_tabs($html, "hotspot_ad_tab$md5");
@@ -71,7 +74,7 @@ function popup_groups(){
 	$t=time();
 	
 	$html="
-	<div class=text-info style='font-size:16px'>{hotspot_ad_groups_explain}</div>		
+	<div class=explain style='font-size:16px'>{hotspot_ad_groups_explain}</div>		
 	<textarea style='width:100%;height:245px;font-size:18px !important;border:4px solid #CCCCCC;font-family:\"Courier New\",
 	Courier,monospace;background-color:white;color:black;font-weight:bold' id='groups-$t'>$groups</textarea>
 	<center style='margin-top:20px'>". button("{apply}","Save$t()",28)."</div>
@@ -81,7 +84,7 @@ var xSave$t= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){alert(results);return;}
 	$('#flexRT{$_GET["t"]}').flexReload();
-	ExecuteByClassName('SearchFunction');
+	
 }
 
 
@@ -113,10 +116,12 @@ function popup_ad(){
 	$title=$tpl->javascript_parse_text("{new_connection}");
 	$btname="{add}";
 	$close=1;
+	$ruleid=$_GET["ruleid"];
 	if($md5<>null){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM hotspot_activedirectory WHERE zmd5='$md5'"));
 		$title=$ligne["hostname"];
+		$ruleid=$ligne["ruleid"];
 		$btname="{apply}";
 		$close=0;
 	}
@@ -138,7 +143,6 @@ function popup_ad(){
 	$html="<div style='width:98%' class=form>
 	<table style='width:100%'>".
 	Field_text_table("hostname-$t", "{hostname}",$ligne["hostname"],22,null,350).
-	Field_list_table("ttl-$t", "{ttl}", $ligne["ttl"],22,$Timez).
 	Field_checkbox_table("enabled-$t","{enabled}",$ligne["enabled"],$fontsize=22,null).
 	"<tr>
 		<td colspan=2 align='right'><hr>".button($btname,"Save$t()",36)."</td>
@@ -160,7 +164,7 @@ var xSave$t= function (obj) {
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('hostname',document.getElementById('hostname-$t').value);
-	XHR.appendData('ttl',document.getElementById('ttl-$t').value);	
+	XHR.appendData('ruleid','$ruleid');
 	XHR.appendData('md5','$md5');
 	if(document.getElementById('enabled-$t').checked){XHR.appendData('enabled',1); }else{XHR.appendData('enabled',0);}
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
@@ -178,19 +182,19 @@ function popup_save(){
 	$q=new mysql_squid_builder();
 	$hostname=$_POST["hostname"];
 	$enabled=$_POST["enabled"];
+	$ruleid=$_POST["ruleid"];
 	$ttl=$_POST["ttl"];
 	if($md5==null){
-		$md5=md5("$hostname$ttl");
+		$md5=md5("$hostname$ruleid");
 		$sql="INSERT IGNORE INTO `hotspot_activedirectory` 
-		(hostname,enabled,zmd5) VALUES 
-		('$hostname','1','$md5')";
+		(hostname,enabled,ruleid,zmd5) VALUES 
+		('$hostname','1','$ruleid','$md5')";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo $q->mysql_error." $sql";return;}
 		return;
 	}
 	
-	$q->QUERY_SQL("UPDATE `hotspot_activedirectory` SET hostname='$hostname',enabled=$enabled,ttl=$ttl
-			WHERE zmd5='$md5'");
+	$q->QUERY_SQL("UPDATE `hotspot_activedirectory` SET hostname='$hostname',enabled=$enabled WHERE zmd5='$md5'");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	
 }
@@ -212,6 +216,7 @@ function table(){
 	
 	$q=new mysql_squid_builder();
 	if(!$q->TABLE_EXISTS("hotspot_activedirectory")){$q->check_hotspot_tables();}
+	$q->QUERY_SQL("DELETE FROM `hotspot_activedirectory` WHERE ruleid=0");
 	
 	$hostname=$tpl->javascript_parse_text("{hostname}");
 	$enabled=$tpl->javascript_parse_text("{enabled}");
@@ -219,10 +224,13 @@ function table(){
 	$parameters=$tpl->javascript_parse_text("{parameters}");
 	$delete=$tpl->javascript_parse_text("{delete}");
 	$created=$tpl->javascript_parse_text("{created}");
+	
+	$title=$tpl->javascript_parse_text("{hotspot_ad_title}");
+	
 
 	$buttons="
 	buttons : [
-	{name: '$new_connection', bclass: 'Add', onpress : NewCNx$t},
+	{name: '<strong style=font-size:18px>$new_connection</strong>', bclass: 'Add', onpress : NewCNx$t},
 	
 	],";
 	
@@ -233,13 +241,12 @@ function table(){
 	var mem$t='';
 	$(document).ready(function(){
 	$('#flexRT$t').flexigrid({
-	url: '$page?items=yes&t=$t',
+	url: '$page?items=yes&t=$t&ruleid={$_GET["ruleid"]}',
 	dataType: 'json',
 	colModel : [
-	{display: '$hostname', name : 'hostname', width :515, sortable : true, align: 'left'},
-	{display: '$ttl', name : 'ttl', width :190, sortable : true, align: 'left'},
-	{display: '$enabled', name : 'enabled', width :60, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'none', width :35, sortable : true, align: 'center'},
+	{display: '<span style=font-size:18px>$hostname</span>', name : 'hostname', width :515, sortable : true, align: 'left'},
+	{display: '<span style=font-size:18px>$enabled</span>', name : 'enabled', width :98, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'none', width :55, sortable : true, align: 'center'},
 	],
 	$buttons
 	
@@ -250,7 +257,7 @@ function table(){
 	sortname: 'hostname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span id=\"title-$t\">Active Directory</span>',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -265,7 +272,7 @@ function table(){
 
 	
 	function NewCNx$t(){
-		Loadjs('$page?popup-ad-js=yes&md5=&t=$t');
+		Loadjs('$page?popup-ad-js=yes&md5=&t=$t&ruleid={$_GET["ruleid"]}');
 	}
 </script>";
 	
@@ -278,11 +285,15 @@ function items(){
 	$q=new mysql_squid_builder();
 	$table="hotspot_activedirectory";
 	
+	
+	
 	$t=$_GET["t"];
 	$tm=array();
 	$search='%';
 	$page=1;
-	$FORCE_FILTER="";
+	
+	
+	$FORCE_FILTER="AND ruleid='{$_GET["ruleid"]}'";
 
 	if(strpos($table, ",")==0){
 		if(!$q->TABLE_EXISTS($table)){
@@ -335,20 +346,18 @@ function items(){
 		$hostname=$ligne["hostname"];
 		$zmd5=$ligne["zmd5"];
 		$ttl=$ligne["ttl"];
-		$delete=imgsimple("delete-24.png",null,"Loadjs('$myPage?delete-ad-js=yes&md5=$zmd5&t=$t')");
+		$delete=imgsimple("delete-48.png",null,"Loadjs('$myPage?delete-ad-js=yes&md5=$zmd5&t=$t')");
 		$enabled=Field_checkbox("enable_$zmd5", 1,$ligne["enabled"],"Loadjs('$myPage?enable-ad-js=yes&md5=$zmd5&t=$t')");
-		$ttltxt=$ligne["ttl"]."&nbsp;$minutes";
-		if($ttl==0){$ttltxt=$unlimited;}
+	
 		$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$myPage?popup-ad-js=yes&md5=$zmd5&t=$t');\"
 		style='text-decoration:underline'>";
 		
 		$data['rows'][] = array(
 				'id' => $zmd5,
 				'cell' => array(
-						"<span style='font-size:18px;color:$color'>$js$hostname</a></span>",
-						"<span style='font-size:18px;color:$color'>$ttltxt</a></span>",
+						"<span style='font-size:24px;color:$color'>$js$hostname</a></span>",
 						"<span style='font-size:18px;color:$color'>$enabled</a></span>",
-						"<span style='font-size:18px;color:$color'>$delete</a></span>",
+						"<center>$delete</a></center>",
 							
 				)
 		);

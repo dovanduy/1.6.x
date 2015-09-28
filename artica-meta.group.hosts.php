@@ -8,7 +8,7 @@ include_once('ressources/class.system.nics.inc');
 $users=new usersMenus();
 if(!$users->AsArticaMetaAdmin){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 
@@ -53,9 +53,9 @@ function page(){
 	$groupname=$tpl->javascript_parse_text($ligne["groupname"]);
 	$buttons="
 	buttons : [
-	{name: '$link_host', bclass: 'add', onpress : LinkHosts$t},
-	{name: '$link_all_hosts', bclass: 'add', onpress : LinkHostsAll$t},
-	{name: '$orders', bclass: 'add', onpress : Orders$t},
+	{name: '<strong style=font-size:18px>$link_host</strong>', bclass: 'add', onpress : LinkHosts$t},
+	{name: '<strong style=font-size:18px>$link_all_hosts</strong>', bclass: 'add', onpress : LinkHostsAll$t},
+	{name: '<strong style=font-size:18px>$orders</strong>', bclass: 'add', onpress : Orders$t},
 	],";
 
 
@@ -277,7 +277,7 @@ function search(){
 		$icon="ok-32.png";
 
 
-		$urijs="Loadjs('$MyPage?group-js=yes&ID={$ligne["ID"]}')";
+		$urijs="Loadjs('artica-meta.menus.php?js=yes&uuid=$uuid');";
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:$urijs\" $styleHref>";
 
 		$delete=imgtootltip("delete-32.png",null,"Loadjs('$MyPage?unlink-js=$zmd5')");

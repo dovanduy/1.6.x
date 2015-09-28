@@ -34,7 +34,7 @@ if($argv[1]=="--mysql"){die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
 if($argv[1]=="--clean"){CleanMysqlDatabase(false);die();}
 if($argv[1]=="--purge-nas"){CleanMysqlDatabase(true);die();}
-if($argv[1]=="--squid"){check_all_squid();die();}
+if($argv[1]=="--squid"){die();}
 if($argv[1]=="--convert"){die();}
 if($argv[1]=="--test-nas"){tests_nas(true);die();}
 
@@ -319,7 +319,7 @@ function ExtractFromMySQL($storeid){
 	if(!is_dir($BackupMaxDaysDir)){
 		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 		events("Fatal $BackupMaxDaysDir permission denied");
-		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		squid_admin_mysql(1,"SYSLOG: FATAL $BackupMaxDaysDir permission denied",null,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		$mount->umount($mountPoint);
 		return false;
@@ -331,7 +331,7 @@ function ExtractFromMySQL($storeid){
 	if(!is_file("$BackupMaxDaysDir/$t")){
 		events("Fatal $BackupMaxDaysDir permission denied");
 		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
-		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		squid_admin_mysql(1,"SYSLOG: FATAL $BackupMaxDaysDir permission denied",null,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		$mount->umount($mountPoint);
 		return false;
@@ -476,7 +476,7 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	if(!is_dir($BackupMaxDaysDir)){
 		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 		events("Fatal $BackupMaxDaysDir permission denied");
-		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		squid_admin_mysql(1,"SYSLOG: FATAL $BackupMaxDaysDir permission denied",null,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 		return false;
@@ -488,7 +488,7 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	if(!is_file("$BackupMaxDaysDir/$t")){
 		events("Fatal $BackupMaxDaysDir permission denied");
 		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
-		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		squid_admin_mysql(1,"SYSLOG: FATAL $BackupMaxDaysDir permission denied",null,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 		return false;
@@ -583,7 +583,7 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 		if($GLOBALS["VERBOSE"]){echo "Processing {$ligne["filename"]}\n";}
 		if(!ExtractFileFromDatabase($ligne["filename"],$BackupMaxDaysDir)){
 			events("Unable to extract {$ligne["filename"]} to $BackupMaxDaysDir");
-			squid_admin_notifs("SYSLOG: Unable to extract {$ligne["filename"]} to $BackupMaxDaysDir",__FUNCTION__,__FILE__,__LINE__);
+			squid_admin_mysql(1,"SYSLOG: Unable to extract {$ligne["filename"]} to $BackupMaxDaysDir",null,__FILE__,__LINE__);
 			if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 			return false;
 		}else{
@@ -648,6 +648,29 @@ function reconfigure(){
 	
 	if($SystemLogsPath<>"/var/log"){CheckLogStorageDir($SystemLogsPath);}
 	
+	$LogRotateH=intval($sock->GET_INFO("LogRotateH"));
+	$LogRotateM=intval($sock->GET_INFO("LogRotateM"));
+	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
+	
+	if($SquidRotateOnlySchedule==1){
+		$CRON[]="MAILTO=\"\"";
+		$CRON[]="$LogRotateM $LogRotateH * * *  root $php5 /usr/share/artica-postfix/exec.squid.php --rotate --byschedule >/dev/null 2>&1";
+		$CRON[]="";
+		file_put_contents("/etc/cron.d/squid-rotate",@implode("\n", $CRON));
+		$CRON=array();
+		chmod("/etc/cron.d/squid-rotate",0640);
+		chown("/etc/cron.d/squid-rotate","root");
+		system("/etc/init.d/cron reload");
+	}else{
+		if(is_file("/etc/cron.d/squid-rotate")){
+			@unlink("/etc/cron.d/squid-rotate");
+			system("/etc/init.d/cron reload");
+		}
+		
+	}
+	
+	
+	
 	$LogsDirectoryStorage=$sock->GET_INFO("LogsDirectoryStorage");
 	if(trim($LogsDirectoryStorage)==null){$LogsDirectoryStorage="/home/logs-backup";}	
 	@mkdir($LogsDirectoryStorage,0755,true);
@@ -674,6 +697,7 @@ function reconfigure(){
 		if(!is_numeric($ligne["RotateCount"])){$ligne["RotateCount"]=5;}
 		
 		if(preg_match("#\/var\/log\/squid#is", $ligne["RotateFiles"])){continue;}
+		if(preg_match("#\/var\/log\/mail\.log#is", $ligne["RotateFiles"])){continue;}
 		
 		$f[]="{$ligne["RotateFiles"]} {";
 		$f[]="\t{$ligne["RotateFreq"]}";
@@ -864,130 +888,7 @@ function ROTATE_COMPRESS_FILE($filename){
 }
 
 
-function check_all_squid(){
-	$sock=new sockets();
-	$unix=new unix();
-	$syslog=new mysql_storelogs();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
-	$pid=file_get_contents("$pidfile");
-	
-	
-	if(system_is_overloaded(basename(__FILE__))){die();}
-	
 
-	if($unix->process_exists($pid,basename(__FILE__))){
-		$timeMin=$unix->PROCCESS_TIME_MIN($pid);
-		if($timeMin>240){
-			system_admin_events("Too many TTL, $pid will be killed",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			$kill=$unix->find_program("kill");
-			unix_system_kill_force($pid);
-		}else{
-			die();
-		}
-	}	
-	
-	$time=$unix->file_time_min($timefile);
-	if($time<300){return;}
-	
-	@file_put_contents($pidfile, getmypid());
-	@file_put_contents($timefile, time());
-	
-	
-	$php=$unix->LOCATE_PHP5_BIN();
-	$bzip2=$unix->find_program("bzip2");
-	$ALREADYCOMP["gz"]=true;
-	$ALREADYCOMP["bz2"]=true;
-	$LogRotateCompress=1;
-	
-	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
-	$ApacheLogRotate=$sock->GET_INFO("ApacheLogRotate");
-	if(!is_numeric($ApacheLogRotate)){$ApacheLogRotate=1;}
-	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}	
-	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
-	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}	
-	
-	foreach (glob("/var/log/squid/*") as $filename) {
-		if(is_dir($filename)){continue;}
-		$size=$unix->file_size($filename);
-		$time=$unix->file_time_min($filename);
-		$size=round(($size/1024)/1000,2);
-		
-		
-		if($size>$LogsRotateDefaultSizeRotation){
-			if($filename=="/var/log/squid/access.log"){
-				events("$filename -> is a production log for Squid, launch the rotation procedure.");
-				squid_admin_mysql(1, "$filename {$size}M exceed {$LogsRotateDefaultSizeRotation}M, launch rotation", null,__FILE__,__LINE__);
-				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --rotate");
-				continue;
-			}
-			
-			
-			$TOROT[$filename]=true;
-			events("$filename -> Add to queue {$size}M exceed {$LogsRotateDefaultSizeRotation}M");
-			continue;
-		}
-		
-		
-		
-		if($time>1440){
-			if($filename=="/var/log/squid/access.log"){
-				events("$filename -> is a production log for Squid, launch the rotation procedure.");
-				squid_admin_mysql(1, "$filename {$size}M exceed {$LogsRotateDefaultSizeRotation}M, launch rotation", null,__FILE__,__LINE__);
-				shell_exec("$php /usr/share/artica-postfix/exec.squid.php --rotate");
-				continue;
-			}
-			
-			events("$filename -> Add to queue {$time}mn exceed 1440mn");
-			$TOROT[$filename]=true;
-			continue;
-		}
-	}
-
-	if(count($TOROT)==0){return;}
-		
-	while (list ($filename, $none) = each ($TOROT) ){
-		
-		$extension = pathinfo($filename, PATHINFO_EXTENSION);
-		
-		$filedate=date('Y-m-d H:i:s',filemtime($filename));
-		$basename=basename($filename);
-		
-		if(preg_match("#sarg\.#", $filename)){
-			shell_exec("$php5 ".dirname(__FILE__)."/exec.sarg.php --rotate $basename >/dev/null 2>&1 &");
-			continue;
-		}
-		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
-			continue;
-		}	
-		
-		
-		if($extension<>"gz"){
-			if(!$unix->compress($filename, "$filename.gz")){continue;}
-			$filename=$filename.".gz";
-			$extension="gz";
-			
-		}
-			
-		echo "[$filedate]: $filename ($extension)\n";
-		if($syslog->ROTATE_TOMYSQL($filename, $filedate)){
-			@unlink($filename);
-		}
-			
-		
-	}
-	
-	foreach (glob("/home/squid/cache-logs/*") as $filename) {
-		$filedate=date('Y-m-d H:i:s',filemtime($filename));
-		$filename=$filename.".gz";
-		if($syslog->ROTATE_TOMYSQL($filename, $filedate)){@unlink($filename);}
-		
-	}
-	
-	
-	
-}
 
 
 

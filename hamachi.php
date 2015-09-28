@@ -55,7 +55,7 @@ function help(){
 	<tbody>
 	<tr>
 		<td valign='top' width=1%><a href='http://www.articatech.net/download/artica-hamachi.pdf'><img src='img/pdf-128.png' style='border:0px'></a></td>
-		<td valign='top'><div class=text-info style='font-size:16px'>{HELP_PDF_DOWNLOAD_EXPLAIN}</div>
+		<td valign='top'><div class=explain style='font-size:16px'>{HELP_PDF_DOWNLOAD_EXPLAIN}</div>
 	</tr>
 	</tbody>
 	</table>

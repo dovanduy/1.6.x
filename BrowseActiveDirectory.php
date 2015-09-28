@@ -106,7 +106,7 @@ function var_export_popup($array=null,$return=false){
 		$ad=new ActiveDirectory($_GET["ADID"]);
 		$array=$ad->DumpDN($dn);
 		if($ad->ldap_last_error<>null){
-			echo "<div style='color:red;font-size:12px'>$ad->ldap_last_error<hr></div>";
+			echo "<div style='color:#d32d2d;font-size:12px'>$ad->ldap_last_error<hr></div>";
 		}
 	}else{
 		if($dnText==null){
@@ -120,7 +120,7 @@ function var_export_popup($array=null,$return=false){
 	
 	
 	if(!is_array($array)){
-		echo "<div style='color:red;font-size:12px'>Not an Array()<hr>".base64_decode($_GET["data"])."<hr></div>";
+		echo "<div style='color:#d32d2d;font-size:12px'>Not an Array()<hr>".base64_decode($_GET["data"])."<hr></div>";
 	}
 	$html="<table>";
 	while (list ($num, $ligne) = each ($array) ){
@@ -162,7 +162,7 @@ function var_export_members(){
 			$dnText=utf8_decode($dn);
 			$ad=new ActiveDirectory($_GET["ADID"]);
 			if($ad->ldap_last_error<>null){
-				echo "<div style='color:red;font-size:12px'>$ad->ldap_last_error<hr></div>";
+				echo "<div style='color:#d32d2d;font-size:12px'>$ad->ldap_last_error<hr></div>";
 			}	
 		
 		}

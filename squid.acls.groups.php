@@ -9,6 +9,7 @@
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.ActiveDirectory.inc');
 	include_once('ressources/class.external.ad.inc');
+	include_once('ressources/class.ldap-extern.inc');
 	
 	$GLOBALS["GroupType"]["src"]="{src_addr}";
 	$GLOBALS["GroupType"]["arp"]="{ComputerMacAddress}";
@@ -32,6 +33,7 @@ if(isset($_GET["js"])){js();exit;}
 if(isset($_GET["groups-list"])){group_list();exit;}
 if(isset($_GET["AddGroup-js"])){AddGroup_js();exit;}
 if(isset($_GET["EditGroup-popup"])){EditGroup_popup();exit;}
+if(isset($_GET["EditGroup-content"])){EditGroup_content();exit;}
 if(isset($_GET["EditGroup-events"])){EditGroup_events();exit;}
 if(isset($_GET["EditGroup-events-search"])){EditGroup_events_search();exit;}
 if(isset($_POST["GroupName"])){EditGroup_save();exit;}
@@ -92,10 +94,27 @@ function AddGroup_js(){
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
 	if($ID>0){
+		$GroupTypeName=null;
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqgroups WHERE ID='$ID'"));
+		$GroupType=$ligne["GroupType"];
+		if(preg_match("#ExtLDAP:(.+?):#", $ligne["GroupName"],$re)){$ligne["GroupName"]=$re[1];}
+		
+		
+		if(preg_match("#time_quota:([0-9]+)#", $GroupType,$re)){
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM quota_objects WHERE ID='{$re[1]}'"));
+			$GroupTypeName="&nbsp;&raquo;&nbsp;".$tpl->_ENGINE_parse_body("{time_quota} {$ligne2["objectname"]}");
+		}
+		
+		if(preg_match("#time_session:([A-Z]+):([0-9]+)#", $GroupType,$re)){
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM sessions_objects WHERE ID='{$re[2]}'"));
+			$GroupTypeName="&nbsp;&raquo;&nbsp;".$tpl->_ENGINE_parse_body("{session_tracking} - {$re[1]} - {$ligne2["objectname"]}");
+		}
+		
+		
+		
 		$ligne["GroupName"]=utf8_encode($ligne["GroupName"]);
-		$title="{group}:$ID&nbsp;&raquo;&nbsp;{$ligne["GroupName"]}&nbsp;&raquo;&nbsp;{$q->acl_GroupType[$ligne["GroupType"]]}";
+		$title="{group}:$ID&nbsp;&raquo;&nbsp;{$ligne["GroupName"]}&nbsp;&raquo;&nbsp;{$q->acl_GroupType[$ligne["GroupType"]]}$GroupTypeName";
 	}else{
 		
 		$title="{new_item}";
@@ -105,6 +124,16 @@ function AddGroup_js(){
 	$title=$tpl->_ENGINE_parse_body($title);
 	$html="YahooWinT(595,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}&FilterType={$_GET["FilterType"]}&TransParentMode={$_GET["TransParentMode"]}&ACLType={$_GET["ACLType"]}$wpad','$title')";
 	echo $html;	
+	
+}
+
+function EditGroup_content(){
+	$ID=$_GET["ID"];
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?aclgroup-content=$ID");
+	$content=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/container_{$ID}.txt");
+	echo "<textarea style='margin-top:5px;
+	font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;overflow:auto;font-size:14px !important' id='textToParseCats-$t'>$content</textarea>";
 	
 }
 
@@ -156,6 +185,20 @@ function EditGroup_popup(){
 	$t=time();
 	$tt=time();
 	$GroupType=$q->acl_GroupType;
+	$sql="SELECT ID,objectname  FROM `quota_objects` ORDER BY objectname";
+	$results = $q->QUERY_SQL($sql);
+	while ($ligne3 = mysql_fetch_assoc($results)) {
+		$GroupType["time_quota:{$ligne3["ID"]}"]="{time_quota}:{$ligne3["objectname"]}";
+	}
+	$sql="SELECT ID,objectname  FROM `sessions_objects` ORDER BY objectname";
+	$results = $q->QUERY_SQL($sql);
+	while ($ligne3 = mysql_fetch_assoc($results)) {
+		$GroupType["time_session:LOGIN:{$ligne3["ID"]}"]="{session_tracking}:LOGIN:{$ligne3["objectname"]}";
+		$GroupType["time_session:LOGOUT:{$ligne3["ID"]}"]="{session_tracking}:LOGOUT:{$ligne3["objectname"]}";
+		$GroupType["time_session:ACTIVE:{$ligne3["ID"]}"]="{session_tracking}:ACTIVE:{$ligne3["objectname"]}";
+	}	
+	
+	
 	if($ASWPAD){$GroupType=$q->acl_GroupType_WPAD;}
 	if($AsTransParent){$GroupType=$q->acl_GroupType_iptables;}
 	
@@ -334,9 +377,8 @@ if($ligne["GroupType"]=="dynamic_acls"){
 	
 	function TypeAddButton$tt(){
 		var mGroupName='GroupName-$tt';
-		document.getElementById('GroupName-$tt').disabled=false;
-		
 		var GroupType=document.getElementById('GroupType-$tt').value;
+		document.getElementById('GroupName-$tt').disabled=false;
 		
 		if(GroupType=='proxy_auth_ads'){
 			document.getElementById('GroupName-$tt').disabled=true;
@@ -345,6 +387,10 @@ if($ligne["GroupType"]=="dynamic_acls"){
 		if(GroupType=='proxy_auth_statad'){
 			document.getElementById('GroupName-$tt').disabled=true;
 		}
+		
+		if(GroupType=='proxy_auth_ldap'){
+			document.getElementById('GroupName-$tt').disabled=true;
+		}		
 		
 		LoadAjaxTiny('group-add-f-$t','$page?GroupType-button=yes&GroupName='+mGroupName+'&t=$t&GroupType='+GroupType+'&tt=$tt');
 	}
@@ -377,9 +423,10 @@ if($ligne["GroupType"]=="dynamic_acls"){
 	function CheckGrouform$t(){
 		var id=$ID;
 		var GroupType=document.getElementById('GroupType-$tt').value;
-		if(id>0){document.getElementById('GroupType-$tt').disabled=true;return;}
 		if(GroupType=='proxy_auth_ads'){document.getElementById('GroupName-$tt').disabled=true;}
 		if(GroupType=='proxy_auth_statad'){document.getElementById('GroupName-$tt').disabled=true;}
+		if(GroupType=='proxy_auth_ldap'){document.getElementById('GroupName-$tt').disabled=true;}
+		if(id>0){document.getElementById('GroupType-$tt').disabled=true;return;}
 	}
 	
 $ScriptAdd2;	
@@ -399,15 +446,25 @@ function GroupType_button(){
 	$GroupName=$_GET["GroupName"];
 	$tpl=new templates();
 	if($GroupType=="proxy_auth_ads"){
-		//$js="Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')";
-		$js="Loadjs('browse-ad-groups.php?field-user=$GroupName&field-type=3')";
-		echo $tpl->_ENGINE_parse_body(button("{browse}..",$js,"12"));
+		echo "<div style='margin-top:10px'>";
+			$js="Loadjs('browse-ad-groups.php?field-user=$GroupName&field-type=3')";
+			echo $tpl->_ENGINE_parse_body(button("{browse_active_directory_groups}..",$js,"14"));
+		echo "</div>";
 	}
 	if($GroupType=="proxy_auth_statad"){
-		//$js="Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')";
-		$js="Loadjs('browse-ad-groups.php?field-user=$GroupName&field-type=3')";
-		echo $tpl->_ENGINE_parse_body(button("{browse}..",$js,"12"));
+		echo "<div style='margin-top:10px'>";
+			$js="Loadjs('browse-ad-groups.php?field-user=$GroupName&field-type=3')";
+			echo $tpl->_ENGINE_parse_body(button("{browse_active_directory_groups}..",$js,"14"));
+		echo "</div>";
 	}
+
+	if($GroupType=="proxy_auth_ldap"){
+		echo "<div style='margin-top:10px'>";
+			$js="Loadjs('browse-extldap-groups.php?field-user=$GroupName&field-type=4')";
+			echo $tpl->_ENGINE_parse_body(button("{browse_remote_ldap_server}..",$js,"14"));
+		echo "</div>";
+	}
+
 	
 	
 }
@@ -440,7 +497,7 @@ function EditGroup_delete(){
 	
 	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	
 }
 function item_delete(){
 	$page=CurrentPageName();
@@ -450,7 +507,7 @@ function item_delete(){
 	$q->QUERY_SQL("DELETE FROM webfilters_sqitems WHERE ID='$ID'");	
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	
 }
 
 function EditGroup_params_save(){
@@ -523,6 +580,7 @@ function item_save(){
 	$tpl=new templates();	
 	$ID=$_POST["item-id"];
 	$gpid=$_POST["ID"];
+	$MULTIPLE_SQL=array();
 	$ECHO=false;
 	if(isset($_POST["ECHO"])){$ECHO=true;}
 	$_POST["item-pattern"]=url_decode_special_tool($_POST["item-pattern"]);
@@ -544,19 +602,71 @@ function item_save(){
 		if(preg_match("#(.*?)\/#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}	
 	}
 	
-	if($GroupType=="method"){
-		$_POST["item-pattern"]=trim(strtoupper( $_POST["item-pattern"]));
-		if(!isset($q->AVAILABLE_METHOD[$_POST["item-pattern"]])){;
-			echo "Unknown Method: `{$_POST["item-pattern"]}` Alowed methods are:\n";
-			while (list ($TaskType, $none) = each ($q->AVAILABLE_METHOD) ){echo "\t$TaskType\n";}
+	if($GroupType=="dst"){
+		$ipClass=new IP();
+		if(!$ipClass->isIPAddressOrRange($_POST["item-pattern"])){
+			
+			echo "Not a valid IP {$_POST["item-pattern"]}\n";
 			return;
 		}
 	}
+	if($GroupType=="src"){
+		$ipClass=new IP();
+		if(!$ipClass->isIPAddressOrRange($_POST["item-pattern"])){
+				
+			echo "Not a valid IP {$_POST["item-pattern"]}\n";
+			return;
+		}
+	}	
+	
+	if($GroupType=="method"){
+		
+		$_POST["item-pattern"]=trim(strtoupper( $_POST["item-pattern"]));
+		if(strpos($_POST["item-pattern"], " ")>0){
+			$INTR=explode(" ",$_POST["item-pattern"]);
+		}else{
+			$ff="no exploded\n";
+			$INTR[]=$_POST["item-pattern"];
+		}
+		
+		
+		$ERROR_PROTO=false;
+		while (list ($index, $proto) = each ($INTR) ){
+			$proto=trim($proto);
+			if($proto==null){continue;}
+			if(!isset($q->AVAILABLE_METHOD[$proto])){;
+				echo "Unknown Method:[$index]/".count($INTR)." `$proto` $ff\n";
+				$ERROR_PROTO=true;
+				continue;
+			}
+			
+			$MULTIPLE_SQL[]="('$proto','$gpid','1','')";
+			
+		}
+		if($ERROR_PROTO){
+			echo "Alowed methods are:\n";
+			while (list ($TaskType, $none) = each ($q->AVAILABLE_METHOD) ){echo "\t$TaskType\n";}
+		}
+	
+	
+	}
+	
+	
+	
 	
 	if($GroupType=="arp"){
 		$_POST["item-pattern"]=trim(strtoupper( $_POST["item-pattern"]));
 		$_POST["item-pattern"]=str_replace("-", ":", $_POST["item-pattern"]);
 	}
+	
+	
+	if(count($MULTIPLE_SQL)>0){
+		$sqladd="INSERT INTO webfilters_sqitems (pattern,gpid,enabled,other) VALUES ".@implode(",", $MULTIPLE_SQL);
+		$q->QUERY_SQL($sqladd);
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	
 	 
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='{$_POST["item-pattern"]}'"));
 	if(trim($ligne["ID"])>0){return;}
@@ -587,6 +697,7 @@ function item_import(){
 	$sqladd="INSERT IGNORE INTO webfilters_sqitems (pattern,gpid,enabled,other) VALUES ";
 	$Patterns=array();
 	$f=explode("\n",$_POST["item-import"]);
+	$ipClass=new IP();
 	while (list ($num, $pattern) = each (	$f)){
 		if(trim($pattern)==null){continue;}
 		
@@ -608,6 +719,10 @@ function item_import(){
 			$pattern=str_replace("-", ":", $pattern);
 		}
 		
+		
+		if($GroupType=="dst"){if(!$ipClass->isIPAddressOrRange($pattern)){continue;}}
+		if($GroupType=="src"){if(!$ipClass->isIPAddressOrRange($pattern)){continue;}}
+			
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='$pattern'"));
 		if(trim($ligne["ID"])>0){continue;}
 		$Patterns[$pattern]=true;
@@ -763,28 +878,33 @@ function EditGroup_tabs(){
 	
 	$array["items"]='{items}';
 	$array["EditGroup-popup"]='{settings}';
+	$array["EditGroup-content"]='{content}';
 	
 	
-	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]); }
-	if($ligne["GroupType"]=="proxy_auth_statad"){unset($array["items"]); }
-	
-	
-	
-	
-	if($ligne["GroupType"]=="all"){unset($array["items"]);}
+	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);unset($array["EditGroup-content"]); }
+	if($ligne["GroupType"]=="proxy_auth_statad"){unset($array["items"]); unset($array["EditGroup-content"]);}
+	if($ligne["GroupType"]=="proxy_auth_ldap"){unset($array["items"]); unset($array["EditGroup-content"]);}
+	if($ligne["GroupType"]=="all"){unset($array["items"]);unset($array["EditGroup-content"]);}
 	if($ligne["GroupType"]=="NudityScan"){
 		unset($array["items"]);
+		unset($array["EditGroup-content"]);
 		$array["NudityParams"]="{global_parameters}";
 	
 	}
-	if($ligne["GroupType"]=="hotspot_auth"){unset($array["items"]);}
+	if($ligne["GroupType"]=="hotspot_auth"){unset($array["items"]);unset($array["EditGroup-content"]);}
 	
 	
 	
-	if($ligne["GroupType"]=="time"){unset($array["items"]);$array["items-date"]='{items}';}
+	if($ligne["GroupType"]=="time"){unset($array["items"]);$array["items-date"]='{items}';unset($array["EditGroup-content"]);}
 	
 	if($ligne["GroupType"]<>"categories"){
-		if(isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){unset($array["items"]);}
+		if(isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){unset($array["items"]);unset($array["EditGroup-content"]);}
+	}
+	
+	if(preg_match("#time_session:([A-Z]+):([0-9]+)#", $ligne["GroupType"],$re)){
+		unset($array["items"]);
+		unset($array["EditGroup-content"]);
+		
 	}
 	
 	if($ligne["GroupType"]=="dynamic_acls"){
@@ -806,6 +926,8 @@ function EditGroup_tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"squid.nudityscan.php?popup=yes\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=yes&ID=$ID&tab=yes&table-org={$_GET["table-org"]}\"><span>$ligne</span></a></li>\n");
 	
@@ -879,7 +1001,7 @@ function items_openldap_auth(){
 	$tt=time();
 	$html="
 	<div id='$tt'></div>
-	<div class=text-info style='font-size:14px'>{ldap_cleartext_warn}</div>
+	<div class=explain style='font-size:14px'>{ldap_cleartext_warn}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:12px'>{hostname}:</td>
@@ -1214,11 +1336,13 @@ function page($big=false){
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$title=$tpl->javascript_parse_text("{proxy_objects}");
 	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
+	$rules=$tpl->javascript_parse_text("{rules}");
 	$t=time();		
 	$table_width=835;
 	$table_height=350;
 	$GroupName_width=372;
 	$GroupType_width=278;
+	$rules_width=36;
 	$enabled_width=22;
 	$none3_width=36;
 	$items_width=37;
@@ -1232,7 +1356,9 @@ function page($big=false){
 		$enabled_width=74;
 		$none3_width=74;
 		$items_width=125;
-		$GroupType_width=354;
+		$GroupType_width=427;
+		$rules_width=74;
+		$table_height=540;
 	}
 	
 	$html="
@@ -1245,15 +1371,16 @@ $('#table-$t').flexigrid({
 	url: '$page?groups-list=yes$Adbig',
 	dataType: 'json',
 	colModel : [
-		{display: '$description', name : 'GroupName', width : $GroupName_width, sortable : true, align: 'left'},
-		{display: '$type', name : 'GroupType', width : $GroupType_width, sortable : true, align: 'left'},
-		{display: '$items', name : 'items', width : $items_width, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$description</span>', name : 'GroupName', width : $GroupName_width, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$type</span>', name : 'GroupType', width : $GroupType_width, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$items</span>', name : 'items', width : $items_width, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$rules</span>', name : 'rules', width : $rules_width, sortable : false, align: 'center'},
 		{display: '', name : 'enabled', width : $enabled_width, sortable : true, align: 'center'},
 		{display: '', name : 'none3', width : $none3_width, sortable : false, align: 'center'},
 		
 	],
 buttons : [
-	{name: '$new_group', bclass: 'add', onpress : AddGroup},
+	{name: '<trong style=font-size:22px>$new_group</strong>', bclass: 'add', onpress : AddGroup},
 		],	
 	searchitems : [
 		{display: '$description', name : 'GroupName'},
@@ -1261,7 +1388,7 @@ buttons : [
 	sortname: 'GroupName',
 	sortorder: 'asc',
 	usepager: true,
-	title: '<span style=font-size:18px>$title</span>',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
@@ -1411,17 +1538,31 @@ function item_form_import(){
 	if($GroupType=="proxy_auth"){
 		
 		if($EnableKerbAuth==1){
-			$browse="<input type='button' value='{browse}...' 
+			$browse="<input type='button' value='{browse_active_directory_groups}...' 
 			OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:16px'>";
 		}
 		$explain="{acl_proxy_auth_explain}";
 	}
 	
+	if(preg_match("#time_quota:([0-9]+)#", $GroupType,$re)){
+		$GroupType="{time_quota}";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM quota_objects WHERE ID='{$re[1]}'"));
+		$GroupTypeText=$ligne2["objectname"];
+		$explain="{ext_time_quota_acl_explain}";
+	}
+	if(preg_match("#time_session:([A-Z]+):([0-9]+)#", $GroupType,$re)){
+		$GroupType="{session_tracking} - {$re[1]} -";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM sessions_objects WHERE ID='{$re[2]}'"));
+		$GroupTypeText=$ligne2["objectname"];
+		$explain="{ext_session_acl_explain}";
+	}	
 	
-
+	
+	
+	
 	$html="
 	<div style='font-size:22px'>$GroupTypeText</div>
-	<div class=text-info style='font-size:16px'>$explain</div>
+	<div class=explain style='font-size:16px'>$explain</div>
 	<div id='$t'></div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
@@ -1502,6 +1643,7 @@ function item_form(){
 	$buttonname="{add}";$jsadd=null;
 	if($ID<1){$buttonname="{add}";}
 	$LOCK=0;
+	$BLOCK_FIELD=0;
 	
 	
 	if($GroupType=="src"){
@@ -1522,11 +1664,26 @@ function item_form(){
 	if($GroupType=="max_user_ip"){$explain="<b>{acl_max_user_ip_title}</b><br>{acl_max_user_ip_text}";}
 	if($GroupType=="quota_time"){$explain="{acl_quota_time_text}";}
 	if($GroupType=="quota_size"){$explain="{acl_quota_size_text}";}
+	if($GroupType=="ssl_sni"){$explain="{acl_ssl_sni_text}";}
+	
+
+	
+	
+	$FIELD_SIZE=450;
+	
+	if($GroupType=="proxy_auth_multiad"){
+		$js="Loadjs('browse-ad-groups.php?field-user=$t-pattern&field-type=3')";
+		$explain="{multiple_active_directory_groups_text}";
+		$browse=button("{browse_active_directory_groups}",$js,16);
+		$LOCK=1;
+		$FIELD_SIZE=210;
+	
+	}
+	
 	
 	$MAIN_BUTTON=button($buttonname, "SaveItemsMode$t()",26);
 	
 	if($GroupType=="categories"){
-		
 		$explain="{categories_acls_explain}";
 		$browse=button("{choose_categories}..","Loadjs('squid.acls.categories.php?gpid=$ID')",16);
 		$MAIN_BUTTON=null;
@@ -1548,7 +1705,7 @@ function item_form(){
 	if($GroupType=="proxy_auth"){
 		if($EnableKerbAuth==1){
 			$LOCK=1;
-			$browse=button("{browse}...",
+			$browse=button("{browse_active_directory_groups}...",
 					"Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=0&OnlyUsers=1&OnlyAD=1&OnlyGUID=1');",16);
 		}
 		$explain="{acl_proxy_auth_explain}";
@@ -1566,21 +1723,32 @@ function item_form(){
 		}
 	}
 	
-
+	if(preg_match("#time_quota:([0-9]+)#", $GroupType,$re)){
+		$GroupType="{time_quota}";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM quota_objects WHERE ID='{$re[1]}'"));
+		$GroupTypeText=$ligne2["objectname"];
+		$explain="{ext_time_quota_acl_explain}";
+	}	
+	if(preg_match("#time_session:([A-Z]+):([0-9]+)#", $GroupType,$re)){
+		$GroupType="{session_tracking} - {$re[1]} -";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM sessions_objects WHERE ID='{$re[2]}'"));
+		$GroupTypeText=$ligne2["objectname"];
+		$explain="{ext_session_acl_explain}";
+	}	
 	
 	
 	
 
 	$html="
 	<div style='font-size:22px;margin-bottom:15px'>$GroupType:$GroupTypeText</div>
-	<div class=text-info style='font-size:18px'>$explain</div>
+	<div class=explain style='font-size:18px'>$explain</div>
 	<div id='$t'></div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tbody>
 	<tr>
 		<td class=legend style='font-size:30px' nowrap width=99% nowrap>$label_form:</td>
-		<td>". Field_text("$t-pattern",utf8_encode($ligne["pattern"]),"font-size:30px;width:450px",null,null,null,false,"SaveItemsModeCheck(event)")."</td>
+		<td>". Field_text("$t-pattern",utf8_encode($ligne["pattern"]),"font-size:30px;width:{$FIELD_SIZE}px",null,null,null,false,"SaveItemsModeCheck(event)")."</td>
 		<td width=1%>$browse</td>
 	</tr>
 	
@@ -1781,8 +1949,8 @@ function EditGroup_enable(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
 	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	
+	
 }
 function item_enable(){
 	$page=CurrentPageName();
@@ -1794,8 +1962,6 @@ function item_enable(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
 	
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");	
 	
 }
 
@@ -1888,6 +2054,15 @@ function group_list(){
 			$ligne2['tcount']=$p->CountDeUsersByGroupName($ligne['GroupName']);
 		}
 		
+		if($ligne["GroupType"]=="proxy_auth_ldap"){
+			$p=new ldap_extern();
+			preg_match("#^ExtLDAP:(.+?):(.+)#", $ligne['GroupName'],$re);
+			$ligne['GroupName']=$re[1];
+			$DN=base64_decode($re[2]);
+			$ligne2['tcount']=$p->CountDeUsersByGroupDN($DN);
+		}		
+		
+		
 		
 		
 		if($ligne2['tcount']==0){
@@ -1897,6 +2072,16 @@ function group_list(){
 			$ligne2['tcount']="*";
 		}
 		
+		$CountOfRules=0;
+		$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(webfilters_sqacls.ID) as tcount FROM  webfilters_sqacllinks,webfilters_sqacls WHERE webfilters_sqacllinks.gpid='{$ligne['ID']}' AND webfilters_sqacllinks.aclid=webfilters_sqacls.ID"));
+		$CountOfRules=$ligne3["tcount"];
+		
+		if($CountOfRules>0){
+			$CountOfRules="<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('squid.acls.groups.rules.php?ID={$ligne['ID']}');\" style='font-size:{$font_size};text-decoration:underline'>$CountOfRules</a>";
+			
+		}
+		
+		
 		
 	$data['rows'][] = array(
 		'id' => "group{$ligne['ID']}",
@@ -1904,9 +2089,14 @@ function group_list(){
 		OnClick=\"javascript:Loadjs('$MyPage?AddGroup-js=yes&ID={$ligne['ID']}');\" 
 		style='font-size:{$font_size};text-decoration:underline'>{$ligne['GroupName']}</span>",
 		"<span style='font-size:{$font_size};'>$GroupTypeText</span>",
-		"<span style='font-size:{$font_size};'>{$ligne2['tcount']}</span>",
+		
+		"<center style='font-size:{$font_size};'>{$ligne2['tcount']}</center>",
+		
+		"<center style='font-size:{$font_size};'>$CountOfRules</center>",
+		
 	
-	$disable,$delete)
+		"<center>$disable</center>",
+		"<center>$delete</center>")
 		);
 	}
 	
@@ -1995,7 +2185,9 @@ function items_list(){
 	$table="webfilters_sqitems";
 	$page=1;
 
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){
+		json_error_show("No data");
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -2004,12 +2196,10 @@ function items_list(){
 	}	
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE gpid=$ID $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -2089,7 +2279,7 @@ function Dynamic_acls_infos(){
 	$alcs_parameters=$tpl->_ENGINE_parse_body("{acls_parameters}");
 
 	
-	$html="<div class=text-info style='font-size:14px'>{sugesst_dynamic_acl_groups}</div>
+	$html="<div class=explain style='font-size:14px'>{sugesst_dynamic_acl_groups}</div>
 	<div style='text-align:right'><a href=\"javascript:blur();\" OnClick=\"javascript:YahooWin(650,'squid.acls.options.php?popup=yes&t=$t','$alcs_parameters');\"
 	style='font-size:16px;font-weight:bold;text-decoration:underline'>&laquo;$alcs_parameters&raquo;</a></div>		
 			
@@ -2104,7 +2294,7 @@ function authenticate_ip_ttl_form(){
 	$tpl=new templates();
 	$authenticate_ip_ttl=intval($sock->GET_INFO("authenticate_ip_ttl"));
 	if($authenticate_ip_ttl==0){$authenticate_ip_ttl=60;}
-	$html="<div class=text-info style='font-size:14px'>{authenticate_ip_ttl}</div>
+	$html="<div class=explain style='font-size:14px'>{authenticate_ip_ttl}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>

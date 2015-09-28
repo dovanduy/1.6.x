@@ -324,6 +324,7 @@ function SaveMysql(){
 		$FileTypes["video/x-mpeq2a"]=1;
 		$FileTypes["video/x-motion-jpeg"]=1;
 		$FileTypes["video/vnd.rn-realvideo"]=1;
+		$FileTypes["video/x-ms-wmv"]=1;
 		
 		
 		$FileTypes["application/x-vnd.audioexplosion.mzz"]=1;

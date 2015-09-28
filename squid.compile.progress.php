@@ -122,7 +122,7 @@ function popup(){
 	$pourc=0;
 	$color="#5DD13D";
 	$html="
-	<div class=text-info style='font-size:16px'>{APPLY_SETTINGS_SQUID}</div>
+	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_SQUID}</div>
 	<div id='Status' style='height:40px:margin-top:20px;margin-bottom:20px'></div>	
 	<div id='textlogs' style='width:99%;min-height:120px;font-size:16px !important'></div>
 	
@@ -144,6 +144,7 @@ function popup(){
 		if(document.getElementById('main_cache_rules_main_tabs')){RefreshTab('main_cache_rules_main_tabs');}
 		if(document.getElementById('rules-toolbox-left')){LoadAjaxTiny('rules-toolbox-left','dansguardian2.mainrules.php?rules-toolbox-left=yes');}
 		if(document.getElementById('ufdb-main-toolbox-status')){LoadAjaxTiny('ufdb-main-toolbox-status','dansguardian2.mainrules.php?rules-toolbox-left=yes');}
+		if(document.getElementById('proxy-dashboard')){LoadAjaxRound('proxy-dashboard','admin.dashboard.proxy.php?proxy-dashboard=yes');}
 		RTMMailHide();
 	}
 	
@@ -218,7 +219,7 @@ function compile_ufdb(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$t=$_GET["t"];
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}

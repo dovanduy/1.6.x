@@ -55,7 +55,7 @@ function popup(){
 	if($PhishTagURL==null){$PhishTagURL="http://www.antiphishing.org/consumer_recs.html";}
 	
 	$html="
-	<div class=text-info id='PhishTagRatioDiv'>{EnablePhishTag_explain}<br>{EnablePhishTag_explain_form}</div>
+	<div class=explain id='PhishTagRatioDiv'>{EnablePhishTag_explain}<br>{EnablePhishTag_explain_form}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

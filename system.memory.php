@@ -4,9 +4,18 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.main_cf.inc');
 	
-	$usersmenus=new usersMenus();
-	if($usersmenus->AsArticaAdministrator==false){header('location:users.index.php');exit;}
 
+	$users=new usersMenus();
+	if(!$users->AsSquidAdministrator){
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
+		die();
+	}
+	
+	
+
+if(isset($_GET["frontend-mem-used"])){frontend_mem_used();exit;}
+if(isset($_GET["frontend-swap-used"])){frontend_swap_used();exit;}
+if(isset($_GET["frontend-psmem-used"])){frontend_psmem_used();exit;}
 
 if(isset($_GET["js"])){echo js();exit;}
 if(isset($_GET["popup"])){popup();exit;}
@@ -18,11 +27,7 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body('{memory_info}');
 	$html="
-	 YahooWin5('650','$page?popup=yes','$title');
-	 
-	
-	
-	";
+	 YahooWin5('990','$page?popup=yes','$title');";
 	
 	echo $html;
 }
@@ -56,7 +61,7 @@ function popup(){
 	$table_memory=table_memory();
 	$page=CurrentPageName();
 	$sock=new sockets();
-	
+	$sock->getFrameWork("system.php?ps-mem=yes");
 	$SwapOffOn=unserialize(base64_decode($sock->GET_INFO("SwapOffOn")));
 	$DisableSWAPP=$sock->GET_INFO("DisableSWAPP");
 	if(!is_numeric($SwapOffOn["SwapEnabled"])){$SwapOffOn["SwapEnabled"]=1;}
@@ -75,61 +80,61 @@ function popup(){
 			
 			
 	<div style='font-size:24px;margin-top:30px'>{automatic_swap_cleaning}</div>
-	<div class=text-info style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
+	<div class=explain style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
 	<div id='AutoSwapDiv' width=98% class=form>
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{DisableSWAPP}:</td>
-		<td>". Field_checkbox("DisableSWAPP",1,$DisableSWAPP,"CheckSwap()")."</td>
+		<td class=legend style='font-size:22px'>{DisableSWAPP}:</td>
+		<td>". Field_checkbox_design("DisableSWAPP",1,$DisableSWAPP,"CheckSwap()")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{enable}:</td>
-		<td>". Field_checkbox("SwapEnabled",1,$SwapOffOn["SwapEnabled"],"CheckSwap()")."</td>
+		<td class=legend style='font-size:22px'>{enable}:</td>
+		<td>". Field_checkbox_design("SwapEnabled",1,$SwapOffOn["SwapEnabled"],"CheckSwap()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{xtimeout}:</td>
-		<td style='font-size:16px;'>". Field_text("SwapTimeOut",$SwapOffOn["SwapTimeOut"],"font-size:16px;padding:3px;width:90px")."&nbsp;Mn</td>
+		<td class=legend style='font-size:22px'>{xtimeout}:</td>
+		<td style='font-size:22px;'>". Field_text("SwapTimeOut",$SwapOffOn["SwapTimeOut"],"font-size:22px;padding:3px;width:90px")."&nbsp;Mn</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{MaxDiskUsage}:</td>
-		<td>". Field_text("SwapMaxPourc",$SwapOffOn["SwapMaxPourc"],"font-size:16px;padding:3px;width:44px")."</td>
+		<td class=legend style='font-size:22px'>{MaxDiskUsage}:</td>
+		<td>". Field_text("SwapMaxPourc",$SwapOffOn["SwapMaxPourc"],"font-size:22px;padding:3px;width:44px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{maxsize}:</td>
-		<td>". Field_text("SwapMaxMB",$SwapOffOn["SwapMaxMB"],"font-size:16px;padding:3px;width:90px")."&nbsp;<strong style='font-size:16px'>MB</td>
+		<td class=legend style='font-size:22px'>{maxsize}:</td>
+		<td>". Field_text("SwapMaxMB",$SwapOffOn["SwapMaxMB"],"font-size:22px;padding:3px;width:90px")."&nbsp;<strong style='font-size:22px'>MB</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",22)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",35)."</td>
 	</tr>
 	</table>
 	</div>
 	<p>&nbsp;</p>
 	
 	<div style='font-size:24px;margin-top:30px'>{automatic_memory_cleaning}</div>	
-	<div class=text-info style='font-size:14px'>{automatic_memory_cleaning_explain}</div>	
+	<div class=explain style='font-size:14px'>{automatic_memory_cleaning_explain}</div>	
 	<div id='AutoSwapDiv2' width=98% class=form>		
 			
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{enable}:</td>
-		<td>". Field_checkbox("AutoMemWatchdog",1,$SwapOffOn["AutoMemWatchdog"],"CheckWatch()")."</td>
+		<td class=legend style='font-size:22px'>{enable}:</td>
+		<td>". Field_checkbox_design("AutoMemWatchdog",1,$SwapOffOn["AutoMemWatchdog"],"CheckWatch()")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{max_usage}:</td>
-		<td style='font-size:16px;'>". Field_text("AutoMemPerc",$SwapOffOn["AutoMemPerc"],"font-size:16px;padding:3px;width:44px")."&nbsp;%</td>
+		<td class=legend style='font-size:22px'>{max_usage}:</td>
+		<td style='font-size:22px;'>". Field_text("AutoMemPerc",$SwapOffOn["AutoMemPerc"],"font-size:22px;padding:3px;width:44px")."&nbsp;%</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{interval}:</td>
-		<td style='font-size:16px;'>". Field_text("AutoMemInterval",$SwapOffOn["AutoMemInterval"],"font-size:16px;padding:3px;width:90px")."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:22px'>{interval}:</td>
+		<td style='font-size:22px;'>". Field_text("AutoMemInterval",$SwapOffOn["AutoMemInterval"],"font-size:22px;padding:3px;width:90px")."&nbsp;{minutes}</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",22)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",35)."</td>
 	</tr>
 	</table>													
 	</div>";	
 	
 	$html="
-	<div style='font-size:24px'>{memory_info}</div>
+	<div style='font-size:42px;margin-bottom:20px'>{memory_info}</div>
 	$table_memory
 	$table_swap
 	
@@ -230,6 +235,7 @@ function applications_Status(){
 
 function table_memory(){
 	$sys=new systeminfos();
+	$page=CurrentPageName();
 	$tpl=new templates();
 	if($sys->swap_total>0){
 		$pourc=round(($sys->swap_used/$sys->swap_total)*100);
@@ -241,43 +247,99 @@ function table_memory(){
 		
 	}
 	
-	
+	$sys->memory_used=$sys->memory_used-$sys->memory_cached;
+	$sys->memory_free=$sys->memory_total-$sys->memory_used;
+	$swap_free=$sys->swap_total-$sys->swap_used;
 	$prc=round( ($sys->memory_free/$sys->memory_total)*100);
 	
+	$sock=new sockets();
+	
+
+	
 	$html="
-<div style='width:98%' class=form>
-<div style='font-size:20px'>{physical_memory}</div>
-". pourcentage($prc)."
-<table  style='width:99%'>
+<div  style='width:98%;margin:5px;padding:5px;border:1px solid #CCCCCC;-webkit-border-radius: 5px 5px 0 0;-moz-border-radius: 5px 5px 0 0;border-radius: 5px 5px 0 0;'>
+<table  style='width:100%'>
+<tr>
+	<td valign='top' style='width:450px'>
+	<div style='width:400px;height:400px' id='frontend-mem-used'></div>
+<center><table>
 	<tr>
-	<td style='font-size:14px;text-align:center' width=20%>{total}</strong></td>
-	<td style='font-size:14px;text-align:center' width=20%>{used}</strong></td>
-	<td style='font-size:14px;text-align:center' width=20%>{free}</strong></td>
-	<td style='font-size:14px;text-align:center' width=20%>{shared}</strong></td>
-	<td style='font-size:14px;text-align:center' width=20%>{cached}</strong></td>
-	</tr>
-	<tr>		
-	<td style='font-size:14px;text-align:center'>$sys->memory_total Mb</strong></td>	
-	<td style='font-size:14px;text-align:center'>$sys->memory_free Mb</strong></td>	
-	<td style='font-size:14px;text-align:center'>$sys->memory_used Mb</strong></td>	
-	<td style='font-size:14px;text-align:center'>$sys->memory_shared Mb</strong></td>	
-	<td style='font-size:14px;text-align:center'>$sys->memory_cached Mb</strong></td>	
+	<td style='font-size:22px;text-align:right' width=20%>{total}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->memory_total Mb</strong></td>
+	</tr><tr>
+	<td style='font-size:22px;text-align:right' width=20%>{used}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->memory_used Mb</strong></td>	
+	</tr><tr>
+	<td style='font-size:22px;text-align:right' width=20%>{free}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->memory_free Mb</strong></td>	
+	</tr><tr>
+	<td style='font-size:22px;text-align:right' width=20%>{shared}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->memory_shared Mb</strong></td>
+	</tr><tr>
+	<td style='font-size:22px;text-align:right' width=20%>{cached}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->memory_cached Mb</strong></td>	
 	</tr>
 </table>
-<div style='font-size:20px;margin-top:50px'>{swap_memory}</div>
-$pourc_swap
-<table  style='width:99%'>
+</center>	
+</td>
+
+
+<td valign='top' style='width:450px'>
+<div style='width:400px;height:400px' id='frontend-swap-used'></div>
+<center>
+<table>
 <tr>
-	<td style='font-size:14px;text-align:center' width=50%>{total}:</strong></td>
-	<td style='font-size:14px;text-align:center' width=50%>{free}:</strong></td>
+	<td style='font-size:22px;text-align:right' width=50%>{total}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->swap_total Mb</strong></td>	
+	
 </tr>
 <tr>
-<td style='font-size:14px;text-align:center'>$sys->swap_total Mb</strong></td>	
-<td style='font-size:14px;text-align:center'>$sys->swap_free Mb</strong></td>	
+	<td style='font-size:22px;text-align:right' width=50%>{free}:</strong></td>
+	<td style='font-size:22px;text-align:left'>$sys->swap_free Mb</strong></td>	
 </tr>
-</table></div>";
+</table>
+</center>
+</td>
+
+<td valign='top' style='width:450px'>
+	<div style='width:400px;height:400px' id='frontend-psmem-used'></div>
+</td>
+
+</tr>
+</table>
+
+
+
+</div>
+<script>
+	Loadjs('$page?frontend-mem-used=yes&U=$sys->memory_used&F=$sys->memory_free');
+	Loadjs('$page?frontend-swap-used=yes&U=$sys->swap_used&F=$swap_free');
+	Loadjs('$page?frontend-psmem-used=yes');				
+</script>	
+	";
 	
 	return $tpl->_ENGINE_parse_body($html);
+	
+}
+
+
+function frontend_psmem_used(){
+	
+	
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/ps_mem.array"));
+	
+	
+	
+	$highcharts=new highcharts();
+	$highcharts->container="frontend-psmem-used";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle=">>";
+	$highcharts->PieDataLabels=false;
+	$highcharts->PieRedGreen=false;
+	$highcharts->Title="{running_processes}";
+	$highcharts->LegendSuffix=" MiB";
+	echo $highcharts->BuildChart();
 	
 }
 
@@ -317,4 +379,38 @@ $tpl=new templates();
 	return $html . "</table>";
 	
 }
+function frontend_mem_used(){
+
+	$PieData["{free}"]=$_GET["F"];
+	$PieData["{used}"]=$_GET["U"];
 	
+
+	$highcharts=new highcharts();
+	$highcharts->container="frontend-mem-used";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle=">>";
+	$highcharts->PieDataLabels=false;
+	$highcharts->PieRedGreen=true;
+	$highcharts->Title="{physical_memory}";
+	$highcharts->LegendSuffix=" MB";
+	echo $highcharts->BuildChart();
+}	
+
+function frontend_swap_used(){
+	$PieData["{free}"]=$_GET["F"];
+	$PieData["{used}"]=$_GET["U"];
+	
+	
+	$highcharts=new highcharts();
+	$highcharts->container="frontend-swap-used";
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle=">>";
+	$highcharts->PieDataLabels=false;
+	$highcharts->PieRedGreen=true;
+	$highcharts->Title="{swap_memory}";
+	$highcharts->LegendSuffix=" MB";
+	echo $highcharts->BuildChart();
+	
+}

@@ -3,6 +3,8 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 include_once(dirname(__FILE__)."/class.postfix.inc");
 
+
+if(isset($_GET["ad-import-contacts"])){import_active_directroy_contacts();exit;}
 if(isset($_GET["db-trash"])){db_trash();exit;}
 if(isset($_GET["build-init"])){build_init();exit;}
 if(isset($_GET["install-zpush"])){zpush_install();exit;}
@@ -723,6 +725,25 @@ function db_trash(){
 	shell_exec($cmd);	
 	
 }
+function import_active_directroy_contacts(){
 
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/zarafa-import-ad-contatcs.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/zarafa-import-ad-contatcs.logs";
+	
+	
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa-import-ad.php > {$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+}
 
 

@@ -93,7 +93,7 @@ between the \. escape characters.</ExcludeURLExplain>
 <idle_processes>Idle processes</idle_processes>
 <InfectedAction>action over infected objects.</InfectedAction>
 <kav4proxy_licence_add>Add a Kaspersky For Squid License key</kav4proxy_licence_add>
-<kav4proxy_licence_text>Upload the *.key file about Kaspersky for Squid in order to update the licence.</kav4proxy_licence_text>
+<kav4proxy_licence_text>Upload the *.key file about Kaspersky for Squid in order to update the license.</kav4proxy_licence_text>
 <license>Kavmilter license</license>
 <LicenseErrorAction>Action over scanned objects if the application has failed to load the license key information.</LicenseErrorAction>
 <licenseproxy>License</licenseproxy>
@@ -132,7 +132,6 @@ If the file is not started to send back from the icapserver to icapclient during
 it is supervised by a watchdog, which restarts it in case of failure.[br]
 This specifies how many retries should be attempted to restart the filter.[br]
 To always retry, with no count limit, specify -1.</MilterTimeout_text>
-<notifications>Notifications</notifications>
 <NotifySender>Notify sender</NotifySender>
 <NotifySender_text>Specify situations(message actions) upon which a notification is to be issued to sender, recipient or admin.[br]
 Available options are:

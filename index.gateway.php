@@ -164,52 +164,7 @@ function dhcp_index_js(){
 			LoadAjax('dhcpd_lists','$page?dhcp-list=yes');
 		}
 		
-var x_SaveDHCPSettings= function (obj) {
-	var tempvalue=obj.responseText;
-	if(tempvalue.length>3){alert(tempvalue);}
-	UnlockPage();
-	Loadjs('dhcpd.progress.php');
-	}		
-		
-	function SaveDHCPSettings(){
-		var DisableNetworksManagement=$DisableNetworksManagement;	
-		if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
-		var XHR = new XHRConnection();
-		XHR.appendData('SaveDHCPSettings','yes');
-		XHR.appendData('range1',document.getElementById('range1').value);
-		XHR.appendData('range2',document.getElementById('range2').value);
-		XHR.appendData('gateway',document.getElementById('gateway').value);
-		XHR.appendData('netmask',document.getElementById('netmask').value);
-		XHR.appendData('DNS_1',document.getElementById('DNS_1').value);
-		XHR.appendData('DNS_2',document.getElementById('DNS_2').value);
-		XHR.appendData('max_lease_time',document.getElementById('max_lease_time').value);
-		XHR.appendData('EnableDHCPServer',document.getElementById('EnableDHCPServer').value);
-		XHR.appendData('ntp_server',document.getElementById('ntp_server').value);
-		XHR.appendData('subnet',document.getElementById('subnet').value);
-		XHR.appendData('broadcast',document.getElementById('broadcast_dhcp_main').value);
-		XHR.appendData('WINS',document.getElementById('WINSDHCPSERV').value);
-		XHR.appendData('local-pac-server',document.getElementById('local-pac-server').value);
-		XHR.appendData('EnableArticaAsDNSFirst',0);
-		
-		if(document.getElementById('do_no_verify_range')){
-			if(document.getElementById('do_no_verify_range').checked){XHR.appendData('do_no_verify_range',1);}else{XHR.appendData('do_no_verify_range',0);}
-		}else{
-			XHR.appendData('do_no_verify_range',0);
-		}		
-		
-		
-		if(document.getElementById('deny_unkown_clients').checked){XHR.appendData('deny_unkown_clients',1);}else{XHR.appendData('deny_unkown_clients',0);}
-		if(document.getElementById('IncludeDHCPLdapDatabase').checked){XHR.appendData('IncludeDHCPLdapDatabase',1);}else{XHR.appendData('IncludeDHCPLdapDatabase',0);}
-		if(document.getElementById('EnableDHCPUseHostnameOnFixed').checked){XHR.appendData('EnableDHCPUseHostnameOnFixed',1);}else{XHR.appendData('EnableDHCPUseHostnameOnFixed',0);}
-		
-		if(document.getElementById('DHCPPing_check').checked){XHR.appendData('DHCPPing_check',1);}else{XHR.appendData('DHCPPing_check',0);}
-		if(document.getElementById('DHCPauthoritative').checked){XHR.appendData('DHCPauthoritative',1);}else{XHR.appendData('DHCPauthoritative',0);}
-		XHR.appendData('ddns_domainname',document.getElementById('ddns_domainname').value);
-		
-		LockPage();
-		XHR.sendAndLoad('$page', 'GET',x_SaveDHCPSettings);	
 
-	}
 	
 	var x_RestartDHCPService= function (obj) {
 		var tempvalue=obj.responseText;
@@ -325,7 +280,7 @@ function dhcp_pxe_form(){
 		</tr>
 		</table>";
 	$html="
-	<div class=text-info>{PXE_DHCP_MINI_TEXT}</div>
+	<div class=explain>{PXE_DHCP_MINI_TEXT}</div>
 	$form
 	
 	";
@@ -407,8 +362,9 @@ function dhcp_form(){
 	}	
 		
 		
-	
-	
+	$tpl=new templates();
+	$DisableNetworksManagement=intval($sock->GET_INFO("DisableNetworksManagement"));
+	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$EnableArticaAsDNSFirst=Field_checkbox_design("EnableArticaAsDNSFirst",1,$dhcp->EnableArticaAsDNSFirst);
 	$EnableDHCPUseHostnameOnFixed=Field_checkbox_design("EnableDHCPUseHostnameOnFixed",1,$EnableDHCPUseHostnameOnFixed);
 	$IncludeDHCPLdapDatabase=Field_checkbox_design("IncludeDHCPLdapDatabase",1,$IncludeDHCPLdapDatabase,"OnlySetGatewayFCheck()");
@@ -469,13 +425,13 @@ function dhcp_form(){
 					
 				</tr>
 				<tr>
-					<td class=legend style='font-size:22px;font-weight:bold;width:622px'>{range} {from}:</td>
+					<td class=legend style='font-size:22px;font-weight:bold;width:622px'>{ipfrom}:</td>
 					<td>".field_ipv4('range1',$dhcp->range1,'font-size:22px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:22px;font-weight:bold'>{range} {to}:</td>
+					<td class=legend style='font-size:22px;font-weight:bold'>{ipto}:</td>
 					<td>".field_ipv4('range2',$dhcp->range2,'font-size:22px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
@@ -565,11 +521,59 @@ function dhcp_form(){
 				</div>
 			</div>
 			<br>
+<script>
+var x_SaveDHCPSettings= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);}
+	UnlockPage();
+	Loadjs('dhcpd.progress.php');
+	}		
+		
+	function SaveDHCPSettings(){
+		var DisableNetworksManagement=$DisableNetworksManagement;	
+		if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
+		var XHR = new XHRConnection();
+		XHR.appendData('SaveDHCPSettings','yes');
+		XHR.appendData('range1',document.getElementById('range1').value);
+		XHR.appendData('range2',document.getElementById('range2').value);
+		XHR.appendData('gateway',document.getElementById('gateway').value);
+		XHR.appendData('netmask',document.getElementById('netmask').value);
+		XHR.appendData('DNS_1',document.getElementById('DNS_1').value);
+		XHR.appendData('DNS_2',document.getElementById('DNS_2').value);
+		XHR.appendData('max_lease_time',document.getElementById('max_lease_time').value);
+		XHR.appendData('EnableDHCPServer',document.getElementById('EnableDHCPServer').value);
+		XHR.appendData('ntp_server',document.getElementById('ntp_server').value);
+		XHR.appendData('subnet',document.getElementById('subnet').value);
+		XHR.appendData('broadcast',document.getElementById('broadcast_dhcp_main').value);
+		XHR.appendData('WINS',document.getElementById('WINSDHCPSERV').value);
+		XHR.appendData('local-pac-server',document.getElementById('local-pac-server').value);
+		XHR.appendData('EnableArticaAsDNSFirst',0);
+		
+		if(document.getElementById('do_no_verify_range')){
+			if(document.getElementById('do_no_verify_range').checked){XHR.appendData('do_no_verify_range',1);}else{XHR.appendData('do_no_verify_range',0);}
+		}else{
+			XHR.appendData('do_no_verify_range',0);
+		}		
+		
+		
+		if(document.getElementById('deny_unkown_clients').checked){XHR.appendData('deny_unkown_clients',1);}else{XHR.appendData('deny_unkown_clients',0);}
+		if(document.getElementById('IncludeDHCPLdapDatabase').checked){XHR.appendData('IncludeDHCPLdapDatabase',1);}else{XHR.appendData('IncludeDHCPLdapDatabase',0);}
+		if(document.getElementById('EnableDHCPUseHostnameOnFixed').checked){XHR.appendData('EnableDHCPUseHostnameOnFixed',1);}else{XHR.appendData('EnableDHCPUseHostnameOnFixed',0);}
+		
+		if(document.getElementById('DHCPPing_check').checked){XHR.appendData('DHCPPing_check',1);}else{XHR.appendData('DHCPPing_check',0);}
+		if(document.getElementById('DHCPauthoritative').checked){XHR.appendData('DHCPauthoritative',1);}else{XHR.appendData('DHCPauthoritative',0);}
+		XHR.appendData('ddns_domainname',document.getElementById('ddns_domainname').value);
+		
+		LockPage();
+		XHR.sendAndLoad('$page', 'GET',x_SaveDHCPSettings);	
+
+	}
+</script>							
 		
 	";
 
 	
-	$tpl=new templates();
+	
 	return  $tpl->_ENGINE_parse_body($html);		
 	
 }
@@ -781,20 +785,14 @@ function dhcp_index(){
 	$class_from="form";
 	
 	
-	if(isset($_GET["miniadm"])){
-		$title=null;
-		$class_from="TableRemove";
-		$statuswidth="width=410px";
-	}
-	
 	
 	
 	$html="
-<div class='BodyContent'>
+$title
 	<table style='width:99%' class=$class_from>
 		<tr>
 			<td valign='top' $statuswidth>
-				$title
+				
 				<div id='dhcp-status'></div>
 			</td>
 			<td valign='top' style='padding:30px'>
@@ -817,7 +815,7 @@ function dhcp_index(){
 			</td>
 		</tr>
 	</table>
-</div>
+
 
 <script>
 	LoadAjax('dhcp-status','$page?dhcp-status=yes');
@@ -865,14 +863,21 @@ function dhcp_enable(){
 	$tpl=new templates();
 	$t=time();
 	$form=Paragraphe_switch_img("{EnableDHCPServer}","{EnableDHCPServer_text}","EnableDHCPServer-$t",
-	intval($sock->GET_INFO("EnableDHCPServer")),"EnableDHCPServer_text",600);
+	intval($sock->GET_INFO("EnableDHCPServer")),"EnableDHCPServer_text",890);
 	$DisableNetworksManagement=intval($sock->GET_INFO("DisableNetworksManagement"));
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$dhcp=new dhcpd(0,1);
 	$nic=$dhcp->array_tcp;
 	if($dhcp->listen_nic==null){$dhcp->listen_nic="eth0";}
 	
+	$EnableDHCPServer=intval($sock->GET_INFO("EnableDHCPServer"));
 	
+	if($EnableDHCPServer==0){
+		
+		$button="<center style='margin:50px'>".button("{EnableDHCPServer}","Loadjs('dhcpd.wizard.php')",42)."</center>";
+		echo $tpl->_ENGINE_parse_body($button);
+		return;
+	}
 	
 	
 	while (list ($num, $val) = each ($nic) ){
@@ -892,7 +897,8 @@ function dhcp_enable(){
 			<td>".Field_array_Hash($nics, "listen-$t",$dhcp->listen_nic,"style:font-size:26px")."</td>
 		</tr>
 		</table>
-		<div style='text-align:right;width:100%'><HR>
+		<div style='text-align:right;width:100%'>
+			<HR>
 			". button("{apply}","EnableDHCPServerSave$t()",30)."
 		</div>
 

@@ -118,13 +118,13 @@ if($_GET["blk"]==6){
 	$explain=$tpl->_ENGINE_parse_body("{exlude_mimetype_explain}");		
 	$buttons="
 		buttons : [
-		{name: '$new_mime_type', bclass: 'add', onpress : AddByMimeType},
-		{name: '$add_default_mimetypes', bclass: 'add', onpress : AddDefaultMimeType},
-		{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
+		{name: '<strong style=font-size:18px>$new_mime_type</strong>', bclass: 'add', onpress : AddByMimeType},
+		{name: '<strong style=font-size:18px>$add_default_mimetypes</strong>', bclass: 'add', onpress : AddDefaultMimeType},
+		{name: '<strong style=font-size:18px>$apply</strong>', bclass: 'apply', onpress : SquidBuildNow$t},
 		],";
 	}	
 	
-if($explain<>null){$explain="<div class=text-info style='font-size:16px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=explain style='font-size:16px'>$explain</div>";}	
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -136,11 +136,11 @@ $('#flexRT$t').flexigrid({
 	url: '$page?now-search=yes&blk={$_GET["blk"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$type', name : 'PatternType', width : 136, sortable : false, align: 'left'},	
-		{display: '$pattern', name : 'pattern', width :150, sortable : true, align: 'left'},
-		{display: '$description', name : 'description', width :210, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'enabled', width : 25, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 44, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$type</span>', name : 'PatternType', width : 182, sortable : false, align: 'left'},	
+		{display: '<span style=font-size:18px>$pattern</span>', name : 'pattern', width :428, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>$description</span>', name : 'description', width :407, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'enabled', width : 148, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 97, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -155,7 +155,7 @@ $('#flexRT$t').flexigrid({
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 350,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -174,7 +174,7 @@ $('#flexRT$t').flexigrid({
 	}
 	
 function SquidBuildNow$t(){
-	Loadjs('squid.compile.php');
+	Loadjs('squid.ecap.progress.php');
 }	
 
 function AddByMac(){
@@ -282,7 +282,7 @@ function squid_useragent(){
 	$tpl=new templates();
 	$t=time();	
 	$html="
-	<div style='font-size:14px' class=text-info>{add_squid_uderagent_explain}</div>
+	<div style='font-size:14px' class=explain>{add_squid_uderagent_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>
@@ -649,9 +649,9 @@ function popup_list(){
 		
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
-		'cell' => array("<span style='font-size:14px'>$PatternType</span>"
-		,"<span style='font-size:14px'>$PatternAffiche</span>",
-		"<span style='font-size:14px'>$description</span>",$enable,$delete )
+		'cell' => array("<span style='font-size:22px'>$PatternType</span>"
+		,"<span style='font-size:22px'>$PatternAffiche</span>",
+		"<span style='font-size:22px'>$description</span>",$enable,"<center>$delete</center>" )
 		);
 	}
 	

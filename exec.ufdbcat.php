@@ -46,6 +46,8 @@ if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;buildconfig();die();}
 if($argv[1]=="--test"){testssocks();exit;}
 if($argv[1]=="--install"){install();exit;}
 if($argv[1]=="--checkdirs"){CheckDirectories(true);buildconfig();reload();exit;}
+if($argv[1]=="--delete-databases"){delete_databases();exit;}
+if($argv[1]=="--socket"){echo GetUnixSocketPath()."\n";exit;}
 
 
 function restart() {
@@ -96,7 +98,7 @@ function restart() {
 	
 	
 	if(!$NOTIFY){
-		squid_admin_mysql(1, "Restart Categories Service$FORCED_TEXT", "nothing",__FILE__,__LINE__);
+		squid_admin_mysql(0, "Restart Categories Service$FORCED_TEXT", "nothing",__FILE__,__LINE__);
 	}
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Restarting...\n";}
@@ -115,6 +117,50 @@ function build_progress($text,$pourc){
 	@chmod($cachefile,0755);
 
 }
+function build_progress_delete($text,$pourc){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/dansguardian2.databases.delete.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+function delete_databases(){
+	$PossibleDirs[]="/var/lib/ufdbartica";
+	$PossibleDirs[]="/home/ufdbcat";
+	$PossibleDirs[]="/var/lib/ftpunivtlse1fr";
+	$unix=new unix();
+	build_progress_delete("{delete} {databases}",10);
+	$rm=$unix->find_program("rm");
+	while (list ($index, $Directory) = each ($PossibleDirs) ){
+		if(!is_dir($Directory)){continue;}
+		build_progress_delete("{delete} $Directory",50);
+		shell_exec("$rm -rf $Directory/");
+	}
+	build_progress_delete("{reconfigure}",80);
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$files["/usr/share/artica-postfix/ressources/logs/ARTICA_DBS_STATUS_FULL.db"]=true;
+	$files["/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress"]=true;
+	$files["/usr/share/artica-postfix/ressources/logs/web/cache/toulouse.progress"]=true;
+	$files["/usr/share/artica-postfix/ressources/logs/web/cache/webfilter-artica.progress"]=true;
+	
+	$files["/etc/artica-postfix/settings/Daemons/TLSEDbCloud"]=true;
+	$files["/etc/artica-postfix/settings/Daemons/ArticaDbCloud"]=true;
+	$files["/etc/artica-postfix/settings/Daemons/CurrentArticaDbCloud"]=true;
+	$files["/etc/artica-postfix/settings/Daemons/CurrentTLSEDbCloud"]=true;
+	$files["/usr/share/artica-postfix/ressources/logs/web/cache/webfilter-artica.progress"]=true;
+	
+	while (list ($index, $Directory) = each ($files) ){
+		@unlink($index);
+	}
+	
+	system("$php /usr/share/artica-postfix/exec.squidguard.php --build --force");
+	build_progress_delete("{restarting_service}",90);
+	system("/etc/init.d/ufdb restart --force");
+	restart(true);
+	build_progress_delete("{done}",100);
+}
 
 function reload(){
 	$unix=new unix();
@@ -128,22 +174,63 @@ function reload(){
 		return;
 	}
 	
-
+	$DisableUfdbCat=$sock->DisableUfdbCat();
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DisableUfdbCat= $DisableUfdbCat\n";}
+	
+	if($DisableUfdbCat==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see DisableUfdbCat)\n";}
+		stop();
+		return;
+	}
 	
 
 	$pid=PID_NUM();
+	$time=$unix->PROCCESS_TIME_MIN($pid);
 	if($unix->process_exists($pid)){
-		$unix->_syslog("{$GLOBALS["TITLENAME"]} Reloading PID $pid\n",basename(__FILE__));
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Reloading PID $pid\n";}
-		CheckDirectories();
+		CheckDirectories(true);
+		CheckDirectoriesTLSE();
 		buildconfig();
+		$unix->_syslog("{$GLOBALS["TITLENAME"]} Reloading PID $pid (running since {$time}Mn)\n",basename(__FILE__));
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Reloading PID $pid\n";}
+		squid_admin_mysql(1, "Reloading Categories service (running since {$time}Mn)", null,__FILE__,__LINE__);
 		unix_system_HUP($pid);
-		
 	}else{
 		start(true);
 	}
 	
 }
+
+function CheckDirectoriesTLSE(){
+	
+	$unix=new unix();
+	$cp=$unix->find_program("cp");
+	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
+	while (list ($index, $Directory2) = each ($dirs) ){
+		if(is_link($Directory2)){$Directory2=readlink($Directory2);}
+		if(!is_file("$Directory2/domains.ufdb")){continue;}
+		$destdir="/home/ufdbcat/TLSE_".basename($Directory2);
+		
+		$FILETIME1=md5_file("$Directory2/domains.ufdb");
+		$FILETIME2=null;
+		if(is_file("$destdir/domains.ufdb")){$FILETIME2=md5_file("$destdir/domains.ufdb");}
+		@mkdir($destdir,0755,true);
+		if($FILETIME2==$FILETIME1){
+			if($GLOBALS["OUTPUT"]){
+				echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} OK `".basename($Directory2) ." not changed..\n";
+			}
+			continue;
+		}
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Duplicate Free Database `".basename($Directory2)."` $FILETIME2<>$FILETIME1\n";}
+		shell_exec("$cp -rf $Directory2/* $destdir/");
+		@chmod($destdir,0755);
+	}
+				
+}
+
+
+
 
 function CheckDirectories($verifdbs=false){
 	$unix=new unix();
@@ -188,7 +275,7 @@ function CheckDirectories($verifdbs=false){
 				if(is_file("$destdir/domains.ufdb")){$FILETIME2=md5_file("$destdir/domains.ufdb");}
 				@mkdir($destdir,0755,true);
 				if($FILETIME2==$FILETIME1){
-					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} OK `".basename($Directory2) ." not changed..\n";}continue;}
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} OK `".basename($Directory2) ." not changed..\n";}
 					continue;
 				}	
 				
@@ -197,8 +284,8 @@ function CheckDirectories($verifdbs=false){
 				@chmod($destdir,0755);
 				
 			}
+		}
 	}
-	
 }
 
 
@@ -224,6 +311,7 @@ function start($aspid=false,$verifdbs=false){
 	}
 
 	$pid=PID_NUM();
+	
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
@@ -234,7 +322,7 @@ function start($aspid=false,$verifdbs=false){
 	
 	$DisableUfdbCat=$sock->DisableUfdbCat();
 	
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DisableUfdbCat= $DisableUfdbCat\n";}
 
 	if($DisableUfdbCat==1){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see DisableUfdbCat)\n";}
@@ -257,10 +345,11 @@ function start($aspid=false,$verifdbs=false){
 	@chmod($Masterbin,0755);
 	build_progress("{starting_service}",10);
 	CheckDirectories($verifdbs);
+	CheckDirectoriesTLSE();
 	
 	if(is_file("/var/log/ufdbcat/ufdbguardd.log")){@unlink("/var/log/ufdbcat/ufdbguardd.log");}
-	if(is_file("/var/run/ufdbcat-03977")){@unlink("/var/run/ufdbcat-03977");}
-	if($unix->is_socket("/var/run/ufdbcat-03977")){@unlink("/var/run/ufdbcat-03977");}
+	if(is_file(GetUnixSocketPath())){@unlink(GetUnixSocketPath());}
+	if($unix->is_socket(GetUnixSocketPath())){@unlink(GetUnixSocketPath());}
 	$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
 
 	$Threads=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbCatThreads"));
@@ -271,7 +360,8 @@ function start($aspid=false,$verifdbs=false){
 	
 	if(is_file("/opt/ufdbcat/bin/ufdbhttpd")){@unlink("/opt/ufdbcat/bin/ufdbhttpd");}	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} ** Categories Appliance Mode ***\n";}
+	if($GLOBALS["OUTPUT"]){
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} ** Categories Appliance Mode ***\n";}
 	
 	$isRemoteSockets=isRemoteSockets();
 	
@@ -323,11 +413,12 @@ function start($aspid=false,$verifdbs=false){
 		
 		if(!$isRemoteSockets){
 			for($i=1;$i<10;$i++){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Checking socket $i/5...\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Checking socket $i/10...\n";}
 				sleep(1);
-				if($unix->is_socket("/var/run/ufdbcat-03977")){
-				 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Checking socket success...\n";}
-					 @chmod("/var/run/ufdbcat-03977",0777);
+				$GetUnixSocketPath=GetUnixSocketPath();
+				if($unix->is_socket($GetUnixSocketPath)){
+				 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Checking socket [$GetUnixSocketPath] success...\n";}
+					 @chmod($GetUnixSocketPath,0777);
 				 	break;
 				}
 			}
@@ -377,7 +468,7 @@ function stop($aspid=false){
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	build_progress("{stopping_service}",6);
-	squid_admin_mysql(1, "Stopping Categories Service", "nothing",__FILE__,__LINE__);
+	squid_admin_mysql(0, "Stopping Categories Service", "nothing",__FILE__,__LINE__);
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
@@ -431,6 +522,15 @@ function PID_NUM(){
 	$pid=$unix->PIDOF_PATTERN("ufdbcatdd.*?-c.*?conf");
 	if($unix->process_exists($pid)){return $pid;}
 }
+function TransFormCategoryName($category){
+	$category=trim(strtolower($category));
+	$category=str_replace("/", "_", $category);
+	$category=str_replace("-", "_", $category);
+	$category=str_replace(" ", "_", $category);
+	if($category=="agressive"){$category="agressivecat";}
+	return $category;
+
+}
 
 function buildconfig(){
 	$q=new mysql_squid_builder();
@@ -438,7 +538,7 @@ function buildconfig(){
 	$dirs=$unix->dirdir("/home/ufdbcat");
 	$AsCategoriesAppliance=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AsCategoriesAppliance"));
 	
-	$array["category_governments"]="governments";
+	
 	$array["category_industry"]="industry";
 	$array["category_luxury"]="luxury";
 	$array["category_shopping"]="shopping";
@@ -530,7 +630,7 @@ function buildconfig(){
 	$array["category_passwords"]="passwords";
 	$array["category_police"]="police";
 	$array["category_politic"]="politic";
-	
+	$array["category_governments"]="governments";
 	
 	$array["category_recreation_humor"]="recreation/humor";
 	$array["category_recreation_schools"]="recreation/schools";
@@ -625,24 +725,109 @@ function buildconfig(){
 	$array["category_isp"]="isp";
 	$array["category_sslsites"]="sslsites";
 	$array["category_reaffected"]="reaffected";
+	$array["category_arjel"]="arjel";
+	$array["category_bitcoin"]="bitcoin";
 	
 	
-	while (list ($dirname, $realcat) = each ($array) ){
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM personal_categories";
+	$results=$q->QUERY_SQL($sql);
+	
+	$main_path="/var/lib/squidguard";
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$category=$ligne["category"];
+		$category_table=$q->cat_totablename($category);
+		$table="category_".$q->category_transform_name($category);
 		
-		if(is_file("/home/ufdbcat/$dirname/domains.ufdb")){
-			if(!is_file("/home/ufdbcat/$dirname/expressions")){@touch("/home/ufdbcat/$dirname/expressions");}
-			$cats[]=$dirname;
+		
+		
+		$categorynamePerso=TransFormCategoryName($category);
+		$categorynamePersoBAse="$main_path/$categorynamePerso";
+		$categorynamePersoPathBase="$categorynamePersoBAse/domains.ufdb";
+		$categorynamePersoPathUrls="$categorynamePersoBAse/urls";
+		$TARGET_DIR="/home/ufdbcat/PERSO_{$categorynamePerso}";
+		$TARGET_DB="/home/ufdbcat/PERSO_{$categorynamePerso}/domains.ufdb";
+		
+		if(is_file($categorynamePersoPathBase)){
+			@mkdir($TARGET_DIR,0755,true);
+			$size=@filesize($categorynamePersoPathBase);
+			$md51=md5_file($categorynamePersoPathBase);
+			$md52=md5_file($TARGET_DB);
+			if($md51<>$md52){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Duplicate personal database $category\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $categorynamePersoPathBase: $md51\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $TARGET_DB: $md52\n";}
+				
+				@unlink($TARGET_DB);
+				if(!@copy($categorynamePersoPathBase, $TARGET_DB)){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Duplicate personal database $category [!FAILED]\n";}
+				}
+				@touch("$TARGET_DIR/urls");
+				@touch("$TARGET_DIR/expressions");
+				$md52=md5_file($TARGET_DB);
+				$size2=@filesize($TARGET_DB);
+				
+				
+				if($md51<>$md52){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Duplicate personal database $category [!FAILED]\n";}
+				}
+				if($size<>$size2){
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Duplicate personal database $category [!FAILED]\n";}
+				}
+			}else{
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Personal database $category [OK]\n";}
+			}
 			
-			$catz[]="category \"$dirname\" {";
-			$catz[]="\tdomainlist      \"$dirname/domains\"";
-			$catz[]="\texpressionlist  \"$dirname/expressions\"";
-			$catz[]="\tredirect        \"http://none/$realcat\"";
+			
+			
+			$cats[]="P$category";
+			$catz[]="category \"P$category\" {";
+			$catz[]="\tdomainlist      \"$TARGET_DIR/domains\"";
+			$catz[]="\texpressionlist  \"$TARGET_DIR/expressions\"";
+			$catz[]="\tredirect        \"http://none/$category\"";
 			$catz[]="}";
 			
 		}
+		
 	}
 	
 	
+	
+	$c=0;
+	while (list ($dirname, $realcat) = each ($array) ){
+		
+		$ADDEDART=false;
+		if(is_file("/home/ufdbcat/$dirname/domains.ufdb")){
+			$size=filesize("/home/ufdbcat/$dirname/domains.ufdb");
+			if($size>150){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $dirname $size Bytes\n";}
+				$c++;
+				if(!is_file("/home/ufdbcat/$dirname/expressions")){@touch("/home/ufdbcat/$dirname/expressions");}
+				$cats[]=$dirname;
+				$catz[]="category \"$dirname\" {";
+				$catz[]="\tdomainlist      \"$dirname/domains\"";
+				$catz[]="\texpressionlist  \"$dirname/expressions\"";
+				$catz[]="\tredirect        \"http://none/$realcat\"";
+				$catz[]="}";
+				$ADDEDART=true;
+			}
+			
+		}
+		if(!$ADDEDART){
+			if(is_file("/home/ufdbcat/TLSE_$realcat/domains.ufdb")){
+				if(!is_file("/home/ufdbcat/TLSE_$realcat/expressions")){@touch("/home/ufdbcat/TLSE_$realcat/expressions");}
+				$cats[]="T$realcat";
+				$catz[]="category \"T$realcat\" {";
+				$catz[]="\tdomainlist      \"TLSE_$realcat/domains\"";
+				$catz[]="\texpressionlist  \"TLSE_$realcat/expressions\"";
+				$catz[]="\tredirect        \"http://none/$realcat\"";
+				$catz[]="}";
+				
+			}
+		}
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $c added categories\n";}
 	$f[]="dbhome \"/home/ufdbcat\"";
 	$f[]="logdir \"/var/log/ufdbcat\"";
 	$f[]="logblock off";
@@ -722,6 +907,7 @@ function buildconfig(){
 	$f[]="\t}";
 	$f[]="}";	
 	@file_put_contents("/etc/ufdbcat/ufdbGuard.conf", @implode("\n", $f));
+	@unlink("/usr/share/squid3/categories_caches.db");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/ufdbcat/ufdbGuard.conf done\n";}
 }
 
@@ -799,6 +985,24 @@ function testssocks(){
 	echo "google.com -> ". $catz->GetMemoryCache("google.com",true)."\n";
 	
 }
-
+function GetUnixSocketPath(){
+	
+	$path=null;
+	$unix=new unix();
+	
+	if($path==null){
+		if($unix->is_socket("/var/run/ufdbcat-03978")){
+			$path="/var/run/ufdbcat-03978";
+		}
+	
+	}
+	
+	if($path==null){
+		if($unix->is_socket("/var/run/ufdbcat-03977")){
+			$path="/var/run/ufdbcat-03977";
+		}
+	}
+	return $path;
+}
 
 ?>

@@ -195,9 +195,9 @@ function main_mail_headers(){
 	$ligne["header"]=htmlentities($ligne["header"]);
 	$ligne["header"]=nl2br($ligne["header"]);
 	
-	$ligne["header"]=str_replace('X-SpamTest-Rate',"<strong style='color:red'>X-SpamTest-Rate</strong>",$ligne["header"]);
-	$ligne["header"]=str_replace('X-SpamTest-Header',"<strong style='color:red'>X-SpamTest-Header</strong>",$ligne["header"]); 
-	$ligne["header"]=str_replace('X-Spam-Score',"<strong style='color:red'>X-Spam-Score</strong>",$ligne["header"]); 	
+	$ligne["header"]=str_replace('X-SpamTest-Rate',"<strong style='color:#d32d2d'>X-SpamTest-Rate</strong>",$ligne["header"]);
+	$ligne["header"]=str_replace('X-SpamTest-Header',"<strong style='color:#d32d2d'>X-SpamTest-Header</strong>",$ligne["header"]); 
+	$ligne["header"]=str_replace('X-Spam-Score',"<strong style='color:#d32d2d'>X-Spam-Score</strong>",$ligne["header"]); 	
 	
 	
 	echo main_mailtabs()."<br>

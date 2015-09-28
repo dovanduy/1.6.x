@@ -4,13 +4,21 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.status.inc');
-	include_once('ressources/class.artica.graphs.inc');
+	include_once('ressources/class.squid.watchdog.inc');
 	
 	$users=new usersMenus();
-	if(!$users->AsProxyMonitor){die();}
+	if(!$users->AsProxyMonitor){
+		
+		echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
+		die();
+		
+	}
 	if(isset($_GET["SWAP"])){SWAP_PAGE();exit;}
 	if(isset($_GET["PING"])){PING_PAGE();exit;}
 	if(isset($_GET["DNS"])){DNS_PAGE();exit;}
+	if(isset($_GET["LOAD"])){LOAD_PAGE();exit;}
+	if(isset($_GET["MEMORY"])){MEMORY_PAGE();exit;}
+	if(isset($_GET["AD"])){ACIVE_DIRECTORY_PAGE();exit;}
 	if(isset($_GET["external-page"])){EXTERNAL_PAGE();exit;}
 	if(isset($_GET["performance"])){PERFORMANCE_PAGE();exit;}
 	if(isset($_GET["settings"])){SETTINGS_PAGE();exit;}
@@ -26,7 +34,7 @@ function js(){
 	$title=$tpl->javascript_parse_text("{watchdog_settings}");
 	$page=CurrentPageName();
 	header("content-type: application/x-javascript");
-	echo "YahooWin4('850','$page?tabs=yes','$title')";
+	echo "YahooWin4('1200','$page?tabs=yes','$title')";
 	
 	
 }
@@ -38,14 +46,22 @@ function tabs(){
 	$tpl=new templates();
 	
 	$array["settings"]="{global_settings}";
+	$array["bandwidth"]="{bandwidth}";
 	$array["performance"]="{performance}";
+	$array["LOAD"]="{load}";
+	$array["MEMORY"]="{memory}";
 	$array["SWAP"]="SWAP";
 	$array["PING"]="PING";
 	$array["DNS"]="DNS";
 	$array["external-page"]="{external_page}";
 	$array["smtp"]="{smtp_notifications}";
-	$style="style='font-size:16px';";
+	$style="style='font-size:18px';";
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="bandwidth"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.proxy.watchdog.bandwidth.php\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span $style>$ligne</span></a></li>\n");
 		
@@ -60,116 +76,183 @@ function tabs(){
 	
 }
 
-function defaults_values(){
-	$sock=new sockets();
-	$ini=new Bs_IniHandler();
-	$ini->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));
-	if($ini->_params["SMTP"]["smtp_server_port"]==null){$ini->_params["SMTP"]["smtp_server_port"]=25;}
-	if($ini->_params["SMTP"]["smtp_sender"]==null){$users=new usersMenus();$ini->_params["SMTP"]["smtp_sender"]="artica@$users->fqdn";}
-	$t=time();
-	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
 	
 	
-	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
-	if(!isset($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
-	if(!isset($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
-	if(!isset($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
-	if(!isset($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
-	if(!isset($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
-	if(!is_numeric($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
-	if(!isset($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}
-	if(!is_numeric($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}	
-	
-	if(!isset($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
-	if(!is_numeric($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
-	if($MonitConfig["MgrInfosMaxFailed"]==0){$MonitConfig["MgrInfosMaxFailed"]=1;}
-	
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	if(!isset($MonitConfig["MIN_INTERVAL"])){$MonitConfig["MIN_INTERVAL"]=5;}
-	if(!isset($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	if(!isset($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
-	if(!isset($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
-	
-	if(!isset($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
-	if(!is_numeric($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
-	if($MonitConfig["StopMaxTTL"]<5){$MonitConfig["StopMaxTTL"]=5;}
-	
-	
-	
-	if(!isset($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
-	if(!is_numeric($MonitConfig["watchdogRestart"])){$MonitConfig["watchdogRestart"]=80;}
-	if($MonitConfig["watchdogRestart"]==0){$MonitConfig["watchdogRestart"]=80;}
-	
-	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-	if(!isset($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	
-	if(!isset($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
-	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
-	
-	
-	if(!isset($MonitConfig["SWAP_MONITOR"])){$MonitConfig["SWAP_MONITOR"]=1;}
-	if(!isset($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
-	if(!isset($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
-	if(!is_numeric($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
-	if(!is_numeric($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
-	
-	
-	
-	if(!is_numeric($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
-	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
-	if(!is_numeric($MonitConfig["MIN_INTERVAL"])){$MonitConfig["MIN_INTERVAL"]=5;}
-	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
-	if(!is_numeric($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
-	if(!is_numeric($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
 
-	if(!is_numeric($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
-	if(!is_numeric($MonitConfig["TestExternalWebPage"])){$MonitConfig["TestExternalWebPage"]=1;}
-	
-	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
-	if(!is_numeric($MonitConfig["DNSIssuesMAX"])){$MonitConfig["DNSIssuesMAX"]=1;}
-	
-	if(!is_numeric($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
-	
-	if(!is_numeric($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
-	if(!is_numeric($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
-	if(!is_numeric($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
+
+function LOAD_PAGE(){
+	$t=time();
+	$MonitConfig=defaults_values();
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
 	
 	
+	$array["none"]="{none}";
+	$array["restart"]="{restart}";
+	$array["failover"]="{failover}";
+	$array["reboot"]="{reboot}";
 	
-	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=15;}
-	if($MonitConfig["MIN_INTERVAL"]<3){$MonitConfig["MIN_INTERVAL"]=3;}
-	if($MonitConfig["MaxSwapPourc"]<5){$MonitConfig["MaxSwapPourc"]=5;}
-	if($MonitConfig["DNSIssuesMAX"]<1){$MonitConfig["DNSIssuesMAX"]=1;}
-	if($MonitConfig["REBOOT_INTERVAL"]<10){$MonitConfig["REBOOT_INTERVAL"]=10;}
-	if($MonitConfig["MinTimeFailOverSwitch"]<5){$MonitConfig["MinTimeFailOverSwitch"]=5;}
-	if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
-	if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
-	if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
-	if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
-	if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
-	if(!isset($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
-	if(!is_numeric($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
-	if(!is_numeric($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
-	if(!is_numeric($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
-	if(!is_numeric($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
-	if(!is_numeric($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
-	if(!is_numeric($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
+	$html="<div style='width:98%' class=form>
+			". Paragraphe_switch_img("{server_load}", "{server_watchdog_load_explain}","LOAD_TESTS",$MonitConfig["LOAD_TESTS"],null,850)."
+
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>{if_overloaded}:</td>
+		<td	style='font-size:18px'>". Field_text("LOAD_WARNING",$MonitConfig["LOAD_WARNING"],
+				"font-size:18px;width:90px")."&nbsp;</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{if_overloaded} (MAX):</td>
+		<td	style='font-size:18px'>". Field_text("LOAD_MAX",$MonitConfig["LOAD_MAX"],
+				"font-size:18px;width:90px")."&nbsp;</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{action}:</td>
+		<td	style='font-size:18px'>". Field_array_Hash($array,"LOAD_MAX_ACTION",$MonitConfig["LOAD_MAX_ACTION"],null,'',0,
+				"font-size:18px")."&nbsp;</td>
+		<td width=1%></td>
+	</tr>												
+	<tr>
+		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+	</tr>
+</table>
+</div>
+<script>
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	UnlockPage();
+	RefreshTab('watchdog_settings_tabs');
+}
+	
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('SAVEGLOBAL','yes');
+	XHR.appendData('LOAD_TESTS',document.getElementById('LOAD_TESTS').value);
+	XHR.appendData('LOAD_WARNING',document.getElementById('LOAD_WARNING').value);
+	XHR.appendData('LOAD_MAX',document.getElementById('LOAD_MAX').value);
+	XHR.appendData('LOAD_MAX_ACTION',document.getElementById('LOAD_MAX_ACTION').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+}
+
+function MEMORY_PAGE(){
+	$t=time();
+	$MonitConfig=defaults_values();
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+	
+	$array[5]="5 {minutes}";
+	$array[10]="10 {minutes}";
+	$array[15]="15 {minutes}";
+	$array[30]="30 {minutes}";
+	$array[60]="1 {hour}";
+	
+	
+	if(!isset($MonitConfig["MEMORY_TEST"])){$MonitConfig["MEMORY_TEST"]=1;}
+	
+	if(!isset($MonitConfig["MAX_MEM_ALERT"])){$MonitConfig["MAX_MEM_ALERT"]=90;}
+	if(!isset($MonitConfig["MAX_MEM_PRC"])){$MonitConfig["MAX_MEM_PRC"]=95;}
+	if(!isset($MonitConfig["MAX_MEM_MNS"])){$MonitConfig["MAX_MEM_MNS"]=5;}
+	if(!isset($MonitConfig["MAX_MEM_RST_MYSQL"])){$MonitConfig["MAX_MEM_RST_MYSQL"]=1;}
+	if(!isset($MonitConfig["MAX_MEM_RST_UFDB"])){$MonitConfig["MAX_MEM_RST_UFDB"]=1;}
+	if(!isset($MonitConfig["MAX_MEM_RST_APACHE"])){$MonitConfig["MAX_MEM_RST_APACHE"]=1;}
+	if(!isset($MonitConfig["MAX_MEM_RST_SQUID"])){$MonitConfig["MAX_MEM_RST_SQUID"]=1;}
+	
+	$html="<div style='width:98%' class=form>
+			". Paragraphe_switch_img("{check_memory_use}", "{server_watchdog_memory_explain}","MEMORY_TEST",$MonitConfig["MEMORY_TEST"],null,850)."
+	
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>{alert_on_memory}:</td>
+		<td	style='font-size:18px'>". Field_text("MAX_MEM_ALERT",$MonitConfig["MAX_MEM_ALERT"],
+					"font-size:18px;width:90px")."&nbsp;%</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{if_memory_exceed} (MAX):</td>
+		<td	style='font-size:18px'>". Field_text("MAX_MEM_PRC",$MonitConfig["MAX_MEM_PRC"],
+					"font-size:18px;width:90px")."&nbsp;%</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{during}:</td>
+		<td	style='font-size:18px'>". Field_array_Hash($array,"MAX_MEM_MNS",$MonitConfig["MAX_MEM_MNS"],null,'',0,
+					"font-size:18px")."&nbsp;</td>
+		<td width=1%></td>
+	</tr>							
+	<tr>
+		<td class=legend style='font-size:18px'>{action} {restart_databases}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("MAX_MEM_RST_MYSQL", 1,$MonitConfig["MAX_MEM_RST_MYSQL"])."</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{action} {restart_webfiltering_service}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("MAX_MEM_RST_UFDB", 1,$MonitConfig["MAX_MEM_RST_UFDB"])."</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{action} {restart_web_services}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("MAX_MEM_RST_APACHE", 1,$MonitConfig["MAX_MEM_RST_APACHE"])."</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{action} {restart_proxy_service}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("MAX_MEM_RST_SQUID", 1,$MonitConfig["MAX_MEM_RST_SQUID"])."</td>
+		<td width=1%></td>
+	</tr>												
+	<tr>
+		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+	</tR>
+</table>
+</div>
+<script>
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	UnlockPage();
+	RefreshTab('watchdog_settings_tabs');
+}
+	
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('SAVEGLOBAL','yes');
+	XHR.appendData('MEMORY_TEST',document.getElementById('MEMORY_TEST').value);
+	XHR.appendData('MAX_MEM_ALERT',document.getElementById('MAX_MEM_ALERT').value);
+	XHR.appendData('MAX_MEM_PRC',document.getElementById('MAX_MEM_PRC').value);
+	XHR.appendData('MAX_MEM_MNS',document.getElementById('MAX_MEM_MNS').value);
+	XHR.appendData('LOAD_MAX_ACTION',document.getElementById('LOAD_MAX_ACTION').value);
+	if(document.getElementById('MAX_MEM_RST_MYSQL').checked){XHR.appendData('MAX_MEM_RST_MYSQL',1); }else{ XHR.appendData('MAX_MEM_RST_MYSQL',0); }
+	if(document.getElementById('MAX_MEM_RST_UFDB').checked){XHR.appendData('MAX_MEM_RST_UFDB',1); }else{ XHR.appendData('MAX_MEM_RST_UFDB',0); }
+	if(document.getElementById('MAX_MEM_RST_APACHE').checked){XHR.appendData('MAX_MEM_RST_APACHE',1); }else{ XHR.appendData('MAX_MEM_RST_APACHE',0); }
+	if(document.getElementById('MAX_MEM_RST_SQUID').checked){XHR.appendData('MAX_MEM_RST_SQUID',1); }else{ XHR.appendData('MAX_MEM_RST_SQUID',0); }
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
 	
 	
 	
-	if($MonitConfig["ExternalPageToCheck"]==null){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
-	if(!isset($MonitConfig["EnableFailover"])){
-		$sock=new sockets();
-		$MonitConfig["EnableFailover"]=$sock->GET_INFO("EnableFailover");
-		if(!is_numeric($MonitConfig["EnableFailover"])){$MonitConfig["EnableFailover"]=1;}
-		
-	}
-	return $MonitConfig;
+	
+}
+
+
+function defaults_values(){
+	$watchdog=new squid_watchdog();
+	return $watchdog->MonitConfig;
 		
 }
 
@@ -202,6 +285,7 @@ function SAVE(){
 	$newparam=base64_encode(serialize($MonitConfig));
 	$sock=new sockets();
 	$sock->SaveConfigFile($newparam, "SquidWatchdogMonitConfig");
+	$sock->getFrameWork("squid2.php?watchdog-bandwidth=yes");
 	
 }
 
@@ -228,7 +312,7 @@ function SWAP_PAGE(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$html="<div style='width:98%' class=form>
-			". Paragraphe_switch_img("SWAP {enable}", "{SWAP_MONITOR_EXPLAIN}","SWAP_MONITOR",$MonitConfig["SWAP_MONITOR"],null,750)."
+			". Paragraphe_switch_img("SWAP {enable}", "{SWAP_MONITOR_EXPLAIN}","SWAP_MONITOR",$MonitConfig["SWAP_MONITOR"],null,960)."
 
 	<table style='width:100%'>
 	<tr>
@@ -242,7 +326,9 @@ function SWAP_PAGE(){
 		<td width=1%>". help_icon("{SWAP_MONITOR_EXPLAIN}")."</td>
 	</tr>	
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>			
+		<td colspan=3 align='right'><hr>". button("{apply}","Save$t(false)",36)."</td>	
+</tr>
+</table>				
 	</div>		
 <script>
 		var xSave$t= function (obj) {
@@ -250,14 +336,25 @@ function SWAP_PAGE(){
 			UnlockPage();
 			RefreshTab('watchdog_settings_tabs');
 		}
+		var xSave2$t= function (obj) {
+			var results=obj.responseText;
+			UnlockPage();
+			RefreshTab('watchdog_settings_tabs');
+			Loadjs('squid.proxy.watchdog.smtp.progress.php');
+		}		
+		
 
 
-		function Save$t(){
+		function Save$t(test){
 			var XHR = new XHRConnection();
 			XHR.appendData('SAVEGLOBAL','yes');
 			XHR.appendData('SWAP_MONITOR',document.getElementById('SWAP_MONITOR').value);
 			XHR.appendData('SWAP_MIN',document.getElementById('SWAP_MIN').value);
 			XHR.appendData('SWAP_MAX',document.getElementById('SWAP_MAX').value);
+			if(test){
+				XHR.sendAndLoad('$page', 'POST',xSave2$t);
+				return;
+			}
 			XHR.sendAndLoad('$page', 'POST',xSave$t);
 			
 		}
@@ -278,15 +375,15 @@ function PING_PAGE(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$html="<div style='width:98%' class=form>
-			". Paragraphe_switch_img("{ENABLE_PING_GATEWAY}", "{ENABLE_PING_GATEWAY_EXPLAIN}","ENABLE_PING_GATEWAY",$MonitConfig["ENABLE_PING_GATEWAY"],null,750)."
+			". Paragraphe_switch_img("{ENABLE_PING_GATEWAY}", "{ENABLE_PING_GATEWAY_EXPLAIN}","ENABLE_PING_GATEWAY",$MonitConfig["ENABLE_PING_GATEWAY"],null,960)."
 			". Paragraphe_switch_img("{reload_network}", "{PING_FAILED_RELOAD_NET_EXPLAIN}",
-					"PING_FAILED_RELOAD_NET",$MonitConfig["PING_FAILED_RELOAD_NET"],null,750)."
+					"PING_FAILED_RELOAD_NET",$MonitConfig["PING_FAILED_RELOAD_NET"],null,960)."
 			". Paragraphe_switch_img("{send_report}", "{PING_FAILED_REPORT_EXPLAIN}",
-					"PING_FAILED_REPORT",$MonitConfig["PING_FAILED_REPORT"],null,750)."	
+					"PING_FAILED_REPORT",$MonitConfig["PING_FAILED_REPORT"],null,960)."	
 			". Paragraphe_switch_img("{switch_to_failover}", "{PING_FAILED_FAILOVER_EXPLAIN}",
-					"PING_FAILED_FAILOVER",$MonitConfig["PING_FAILED_FAILOVER"],null,750)."	
+					"PING_FAILED_FAILOVER",$MonitConfig["PING_FAILED_FAILOVER"],null,960)."	
 			". Paragraphe_switch_img("{reboot_system}", "{reboot_system_explain}",
-					"PING_FAILED_REBOOT",$MonitConfig["PING_FAILED_REBOOT"],null,750)."								
+					"PING_FAILED_REBOOT",$MonitConfig["PING_FAILED_REBOOT"],null,960)."								
 
 	<table style='width:100%'>
 	<tr>
@@ -300,7 +397,9 @@ function PING_PAGE(){
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+</tr>
+</table>		
 			</div>
 			<script>
 			var xSave$t= function (obj) {
@@ -342,7 +441,7 @@ function DNS_PAGE(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$html="<div style='width:98%' class=form>
-			". Paragraphe_switch_img("{NotifyDNSIssues}", "{NotifyDNSIssues_explain}","NotifyDNSIssues",$MonitConfig["NotifyDNSIssues"],null,750)."
+			". Paragraphe_switch_img("{NotifyDNSIssues}", "{NotifyDNSIssues_explain}","NotifyDNSIssues",$MonitConfig["NotifyDNSIssues"],null,960)."
 
 	<table style='width:100%'>
 	<tr>
@@ -352,7 +451,9 @@ function DNS_PAGE(){
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+</tr>
+</table>		
 </div>
 <script>
 var xSave$t= function (obj) {
@@ -387,7 +488,7 @@ function EXTERNAL_PAGE(){
 	
 	$html="<div style='width:98%' class=form>
 			". Paragraphe_switch_img("{TestExternalWebPage}", "{squid_TestExternalWebPage_explain}",
-					"TestExternalWebPage",$MonitConfig["TestExternalWebPage"],null,750)."
+					"TestExternalWebPage",$MonitConfig["TestExternalWebPage"],null,960)."
 
 	<table style='width:100%'>
 	<tr>
@@ -415,7 +516,9 @@ function EXTERNAL_PAGE(){
 		<td width=1%>". help_icon("{ExternalPageUsername_EXPLAIN}")."</td>
 	</tr>										
 	<tr>
-<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+</tr>
+</table>
 </div>
 <script>
 	var xSave$t= function (obj) {
@@ -451,15 +554,12 @@ function PERFORMANCE_PAGE(){
 	
 	$tcp=new networking();
 	$ALL_IPS_GET_ARRAY=$tcp->ALL_IPS_GET_ARRAY();
-	
+	if(!isset($MonitConfig["TEST_PORT_TIMEOUT"])){$MonitConfig["TEST_PORT_TIMEOUT"]=2;}
 	
 	$html="<div style='width:98%' class=form>
-			". Paragraphe_switch_img("{max_system_load_failover}", "{max_system_load_failover_explain}",
-						"MaxLoadFailOver",$MonitConfig["MaxLoadFailOver"],null,750)
-		. Paragraphe_switch_img("{max_system_load_reboot}", "{max_system_load_reboot_explain}",
-						"MaxLoadReboot",$MonitConfig["MaxLoadReboot"],null,750).
+".
 		 Paragraphe_switch_img("{RestartWhenCrashes}", "{RestartWhenCrashes_explain}",
-						"RestartWhenCrashes",$MonitConfig["RestartWhenCrashes"],null,750)."
+						"RestartWhenCrashes",$MonitConfig["RestartWhenCrashes"],null,960)."
 
 	<table style='width:100%'>
 	<tr>
@@ -487,19 +587,44 @@ function PERFORMANCE_PAGE(){
 		<td width=1%>". help_icon("{MaxSwapPourc_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{max_system_load}:</td>
-		<td	style='font-size:18px'>". Field_text("MaxLoad",$MonitConfig["MaxLoad"],
-					"font-size:18px;width:190px")."&nbsp;</td>
-		<td width=1%>". help_icon("{max_system_load_squid_explain}")."</td>
-	</tr>
-	<tr>
 		<td class=legend style='font-size:18px'>{MinFreeMem}:</td>
 		<td	style='font-size:18px'>". Field_text("MinFreeMem",$MonitConfig["MinFreeMem"],
 					"font-size:18px;width:190px")."&nbsp;MB</td>
 		<td width=1%>". help_icon("{MinFreeMem_squid_explain}")."</td>
 	</tr>							
 	<tr>
-<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+				
+	<tr><td colspan=3 style='font-size:24px'>{when_fetching_proxy_informations}</td></tr>
+	<tr><td colspan=3 ><div class=explain style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
+
+				
+	<tr>
+		<td class=legend style='font-size:18px'>{enabled}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("TEST_PORT",1,$MonitConfig["TEST_PORT"],"TEST_PORT_CHECK()")."</td>
+		<td width=1%></td>
+	</tr>				
+				
+				
+	<tr>
+		<td class=legend style='font-size:18px'>{tests_timeout}:</td>
+		<td	style='font-size:18px'>". Field_text("TEST_PORT_TIMEOUT",$MonitConfig["TEST_PORT_TIMEOUT"],
+					"font-size:18px;width:190px")."&nbsp;{seconds}</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{max_failed_before_action}:</td>
+		<td	style='font-size:18px'>". Field_text("TEST_PORT_MAX",$MonitConfig["TEST_PORT_MAX"],
+					"font-size:18px;width:90px")."&nbsp;{times}</td>
+		<td width=1%></td>
+	</tr>							
+	<tr>
+		<td class=legend style='font-size:18px'>{restart_if_failed}:</td>
+		<td	style='font-size:18px'>". Field_checkbox_design("TEST_PORT_RESTART",1,$MonitConfig["TEST_PORT_RESTART_FAILED"])."&nbsp;</td>
+		<td width=1%></td>
+	</tr>
+<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+</tr>
+</table>
 	</div>
 	<script>
 	var xSave$t= function (obj) {
@@ -511,17 +636,33 @@ function PERFORMANCE_PAGE(){
 	function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('SAVEGLOBAL','yes');
-	XHR.appendData('MaxLoadFailOver',document.getElementById('MaxLoadFailOver').value);
-	XHR.appendData('MaxLoadReboot',document.getElementById('MaxLoadReboot').value);
 	XHR.appendData('RestartWhenCrashes',document.getElementById('RestartWhenCrashes').value);
 	XHR.appendData('watchdogCPU',document.getElementById('watchdogCPU').value);
 	XHR.appendData('watchdogMEM',document.getElementById('watchdogMEM').value);
 	XHR.appendData('MaxSwapPourc',document.getElementById('MaxSwapPourc').value);
-	XHR.appendData('MaxLoad',document.getElementById('MaxLoad').value);
 	XHR.appendData('watchdogRestart',document.getElementById('watchdogRestart').value);
 	
+	if(document.getElementById('TEST_PORT').checked){XHR.appendData('TEST_PORT',1); }else{ XHR.appendData('TEST_PORT',0); }
+	if(document.getElementById('TEST_PORT_RESTART').checked){XHR.appendData('TEST_PORT_RESTART',1); }else{XHR.appendData('TEST_PORT_RESTART',0); }	
+	XHR.appendData('TEST_PORT_TIMEOUT',document.getElementById('TEST_PORT_TIMEOUT').value);
+	XHR.appendData('TEST_PORT_MAX',document.getElementById('TEST_PORT_MAX').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
+	
+function TEST_PORT_CHECK(){
+	document.getElementById('TEST_PORT_TIMEOUT').disabled=true;
+	document.getElementById('TEST_PORT_MAX').disabled=true;
+	document.getElementById('TEST_PORT_RESTART').disabled=true;
+	
+	if(document.getElementById('TEST_PORT').checked){
+		document.getElementById('TEST_PORT_TIMEOUT').disabled=false;
+		document.getElementById('TEST_PORT_MAX').disabled=false;
+		document.getElementById('TEST_PORT_RESTART').disabled=false;
+	
+	}
+	
+}
+TEST_PORT_CHECK();	
 	</script>
 	";	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -544,13 +685,13 @@ function SETTINGS_PAGE(){
 	
 	$html="<div style='width:98%' class=form>
 			". Paragraphe_switch_img("{enable_watchdog}", "{enable_watchdog_squid_explain}",
-						"watchdog",$MonitConfig["watchdog"],null,750).
+						"watchdog",$MonitConfig["watchdog"],null,960).
 				Paragraphe_switch_img("{enable} {failover}", "{EnableFailover_explain}",
-						"EnableFailover",$EnableFailover,null,750).
+						"EnableFailover",$EnableFailover,null,960).
 				Paragraphe_switch_img("{ALLOW_RETURN_1CPU}", "{ALLOW_RETURN_1CPU_EXPLAIN}",
-						"ALLOW_RETURN_1CPU",$MonitConfig["ALLOW_RETURN_1CPU"],null,750).
+						"ALLOW_RETURN_1CPU",$MonitConfig["ALLOW_RETURN_1CPU"],null,960).
 				Paragraphe_switch_img("{DisableWebFilteringNetFailed}", "{DisableWebFilteringNetFailed_explain}",
-						"DisableWebFilteringNetFailed",$MonitConfig["DisableWebFilteringNetFailed"],null,750)."								
+						"DisableWebFilteringNetFailed",$MonitConfig["DisableWebFilteringNetFailed"],null,960)."								
 
 	<table style='width:100%'>
 	<tr>
@@ -601,7 +742,7 @@ function SETTINGS_PAGE(){
 				
 				
 	<tr><td colspan=3 style='font-size:24px'>{when_fetching_proxy_informations}</td></tr>
-	<tr><td colspan=3 ><div class=text-info style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
+	<tr><td colspan=3 ><div class=explain style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
 	<tr>
 		<td class=legend style='font-size:18px'>{tests_timeout}:</td>
 		<td	style='font-size:18px'>". Field_text("MgrInfosMaxTimeOut",$MonitConfig["MgrInfosMaxTimeOut"],
@@ -627,7 +768,9 @@ function SETTINGS_PAGE(){
 				
 							
 	<tr>
-<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
+</tr>
+</table>
 	</div>
 	<script>
 	var xSave$t= function (obj) {
@@ -698,49 +841,59 @@ function SMTP_PAGE(){
 	
 	$html="<div style='width:98%' class=form>
 			". Paragraphe_switch_img("{smtp_enabled}", "{smtp_enabled_watchdog_explain}",
-						"ENABLED_SQUID_WATCHDOG",$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"],null,750)."
+						"ENABLED_SQUID_WATCHDOG",$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"],null,1390)."
 			". Paragraphe_switch_img("{tls_enabled}", "{tls_enabled_explain}",
-						"tls_enabled",$UfdbguardSMTPNotifs["tls_enabled"],null,750)."
+						"tls_enabled",$UfdbguardSMTPNotifs["tls_enabled"],null,1390)."
 
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_server_name}:</td>
-		<td	style='font-size:18px'>". field_ipv4("smtp_server_name",$UfdbguardSMTPNotifs["smtp_server_name"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{warning_events}:</td>
+			<td style='vertical-align:middle'>". Field_checkbox_design("warning_events",$UfdbguardSMTPNotifs["warning_events"],
+			"font-size:22px;width:110px")."&nbsp;</td>
+		<td width=1%></td>
+	</tr>								
+								
+								
+	<tr>
+		<td class=legend style='font-size:22px'>{smtp_server_name}:</td>
+		<td	style='font-size:18px'>". Field_text("smtp_server_name",$UfdbguardSMTPNotifs["smtp_server_name"],
+					"font-size:22px;width:500px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_server_port}:</td>
-<td	style='font-size:18px'>". Field_text("smtp_server_port",$UfdbguardSMTPNotifs["smtp_server_port"],
-			"font-size:18px;width:90px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{smtp_server_port}:</td>
+			<td	style='font-size:22px'>". Field_text("smtp_server_port",$UfdbguardSMTPNotifs["smtp_server_port"],
+			"font-size:22px;width:110px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_sender}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_sender",$UfdbguardSMTPNotifs["smtp_sender"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{smtp_sender}:</td>
+		<td	style='font-size:22px'>". Field_text("smtp_sender",$UfdbguardSMTPNotifs["smtp_sender"],
+					"font-size:22px;width:500px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_dest}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_dest",$UfdbguardSMTPNotifs["smtp_dest"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{smtp_dest}:</td>
+		<td	style='font-size:22px'>". Field_text("smtp_dest",$UfdbguardSMTPNotifs["smtp_dest"],
+					"font-size:22px;width:500px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_auth_user}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_auth_user",$UfdbguardSMTPNotifs["smtp_auth_user"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{smtp_auth_user}:</td>
+		<td	style='font-size:22px'>". Field_text("smtp_auth_user",$UfdbguardSMTPNotifs["smtp_auth_user"],
+					"font-size:22px;width:500px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_auth_passwd}:</td>
-		<td	style='font-size:18px'>". Field_password("smtp_auth_passwd",$UfdbguardSMTPNotifs["smtp_auth_passwd"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:22px'>{smtp_auth_passwd}:</td>
+		<td	style='font-size:22px'>". Field_password("smtp_auth_passwd",$UfdbguardSMTPNotifs["smtp_auth_passwd"],
+					"font-size:22px;width:500px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>							
 	<tr>
-<td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+<td colspan=3 align='right' style='font-size:22px;'><hr>". button("{test_message}","Save$t(true)",36)."&nbsp;|&nbsp;". button("{apply}","Save$t(false)",36)."</td>
+</tr>
+</table>
 	</div>
 	<script>
 	var xSave$t= function (obj) {
@@ -748,8 +901,15 @@ function SMTP_PAGE(){
 	UnlockPage();
 	RefreshTab('watchdog_settings_tabs');
 	}
+		var xSave2$t= function (obj) {
+			var results=obj.responseText;
+			UnlockPage();
+			RefreshTab('watchdog_settings_tabs');
+			Loadjs('squid.proxy.watchdog.smtp.progress.php');
+		}		
 	
-	function Save$t(){
+	
+	function Save$t(test){
 	var XHR = new XHRConnection();
 	XHR.appendData('SAVESMTP','yes');
 	XHR.appendData('ENABLED_SQUID_WATCHDOG',document.getElementById('ENABLED_SQUID_WATCHDOG').value);
@@ -760,9 +920,17 @@ function SMTP_PAGE(){
 	XHR.appendData('smtp_auth_user',document.getElementById('smtp_auth_user').value);
 	XHR.appendData('smtp_auth_passwd',encodeURIComponent(document.getElementById('smtp_auth_passwd').value));
 	XHR.appendData('tls_enabled',document.getElementById('tls_enabled').value);
+	if(document.getElementById('warning_events').checked){
+		XHR.appendData('warning_events',1);
+	}else{
+		XHR.appendData('warning_events',0);
+	}
+	if(!test){
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
 	
+	XHR.sendAndLoad('$page', 'POST',xSave2$t);
 	
-	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
 	</script>
 	";

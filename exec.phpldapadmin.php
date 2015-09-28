@@ -71,6 +71,32 @@ $f[]="";
 	
 }
 
+if($sock->SQUID_IS_EXTERNAL_LDAP()){
+
+	$EXTERNAL_LDAP_AUTH_PARAMS=unserialize(base64_decode($sock->GET_INFO("SquidExternalAuth")));
+	$ldap_server=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_server"];
+	$ldap_port=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_port"];
+	$userdn=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_user"];
+	$ldap_password=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_password"];
+	$ldap_suffix=$EXTERNAL_LDAP_AUTH_PARAMS["ldap_suffix"];
+	
+	echo "slapd: [INFO] phpldapadmin adding LDAP Server for proy settings\n";
+	$f[]="\$servers->newServer(\"ldap_pla\");";
+	$f[]="\$servers->setValue(\"server\",\"name\",\"Remote $ldap_server\");";
+	$f[]="\$servers->setValue(\"server\",\"host\",\"$ldap_server\");";
+	$f[]="\$servers->setValue(\"server\",\"port\",$ldap_port);";
+	$f[]="\$servers->setValue(\"server\",\"base\",array(\"$ldap_suffix\"));";
+	$f[]="\$servers->setValue(\"login\",\"auth_type\",\"session\");";
+	$f[]="\$servers->setValue(\"login\",\"bind_id\",\"$userdn\");";
+	$f[]="\$servers->setValue(\"login\",\"bind_pass\",\"\");";
+	$f[]="\$servers->setValue(\"server\",\"tls\",false);";
+	$f[]="";
+	
+	
+}
+
+
+
 if($EnableKerbAuth==1){
 	$ad=new ActiveDirectory();
 	$f[]="\$servers->newServer(\"ldap_pla\");";

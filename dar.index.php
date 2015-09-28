@@ -431,7 +431,7 @@ $dar_collection_root=dar_collection_root();
 if($dar_collection_root==null){
 	$html="<H1>{query_collection}</H1>
 	<center>
-	<p style='font-size:12px;color:red;font-weight:bold'>{you_need_to_mount_collection_first}</p>
+	<p style='font-size:12px;color:#d32d2d;font-weight:bold'>{you_need_to_mount_collection_first}</p>
 	</center>";
 	echo $tpl->_ENGINE_parse_body($html);
 	return null;
@@ -548,7 +548,7 @@ function dar_list(){
 if($dar_collection_root==null){
 	$html="<H1>{query_collection}</H1>
 	<center>
-	<p style='font-size:12px;color:red;font-weight:bold'>{you_need_to_mount_collection_first}</p>
+	<p style='font-size:12px;color:#d32d2d;font-weight:bold'>{you_need_to_mount_collection_first}</p>
 	</center>";
 	echo $tpl->_ENGINE_parse_body($html);
 	return null;
@@ -1290,7 +1290,7 @@ function external_storage_usb_list(){
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?usb-scan-write=yes");
 	$tpl=new templates();
-	if(!file_exists('ressources/usb.scan.inc')){return $tpl->_ENGINE_parse_body("<H3 style=color:red'>{error_no_socks}</H3>");}		
+	if(!file_exists('ressources/usb.scan.inc')){return $tpl->_ENGINE_parse_body("<H3 style=color:#d32d2d'>{error_no_socks}</H3>");}		
 	include("ressources/usb.scan.inc");	
 	
 		$dar=new dar_back();

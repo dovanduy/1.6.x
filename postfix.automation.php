@@ -51,7 +51,7 @@ function tabs(){
 
 function about(){
 	$tpl=new templates();
-	$html="<div style='font-size:18px' class=text-info>{postfix_automation_about}</div>";
+	$html="<div style='font-size:18px' class=explain>{postfix_automation_about}</div>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 

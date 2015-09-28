@@ -34,35 +34,35 @@ $DisableForceFCK=intval($sock->GET_INFO("DisableForceFCK"));
 $t=$_GET["t"];
 
 $html="		
-
+	<div style='width:98%' class=form>
 	<input type='hidden' id='AutoRebootScheduleText' value='$AutoRebootScheduleText'>	
-	<table style='width:99%' class=form>
+	<table style='width:100%'>
 		<tbody>
 			<tr>
-				<td colspan=3><div style='font-size:28px;margin-bottom:20px'>{reboot}</td>
+				<td colspan=3><div style='font-size:32px;margin-bottom:20px'>{reboot}</td>
 			</tr>
 			<tr>
-				<td nowrap width=1% align='right' class=legend>{NoDryReboot}:</td>
-				<td>" . Field_checkbox("NoDryReboot",1,$NoDryReboot)."</td>
+				<td nowrap width=1% align='right' class=legend style='font-size:22px'>{NoDryReboot}:</td>
+				<td>" . Field_checkbox_design("NoDryReboot",1,$NoDryReboot)."</td>
 				<td>" . help_icon("{NoDryReboot_explain}")."</td>
 			</tr>
 			<tr>
-				<td nowrap width=1% align='right' class=legend>{DisableForceFCK}:</td>
-				<td>" . Field_checkbox("DisableForceFCK",1,$DisableForceFCK)."</td>
+				<td nowrap width=1% align='right' class=legend style='font-size:22px'>{DisableForceFCK}:</td>
+				<td>" . Field_checkbox_design("DisableForceFCK",1,$DisableForceFCK)."</td>
 				<td>" . help_icon("{DisableForceFCK_explain}")."</td>
 			</tr>						
 			<tr>
-				<td nowrap width=1% align='right' class=legend>{NoOutOfMemoryReboot}:</td>
-				<td>" . Field_checkbox("NoOutOfMemoryReboot",1,$NoOutOfMemoryReboot)."</td>
+				<td nowrap width=1% align='right' class=legend style='font-size:22px'>{NoOutOfMemoryReboot}:</td>
+				<td>" . Field_checkbox_design("NoOutOfMemoryReboot",1,$NoOutOfMemoryReboot)."</td>
 				<td>" . help_icon("{NoOutOfMemoryReboot_explain}")."</td>
 			</tr>
 			<tr>
-				<td nowrap width=1% align='right' class=legend>{scheduled_reboot}:</td>
-				<td>" . Field_checkbox("AutoRebootSchedule",1,$AutoRebootSchedule,'CheckRebootSchedule()')."</td>
-				<td align=left><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('cron.php?field=AutoRebootScheduleText')\" style='font-size:13px;text-decoration:underline;color:black' id='scheduleAID2'>{schedule}</a></td>
+				<td nowrap width=1% align='right' class=legend style='font-size:22px'>{scheduled_reboot}:</td>
+				<td>" . Field_checkbox_design("AutoRebootSchedule",1,$AutoRebootSchedule,'CheckRebootSchedule()')."</td>
+				<td align=left><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('cron.php?field=AutoRebootScheduleText')\" style='font-size:22px;text-decoration:underline;color:black' id='scheduleAID2'>{schedule}</a></td>
 			</tr>
 		</tr>		
-			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesReboot$t()",26)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesReboot$t()",34)."</td>
 		</tr>			
 		</tbody>							
 		</table>

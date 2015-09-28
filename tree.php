@@ -549,7 +549,7 @@ function SambaInfos($path,$elements){
 	
 
 	if($users->NFS_SERVER_INSTALLED){
-		$nfs=imgtootltip('folder-granted-add-48-nfs.png','{share_this_NFS}',"NFSShare2('$path')");
+		$nfs=imgtootltip('folder-granted-add-48.png','{share_this_NFS}',"NFSShare2('$path')");
 	}			
 	
 	if($users->SAMBA_INSTALLED){
@@ -793,7 +793,7 @@ function folder_infos(){
 		$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 		$DisableExplorer=$sock->GET_INFO("DisableExplorer");
 		if($DisableExplorer==null){$DisableExplorer=0;}		
-		if($DisableExplorer==1){echo "<center style='margin:30px'><span style='font-size:18px;letter-spacing:-1px;color:red'>$ERROR_NO_PRIVS</span></center>";return;}				
+		if($DisableExplorer==1){echo "<center style='margin:30px'><span style='font-size:18px;letter-spacing:-1px;color:#d32d2d'>$ERROR_NO_PRIVS</span></center>";return;}				
 		
 		
 		if($users->IfIsAnuser()){
@@ -1329,7 +1329,7 @@ function upload_file_iframe($error=null){
 	if(isset($_POST["target_path"])){$_GET["form-upload"]=$_POST["target_path"];}
 	
 	if($error<>null){
-		$error="<div style='font-size:12px;font-family:Arial;font-weight:bold;padding:3px;margin:3px;border:1px solid red;text-align:center;color:red'>$error</div>";
+		$error="<div style='font-size:12px;font-family:Arial;font-weight:bold;padding:3px;margin:3px;border:1px solid red;text-align:center;color:#d32d2d'>$error</div>";
 	}
 	
 	if($_GET["select-file"]<>null){

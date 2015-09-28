@@ -57,7 +57,7 @@ class postfix_certificate{
 	
 	private function load_certificate(){
 		$q=new mysql();
-		$sql="SELECT `UsePrivKeyCrt`,`crt`,`csr`,`srca`,`clientkey`,`clientcert`,`DynamicCert`,`privkey`,`SquidCert`,`Squidkey`,`bundle`
+		$sql="SELECT `UsePrivKeyCrt`,`crt`,`csr`,`srca`,`clientkey`,`clientcert`,`privkey`,`SquidCert`,`Squidkey`,`bundle`
 		FROM sslcertificates WHERE CommonName='$this->CommonName'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$this->UsePrivKeyCrt=$ligne["UsePrivKeyCrt"];

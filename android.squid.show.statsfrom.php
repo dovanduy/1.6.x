@@ -120,13 +120,13 @@ function trentedays(){
 	
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){
-		echo $tpl->_ENGINE_parse_body("<center><strong style='color:red'>$q->mysql_error</strong></center>");
+		echo $tpl->_ENGINE_parse_body("<center><strong style='color:#d32d2d'>$q->mysql_error</strong></center>");
 		return;
 	}
 	$nbdays=mysql_num_rows($results);
 	
 	if($nbdays==0){
-		echo $tpl->_ENGINE_parse_body("<center><strong style='color:red'>$title_date {no_surffor} {{$_GET["field"]}}:{$_GET["value"]}</strong></center>");
+		echo $tpl->_ENGINE_parse_body("<center><strong style='color:#d32d2d'>$title_date {no_surffor} {{$_GET["field"]}}:{$_GET["value"]}</strong></center>");
 		return;
 		
 	}
@@ -185,14 +185,14 @@ function trentedayssize(){
 	}	
 	
 	$q=new mysql_squid_builder();
-	if(!$q->ok){echo "<H1 style='color:red'>$q->mysql_error</H1>";}
+	if(!$q->ok){echo "<H1 style='color:#d32d2d'>$q->mysql_error</H1>";}
 	
 	
 	$results=$q->QUERY_SQL($sql);
 	$nbdays=mysql_num_rows($results);
 	
 	if($nbdays==0){
-		echo $tpl->_ENGINE_parse_body("<strong style='color:red'>$title_date {no_surffor} {{$_GET["field"]}}:{$_GET["value"]}</strong>");
+		echo $tpl->_ENGINE_parse_body("<strong style='color:#d32d2d'>$title_date {no_surffor} {{$_GET["field"]}}:{$_GET["value"]}</strong>");
 		return;
 		
 	}

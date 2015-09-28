@@ -6,7 +6,7 @@ include_once('ressources/class.templates.inc');
 $users=new usersMenus();
 if(!$users->AsArticaMetaAdmin){
 	$tpl=new templates();
-	echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();
 
 }
 
@@ -120,6 +120,18 @@ function page(){
 
 	$q=new mysql_meta();
 	
+	$sql="SELECT SUM(size) as size FROM snapshots WHERE uuid='{$_GET["uuid"]}'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	if(!$q->ok){
+		if(stripos($q->mysql_error, "crashed and should be repaired")>0){
+			$button="<center style='margin:20px'>".button("{repair_table}","Loadjs('mysql.repair.progress.php?table=snapshots&database=articameta')",40)."</center>";
+				
+		}
+		echo FATAL_ERROR_SHOW_128(__FUNCTION__."/".__LINE__."<br>".$q->mysql_error.$button);
+		return;
+	}
+	$size=$ligne["size"];
+	$size=FormatBytes($size/1024,true);
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT policy_name,policy_type FROM policies WHERE ID='{$_GET["policy-id"]}'"));
 	$groupname=$tpl->javascript_parse_text($ligne["policy_name"]);
 	$buttons="
@@ -155,7 +167,7 @@ function page(){
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<strong style=font-size:22px>$title</strong>',
+	title: '<strong style=font-size:22px>$title ( $size )</strong>',
 	useRp: true,
 	rpOptions: [10, 20, 30, 50,100,200],
 	rp:50,

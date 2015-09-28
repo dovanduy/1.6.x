@@ -153,7 +153,7 @@ function popup(){
 		</td>
 		<td valign='top'>
 			<div style='font-size:18px;margin:bottom:10px;text-align:right'>{APP_MIMEDEFANG}</div>
-			<div style='font-size:13px' class=text-info>{MIMEDEFANG_DEF}</div>
+			<div style='font-size:13px' class=explain>{MIMEDEFANG_DEF}</div>
 			$p
 			<div id='explain-$t'>$table</div>
 		</td>

@@ -19,7 +19,7 @@ if(isset($_GET["popup"])){popup();exit;}
 if(isset($_GET["vmware-install"])){popup_install();exit;}
 if(isset($_GET["vmware-install-perfom"])){popup_install_perform();exit;}
 if(isset($_GET["vmware-install-logs"])){popup_install_logs();exit;}
-js_start();
+popup();
 
 
 function js_start(){
@@ -31,43 +31,61 @@ function js_start(){
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$users=new usersMenus();
 	$INSTALL_VMWARE_TOOLS=$tpl->_ENGINE_parse_body("{INSTALL_VMWARE_TOOLS}");
 	$html="
-	<div class=text-info style='font-size:16px'>{INSTALL_VMWARE_TOOLS_TEXT}</div>
+	<div style='font-size:30px;margin-bottom:20px'>{INSTALL_VMWARE_TOOLS_TEXT}</div>
+	";
+
 	
-	<table style='width:99%' class=form>
-	<tr>
-		<td valign='top' width=35%><div id='vmware-status'></div></td>
-		<td valing='top'>
-			<table style='width:95%;margin-bottom:35px' class=form>
-			<tr>
-				<td style='font-size:18px;font-weight:bold' nowrap>{install_from_vcdrom}:</td>
-			</tr>
-			<tr>
-				<td align='right'><hr>". button("{INSTALL_VMWARE_TOOLS}","InstallVMWARECD()",16)."</td>
-			</tr>
+	$sock=new sockets();
+	if(trim($sock->getFrameWork("services.php?vmtools_installed=yes"))<>"TRUE"){
+		$html=$html."<center style='font-size:30px;margin-bottom:20px;width:92%;padding:30px' class=form>
 			
-			</table>
-			<table style='width:98%' class=form>
-			<tr>
-				<td style='font-size:18px;font-weight:bold' nowrap>{install_from_sourcepackage}:</td>
-			</tr>
-			<tr>
-				<td>
-					<table style='width:100%'>
-					<tr>
-						<td class=legend style='font-size:16px'>{path}:</td>
-						<td>". Field_text("VMWareSourcePath",null,"font-size:14px;width:99%")."</td>
-						<td width=1%>". button("{browse}...", "Loadjs('tree.php?select-file=gz&target-form=VMWareSourcePath');",12)."</td>
-					</tr>
-				</td>
-			<tr>
-				<td align='right' colspan=3 ><hr>". button("{INSTALL_VMWARE_TOOLS}","InstallVMWARESource()",16)."</td>
-			</tr>
-			</table>			
-		</td>
-	</tr>
+			
+			<div style='margin:40px'>{APP_VMWARE_TOOLS_NOT_INSTALLED}</div>
+			<center>". button("{INSTALL_VMWARE_TOOLS}","Loadjs('vmware.install.progress.php')",42)."</center>
+		</center>
+		
+		";
+		
+		echo $tpl->_ENGINE_parse_body($html);
+		return;	
+		
+	}
+	$sock->getFrameWork("services.php?vmtools_stat=yes");
+	
+		
+		
+	
+			
+			
+	
+	$html=$html."<div style='width:99%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td valign=top style='width:350px'><div id='vmware-status'></div></td>
+		<td valign='top'>		
+	
+	<table style='width:100%'>
+	";
+	
+	
+	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/vmware.array"));
+	while (list ($key, $value) = each ($array) ){
+		$html=$html."<tr>
+				<td class=legend style='font-size:22px'>{{$key}_label}:</td>
+				<td style='font-size:22px;font-weight:bold'>$value</td>
+				</tr>";
+		
+	}		
+			
+			
+			
+	$html=$html."</table>
+	</td></tr>
 	</table>
+	</div>
 	
 	<script>
 	
@@ -101,18 +119,6 @@ function vmware_status(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$ini=new Bs_IniHandler();
-	if(!$users->VMWARE_TOOLS_INSTALLED){
-		$html="
-		<table style=width:95%' class=form>
-		<tr>
-			<td valing='top' width=1%><img src='img/warning64.png'></td>
-			<td><strong style='font-size:16px;color:#D80A0A'>{APP_VMWARE_TOOLS_NOT_INSTALLED}</td>
-		</tr>
-		</table>
-		";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
-	}
 	
 	$sock=new sockets();
 	$datas=$sock->getFrameWork("services.php?vmtools-status=yes");
@@ -181,7 +187,7 @@ function popup_install_logs(){
 		$html=$html."<div style='font-size:11px'>Waiting....</div>";
 	}
 	while (list ($i, $line) = each ($f)){
-		$line=str_replace("Failed", "<strong style='color:red'>Failed</strong>", $line);
+		$line=str_replace("Failed", "<strong style='color:#d32d2d'>Failed</strong>", $line);
 		$html=$html."<div style='font-size:11px'>$line</div>";
 	}
 	

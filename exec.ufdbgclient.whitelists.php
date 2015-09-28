@@ -2,12 +2,13 @@
 $GLOBALS["SCHEDULE_ID"]=0;
 $GLOBALS["AD_PROGRESS"]=0;
 $GLOBALS["DEBUG_INCLUDES"]=false;
+$GLOBALS["VERBOSE"]=false;
 $GLOBALS["ARGVS"]=implode(" ",$argv);
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--includes#",implode(" ",$argv))){$GLOBALS["DEBUG_INCLUDES"]=true;}
 if(preg_match("#--progress-activedirectory=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["AD_PROGRESS"]=$re[1];}
-
+if(preg_match("#--verbose#",implode(" ",$argv),$re)){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::class.templates.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.remote-stats-appliance.inc');
@@ -21,7 +22,8 @@ if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::frame.class.inc\n";}
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.acls.inc');
-
+include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
+include_once(dirname(__FILE__).'/class.familysites.inc');
 build_whitelist();
 
 function build_whitelist(){
@@ -32,10 +34,14 @@ function build_whitelist(){
 	urlrewriteaccessdeny_squid();
 	build_progress_wb("{compiling}",40);
 	build_blacklists();
-	build_progress_wb("{done}",100);
+	
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 /usr/share/artica-postfix/exec.ufdbclient.reload.php");
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	squid_admin_mysql(2, "Reloading proxy service for whitelist domains", null,__FILE__,__LINE__);
+	build_progress_wb("{reloading}",90);
+	system("$squidbin -k reconfigure");
+	build_progress_wb("{done}",100);
 }
 
 function build_blacklists($aspid=false){
@@ -68,23 +74,37 @@ function build_blacklists($aspid=false){
 		echo "berekley_db::FATAL ERROR $error on $dbfile\n";
 		return;
 		}
-	
-
-
+	@file_put_contents("/etc/squid3/ip-blacklists.db", "#");
+	@file_put_contents("/etc/squid3/www-blacklists.db","#");
+	$ARRAY_IPS=array();
+	$ip=new IP();
 	$q=new mysql_squid_builder();
 	$array=array();
 	$db_con = @dba_open($dbfile, "c","db4");
 	$sql="SELECT * FROM deny_websites";
 	$results = $q->QUERY_SQL($sql);
+	if($GLOBALS["VERBOSE"]){echo "BLACK ".mysql_num_rows($results)." items SQL\n";}
 	if(!$q->ok){ echo "Starting......: ".date("H:i:s")." [ACLS]: $q->mysql_error\n"; return; }
 	@unlink("/etc/squid3/www-blacklists.db");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["items"]==null){continue;}
 		$item=$ligne["items"];
+		
+		if(preg_match("#^http:\/\/([0-9\.]+)(\/|$)#", $item,$re)){
+			$ARRAY_IPS[$re[1]]=true;
+			continue;
+		}
+		
+		if($ip->isValid($item)){
+			$ARRAY_IPS[$item]=true;
+			continue;
+		}
+		
 		$item=str_replace("/", "\/", $item);
 		$item=str_replace(".", "\.", $item);
 		$item=str_replace("*", ".*?", $item);
 		@dba_replace($item,$item,$db_con);
+		if($GLOBALS["VERBOSE"]){echo "BLACK $item\n";}
 		$array[]=$ligne["items"];
 
 	}
@@ -105,7 +125,35 @@ function build_blacklists($aspid=false){
 	@file_put_contents("/etc/squid3/www-blacklists.db", @implode("\n", $url_rewrite_program)."\n");
 	@chown("/etc/squid3/www-blacklists.db", "squid");
 	@chgrp("/etc/squid3/www-blacklists.db","squid");
-
+	
+	if(count($ARRAY_IPS)>0){
+		while (list ($item, $line) = each ($ARRAY_IPS)){
+			$zips[]=$item;
+		}
+		
+		@file_put_contents("/etc/squid3/ip-blacklists.db", @implode("\n", $zips)."\n");
+		@chown("/etc/squid3/ip-blacklists.db", "squid");
+		@chgrp("/etc/squid3/ip-blacklists.db","squid");
+		
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$DenyBlacksites=false;
+	$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
+	while (list ($num, $line) = each ($f)){
+		if(preg_match("#DenyBlacksites dstdomain#", $line,$re)){
+			$DenyBlacksites=true;
+		}
+			
+	}
+	if(!$DenyBlacksites){
+		
+		system("$php /usr/share/artica-postfix/exec.squid.php --build --force --noufdbg");
+		return;
+	}
+	
+	shell_exec("$nohup /etc/init.d/squid reload --script=".basename(__FILE__));
 
 }
 
@@ -195,7 +243,7 @@ function urlrewriteaccessdeny_squid(){
 }
 
 function build_progress_wb($text,$pourc){
-
+	if($GLOBALS["VERBOSE"]){echo "{$pourc}) $text\n";}
 	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.wb.progress";
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;

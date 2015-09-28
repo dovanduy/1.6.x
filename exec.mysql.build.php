@@ -6,6 +6,7 @@ include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql-server.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql-multi.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
@@ -979,6 +980,50 @@ function mysql_display($table,$database){
 	
 }
 
+function mysqlcheck_squidlogs($table){
+	$time1=time();
+	$unix=new unix();
+	$mysqlcheck=$unix->find_program("mysqlcheck");
+	$q=new mysql_squid_builder();
+	$pgrep=$unix->find_program("pgrep");
+	$myisamchk=$unix->find_program("myisamchk");
+	$touch=$unix->find_program("touch");
+	$time1=time();
+	$MYSQL_CMDLINES=$q->MYSQL_CMDLINES;
+	$cmd="$mysqlcheck $MYSQL_CMDLINES -c -f --auto-repair squidlogs $table";
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	exec($cmd,$results);
+	$time_duration=distanceOfTimeInWords($time1,time());
+	
+	$q->QUERY_SQL("OPTIMIZE TABLE `$table`");
+	if(!$q->ok){
+		$OPT="\nOptimize:$q->mysql_error\n";
+	}else{
+		$OPT="\nOptimize: Success...\n";
+	}
+	
+
+	
+	
+	exec("$pgrep -l -f \"$myisamchk.*?$table\"",$results);
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#pgrep#", $line)){continue;}
+		if(preg_match("#^[0-9]+\s+#", $line)){
+			writelogs("$line already executed",@implode("\r\n", $results),__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+	}
+	
+	
+	if(!is_file("/opt/squidsql/data/squidlogs/$table.MYI")){return;}
+	exec("$myisamchk --safe-recover /opt/squidsql/data/squidlogs/$table.MYI 2>&1",$results);
+	while (list ($index, $line) = each ($results) ){
+		echo $line."\n";
+	}
+	
+}
+
+
 function mysqlcheck($db,$table,$instance_id){
 	if($GLOBALS["VERBOSE"]){echo "START:: ".__FUNCTION__."\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -989,16 +1034,21 @@ function mysqlcheck($db,$table,$instance_id){
 		return;
 	}
 	
+	if($db=="squidlogs"){mysqlcheck_squidlogs($table);return;}
+	
 	if(!is_numeric($instance_id)){$instance_id=0;}
 	
 	$time1=time();
 	$mysqlcheck=$unix->find_program("mysqlcheck"); 
 	$q=new mysql();
-	$cmd="$mysqlcheck -r $db $table -u $q->mysql_admin -p$q->mysql_password 2>&1";
+	$pass=null;
+	if($q->mysql_password<>null){$pass="-p$q->mysql_password";}
+	
+	$cmd="$mysqlcheck -r $db $table -u $q->mysql_admin $pass 2>&1";
 	
 	if($instance_id>0){
 		$q=new mysql_multi($instance_id);
-		$cmd="$mysqlcheck -r $db $table -u $q->mysql_admin -p$q->mysql_password --socket=\"$q->SocketPath\" 2>&1";
+		$cmd="$mysqlcheck -r $db $table -u $q->mysql_admin $pass --socket=\"$q->SocketPath\" 2>&1";
 	}
 	
 	exec($cmd,$results);
@@ -1109,9 +1159,32 @@ function _repair_database($database){
 	if($q->mysql_password<>null){
 		$ty[]="--password=$q->mysql_password";
 	}
+	
+	
+	$BLACKS["events_waits_current"]=true;
+	$BLACKS["events_waits_history"]=true;
+	$BLACKS["events_waits_history_long"]=true;
+	$BLACKS["cond_instances"]=true;
+	$BLACKS["events_waits_summary_by_instance"]=true;
+	$BLACKS["events_waits_summary_by_thread_by_event_name"]=true;
+	$BLACKS["events_waits_summary_global_by_event_name"]=true;
+	$BLACKS["file_instances"]=true;
+	$BLACKS["file_summary_by_event_name"]=true;
+	$BLACKS["file_summary_by_instance"]=true;
+	$BLACKS["mutex_instances"]=true;
+	$BLACKS["performance_timers"]=true;
+	$BLACKS["rwlock_instances"]=true;
+	$BLACKS["setup_consumers"]=true;
+	$BLACKS["setup_instruments"]=true;
+	$BLACKS["setup_timers"]=true;
+	$BLACKS["threads"]=true;
+	$BLACKS["schema"]=true;
 	$credentials=@implode(" ", $ty);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$table=$ligne["Tables_in_$database"];
+		
+		if(isset($BLACKS[$table])){continue;}
+		
 		$tt=time();
 		if(is_file($mysqlcheck)){
 			exec("$mysqlcheck$credentials -r $database $table 2>&1",$mysqlcheck_array);

@@ -1288,7 +1288,7 @@ function organization_vhostslist_disabled(){
 	<tr>
 		<td valign='top' width=1%><img src='img/software-remove-128.png'></td>
 		<td valign='top'>
-			<H2 style='color:red'>{APP_GROUPWARE_APACHE}:: {DISABLED}</H2>
+			<H2 style='color:#d32d2d'>{APP_GROUPWARE_APACHE}:: {DISABLED}</H2>
 			<div style='font-size:14px' id='EnableApacheGroupware'>
 			{APP_GROUPWARE_APACHE_DISABLED_TEXT}
 			</div>

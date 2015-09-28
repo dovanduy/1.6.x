@@ -118,7 +118,7 @@ $('#flexRT$t').flexigrid({
 	$tpl=new templates();
 	$free=new freeweb($_GET["servername"]);
 	//if($free->groupware<>null){
-		//echo $tpl->_ENGINE_parse_body("<div class=text-info>{freeweb_is_groupware_feature_disabled}</div>");
+		//echo $tpl->_ENGINE_parse_body("<div class=explain>{freeweb_is_groupware_feature_disabled}</div>");
 		//return;
 	//}
 	
@@ -200,7 +200,7 @@ if($users->AsSystemAdministrator){
 $html="
 
 	<div id='alias-animate-$t'></div>
-	<div class=text-info style='font-size:14px'>{freeweb_alias_explain}</div>
+	<div class=explain style='font-size:14px'>{freeweb_alias_explain}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>

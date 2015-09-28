@@ -2,58 +2,101 @@
 <?php
 $GLOBALS["DEBUG"]=false;
 $GLOBALS["HERLPER_LOADED_BY_SQUID"]=true;
-
-//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
 include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.catz.inc");
-
- if(preg_match("#--categories\s+([0-9]+)#", @implode(" ", $argv),$re)){
-  	WLOG("Starting ACLs dynamic with Categories features Group {$re[1]}...");
-  	include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
-  	$GLOBALS["CATZ-EXTRN"]=$re[1];
-  }
-
 $GLOBALS["MYPID"]=getmypid();
 WLOG("Starting PID:{$GLOBALS["MYPID"]}");
 $GLOBALS["XVFERTSZ"]=XVFERTSZ();
 
 
-WLOG("Artica categories : Starting Group id:{$GLOBALS["MYPID"]}");
+
 
 
 $DCOUNT=0;
 while (!feof(STDIN)) {
-	$url = trim(fgets(STDIN));
-	if($url==null){
-		if($GLOBALS["DEBUG"]){WLOG("$DCOUNT] LOOP::URL `$url` is null [".__LINE__."]");}
+	$Buffer = trim(fgets(STDIN));
+	if($Buffer==null){
+		if($GLOBALS["DEBUG"]){WLOG("$DCOUNT] LOOP::URL `$Buffer` is null [".__LINE__."]");}
 		continue;
 	}
 	
+	if($GLOBALS["DEBUG"]){WLOG("$DCOUNT] LOOP::URL `$Buffer` [".__LINE__."]");}
+	$MAIN=explode(" ",$Buffer);
+	$prefix_channel=null;
+	// administrateur 192.168.1.177 3c:a9:f4:13:9b:90 - www.google.fr 57
+	
+	if(is_numeric($MAIN[0])){
+		$GLOBALS["CHANNEL"]=$MAIN[0];
+		$EXT_LOG=trim($MAIN[1]);
+		$TAG=trim($MAIN[2]);
+		$userid=trim($MAIN[3]);
+		$ipaddr=trim($MAIN[4]);
+		$MAC=trim($MAIN[5]);
+		$ipaddr2=trim($MAIN[6]);
+		$url=trim($MAIN[7]);
+		$groupid=intval(trim($MAIN[8]));
+		$MD5KEY=md5($Buffer);
+		$GLOBALS["TAG"]=$TAG;
+		$GLOBALS["USERID"]=$userid;
+		$GLOBALS["IPADDR"]=$ipaddr;
+		$GLOBALS["MAC"]=$MAC;
+		$GLOBALS["DOMAIN"]=$url;
+	}else{
+		$EXT_LOG=trim($MAIN[0]);
+		$TAG=trim($MAIN[1]);
+		$userid=trim($MAIN[2]);
+		$ipaddr=trim($MAIN[3]);
+		$MAC=trim($MAIN[4]);
+		$ipaddr2=trim($MAIN[5]);
+		$url=trim($MAIN[6]);
+		$groupid=intval(trim($MAIN[7]));
+		$MD5KEY=md5($Buffer);
+		$GLOBALS["EXT_LOG"]=$TAG;
+		$GLOBALS["TAG"]=$TAG;
+		$GLOBALS["USERID"]=$userid;
+		$GLOBALS["IPADDR"]=$ipaddr;
+		$GLOBALS["MAC"]=$MAC;
+		$GLOBALS["DOMAIN"]=$url;
+	}
+	
+
+	if(isset($GLOBALS["CHANNEL"])){
+		if(is_numeric($GLOBALS["CHANNEL"])){
+			if($GLOBALS["CHANNEL"]>0){
+				$prefix_channel="{$GLOBALS["CHANNEL"]} ";
+			}
+		}
+	}
+	
+	if($GLOBALS["DEBUG"]){WLOG("{$GLOBALS["DOMAIN"]}: LOOP TAG=$TAG USERID=$userid IPADDR=$ipaddr/$MAC");}
+	
+	if($GLOBALS["DEBUG"]){WLOG("{$GLOBALS["DOMAIN"]}: LOOP channel=$prefix_channel [$Buffer] ->`$url` -> $groupid");}
 	
 	$DCOUNT++;
 	
 	if(!$GLOBALS["XVFERTSZ"]){
 		$error=urlencode("License Error, please remove Artica categories objects in ACL");
-		WLOG("LOOP():: License Error ! [".__LINE__."]");
-		fwrite(STDOUT, "BH message=$error\n");
+		WLOG("{$GLOBALS["DOMAIN"]}: LOOP():: License Error ! [".__LINE__."]");
+		categories_logs("$groupid;ERROR;License error");
+		fwrite(STDOUT, "{$prefix_channel}BH message=$error\n");
 		continue;
 	}	
 	
 	try {
-		if($GLOBALS["DEBUG"]){WLOG("LOOP Send ->`$url`");}
-		$categories_match=categories_match($GLOBALS["CATZ-EXTRN"],$url);
+		if($GLOBALS["DEBUG"]){WLOG("{$GLOBALS["DOMAIN"]}:LOOP Send ->`$url`");}
+		$RESULT=categories_match($groupid,$url,$MD5KEY);
 	}
 	catch (Exception $e) {
 		$error=$e->getMessage();
-		WLOG("$DCOUNT] LOOP::FATAL ERROR $error");
+		WLOG("{$GLOBALS["DOMAIN"]}: $DCOUNT] LOOP::FATAL ERROR $error");
 		$result=false;
 	}
 	
-	if($categories_match<>null){
-		fwrite(STDOUT, "OK message=$categories_match\n");
+	if($RESULT){
+		fwrite(STDOUT, "{$prefix_channel}OK message=$TAG\n");
 		continue;
 	}
-	fwrite(STDOUT, "ERR\n");
+	fwrite(STDOUT, "{$prefix_channel}ERR\n");
 	continue;
 
 	
@@ -94,22 +137,33 @@ function _get_memory_usage_158() {
 
 
 
-function categories_match($gpid,$sitname){
+function categories_match($gpid,$sitname,$MD5KEY){
 	$sitname=trim($sitname);
 	if(preg_match("#^www\.(.+)#", $sitname,$re)){$sitname=$re[1];}
 	if(preg_match("#^(.+):[0-9]+]#", $sitname,$re)){$sitname=$re[1];}
 	if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: $gpid `$sitname`");}
 	
-	$categories_get_memory=categories_get_memory($gpid,$sitname);
+	$categories_get_memory=categories_get_memory($gpid,$sitname,$MD5KEY);
 	
-	if($categories_get_memory<>null){
+	if($categories_get_memory==0){
 		if($GLOBALS["DEBUG"]){WLOG("Group: $gpid `$sitname` -> MEMORY: `$categories_get_memory` ");}
-		if($categories_get_memory=="UNKNOWN"){
-			if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: FROM MEMORY `$sitname` -> UNKNOWN");}
-			return null;}
-			if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: FROM MEMORY `$sitname` -> $categories_get_memory");}
-		return $categories_get_memory;
+		categories_logs("$gpid;MEMORY;UNKNOWN/NONE");
+		if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: FROM MEMORY `$sitname` -> UNKNOWN");}
+		return false;
 	}
+		
+	if($categories_get_memory==1){
+		categories_logs("$gpid;MEMORY;TRUE/-");
+		if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: FROM MEMORY `$sitname` -> TRUE");}
+		return true;
+	}
+	if($categories_get_memory==2){
+		categories_logs("$gpid;MEMORY;FALSE/-");
+		if($GLOBALS["DEBUG"]){WLOG("Analyze: Group: FROM MEMORY `$sitname` -> FALSE");}
+		return false;
+	}	
+	
+	
 
 	$q=new mysql_catz();
 	$categoriF=$q->GET_CATEGORIES($sitname);
@@ -119,8 +173,9 @@ function categories_match($gpid,$sitname){
 
 	if($categoriF==null){
 		if($GLOBALS["DEBUG"]){WLOG("Group: $gpid `$sitname` -> SET TO  `UNKNOWN` ");}
-		categories_set_memory($gpid,$sitname,"UNKNOWN");
-		return null;
+		categories_logs("$gpid;QUERY;UNKNOWN/NONE");
+		categories_set_memory($gpid,$sitname,0,$MD5KEY);
+		return false;
 	}
 
 	if(strpos($categoriF, ",")>0){
@@ -134,47 +189,81 @@ function categories_match($gpid,$sitname){
 		$MAIN[$b]=true;
 	}
 
-	$filename="/etc/squid3/acls/catz_gpid{$gpid}.acl";
-	$categories=unserialize(@file_get_contents($filename));
+	if(!isset($GLOBALS["CONFIG"][$gpid])){
+		$filename="/etc/squid3/acls/catz_gpid{$gpid}.acl";
+		$GLOBALS["CONFIG"][$gpid]=unserialize(@file_get_contents($filename));
+	}
+	
+	$categories=$GLOBALS["CONFIG"][$gpid];
 
 	while (list ($category_table, $category_rule) = each ($categories)){
 		$category_rule=urlencode($category_rule);
 		$categoryname=$trans[$category_table];
+		if($categoryname==null){$categoryname=$category_rule;}
 		
 		if(isset($MAIN[$categoryname])){
 			if($GLOBALS["DEBUG"]){WLOG("FOUND `$categoryname` -> `$category_rule` ");}
-			categories_set_memory($gpid,$sitname,$category_rule);
-			return $category_rule;
-		}else{
-			if($GLOBALS["DEBUG"]){WLOG("Group: $gpid `$sitname` -> $categoryname = NO MATCH [".__LINE__."]");}
+			categories_logs("$gpid;QUERY;TRUE/$categoryname");
+			categories_set_memory($gpid,$sitname,1,$MD5KEY);
+			return true;
 		}
 
 	}
-
-	categories_set_memory($gpid,$sitname,"UNKNOWN");
-
+	
+	categories_logs("$gpid;QUERY;FALSE/".@implode(",", $categoriT));
+	categories_set_memory($gpid,$sitname,2,$MD5KEY);
+	return false;
 }
 	
-function categories_get_memory($gpid,$sitname){
+function categories_get_memory($gpid,$sitname,$MD5KEY){
+	$KEYRULE=md5("$MD5KEY$gpid");
+	if(!isset($GLOBALS["categories_memory"])){return 3;}
+	if(count($GLOBALS["categories_memory"])>26000){$GLOBALS["categories_memory"]=array();}
 
-	if(isset($GLOBALS["categories_memory"])){
-		if($GLOBALS["DEBUG"]){WLOG("categories_get_memory: $gpid,$sitname ->". strlen($GLOBALS["categories_memory"])." bytes");}
-		$data=unserialize($GLOBALS["categories_memory"]);
-	}else{
-		$data=array();
-	}
-	if(!isset($data[$sitname])){return null;}
-	if(!isset($data[$sitname][$gpid])){return null;}
-	if(count($data[$sitname])>64000){$GLOBALS["categories_memory"]=null;}
-	if($GLOBALS["DEBUG"]){WLOG("MEMORY: Group: $gpid `$sitname` -> {$data[$sitname][$gpid]}");}
-	return $data[$sitname][$gpid];
+	
+	if($GLOBALS["DEBUG"]){WLOG("$sitname: MEMORY: ".count($GLOBALS["categories_memory"])." items in memory");}
+	if(!isset($GLOBALS["categories_memory"][$KEYRULE])){return 3;}
+	if($GLOBALS["DEBUG"]){WLOG("MEMORY: Group: $gpid `$sitname` -> {$GLOBALS["categories_memory"][$KEYRULE]}");}
+	return $GLOBALS["categories_memory"][$KEYRULE];
+	
 }	
-function categories_set_memory($gpid,$sitname,$result){
-	if(isset($GLOBALS["categories_memory"])){
-		$data=unserialize($GLOBALS["categories_memory"]);
+
+
+
+function categories_set_memory($gpid,$sitname,$result,$MD5KEY){
+	$KEYRULE=md5("$MD5KEY$gpid");
+	if($GLOBALS["DEBUG"]){WLOG("$sitname: MEMORY: SET \$GLOBALS[\"categories_memory\"][$KEYRULE] = $result");}
+	$GLOBALS["categories_memory"][$KEYRULE]=$result;
+}
+
+function categories_logs($text=null){
+	if($text==null){return;}
+	$maxsize=10485760;
+	$filename="/var/log/squid/acl.categories.log";
+	$size=@filesize("/var/log/squid/acl.categories.log");
+	
+	if (is_file($filename)) {
+		$size=@filesize($filename);
+		if($size>$maxsize){ unlink($filename); }
 	}
-	$data[$sitname][$gpid]=$result;
-	$GLOBALS["categories_memory"]=serialize($data);
+	$EXT_LOG=$GLOBALS["EXT_LOG"];
+	$userid=$GLOBALS["USERID"];
+	$ipaddr=$GLOBALS["IPADDR"];
+	$MAC=$GLOBALS["MAC"];
+	$url=$GLOBALS["DOMAIN"];
+	$TAG=$GLOBALS["TAG"];
+	if($EXT_LOG<>null){
+		$pp=explode(",",$EXT_LOG);
+		$GROUP=$pp[0];
+		$OU=$pp[1];
+	}
+	if($GROUP==null){$GROUP="-";}
+	if($OU==null){$OU="-";}
+	$f = @fopen($filename, 'a');
+	$date=time();
+	@fwrite($f, "$date;$TAG;$userid | $GROUP | $OU;$ipaddr;$MAC;$url;$text\n");
+	@fclose($f);
+	
 }
 
 

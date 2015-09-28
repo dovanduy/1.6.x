@@ -29,7 +29,7 @@ function page(){
 	$page=CurrentPageName();	
 	$html="<div class=form>
 	<div style='font-size:18px'>{welcome_title} {$_SESSION["email"]}</div>
-	<p style='font-size:16px'  class=text-info>{instroduction_enduser_proxy}</p>
+	<p style='font-size:16px'  class=explain>{instroduction_enduser_proxy}</p>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
@@ -312,7 +312,7 @@ function myhome3(){
 				</tr>		
 			</tbody>
 		</table>
-		<span style='font-size:11px;color:red'>$error</span>
+		<span style='font-size:11px;color:#d32d2d'>$error</span>
 	</td>
 	</tr>
 	</tbody>

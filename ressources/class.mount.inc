@@ -250,7 +250,9 @@ class mount{
 		}
 		
 		$this->events("smb_mount() mounting //$server/$path -> $mountpoint");
-		if($GLOBALS["VERBOSE"]){$this->events("$cmd");}
+		$cmd_log=$cmd;
+		//$cmd_log=str_replace($password, "**********", $cmd_log);
+		$this->events("$cmd_log");
 		if(!is_dir("$mountpoint")){@mkdir($mountpoint,null,true);}
 		//$this->events("$cmd");
 		exec($cmd,$results);
@@ -496,6 +498,7 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 	}
 	
 private function events($text){
+	if(isset($GLOBALS["OUPUT_MOUNT_CLASS"])){echo "$text\n";}
 	if(!isset($_GET["logcomputer"])){$_GET["logcomputer"]=null;}
 	$GLOBALS["MOUNT_EVENTS"][]=$text;
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}		

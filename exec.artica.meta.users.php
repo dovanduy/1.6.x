@@ -938,7 +938,7 @@ function export_openvpn_logs(){
 		$CacheDatas[$filepath]=$filetime;
 		shell_exec("$gzip -f -c \"$filepath\"  > \"$filepath_gzipped\"");
 		$filesize=filesize($filepath_gzipped)/1024;		
-		if($GLOBALS["VERBOSE"]){echo "Send to Artica Meta (". FormatBytes($filesize).")\n";}	
+		if($GLOBALS["VERBOSE"]){echo "Send to Meta Server (". FormatBytes($filesize).")\n";}	
 		$http->uploads["OPENVPN_SERVER_LOG"]=$filepath_gzipped;
 		$body=$http->send("$meta->ArticaMetaHostname/lic.users.import.php","post",array("DATAS"=>base64_encode(serialize($meta->GLOBAL_ARRAY))));
 		if(!preg_match("#<RESULTS>OK</RESULTS>#is",$body)){	return;}
@@ -1027,7 +1027,7 @@ function export_virtualbox_logs(){
 	$meta=new artica_meta();
 	$filesize=filesize("/tmp/gzip_vbox/VboxLogs.tar.gz")/1024;
 	
-	if($GLOBALS["VERBOSE"]){echo "Send to Artica Meta (". FormatBytes($filesize).")\n";}	
+	if($GLOBALS["VERBOSE"]){echo "Send to Meta Server (". FormatBytes($filesize).")\n";}	
 	$http->uploads["VBOXGUEST_LOGS"]="/tmp/gzip_vbox/VboxLogs.tar.gz";
 	$body=$http->send("$meta->ArticaMetaHostname/lic.users.import.php","post",array("DATAS"=>base64_encode(serialize($meta->GLOBAL_ARRAY))));
 

@@ -36,7 +36,7 @@
 	$start="Browse();";
 	if(isset($_GET["in-front-ajax"])){$start="Browse2();";}	
 
-	$title=$tpl->_ENGINE_parse_body("{browse}"."... {folders}");
+	$title=$tpl->javascript_parse_text("{browse}"."... {folders}");
 	header("content-type: application/x-javascript");
 $html="
 var x_DeleteHiddenDisk= function (obj) {
@@ -54,7 +54,7 @@ var x_DeleteHiddenDisk= function (obj) {
 
 	function Browse(){
 		$('head').append( $('<link rel=\"stylesheet\" type=\"text/css\" />').attr('href', '/js/jqueryFileTree.css') );
-		LoadWinORG(840,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}','$title');
+		LoadWinORG(990,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}','$title');
 
 	}
 	
@@ -261,7 +261,7 @@ function hidden_disk_popup(){
 	";
 	
 	$html="<h1>{invisible_disk}</H1>
-	<div class=text-info>{add_invisible_disk_text}</div>
+	<div class=explain>{add_invisible_disk_text}</div>
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'><img src='img/64-hd-plus.png'></td>
@@ -313,7 +313,7 @@ function jdisk(){
 	$mounted=$_GET["mounted"];
 	
 	if($_GET["without-start"]=='yes'){
-		$loadyahoo="LoadWinORG(650,'$page?null=yes');";
+		$loadyahoo="LoadWinORG(990,'$page?null=yes');";
 	}
 	
 	if($_GET["t"]<>null){
@@ -472,7 +472,6 @@ function UnShare(head){
  
  function SelectThisFolderByField(path,field){
  	if(document.getElementById(field)){
- 		
  		document.getElementById(field).value=path;
  		WinORGHide();
  		$functionAfter;
@@ -502,16 +501,16 @@ echo $html;
 
 function browsedisk_start(){
 	$html="
-	<table style='width:100%'>
+	<table style='width:99%'>
 	<tr>
-	<td valign='top'>
-		<div style='overflow:auto;height:500px;width:100%'>
-			<div id='folderTree' class=form style='width:98%' class=form></div>
-		</div>
-	</td>
-	<td valign='top'>
-	
-	<div id='TreeRightInfos'></div></td>
+		<td valign='top' style='padding:5px'>
+			<div style='overflow:auto;height:500px;width:100%'>
+				<div id='folderTree' class=form style='width:96%' class=form></div>
+			</div>
+		</td>
+		<td valign='top' style='padding:5px'>
+			<div id='TreeRightInfos'></div>
+		</td>
 	</tr>
 	</table>
 	";
@@ -596,17 +595,18 @@ function TreeRightInfos(){
 		
 		$smb=new samba();
 		if($smb->main_shared_folders[$path]<>null){
-			$txt="<tr><td colspan=2><div class=text-info><b>$path</b>&nbsp;({$smb->main_shared_folders[$path]})&nbsp;:{FOLDER_IS_SHARED}</div></td></tr>";
-			$unshare="<tr><td colspan=2><hr></td></tr>$txt<tr ".CellRollOver("UnShare('{$smb->main_shared_folders[$path]}')").">
-					<td width=1% valign='top'>" . imgtootltip('folder-32-share-delete.png','{delete_share}',"")."</td>
-					<td style='font-size:16px'>{delete_share}</td>	
-				</tr>";	
+			$txt="<tr><td colspan=2><p class=explain><b>$path</b>&nbsp;({$smb->main_shared_folders[$path]})&nbsp;:{FOLDER_IS_SHARED}</p></td></tr>";
+
 			
+			$unshare="<tr style='height:45px'>
+		<td width=1% valign='top'>". button("{delete_share}",
+							"UnShare('{$smb->main_shared_folders[$path]}",18,252)."</td>
+		</tr>";
 			
-			$shared_priv="<tr ".CellRollOver("FolderProp('{$smb->main_shared_folders[$path]}')").">
-					<td width=1% valign='top'>" . imgtootltip('folder-user2-32.png','{privileges_settings}',"")."</td>
-					<td style='font-size:16px'>{privileges}</td>	
-				</tr>";
+			$shared_priv="<tr style='height:45px'>
+		<td width=1% valign='top'>". button("{privileges_settings}",
+							"FolderProp('{$smb->main_shared_folders[$path]}')",18,252)."</td>
+		</tr>";
 	
 			$shareit=$unshare;
 			}
@@ -614,11 +614,12 @@ function TreeRightInfos(){
 	}
 	
 	if($_GET["homeDirectory"]=='yes'){
+
 		
-		$select="<tr ".CellRollOver("SelectThisFolder('$path')").">
-				<td width=1% valign='top'>" . imgtootltip('arrow-right-32.png','{select_this_folder}',"")."</td>
-				<td style='font-size:16px' nowrap>{select_this_folder}</td>	
-			</tr>";
+		$select="<tr style='height:45px'>
+		<td width=1% valign='top'>". button("{select_this_folder}",
+						"SelectThisFolder('$path')",18,252)."</td>
+		</tr>";
 		
 	}
 	
@@ -627,10 +628,12 @@ function TreeRightInfos(){
 		$shareit=null;
 		$nfs=null;
 		if($_GET["protocol"]=="yes"){$path="dir:$path";}
-		$select="<tr ".CellRollOver("SelectThisFolderByField('$path','{$_GET["field"]}')").">
-				<td width=1% valign='top'>" . imgtootltip('arrow-right-32.png','{select_this_folder}',"")."</td>
-				<td style='font-size:16px'>{select_this_folder}</td>	
-			</tr>";
+		
+	$select="<tr style='height:45px'>
+		<td width=1% valign='top'>". button("{select_this_folder}", 
+				"SelectThisFolderByField('$path','{$_GET["field"]}')",18,252)."</td>
+		</tr>";
+
 		
 		
 	}
@@ -652,15 +655,14 @@ function TreeRightInfos(){
 	<div style='font-size:16px;font-weight:bold'>&laquo;$f&raquo;</div>
 
 	<table style='width:99%'>
-		<tr ".CellRollOver('SmbAddSubFolder()').">
-		<td width=1% valign='top'>
-		" . imgtootltip('folder-32-add.png','{add_sub_folder}',"")."</td>
-		<td style='font-size:16px' nowrap>{add_sub_folder}</td>
+		
+	
+	
+		<tr style='height:45px'>
+			<td width=1% valign='top'>". button("{add_sub_folder}", "SmbAddSubFolder()",18,252)."</td>
 		</tr>
-		<tr ".CellRollOver('SmbDelSubFolder()').">
-		<td width=1% valign='top'>
-		" . imgtootltip('folder-delete-32.png','{del_sub_folder}',"")."</td>
-		<td style='font-size:16px'>{del_sub_folder}</td>	
+		<tr style='height:45px'>
+			<td width=1% valign='top'>". button("{del_sub_folder}", "SmbDelSubFolder()",18,252)."</td>
 		</tr>
 		$select
 		$shareit		

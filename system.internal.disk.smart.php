@@ -39,12 +39,12 @@ function tabs(){
 	$array["health"]='{health}';
 	
 	$md=md5($_GET["dev"]);
-	
+	$fontsize=18;
 
 	while (list ($num, $ligne) = each ($array) ){
 		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href='$page?$num=yes&dev={$_GET["dev"]}'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href='$page?$num=yes&dev={$_GET["dev"]}'><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -64,7 +64,7 @@ function status(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$datas=unserialize(base64_decode($sock->getFrameWork("smart.php?status={$_GET["dev"]}")));
-	$html="<div style='font-size:16px'>{APP_SMARTMONTOOLS}</div>
+	$html="<div style='font-size:22px'>{APP_SMARTMONTOOLS}</div>
 	<div style='text-align:right;font-size:14px;margin-top:5px;border-top:1px solid #CCCCCC;padding-top:5px'><i style='font-size:14px'>{$_GET["dev"]}</i></div>
 	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>

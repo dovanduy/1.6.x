@@ -34,22 +34,21 @@ function manual_update(){
 	$allowedExtensions="allowedExtensions: ['tgz'],";
 	$UploadAFile=str_replace(" ", "&nbsp;", $UploadAFile);
 	$html="
-	<H2>{manual_update}</H2>
-	<div class=text-info style='font-size:16px'>{artica_manual_update_text}</div>
+	<div style='font-size:30px'>{manual_update}</div>
+	<div class=explain style='font-size:18px'>{artica_manual_update_text}</div>
 	<center>
 	<table style='width:80%'>
 	<tr>
 		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
-		<td><a href=\"http://www.articatech.net/nightly.php\" target=_new style='font-size:16px;text-decoration:underline'>Nightly Builds</a></td>
+		<td><a href=\"http://www.articatech.net/betas.php\" target=_new 
+		style='font-size:18px;text-decoration:underline;color:black !important'>Nightly Builds</a></td>
 	</tr>
 	<tr>
 		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
-		<td><a href=\"http://www.articatech.net/releases.php\" target=_new style='font-size:16px;text-decoration:underline'>Artica Releases</a></td>
+		<td><a href=\"http://www.articatech.net/download2x.php\" target=_new 
+			style='font-size:18px;text-decoration:underline;color:black !important'>Artica Releases</a></td>
 	</tr>
-	<tr>
-		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
-		<td><a href=\"http://www.artica.fr/patch-p0.php\" target=_new style='font-size:16px;text-decoration:underline'>Artica Patchs</a></td>
-	</tr>	
+	
 	
 	</table>
 	</center>

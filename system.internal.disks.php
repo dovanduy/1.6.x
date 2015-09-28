@@ -454,110 +454,166 @@ while (list ($num, $line) = each ($d)){
 	}
 	
 }
+$radius="-webkit-border-radius: 5px;-moz-border-radius: 5px;border-radius: 5px;/* behavior:url(/css/border-radius.htc); */";
+$datas=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/usb.scan.serialize"));
 
-
-$html="
-<center style='margin-top:25px'>";
+$DD[]="";
 $count=0;
-	while (list ($num, $line) = each ($_GLOBAL["disks_list"])){
+	while (list ($dev, $array) = each ($_GLOBAL["disks_list"])){
 		if($num=="size (logical/physical)"){continue;}
-		$DD[]=ParseHDline($num,$line);
-
+		$DD[]="
+		<table style='width:98%;margin:10px;margin-bottom:20px;border:2px solid #CCCCCC;$radius'>
+		<tr>
+		<td style='vertical-align:top;font-size:22px;width:128px;'><img src='img/disk-128.png' style=';width:128px'></td>
+		<td style='vertical-align:top;font-size:22px;width:400px;'>".ParseHDline($dev,$array)."</td>
+				
+		";
+		$DD[]="<td style='vertical-align:top;font-size:22px'>";
+		if(isset($datas[$dev]["PARTITIONS"])){
+			$DD[]=ParsePartitions($dev,$datas[$dev]["PARTITIONS"]);
+			
+			
+		}
+		$DD[]="</td></tR>";
 		
+
+		$DD[]="</table>";
 		
 	}
 
-	$html=$html.CompileTr3($DD,true);
 	
-	$html=$html . "</center>";
+	return @implode("\n", $DD);
+	
+}
+
+function ParsePartitions($devIndex,$MAIN){
+	
+	$i=0;
+	while (list ($dev, $MAIN_PART) = each ($MAIN) ){
+		$i++;
+		$ID_FS_LABEL=$MAIN_PART["ID_FS_LABEL"];
+		if($ID_FS_LABEL==null){$ID_FS_LABEL=$MAIN_PART["MOUNTED"];}
+		$SIZE=round($MAIN_PART["INFO"]["SIZE"]/1024);
+		if($SIZE==0){continue;}
+		$UTIL=round($MAIN_PART["INFO"]["UTIL"]/1024);
+		$ID_FS_UUID=$MAIN_PART["ID_FS_UUID"];
+		$gi=md5("$devIndex$i");
+		$script[]="
+		var g$gi = new JustGage({
+		id: '$ID_FS_UUID',
+		value: $UTIL,
+		min: 0,
+		max: $SIZE,
+		title: '$ID_FS_LABEL',
+		label: 'MB',
+		levelColorsGradient: true
+	});";
+			
+		$icz[]="<div style='width:180px;height:150px' id='$ID_FS_UUID'></div>
+	
+		";
+			
+	}
+		
+	$html=CompileTr3($icz,true)."<script>
+		".@implode("\n", $script)."
+		</script>";
+	
 	return $html;
 	
+		
 }
 
 
 
 function ParseHDline($dev,$array){
+	$sock=new sockets();
 	
-		$ID_MODEL=$array["ID_MODEL_1"];
-		if($ID_MODEL==null){$ID_MODEL=$array["ID_MODEL_2"];}
+	$WatchDog=unserialize($sock->GET_INFO("HardDisksWatchDog"));
+	
+	
+	$ID_MODEL=null;
+	$ID_VENDOR=null;
+	$ID_FS_LABEL_TEXT=null;
+	
+		if(isset($array["ID_MODEL_ENC"])){
+			$ID_MODEL=$array["ID_MODEL_ENC"];
+			
+		}
+	
+		if($ID_MODEL==null){
+			if(isset($array["ID_MODEL"])){
+				$ID_MODEL=$array["ID_MODEL"];
+			}
+		}
+	
+		if($ID_MODEL==null){
+			if(isset($array["ID_MODEL_1"])){
+				$ID_MODEL=$array["ID_MODEL_1"];
+			}
+		}
+		
+		if($ID_MODEL==null){
+			if(isset($array["ID_MODEL_2"])){
+				$ID_MODEL=$array["ID_MODEL_2"];
+			}
+		}
+		
+		if($ID_MODEL<>null){
+			$ID_MODEL="{model}: <strong>$ID_MODEL</strong>";
+		}
+		
+
+		
 		$SIZE=$array["SIZE"];
 		$ID_BUS=$array["ID_BUS"];
-		if($array["ID_FS_LABEL"]<>null){$ID_FS_LABEL[]=$array["ID_FS_LABEL"];}
-		$ID_VENDOR=$array["ID_VENDOR"];
-		$ID_USB_DRIVER=$array["ID_USB_DRIVER"];
 		
-		if(strlen($ID_MODEL)>14){$ID_MODEL=substr($ID_MODEL,0,11).'...';}
+		
+		if(isset($array["ID_VENDOR"])){
+			$ID_VENDOR=$array["ID_VENDOR"];
+		}
+		$ID_USB_DRIVER=$array["ID_USB_DRIVER"];
+		if(isset($array["ID_SERIAL_SHORT"])){
+			$ID_SERIAL_SHORT=$array["ID_SERIAL_SHORT"];
+		}
+		
 		
 		
 		$part_number=count($array["PARTITIONS"]);
 		
+		
+		
+		
+		
+		
+		if(trim($ID_VENDOR)<>null){
+			$ID_VENDOR="{vendor}: $ID_VENDOR&nbsp;";
+		}
+		
+		
+		$link="PartInfos('$dev')";
+		$title[]="<div style='font-size:40px;margin-bottom:15px'><a href=\"javascript:blur();\" OnClick=\"javascript:$link\" style='text-decoration:underline'>$dev ($SIZE)</a></div>";
+		$title[]="<div style='font-size:18px'>$ID_VENDOR$ID_MODEL</div>";
+		if(isset($array["ID_REVISION"])){
+			$title[]="<div style='font-size:18px'><i>{version}: {$array["ID_REVISION"]}</i></div>";
+				
+		}
+		
+		$title[]="<div style='font-size:18px'>{path}: $dev {partitions_number}: $part_number</div>";
 		if($part_number>0){
-			while (list ($num, $line) = each ($array["PARTITIONS"])){
-				if($line["ID_FS_LABEL"]<>null){$ID_FS_LABEL[]="<li>{$line["ID_FS_LABEL"]}</li>";}
+			$watchdog_text="{disabled}";
+			if(isset($WatchDog[$dev])){
+				$watchdog_text="{enabled}";
 			}
 			
-			
+			$title[]="<div style='font-size:18px;font-weight:bold'><a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('system.internal.disks.watchdog.php?dev=". urlencode($dev)."')\"
+			style='text-decoration:underline'>			
+			{watchdog}: $watchdog_text</a></div>";
 		}
 		
-		
-		
-		if(count($ID_FS_LABEL)==1){
-			$ID_FS_LABEL_TEXT=$ID_FS_LABEL[0];
-		}
-		
-		$title="$ID_FS_LABEL_TEXT ($SIZE)";
-		
-		
-		$ID_VENDOR="<tr>
-			<td class=legend nowrap>{vendor}:</td>
-			<td><strong>$ID_VENDOR</strong></td>
-		</tr>";
-		
-		
-		
-		
-		$tableau="
-		<table style='width:99%'>
-		<tr>
-			<td class=legend style='font-size:14px'>{path}:</td>
-			<td><strong style='font-size:14px'>$dev</strong></td>
-		</tr>		
-		<tr>
-			<td class=legend style='font-size:14px'>{model}:</td>
-			<td><strong style='font-size:14px'>$ID_MODEL</strong></td>
-		</tr>
-		$ID_VENDOR
-		<tr>
-			<td class=legend nowrap style='font-size:14px'>Bus:</td>
-			<td><strong style='font-size:14px'>$ID_BUS</strong></td>
-		</tr>
-		<tr>
-			<td class=legend nowrap style='font-size:14px'>{partitions_number}:</td>
-			<td><strong style='font-size:14px'>$part_number</strong></td>
-		</tr>
-		<tr>
-			<td class=legend nowrap valign='top' style='font-size:14px'>{label}:</td>
-			<td><strong style='font-size:14px'>". @implode("",$ID_FS_LABEL)."</strong></td>
-		</tr>				
-							
-		</table>
-		
-		";
-		
-		$novchange=false;
-		$image_icon="64-hd.png";
-		
-		if($ID_MODEL=="VIRTUAL-DISK"){$image_icon="64-hd-iscsi.png";$novchange=true;}
-		if($ID_USB_DRIVER=="usb-storage"){$image_icon="usb-64.png";$novchange=true;}
-		
-		if(!$novchange){
-			if(intval($part_number)==0){
-				$image_icon="64-hd-grey.png";
-			}
-		}
-		
-		$link="javascript:PartInfos('$dev')";
-		return ParagrapheSimple($image_icon,$title,$tableau,$link,null,300,300,1);
+		$tpl=new templates();
+		return $tpl->_ENGINE_parse_body(@implode("\n", $title));
 	
 	
 	}
@@ -572,12 +628,12 @@ function hd_index_list(){
 function hd_index(){
 	$tpl=new templates();
 	$p=CurrentPageName();
-	$iscsi=button("{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')");
+	$iscsi=button("{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')",18);
 	
 	
 	
-	$rescan=button("{rescan-disk-system}","Loadjs('system.rescanhds.php');");
-	$refresh=button("{refresh}","LoadAjax('hd-display','$p?hd-display=yes')");
+	$rescan=button("{rescan-disk-system}","Loadjs('system.rescanhds.php');",18);
+	$refresh=button("{refresh}","LoadAjax('hd-display','$p?hd-display=yes')",18);
 	$page=CurrentPageName();
 	
 	$users=new usersMenus();
@@ -586,13 +642,13 @@ function hd_index(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='middle' width=99% style='font-size:18px'>{internal_hard_drives_text}</td>
+		<td valign='middle' width=99% style='font-size:30px;font-weight:bold'>{internal_hard_drives_text}</td>
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>$iscsi</td>
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>$rescan</td>
 		<td style='border-left:2px solid #CCCCCC;padding:5px'>$refresh</td>
 	</tr>
 	</table>
-	<div style='width:98%;' id='hd-display' class=form></div>
+	<div style='width:98%;height:1644px;overflow:auto' id='hd-display' class=form></div>
 	
 	<script>
 		LoadAjax('hd-display','$p?hd-index-list=yes');
@@ -648,7 +704,10 @@ function hd_partinfos(){
 	}
 	
 	if($users->SMARTMONTOOLS_INSTALLED){
-		$array["smart"]='{disk_watchdog}';
+		$EnableSMARTDisk=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableSMARTDisk"));
+		if($EnableSMARTDisk==1){
+			$array["smart"]='{disk_watchdog}';
+		}
 	}
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -1721,8 +1780,8 @@ $smart=new smartd($dev);
 		$info="<table style='width:100%'>";
 		while (list ($num, $val) = each ($smart->diskinfos_array) ){
 			
-			$val=str_replace("Enabled","<strong style='color:red'>{enabled}</strong>",$val);
-			$val=str_replace("Disabled","<strong style='color:red'>{disabled}</strong>",$val);
+			$val=str_replace("Enabled","<strong style='color:#d32d2d'>{enabled}</strong>",$val);
+			$val=str_replace("Disabled","<strong style='color:#d32d2d'>{disabled}</strong>",$val);
 			$info=$info."
 			<tr>
 				<td class=legend nowrap valign='top'>$num</td>

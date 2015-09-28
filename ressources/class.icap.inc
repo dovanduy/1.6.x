@@ -33,6 +33,8 @@ class icap{
 	public $CountDeServices=0;
 	private $AntivirusEnabledCentral=1;
 	private $Kav4ProxyEnabledCentral=0;
+	private $SquidDisableAllFilters=0;
+	private $SquidUrgency=0;
 	private $SQUID_VERSION=0;
 	
 	function icap(){
@@ -50,6 +52,8 @@ class icap{
 		$this->EnableRemoteStatisticsAppliance=$sock->GET_INFO('EnableRemoteStatisticsAppliance');
 		$this->AntivirusEnabledCentral=$sock->GET_INFO("AntivirusEnabledCentral");
 		$this->Kav4ProxyEnabledCentral=$sock->GET_INFO("Kav4ProxyEnabledCentral");
+		$this->SquidDisableAllFilters=intval($sock->GET_INFO("SquidDisableAllFilters"));
+		$this->SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
 		
 		$this->EnableClamavInCiCap=$sock->GET_INFO("EnableClamavInCiCap");
 		$this->EnableSquidGuardInCiCAP=$sock->GET_INFO("EnableSquidGuardInCiCAP");
@@ -130,27 +134,56 @@ class icap{
 			if($re[1]>=3){
 				if($re[2]==0){
 					$this->icap_lines[]="# Squid 3.0x ( current $this->SQUID_VERSION ) branch no longer supported [".__LINE__."]";
+					$conf[]=@implode("\n", $this->icap_lines)."\n";
+					@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
 					return;
 				}
 			}
 		}
+		
+		if($this->SquidUrgency==1){
+			$this->icap_lines[]="# Emergency mode enabled!!";
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
+			return;
+			
+		}
+		if($this->SquidDisableAllFilters==1){
+			$this->icap_lines[]="# All filters as been disabled ( SquidDisableAllFilters )";
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));			
+			return;
+				
+		}		
 
 		$q=new mysql_squid_builder();
-		if(!$q->TABLE_EXISTS("c_icap_services")){return;}
+		if(!$q->TABLE_EXISTS("c_icap_services")){
+			$this->icap_lines[]="# c_icap_services table does not exists";
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
+			return;
+		}
+		
 		$sql="SELECT * FROM c_icap_services WHERE `enabled`=1 ORDER BY zOrder";
 		$q=new mysql_squid_builder();
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){
 			$q->mysql_error=str_replace("\n", " ", $q->mysql_error);
 			$this->icap_lines[]="# MySQL error $q->mysql_error [".__LINE__."]";
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
 			return;
 		}
 		
 		$CountDeServices=mysql_num_rows($results);
-		$this->icap_lines[]="#  **** ICAP ****";
+		$this->icap_lines[]="#  **** ICAP **** ( ".date("Y-m-d H:i:s")." )";
 		$this->icap_lines[]="#";
 		$this->icap_lines[]="# Table c_icap_services report $CountDeServices service(s) [".__LINE__."]";
-		if($CountDeServices==0){return;}
+		if($CountDeServices==0){
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
+			return;
+		}
 		$overload["block"]="{block}";
 		$overload["bypass"]="{bypass}";
 		$overload["wait"]="{wait}";
@@ -166,7 +199,7 @@ class icap{
 			$maxconn_text=null;
 			
 			if($ligne["routing"]==1){$routing="on";}
-			if($ligne["bypass"]==1){$bypass="on";}
+			if(intval($ligne["bypass"])>0){$bypass="on";}
 			$ipaddr=$ligne["ipaddr"];
 			$this->icap_lines[]="#";
 			$this->icap_lines[]="# Service ID $ID {$ligne["service_name"]} $ipaddr:$port [".__LINE__."]";
@@ -197,11 +230,18 @@ class icap{
 			$this->icap_classes[$ligne["service_key"]]=$ID;
 		}
 		
-		if($this->CountDeServices==0){return;}
+		if($this->CountDeServices==0){
+			$this->icap_lines[]="# No services after the MySQL loop";
+			$conf[]=@implode("\n", $this->icap_lines)."\n";
+			@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
+			return;
+		}
+		
+		
 		$this->icap_lines[]="";
 		$this->icap_lines[]="# ICAP configs [".__LINE__."]";
 		$this->icap_lines[]="icap_enable on";
-		$this->icap_lines[]="icap_preview_size 128";
+		$this->icap_lines[]="icap_preview_size 1024";
 		$this->icap_lines[]="icap_service_failure_limit -1";
 		$this->icap_lines[]="icap_preview_enable on";
 		$this->icap_lines[]="icap_send_client_ip on";
@@ -209,13 +249,10 @@ class icap{
 		$this->icap_lines[]="icap_client_username_header X-Authenticated-User";
 		$this->icap_lines[]="icap_client_username_encode on";
 		
-		
-		
-		//   service_antivir respmod_precache routing=on bypass=on 
-		// adaptation_service_set class_antivirus service_antivir
-	//		adaptation_access class_antivirus allow all
-	
 		$this->ADAPTATIONS();
+		$conf[]="# --------- ICAP Services: $this->CountDeServices service(s) [".__LINE__."]\n";
+		$conf[]=@implode("\n", $this->icap_lines)."\n";
+		@file_put_contents("/etc/squid3/icap.conf", @implode("\n", $conf));
 		
 	}
 	
@@ -248,6 +285,25 @@ class icap{
 
 			
 			if($ACL_AV){
+	//-------------------------------------------------------------------------------------------				
+				$q=new mysql_squid_builder();
+				$acls=new squid_acls();
+				$acls->Build_Acls();
+				$sql="SELECT *  FROM `global_whitelist` WHERE enabled=1 and deny_icap=1";
+				$results = $q->QUERY_SQL($sql);
+				while ($ligne = mysql_fetch_assoc($results)) {
+					$acls_name="Group{$ligne["groupid"]}";
+					$this->icap_lines[]="# Group {$ligne["groupid"]} not used";
+					if(!$acls->availableGroups[$ligne["groupid"]]){
+						$this->icap_lines[]="# Group {$ligne["groupid"]} not used";
+						continue;
+					}
+					$this->icap_lines[]="adaptation_access class_{$servicekey} deny $acls_name";
+					
+				}
+					
+	//-------------------------------------------------------------------------------------------				
+				
 				if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){
 					reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
 					while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){
@@ -261,6 +317,9 @@ class icap{
 			
 			}
 			
+			
+			
+			
 			$this->icap_lines[]="adaptation_access class_{$servicekey} allow all";
 			
 		}
@@ -271,6 +330,8 @@ class icap{
 	
 	private function CICAP_URI(){
 		$sock=new sockets();
+		if(!class_exists("unix")){include_once('/usr/share/artica-postfix/framework/class.unix.inc');}
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		$CICAPListenAddress=$sock->GET_INFO("CICAPListenAddress");
 		if($CICAPListenAddress==null){$CICAPListenAddress="127.0.0.1";}
 		$NETWORK_ALL_INTERFACES=$GLOBALS["CLASS_UNIX"]->NETWORK_ALL_INTERFACES(true);

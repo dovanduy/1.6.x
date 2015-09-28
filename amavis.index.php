@@ -172,7 +172,7 @@ $array=array(0=>"{postfix_beforequeue}",1=>"{postfix_afterqueue}");
 $amavis=new amavis();	
 $html="
 <dov id='hookdiv'>
-	<div class=text-info>{postfix_hooking_text}</div>
+	<div class=explain>{postfix_hooking_text}</div>
 	<table style='widht:99%' class=form>
 	<tr>
 	<td class=legend>{select}:</td>
@@ -182,13 +182,13 @@ $html="
 	<td colspan=2 align='right'>".button("{apply}","EnableAmavisInMasterCFSave()")."</td>
 	</tr>	
 	<tr>
-	<td colspan=2><div class=text-info>{postfix_beforequeue_text}</div></td>
+	<td colspan=2><div class=explain>{postfix_beforequeue_text}</div></td>
 	</tr>
 <tr>
 	<td colspan=2 align='right'><hr></td>
 	</tr>		
 	<tr>
-	<td colspan=2><div class=text-info>{postfix_afterqueue_text}</div></td>
+	<td colspan=2><div class=explain>{postfix_afterqueue_text}</div></td>
 	</tr>		
 	</table>
 	</div>
@@ -279,7 +279,7 @@ function altermime_popup(){
 	
 	$tpl=new templates();
 	$html="
-	<div class=text-info>{disclaimer_explain}</div>
+	<div class=explain>{disclaimer_explain}</div>
 	<table style='widht:100%'>
 	<tr>
 		<td valign='top'>
@@ -727,7 +727,7 @@ function trustlocal_popup(){
 	$amavis=new amavis();
 	$loopback=Paragraphe_switch_img('{trust_local}','{trust_local_explain}','TrustLocalHost',$amavis->main_array["NETWORK"]["TrustLocalHost"],'{enable_disable}',290);
 	$html="
-	<div class=text-info>{trust_local_text}</p>
+	<div class=explain>{trust_local_text}</p>
 	<table style='width:100%'>
 	<tr>
 
@@ -756,7 +756,7 @@ function filterbehavior_explain(){
 	$tpl=new templates();
 	if($_GET["D_EXPLAIN"]==null){return null;}
 	
-	echo "<div class=text-info>".$tpl->_ENGINE_parse_body("{{$_GET["D_EXPLAIN"]}_EXP}")."</div>";
+	echo "<div class=explain>".$tpl->_ENGINE_parse_body("{{$_GET["D_EXPLAIN"]}_EXP}")."</div>";
 	
 }
 
@@ -1194,7 +1194,7 @@ if($amavis->main_array["BEHAVIORS"]["virus_admin"]=="undef"){$amavis->main_array
 $html="
 	<div id='amavisnotifs'>
 	<input type='hidden' name='INI_SAVE' value='BEHAVIORS' id='INI_SAVE'>
-	<div class=text-info>{notification_text}</div>
+	<div class=explain>{notification_text}</div>
 	<table style='width:100%'>	
 	<tr>
 		<td colspan=2><span style='margin-top:5px;font-size:14px'>$mailfrom_notify</span></td>
@@ -1476,7 +1476,7 @@ $performances="
 	
 
 	$html="
-	<div class=text-info>{filter_behavior_text}</div>
+	<div class=explain>{filter_behavior_text}</div>
 		$behavior_form
 	<hr>
 		<div id='performancesamavis'>
@@ -1587,7 +1587,7 @@ function apply_popup(){
 	<div id='myform'>
 	<H1>{apply}</H1>
 	<p class=caption>{APPLY_SETTINGS_AMAVIS}</p>
-	<H2 style='color:red' id='apply_results'></H2>
+	<H2 style='color:#d32d2d' id='apply_results'></H2>
 	</div>";
 	
 	$tpl=new templates();
@@ -1713,7 +1713,7 @@ $local_net=Field_checkbox("banned_extensions_include_local_net",
 
 $html="
 <input type='hidden' id='AmavisAddExtFilter_text' value='{AmavisAddExtFilter_text}'>
-	<div class=text-info>{filter_extension_text}</div>
+	<div class=explain>{filter_extension_text}</div>
 	<table style='width:100%'>
 		<tr>
 			<td class=legend>{apply_rules_for_local_users}:</td>

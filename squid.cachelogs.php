@@ -25,7 +25,7 @@ function page(){
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$zdate=$tpl->_ENGINE_parse_body("{zDate}");
 
-	$title=$tpl->_ENGINE_parse_body("{today}: {proxy_service_events} ".date("H")."h");
+	$title=$tpl->_ENGINE_parse_body("{proxy_service_events}");
 	
 	$t=time();
 	$html="
@@ -38,8 +38,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?cachelogs-events-list=yes',
 	dataType: 'json',
 	colModel : [
-		{display: '$zdate', name : 'zDate', width :120, sortable : true, align: 'left'},
-		{display: '$events', name : 'events', width : 778, sortable : false, align: 'left'},
+		{display: '<strong style=font-size:18px>$zdate</strong>', name : 'zDate', width :238, sortable : true, align: 'left'},
+		{display: '<strong style=font-size:18px>$events</strong>', name : 'events', width : 1214, sortable : false, align: 'left'},
 		],
 	
 	searchitems : [
@@ -48,18 +48,19 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 420,
+	height: 550,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});  
 	$('table-1-selected').remove();
-	$('flex1').remove();	 
+	$('flex1').remove();
+	$('#SQUID_ACCESS_LOGS_DIV').remove();	 
 }
 
 function SelectGrid2(com, grid) {
@@ -88,7 +89,7 @@ $tpl=new templates();
 $sock=new sockets();
 
 
-	
+	//$_POST["rp"]=intval($_POST["rp"])+10;
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}	
 	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
@@ -121,27 +122,41 @@ $sock=new sockets();
 	if(count($datas)==0){
 		json_error_show("no data",1);
 	}
+	$c=0;
+	$tpl=new templates();
+	$current=date("Y-m-d");
+	krsort($datas);
 	while (list ($key, $line) = each ($datas) ){
 		
 		$date="&nbsp;";
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		if(preg_match("#^([0-9\.\/\s+:]+)\s+#",$line,$re)){
-			$date=$re[1];
-			$line=str_replace($date,"",$line);
 		
-			$date=str_replace($current,"{today}",$date);
+		if(preg_match("#^([0-9\.\/\s+:]+)\s+#",$line,$re)){
+			$line=str_replace($re[1],"",$line);
+			$date=strtotime($re[1]);
+			$datetext=$tpl->time_to_date($date,true);
+		
+			
 		}
+		if(preg_match("#You should probably remove#i", $line)){continue;}
+		if(preg_match("#is ignored to keep splay#i", $line)){continue;}
+		if(preg_match("#is a subnetwork of#i", $line)){continue;}
+		if(preg_match("#violates HTTP#i", $line)){continue;}
+		if(preg_match("#empty ACL#i", $line)){continue;}
+		if(preg_match("#WARNING#i", $line)){$line="<span style='color:#f59c44'>$line</line>";}
 		if(preg_match("#FATAL#i", $line)){$line="<span style='color:#680000'>$line</line>";}
 		if(preg_match("#abnormally#i", $line)){$line="<span style='color:#680000'>$line</line>";}
 		if(preg_match("#Reconfiguring#i", $line)){$line="<span style='color:#003D0D;font-weight:bold'>$line</line>";}
 		if(preg_match("#Accepting HTTP#i", $line)){$line="<span style='color:#003D0D;font-weight:bold'>$line</line>";}
 		if(preg_match("#Ready to serve requests#i", $line)){$line="<span style='color:#003D0D;font-weight:bold'>$line</line>";}
-		
+		$c++;
 		$data['rows'][] = array(
 			'id' => md5($line),
-			'cell' => array($date, $line)
+			'cell' => array(
+					"<span style='font-size:16px'>$datetext</span>", "<span style='font-size:16px'>$line</span>")
 		);
 	}
+	
+	$data['total']=$c;
 	echo json_encode($data);	
 }
 
@@ -173,6 +188,7 @@ $current=date("Y/m/d");
 		
 			$date=str_replace($current,"{today}",$date);
 		}
+		if(preg_match("#WARNING#i", $line)){$line="<span style='color:#f59c44'>$line</line>";}
 		if(preg_match("#FATAL#i", $line)){$line="<span style='color:#680000'>$line</line>";}
 		if(preg_match("#abnormally#i", $line)){$line="<span style='color:#680000'>$line</line>";}
 		if(preg_match("#Reconfiguring#i", $line)){$line="<span style='color:#003D0D;font-weight:bold'>$line</line>";}

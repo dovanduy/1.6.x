@@ -51,7 +51,7 @@ function page(){
 	$bannedregexpurllist_explain=$tpl->_ENGINE_parse_body("{bannedregexpurllist_explain}");
 	
 	$html="
-	<div class=text-info>$bannedregexpurllist_explain</div>
+	<div class=explain>$bannedregexpurllist_explain</div>
 	<table class='bannedregexpurllist-table-$t' style='display: none' id='bannedregexpurllist-table-$t' style='width:99%'></table>
 <script>
 var selected_id=0;
@@ -308,7 +308,7 @@ function AddWCatz_explain(){
 	$dans=new dansguardian_rules();
 	$tpl=new templates();
 	$text=$tpl->_ENGINE_parse_body($dans->array_blacksites[$_GET["category"]]);
-	echo "<div class=text-info style='font-size:14px'>$text</div>";
+	echo "<div class=explain style='font-size:14px'>$text</div>";
 	
 	
 }

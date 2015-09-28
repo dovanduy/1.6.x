@@ -31,7 +31,9 @@ events("Memory: FINISH ".round(((memory_get_usage()/1024)/1000),2) ." after incl
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["COMMANDLINE"]=implode(" ",$argv);
-if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){
+	$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 
 if($argv[1]=='--amavis-port'){postfix_is_amavis_port($argv[2]);die();}
 
@@ -111,8 +113,13 @@ $users=null;
 $sock=null;
 $unix=null;
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after all declarations ".__LINE__);
-
-
+@mkdir("/home/artica/postfix/realtime-events");
+ini_set('display_errors', 1);
+ini_set("log_errors", 1);
+ini_set('error_reporting', E_ALL);
+ini_set('error_prepend_string',null);
+ini_set('error_append_string',null);
+ini_set("error_log", "{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug");
 
 
 $pipe = fopen("php://stdin", "r");
@@ -129,9 +136,13 @@ function Parseline($buffer){
 if(is_file("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX")){return;}	
 $buffer=trim($buffer);
 if($buffer==null){return null;}
+if(!isset($GLOBALS["maillog_tools"])){$GLOBALS["maillog_tools"]=new maillog_tools();}
 
+if(preg_match("#qmgr\[.*?:\s+([0-9A-Z]+): removed#", $buffer,$re)){$GLOBALS["maillog_tools"]->event_messageid_removed($re[1]);return;}
 if(is_file("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack-reconfigure")){smtp_hack_reconfigure();}
+if(strpos($buffer,'config file "/etc/mail/greylist.conf"')>0){return;} 
 if(strpos($buffer,"]: fatal: Usage:postmulti")>0){return;} 
+if(strpos($buffer,"warning: non-SMTP command from unknown")>0){return;} 
 if(strpos($buffer,"Do you need to run 'sa-update'?")>0){amavis_sa_update($buffer);return;}
 if(strpos($buffer,"Passed CLEAN {AcceptedOpenRelay}")>0){return;} 
 if(strpos($buffer,"Passed BAD-HEADER-1 {RelayedInternal}")>0){return;} 
@@ -157,9 +168,11 @@ if(strpos($buffer,": decided action=DUNNO NULL")>0){return;}
 if(strpos($buffer,"Mail::SpamAssassin::Plugin::Check")>0){return;} 
 if(strpos($buffer,"vnStat daemon")>0){return;} 
 if(strpos($buffer,"aliases.db: duplicate entry")>0){return;} 
-if(strpos($buffer,"DKIM-Signature\" header added")>0){return;} 
+if(strpos($buffer,"DKIM-Signature\" header added")>0){return;}
+if(strpos($buffer,"DKIM verification successful")>0){return;}
 if(strpos($buffer,": decided action=PREPEND X-policyd-weight: using cached result;")>0){return;} 
 if(strpos($buffer," mode select: verifying")>0){return;} 
+if(strpos($buffer,"Message canceled by rule")>0){return;} 
 //if(strpos($buffer,") SPAM-TAG, <")>0){return;} 
 if(strpos($buffer,") mail checking ended: version_server=")>0){return;} 
 if(strpos($buffer,") check_header:")>0){return;} 
@@ -187,7 +200,9 @@ if(strpos($buffer,"Passed CLEAN {")>0){return;}
 if(strpos($buffer,") Blocked SPAM {")>0){return;}
 if(strpos($buffer,") Blocked SPAMMY {")>0){return;}
 if(strpos($buffer,"does not resolve to address")>0){return;}
-
+if(strpos($buffer,"skipped, still being delivered")>0){return;}
+if(strpos($buffer,"(0,lock|fold_fix)")>0){return;}
+if(strpos($buffer,"Insecure dependency in open while running with -T")>0){return;}
 // ************************ DKIM DUTSBIN
 if(strpos($buffer,"no signing domain match for")>0){return;}
 if(strpos($buffer,"no signing subdomain match for")>0){return;}
@@ -297,6 +312,7 @@ if(strpos($buffer,") ...continue")>0){return;}
 if(strpos($buffer,"Cached spam check expired")>0){return;}
 if(strpos($buffer,") cached")>0){return;}
 if(strpos($buffer,"extra modules loaded:")>0){return;}
+if(strpos($buffer,"from MTA(smtp:[127.0.0.1]:10025): 250 2.0.0 Ok")>0){return;}
 if(strpos($buffer,"Use of uninitialized value")>0){return;}
 if(strpos($buffer,"DecodeShortURLs")>0){return;}
 if(strpos($buffer,"FWD via SMTP: <")>0){return;}
@@ -389,12 +405,12 @@ if(strpos($buffer,"]: entered child_init_hook")>0){return;}
 if(strpos($buffer,"]: SpamControl: init_child on SpamAssassin done")>0){return;}
 if(preg_match("#kavmilter\[.+?\[tid.+?New message from:#",$buffer,$re)){return null;}
 if(preg_match("#assp\[.+?LDAP Results#",$buffer,$re)){return null;}
+if(preg_match("#amavis\[[0-9]+\]:\s+\([0-9\-]+\) FWD from <#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]: disconnect from#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]: timeout after END-OF-MESSAGE#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]:.+?enabling PIX workarounds#",$buffer,$re)){return null;}
 if(preg_match("#milter-greylist:.+?skipping greylist#",$buffer,$re)){return null;}
 if(preg_match("#milter-greylist:\s+\(.+?greylisted entry timed out#",$buffer,$re)){return null;}
-if(preg_match("#postfix\/qmgr\[.+?\]:\s+.+?: removed#",$buffer,$re)){return null;}
 if(preg_match("#postfix\/smtpd\[.+?\]:\s+lost connection after#",$buffer,$re)){return null;}
 if(preg_match("#assp.+?\[MessageOK\]#",$buffer,$re)){return null;}
 if(preg_match("#assp.+?\[NoProcessing\]#",$buffer,$re)){return null;}
@@ -452,7 +468,6 @@ if(preg_match("#smtpd\[.+? warning:.+?address not listed for hostname#",$buffer)
 if(preg_match("#zarafa-dagent\[.+?Delivered message to#",$buffer)){return null;}
 if(preg_match("#postfix\/policyd-weight\[.+?SPAM#",$buffer)){return null;}
 if(preg_match("#postfix\/policyd-weight\[.+?decided action=550#",$buffer)){return null;}
-if(preg_match("#qmgr\[.+?: removed#",$buffer)){return null;}
 if(preg_match("#cyrus\/lmtp\[.+?Delivered#",$buffer)){return null;}
 if(preg_match("#ESMTP::.+?\/var\/amavis\/tmp\/amavis#",$buffer)){return null;}
 if(preg_match("#zarafa-dagent.+?Client disconnected#",$buffer)){return null;}
@@ -704,7 +719,18 @@ if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $bu
 		}else{events("Postfix: Postfwd2 issue... -> Connection refused: {$timefile}Mn/5Mn");}
 		return;
 	}	
-
+	if(preg_match("#problem talking to server\s+127\.0\.0\.1:7777: Connection refused#",$buffer,$re)){
+		events("Postfix: policyd Daemon issue... -> Connection refused");
+		$file="/etc/artica-postfix/croned.1/postfix.policyd.Connection.refused";
+		$timefile=file_time_min($file);
+		if($timefile>5){
+			email_events("Postfix: policyd plugin is not available",
+			"Postfix claim \n$buffer\nArtica will try to start policyd Daemon.","postfix");
+			shell_exec_maillog(trim("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfwd2.php --start >/dev/null 2>&1"));
+			@file_put_contents($file,"#");
+		}else{events("Postfix: Postfwd2 issue... -> Connection refused: {$timefile}Mn/5Mn");}
+		return;
+	}
 
 
 	
@@ -985,7 +1011,7 @@ if(preg_match("#smtpd\[.+?warning: connect to 127.0.0.1:54423: Connection refuse
 
 
 if(preg_match("#nss_wins\[.+?connect from (.+?)\[(.+?)\]#",$buffer,$re)){
-	Postfix_Addconnection($re[1],$re[2]);
+	$GLOBALS["maillog_tools"]->Postfix_Addconnection($re[1],$re[2]);
 	return;
 }
 
@@ -995,12 +1021,12 @@ if(preg_match("#nss_wins\[.+?warning: (.+?):\s+address not listed for hostname\s
 }
 
 if(preg_match("#postscreen\[.+?CONNECT from \[(.+?)\]#i",$buffer,$re)){
-	Postfix_Addconnection(null,$re[1]);
+	$GLOBALS["maillog_tools"]->Postfix_Addconnection(null,$re[1]);
 	return;
 }
 
 if(preg_match("#smtpd\[.*?connect from\s+(.*?)\[(.+?)\]#",$buffer,$re)){
-	Postfix_Addconnection($re[1],$re[2]);
+	$GLOBALS["maillog_tools"]->Postfix_Addconnection($re[1],$re[2]);
 	return;
 }
 
@@ -1335,7 +1361,7 @@ if(preg_match("#smtp\[.+?host\s+(.+?)\[.+?said:\s+421\s+4\.2\.1\s+MSG=.+?\(DNS:N
 if(preg_match("#smtpd\[.+?NOQUEUE: reject:\s+RCPT from\s+(.+?)\[(.+?)\]:.+?<(.+?)>:\s+Recipient address rejected: Mail appeared to be SPAM or forged.+?from=<(.+?)>#",$buffer,$re)){
 		events("mail Refused from {$re[1]} for {$re[4]}");
 		$file="/etc/artica-postfix/croned.1/postfix.{$re[1]}.refused";
-		event_message_reject_hostname("Forged",$re[2],$re[4],$re[3]);
+		$GLOBALS["maillog_tools"]->event_message_reject_hostname("Forged",$re[4],$re[3],$re[2],$re[1]);
 		if(file_time_min($file)>10){
 			email_events("Postfix: your messages has been refused from {$re[1]} ({$re[2]}) it seems your Forged your messages","Postfix claim \n$buffer\nCheck your smtp configuration in order to be compliance for {$re[1]}","postfix");
 			@unlink($file);
@@ -1353,33 +1379,45 @@ if(preg_match('#ClamAV-clamd.*?FAILED.*?output="(.*?):.*?Permission denied#',$bu
 }
 
 if(preg_match("#\[.+?NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Mail appeared to be SPAM or forged.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("Forged",$re[1],$re[3],$re[4]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Forged",$re[2],$re[3],null,$re[1]);
 	return;
 }
 
 
 if(preg_match("#postscreen\[.+?NOQUEUE: reject: RCPT from\s+\[(.+?)\].+?Service currently unavailable;\s+from=<(.*?)>,\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("PostScreen",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("PostScreen",$re[2],$re[3],null,$re[1]);
 	return;
 }
 
 if(preg_match("#\[.+?:\s+NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Sender address rejected: blacklisted sender;\s+from=<(.*)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("blacklisted",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("blacklisted",$re[2],$re[3],$re[1]);
 	return;
 }
 if(preg_match("#\]: NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Banned destination domain.+?from=<(.*?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("Banned domain",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Banned domain",$re[2],$re[3],$re[1]);
 	return;
 }
 
 
 if(preg_match("#smtpd\[.+?NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Recipient address rejected: Your MTA is listed in too many DNSBLs.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("DNSBL",$re[1],$re[3],$re[4]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("DNSBL",$re[1],$re[3],$re[4]);
 	return;	
 }
 
 
-
+if(preg_match("#smtpd\[.*?warning: connect to 127\.0\.0\.1:7777: Connection refused#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/postfix.connexion-refused.".__LINE__.".error";
+	events("Postfix connexion refused from iredMail");
+	if(file_time_min($file)>10){
+		$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/iredmail restart >/dev/null 2>&1 &";
+		shell_exec_maillog(trim($cmd));
+		email_events("Postfix: Unable to connect to iRedMail","Postfix claim\n$buffer\nArtica will restart iredMail service","postfix");
+		@unlink($file);
+		file_put_contents($file,"#");
+	}
+	
+	return;
+}
 
 
 
@@ -1408,18 +1446,18 @@ if(preg_match("#NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Relay access denied;\s
 	}	
 	
 	events("Relay access denied :{$re[1]} from {$re[2]} to {$re[2]}");
-	event_message_reject_hostname("Relay access denied",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Relay access denied",$re[2],$re[3],$re[1]);
 	return;
 }
 
 if(preg_match("#cleanup\[.+?:\s+(.+?):\s+reject: body.+?\s+from.+?\[(.+?)\];\s+from=<(.*?)>\s+to=<(.+?)>.+?Message Body rejected#",$buffer,$re)){
-	event_message_milter_reject($re[1],"Banned words",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($re[1],"Banned words",$re[1],$re[2],$buffer);
 	return;
 }
 
 if(preg_match("#postscreen.+?NOQUEUE: reject: RCPT from \[(.+?)\].+?Service unavailable;.+?blocked using.+?; from=<(.+?)>, to=<(.+?)>#",$buffer,$re)){
 	events("PostScreen RBL :{$re[1]} from {$re[2]} to {$re[2]}");
-	event_message_reject_hostname("PostScreen RBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("PostScreen RBL",$re[2],$re[3],$re[1]);
 	return;
 }
 
@@ -1449,31 +1487,31 @@ if(preg_match("#NOQUEUE: reject: CONNECT from.+?\[(.+?)\].+?: Client host reject
 
 if(preg_match("#postfix.+?NOQUEUE: reject: RCPT from.+?\[(.+?)\]: 554.+?: Relay access denied; from=<> to=<(.+?)>#",$buffer,$re)){
 	events("Access denied :{$re[1]} from unknown to {$re[2]}");
-	event_message_reject_hostname("Access denied","unknown",$re[2],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Access denied","unknown",$re[2],$re[1]);
 	return;
 }
 
 
 if(preg_match("#NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Client host rejected: Access denied;\s+from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
 	events("Access denied :{$re[1]} from {$re[2]} to {$re[2]}");
-	event_message_reject_hostname("Access denied",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Access denied",$re[2],$re[3],$re[1]);
 	return;
 }
 
 if(preg_match("#postfix.+?:\s+(.+):\s+milter-discard: END-OF-MESSAGE\s+from.+?\[(.+?)\]:\s+milter triggers DISCARD action;\s+from=<(.*?)>\s+to=<(.+?)>\s+#",$buffer,$re)){
 	events("Rejected :{$re[1]} from {$re[2]} to {$re[2]}");
-	event_DISCARD($re[1],$re[3],$re[4],$buffer,$re[2]);
+	$GLOBALS["maillog_tools"]->event_DISCARD($re[1],$re[3],$re[4],$buffer,$re[2]);
 	return;
 }
 
 if(preg_match("#smtpd\[.+?NOQUEUE: reject: MAIL from.+?\[(.+?)\]:.+?Sender address rejected: Domain not found;\s+from=<(.+?)>#",$buffer,$re)){
 	events("Domain not found :{$re[1]} from {$re[2]}");
-	event_message_reject_hostname("Domain not found",$re[2],null,$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Domain not found",$re[2],null,$re[1]);
 	return;
 }
 if(preg_match("#smtpd\[.+?NOQUEUE: reject: MAIL from.+?\[(.+?)\]:.+?Sender address rejected: Access denied;\s+from=<(.+?)>#",$buffer,$re)){
 	events("Access denied :{$re[1]} from {$re[2]}");
-	event_message_reject_hostname("Access denied",$re[2],null,$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Access denied",$re[2],null,$re[1]);
 	return;
 }
 
@@ -1564,7 +1602,7 @@ if(preg_match('#warning.+?\[([0-9\.]+)\]:\s+SASL LOGIN authentication failed: au
 
 if(preg_match("#NOQUEUE: reject:.+?from.+?\[([0-9\.]+)\]:.+?Service unavailable.+?blocked using.+?from=<(.+?)> to=<(.+?)> proto#",$buffer,$re)){
 	
-	event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]=$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]+1;
 		events("Postfix Hack: {$re[1]} RBL !! from=<{$re[2]}> to=<{$re[3]}> {$re[1]}={$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]} attempts");
@@ -1576,7 +1614,7 @@ if(preg_match("#NOQUEUE: reject:.+?from.+?\[([0-9\.]+)\]:.+?Service unavailable.
 	return null;
 }
 if(preg_match("#smtpd.+?reject: RCPT from.+?\[(.+?)\]:\s+550.+?:.+Recipient address rejected:.+?because of previous errors.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]=$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]+1;
 		events("Postfix Hack: {$re[1]} RBL !! from=<{$re[2]}> to=<{$re[3]}> {$re[1]}={$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]} attempts");
@@ -1590,7 +1628,7 @@ if(preg_match("#smtpd.+?reject: RCPT from.+?\[(.+?)\]:\s+550.+?:.+Recipient addr
 
 
 if(preg_match("#smtpd.+?reject: RCPT from.+?\[(.+?)\]:\s+554.+?:.+Sender address rejected:.+?FORGED MAIL.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("FORGED",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("FORGED",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]=$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]+1;
 		events("Postfix Hack: {$re[1]} RBL !! from=<{$re[2]}> to=<{$re[3]}> {$re[1]}={$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]} attempts");
@@ -1603,7 +1641,7 @@ if(preg_match("#smtpd.+?reject: RCPT from.+?\[(.+?)\]:\s+554.+?:.+Sender address
 }
 
 if(preg_match("#:\s+NOQUEUE: reject: RCPT from.+?\[(.+?)\]:\s+550.+?:\s+Recipient address rejected: Mail appears to be SPAM or forged.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]=$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]+1;
 		events("Postfix Hack: {$re[1]} RBL !! from=<{$re[2]}> to=<{$re[3]}> {$re[1]}={$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]} attempts");
@@ -1620,7 +1658,7 @@ if(preg_match("#:\s+NOQUEUE: reject: RCPT from.+?\[(.+?)\]:\s+550.+?:\s+Recipien
 
 
 if(preg_match("#smtpd.+?reject: RCPT from unknown\[(.+?)\]:\s+550.+?:.+Recipient address rejected:.+?DNSBLs.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("RBL",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]=$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]+1;
 		events("Postfix Hack: {$re[1]} RBL !! from=<{$re[2]}> to=<{$re[3]}> {$re[1]}={$GLOBALS["SMTP_HACK"][$re[1]]["RBL"]} attempts");
@@ -1634,7 +1672,7 @@ if(preg_match("#smtpd.+?reject: RCPT from unknown\[(.+?)\]:\s+550.+?:.+Recipient
 
 
 if(preg_match("#NOQUEUE: reject:.+?from.+?\[([0-9\.]+)\]:.+?<(.+?)>:\s+Recipient address rejected: User unknown in local recipient table;\s+from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("User unknown",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("User unknown",$re[2],$re[3],$re[1]);
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["USER_UNKNOWN"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["USER_UNKNOWN"]=$GLOBALS["SMTP_HACK"][$re[1]]["USER_UNKNOWN"]+1;
 		events("Postfix Hack: : {$re[1]} User unknown from=<{$re[2]}> to=<{$re[3]}> {$GLOBALS["SMTP_HACK"][$re[1]]["USER_UNKNOWN"]} attempts/{$GLOBALS["SMTP_HACK_CONFIG_RATE"]["USER_UNKNOWN"]}");
@@ -1663,7 +1701,7 @@ if(preg_match("#smtpd\[.+?warning: Illegal address syntax from.+?\[(.+?)\] in MA
 if(preg_match("#postfix\/lmtp\[.+?:\s+(.+?):\s+to=<(.+)>,\s+relay=([0-9\.]+)\[.+?:[0-9]+,.+?status=deferred.+?430 Authentication required#",$buffer,$re)){
 	events("postfix LMTP error to {$re[2]}");
 	$file="/etc/artica-postfix/croned.1/postfix.lmtp.auth.failed";
-	event_messageid_rejected($re[1],"Mailbox Authentication required",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Mailbox Authentication required",$re[3],$re[2]);
 	if(file_time_min($file)>5){
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
 			email_events("Postfix: LMTP Error","Postfix\n$buffer\nArtica will reconfigure LMTP settings","postfix");
@@ -1680,7 +1718,7 @@ if(preg_match("#postfix\/lmtp\[.+?:\s+(.+?):\s+to=<(.+)>,\s+relay=([0-9\.]+)\[.+
 if(preg_match("#postfix\/lmtp\[.+?:\s+connect to ([0-9\.]+)\[.+?:[0-9]+:\s+Connection refused#",$buffer)){
 	events("postfix LMTP error");
 	$file="/etc/artica-postfix/croned.1/postfix.lmtp.cnx.refused";
-	event_messageid_rejected($re[1],"LMTP Error","127.0.0.1",$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"LMTP Error","127.0.0.1",$re[2]);
 	if(file_time_min($file)>5){
 		
 		if($GLOBALS["ZARAFA_INSTALLED"]){
@@ -1709,7 +1747,7 @@ if(preg_match("#postfix\/.+?:\s+warning:\s+problem talking to server\s+[0-9\.]+:
 	if(file_time_min($file)>10){
 		email_events("Postfix: Policyd-weight server connection problem","Postfix\n$buffer\nArtica will reconfigure restart policyd-weight service","postfix");
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart policydw");
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/policyd-weight start");
 		}
 		@unlink($file);
 		file_put_contents($file,"#");
@@ -1902,7 +1940,7 @@ if(preg_match("#zarafa-monitor.+?:\s+Unable to get store entry id for company\s+
 
 
 if(preg_match("#postfix\/lmtp.+?:\s+(.+?):\s+to=<(.+?)>.+?lmtp.+?deferred.+?451.+?Mailbox has an invalid format#",$buffer,$re)){
-	event_messageid_rejected($re[1],"Mailbox corrupted",null,$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Mailbox corrupted",null,$re[2]);
 	mailbox_corrupted($buffer,$re[2]);
 	return null;
 	}
@@ -1910,24 +1948,24 @@ if(preg_match("#postfix\/lmtp.+?:\s+(.+?):\s+to=<(.+?)>.+?lmtp.+?deferred.+?451.
 
 	
 if(preg_match("#postfix\/lmtp.+?(.+?):\s+to=<(.+?)>.+?lmtp.+?status=deferred.+?452.+?Over quota#",$buffer,$re)){
-	event_messageid_rejected($re[1],"Over quota",null,$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Over quota",null,$re[2]);
 	mailbox_overquota($buffer,$re[2]);
 	return null;
 	}	
 
 if(preg_match("#postfix\/.+?:(.+?):\s+milter-reject: END-OF-MESSAGE\s+.+?Error in processing.+?ALL VIRUS SCANNERS FAILED;.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
-	event_message_milter_reject($re[1],"antivirus failed",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($re[1],"antivirus failed",$re[1],$re[2],$buffer);
 	clamav_error_restart($buffer);
 	return null;	
 	}
 
 if(preg_match("#postfix\/.+?:(.+?):\s+to=<(.+?)>,.+?\[(.+?)\].+?status=deferred.+?virus_scan FAILED#",$buffer,$re)){
-	event_messageid_rejected($re[1],"antivirus failed",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"antivirus failed",$re[3],$re[2]);
 	return null;
 	}
 	
 if(preg_match("#smtp\[[0-9]+\]:\s+(.+?):\s+to=<(.+?)>,\s+relay=127\.0\.0.+:[0-9]+,.+?deferred.+?451.+?during fwd-connect\s+\(Negative greeting#",$buffer,$re)){
-	event_messageid_rejected($re[1],"Internal timed-out","127.0.0.1",$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Internal timed-out","127.0.0.1",$re[2]);
 	$file="/etc/artica-postfix/croned.1/timedout-amavis";
 	events("fwd-connect ERROR");
 	if(file_time_min($file)>5){
@@ -2048,7 +2086,7 @@ if(preg_match("#.+?\/(.+?)\[.+?:\s+fatal:\s+open\s+(.+?)\.db:\s+Bad file descrip
 }
 
 if(preg_match("#postfix\/qmgr.+?:\s+(.+?):\s+from=<(.*?)>,\s+status=expired, returned to sender#",$buffer,$re)){
-	event_finish($re[1],null,"expired","expired",$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_finish($re[1],null,"expired","expired",$re[2],$buffer);
 	return null;
 }
 
@@ -2142,20 +2180,20 @@ if(preg_match("#smtpd.+?:\s+warning: SASL authentication failure: no secret in d
 }
 
 if(preg_match("#smtp.+?connect to 127\.0\.0\.1\[127\.0\.0\.1\]:10024: Connection refused#",$buffer,$re)){
-	AmavisConfigErrorInPostfix($buffer);
+	$GLOBALS["maillog_tools"]->AmavisConfigErrorInPostfix($buffer);
 	return null;
 }
 
 
 if(preg_match("#postfix\/smtp\[.+?:\s+(.+?):\s+to=<(.+?)>.+?status=deferred\s+\(SASL authentication failed.+?\[(.+?)\]#",$buffer,$re)){
-	event_messageid_rejected($re[1],"authentication failed",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"authentication failed",$re[3],$re[2]);
 	smtp_sasl_failed($re[3],$re[3],$buffer);
 }
 
 
 if(preg_match("#postfix\/smtp\[.+?:\s+(.+?):\s+to=<(.+?)>.+?status=bounced.+?.+?\[(.+?)\]\s+said:\s+554.+?http:\/\/#",$buffer,$re)){
 	ImBlackListed($re[3],$buffer);
-	event_messageid_rejected($re[1],"Your are blacklisted",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Your are blacklisted",$re[3],$re[2]);
 	return null;
 }
 
@@ -2170,7 +2208,7 @@ if(preg_match("#postfix\/(cleanup|bounce|smtp|smtpd|flush|trivial-rewrite)\[.+?f
 
 if(preg_match("#postfix\/smtp\[.+?:\s+(.+?):\s+host.+?\[(.+?)\]\s+said:\s+[0-9]+\s+invalid sender domain#",$buffer,$re)){
 	$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($re[1],$re[2],"invalid sender domain");
-	event_messageid_rejected($re[1],"invalid sender domain",$re[2],null);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"invalid sender domain",$re[2],null);
 	return null;
 }
 
@@ -2208,7 +2246,7 @@ if(preg_match('#milter-greylist: greylist: Unable to bind to port (.+?): Permiss
 }
 
 if(preg_match('#]:\s+(.+?): to=<(.+?)>.+?socket/lmtp\].+?status=deferred.+?lost connection with.+?end of data#',$buffer,$re)){
-	event_finish($re[1],$re[2],"deferred","mailbox service error",null,$buffer);
+	$GLOBALS["maillog_tools"]->event_finish($re[1],$re[2],"deferred","mailbox service error",null,$buffer);
 	return null;
 }
 
@@ -2533,27 +2571,27 @@ if(preg_match("#could not connect to amavisd socket.+?Connection timed out#",$bu
 }
 
 if(preg_match("#NOQUEUE: reject:.+?from.+?\[([0-9\.]+)\]:.+?Sender address rejected: Domain not found; from=<(.+?)> to=<(.+?)> proto#",$buffer,$re)){
-	event_message_reject_hostname("Domain not found",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Domain not found",$re[2],$re[3],$re[1]);
 	events("{$re[1]} Domain not found from=<{$re[2]}> to=<{$re[3]}>");
 	return null;
 	}
 	
 if(preg_match("#NOQUEUE: reject:.+?from.+?\[([0-9\.]+)\]:.+?Client host rejected: cannot find your hostname.+?from=<(.+?)> to=<(.+?)> proto#",$buffer,$re)){
-	event_message_reject_hostname("hostname not found",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("hostname not found",$re[2],$re[3],$re[1]);
 	return null;
 }
 
 if(preg_match("#smtpd.+?NOQUEUE:.+?from.+?\[(.+?)\].+?Client host rejected.+?reverse hostname.+?from=<(.+?)>.+?to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("hostname not found",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("hostname not found",$re[2],$re[3],$re[1]);
 	return null;
 }
 
 if(preg_match("#smtpd.+?NOQUEUE: reject.+?from.+?\[(.+?)\].+?Helo command rejected:.+?from=<(.+?)> to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("Helo command rejected",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Helo command rejected",$re[2],$re[3],$re[1]);
 	return null;
 }
 if(preg_match("#smtpd.+?NOQUEUE: reject.+?from.+?\[(.+?)\].+?4.3.5 Server configuration problem.+?from=<(.+?)> to=<(.+?)>#",$buffer,$re)){
-	event_message_reject_hostname("Server configuration problem",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Server configuration problem",$re[2],$re[3],$re[1]);
 	return null;
 }
 
@@ -2566,7 +2604,7 @@ if(preg_match("#postfix.+?\[.+?reject: header.+?from.+?\[([0-9\.]+)\];\s+from=<(
 		events("-> notification...");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("Blocked message too many recipients from {$re[2]}","Postfix claims $buffer","postfix");
 	}
-	event_message_reject_hostname("too many recepients",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("too many recepients",$re[2],$re[3],$re[1]);
 	return null;
 }
 
@@ -2593,39 +2631,39 @@ if(preg_match("#IOERROR.+?fstating sieve script\s+(.+?):\s+No such file or direc
 
 
 if(preg_match("#smtp.+?\].+?([A-Z0-9]+):\s+to=<(.+?)>.+?status=deferred.+?\((.+?)command#",$buffer,$re)){
-	event_message_rejected("deferred",$re[1],$re[2],$re[3]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"deferred",$re[2],$re[3]);
 	return null;
 }
 
 
 
 if(preg_match("#smtp.+?:\s+(.+?):\s+to=<(.+?)>,\s+relay=none,.+?status=deferred \(connect to .+?\[(.+?)\].+?Connection refused#",$buffer,$re)){
-	event_message_rejected("Connection refused",$re[1],$re[2],$re[3]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Connection refused",$re[2],$re[3]);
 	return null;
 }
 
 
 
 if(preg_match("#smtp.+?\].+?([A-Z0-9]+):.+?SASL authentication failed#",$buffer,$re)){
-	event_messageid_rejected($re[1],"Authentication failed");
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Authentication failed");
 	return null;
 }
 if(preg_match("#smtp.+?\].+?([A-Z0-9]+):.+?refused to talk to me.+?554 RBL rejection#",$buffer,$re)){
 	ImBlackListed($re[2],$buffer);
-	event_messageid_rejected($re[1],"Your are blacklisted");
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Your are blacklisted");
 	return null;
 }
 
 
 if(preg_match("#smtp\[.+?:\s+(.+?):\s+to=<(.+?)>,\s+relay=.+?\[(.+?)\].+?status=deferred.+?refused to talk to me#",$buffer,$re)){
 	ImBlackListed($re[3],$buffer);
-	event_messageid_rejected($re[1],"Your are blacklisted",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Your are blacklisted",$re[3],$re[2]);
 	return null;
 }
 
 if(preg_match("#postfix\/bounce\[.+?:\s+(.+?):\s+sender non-delivery notification#",$buffer,$re)){
 	events("{$re[1]} non-delivery");
-	event_messageid_rejected($re[1],"non-delivery",null,null);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"non-delivery",null,null);
 	return null;
 	}	
 
@@ -2640,7 +2678,7 @@ if(preg_match("#smtp\[.+?\]:\s+(.+?):\s+to=<(.+?)>, relay=(.+?)\[.+?status=bounc
 		@file_put_contents($file, time);
 	}
 	
-	event_messageid_rejected($re[1],"loops back to myself",$re[3],$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"loops back to myself",$re[3],$re[2]);
 	
 	
 	
@@ -2649,7 +2687,7 @@ if(preg_match("#smtp\[.+?\]:\s+(.+?):\s+to=<(.+?)>, relay=(.+?)\[.+?status=bounc
 }
 
 if(preg_match("#smtp\[.+?:\s+(.+?): host.+?\[(.+?)\] said.+?<(.+?)>:.+?Greylisting in action#",$buffer,$re)){
-	event_messageid_rejected($re[1],"Greylisted",$re[2],$re[3]);		
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Greylisted",$re[2],$re[3]);		
 	return null;	
 }
 
@@ -2657,75 +2695,79 @@ if(preg_match("#smtp\[.+?:\s+(.+?): host.+?\[(.+?)\] said.+?<(.+?)>:.+?Greylisti
 
 if(preg_match("#smtp\[.+?:\s+(.+?):\s+host.+?\[(.+?)\]\s+refused to talk to me:#",$buffer,$re)){
 	ImBlackListed($re[2],$buffer);
-	event_messageid_rejected($re[1],"Your are blacklisted",$re[2]);
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Your are blacklisted",$re[2]);
 	return null;
 }
 
-
+if(preg_match("#\/cleanup.*?:\s+([A-Z0-9]+):\s+redirect:.*?from\s+(.+?)\[([0-9\.]+)\];\s+from=<(.*?)>\s+to=<(.*?)>#", $line,$re)){
+	$GLOBALS["maillog_tools"]->event_messageid_rejected($re[1],"Redirect",$re[2],$re[5],$re[4],$re[3]);
+	return null;
+}
 
 
 
 if(preg_match('#milter-greylist:.+?:.+?addr.+?from <(.+?)> to <(.+?)> delayed for#',$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),
+			"Greylisting",$re[1],$re[2],$buffer);
 	return null;
 }
 
 if(preg_match('#milter-greylist:.+?addr.+?\[(.+?)\] from <> to <(.+?)> delayed#',$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting","unknown",$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting","unknown",$re[2],$buffer);
 	return null;
 }
 
 if(preg_match('#milter-greylist: \(unknown id\): addr.+?\[(.+?)\] from\s+=(.+?)> to <(.+?)>\s+delayed#',$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].time()),"Greylisting",$re[2],$re[3],$buffer,$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].time()),"Greylisting",$re[2],$re[3],$buffer,$re[1]);
 	return null;
 }
 
 if(preg_match("#assp.+?<(.+?)>\s+to:\s+(.+?)\s+recipient delayed#",$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting",$re[1],$re[2],$buffer);
 	return null;
 }
 
 if(preg_match("#assp.+?MessageScoring.+?<(.+?)>\s+to:\s+(.+?)\s+\[spam found\]#",$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"SPAM",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"SPAM",$re[1],$re[2],$buffer);
 	return null;
 }
 if(preg_match("#assp.+?MalformedAddress.+?<(.+?)>\s+to:\s+(.+?)\s+\malformed address:'\|(.+?)'#",$buffer,$re)){
 	eventsRTM("malformed address: $buffer");
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"malformed address (ASSP)",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"malformed address (ASSP)",$re[1],$re[2],$buffer);
 	return null;
 }
 
 if(preg_match("#assp.+?\[Extreme\]\s+(.+?)\s+<(.+?)>\s+to:\s+(.+?)\s+\[spam found\]#",$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"SPAM",$re[2],$re[3],$buffer,$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"SPAM",$re[2],$re[3],$buffer,$re[1]);
 	return null;	
 }
 
 
 if(preg_match("#assp.+?<(.*?)>\s+to:\s+(.+?)\s+bounce delayed#",$buffer,$re)){
 	if($re[1]==null){$re[1]="Unknown";}
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"bounce delayed",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_rejected(md5($re[1].$re[2].date('Y-m d H is')),"bounce delayed",$re[1],$re[2],$buffer);
 }
 
 if(preg_match("#assp.+?\[DNSBL\]\s+(.+?)\s+<(.*?)>\s+to:\s+(.+?)\s+#",$buffer,$re)){
 	if($re[2]==null){$re[2]="Unknown";}
-	event_message_reject_hostname("DNSBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("DNSBL",$re[2],$re[3],$re[1]);
 	return null;
 }
 if(preg_match("#assp.+?\[URIBL\]\s+(.+?)\s+<(.*?)>\s+to:\s+(.+?)\s+#",$buffer,$re)){
 	if($re[2]==null){$re[2]="Unknown";}
-	event_message_reject_hostname("URIBL",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("URIBL",$re[2],$re[3],$re[1]);
 	return null;
 }
 
 
 if(preg_match("#assp.+?\[SpoofedSender\]\s+(.+?)\s+<(.*?)>\s+to:\s+(.+?)\s+.+?No Spoofing Allowed#",$buffer,$re)){
 	if($re[2]==null){$re[2]="Unknown";}
-	event_message_reject_hostname("SPOOFED",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("SPOOFED",$re[2],$re[3],$re[1]);
 	return null;
 }
 if(preg_match("#assp.+?\[InvalidHELO\]\s+(.+?)\s+<(.*?)>\s+to:\s+(.+?)\s+#",$buffer,$re)){
 	if($re[2]==null){$re[2]="Unknown";}
-	event_message_reject_hostname("BAD HELO",$re[2],$re[3],$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("BAD HELO",$re[2],$re[3],$re[1]);
 	return null;
 }
 
@@ -2733,15 +2775,18 @@ if(preg_match("#assp.+?\[InvalidHELO\]\s+(.+?)\s+<(.*?)>\s+to:\s+(.+?)\s+#",$buf
 if(preg_match("#NOQUEUE: reject: RCPT from.+?<(.+?)>: Recipient address rejected: User unknown in relay recipient table;.+?to=<(.+?)> proto=SMTP#",
 $buffer,$re)){
 	$id=md5($re[1].$re[2].date('Y-m d H is'));
-	event_finish($id,$re[2],"reject","User unknown",$re[1]);
+	$GLOBALS["maillog_tools"]->event_finish($id,$re[2],"reject","User unknown",$re[1]);
 	return null;
 	
 }
 
+
+
+
 if(preg_match("#postfix\/lmtp.+?:\s+(.+?):\s+to=<(.+?)>.+?said:\s+550-Mailbox unknown#",$buffer,$re)){
 	$id=$re[1];
 	$to=$re[2];
-	event_message_milter_reject($id,"Mailbox unknown",null,$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($id,"Mailbox unknown",null,$re[2],$buffer);
 	mailbox_unknown($buffer,$to);
 	return null;
 }
@@ -2757,31 +2802,30 @@ if(preg_match('#: (.+?): reject: RCPT.+?Relay access denied; from=<(.+?)> to=<(.
 	}	
 	
 	if($re[1]=="NOQUEUE"){$re[1]=md5($re[3].$re[2].date('Y-m d H is'));}
-	event_finish($re[1],$re[3],"reject","Relay access denied",$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_finish($re[1],$re[3],"reject","Relay access denied",$re[2],$buffer);
 	return null;
 }
 
 if(preg_match('#postfix.+?cleanup.+?:\s+(.+?):\s+milter-reject: END-OF-MESSAGE.+4.6.0 Content scanner malfunction; from=<(.+?)> to=<(.+?)> proto=SMTP#',
 $buffer,$re)){
-	events("{$re[1]} Content scanner malfunction from=<{$re[2]}> to=<{$re[3]}>");
-	event_Content_scanner_malfunction($re[1],$re[2],$re[3]);
+	$GLOBALS["maillog_tools"]->event_Content_scanner_malfunction($re[1],$re[2],$re[3]);
 	return null;
 }
 if(preg_match("#postfix.+?cleanup.+?:\s+(.+?):\s+milter-discard.+?END-OF-MESSAGE.+?DISCARD.+?from=<(.+?)> to=<(.+?)> proto=SMTP#",
 $buffer,$re)){
-	event_DISCARD($re[1],$re[2],$re[3],$buffer);
+	$GLOBALS["maillog_tools"]->event_DISCARD($re[1],$re[2],$re[3],$buffer);
 	return null;
 }
 
 if(preg_match("#cleanup\[.+?:\s+(.+?):\s+milter-discard: END-OF-MESSAGE from.+?\[(.+?)\]:\s+milter triggers DISCARD action;\s+from=<(.+?)>\s+to=<(.+?)>#",
 $buffer,$re)){
-	event_DISCARD($re[1],$re[3],$re[4],$buffer,$re[2]);
+	$GLOBALS["maillog_tools"]->event_DISCARD($re[1],$re[3],$re[4],$buffer,$re[2]);
 	return null;
 }
 	
 if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+client=(.+)#",$buffer,$re)){
 	$date=date('Y-m-d H:i:s');
-	event_newmail($re[4],$date);
+	$GLOBALS["maillog_tools"]->event_newmail($re[4]);
 	return null;
 }
 
@@ -2789,23 +2833,22 @@ if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+client
 
 if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+message-id=<(.*?)>#",$buffer,$re)){
 	events("NEW message_id {$re[4]} {$re[5]}");
-	event_message_id($re[4],$re[5]);
+	$GLOBALS["maillog_tools"]->event_newmail($re[4],$re[5]);
 	return null;	
 }
 if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+from=<(.*?)>, size=([0-9]+)#",$buffer,$re)){
 	events("NEW MAIL {$re[4]} <{$re[5]}> ({$re[6]} bytes)");
-	event_message_from($re[4],$re[5],$re[6]);
+	$GLOBALS["maillog_tools"]->event_message_from($re[4],$re[5],$re[6]);
 	return null;
 }
 
 if(preg_match("#NOQUEUE: milter-reject: RCPT from.+?: 451 4.7.1 Greylisting in action, please come back in .+?; from=<(.+?)> to=<(.+?)> proto=SMTP#",$buffer,$re)){
-	event_message_milter_reject(md5($re[1].$re[2].date('Y-m d H is')),"Greylisting",$re[1],$re[2],$buffer);
+	$GLOBALS["maillog_tools"]->event_message_reject_hostname("Greylisting",$re[1],$re[2]);
 	return null;
 }
 
 if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+milter-reject:.+?:(.+?)\s+from=<(.+?)>#",$buffer,$re)){
-	events("milter-reject {$re[4]} <{$re[5]}> ({$re[6]})");
-	event_message_milter_reject($re[4],$re[5],$re[6],null,$buffer);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($re[4],$re[5],$re[6],null,$buffer);
 	return null;
 }
 
@@ -2818,7 +2861,7 @@ if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+to=<(.
 		$bounce_error=$ri[1];
 	}
    events("Finish {$re[4]} <{$re[5]}> ({$re[7]})");
-   event_finish($re[4],$re[5],$re[7],$bounce_error,null,$buffer);   
+   $GLOBALS["maillog_tools"]->event_finish($re[4],$re[5],$re[7],$bounce_error,null,$buffer);   
    return null;
 	
 }
@@ -2827,7 +2870,7 @@ if(preg_match("#^([A-ZA-z]+)\s+([0-9]+)\s+([0-9\:]+).+?:\s+([A-Z0-9]+):\s+to=<(.
 	if(preg_match('#\s+status=.+?\s+\((.+?)\)#',$buffer,$ri)){
 		$bounce_error=$ri[1];
 	}
-   event_finish($re[4],$re[5],$re[7],$bounce_error,null,$buffer);   
+   $GLOBALS["maillog_tools"]->event_finish($re[4],$re[5],$re[7],$bounce_error,null,$buffer);   
    return null;	
 }
 
@@ -2851,13 +2894,13 @@ if(preg_match('#sfupdates.+?KASERROR.+?keepup2date\s+failed.+?code.+?critical er
 
 if(preg_match('#lmtp.+?:\s+(.+?): to=<(.+?)>,.+?status=deferred.+?connect to .+?\[(.+?)\].+?No such file or directory#',
 $buffer,$re)){
-	event_message_milter_reject($re[1],"deferred",null,$re[1]);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($re[1],"deferred",null,$re[1]);
 	cyrus_socket_error($buffer,"$re[3]");
 	return null;
 }
 
 if(preg_match('#lmtp.+?:(.+?):\s+to=<(.+?)>.+?said: 550-Mailbox unknown#',$buffer,$re)){
-	event_message_milter_reject($re[1],"Mailbox unknown",null,$re[2]);
+	$GLOBALS["maillog_tools"]->event_message_milter_reject($re[1],"Mailbox unknown",null,$re[2]);
 	mailbox_unknown($buffer,$re[2]);
 	return null;
 }
@@ -2870,26 +2913,12 @@ events_not_filtered("Not Filtered:\"$buffer\"");
 
 function events($text){
 		$filename=basename(__FILE__);
+		$size=filesize($logFile);
+		if($size>5000000){unlink($logFile);}
 		$logFile="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug";
-		if(!isset($GLOBALS["CLASS_UNIX"])){
-			include_once(dirname(__FILE__)."/framework/class.unix.inc");
-			$GLOBALS["CLASS_UNIX"]=new unix();
-		}
-		$GLOBALS["CLASS_UNIX"]->events("$filename $text",$logFile);		
+		error_log("$filename $text");
 }
 		
-function event_Content_scanner_malfunction($postfix_id,$from,$to){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	$ini->set("TIME","mailfrom","$from");
-	$ini->set("TIME","mailto","$to");
-	$ini->set("TIME","bounce_error","Content scanner malfunction");
-	$ini->set("TIME","time_end",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);	
-}
 
 function eventsRTM($text){
 		$pid=getmypid();
@@ -2901,644 +2930,7 @@ function eventsRTM($text){
 		@fwrite($f, "$date [$pid] $text\n");
 		@fclose($f);	
 		}
-
-
-function event_DISCARD($postfix_id,$from,$to,$buffer=null,$ipaddr=null){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	if($ipaddr==null){
-		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){$ini->set("TIME","smtp_sender",$re[1]);$ipaddr=$re[1];}
-	}else{
-		$ini->set("TIME","smtp_sender",$ipaddr);
-	}	
 	
-	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$ipaddr)){
-		$hostname=gethostbyaddr($ipaddr);
-		$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($hostname,$ipaddr,"Discard");
-	}	
-	
-	$ini->set("TIME","mailfrom","$from");
-	$ini->set("TIME","mailto","$to");
-	$ini->set("TIME","bounce_error","Discard");
-	$ini->set("TIME","time_end",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);	
-}
-function event_newmail($postfix_id,$date){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	$ini->set("TIME","time_connect",$date);
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);	
-}
-function event_message_from($postfix_id,$from,$size){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}	
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	$ini->set("TIME","mailfrom",$from);
-	$ini->set("TIME","mailsize",$size);
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);	
-}
-function event_message_milter_reject($postfix_id,$reject,$from,$to=null,$buffer=null,$sender=null){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	if($sender==null){
-		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){$ini->set("TIME","smtp_sender",$re[1]);}	
-		if(preg_match("#assp\[.+?\]:\s+.+?\s+(.+?)\s+<#",$buffer,$re)){$ini->set("TIME","smtp_sender",$re[1]);}
-		if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$re[1])){
-			$hostname=gethostbyaddr($re[1]);
-			$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($hostname,$re[1],$reject);
-		}		
-	}
-	if($to<>null){$ini->set("TIME","mailto",$to);}
-	if($from<>null){$ini->set("TIME","mailfrom",$from);}
-	$ini->set("TIME","bounce_error",$reject);
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	
-	if(function_exists("debug_backtrace")){
-		$trace=@debug_backtrace();
-		if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-	}	
-	eventsRTM("mailfrom: $from mailto:$to bounce_error:$reject $called in ".__FUNCTION__." ".basename(__FILE__)." line:".__LINE__);
-	$ini->saveFile($file);	
-}
-
-function event_message_reject_hostname($reject,$from,$to=null,$server){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	
-	$to=str_replace("|","",$to);
-	$to=trim($to);
-	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$server)){
-		$hostname=gethostbyaddr($server);
-		$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($hostname,$server,$reject);
-	}
-	
-	
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
-	events("$reject: $server from=<$from>< to=<$to> in line ".__LINE__." event: <".basename($file).">");
-	
-	$ini=new Bs_IniHandler($file);
-	$ini->set("TIME","smtp_sender",$server);	
-	if($to<>null){$ini->set("TIME","mailto",$to);}
-	if($from<>null){$ini->set("TIME","mailfrom",$from);}
-	$ini->set("TIME","bounce_error",$reject);
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);
-	
-	if(function_exists("debug_backtrace")){
-		$trace=@debug_backtrace();
-		if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-	}	
-	eventsRTM("mailfrom: $from mailto:$to bounce_error:$reject $called in ".__FUNCTION__." ".basename(__FILE__)." line:".__LINE__);
-		
-	
-	if(!is_file($file)){
-		events("$reject:".basename($file)." error writing in line ".__LINE__);
-	}
-}
-
-
-function event_messageid_rejected($msg_id_postfix,$error,$server=null,$to=null){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$msg_id_postfix.msg";
-	$ini=new Bs_IniHandler($file);
-	if($server<>null){$ini->set("TIME","smtp_sender",$server);}
-	if($to<>null){$ini->set("TIME","mailto",$to);}
-	$ini->set("TIME","delivery_success","no");
-	$ini->set("TIME","bounce_error",$error);
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	
-	if(function_exists("debug_backtrace")){
-		$trace=@debug_backtrace();
-		if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-	}	
-	eventsRTM("mailfrom: $from mailto:$to bounce_error:$error $called in ".__FUNCTION__." ".basename(__FILE__)." line:".__LINE__);
-		
-	
-	$ini->saveFile($file);		
-}
-
-function event_message_rejected($reject,$msg_id_postfix,$to=null,$buffer){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$msg_id_postfix.msg";
-	$ini=new Bs_IniHandler($file);
-	
-	if(preg_match("#invalid sender domain#",$buffer)){
-		$reject="Invalid sender domain";
-	}
-	
-	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$buffer)){
-		$ini->set("TIME","server_from","$buffer");
-	}
-	
-	if($to<>null){$ini->set("TIME","mailto",$to);}
-	
-	$ini->set("TIME","bounce_error",$reject);
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	
-	if(function_exists("debug_backtrace")){
-		$trace=@debug_backtrace();
-		if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-	}	
-	eventsRTM("mailfrom: $from mailto:$to bounce_error:$error $called in ".__FUNCTION__." ".basename(__FILE__)." line:".__LINE__);
-			
-	
-	$ini->saveFile($file);	
-}
-
-function event_message_id($postfix_id,$messageid){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	$ini->set("TIME","message-id","$messageid");
-	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
-	$ini->saveFile($file);		
-}
-		
-function event_greylisted($server,$from){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
-	$ini=new Bs_IniHandler($file);
-	
-	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$server)){
-		$hostname=gethostbyaddr($server);
-		$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($hostname,$server,"greylist");
-	}	
-	
-	$ini->set("TIME","mailfrom","$from");
-	$ini->set("TIME","server_from","$server");
-	$ini->set("TIME","bounce_error","greylisted");
-	$ini->set("TIME","time_end",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","no");
-	$ini->saveFile($file);
-}
-
-
-
-function event_finish($postfix_id,$to,$status,$bounce_error,$from=null,$buffer=null){
-	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
-	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-    $delivery_success='yes';
-    if($status=='bounced'){$delivery_success='no';}
-	if($status=='deferred'){$delivery_success='no';}
-	if($status=='reject'){$delivery_success='no';}
-	if($status=='expired'){$delivery_success='no';}
-    
-	if(preg_match("#Queued mail for delivery#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	}
-	
-	if(preg_match("#550 No Such User Here#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="Mailbox Unknown";
-	}
-	
-	if(preg_match("#No such user#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="Mailbox Unknown";
-	}
-	
-	if(preg_match("#550 5\.1\.0 error: R4\.1#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="Mailbox Unknown";
-	}
-	
-	if(preg_match("#Sender address rejected: need fully-qualified address#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="need fully-qualified address";
-	}
-	
-	if(preg_match("#550.*?The email account that you tried to reach does not exist#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="Mailbox Unknown";
-	}
-	
-	if(preg_match("#no mailbox here#",$bounce_error)){
-		$status="rejected";
-		$delivery_success="no";
-		$bounce_error="Mailbox Unknown";
-	}	
-	
-	if(preg_match("#refused to talk to me.+?RBL rejection#",$bounce_error)){
-			$status="rejected";
-			$delivery_success="no";
-			$bounce_error="RBL";
-	}
-
-	if(preg_match("#550.+?Service unavailable.+?blocked using.+?RBL#",$bounce_error)){
-			$status="rejected";
-			$delivery_success="no";
-			$bounce_error="RBL";
-	}
-	
-	if(preg_match("#554 : Recipient address rejected: Access denied#",$bounce_error)){
-			$status="rejected";
-			$delivery_success="no";
-			$bounce_error="Access denied";
-	}	
-	
-	
-	if(preg_match("#451 4.2.0 Mailbox has an invalid format#",$bounce_error)){
-			$status="rejected";
-			$delivery_success="no";
-			$bounce_error="Mailbox corrupt";
-	}		
-	
-	if(preg_match("#delivered via#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	}
-	
-	
-	if(preg_match("#Content scanner malfunction#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Content scanner malfunction";
-	}
-	
-	if(preg_match("#4\.5\.0 Failure#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Error";
-	}	
-	
-	
-	if(preg_match("#250 2\.0\.0 Ok#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	}
-	
-	if(preg_match("#Host or domain name not found#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Host or domain name not found";
-	}
-	
-	
-	if(preg_match("#4\.5\.0 Error in processing#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Error";
-	};
-	
-if(preg_match("#Sender address rejected.+?Domain not found#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Domain not found";
-	};	
-	
-if(preg_match("#delivered to command: procmail -a#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sent to procmail";
-	};
-
-if(preg_match("#550 must be authenticated#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Authentication error";
-	};	
-
-if(preg_match("#250 Message.+?accepted by#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	};	
-
-if(preg_match("#250 Message.*?received#",$bounce_error)){
-	$status="Deliver";
-	$delivery_success="yes";
-	$bounce_error="Sended";	
-}
-	
-	
-if(preg_match("#Connection timed out#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="timed out";
-	};	
-	
-if(preg_match("#connect\s+to.+?Connection refused#",$bounce_error)){
-	if(preg_match("#connect to 127\.0\.0\.1\[127\.0\.0\.1\]:2003:#", $bounce_error)){
-			$file="/etc/artica-postfix/croned.1/postfix.lmtp.127.0.0.1:2003.refused";
-			if(file_time_min($file)>5){
-				if($GLOBALS["ZARAFA_INSTALLED"]){
-					email_events("Postfix: Zarafa LMTP Error","Postfix\n$buffer\nArtica will trying to start Zarafa","postfix");
-					$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix start zarafa >/dev/null 2>&1 &";
-					shell_exec_maillog(trim($cmd));
-					@unlink($file);
-					file_put_contents($file,"#");
-					return;	
-				}
-			}
-		}
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="Connection refused";		
-}
-
-if(preg_match("#127\.0\.0\.1.*?said:\s+450\s+[0-9\.]+\s+(.+?)\s+Mailbox Temporarily Unavailable#", $bounce_error,$re)){
-	$file="/etc/artica-postfix/croned.1/postfix.lmtp.127.0.0.1:{$re[1]}.Temporarily.Unavailable";
-	if(file_time_min($file)>5){
-		email_events("Postfix:MailBox issue on {$re[1]} Temporarily Unavailable","Postfix\n$buffer\nChecks is {$re[1]} is a realy account..","postfix");
-		//$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix start zarafa >/dev/null 2>&1 &";
-		//shell_exec_maillog(trim($cmd));
-		@unlink($file);
-		file_put_contents($file,"#");
-		return;
-	}
-	$status="Error";
-	$delivery_success="no";
-	$bounce_error="Mailbox Unavailable";	
-	
-}
-
-if(preg_match("#temporary failure.+?artica-msmtp:\s+recipient address\s+(.+?)\s+not accepted by the server artica-msmtp#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="artica-filter error";		
-}
-
-if(preg_match("#host.+?said: 550 No such user#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="No such user";		
-}
-		
-	if(preg_match("#250 2\.1\.5 Ok#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	}
-	
-	if($bounce_error=="250 OK: data received"){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";		
-	}
-	
-	if($bounce_error=="250 Ok: queued as"){
-			$status="Deliver";
-			$delivery_success="yes";
-			$bounce_error="Sended";		
-		}
-	if(preg_match("#250\s+ok#",$bounce_error)){
-		$status="Deliver";
-		$delivery_success="yes";
-		$bounce_error="Sended";
-	}		
-		
-	if(preg_match("#504.+?Recipient address rejected#",$bounce_error)){
-		$status="Error";
-		$delivery_success="no";
-		$bounce_error="recipient address rejected";
-	}
-	
-if(preg_match("#Address rejected#",$bounce_error)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Address rejected";
-			}
-
-if(preg_match("#conversation with .+?timed out#",$bounce_error)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="timed out";
-			}	
-
-if(preg_match("#connect to\s+(.+?)\[.+?cyrus.+?lmtp\]: Connection refused#",$bounce_error)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="mailbox service error";
-			cyrus_generic_error($bounce_error,"Cyrus socket error");	
-			}
-	
-if(preg_match("#host.+?\[(.+?)\]\s+said:.+?<(.+?)>: Recipient address rejected: User unknown in local recipient table#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="User unknown";
-			$to=$re[2];
-			}
-			
-	if(preg_match("#host.+?said:\s+554.+?<(.+?)>:\s+Recipient address rejected.+?not existing recipient#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="not existing recipient";
-			$to=$re[2];
-			}			
-			
-			
-		if(preg_match("#said:.+?Authentication required#",$bounce_error)){
-					$status="Error";
-					$delivery_success="no";
-					$bounce_error="Authentication required";	
-		}
-		
-		if(preg_match("#temporary failure.+?[0-9]+\s+[0-9\.]+\s+Bad sender address syntax.+?could not send mail#",$bounce_error)){
-					$status="Error";
-					$delivery_success="no";
-					$bounce_error="Bad sender address syntax";	
-		}
-		
-		if(preg_match("#connect.+?Permission denied#",$bounce_error)){
-					$status="Error";
-					$delivery_success="no";
-					$bounce_error="service permissions error";	
-		}
-		
-		if(preg_match("#Command died with status 255:.+?exec\.artica-filter\.php#",$bounce_error)){
-					$status="Error";
-					$delivery_success="no";
-					$bounce_error="artica-filter error";
-		}
-		
-		
-		if(preg_match("#host\s+(.+?)\[(.+?)\]\s+said:\s+[0-9]+.+?Recipient address rejected: Access denied#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Access denied";
-			$smtp_sender=$re[2];
-		}
-		
-		if(preg_match("#250.+?Ok#i",$bounce_error)){
-			$status="Deliver";
-			$delivery_success="yes";
-			$bounce_error="Sended";
-		}
-		
-		if(preg_match("#Message accepted#i",$bounce_error)){
-			$status="Deliver";
-			$delivery_success="yes";
-			$bounce_error="Sended";	
-		}
-
-		if(preg_match("#host.+?said:.+?Domain of sender address.+?does not exist#",$bounce_error)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Your domain does not exist";
-		}
-		
-		if(preg_match("#connect to .+?No such file or dire#",$bounce_error)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="socket error";
-		}
-		
-		if(preg_match("#lost connection with.+?\[(.+?)\] while receiving#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="lost connection";
-			$smtp_sender=$re[1];		
-		}
-		
-		if(preg_match("#host.+?\[(.+?)\] said:.+?Recipient address rejected#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Recipient address rejected";
-			$smtp_sender=$re[1];		
-		}
-		
-		if(preg_match("#loops back to myself#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			
-			$file="/etc/artica-postfix/croned.1/postfix.loops.back.to.myself";
-			if(file_time_min($file)>10){
-				shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --urgency >/dev/null 2>&1 &");
-				@unlink($file);
-				@file_put_contents($file, time);
-			}			
-			
-			$bounce_error="loops back to myself";
-		}
-		
-		if(preg_match("#Sender denied#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Sender denied";
-		}
-		
-		if(preg_match("#User unknown#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="User unknown";
-		}
-		
-		if(preg_match("#Bounce attack signature verification failed#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Bounce attack";
-		}
-		
-		if(preg_match("#mailbox unavailable#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="No mailbox";
-		}
-		
-		if(preg_match("#Message rejected#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Message rejected";			
-		}
-		
-		if(preg_match("#250 2\.0\.0 from MTA#",$bounce_error,$re)){
-			$status="Deliver";
-			$delivery_success="yes";
-			$bounce_error="Sended";			
-		}
-		
-		
-		if(preg_match("#421-ts03#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Your are blacklisted";			
-		}
-		
-		if(preg_match("#User does not exist#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="No mailbox";			
-		}
-		
-		if(preg_match("#Recipient address rejected#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="authentication required";			
-		}
-		
-		if(preg_match("#unsolicited mail originating from your IP address#",$bounce_error,$re)){
-			$status="Error";
-			$delivery_success="no";
-			$bounce_error="Your are blacklisted";			
-		}
-		
-		
-		if($bounce_error=="250 OK"){$bounce_error="Sended";$delivery_success="yes";$status="Deliver";}
-		if(preg_match("#lost connection with.+?\[(.+?)\]\s+#",$bounce_error,$re)){$bounce_error="lost connection";$delivery_success="no";$smtp_sender=$re[1];}		
-		if(preg_match("#status=bounced \(message size.+?exceeds size limit.+?of server.+?\[(.+?)\]#",$bounce_error,$re)){$bounce_error="size exceed limit";$delivery_success="no";$smtp_sender=$re[1];}
-		if(preg_match("#lost connection with.+?\[(.+?)\]\s+#",$bounce_error,$re)){$bounce_error="lost connection";$delivery_success="no";$smtp_sender=$re[1];}
-
-if($delivery_success=="no"){
-			if($bounce_error=="User unknown in relay recipient table"){$bounce_error="User unknown";}
-			
-	    	events("event_finish() line ".__LINE__. " bounce_error=$bounce_error");
-	    	if(preg_match("#connect to.+?\[(.+?)lmtp\].+?No such file or directory#",$bounce_error,$ra)){
-	    		events("Cyrus error found -> CyrusSocketErrot");
-	    		cyrus_socket_error($bounce_error,$ra[1].'/lmtp');
-	    		}
-	    	if(preg_match("#550\s+User\s+unknown\s+<(.+?)>.+?in reply to RCPT TO command#",$bounce_error,$ra)){mailbox_unknown($bounce_error,$ra[1]);}
-	    }
-    
-	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
-	$ini=new Bs_IniHandler($file);
-	if($smtp_sender==null){
-		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){
-			$ini->set("TIME","smtp_sender",$re[1]);
-		}
-	}else{
-		$ini->set("TIME","smtp_sender","$smtp_sender");
-	}
-	
-	if($from<>null){$ini->set("TIME","mailfrom",$from);}
-	$ini->set("TIME","mailto","$to");
-	$ini->set("TIME","bounce_error","$bounce_error");
-	$ini->set("TIME","time_end",date("Y-m-d H:i:s"));
-	$ini->set("TIME","delivery_success","$delivery_success");
-	
-	events("event_finish() [$postfix_id]: $from => $to err=$bounce_error success=$delivery_success");
-	
-	$ini->saveFile($file);	    
-       
-	
-}
-
 function cyrus_imap_conx($service,$hostname,$ip,$user){
 	$time=time();
 	
@@ -4100,37 +3492,11 @@ function smtp_hack_perform($servername,$array,$matches){
 	}
 }
 function events_not_filtered($text){
-		$common="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug";
-		$size=@filesize($common);
-		$pid=getmypid();
-		$date=date("Y-m-d H:i:s");
-		$h = @fopen($common, 'a');
-		$sline="[$pid] $text";
-		$line="$date [$pid] $text\n";
-		@fwrite($h,$line);
-		@fclose($h);	
+	error_log("Not filtered: $text");
 	
 }
 
-function Postfix_Addconnection($hostname=null,$ip=null){
-	$time=time();
-	
-	events("Addconnection: $hostname - > $ip");
-	$fam=new familysite();
-	if($hostname==null){$hostname=$fam->GetComputerName($ip);}
-	$curdate=date("YmdH");
-	$tablename="{$curdate}_hcnx";
-	$zDate=date("Y-m-d H:i:s");
-	$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();
-	$domain=$fam->GetFamilySites($hostname);
-	$zmd5=md5("$time$hostname$ip");
 
-	$sql="INSERT IGNORE INTO $tablename (`zmd5`,`zDate`,`hostname`,`domain`,`ipaddr`) VALUES ('$zmd5','$zDate','$hostname','$domain','$ip')";
-	
-	events("Addconnection: QUERY_SQL");
-	$GLOBALS["CLASS_POSTFIX_SQL"]->QUERY_SQL($sql);
-	
-}
 
 
 function amavisd_milter_bin_path(){

@@ -17,7 +17,8 @@ if(isset($_GET["saveconf"])){ufdbguard_save_content();exit;}
 if(isset($_GET["debug-groups"])){debug_groups();exit;}
 if(isset($_GET["databases-percent"])){databases_percent();exit;}
 if(isset($_GET["articawebfilter-database-version"])){artica_webfilter_database_version();exit;}
-
+if(isset($_GET["apply-restart-progress"])){apply_restart_progress();exit;}
+if(isset($_GET["remove-sessions-caches"])){remove_sessions_caches();exit;}
 
 
 
@@ -25,6 +26,16 @@ while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
+
+
+function remove_sessions_caches(){
+	$unix=new unix();
+	$rm=$unix->find_program("rm");
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $rm -rf /home/squid/error_page_sessions/* >/dev/null 2>&1 &");
+	shell_exec("$nohup $rm -rf /home/squid/error_page_cache/* >/dev/null 2>&1 &");
+	
+}
 
 
 function getversion(){
@@ -64,9 +75,27 @@ function compile_category(){
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --compile-category {$_GET["category"]} --ouptut >{$GLOBALS["LOGSFILES"]} 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	
-	
+}
 
+function apply_restart_progress(){
+
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/web/ufdbguard.compile.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/ufdb.restart.log";	
+	
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squidguard.php --apply-restart --ouptut >{$GLOBALS["LOGSFILES"]} 2>&1 &");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	
 }
 
 

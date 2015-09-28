@@ -345,7 +345,7 @@ function xapsearch(){
 	if(!is_numeric($XapianDisableAdm)){$XapianDisableAdm=0;}
 	
 	if($XapianDisableAdm==0){
-		if(preg_match("#phpinfo:(.*?):(.*)#", $xapsearch,$re)){if(  strtolower($ldap->ldap_admin)==strtolower($re[1])  ){if(trim($re[2])==trim($ldap->ldap_password)){$s=php_ini_path();echo "<div style='width:620px;margin-top:20px' class=form>$s</div>";}}echo $tpl->_ENGINE_parse_body("<strong style='color:red'>{failed}</strong>");return;}
+		if(preg_match("#phpinfo:(.*?):(.*)#", $xapsearch,$re)){if(  strtolower($ldap->ldap_admin)==strtolower($re[1])  ){if(trim($re[2])==trim($ldap->ldap_password)){$s=php_ini_path();echo "<div style='width:620px;margin-top:20px' class=form>$s</div>";}}echo $tpl->_ENGINE_parse_body("<strong style='color:#d32d2d'>{failed}</strong>");return;}
 		if(preg_match("#status xapiandb\s+(.*?):(.*)#", $xapsearch,$re)){if(  strtolower($ldap->ldap_admin)==strtolower($re[1])  ){if(trim($re[2])==trim($ldap->ldap_password)){status_xapiandb();}}return;}
 		if(preg_match("#chtitle\s+\"(.*?)\"\s+(.*?):(.*)#", trim($xapsearch),$re)){
 			if(  strtolower($ldap->ldap_admin)==strtolower($re[2])  ){
@@ -353,7 +353,7 @@ function xapsearch(){
 					$sock=new sockets();
 					$sock->SET_INFO("XapianSearchTitle",$re[1]);
 					echo $tpl->_ENGINE_parse_body("<center style='margin-top:20px'>
-					<strong style='font-size:22px;color:red'>{you_have_to_reload_webpage}</strong></center>");
+					<strong style='font-size:22px;color:#d32d2d'>{you_have_to_reload_webpage}</strong></center>");
 				}
 				return;
 			}

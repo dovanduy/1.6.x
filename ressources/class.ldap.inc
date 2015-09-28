@@ -125,9 +125,12 @@ class clladp{
 	var $ArticaBranchCorrupted=false;
 	var $UseLdap=true;
 	var $EnableManageUsersTroughActiveDirectory=false;
+	private $SquidPerformance;
+	private $EnableIntelCeleron;
 	
 	function clladp(){
 		$this->ldapFailed=false;
+		
 		
 		if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
 		if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
@@ -189,7 +192,7 @@ class clladp{
 		if(!is_numeric($EnableOpenLdapProxy)){$EnableOpenLdapProxy=0;}			
 		
 		
-		if($GLOBALS["AS_ROOT"]){
+		
 			if(is_file("/etc/artica-postfix/ldap_settings/admin")){
 				$this->ldap_admin=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/admin"));
 			}
@@ -199,11 +202,6 @@ class clladp{
 			if(is_file("/etc/artica-postfix/ldap_settings/password")){
 				$this->ldap_password=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/password"));
 			}			
-		}else{
-			$this->ldap_admin=null;
-			$this->ldap_password=null;
-			$this->suffix=null;
-		}
 		
 		
 		if($this->ldap_admin==null){$this->ldap_admin=$_GLOBAL["ldap_admin"];}
@@ -211,6 +209,12 @@ class clladp{
 		if($this->suffix==null){$this->suffix=$_GLOBAL["ldap_root_database"];}
 		$this->ldap_host=$_GLOBAL["ldap_host"];
 		$this->ldap_port=$_GLOBAL["ldap_port"];
+		
+		$this->CheckDefaultValues();
+		
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] INIT: Suffix: $this->suffix";
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] INIT: Host..: {$this->ldap_host}:{$this->ldap_port}";
+		
 		if(!isset($_GLOBAL["USE_SUSE_SCHEMA"])){$_GLOBAL["USE_SUSE_SCHEMA"]=false;}
 		$this->use_suse_schema=$_GLOBAL["USE_SUSE_SCHEMA"];
 		if($_GLOBAL["ldap_host"]==null){$this->ldap_host="127.0.0.1";}
@@ -227,6 +231,20 @@ class clladp{
 		}
 		
 		if($this->ldap_port==null){$this->ldap_port=389;}
+		
+		
+		if($_GLOBAL["SQUID_INSTALLED"]){
+			$sock=new sockets();
+			$this->SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+			$this->EnableIntelCeleron=intval($sock->GET_INFO("EnableIntelCeleron"));
+			if($this->SquidPerformance>2){return;}
+			if($this->EnableIntelCeleron==1){return;}
+		}
+		
+		
+		
+		
+		
 		if(!isset($GLOBALS["VERIFLDAPTRUE"])){$GLOBALS["VERIFLDAPTRUE"]=false;}
 		
 		if(!$this->ldap_fsock()){return false;}
@@ -272,9 +290,7 @@ class clladp{
 							break;	
 
 						case 34:
-							$error=$error . "\nInvalid DN syntax\nLDAP server will be restarted...\n";
-							$sock=new sockets();
-							$sock->getFrameWork("system.php?restart-ldap=yes");
+							$error=$error . "\nInvalid DN syntax\n";
 							break;
 							
 						case -1:
@@ -307,6 +323,8 @@ class clladp{
 		}
 		
 private function ldap_fsock(){
+	if($this->SquidPerformance>2){return;}
+	if($this->EnableIntelCeleron==1){return;}
 	if(isset($_SESSION["ASLDATESTED"][date('YmdHi')])){return $_SESSION["ASLDATESTED"][date('YmdHi')];}
 	if($GLOBALS["VERIFLDAPTRUE"]){return true;}
 	
@@ -421,21 +439,74 @@ private function ldap_connect_action(){
 			$LDAP_API=urlencode($LDAP_API);
 			@ldap_close();
 			$this->ldap_connection=@ldap_connect("ldapi://$LDAP_API",0) ;
-			if($this->ldap_connection){return true;}
+			if($this->ldap_connection){
+				$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldapi://$LDAP_API: SUCCESS";
+				return true;
+			}
 			$error=ldap_err2str( ldap_errno($this->ldap_connection) );
+			$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldapi://$LDAP_API: FAILED ($error)";
+			
 			writelogs("Fatal: ldap_connect -> ldapi://$LDAP_API FAILED $error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			@ldap_close();
 			
 		}
 			
 		$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
-		if($this->ldap_connection){return true;}
+		if($this->ldap_connection){
+			$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] $this->ldap_host:$this->ldap_port SUCCESS";
+			return true;
+		}
+		$error=ldap_err2str( ldap_errno($this->ldap_connection) );
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldapi://$LDAP_API: FAILED ($error)";
 		if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		@ldap_close();
 		return false;
 }
 
+private function CheckDefaultValues(){
+		
+	if($this->ldap_admin==null){
+		$this->ldap_admin=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/admin"));
+			
+	}
+	
+	if($this->ldap_host==null){
+		$this->ldap_host=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/server"));
+		if($this->ldap_host==null){$this->ldap_host="127.0.0.1";}
+	}
+	
+	if(intval($this->ldap_port)==0){
+		$this->ldap_port=intval(@file_get_contents("/etc/artica-postfix/ldap_settings/port"));
+		if(intval($this->ldap_port)==0){$this->ldap_port=389;}
+	}
+	
+	
+	if($this->suffix==$this->ldap_password){
+		$this->ldap_password=null;
+		$this->suffix==null;
+	}
+	
+	
+	if($this->suffix==null){
+		$this->suffix=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/suffix"));
+			
+	}
+	
+	
+	if($this->ldap_password==null){
+		$this->ldap_password=trim(@file_get_contents("/etc/artica-postfix/ldap_settings/password"));
+	}
+	if(preg_match("#^cn=(.+)#", $this->ldap_admin,$re)){$this->ldap_admin=$re[1];}
+
+	
+}
+
+
+
 public function ldap_perform_connection($ldapport=null){
+	
+	
+
 	
 		
 		if(!function_exists("ldap_connect")){
@@ -443,12 +514,36 @@ public function ldap_perform_connection($ldapport=null){
 			return false;
 		}
 		
-		if(!$this->ldap_connect_action()){ return false; }
+		if(!$this->ldap_connect_action()){ 
+			
+			$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection: ldap_connect_action() return false;";
+			return false; 
+		}
+		
+		if(!$this->ldap_connection){
+			$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection: ldap_connection == false;";
+			return false;
+		}
+		
+		$this->CheckDefaultValues();
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] User..: $this->ldap_admin";
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] Suffix: $this->suffix";
+		
+		
 		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 
-		$this->ldapbind=@ldap_bind($this->ldap_connection, "cn=$this->ldap_admin,$this->suffix", $this->ldap_password);
-		if($this->ldapbind){return true;}
 		
+		
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection: Open cn=$this->ldap_admin,$this->suffix";
+		
+		$this->ldapbind=@ldap_bind($this->ldap_connection, "cn=$this->ldap_admin,$this->suffix", $this->ldap_password);
+		if($this->ldapbind){
+			$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection: SUCCESS";
+			return true;
+		}
+		
+		$error=ldap_err2str(ldap_errno($this->ldap_connection));
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection(1): ldap_bind:: $error";
 		if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
 		
 	
@@ -468,10 +563,16 @@ public function ldap_perform_connection($ldapport=null){
 		return false;
 	}	
 	
-	if(!$this->ldap_connect_action()){ return false; }
+	if(!$this->ldap_connect_action()){ 
+		$error=ldap_err2str(ldap_errno($this->ldap_connection));
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] ldap_perform_connection(2): $error";
+		return false; 
+	}
 	
 	
 	$GLOBALS["LDAP_CONNECT_ID"]=$this->ldap_connection;
+	
+	
 	 if(!$this->ldap_connection){
 	 	
 	 	if($GLOBALS["VERBOSE"]){writelogs("Fatal: FAILED -> ldap_connect($this->ldap_host, $ldapport ) $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -482,6 +583,7 @@ public function ldap_perform_connection($ldapport=null){
 	 	}
 	 	return $this->ldap_perform_connection($this->ldap_port);
 	 }
+	 
 	 if(!ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3)){
 	 	$this->ldap_connection=false;
 	 	if(!$this->ldap_connect_action()){ return false; }
@@ -490,8 +592,11 @@ public function ldap_perform_connection($ldapport=null){
 	 ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 	
 	
 	 $this->ldapbind=@ldap_bind($this->ldap_connection, "cn=$this->ldap_admin,$this->suffix", $this->ldap_password);
-	 if($this->ldapbind){$GLOBALS["LDAP_BIN_ID"]=$this->ldapbind;}else{
-	  if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__);}
+	 if($this->ldapbind){$GLOBALS["LDAP_BIN_ID"]=$this->ldapbind;}
+	 else{
+	 	$error=ldap_err2str(ldap_errno($this->ldap_connection));
+	 	 $GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] BIND (2): $error";
+	 	 if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__);}
 	 }
 	 return true;
 	 
@@ -919,16 +1024,15 @@ public function ldap_perform_connection($ldapport=null){
 		}
 		
 		$dn="ou=$ou,dc=organizations,$this->suffix";
+		$GLOBALS["LDAP_EVENTS"][]="[".__LINE__."] AddOrganization: DN: $dn";
 		$dn=$this->dn_escape($dn);
 		if(!$this->ExistsDN($dn)){
 		if(!$this->ldap_add($dn,$update_array)){
 			if($this->ldap_last_error_num<>68){
-				if(preg_match("#contact LDAP server#i", $this->ldap_last_error)){
-					$newterror="The LDAP server will be restarted, please retry in few minutes\n";
-					$sock=new sockets();
-					$sock->getFrameWork("services.php?restart-ldap=yes");
+				if(isset($GLOBALS["LDAP_EVENTS"])){
+					$this->ldap_last_error=$this->ldap_last_error."\n".@implode("\n", $GLOBALS["LDAP_EVENTS"]);
 				}
-				echo "{$newterror}Error: Adding\n$ou\ndn:$dn\n".$this->ldap_last_error;
+				echo "Error: Adding\n$ou\ndn:$dn\n".$this->ldap_last_error;
 				return false;
 				}
 			}
@@ -1744,27 +1848,8 @@ function Hash_GetALLUsers(){
 	}
 	
 	public function IsKerbAuth() {
-		$EnableKerbAuth=0;
-		$time=date("YmdHm");
-		if(!isset($_SESSION["EnableKerbAuth"][$time])){
-			$sock=new sockets();
-			$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
-			unset($_SESSION["EnableKerbAuth"]);
-			$_SESSION["EnableKerbAuth"][$time]=$EnableKerbAuth;
-		}
-		
-		if(!isset($_SESSION["EnableSambaActiveDirectory"][$time])){
-			$sock=new sockets();
-			$EnableSambaActiveDirectory=$sock->GET_INFO("EnableSambaActiveDirectory");
-			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
-			unset($_SESSION["EnableSambaActiveDirectory"]);
-			$_SESSION["EnableSambaActiveDirectory"][$time]=$EnableSambaActiveDirectory;
-		}
-		
-		if($_SESSION["EnableKerbAuth"][$time]==1){$EnableKerbAuth=1;}
-		if($_SESSION["EnableSambaActiveDirectory"][$time]==1){$EnableKerbAuth=1;}	
-		return $EnableKerbAuth;	
+		$sock=new sockets();
+		return $sock->IsKerbAuth();
 		
 	}
 	
@@ -2013,19 +2098,27 @@ function Hash_GetALLUsers(){
 		$this->ldap_perform_connection();
 		$ld =$this->ldap_connection;
 		$bind =$this->ldapbind;
-		if($ou<>null){
-			$suffix="ou=$ou,dc=organizations,$this->suffix";
-		}else{$suffix=$this->suffix;}
+		
+		if($ou==null){return $this->Hash_relay_domains_all();}
+		
+		$suffix="ou=$ou,dc=organizations,$this->suffix";
 		$arr=array();
+		if($GLOBALS["VERBOSE"]){echo "ldap_search (&(objectclass=PostFixRelayDomains)(cn=*))<br>\n";}
 		$sr =@ldap_search($ld,$suffix,'(&(objectclass=PostFixRelayDomains)(cn=*))',$arr);
+		if (!$sr) {return array();}
+		$res=array();
+		$hash=ldap_get_entries($ld,$sr);
+		for($i=0;$i<$hash["count"];$i++){
+			$res[$hash[$i]["cn"][0]]=$this->Hash_relay_domains_transport($ou,$hash[$i]["cn"][0]);
+		}
+		$sr =@ldap_search($this->ldap_connection,$suffix,"(&(ObjectClass=transportTable)(cn=*))",array());
 		if ($sr) {
-			$hash=ldap_get_entries($ld,$sr);
-			for($i=0;$i<$hash["count"];$i++){
-				//writelogs("Found DOMAIN \"{$hash[$i]["cn"][0]}\" in $suffix",__CLASS__ . "/" . __FUNCTION__,__FILE__ );
-				$res[$hash[$i]["cn"][0]]=$this->Hash_relay_domains_transport($ou,$hash[$i]["cn"][0]);
-				}
+			$hash=ldap_get_entries($this->ldap_connection,$sr);
+			$res[$hash[$i]["cn"][0]]=$this->Hash_relay_domains_transport($ou,$hash[$i]["cn"][0]);
+		}
 			
-		}else{writelogs("No relais for this $ou...",__CLASS__ . "/" . __FUNCTION__,__FILE__ );}
+			
+			
 		return $res;
 	}
 
@@ -2044,6 +2137,28 @@ function Hash_GetALLUsers(){
 			writelogs("transport={$hash[0]["transport"][0]}",__CLASS__ . "/" . __FUNCTION__,__FILE__ );
 			return $hash[0]["transport"][0];
 		}else{writelogs("search failed",__CLASS__ . "/" . __FUNCTION__,__FILE__ );}
+		
+	}
+	
+	private function Hash_relay_domains_all(){
+		$this->ldap_perform_connection();
+		$sr =@ldap_search($this->ldap_connection,$this->suffix,"(&(ObjectClass=transportTable)(cn=*))",array());
+		if (!$sr) {return array();}
+		$hash=ldap_get_entries($this->ldap_connection,$sr);
+		
+		
+		
+		for($i=0;$i<$hash["count"];$i++){
+			$DN=$hash[$i]["dn"];
+			
+			if(preg_match("#cn=transport_map,ou=(.+?),dc=organizations#", $DN,$re)){
+				$ou=$re[1];
+			}
+			$res[$hash[$i]["cn"][0]]=$this->Hash_relay_domains_transport($ou,$hash[$i]["cn"][0]);
+		}
+		
+		return $res;
+			
 		
 	}
 	
@@ -4358,6 +4473,9 @@ function getobjectDNClass($dn,$fulldn=0){
 
    		
    	function ldap_add($dn,$update_array){
+   		if(!isset($GLOBALS["LDAP_EVENTS"])){
+   			$GLOBALS["LDAP_EVENTS"]=array();
+   		}
    		if(!isset($GLOBALS[__FUNCTION__][$dn])){$GLOBALS[__FUNCTION__][$dn]=false;}
    		if(!$this->UseLdap){
    			writelogs("Cannot add this feature for dn $dn".__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
@@ -4387,6 +4505,7 @@ function getobjectDNClass($dn,$fulldn=0){
    			return false;
    			}
    			
+   		$GLOBALS["LDAP_EVENTS"]=array();
    		return true;}
    		
    		

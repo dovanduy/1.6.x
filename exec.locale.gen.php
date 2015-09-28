@@ -40,7 +40,7 @@ if($unix->process_exists($pid)){
 }
 
 @file_put_contents($pidfile, getmypid());
-
+@file_put_contents("/etc/artica-postfix/LOCAL_GEN_EXECUTED", time());
 
 $f[]="aa_DJ.UTF-8 UTF-8";
 $f[]="aa_DJ ISO-8859-1";

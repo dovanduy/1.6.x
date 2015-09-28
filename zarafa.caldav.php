@@ -55,7 +55,7 @@ $netfield=Field_array_Hash($nets,"ZarafaiCalBind-$t",$ZarafaiCalBind,"style:font
 
 	$html="
 	<div id='div-$t'></div>
-	<div class=text-info style='font-size:16px'>{ZARAFA_CALDAV_EXPLAIN}</div>
+	<div class=explain style='font-size:16px'>{ZARAFA_CALDAV_EXPLAIN}</div>
 		<table style='width:99%' class=form>
 		
 			<tr>

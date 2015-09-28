@@ -1,9 +1,10 @@
 #!/usr/bin/php
 <?php
-$GLOBALS["DEBUG_GROUPS"]=3;
-include_once("/usr/share/artica-postfix/ressources/class.external_acl_squid_ldap.inc");
-$GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
+$GLOBALS["DEBUG_GROUPS"]=0;
 error_reporting(0);
+include_once("/usr/share/artica-postfix/ressources/class.external_acl_squid_ldap.inc");
+include_once("/usr/share/artica-postfix/ressources/class.ldap-extern.inc");
+
 if(preg_match("#--verbose#", @implode(" ", $argv))){
 	ini_set('display_errors', 1);	
 	ini_set('html_errors',0);
@@ -21,6 +22,11 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["LDAP_TIME_LIMIT"]=10;
+  $GLOBALS["MULTIGROUPS"]=array();
+  
+  $GLOBALS["AdStatsGroupMethod"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/AdStatsGroupMethod"));
+  $GLOBALS["AdStatsGroupPattern"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/AdStatsGroupMethod"));
+  if($GLOBALS["AdStatsGroupPattern"]==null){$GLOBALS["AdStatsGroupPattern"]=".*";}
   
   if(!isset($GLOBALS["DEBUG_GROUPS"])){
 	  $GLOBALS["DEBUG_GROUPS"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidExternalLDAPDebug"));
@@ -40,45 +46,140 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
 
   $max_execution_time=ini_get('max_execution_time'); 
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/".basename(__FILE__).".cache"));
-  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG_GROUPS"]}");
+  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG_GROUPS"]} AdStatsGroupMethod={$GLOBALS["AdStatsGroupMethod"]}");
   ConnectToLDAP();
   $external_acl_squid_ldap=new external_acl_squid_ldap();
-  if($argv[1]=="--groups"){$GLOBALS["VERBOSE"]=true;
- 
-  $GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($argv[2]);
-  print_r($GROUPZ);
-  echo "********************* RECURSIVE ***********************\n";
-  $external_acl_squid_ldap->ADLdap_getgroups($argv[2]);
-  die();
+
+  if($argv[1]=="--groups"){
+	  	$GLOBALS["VERBOSE"]=true;
+	    $GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($argv[2]);
+	   print_r($GROUPZ);
+	   echo "********************* RECURSIVE ***********************\n";
+	   $external_acl_squid_ldap->ADLdap_getgroups($argv[2]);
+	   $infos=$external_acl_squid_ldap->ADLdap_userinfos($argv[2]);
+	   echo "********************* INFOS ***********************\n";
+	   echo "Organization: ".$external_acl_squid_ldap->GetUserOU($argv[2])."\n";
+	   die();
   }
  
   
 while (!feof(STDIN)) {
  $content = trim(fgets(STDIN));
  
+  
  if($content<>null){
  	
  	if($GLOBALS["DEBUG_GROUPS"]>0){ WLOG("receive content...\"$content\""); }
  	$array=explode(" ",$content);
  	$member=trim($array[0]);
  	$member=str_replace("%20", " ", $member);
+ 	$member=AccountDecode($member);
  	$group=$array[1];
  	$group=str_replace("%20", " ", $group);
  	unset($array[0]);
  	$count=count($array);
  	if($count>1){ $group=@implode(" ", $array);}
+ 	
+ 	$group=AccountDecode($group);
  	$group=strtolower($group);
+ 	
+ 	if($group==-1){
+ 		$log=null;
+ 		$ou=$external_acl_squid_ldap->GetUserOU($member);
+ 		$GROUPY=$external_acl_squid_ldap->GetGroupsFromMember($member);
+ 		$FirstGroup=null;
+ 		
+ 		if($GLOBALS["AdStatsGroupMethod"]==1){
+ 			while (list ($a, $b) = each ($GROUPY) ){
+ 				$a=trim(strtolower($a));
+ 				if($a==null){continue;}
+ 				if(preg_match("#{$GLOBALS["AdStatsGroupPattern"]}#", $a,$re)){
+ 					unset($re[0]);
+ 					if(count($re)>0){$FirstGroup=@implode("", $re);}
+ 					if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: Method[{$GLOBALS["AdStatsGroupMethod"]}] $a = matches {$GLOBALS["AdStatsGroupPattern"]}");}
+ 					$FirstGroup=$a;
+ 					break;
+ 				}
+ 				
+ 			}
+ 			
+ 		}
+ 			
+ 		
+ 	
+ 		if($FirstGroup==null){
+ 			while (list ($a, $b) = each ($GROUPY) ){
+ 				if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: Method[{$GLOBALS["AdStatsGroupMethod"]}] $a = $b");}
+ 				$a=trim(strtolower($a));
+ 				if($a==null){continue;}
+ 				$FirstGroup=$a;
+ 				break;
+ 			}
+ 		}
+ 		
+ 		if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: Method[{$GLOBALS["AdStatsGroupMethod"]}]OK clt_conn_tag=$FirstGroup log=$FirstGroup,$ou");}
+ 		fwrite(STDOUT, "OK clt_conn_tag=$FirstGroup log=$FirstGroup,$ou\n");
+ 		continue;
+	}
+ 	
+ 	
  	$GROUPZ=array();
  	
-	if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
+ 	if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
  	$GROUPY=$external_acl_squid_ldap->GetGroupsFromMember($member);
  	if(count($GROUPY)>0){
  		while (list ($a, $b) = each ($GROUPY) ){
- 			$GROUPZ[strtolower($a)]=true;
+ 			$a=trim(strtolower($a));
+ 			if($a==null){continue;}
+ 			
+ 			if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: \$GROUPZ: $member is a member of `$a`");}
+ 			$GROUPZ[$a]=true;
  		}
  	}
  	
- 	//WLOG("Checking $group ? {$GROUPZ[$member][$group]}");
+ 	
+ 	if(is_numeric($group)){
+ 		if(!is_file("/etc/squid3/acls/container_$group.txt")){
+ 			WLOG("/etc/squid3/acls/container_$group.txt no such file");
+ 			fwrite(STDOUT, "ERR\n");
+ 			continue;
+ 		}
+ 		
+ 		
+ 		if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("Requested [$group] =  numeric..");}
+ 		if(!isset($GLOBALS["MULTIGROUPS"][$group])){
+ 			if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("Loading /etc/squid3/acls/container_$group.txt");}
+ 			$f=explode("\n",@file_get_contents("/etc/squid3/acls/container_$group.txt"));
+ 			while (list ($a, $b) = each ($f) ){
+ 				$b=trim(strtolower($b));
+ 				if($b==null){continue;}
+ 				if($GLOBALS["DEBUG_GROUPS"] >0){ WLOG("Add $b in memory");}
+ 				$GLOBALS["MULTIGROUPS"][$group][$b]=true;
+ 			}
+ 			
+ 		}
+ 		
+		$ANSWER=false;
+ 		reset($GLOBALS["MULTIGROUPS"][$group]);
+ 		while (list ($GroupName, $b) = each ($GLOBALS["MULTIGROUPS"][$group]) ){
+ 			if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: `$GroupName` if it is in \$GROUPZ");}
+ 			
+ 			if(isset($GROUPZ[$GroupName])){
+ 				if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: TRUE `$GroupName` is in user's ");}
+ 				fwrite(STDOUT, "OK tag=$GroupName\n");
+ 				$ANSWER=true;
+ 				break;
+ 			}else{
+ 				if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[CHECK]: FALSE `$GroupName` is not user's group");}
+ 			}
+ 		}
+ 		
+ 		if($ANSWER){continue;}
+ 		if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("$member is not a member of block number $group"); }
+ 		fwrite(STDOUT, "ERR\n");
+ 		continue;
+ 	}
+ 	
  	
  	if($GLOBALS["TIMELOG"]>9){
  		$distanceInSeconds = round(abs(time() - $GLOBALS["TIMELOG_TIME"]));
@@ -94,8 +195,8 @@ while (!feof(STDIN)) {
  	}
  	
  	if(isset($GROUPZ[$group])){
- 		if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[SEND]: <span style='font-weight:bold;color:#00B218'>OK</span> &laquo;$member&raquo; is a member of &laquo;$group&raquo;");}
- 		fwrite(STDOUT, "OK\n");
+ 		if($GLOBALS["DEBUG_GROUPS"] >0){  WLOG("[SEND]: OK $member is a member of \"$group\"");}
+ 		fwrite(STDOUT, "OK tag=$GroupName\n");
  		continue;
  	}
 
@@ -113,8 +214,8 @@ if($GLOBALS["CONNECTION"]){
 	WLOG("[STOP]: Stopping process: shutdown LDAP connections...");
 	@ldap_close($GLOBALS["CONNECTION"]);
 }
-WLOG("[STOP]: <span style='color:#002FB2'>Stopping process v1.2: After ({$distanceInSeconds}s - about {$distanceInMinutes}mn)</span>");
-WLOG("[STOP]: <span style='color:#002FB2'>This process was query the LDAP server <strong>{$GLOBALS["QUERIES_NUMBER"]}</strong> times...</span>");
+WLOG("[STOP]: Stopping process v1.2: After ({$distanceInSeconds}s - about {$distanceInMinutes}mn)</span>");
+WLOG("[STOP]: This process was query the LDAP server <strong>{$GLOBALS["QUERIES_NUMBER"]} times...</span>");
 
 
 
@@ -147,18 +248,18 @@ function GetGroupsFromMember($member){
 	ConnectToLDAP();
 	
 	if(!$GLOBALS["BIND"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+		WLOG("[QUERY]: Error: BIND is broken -> reconnect");
 		ConnectToLDAP();
-		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: Error: BIND pointer is false");return false;}
 	}
 	
 	if(!$GLOBALS["CONNECTION"]){
-			WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect twice</strong>");
+			WLOG("[QUERY]: Error: CONNECTION is broken -> reconnect twice");
 			ConnectToLDAP();
 	}
 	
 	if(!$GLOBALS["CONNECTION"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+		WLOG("[QUERY]: Error: CONNECTION is definitively broken aborting !!!...");
 		return false;
 	}
 	
@@ -189,20 +290,20 @@ function GetGroupsFromMember($member){
 			
 			if($error==-1){
 				if(!isset($GLOBALS["RETRY_AFTER_ERROR"])){
-					WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> re-connect and retry query...");
+					WLOG("[QUERY]: Error:`$error` ($errstr) re-connect and retry query...");
 					$GLOBALS["RETRY_AFTER_ERROR"]=true;
 					return GetGroupsFromMember($member);
 				}else{
-					WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> Connection lost definitively");
+					WLOG("[QUERY]: Error:`$error` ($errstr) Connection lost definitively");
 					return false;
 				}
 				
 			}
 			
-			WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
+			WLOG("[QUERY]: Error:`$error` ($errstr) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 			return false;
 		}else{
-			WLOG("[QUERY]: <strong style='color:red'>Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
+			WLOG("[QUERY]: Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 		}
 	}
 	
@@ -211,7 +312,7 @@ function GetGroupsFromMember($member){
 	
 	$hash=ldap_get_entries($GLOBALS["CONNECTION"],$sr);
 	if(!is_array($hash)){
-		WLOG("[QUERY]: <strong style='color:red'>Error: undefined, hash is not an array or did not find user</strong>...");
+		WLOG("[QUERY]: Error: undefined, hash is not an array or did not find user...");
 		return false;
 	}	
 	
@@ -291,16 +392,16 @@ function MemberInfoByDN($base_dn){
 function TestConnectToLDAP(){
 	ConnectToLDAP();
 	if(!$GLOBALS["BIND"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+		WLOG("[QUERY]: Error: BIND is broken -> reconnect");
 		ConnectToLDAP();
-		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+		if(!$GLOBALS["BIND"]){WLOG("[QUERY]: Error: BIND pointer is false");return false;}
 	}
 	
-	if(!$GLOBALS["CONNECTION"]){WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect</strong>");
+	if(!$GLOBALS["CONNECTION"]){WLOG("[QUERY]: Error: CONNECTION is broken -> reconnect");
 	ConnectToLDAP();}
 	
 	if(!$GLOBALS["CONNECTION"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+		WLOG("[QUERY]: Error: CONNECTION is definitively broken aborting !!!...");
 		return false;
 	}
 	return true;	
@@ -309,16 +410,16 @@ function TestConnectToLDAP(){
 function TestConnectToPureLDAP(){
 	ConnectToPureLDAP();
 	if(!$GLOBALS["BIND_LDAP"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: BIND is broken -> reconnect</strong>");
+		WLOG("[QUERY]: Error: BIND is broken -> reconnect");
 		ConnectToPureLDAP();
-		if(!$GLOBALS["BIND_LDAP"]){WLOG("[QUERY]: <strong style='color:red'>Error: BIND pointer is false</strong>");return false;}
+		if(!$GLOBALS["BIND_LDAP"]){WLOG("[QUERY]: Error: BIND pointer is false");return false;}
 	}
 
-	if(!$GLOBALS["CONNECTION"]){WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is broken -> reconnect</strong>");
+	if(!$GLOBALS["CONNECTION"]){WLOG("[QUERY]: Error: CONNECTION is broken -> reconnect");
 	ConnectToPureLDAP();}
 
 	if(!$GLOBALS["CONNECTION"]){
-		WLOG("[QUERY]: <strong style='color:red'>Error: CONNECTION is definitively broken aborting !!!...</strong>");
+		WLOG("[QUERY]: Error: CONNECTION is definitively broken aborting !!!...");
 		return false;
 	}
 	return true;
@@ -487,7 +588,7 @@ function ConnectToPureLDAP(){
 	
 	if(!$GLOBALS["CONNECTION"]){
 		WLOG("[LDAP]: Connecting to LDAP server `$server:$port` failed");
-		WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect()");
+		WLOG("[LDAP]: Fatal: ldap_connect()");
 		@ldap_close();
 		return false;
 	}
@@ -505,26 +606,26 @@ function ConnectToPureLDAP(){
 	if(!$GLOBALS["BIND_LDAP"]){
 	
 		if (@ldap_get_option($GLOBALS["CONNECTION"], LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {
-			$error=$error."<br>$extended_error";
+			$error=$error." $extended_error";
 		}
 	
 		switch (ldap_errno($GLOBALS["CONNECTION"])) {
 			case 0x31:
-				$error=$error . "<br>Bad username or password. Please try again.";
+				$error=$error . " Bad username or password. Please try again.";
 				break;
 			case 0x32:
-				$error=$error . "<br>Insufficient access rights.";
+				$error=$error . " Insufficient access rights.";
 				break;
 			case 81:
-				$error=$error . "<br>Unable to connect to the LDAP server<br>$server<br>please,<br>verify if ldap daemon is running<br> or the ldap server address";
+				$error=$error . " Unable to connect to the LDAP server $server please, verify if ldap daemon is running  or the ldap server address";
 				break;
 			case -1:
 					
 				break;
 			default:
-				$error=$error . "<br>Could not bind to the LDAP server." ."<br>". @ldap_err2str($GLOBALS["CONNECTION"]);
+				$error=$error . " Could not bind to the LDAP server." ." ". @ldap_err2str($GLOBALS["CONNECTION"]);
 		}
-		WLOG("[LDAP]: Connecting to LDAP server $server failed<br>$error");
+		WLOG("[LDAP]: Connecting to LDAP server $server failed $error");
 		return false;
 	}
 	//WLOG("[LDAP]: Binding to LDAP server $server <span style='font-weight:bold;color:#00B218'>success</span>.");
@@ -549,7 +650,7 @@ function ConnectToLDAP(){
 	$GLOBALS["CONNECTION"]=@ldap_connect($array["LDAP_SERVER"],$array["LDAP_PORT"]);
 	//WLOG("[LDAP]: Connecting to LDAP server `{$array["LDAP_SERVER"]}:{$array["LDAP_PORT"]}`");
 	if(!$GLOBALS["CONNECTION"]){
-		WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
+		WLOG("[LDAP]: Fatal: ldap_connect({$array["LDAP_SERVER"]},{$array["LDAP_PORT"]} )");
 		@ldap_close();
 		return false;
 	}	
@@ -572,27 +673,27 @@ function ConnectToLDAP(){
 	if(!$GLOBALS["BIND"]){
 		
 		if (@ldap_get_option($GLOBALS["CONNECTION"], LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error)) {
-			$error=$error."<br>$extended_error";
+			$error=$error." $extended_error";
 		}
 		
 		switch (ldap_errno($GLOBALS["CONNECTION"])) {
 			case 0x31:
-				$error=$error . "<br>Bad username or password. Please try again.";
+				$error=$error . " Bad username or password. Please try again.";
 				break;
 			case 0x32:
-				$error=$error . "<br>Insufficient access rights.";
+				$error=$error . " Insufficient access rights.";
 				break;
 			case 81:
-				$error=$error . "<br>Unable to connect to the LDAP server<br>
-				{$array["LDAP_SERVER"]}<br>please,<br>verify if ldap daemon is running<br> or the ldap server address";
+				$error=$error . " Unable to connect to the LDAP server 
+				{$array["LDAP_SERVER"]} please, verify if ldap daemon is running  or the ldap server address";
 				break;
 			case -1:
 					
 				break;
 			default:
-				$error=$error . "<br>Could not bind to the LDAP server." ."<br>". @ldap_err2str($GLOBALS["CONNECTION"]);
+				$error=$error . " Could not bind to the LDAP server." ." ". @ldap_err2str($GLOBALS["CONNECTION"]);
 		}
-		WLOG("[LDAP]:".__LINE__." Connecting to LDAP server {$array["LDAP_SERVER"]} failed<br>$error");
+		WLOG("[LDAP]:".__LINE__." Connecting to LDAP server {$array["LDAP_SERVER"]} failed $error");
 		return false;
 	}
 	//WLOG("[LDAP]: Binding to LDAP server {$array["LDAP_SERVER"]} <span style='font-weight:bold;color:#00B218'>success</span>.");
@@ -660,21 +761,19 @@ function internal_find_program($strProgram){
 
 
 function WLOG($text=null){
-	$filename="/var/log/squid/external-acl-ldap.log";
+	$filename="/var/log/squid/external-acl.log";
 	$trace=@debug_backtrace();
 	if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	$date=@date("Y-m-d H:i:s");
 	if(!isset($GLOBALS["PID"])){$GLOBALS["PID"]=getmypid();}
    	if (is_file($filename)) { 
    		$size=@filesize($filename);
-   		if($size>1000000){
-   			@fclose($GLOBALS["F"]);
-   			unlink($filename);
-   			$GLOBALS["F"] = @fopen($filename, 'a');
-   		}
+   		if($size>1000000){unlink($filename);}
    	}
+   	$F= @fopen($filename, 'a');
 	if($GLOBALS["VERBOSE"]){echo "$date ".basename(__FILE__)." [{$GLOBALS["PID"]}]: $text $called\n";}
-	@fwrite($GLOBALS["F"], "$date [{$GLOBALS["PID"]}]: $text $called\n");
+	@fwrite($F, "$date [{$GLOBALS["PID"]}]: $text $called\n");
+	@fclose($F);
 }
 
 
@@ -685,6 +784,22 @@ function ufdbguard_checks($id){
 	$FINAL=array();
 	$Hash=array();
 	
+	if(isset($arrayGROUPS["EXT-LDAP"])){
+		if($GLOBALS["VERBOSE"]){echo "Found:EXT-LDAP\n";}
+		$extn_ldap=new ldap_extern();
+		while (list ($index, $DNS) = each ($arrayGROUPS["EXT-LDAP"]) ){
+			if($GLOBALS["VERBOSE"]){echo "DN:$DNS\n";}
+			$rr=$extn_ldap->HashUsersFromGroupDN($DNS);
+			if($GLOBALS["output"]){echo "{$DNS} return ". count($rr)." users\n";}
+			while (list ($a, $b) = each ($rr) ){
+				$b=trim($b);
+				if($b==null){continue;}
+				echo "USER= $b\n";$MemberArray[$a]=$a;
+			}
+			while (list ($a, $b) = each ($MemberArray) ){$FINAL[]=$a;}
+			
+		}
+	}
 	
 	
 	if(isset($arrayGROUPS["EXTLDAP"])){
@@ -696,9 +811,7 @@ function ufdbguard_checks($id){
 				$MemberArray[$a]=$a;}
 		}
 		
-		while (list ($a, $b) = each ($MemberArray) ){
-			$FINAL[]=$a;
-		}
+		while (list ($a, $b) = each ($MemberArray) ){$FINAL[]=$a;}
 	}
 
 	
@@ -865,6 +978,114 @@ function HashUsersFromGPID($gpid){
 	}	
 	return $array;
 }
-
+function AccountDecode($path){
+	if(strpos($path, "%")==0){return $path;}
+	$path=str_replace("%C3%C2§","ç",$path);
+	$path=str_replace("%5C","\\",$path);
+	$path=str_replace("%20"," ",$path);
+	$path=str_replace("%0A","\n",$path);
+	$path=str_replace("%C2£","£",$path);
+	$path=str_replace("%C2§","§",$path);
+	$path=str_replace("%C3§","ç",$path);
+	$path=str_replace("%E2%82%AC","€",$path);
+	$path=str_replace("%C3%89","É",$path);
+	$path=str_replace("%C3%A9","é",$path);
+	$path=str_replace("%C3%A0","à",$path);
+	$path=str_replace("%C3%AA","ê",$path);
+	$path=str_replace("%C3%B9","ù",$path);
+	$path=str_replace("%C3%A8","è",$path);
+	$path=str_replace("%C3%A2","â",$path);
+	$path=str_replace("%C3%B4","ô",$path);
+	$path=str_replace("%C3%AE","î",$path);
+	$path=str_replace("%E9","é",$path);
+	$path=str_replace("%E0","à",$path);
+	$path=str_replace("%F9","ù",$path);
+	$path=str_replace("%20"," ",$path);
+	$path=str_replace("%E8","è",$path);
+	$path=str_replace("%E7","ç",$path);
+	$path=str_replace("%26","&",$path);
+	$path=str_replace("%FC","ü",$path);
+	$path=str_replace("%2F","/",$path);
+	$path=str_replace("%F6","ö",$path);
+	$path=str_replace("%EB","ë",$path);
+	$path=str_replace("%EF","ï",$path);
+	$path=str_replace("%EE","î",$path);
+	$path=str_replace("%EA","ê",$path);
+	$path=str_replace("%E2","â",$path);
+	$path=str_replace("%FB","û",$path);
+	$path=str_replace("%u20AC","€",$path);
+	$path=str_replace("%u2014","–",$path);
+	$path=str_replace("%u2013","—",$path);
+	$path=str_replace("%24","$",$path);
+	$path=str_replace("%21","!",$path);
+	$path=str_replace("%23","#",$path);
+	$path=str_replace("%2C",",",$path);
+	$path=str_replace("%7E",'~',$path);
+	$path=str_replace("%22",'"',$path);
+	$path=str_replace("%25",'%',$path);
+	$path=str_replace("%27","'",$path);
+	$path=str_replace("%F8","ø",$path);
+	$path=str_replace("%2C",",",$path);
+	$path=str_replace("%3A",":",$path);
+	$path=str_replace("%A1","¡",$path);
+	$path=str_replace("%A7","§",$path);
+	$path=str_replace("%B2","²",$path);
+	$path=str_replace("%3B",";",$path);
+	$path=str_replace("%3C","<",$path);
+	$path=str_replace("%3E",">",$path);
+	$path=str_replace("%B5","µ",$path);
+	$path=str_replace("%B0","°",$path);
+	$path=str_replace("%7C","|",$path);
+	$path=str_replace("%5E","^",$path);
+	$path=str_replace("%60","`",$path);
+	$path=str_replace("%25","%",$path);
+	$path=str_replace("%A3","£",$path);
+	$path=str_replace("%3D","=",$path);
+	$path=str_replace("%3F","?",$path);
+	$path=str_replace("%3F","€",$path);
+	$path=str_replace("%28","(",$path);
+	$path=str_replace("%29",")",$path);
+	$path=str_replace("%5B","[",$path);
+	$path=str_replace("%5D","]",$path);
+	$path=str_replace("%7B","{",$path);
+	$path=str_replace("%7D","}",$path);
+	$path=str_replace("%2B","+",$path);
+	$path=str_replace("%40","@",$path);
+	$path=str_replace("%09","\t",$path);
+	$path=str_replace("%u0430","а",$path);
+	$path=str_replace("%u0431","б",$path);
+	$path=str_replace("%u0432","в",$path);
+	$path=str_replace("%u0433","г",$path);
+	$path=str_replace("%u0434","д",$path);
+	$path=str_replace("%u0435","е",$path);
+	$path=str_replace("%u0451","ё",$path);
+	$path=str_replace("%u0436","ж",$path);
+	$path=str_replace("%u0437","з",$path);
+	$path=str_replace("%u0438","и",$path);
+	$path=str_replace("%u0439","й",$path);
+	$path=str_replace("%u043A","к",$path);
+	$path=str_replace("%u043B","л",$path);
+	$path=str_replace("%u043C","м",$path);
+	$path=str_replace("%u043D","н",$path);
+	$path=str_replace("%u043E","о",$path);
+	$path=str_replace("%u043F","п",$path);
+	$path=str_replace("%u0440","р",$path);
+	$path=str_replace("%u0441","с",$path);
+	$path=str_replace("%u0442","т",$path);
+	$path=str_replace("%u0443","у",$path);
+	$path=str_replace("%u0444","ф",$path);
+	$path=str_replace("%u0445","х",$path);
+	$path=str_replace("%u0446","ц",$path);
+	$path=str_replace("%u0447","ч",$path);
+	$path=str_replace("%u0448","ш",$path);
+	$path=str_replace("%u0449","щ",$path);
+	$path=str_replace("%u044A","ъ",$path);
+	$path=str_replace("%u044B","ы",$path);
+	$path=str_replace("%u044C","ь",$path);
+	$path=str_replace("%u044D","э",$path);
+	$path=str_replace("%u044E","ю",$path);
+	$path=str_replace("%u044F","я",$path);
+	return $path;
+}
 
 ?>

@@ -70,7 +70,7 @@ function Welcome(){
 if($link<>null){$form=null;}
 	$html="
 	<center>$link</center>
-	<center><span style='font-size:16px;color:red;font-weight:bold'>$error</span></center>
+	<center><span style='font-size:16px;color:#d32d2d;font-weight:bold'>$error</span></center>
 	$form
 	";
 	

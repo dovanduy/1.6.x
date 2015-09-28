@@ -6,6 +6,12 @@ include_once('ressources/class.mysql.inc');
 include_once('ressources/class.ini.inc');
 
 
+$users=new usersMenus();
+if(!$users->AsSquidAdministrator){
+	echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");
+	die();
+}
+
 
 if(isset($_GET["events-table"])){events_table();exit;}
 if(isset($_GET["ShowID"])){ShowID();exit;}
@@ -47,6 +53,19 @@ echo "<p style='font-size:18px'>$content</p>";
 function empty_table(){
 	$q=new mysql();
 	$q->QUERY_SQL("TRUNCATE TABLE squid_admin_mysql","artica_events");
+	$BaseWorkDir="/usr/share/artica-postfix/ressources/interface-cache";
+	if ($handle = opendir($BaseWorkDir)) {
+			
+		while (false !== ($filename = readdir($handle))) {
+			if($filename=="."){continue;}
+			if($filename==".."){continue;}
+			$targetFile="$BaseWorkDir/$filename";
+			if(is_dir($targetFile)){continue;}
+			@unlink($targetFile);
+		}
+			
+			
+	}
 }
 
 function popup(){
@@ -61,20 +80,27 @@ function popup(){
 	$daemon=$tpl->_ENGINE_parse_body("{daemon}");
 	$settings=$tpl->javascript_parse_text("{watchdog_squid_settings}");
 	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");
-	$TB_HEIGHT=450;
+	$TB_HEIGHT=550;
 	$TB_WIDTH=927;
-	$TB2_WIDTH=551;
+	$TB2_WIDTH=801;
+	$zdate_width=127;
 	$all=$tpl->_ENGINE_parse_body("{all}");
 	$t=time();
+	$critical=null;
+	if(isset($_GET["important-only"])){
+		$critical="&critical=0&important-only=yes";
+		$TB2_WIDTH="955";
+		$zdate_width="256";
+	}
 
 	$buttons="
 	buttons : [
-	{name: '$empty', bclass: 'Delz', onpress : EmptyEvents},
-	{name: 'Warn', bclass: 'Warn', onpress :  Warn$t},
-	{name: 'Info', bclass: 'Help', onpress :  info$t},
-	{name: 'Crit.', bclass: 'Err', onpress :  Err$t},
-	{name: '$all', bclass: 'Statok', onpress :  All$t},
-	{name: '$settings', bclass: 'Script', onpress :  Params$t},
+	{name: '<strong style=font-size:18px>$empty</strong>', bclass: 'Delz', onpress : EmptyEvents},
+	{name: '<strong style=font-size:18px>Warn</strong>', bclass: 'Warn', onpress :  Warn$t},
+	{name: '<strong style=font-size:18px>Info</strong>', bclass: 'Help', onpress :  info$t},
+	{name: '<strong style=font-size:18px>Crit.</strong>', bclass: 'Err', onpress :  Err$t},
+	{name: '<strong style=font-size:18px>$all</strong>', bclass: 'Statok', onpress :  All$t},
+	
 	
 
 	],	";
@@ -84,13 +110,13 @@ function popup(){
 
 function BuildTable$t(){
 	$('#events-table-$t').flexigrid({
-		url: '$page?events-table=yes&text-filter={$_GET["text-filter"]}',
+		url: '$page?events-table=yes&text-filter={$_GET["text-filter"]}$critical',
 		dataType: 'json',
 		colModel : [
 		{display: '', name : 'severity', width :31, sortable : true, align: 'center'},
-		{display: '$date', name : 'zDate', width :127, sortable : true, align: 'left'},
+		{display: '$date', name : 'zDate', width :$zdate_width, sortable : true, align: 'left'},
 		{display: '$events', name : 'subject', width : $TB2_WIDTH, sortable : false, align: 'left'},
-		{display: '$daemon', name : 'filename', width :145, sortable : true, align: 'left'},
+		{display: '$daemon', name : 'filename', width :185, sortable : true, align: 'left'},
 		],
 		$buttons
 	
@@ -228,14 +254,23 @@ function events_table(){
 	$CurrentPage=CurrentPageName();
 
 	if(mysql_num_rows($results)==0){json_error_show("no data");}
+	
+	
+	if(isset($_GET["important-only"])){
+		$spanzdate="<span style='font-size:27px'>";
+		$stylefontsize=";font-size:18px";
+	}
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
 		$hostname=$ligne["hostname"];
 		$ligne["zDate"]=str_replace($currentdate, "", $ligne["zDate"]);
 		$severity_icon=$severity[$ligne["severity"]];
-		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$CurrentPage?ShowID-js={$ligne["ID"]}')\" style='text-decoration:underline'>";
-		$text=$link.$tpl->_ENGINE_parse_body($ligne["subject"]."</a><div style='font-size:10px'>{host}:$hostname {function}:{$ligne["function"]}, {line}:{$ligne["line"]}</div>");
+		$link="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('$CurrentPage?ShowID-js={$ligne["ID"]}')\" 
+		style='text-decoration:underline$stylefontsize'>";
+		$text=$link.$tpl->_ENGINE_parse_body($ligne["subject"]."</a>
+		<div style='font-size:10px'>{host}:$hostname {function}:{$ligne["function"]}, {line}:{$ligne["line"]}</div>");
 		
 		
 		$data['rows'][] = array(
@@ -243,7 +278,7 @@ function events_table(){
 				'cell' => array(
 						"<img src='img/$severity_icon'>",
 						
-						$ligne["zDate"],$text,$ligne["filename"] )
+						"$spanzdate{$ligne["zDate"]}</span>",$text,$ligne["filename"] )
 		);
 	}
 

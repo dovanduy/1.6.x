@@ -6,6 +6,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);in
 	include_once('ressources/class.mysql.inc');
 	include_once('ressources/class.active.directory.inc');
 	include_once("ressources/class.harddrive.inc");
+	include_once("ressources/class.ldap-extern.inc");
 
 	
 	if(isset($_GET["popup"])){popup();exit;}

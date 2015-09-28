@@ -717,7 +717,7 @@ function nat_settings(){
 	
 	$html="
 	<div id='vbownatid'><strong style='font-size:16px'>{nic} N°1:&nbsp;$nic1&nbsp;|&nbsp;{type}:$Type</strong>
-	<div class=text-info>{vbox_nat_configuration_explain}</div>
+	<div class=explain>{vbox_nat_configuration_explain}</div>
 	<table class=form>
 	<tr>
 		<td class=legend>{host_port}:</td>

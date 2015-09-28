@@ -35,27 +35,56 @@ function tabs(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	
-	$fontsize=18;
+	$fontsize=20;
 	$array["page"]='{APP_UFDBCAT}';
+	$array["artica_categories"]='{artica_categories}';
+	
+	$array["check"]='{test_categories_rate}';
 	$array["verify"]='{databases_status}';
+	
+	
+	
 	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
 	if($AsCategoriesAppliance==1){
 		$array["events"]='{service_events}';
 		$array["watchdog"]="{watchdog}";
 	}
+	
+	$array["update"]="{update_events}";
 		
 	while (list ($num, $ligne) = each ($array) ){
 			if($num=="events"){
 					
-				$tab[]="<li style='font-size:18px'><a href=\"ufdbcat.events.php?$num=yes\"><span >$ligne</span></a></li>\n";
+				$tab[]="<li style='font-size:{$fontsize}px'><a href=\"ufdbcat.events.php?$num=yes\"><span >$ligne</span></a></li>\n";
 				continue;
 			}
 			
-			if($num=="verify"){
+			if($num=="check"){
 					
-				$tab[]="<li style='font-size:18px'><a href=\"ufdbcat.verify.php?$num=yes\"><span >$ligne</span></a></li>\n";
+				$tab[]="<li style='font-size:{$fontsize}px'><a href=\"ufdbcat.check.php\"><span >$ligne</span></a></li>\n";
 				continue;
 			}			
+			
+			if($num=="verify"){
+					
+				$tab[]="<li style='font-size:{$fontsize}px'><a href=\"ufdbcat.verify.php?$num=yes\"><span >$ligne</span></a></li>\n";
+				continue;
+			}	
+
+			if($num=="update"){
+					
+				$tab[]="<li style='font-size:{$fontsize}px'><a href=\"squid.articadb-events.php\"><span >$ligne</span></a></li>\n";
+				continue;
+			}	
+
+			
+			if($num=="artica_categories"){
+
+				$tab[]="<li style='font-size:{$fontsize}px'><a href=\"squid.artica_categories.php\"><span >$ligne</span></a></li>\n";
+				continue;
+				
+			}
+			
 			
 			if($num=="watchdog"){
 				$tab[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'>
@@ -65,7 +94,7 @@ function tabs(){
 			}
 	
 	
-			$tab[]="<li style='font-size:18px'><a href=\"$page?$num=yes\"><span >$ligne</span></a></li>\n";
+			$tab[]="<li style='font-size:{$fontsize}px'><a href=\"$page?$num=yes\"><span >$ligne</span></a></li>\n";
 		}
 	
 		$html=build_artica_tabs($tab, "main_ufdbcat_config");
@@ -81,6 +110,7 @@ function page(){
 	$sock=new sockets();	
 	$html="
 	<div style='font-size:42px;margin-bottom:20px'>{APP_UFDBCAT}</div>
+	<div style='font-size:18px;margin-bottom:20px' class=explain>{APP_UFDBCAT_EXPLAIN}</div>
 	<div style='width:98%' class=form>
 		<table style='width:100%'>		
 			<tr>
@@ -109,32 +139,62 @@ function status(){
 	$AsCategoriesAppliance=intval($sock->GET_INFO("AsCategoriesAppliance"));
 	if($AsCategoriesAppliance==1){$RemoteUfdbCat=0;$EnableLocalUfdbCatService=1;}
 	
-	if($RemoteUfdbCat==1){
-		$catz=new mysql_catz();
-		$categories=$catz->ufdbcat("google.com");
-		if($catz->ok){
-			echo $tpl->_ENGINE_parse_body(Paragraphe32("{available}", "noacco:
-		<span style='font-size:12px'><strong>google.com:</strong><br>{category} <strong>$categories</strong><br>{execution_time} {$catz->TimeExec}s</span>",null,
-		"ok48.png","LoadAjax('UFDBCAT_STATUS','$page?status=yes')"));
-		echo"<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."</div>";
+	$catz=new mysql_catz();
+	
+	if($catz->UfdbCatEnabled==0){
+		echo $tpl->_ENGINE_parse_body(Paragraphe32("{service_disabled}", "noacco:
+				<span style='font-size:12px'>&nbsp;</span>
+				<br>$catz->FinalUsedServer",null,"ok48-grey.png"));
+		
 		return;
-		}
-		
-		
-		echo $tpl->_ENGINE_parse_body(Paragraphe32("{connection_error}", "noacco:
-		<span style='font-size:12px'>{error} &laquo;$catz->mysql_error&raquo;</span>",null,
-		"error-48.png"));
-		echo"<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."</div>";
-		return;
-		
 	}
 	
 	
+	$categories=$catz->ufdbcat("google.com");
+	if($catz->ok){
+		
+		$table="<table style='width:99%'>
+		<tr>
+			<td width=48px style='vertical-align:top'><img src='/img/ok48.png'></td>
+			<td style='vertical-align:top'>
+			<td><span style='font-size:12px'><strong>google.com:</strong><br>{category}:<strong>;$categories</strong>
+			<br>{execution_time} {$catz->TimeExec}s</span>	
+			<br><strong style='font-size:12px'>$catz->FinalUsedServer</strong>	
+			<div style='width:100%;text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes')")."</duv>
+		</td>
+		</tr>
+		</table>
+		";
+		
+		echo $tpl->_ENGINE_parse_body($table);
+	
+		
+	}else{
+		$table="<table style='width:99%'>
+		<tr>
+		<td width=48px style='vertical-align:top'><img src='/img/error-48.png'></td>
+		<td style='vertical-align:top'>
+		<td><span style='font-size:12px;color:#d32d2d'><strong>{connection_error}:</strong>
+		<br>{error}:<strong>;$catz->mysql_error</strong>
+		<br><strong style='font-size:12px'>$catz->FinalUsedServer</strong>
+		<div style='width:100%;text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes')")."</duv>
+				</td>
+		</tr>
+		</table>
+		";
+		echo $tpl->_ENGINE_parse_body($table);
+	
+	}
+	
+	echo "<p>&nbsp;</p>";
+	echo "<center>".$tpl->_ENGINE_parse_body(button("{update_now}", "Loadjs('dansguardian2.articadb-progress.php')",26))."</center>";
 	
 	$data=$sock->getFrameWork('cmd.php?ufdbcat-ini-status=yes');
 	$ini=new Bs_IniHandler();
 	$ini->loadString(base64_decode($data));
 	$APP_UFDBCAT=DAEMON_STATUS_ROUND("APP_UFDBCAT",$ini,null,1);
+	
+	echo "<p>&nbsp;</p>";
 	echo $tpl->_ENGINE_parse_body($APP_UFDBCAT);
 	
 	$ufdbCatInterface=$sock->GET_INFO("ufdbCatInterface");
@@ -145,29 +205,9 @@ function status(){
 	
 	
 	
-	if($EnableLocalUfdbCatService==0){
-		$html="<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."</div>";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
-	}
-	
-	
-	
-	$catz=new mysql_catz();
-	$categories=$catz->ufdbcat("google.com");
-	if($catz->ok){
-		echo $tpl->_ENGINE_parse_body(Paragraphe32("{available}", "noacco:
-				<span style='font-size:12px'><strong>google.com:</strong><br>{category} <strong>$categories</strong><br>{execution_time} {$catz->TimeExec}s</span>",null,
-				"ok48.png","LoadAjax('UFDBCAT_STATUS','$page?status=yes')"));
-		echo $tpl->_ENGINE_parse_body("<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."</div>");
-		return;
-	}
-	
-	
-	echo $tpl->_ENGINE_parse_body(Paragraphe32("{connection_error}", "noacco:
-			<span style='font-size:12px'>{error} &laquo;$catz->mysql_error&raquo;</span>",null,
-			"error-48.png"));
-	echo $tpl->_ENGINE_parse_body("<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."</div>");
+	echo"<div style='text-align:right'>".
+		imgtootltip("refresh-32.png","{refresh}","LoadAjax('UFDBCAT_STATUS','$page?status=yes');")."
+	</div>";
 	
 	
 	
@@ -243,11 +283,39 @@ function parameters_client(){
 	$ufdbCatPort=intval($sock->GET_INFO("ufdbCatPort"));
 	$ufdbCatInterface=$sock->GET_INFO("ufdbCatInterface");
 	$EnableLocalUfdbCatService=intval($sock->GET_INFO("EnableLocalUfdbCatService"));
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	$EnableIntelCeleron=intval(file_get_contents("/etc/artica-postfix/settings/Daemons/EnableIntelCeleron"));
+	
+	if($SquidPerformance==0){
+		if($EnableLocalUfdbCatService==0){
+			$p00=Paragraphe_switch_img("{local_categories_services_activated}", "{use_local_categories_services_perf}</strong>",
+				"none",1,null,800,"blur()"
+			)."<hr><p>&nbsp;</p>";
+		}
+		
+	}
+	
 	if($ufdbCatPort==0){$ufdbCatPort=3978;}
 	
-	$p0=Paragraphe_switch_img("{use_local_categories_services}", "{use_remote_categories_services_explain}<br><strong>{use_local_categories_services_explain_warn}</strong>",
-			"EnableLocalUfdbCatService",$EnableLocalUfdbCatService,null,800,"EnableLocalUfdbCatServiceCheck()"
-	);
+	$p0=Paragraphe_switch_img("{use_local_categories_services}", 
+			"{use_remote_categories_services_explain}<br><strong>{use_local_categories_services_explain_warn}</strong>",
+			"EnableLocalUfdbCatService",$EnableLocalUfdbCatService,null,800,
+			"EnableLocalUfdbCatServiceCheck()");
+	if($SquidPerformance>2){
+		$EnableLocalUfdbCatService=0;
+		$p0=Paragraphe_switch_disable("{use_local_categories_services}", "{use_remote_categories_services_explain}<br><strong>{use_local_categories_services_explain_warn}</strong>",
+				"EnableLocalUfdbCatService",$EnableLocalUfdbCatService,null,800,"EnableLocalUfdbCatServiceCheck()"
+		);
+	}
+	
+	if($EnableIntelCeleron==1){
+		$EnableLocalUfdbCatService=0;
+		$p0=Paragraphe_switch_disable("{use_local_categories_services}", "{use_remote_categories_services_explain}<br><strong>{CELERON_METHOD_EXPLAIN}</strong>",
+				"EnableLocalUfdbCatService",$EnableLocalUfdbCatService,null,800,"EnableLocalUfdbCatServiceCheck()"
+		);
+		
+		
+	}
 	
 	
 	$p1=Paragraphe_switch_img("{use_remote_categories_services}", "{use_remote_categories_services_explain}",
@@ -273,7 +341,7 @@ function parameters_client(){
 
 	$html="
 <div style='width:98%' class=form>
-			$p0
+			$p00$p0
 			<table style='width:100%'>".
 		Field_list_table("ufdbCatInterface1", "{listen_address}", $ufdbCatInterface,22,$ips).
 		Field_text_table("ufdbCatPort1", "{listen_port}", $ufdbCatPort,22,null,120).

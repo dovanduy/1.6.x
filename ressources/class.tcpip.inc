@@ -30,6 +30,7 @@ class IP {
 	
 	
 	public static function isIPAddressOrRange( $ip ) {	
+		
 		if(self::isIPAddress($ip)){return true;}
 		$array=self::parseRange($ip);
 		if(!is_array($array)){return false;}
@@ -43,6 +44,11 @@ class IP {
 		if($ip==null){return false;}
 		if ( !$ip ) return false;
 		if ( is_array( $ip ) ) {return false;}
+		$r=explode(".",$ip);
+		if($GLOBALS["VERBOSE"]){echo "$ip == ".count($r)." items\n";}
+		if(count($r)>4){return false;}
+		if(count($r)<4){return false;}
+		
 		if(preg_match("#(.+?)\/([0-9]+)$#", $ip,$re)){
 			$re[2]=trim($re[2]);
 			if(strlen($re[2])>2){return false;}
@@ -71,8 +77,9 @@ class IP {
 	
 public static function IsvalidMAC($MAC){
         	$MAC=str_replace(":", "-", $MAC);
-			If(strlen($MAC) > 17) return false;
-			If($MAC == "") return false;
+        	if($MAC=="00:00:00:00:00:00"){return false;}
+			If(strlen($MAC) > 17){return false;}
+			If($MAC == ""){return false;}
 			If (!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$MAC)) return false;
 			$Array=explode("-",$MAC);
 			If(strlen($Array[0]) != 2) return false;

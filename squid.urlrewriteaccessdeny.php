@@ -11,8 +11,21 @@ if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	if(isset($_GET["events"])){popup_list();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["delete"])){Delete();exit;}
+	if(isset($_POST["nocache_single"])){add_nocache_single();exit();}
+	
+	if(isset($_GET["add-rangeoffsetlimit-js"])){add_rangeoffsetlimit_js();exit;}
+	if(isset($_GET["add-rangeoffsetlimit-popup"])){add_rangeoffsetlimit_popup();exit;}
+	if(isset($_POST["rangeoffsetlimit"])){add_rangeoffsetlimit_save();exit;}
+	if(isset($_POST["rangeoffsetlimit_single"])){add_rangeoffsetlimit_single();exit;}
+	
+	if(isset($_POST["nonntlm_single"])){add_nontlm_single();exit;}
+	if(isset($_POST["ntlmwhite"])){add_nontlm_save();exit;}
+	
+	
+	
 	if(isset($_GET["add-www-js"])){add_www_js();exit;}
 	if(isset($_GET["add-nocache-js"])){add_nocache_js();exit;}
+	if(isset($_GET["add-ntlm-popup"])){add_ntlm_popup();exit;}
 	
 	
 	
@@ -20,9 +33,15 @@ if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	if(isset($_GET["add-white-popup"])){add_white_popup();exit;}
 	if(isset($_GET["add-white-tab"])){add_white_tab();exit;}
 	
+	
+	if(isset($_GET["add-ntlm-js"])){add_ntlm_js();exit;}
+	
 	if(isset($_GET["add-black-js"])){add_black_js();exit;}
 	if(isset($_GET["add-black-popup"])){add_black_popup();exit;}
 	if(isset($_POST["blacklist"])){add_black_save();exit;}
+	if(isset($_POST["blacklist-single"])){add_black_single_save();exit;}
+	
+	
 	if(isset($_POST["whitelist"])){add_white_save();exit;}
 	if(isset($_POST["nocache"])){add_nocache_save();exit;}
 	if(isset($_POST["whitelist-single"])){add_white_single();exit;}
@@ -48,8 +67,22 @@ function add_black_js(){
 	$title=$tpl->javascript_parse_text('{blacklist}');
 	echo "YahooWin5('790','$page?add-black-popup=yes','$title')";
 	return;
-	
-
+}
+function add_ntlm_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text('{authentication_whitelist}');
+	echo "YahooWin5('790','$page?add-ntlm-popup=yes','$title')";
+	return;
+}
+function add_rangeoffsetlimit_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text('{partial_content_list}');
+	echo "YahooWin5('790','$page?add-rangeoffsetlimit-popup=yes','$title')";
+	return;	
 }
 
 function add_black_popup(){
@@ -70,7 +103,7 @@ function add_black_popup(){
 	
 	$html="
 	<div style='font-size:22px'>{blacklist}</div>
-	<div class=text-info style='font-size:18px'>{squid_ask_domain}<br><strong style='color:#d32d2d'>{warning_deny_for_all_users}</strong></div>
+	<div class=explain style='font-size:18px'>{squid_ask_domain}<br><strong style='color:#d32d2d'>{warning_deny_for_all_users}</strong></div>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
 	id='form$t'>".@implode("\n", $tr)."</textarea>
@@ -135,6 +168,65 @@ function add_black_save(){
 	
 }
 
+function add_rangeoffsetlimit_save(){
+	$q=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `rangeoffsetlimit` ( `items` VARCHAR(256) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;");
+	
+	$f=array();
+	$f=explode("\n",$_POST["rangeoffsetlimit"]);
+	
+	while (list ($index, $line) = each ($f) ){
+		$line=trim(strtolower($line));
+		if($line==null){continue;}
+		$line=mysql_escape_string2($line);
+		$md5=md5($line);
+		$n[]="('$line')";
+	
+	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `rangeoffsetlimit`","artica_backup");
+	if(count($n)>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO `rangeoffsetlimit` (`items`) VALUES ".@implode(",", $n),"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	
+}
+
+
+function add_nontlm_save(){
+	$q=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `deny_ntlm_domains` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql);
+	$q=new mysql_squid_builder();
+	$f=array();
+	$f=explode("\n",$_POST["ntlmwhite"]);
+	
+	while (list ($index, $line) = each ($f) ){
+		$line=trim(strtolower($line));
+		if($line==null){continue;}
+		$line=mysql_escape_string2($line);
+		$md5=md5($line);
+		$n[]="('$line')";
+	
+	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `deny_ntlm_domains`","artica_backup");
+	if(count($n)>0){
+		$q->QUERY_SQL("INSERT IGNORE INTO `deny_ntlm_domains` (`items`) VALUES ".@implode(",", $n),"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+}
+
 
 function add_nocache_js(){
 	header("content-type: application/x-javascript");
@@ -162,10 +254,19 @@ function add_nocache_popup(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$tr[]=$ligne["items"];
 	}
+	$sql="SELECT items  FROM deny_cache_domains ORDER BY items";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+	
+	
+	
+	
 
 	$html="
 	<div style='font-size:22px'>{deny_from_cache}</div>
-	<div class=text-info style='font-size:18px'>{notcaching_websites}<br>{squid_ask_domain}<br></div>
+	<div class=explain style='font-size:18px'>{notcaching_websites}<br>{squid_ask_domain}<br></div>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
 	id='form$t'>".@implode("\n", $tr)."</textarea>
@@ -183,7 +284,7 @@ function add_nocache_popup(){
 var xSave2$t=function(obj){
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){alert(tempvalue);return;}
-	Loadjs('squid.compile.whiteblack.progress.php?ask=yes');
+	Loadjs('squid.global.wl.center.progress.php');;
 }
 
 function Save$t(){
@@ -255,6 +356,135 @@ function add_white_tab(){
 	
 }
 
+function add_rangeoffsetlimit_popup(){
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$sock=new sockets();
+	
+	
+	$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `rangeoffsetlimit` ( `items` VARCHAR(256) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;");
+	
+	$t=time();
+	$sql="SELECT items  FROM rangeoffsetlimit ORDER BY items";
+	
+	if(!$q->ok){echo $q->mysql_error_html();}
+	
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+	
+	$html="
+	<div style='font-size:22px'>{partial_content_list}</div>
+	<div class=explain style='font-size:18px'>{enforce_partial_content_explain}<br>{squid_ask_domain}<br></div>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='form$t'>".@implode("\n", $tr)."</textarea>
+	<div style='text-align:right;margin-top:20px;font-size:28px'>
+			<hr>
+			".
+				button("{compile2}","Save2$t()",28)."&nbsp;|&nbsp;". button("{apply}","Save$t()",28)."</div>
+	
+				<script>
+				var xSave$t=function(obj){
+				var tempvalue=obj.responseText;
+				if(tempvalue.length>3){alert(tempvalue);return;}
+	
+	}
+	var xSave2$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	Loadjs('squid.global.wl.center.progress.php');
+	}
+	
+	function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('rangeoffsetlimit',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+	
+	function Save2$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ntlmwhite',document.getElementById('form$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave2$t);
+	}
+	
+	</script>
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	
+}
+
+function add_ntlm_popup(){
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$sock=new sockets();
+
+	
+	$sql="CREATE TABLE IF NOT EXISTS `deny_ntlm_domains` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql);
+
+	$t=time();
+	$sql="SELECT items  FROM deny_ntlm_domains ORDER BY items";
+	
+	if(!$q->ok){echo $q->mysql_error_html();}
+	
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$tr[]=$ligne["items"];
+	}
+
+	$html="
+	<div style='font-size:22px'>{authentication_whitelist}</div>
+	<div class=explain style='font-size:18px'>{squid_ask_domain}<br></div>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
+	id='form$t'>".@implode("\n", $tr)."</textarea>
+	<div style='text-align:right;margin-top:20px;font-size:28px'>
+			<hr>
+			".
+			button("{compile2}","Save2$t()",28)."&nbsp;|&nbsp;". button("{apply}","Save$t()",28)."</div>
+
+			<script>
+			var xSave$t=function(obj){
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue);return;}
+
+}
+var xSave2$t=function(obj){
+var tempvalue=obj.responseText;
+if(tempvalue.length>3){alert(tempvalue);return;}
+Loadjs('squid.compile.whiteblack.progress.php');
+}
+
+function Save$t(){
+var XHR = new XHRConnection();
+XHR.appendData('ntlmwhite',document.getElementById('form$t').value);
+XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+
+function Save2$t(){
+var XHR = new XHRConnection();
+XHR.appendData('ntlmwhite',document.getElementById('form$t').value);
+XHR.sendAndLoad('$page', 'POST',xSave2$t);
+}
+
+</script>
+";
+	echo $tpl->_ENGINE_parse_body($html);
+
+
+}
 
 
 function add_white_popup(){
@@ -275,7 +505,7 @@ function add_white_popup(){
 
 	$html="
 	<div style='font-size:22px'>{whitelist}</div>
-	<div class=text-info style='font-size:18px'>{squid_ask_domain}<br></div>
+	<div class=explain style='font-size:18px'>{squid_ask_domain}<br></div>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:350px;border:5px solid #8E8E8E;overflow:auto;font-size:16px !important'
 	id='form$t'>".@implode("\n", $tr)."</textarea>
@@ -324,6 +554,15 @@ function add_white_save(){
 	$IP=new IP();
 		
 	$tr=explode("\n",$_POST["whitelist"]);
+	
+	$sql="CREATE TABLE IF NOT EXISTS `urlrewriteaccessdeny` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql,"artica_backup");
+	
+	
 	$q->QUERY_SQL("TRUNCATE TABLE urlrewriteaccessdeny","artica_backup");
 		
 	while (list ($none,$www ) = each ($tr) ){
@@ -342,12 +581,86 @@ function add_white_single(){
 	$acl=new squid_acls();
 	$IP=new IP();
 	
+	$sql="CREATE TABLE IF NOT EXISTS `urlrewriteaccessdeny` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql,"artica_backup");
+	
 	$www=$_POST["whitelist-single"];
 	$www=$acl->dstdomain_parse($www);
 	if($www==null){return;}
 	$q->QUERY_SQL("INSERT IGNORE INTO urlrewriteaccessdeny (items) VALUES ('{$www}')","artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 		
+	
+}
+
+function add_black_single_save(){
+	$acl=new squid_acls();
+	$q=new mysql_squid_builder();
+	$www=$_POST["blacklist-single"];
+	$www=$acl->dstdomain_parse($www);
+	if($www==null){return;}
+	$q->QUERY_SQL("INSERT IGNORE INTO `deny_websites` (`items`) VALUES ('$www')","artica_backup");
+	
+}
+
+
+function add_nocache_single(){
+	
+	
+	$q=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `deny_cache_domains` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql);
+	$www=$_POST["nocache_single"];
+	$www=$acl->dstdomain_parse($www);
+	if($www==null){return;}
+	$q->QUERY_SQL("INSERT IGNORE INTO deny_cache_domains (items) VALUES ('{$www}')");
+	if(!$q->ok){echo $q->mysql_error;return;}
+
+
+}
+
+function add_rangeoffsetlimit_single(){
+	$q=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	$q->QUERY_SQL("CREATE TABLE IF NOT EXISTS `rangeoffsetlimit` ( `items` VARCHAR(256) NOT NULL PRIMARY KEY ) ENGINE=MYISAM;");
+	$www=$_POST["rangeoffsetlimit_single"];
+	if($www==null){echo "NULL Domain!\n";return;}
+	$www=$acl->dstdomain_parse($www);
+	if($www==null){return;}
+	$q->QUERY_SQL("INSERT IGNORE INTO rangeoffsetlimit (items) VALUES ('{$www}')");
+	if(!$q->ok){echo $q->mysql_error;return;}	
+}
+
+
+function add_nontlm_single(){
+	$q=new mysql_squid_builder();
+	$acl=new squid_acls();
+	$IP=new IP();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `deny_ntlm_domains` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	
+	
+	$q->QUERY_SQL($sql);
+	$www=$_POST["nonntlm_single"];
+	if($www==null){echo "NULL Domain!\n";return;}
+	$www=$acl->dstdomain_parse($www);
+	if($www==null){return;}
+	$q->QUERY_SQL("INSERT IGNORE INTO deny_ntlm_domains (items) VALUES ('{$www}')");
+	if(!$q->ok){echo $q->mysql_error;return;}
 	
 }
 
@@ -358,13 +671,22 @@ function add_nocache_save(){
 	$acl=new squid_acls();
 	$IP=new IP();
 	
+	$sql="CREATE TABLE IF NOT EXISTS `deny_cache_domains` (
+				`items` VARCHAR(256) NOT NULL PRIMARY KEY
+				) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql);
 	$tr=explode("\n",$_POST["nocache"]);
-	$q->QUERY_SQL("TRUNCATE TABLE denycache_websites","artica_backup");
+	$q->QUERY_SQL("TRUNCATE TABLE deny_cache_domains","artica_backup");
 	
 	while (list ($none,$www ) = each ($tr) ){
-		$www=$acl->dstdomain_parse($www);
+		$www=trim(strtolower($www));
 		if($www==null){continue;}
-		$q->QUERY_SQL("INSERT IGNORE INTO denycache_websites (items) VALUES ('{$www}')","artica_backup");
+		
+		if(!$IP->isIPAddressOrRange($www)){
+			if(substr($www,0, 1)<>"^"){$www=$acl->dstdomain_parse($www);}
+		}
+		
+		$q->QUERY_SQL("INSERT IGNORE INTO deny_cache_domains (items) VALUES ('{$www}')","artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return;}
 	}	
 	
@@ -561,6 +883,6 @@ function Delete(){
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?build-whitelist=yes");
 }
-
+?>
 
 

@@ -224,9 +224,30 @@ function build(){
 	$unix=new unix();
 	$cntlm=$unix->find_program("cntlm");
 	$CnTLMPORT=$sock->GET_INFO("CnTLMPORT");
-	$SquidBinIpaddr=$sock->GET_INFO("SquidBinIpaddr");
+	$CnTLMDESTPORT=intval($sock->GET_INFO("CnTLMPORT"));
+	$CnTLMDESTPORT=$sock->GET_INFO("CnTLMDESTPORT");
+	
+	
+	
+	
 	$configfile="/etc/cntlm.conf";
-	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
+	
+	if($CnTLMDESTPORT==null){
+		$SquidBinIpaddr="0.0.0.0";
+		$SquidListen=get_squid_listen_ports();
+		if(preg_match("#([0-9\.]+):([0-9]+)#", $SquidListen,$re)){if($re[2]==$CnTLMPORT){$CnTLMPORT=0;}}
+		if(preg_match("#([0-9]+)$#", $SquidListen,$re)){if($re[2]==$CnTLMPORT){$CnTLMPORT=0;}}
+	}else{
+		$NETWORK_ALL_INTERFACES=$unix->NETWORK_ALL_INTERFACES();
+		preg_match("#^(.*?):(.+)#", $CnTLMDESTPORT,$re);
+		$nic=trim($re[1]);
+		$port=trim($re[2]);
+		if($nic==null){$ipaddr="0.0.0.0";}
+		if($nic<>null){$ipaddr=$NETWORK_ALL_INTERFACES[$nic]["IPADDR"];}
+		$SquidListen="{$ipaddr}:$port";
+		
+		
+	}
 	
 	if(!is_numeric($CnTLMPORT)){$CnTLMPORT=0;}
 	if($CnTLMPORT==0){
@@ -234,9 +255,7 @@ function build(){
 		$sock->SET_INFO("CnTLMPORT", $CnTLMPORT);
 	}	
 	
-	$SquidListen=get_squid_listen_ports();
-	if(preg_match("#([0-9\.]+):([0-9]+)#", $SquidListen,$re)){if($re[2]==$CnTLMPORT){$CnTLMPORT=0;}}
-	if(preg_match("#([0-9]+)$#", $SquidListen,$re)){if($re[2]==$CnTLMPORT){$CnTLMPORT=0;}}
+	
 
 	if($CnTLMPORT==0){
 		$CnTLMPORT=rand(35000, 64000);
@@ -260,7 +279,15 @@ function build(){
 }
 
 function get_squid_listen_ports(){
-	$f=explode("\n", @file_get_contents("/etc/squid3/squid.conf"));
+	
+	
+	if(is_file("/etc/squid3/listen_ports.conf")){
+		$f=explode("\n", @file_get_contents("/etc/squid3/listen_ports.conf"));
+	}else{
+		$f=explode("\n", @file_get_contents("/etc/squid3/squid.conf"));
+	}
+	
+	
 	
 	while (list ($ID, $line) = each ($f) ){
 		$line=trim($line);
@@ -288,7 +315,7 @@ function get_squid_listen_ports(){
 	}
 	
 	
-	
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} No proxy port found\n";}
 	
 	
 }

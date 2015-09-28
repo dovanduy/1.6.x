@@ -1168,7 +1168,7 @@ function popup_ocs_softs_list(){
 	
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"ocsweb");
-	if(!$q->ok){$html="<code style='color:red'>$q->mysql_error<br>$sql</code>";}
+	if(!$q->ok){$html="<code style='color:#d32d2d'>$q->mysql_error<br>$sql</code>";}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
 		if($cl=="oddRow"){$cl=null;}else{$cl="oddRow";}
 			$ligne["NAME"]=utf8_encode($ligne["NAME"]);

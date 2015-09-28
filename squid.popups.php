@@ -230,9 +230,10 @@ function dns_popup_cache(){
 	$SquidAppendDomainDisabled=intval($sock->GET_INFO("SquidAppendDomainDisabled"));
 	$SquidIpv6DNSPrio=intval($sock->GET_INFO("SquidIpv6DNSPrio"));
 	if($SquidAppendDomainDisabled==1){$SquidAppendDomain=0;}
+	$balance_on_multiple_ip=intval($sock->GET_INFO("balance_on_multiple_ip"));
 	
 	$AppendDomain=Paragraphe_switch_img("{enable_append_domain}", "{squid_enable_append_domain}",
-			"SquidAppendDomain-$t",$SquidAppendDomain,null,650);
+			"SquidAppendDomain-$t",$SquidAppendDomain,null,1400);
 	
 	
 	$IpV4Prio=1;
@@ -240,7 +241,12 @@ function dns_popup_cache(){
 		$IpV4Prio=0;
 	}
 	$SquidIpv6DNSPrio=Paragraphe_switch_img("{squid_ipv4_dns_prio}", "{squid_ipv4_dns_prio_explain}",
-			"SquidIpv6DNSPrio-$t",$IpV4Prio,null,650);
+			"SquidIpv6DNSPrio-$t",$IpV4Prio,null,1400);
+	
+	
+	$balance_on_multiple_ip_p=Paragraphe_switch_img("{balance_on_multiple_ip}", "{balance_on_multiple_ip_text}",
+			"balance_on_multiple_ip-$t",$balance_on_multiple_ip,null,1400);
+	
 	
 	
 	$SquidEnablePinger=intval($sock->GET_INFO("SquidEnablePinger"));
@@ -257,50 +263,50 @@ function dns_popup_cache(){
 	
 	$html="
 	<div id='$t' class=form style='width:98%'>
-	$AppendDomain<br>$SquidIpv6DNSPrio
+	$AppendDomain<br>$SquidIpv6DNSPrio<br>$balance_on_multiple_ip_p
 	<table style='width:100%' >
 	<tbody>
 	<tr>
-		<td class=legend style='font-size:18px'>{enable_pinger_process}:</td>
-		<td style='font-size:18px'>". Field_checkbox("SquidEnablePinger-$t",1,$SquidEnablePinger)."<td>
+		<td class=legend style='font-size:24px'>{enable_pinger_process}:</td>
+		<td style='font-size:18px'>". Field_checkbox_design("SquidEnablePinger-$t",1,$SquidEnablePinger)."<td>
 		<td style='font-size:18px' width=1%>". help_icon("{enable_pinger_process_text}")."<td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{positive_dns_ttl}:</td>
-		<td style='font-size:18px'>". Field_text("positive_dns_ttl-$t",$positive_dns_ttl,"font-size:18px;width:90px")."&nbsp;{hours}<td>
+		<td class=legend style='font-size:24px'>{positive_dns_ttl}:</td>
+		<td style='font-size:18px'>". Field_text("positive_dns_ttl-$t",$positive_dns_ttl,"font-size:24px;width:130px")."&nbsp;{hours}<td>
 		<td style='font-size:18px' width=1%>". help_icon("{positive_dns_ttl_text}")."<td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{negative_dns_ttl}:</td>
-		<td style='font-size:18px'>". Field_text("negative_dns_ttl-$t",$negative_dns_ttl,"font-size:18px;width:90px")."&nbsp;{seconds}<td>
+		<td class=legend style='font-size:24px'>{negative_dns_ttl}:</td>
+		<td style='font-size:18px'>". Field_text("negative_dns_ttl-$t",$negative_dns_ttl,"font-size:24px;width:130px")."&nbsp;{seconds}<td>
 		<td style='font-size:18px' width=1%>". help_icon("{negative_dns_ttl_text}")."<td>
 	</tr>	
 	
 	
 	<tr>
-		<td class=legend style='font-size:18px'>{fqdncache_size}:</td>
-		<td style='font-size:18px'>". Field_text("fqdncache_size-$t",$fqdncache_size,"font-size:18px;width:90px")."&nbsp;{items}<td>
+		<td class=legend style='font-size:24px'>{fqdncache_size}:</td>
+		<td style='font-size:18px'>". Field_text("fqdncache_size-$t",$fqdncache_size,"font-size:24px;width:130px")."&nbsp;{items}<td>
 		<td style='font-size:18px' width=1%>". help_icon("{fqdncache_size_text}")."<td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{ipcache_low}:</td>
-		<td style='font-size:18px'>". Field_text("ipcache_low-$t",$ipcache_low,"font-size:18px;width:90px")."&nbsp;%<td>
+		<td class=legend style='font-size:24px'>{ipcache_low}:</td>
+		<td style='font-size:18px'>". Field_text("ipcache_low-$t",$ipcache_low,"font-size:24px;width:130px")."&nbsp;%<td>
 		<td style='font-size:18px' width=1%>". help_icon("{ipcache_low_text}")."<td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{ipcache_high}:</td>
-		<td style='font-size:18px'>". Field_text("ipcache_high-$t",$ipcache_high,"font-size:18px;width:90px")."&nbsp;%<td>
+		<td class=legend style='font-size:24px'>{ipcache_high}:</td>
+		<td style='font-size:18px'>". Field_text("ipcache_high-$t",$ipcache_high,"font-size:24px;width:130px")."&nbsp;%<td>
 		<td style='font-size:18px' width=1%>". help_icon("{ipcache_high_text}")."<td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:18px'>{ipcache_size}:</td>
-		<td style='font-size:18px'>". Field_text("ipcache_size-$t",$ipcache_size,"font-size:18px;width:90px")."&nbsp;{items}<td>
+		<td class=legend style='font-size:24px'>{ipcache_size}:</td>
+		<td style='font-size:18px'>". Field_text("ipcache_size-$t",$ipcache_size,"font-size:24px;width:130px")."&nbsp;{items}<td>
 		<td style='font-size:18px' width=1%>". help_icon("{ipcache_size_text}")."<td>
 	</tr>	
 	
 	
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","SaveSquidDNSPerfs()",26)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveSquidDNSPerfs()",42)."</td>
 	</tr>
 	</tbody>
 	</table>
@@ -324,6 +330,7 @@ function dns_popup_cache(){
 		XHR.appendData('ipcache_low',document.getElementById('ipcache_low-$t').value);
 		XHR.appendData('ipcache_high',document.getElementById('ipcache_high-$t').value);
 		XHR.appendData('ipcache_size',document.getElementById('ipcache_size-$t').value);
+		XHR.appendData('balance_on_multiple_ip',document.getElementById('balance_on_multiple_ip-$t').value);
 		XHR.appendData('SquidEnablePinger',SquidEnablePinger);
 		XHR.sendAndLoad('$page', 'POST',x_SaveSquidDNSPerfs);	
 	}		
@@ -348,6 +355,9 @@ function dns_popup_cache_save(){
 	$squid->global_conf_array["negative_dns_ttl"]=$_POST["negative_dns_ttl"]." seconds";
 	
 	$sock->SET_INFO("SquidEnablePinger", $_POST["SquidEnablePinger"]);
+	$sock->SET_INFO("balance_on_multiple_ip", $_POST["balance_on_multiple_ip"]);
+	
+	
 	
 	if($_POST["SquidIpv6DNSPrio"]==1){
 		$sock->SET_INFO("SquidIpv6DNSPrio", 0);
@@ -715,7 +725,7 @@ function user_agent_ban_index(){
 	$squid=new squidbee();
 	$html="
 	
-	<div class=text-info>{ban_browsers_explain}</div>
+	<div class=explain>{ban_browsers_explain}</div>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{enable_useragent_ban_rule}:</td>
@@ -844,7 +854,7 @@ function user_agent_ban_list(){
 	
 	$html="
 	
-	<div class=text-info>{ban_browsers_explain2}</div>
+	<div class=explain>{ban_browsers_explain2}</div>
 	<table class=tableView style='width:99%'>
 				<thead class=thead>
 				<tr>
@@ -952,7 +962,7 @@ function url_regex_popup1(){
 		
 		
 		$html="
-			<div class=text-info>{deny_websites_explain}</div>
+			<div class=explain>{deny_websites_explain}</div>
 				$form
 			<br>
 			<div id='squid-block-list' style='with:100%;height:300px;overflow:auto'></div>
@@ -992,10 +1002,9 @@ $tpl=new templates();
 $t=time();	
 		
 		$html="
-			<div class=text-info style='font-size:14px'>{dns_nameservers_text}</div>
 			<div id='$t'></div>
 			<script>
-				LoadAjax('$t','squid.dns.php');
+				LoadAjax('$t','squid.dns.servers.php');
 			</script>
 			
 			";
@@ -1015,35 +1024,35 @@ function dns_popup(){
 	$users=new usersMenus();
 	
 	$array["standard_dns"]='{dns_nameservers}';
-	$array["dns_cache"]='{performance}';
+	$array["dns_cache"]='{settings}';
 	$array["dns_status"]='{status}';
-	$array["booster"]='{dns_cache}';
-	$array["dn_entries"]="{dns_items}";
+	
 	$array["dns_query"]="{dns_query}";
 	$t=time();
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="booster"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dnsmasq.php?popup=yes&t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dnsmasq.php?popup=yes&t=$t\">
+					<span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="dns_status"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.status.php?t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.status.php?t=$t\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 
 		if($num=="dn_entries"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.items.php?t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.items.php?t=$t\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 
 		if($num=="dns_query"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.dns.query.php?popup=yes&t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.dns.query.php?popup=yes&t=$t\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 	}
 	
 	echo build_artica_tabs($html, "main_config_squiddns$t");
@@ -1171,7 +1180,7 @@ function ldap_auth_remote(){
 	
 	if($ldap_port==null){$ldap_port=389;}
 	$html="$error
-	<div class=text-info style='font-size:16px'>{SQUID_LDAP_AUTH_EXT}</div>
+	<div class=explain style='font-size:16px'>{SQUID_LDAP_AUTH_EXT}</div>
 	
 	<div id='ldap_ext_auth' style='width:98%' class=form>
 		<table style='width:99%' class=TableRemove>
@@ -1582,7 +1591,7 @@ function plugins_popup(){
 		if($squid->isicap()){
 		$kav=Paragraphe_switch_img("{enable_kavproxy}","{enable_kavproxy_text}",'enable_kavproxy',$squid->enable_kavproxy,'{enable_disable}',250);
 		}else{
-		$kav=Paragraphe_switch_disable('{enable_kavproxy}',"{feature_not_installed}<br><strong style='color:red'>$squid->kav_accept_why</strong>",'{feature_not_installed}');		
+		$kav=Paragraphe_switch_disable('{enable_kavproxy}',"{feature_not_installed}<br><strong style='color:#d32d2d'>$squid->kav_accept_why</strong>",'{feature_not_installed}');		
 		}
 	}
 		
@@ -1694,7 +1703,7 @@ function visible_hostname_js(){
 	$tpl=new templates();
 	header("content-type: application/x-javascript");
 	$title=$tpl->javascript_parse_text("{visible_hostname}");
-		echo "YahooWin2(600,'$page?content=visible_hostname','$title',true);";
+		echo "YahooWin2(1024,'$page?content=visible_hostname','$title',true);";
 }
 
 
@@ -1705,11 +1714,11 @@ function visible_hostname_popup(){
 	$form="	
 		<table style='width:100%'>
 			<tr>
-			<td class=legend nowrap style='font-size:18px'>{visible_hostname}:</td>
-			<td>" . Field_text("visible_hostname_to_save-$t",$squid->visible_hostname,'width:95%;font-size:18px')."</td>
+			<td class=legend nowrap style='font-size:32px'>{visible_hostname}:</td>
+			<td>" . Field_text("visible_hostname_to_save-$t",$squid->visible_hostname,'width:95%;font-size:32px')."</td>
 			</tr>
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","visible_hostname$t();",18)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","visible_hostname$t();",45)."</td>
 			</tr>
 		</table>			
 		";
@@ -1717,7 +1726,7 @@ function visible_hostname_popup(){
 		
 		
 $html="
-			<div class=text-info style='font-size:14px'>{visible_hostname_text}</div>
+			<div class=explain style='font-size:22px'>{visible_hostname_text}</div>
 			<div style='width:98%' class=form>
 				$form
 			</div>
@@ -1727,8 +1736,9 @@ $html="
 var x_visible_hostname$t= function (obj) {
 	var results=obj.responseText;
 	alert(results);
-	RefreshTab('squid_main_svc');
+	LoadAjaxRound('main-dashboard-proxy','squid.dashboard.php');
 	YahooWin2Hide();
+	
 }
 		
 function visible_hostname$t(){
@@ -2007,7 +2017,7 @@ $form="
 		
 		
 $html="
-			<div class=text-info style='font-size:14px;'>{listen_port_text}</div>
+			<div class=explain style='font-size:14px;'>{listen_port_text}</div>
 				$form
 			<br>
 			
@@ -2232,7 +2242,7 @@ function network_popup(){
 		
 		$form="
 		<div id='squid_network_id'>
-		<div class=text-info style='font-size:16px'>{your_network_text}</div>
+		<div class=explain style='font-size:16px'>{your_network_text}</div>
 		<table style='width:100%'>
 		<tr>
 			<td class=legend>{AllowAllNetworks}:</td>
@@ -2344,7 +2354,7 @@ function auth_whitelist_popup(){
 	$tpl=new templates();
 	$website=$tpl->javascript_parse_text("{website}");
 	$html="
-	<div class=text-info>{squid_auth_whitelist_why}</div>
+	<div class=explain>{squid_auth_whitelist_why}</div>
 	<div style='text-align:right;margin-bottom:8px'>".button('{add}','WhiteListAuthAdd()')."</div>
 	<div style='width:100%;height:310px;overflow:auto' id='whitelist-auth-list'></div>
 	
@@ -2390,7 +2400,7 @@ function auth_whitelist_popup(){
 
 function auth_whitelist_useragent_popup(){
 	$page=CurrentPageName();
-	$html="<div class=text-info>{squid_auth_whitelist_usergent_why}</div>
+	$html="<div class=explain>{squid_auth_whitelist_usergent_why}</div>
 	
 	<table style='width:100%'>
 	<tr>

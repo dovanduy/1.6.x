@@ -2,14 +2,17 @@
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["AS_ROOT"]=true;
+$GLOBALS["RELOAD_STATUS"]=false;
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
+include_once(dirname(__FILE__)."/framework/class.status.hardware.inc");
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--reload-status#",implode(" ",$argv))){$GLOBALS["RELOAD_STATUS"]=true;}
 
 
 if($argv[1]=='--build'){build();die();}
@@ -17,14 +20,14 @@ if($argv[1]=='--start'){start();die();}
 if($argv[1]=='--restart'){restart();die();}
 if($argv[1]=='--stop'){stop();die();}
 if($argv[1]=='--reload'){reload();die();}
-if($argv[1]=='--defaultP'){defaultProcesses();die();}
+
 if($argv[1]=='--services-check'){services_check();exit();}
 if($argv[1]=="--cgred-start"){cgred_start();exit;}
 if($argv[1]=="--cgred-stop"){cgred_stop();exit;}
 if($argv[1]=="--ismounted"){ismounted();exit;}
 if($argv[1]=="--stats"){buildstats();exit;}
 if($argv[1]=="--tasks"){TaskSave();exit;}
-
+if($argv[1]=="--install-progress"){install();exit;}
 
 
 
@@ -128,12 +131,18 @@ function build(){
 		$MyPid=getmypid();
 		services_check();
 		load_family();
-			
+		$unix=new unix();
+		$cgcreate=$unix->find_program("cgcreate");
+		$echobin=$unix->find_program("echo");
 		$f[]="\nmount {";
 		
+		Mount_structure(); 
+		reset($GLOBALS["CGROUPS_FAMILY"]);
 		while (list ($num, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
+			if(is_cgroup_structure_mounted($num)){
 			echo "Starting......: ".date("H:i:s")." cgroups: supported structure:$num\n";
 			$f[]="\t$num = /cgroups/$num;";
+			}
 		}
 		$f[]="}\n";
 		reset($GLOBALS["CGROUPS_FAMILY"]);
@@ -143,73 +152,7 @@ function build(){
 
 		if(!is_dir("/cgroups")){@mkdir("/cgroups",0755,true);}
 
-		$q=new mysql();
-		$sql="SELECT *  FROM cgroups_groups ORDER BY cpu_shares,groupname";
-		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "$q->mysql_error\n";}
 		
-		
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-	
-			if($ligne["memory_soft_limit_in_bytes"]<1){$ligne["memory_soft_limit_in_bytes"]=-1;}
-			if($ligne["memory_limit_in_bytes"]<1){$ligne["memory_limit_in_bytes"]=-1;}
-			if($ligne["memory_memsw_limit_in_bytes"]<1){$ligne["memory_memsw_limit_in_bytes"]=-1;}	
-			if($ligne["memory_swappiness"]<1){$ligne["memory_swappiness"]=60;}
-			if($ligne["cpuset_cpus"]==null){$ligne["cpuset_cpus"]="0,1,2,3,4,5,6,7,8";}	
-			echo "Starting......: ".date("H:i:s")." cgroups: Group \"{$ligne["groupname"]}\"\n";				
-			writerules($ligne["ID"],$ligne["groupname"]);
-			
-					
-			$f[]="group {$ligne["groupname"]} {";
-			
-			if(testStructure($ligne["groupname"],"cpu",$MyPid)){		
-				$f[]="\tcpu {";
-				if($ligne["cpu_shares"]>0){
-					$f[]="\t\tcpu.shares = {$ligne["cpu_shares"]};";
-					$GLOBALS["ArrayRULES"][$ligne["groupname"]]["cpu"]["cpu.shares"]=$ligne["cpu_shares"];
-				
-				}
-				if($ligne["cpu_rt_runtime_us"]>10000){
-					$f[]="\t\tcpu.rt_runtime_us = {$ligne["cpu_rt_runtime_us"]};";
-					$GLOBALS["ArrayRULES"][$ligne["groupname"]]["cpu"]["cpu.rt_runtime_us"]=$ligne["cpu_rt_runtime_us"];
-				}
-				if($ligne["cpu_rt_runtime_us"]>10000){
-					$f[]="\t\tcpu.rt_period_us = {$ligne["cpu_rt_period_us"]};";
-					$GLOBALS["ArrayRULES"][$ligne["groupname"]]["cpu"]["cpu.rt_period_us"]=$ligne["cpu_rt_period_us"];
-				
-				}
-			$f[]="\t}";
-		}
-		
-		
-		
-		if($GLOBALS["CGROUPS_FAMILY"]["memory"]){
-			$GLOBALS["ArrayRULES"][$ligne["groupname"]]["memory"]["memory.soft_limit_in_bytes"]="{$ligne["memory_soft_limit_in_bytes"]}M";
-			$GLOBALS["ArrayRULES"][$ligne["groupname"]]["memory"]["memory.limit_in_bytes"]="{$ligne["memory_limit_in_bytes"]}M";
-			$GLOBALS["ArrayRULES"][$ligne["groupname"]]["memory"]["memory.memsw.limit_in_bytes"]="{$ligne["memory_memsw_limit_in_bytes"]}M";
-			$GLOBALS["ArrayRULES"][$ligne["groupname"]]["memory"]["memory.swappiness"]="{$ligne["memory_swappiness"]}M";
-			if(testStructure($ligne["groupname"],"memory",$MyPid)){
-				$f[]="\tmemory {";
-				$f[]="\t\tmemory.soft_limit_in_bytes = {$ligne["memory_soft_limit_in_bytes"]}M;";
-				$f[]="\t\tmemory.limit_in_bytes = {$ligne["memory_limit_in_bytes"]}M;";
-				$f[]="\t\tmemory.memsw.limit_in_bytes = {$ligne["memory_memsw_limit_in_bytes"]}M;";
-				$f[]="\t\tmemory.swappiness = {$ligne["memory_swappiness"]};";
-				$f[]="\t}";
-			}
-		}	
-		if($GLOBALS["CGROUPS_FAMILY"]["cpuset"]){
-			if(testStructure($ligne["groupname"],"cpuset",$MyPid)){
-				$GLOBALS["ArrayRULES"][$ligne["groupname"]]["cupset"]["cpuset.cpus"]="{$ligne["cpuset_cpus"]}M";
-				$f[]="\tcupset {";
-				$f[]="\t\tcpuset.cpus = {$ligne["cpuset_cpus"]};";
-				//$f[]="\t\tcpuset.mems = 0-16;";
-				$f[]="\t}";
-			}
-		}
-		
-		$f[]="}\n";
-		}
 		
 		echo "Starting......: ".date("H:i:s")." cgroups: Writing /etc/cgconfig.conf\n";
 		@file_put_contents("/etc/cgconfig.conf", @implode("\n", $f));
@@ -243,7 +186,55 @@ function build(){
 	$p[]="CREATE_DEFAULT=yes";
 	@file_put_contents("/etc/default/cgconfig", @implode("\n", $p));
 	
+	$sock=new sockets();
+	$cgroupsPHPCpuShares=intval($sock->GET_INFO("cgroupsPHPCpuShares"));
+	$cgroupsPHPDiskIO=intval($sock->GET_INFO("cgroupsPHPDiskIO"));
+	if($cgroupsPHPCpuShares==0){$cgroupsPHPCpuShares=256;}
+	if($cgroupsPHPDiskIO==0){$cgroupsPHPDiskIO=450;}
 	
+	$cgroupsMySQLCpuShares=intval($sock->GET_INFO("cgroupsMySQLCpuShares"));
+	$cgroupMySQLDiskIO=intval($sock->GET_INFO("cgroupsMySQLDiskIO"));
+	if($cgroupsMySQLCpuShares==0){$cgroupsMySQLCpuShares=620;}
+	if($cgroupMySQLDiskIO==0){$cgroupMySQLDiskIO=800;}
+	
+	
+	limit_service_structure("php",$cgroupsPHPCpuShares,0,$cgroupsPHPDiskIO);
+	limit_service_structure("mysql",$cgroupsMySQLCpuShares,0,$cgroupMySQLDiskIO);
+
+	if($GLOBALS["RELOAD_STATUS"]){
+		shell_exec("/etc/init.d/artica-status restart --force");
+	}
+	
+	
+}
+
+function limit_service_structure($groupname,$cpu_shares,$cpus,$blkio){
+	$unix=new unix();
+	$echobin=$unix->find_program("echo");
+	create_service_structure($groupname);
+	echo "Starting......: ".date("H:i:s")." cgroups Limiting $groupname to $cpu_shares share CPU:#$cpus I/O $blkio limit\n";
+	system("$echobin $cpu_shares > /cgroups/cpu/$groupname/cpu.shares");
+	system("$echobin $cpus > /cgroups/cpuset/$groupname/cpuset.cpus");
+	system("$echobin 0 >/cgroups/cpuset/$groupname/cpuset.mems");
+	system("$echobin $blkio >/cgroups/blkio/$groupname/blkio.weight");
+	
+}
+
+function create_service_structure($groupname){
+	$subgroups[]="cpuset";
+	$subgroups[]="blkio";
+	$subgroups[]="cpu";
+	$unix=new unix();
+	$cgcreate=$unix->find_program("cgcreate");
+	$CREATED=true;
+	
+	while (list ($num, $ligne) = each ($subgroups)){
+		if(!is_dir("/cgroups/$ligne/$groupname")){$CREATED=false;break;}
+		
+	}
+	
+	if($CREATED){return;}
+	shell_exec("$cgcreate -a root -g cpu,cpuset,blkio:$groupname");
 }
 
 function stop(){
@@ -308,6 +299,28 @@ function reload(){
 	cgred_start();
 }
 
+function Mount_structure(){
+	
+	$unix=new unix();
+	$mount=$unix->find_program("mount");
+	reset($GLOBALS["CGROUPS_FAMILY"]);
+	while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
+		if(!is_cgroup_structure_mounted($structure)){
+			echo "Starting......: ".date("H:i:s")." cgroups: mounting structure:$structure\n";
+			@mkdir("/cgroups/$structure",0775,true);
+			$results=array();
+			exec("$mount -t cgroup -o\"$structure\" none \"/cgroups/$structure\" 2>&1",$results);
+			if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
+		}else{
+			echo "Starting......: ".date("H:i:s")." cgroups: structure:$structure already mounted\n";
+		}
+	}
+	
+	
+}
+
+
+
 function start(){
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
 	$unix=new unix();
@@ -320,6 +333,7 @@ function start(){
 	$sock=new sockets();
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
+	if($sock->EnableIntelCeleron==1){$cgroupsEnabled=1;}
 	if($cgroupsEnabled==0){echo "Starting......: ".date("H:i:s")." cgroups: cgroups is disabled\n";stop();cgred_stop(true);return;}
 	
 	load_family();
@@ -332,17 +346,7 @@ function start(){
 		$echo=$unix->find_program("echo");	
 	
 		
-		while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
-			if(!is_cgroup_structure_mounted($structure)){
-				echo "Starting......: ".date("H:i:s")." cgroups: mounting structure:$structure\n";
-				@mkdir("/cgroups/$structure",0775,true);
-				$results=array();
-				exec("$mount -t cgroup -o\"$structure\" none \"/cgroups/$structure\" 2>&1",$results);
-				if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
-			}else{
-				echo "Starting......: ".date("H:i:s")." cgroups: structure:$structure already mounted\n";
-			}
-		}		
+		Mount_structure();		
 	
 	build();
 	
@@ -420,7 +424,7 @@ function services_check(){
 		if(!is_link("/etc/init.d/cgconfig")){
 			echo "Starting......: ".date("H:i:s")." cgroups: installing specific Artica init.d/cgconfig script\n";
 			shell_exec("/bin/mv /etc/init.d/cgconfig /etc/init.d/cgconfig.bak");
-			_write_cgconfig();
+			
 		}
 	}else{
 		echo "Starting......: ".date("H:i:s")." cgroups: /etc/init.d/cgconfig no such file\n";
@@ -431,7 +435,7 @@ function services_check(){
 			shell_exec("/etc/init.d/cgred stop");
 			echo "Starting......: ".date("H:i:s")." cgroups: installing specific Artica init.d/cgred script\n";
 			shell_exec("/bin/mv /etc/init.d/cgred /etc/init.d/cgred.bak");
-			_write_cgredconfig();
+			
 		}
 	}else{
 		echo "Starting......: ".date("H:i:s")." cgroups: /etc/init.d/cgred no such file\n";
@@ -439,108 +443,12 @@ function services_check(){
 	
 }
 
-function _write_cgconfig(){
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	$chmod=$unix->find_program("chmod");
-	$ln=$unix->find_program("ln");
-	if(!is_dir("/etc/artica-postfix/init.d")){@mkdir("/etc/artica-postfix/init.d",0755,true);}
-	$conf[]="#!/bin/bash";
-	$conf[]="### BEGIN INIT INFO";
-	$conf[]="# Provides:             cgconfig";
-	$conf[]="# Required-Start:";
-	$conf[]="# Required-Stop:";
-	$conf[]="# Should-Start:";
-	$conf[]="# Should-Stop:";
-	$conf[]="# Default-Start:        2 3 4 5";
-	$conf[]="# Default-Stop:         0 1 6";
-	$conf[]="# Short-Description:    start and stop the WLM configuration";
-	$conf[]="# Description:          This script allows us to create a default configuration";
-	$conf[]="### END INIT INFO";
-	$conf[]="";
-	$conf[]="case \"\$1\" in";
-	$conf[]=" start)";
-	$conf[]="    $php /usr/share/artica-postfix/exec.cgroups.php --start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="  stop)";
-	$conf[]="    $php /usr/share/artica-postfix/exec.cgroups.php --stop \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" restart)";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --stop \$1 \$2";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" reload)";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --reload \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="";
-	$conf[]="  *)";
-	$conf[]="    echo \"Usage: \$0 {start|stop|restart|reload}\"";
-	$conf[]="    exit 1";
-	$conf[]="    ;;";
-	$conf[]="esac";
-	$conf[]="exit 0\n";	
-	@file_put_contents("/etc/artica-postfix/init.d/cgconfig", @implode("\n", $conf));
-	shell_exec("$chmod 755 /etc/artica-postfix/init.d/cgconfig");
-	@symlink ( "/etc/artica-postfix/init.d/cgconfig" , "/etc/init.d/cgconfig" );
-}
 
-function _write_cgredconfig(){
-	$unix=new unix();
-	$php=$unix->LOCATE_PHP5_BIN();
-	$chmod=$unix->find_program("chmod");
-	$ln=$unix->find_program("ln");
-	if(!is_dir("/etc/artica-postfix/init.d")){@mkdir("/etc/artica-postfix/init.d",0755,true);}
-	$conf[]="#!/bin/bash";
-	$conf[]="### BEGIN INIT INFO";
-	$conf[]="# Provides:             cgconfig";
-	$conf[]="# Required-Start:";
-	$conf[]="# Required-Stop:";
-	$conf[]="# Should-Start:";
-	$conf[]="# Should-Stop:";
-	$conf[]="# Default-Start:        2 3 4 5";
-	$conf[]="# Default-Stop:         0 1 6";
-	$conf[]="# Short-Description:    start and stop the WLM configuration";
-	$conf[]="# Description:          This script allows us to create a default configuration";
-	$conf[]="### END INIT INFO";
-	$conf[]="";
-	$conf[]="case \"\$1\" in";
-	$conf[]=" start)";
-	$conf[]="    $php /usr/share/artica-postfix/exec.cgroups.php --cgred-start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="  stop)";
-	$conf[]="    $php /usr/share/artica-postfix/exec.cgroups.php --cgred-stop \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" restart)";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --cgred-stop \$1 \$2";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --cgred-start \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]=" reload)";
-	$conf[]="     $php /usr/share/artica-postfix/exec.cgroups.php --cgred-reload \$1 \$2";
-	$conf[]="    ;;";
-	$conf[]="";
-	$conf[]="";
-	$conf[]="  *)";
-	$conf[]="    echo \"Usage: \$0 {start|stop|restart|reload}\"";
-	$conf[]="    exit 1";
-	$conf[]="    ;;";
-	$conf[]="esac";
-	$conf[]="exit 0\n";	
-	@file_put_contents("/etc/artica-postfix/init.d/cgred", @implode("\n", $conf));
-	shell_exec("$chmod 755 /etc/artica-postfix/init.d/cgred");
-	@symlink ( "/etc/artica-postfix/init.d/cgred" , "/etc/init.d/cgred" );
-}
 
 function cgred_start(){
 	if(!isset($GLOBALS["CLASS_UNIX"])){include_once(dirname(__FILE__)."/framework/class.unix.inc");$GLOBALS["CLASS_UNIX"]=new unix();}
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
-	
+	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." cgroups: cgred_start function Already running pid $pid is running, aborting\n";return;}
@@ -550,6 +458,7 @@ function cgred_start(){
 	$sock=new sockets();
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
+	
 	if($cgroupsEnabled==0){
 		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon cgroups is disabled\n";return;
 		if(is_file($cgrulesengd)){
@@ -570,8 +479,10 @@ function cgred_start(){
 	reset($GLOBALS["CGROUPS_FAMILY"]);
 		while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(!is_cgroup_structure_mounted($structure)){
-				echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon structure:$structure is not mounted, aborting\n";
-				return;
+				if($structure<>"memory"){
+					echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon structure:$structure is not mounted, aborting\n";
+					return;
+				}
 			}
 		}
 
@@ -790,4 +701,54 @@ function buildstats(){
 	}
 	
 }
+function build_progress_install($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/cgroups.install.progress";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}	
+
+function install(){
 	
+	$unix=new unix();
+	$rm=$unix->find_program("rm");
+	$cgrulesengd=$unix->find_program("cgrulesengd");
+	echo "cgrulesengd = $cgrulesengd\n";
+	if(is_file($cgrulesengd)){
+		build_progress_install("{success}",100);
+		return;
+	}
+	$GLOBALS["OUTPUT"]=true;
+	build_progress_install("{installing} {please_wait}",15);
+	$unix=new unix();
+	$cgrulesengd=null;
+
+	
+	$unix->DEBIAN_INSTALL_PACKAGE("cgroup-bin",true);
+	
+	if(is_file("/usr/sbin/cgrulesengd")){
+		$cgrulesengd="/usr/sbin/cgrulesengd";
+	}
+	
+	if($cgrulesengd==null){
+		$cgrulesengd=$unix->find_program("cgrulesengd",true);
+	}
+	if(is_file($cgrulesengd)){
+		build_progress_install("{learning_artica}",80);
+		system("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+		build_progress_install("{removing_caches}",90);
+		$unix->REMOVE_INTERFACE_CACHE();
+		
+		start();
+		build_progress_install("{success}",100);
+		
+		return;
+	}
+	
+	build_progress_install("{failed_to_install}",110);
+}
+

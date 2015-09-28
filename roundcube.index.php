@@ -46,6 +46,21 @@ if(isset($_GET["verbose"])){$GLOBALS["OUTPUT"]=true;$GLOBALS["VERBOSE"]=true;$GL
 	
 	
 function ajax_pop(){
+	
+	if(!is_file("/usr/share/roundcube/index.php")){
+		
+		$html="
+		<center>
+		
+		". FATAL_ERROR_SHOW_128("{ERROR_NOT_INSTALLED_REDIRECT}<p>{about_roundcube}</p>
+				<div style='text-align:right'><hr>". button("{install_now}","Loadjs('roundcube.install.progress.php')",24)."</div")."
+		</center>";
+		$tpl=new templates();
+		echo $tpl->_ENGINE_parse_body($html);
+		return;
+	}
+	
+	
 	echo main_tabs();		
 }
 
@@ -110,12 +125,14 @@ $tpl=new templates();
 	
 	
 	
-	$freeweb=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWebB",$EnableFreeWeb,null,810);
-	$Roundcube=Paragraphe_switch_img("{enable_roundcubehttp}","{enable_enable_roundcubehttp_text}","RoundCubeHTTPEngineEnabled",$RoundCubeHTTPEngineEnabled,null,810);
+	$freeweb=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWebB",
+			$EnableFreeWeb,null,1120);
+	$Roundcube=Paragraphe_switch_img("{enable_roundcubehttp}","{enable_enable_roundcubehttp_text}",
+			"RoundCubeHTTPEngineEnabled",$RoundCubeHTTPEngineEnabled,null,1120);
 	
 	$form="
 	<hr>
-	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",26)."</div>
+	<div style='text-align:right;width:100%'>". button("{apply}", "SaveRoundCubeWebEngine()",42)."</div>
 	
 	<script>
 	
@@ -193,7 +210,7 @@ function ajax_index(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>
-			<img src='img/roundcube-original-logo.png'><div class=text-info style='font-size:13px'>{about_roundcube}<br>{ROUNDCUBE_HTTP_ENGINE_FORMS_EXPLAIN}</div>
+			<img src='img/roundcube-original-logo.png'><div class=explain style='font-size:18px'>{about_roundcube}<br>{ROUNDCUBE_HTTP_ENGINE_FORMS_EXPLAIN}</div>
 			<div id='httpengines-form'></div>
 			</td>
 		<td valign='top'>
@@ -327,7 +344,50 @@ function main_tabs(){
 	
 	
 	
-	return build_artica_tabs($html, "main_config_roundcube")."<script>QuickLinkShow('quicklinks-webmail');</script>";
+	return build_artica_tabs($html, "main_config_roundcube")."<script>
+			
+				function LoadMainRoundCube(){
+		YahooWinS(745,'$page?ajax-pop=yes','$title');
+	}
+	
+	function LoadInLineMainRoundCube(){
+		$('#BodyContent').load('$page?ajax-pop=yes&newinterface={$_GET["newinterface"]}');
+	}
+	
+	
+	var x_RebuildTables= function (obj) {
+	 	RefreshTab('main_config_roundcube');
+	}		
+	
+	function RebuildTables(){
+			var z=confirm(x);
+			if (z){
+				var XHR = new XHRConnection();
+				XHR.appendData('main',mysql);
+				XHR.appendData('rebuild','yes');
+				XHR.sendAndLoad('$page', 'GET',x_RebuildTables);	
+			}
+		}
+		
+function RoundCubeStatus(){
+		LoadAjax('roundcube_daemon_status','$page?roundcubestatus=yes');
+	
+	}
+	
+var x_RoundCubepluginv3Enable= function (obj) {
+	var results=obj.responseText;
+	alert(results);
+	LoadAjax('rndcube3pluglist','$page?roundcube-pluginv3-list=yes');
+	}		
+	
+function RoundCubepluginv3Enable(field){
+	var XHR = new XHRConnection();
+	XHR.appendData('enable-plugin',field);
+	XHR.appendData('value',document.getElementById(field).value);
+	document.getElementById('rndcube3pluglist').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
+	XHR.sendAndLoad('$page', 'GET',x_RoundCubepluginv3Enable);	
+}
+			</script>";
 	
 		
 }
@@ -637,7 +697,7 @@ function mysql_status(){
 function main_errors(){
 	
 	if(!function_exists('mcrypt_module_open')){
-		$error="<div style='color:red'>mcrypt.so module is not loaded</div>";
+		$error="<div style='color:#d32d2d'>mcrypt.so module is not loaded</div>";
 		
 		
 	}
@@ -768,7 +828,7 @@ function pluginsv3(){
 	
 	
 $html="$tab
-<div class=text-info>{APP_ROUNDCUBE3_PLUGINS_EXPLAIN}</div>
+<div class=explain>{APP_ROUNDCUBE3_PLUGINS_EXPLAIN}</div>
 $plugins
 ";	
 $tpl=new templates();
@@ -958,7 +1018,7 @@ function main_settings(){
 	<tr>
 	<td valign='top'>
 		
-		<div class=text-info style='font-size:16px'>{about_roundcube_engine}</div>".main_errors()."
+		<div class=explain style='font-size:16px'>{about_roundcube_engine}</div>".main_errors()."
 				".form_tabs()."
 		</td>
 	</tr>

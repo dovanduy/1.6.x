@@ -210,7 +210,7 @@ function disks_list(){
 					$browsejs="Loadjs('tree.php?mount-point=".urlencode("/automounts/{$ligne["disk_name"]}")."')";
 					$imgbrowss="<a href=\"javascript:blur();\" OnClick=\"javascript:$browsejs\"><img src='img/icon_mailfolder.gif' align='left' style='margin:5px'></a>";
 				}else{
-					$inodes="<img src='img/warning-panneau-24.png' style='margin-right:5px;margin-left:-10px;margin-top:-5px' align=left><span style='color:red'>{$array["ERROR_TEXT"]}</span>";
+					$inodes="<img src='img/warning-panneau-24.png' style='margin-right:5px;margin-left:-10px;margin-top:-5px' align=left><span style='color:#d32d2d'>{$array["ERROR_TEXT"]}</span>";
 				}
 			}
 
@@ -248,7 +248,7 @@ function disk_form(){
 	
 	$please_wait_building_the_disk=$tpl->javascript_parse_text("{please_wait_building_the_disk}...");
 	
-	$html="<div class=text-info style='font-size:14px'>{disk_loop_explain}</div>
+	$html="<div class=explain style='font-size:14px'>{disk_loop_explain}</div>
 			<center id='anim2-$t' style='font-size:22px'></center>
 			<div id='anim-$t' style='margin-top:10px'></div>
 	

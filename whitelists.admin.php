@@ -67,7 +67,7 @@ function js_popup(){
 	$start="YahooWinS(700,'$page?popup=yes','$title');";
 	if(isset($_GET["font-size"])){$fontsize="&font-size={$_GET["font-size"]}";}	
 	if(isset($_GET["js-in-line"])){
-		$start="document.getElementById('BodyContent').innerHTML='<center><img src=img/wait_verybig.gif></center>';\n$('#BodyContent').load('$page?popup=yes$fontsize');";
+		$start="LoadAjaxRound('postfix-whitelist-dashboard','$page?popup=yes$fontsize');";
 	}
 	
 	$html="
@@ -592,7 +592,7 @@ function popup(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_config_wbladmin",1150);
+	echo build_artica_tabs($html, "main_config_wbladmin",1450);
 		
 	
 }
@@ -1284,7 +1284,7 @@ function blacklist_global_popup(){
 	
 	$popup_title=$tpl->_ENGINE_parse_body("{domains}:{black list}:{global}");
 $html="<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
-	<div class=text-info>$explain</div></td>
+	<div class=explain>$explain</div></td>
 	
 <script>
 var mem_$t='';
@@ -1446,7 +1446,7 @@ function blacklist_global_add(){
 
 	$html="
 	<div id='globalblack-smtp-div'></div>
-	<div class=text-info style='font-size:16px'>{blacklist_global_add_explain}</div>
+	<div class=explain style='font-size:16px'>{blacklist_global_add_explain}</div>
 	<div style='width:98%' class=form>
 		<textarea id='globalblack-servers-container' 
 			style='width:100%;border:0px;height:350px;overflow:auto;font-size:16px !important'></textarea>
@@ -1482,7 +1482,7 @@ function whitelist_global_add(){
 
 	$html="
 	<div id='globalwhite-smtp-div'></div>
-	<div class=text-info style='font-size:16px'>{whitelist_global_add_explain}</div>
+	<div class=explain style='font-size:16px'>{whitelist_global_add_explain}</div>
 	<div style='width:98%' class=form>
 		<textarea id='globalwhite-servers-container' style='width:100%;height:350px;border:0px;overflow:auto;font-size:16px !important'></textarea>
 		<div style='text-align:right'>". button("{add}","GlobalWhiteSave()",22)."</div>

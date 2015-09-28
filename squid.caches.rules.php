@@ -210,6 +210,8 @@ function global_parameters(){
 	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
 	$DisableSquidSMP=intval($sock->GET_INFO("DisableSquidSMP"));
 	if($DisableSquidSMP==0){$EnableSQUIDSMP=1;}else{$EnableSQUIDSMP=0;}
+	$SquidSimpleConfig=$sock->GET_INFO("SquidSimpleConfig");
+	if(!is_numeric($SquidSimpleConfig)){$SquidSimpleConfig=1;}
 	
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
@@ -254,6 +256,8 @@ function global_parameters(){
 	$array["heap_LFUDA"]="{heap_LFUDA}";
 	$array["heap_LRU"]="{heap_LRU}";
 	$read_ahead_gap=$squid->global_conf_array["read_ahead_gap"];
+	$cache_mem=$squid->global_conf_array["cache_mem"];
+	if(preg_match("#([0-9]+)\s+#", $cache_mem,$re)){$cache_mem=$re[1];}
 	
 	$minimum_object_size=$squid->global_conf_array["minimum_object_size"];
 	if(preg_match("#([0-9]+)\s+#", $read_ahead_gap,$re)){$read_ahead_gap=$re[1];}
@@ -269,7 +273,7 @@ function global_parameters(){
 	}
 	
 	
-	$level=Paragraphe_switch_img('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
+	$level=Paragraphe_switch_img('{DisableAnyCache} ({hard_drive})',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
 			$DisableAnyCache,null,850);
 	
 	if($SquidCacheLevel==0){
@@ -283,10 +287,11 @@ function global_parameters(){
 	$CORP_LICENSE=1;
 	if(!$users->CORP_LICENSE){
 		$CORP_LICENSE=0;
-		$DisableSquidSMPF=Paragraphe_switch_disable('{EnableSQUIDSMP}',"{EnableSQUIDSMP_explain}","EnableSQUIDSMP-$t",
+		$license_error="<hr><i style='font-size:18px;color:#d32d2d;font-weight:bold'>".$tpl->_ENGINE_parse_body("{license_error}")."</i><hr>";
+		$DisableSquidSMPF=Paragraphe_switch_disable('{EnableSQUIDSMP}',"$license_error{EnableSQUIDSMP_explain}","EnableSQUIDSMP-$t",
 		$EnableSQUIDSMP,null,850);
 		
-		$license_error="<p class=text-error style='font-size:18px'>".$tpl->_ENGINE_parse_body("{license_error}")."</p>";}
+	}	
 
 	
 
@@ -298,9 +303,8 @@ function global_parameters(){
 	$ProxyDedicateMicrosoftRules=Paragraphe_switch_img("{ProxyDedicateMicrosoftRules}", "{ProxyDedicateMicrosoftRules_explain}",
 			"ProxyDedicateMicrosoftRules-$t",$ProxyDedicateMicrosoftRules,
 			null,850);
-	
+	$ForceWindowsUpdateCaching=null;
 	$html="
-	$license_error
 	<div id='animate-$t'></div>
 	<div style='margin:10px;padding:10px;width:98%' class=form>
 	<table style='width:100%'>
@@ -311,29 +315,33 @@ function global_parameters(){
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$level</td>
 	</tr>
 	<tr>
-	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ForceWindowsUpdateCaching</td>
-	</tr>	
-	<tr>
 	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ProxyDedicateMicrosoftRules</td>
 	</tr>
 	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",36)."</td><tr>
-	<tr><td colspan=3 style='margin-bottom:15px;vertical-align:top'><p>&nbsp;</p></td></tr>
-	<td colspan=3 style='margin-bottom:15px;vertical-align:top;font-size:26px'>{advanced_options}</td>
+	<tr><td colspan=3 style='padding-bottom:50px;vertical-align:top'><p>&nbsp;</p></td></tr>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top;font-size:42px'>{advanced_options}</td>
 	</tr>	
+			
 	<tr>
-	<td class=legend style='font-size:18px'>{cache_replacement_policy}:</td>
-	<td>". Field_array_Hash($array, "CacheReplacementPolicy-$t",$CacheReplacementPolicy,null,null,0,"font-size:18px")."</td>
+		<td class=legend style='font-size:22px' width=99%>{central_memory}:</td>
+		<td style='font-size:22px'>". Field_text("cache_mem-$t",$cache_mem,"font-size:22px;width:110px")."&nbsp;MB</td>
+		<td style='font-size:16px' width=1%>". help_icon("{cache_mem_text}")."</td>
+	</tr>			
+<tr><td colspan=3><hr></td></tr>			
+	<tr>
+	<td class=legend style='font-size:22px'>{cache_replacement_policy}:</td>
+	<td>". Field_array_Hash($array, "CacheReplacementPolicy-$t",$CacheReplacementPolicy,null,null,0,"font-size:22px")."</td>
 	<td width=1%>" . help_icon('{cache_replacement_policy_explain}',true)."</td>
 	</tr>
 			
 	<tr>
-		<td align='right' class=legend nowrap style='font-size:18px'>{cache_swap_low}:</strong></td>
-		<td style='font-size:18px'>" . Field_text("cache_swap_low-$t",$squid->global_conf_array["cache_swap_low"],'width:90px;font-size:18px')."&nbsp;%</td>
+		<td align='right' class=legend nowrap style='font-size:22px'>{cache_swap_low}:</strong></td>
+		<td style='font-size:22px'>" . Field_text("cache_swap_low-$t",$squid->global_conf_array["cache_swap_low"],'width:110px;font-size:22px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_low_text}',false,'squid.index.php')."</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend nowrap style='font-size:18px'>{cache_swap_high}:</strong></td>
-		<td style='font-size:18px'>" . Field_text("cache_swap_high-$t",$squid->global_conf_array["cache_swap_high"],'width:90px;font-size:18px')."&nbsp;%</td>
+		<td align='right' class=legend nowrap style='font-size:22px'>{cache_swap_high}:</strong></td>
+		<td style='font-size:22px'>" . Field_text("cache_swap_high-$t",$squid->global_conf_array["cache_swap_high"],'width:110px;font-size:22px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_high_text}',false,'squid.index.php')."</td>
 	</tr>			
 			
@@ -342,26 +350,26 @@ function global_parameters(){
 			
 		
 	<tr>
-		<td class=legend style='font-size:18px'>{read_ahead_gap}:</td>
-		<td style='font-size:18px'>". Field_text("read_ahead_gap-$t",$read_ahead_gap,"font-size:18px;width:65px")."&nbsp;MB</td>
+		<td class=legend style='font-size:22px'>{read_ahead_gap}:</td>
+		<td style='font-size:18px'>". Field_text("read_ahead_gap-$t",$read_ahead_gap,"font-size:22px;width:110px")."&nbsp;MB</td>
 		<td style='font-size:18px' width=1%>". help_icon("{read_ahead_gap_text}")."</td>
 	</tr>						
 	<tr>
-	<td style='font-size:18px' class=legend>{maximum_object_size}:</td>
-	<td align='left' style='font-size:18px'>" . Field_text("maximum_object_size-$t",$maximum_object_size,'width:90px;font-size:18px')."&nbsp;MB</td>
+	<td style='font-size:22px' class=legend>{maximum_object_size}:</td>
+	<td align='left' style='font-size:22px'>" . Field_text("maximum_object_size-$t",$maximum_object_size,'width:110px;font-size:22px')."&nbsp;MB</td>
 	<td width=1%>" . help_icon('{maximum_object_size_text}',true)."</td>
 	</tr>
 			
 <tr>
-		<td align='right' class=legend nowrap style='font-size:18px'>{minimum_object_size}:</strong></td>
-		<td align='left' style='font-size:18px'>" . Field_text("minimum_object_size-$t",$minimum_object_size,'width:90px;font-size:16px')."&nbsp;KB</td>
+		<td align='right' class=legend nowrap style='font-size:22px'>{minimum_object_size}:</strong></td>
+		<td align='left' style='font-size:18px'>" . Field_text("minimum_object_size-$t",$minimum_object_size,'width:110px;font-size:22px')."&nbsp;KB</td>
 		<td>" . help_icon('{minimum_object_size_text}',false,'squid.index.php')."</td>
 </tr>
 <tr>			
 
 	<tr>
-	<td style='font-size:18px' class=legend>{debug_cache_processing}:</td>
-	<td align='left' style='font-size:18px'>" . Field_checkbox("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
+	<td style='font-size:22px' class=legend>{debug_cache_processing}:</td>
+	<td align='left' style='font-size:22px'>" . Field_checkbox_design("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
 	<td width=1%></td>
 	</tr>	
 	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",36)."</td>
@@ -374,10 +382,10 @@ function global_parameters(){
 		
 	<script>
 	
-	var x_Save$t= function (obj) {
+	var xSSave$t= function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
-			Loadjs('squid.restart.php?ask=yes');
+			Loadjs('squid.compile.progress.php');
 		}		
 
 		function Save$t(){
@@ -385,7 +393,7 @@ function global_parameters(){
 			var CORP_LICENSE=$CORP_LICENSE;
 			var XHR = new XHRConnection();
 			XHR.appendData('DisableAnyCache',document.getElementById('DisableAnyCache-$t').value);
-			XHR.appendData('ForceWindowsUpdateCaching',document.getElementById('ForceWindowsUpdateCaching-$t').value);
+			
 			XHR.appendData('ProxyDedicateMicrosoftRules',document.getElementById('ProxyDedicateMicrosoftRules-$t').value);
 			
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
@@ -393,9 +401,12 @@ function global_parameters(){
 			
 			if(CORP_LICENSE==1){
 				XHR.appendData('EnableSQUIDSMP',document.getElementById('EnableSQUIDSMP-$t').value);
+			}else{
+				XHR.appendData('EnableSQUIDSMP',0);
 			}
 			
 			
+			XHR.appendData('cache_mem',document.getElementById('cache_mem-$t').value);
 			XHR.appendData('minimum_object_size',document.getElementById('minimum_object_size-$t').value);
 			XHR.appendData('cache_swap_high',document.getElementById('cache_swap_high-$t').value);
 			XHR.appendData('cache_swap_low',document.getElementById('cache_swap_low-$t').value);
@@ -405,19 +416,29 @@ function global_parameters(){
 			XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size-$t').value);
 			
 			XHR.appendData('SquidDebugCacheProc',SquidDebugCacheProc);
-			XHR.sendAndLoad('$page', 'POST',x_Save$t);
+			XHR.sendAndLoad('$page', 'POST',xSSave$t);
 		}
 		
 		function CheckDisableAnyCache$t(){
 			var DisableAnyCache=$DisableAnyCache;
+			var SquidSimpleConfig=$SquidSimpleConfig;
+			
 			document.getElementById('SquidDebugCacheProc-$t').disabled=true;
 			document.getElementById('CacheReplacementPolicy-$t').disabled=true;
 			document.getElementById('maximum_object_size-$t').disabled=true;
 			
+			document.getElementById('read_ahead_gap-$t').disabled=true;
+			document.getElementById('CacheReplacementPolicy-$t').disabled=true;
+			
+			if(SquidSimpleConfig==0){
+				document.getElementById('read_ahead_gap-$t').disabled=false;
+				document.getElementById('CacheReplacementPolicy-$t').disabled=false;		
+			
+			}
 			
 			if(DisableAnyCache==0){
 				document.getElementById('SquidDebugCacheProc-$t').disabled=false;
-				document.getElementById('CacheReplacementPolicy-$t').disabled=false;
+				if(SquidSimpleConfig==0){document.getElementById('CacheReplacementPolicy-$t').disabled=false;}
 				document.getElementById('maximum_object_size-$t').disabled=false;			
 			}
 			
@@ -456,6 +477,11 @@ function global_parameters_save(){
 	
 	
 	$squid=new squidbee();
+	
+	if(is_numeric($_POST["cache_mem"])){
+		$squid->global_conf_array["cache_mem"]=trim($_POST["cache_mem"])." MB";
+	}
+	
 	
 	if(is_numeric($_POST["read_ahead_gap"])){
 		$squid->global_conf_array["read_ahead_gap"]=trim($_POST["read_ahead_gap"])." MB";
@@ -547,12 +573,22 @@ function main_tabs(){
 	$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
 	if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
 	
+	$realsquidversion=$sock->getFrameWork("squid.php?full-version=yes");
+	
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
 	
 	
 	$array["caches-level"]='{cache_level}';
 	$array["caches-status"]='{caches_status}';
+	
+	if($DisableAnyCache==0){
+		if(preg_match("#^3\.(4|5|6|7|8)\.#", $realsquidversion)){
+			$array["rock"]='{rock_store}';
+				
+		}
+	
+	}
 	
 	if($CacheManagement2==1){
 		$array["caches-center"]='{caches_center}';
@@ -568,18 +604,21 @@ function main_tabs(){
 	
 	if($UseSimplifiedCachePattern==0){
 		if($SquidCacheLevel>2){
-			$array["dyn-section"]="{dynamic_enforce_rules}";
+			//$array["dyn-section"]="{dynamic_enforce_rules}";
 		}
 		
 	}
 	
 	if($SquidCacheLevel>1){
-		$array["main-section"]="{cache_rules}";
+		//$array["main-section"]="{cache_rules}";
 	}
 	
 
 	
-	$array["parameters"]='{global_parameters}';
+	$array["parameters"]="{global_parameters}";
+	
+
+	
 	if($CacheManagement2==0){
 		$array["caches"]='{caches}';
 		$array["caches-params"]='{caches_parameters}';
@@ -601,7 +640,7 @@ function main_tabs(){
 		$fontsize=18;
 	}
 	
-	if(count($array)>=7){
+	if(count($array)>=8){
 		$fontsize=14;
 	}
 	while (list ($num, $ligne) = each ($array) ){
@@ -609,6 +648,12 @@ function main_tabs(){
 		
 		if($num=="artica-cache"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.artica-rules.php\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="rock"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.rock.php\">
 			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
@@ -1406,7 +1451,7 @@ function rules_search(){
 	
 	if(mysql_num_rows($results)==0){json_error_show("no rule",1);}
 	
-	$no_license="<span style='color:red'>".$tpl->javascript_parse_text("{no_license}")."</span>";
+	$no_license="<span style='color:#d32d2d'>".$tpl->javascript_parse_text("{no_license}")."</span>";
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
@@ -1483,7 +1528,7 @@ function items_popup(){
 		<td width=1%>&nbsp;</td>
 	</tr>
 	
-	<tr><td colspan=3><div class=text-info style='font-size:26px'>$explain</div></td></tr>
+	<tr><td colspan=3><div class=explain style='font-size:26px'>$explain</div></td></tr>
 	
 	<td class=legend style='font-size:26px'>{item}:</td>
 		<td>". Field_text("items-$t",$ligne["item"],"font-size:26px;width:99%",null,null,null,false,"SaveCheck$t(event)")."</td>
@@ -1957,7 +2002,7 @@ function main_search(){
 	$refresh_pattern_def_min=$q->CACHE_AGES[$refresh_pattern_def_min];
 	$refresh_pattern_def_max_text=$q->CACHE_AGES[$refresh_pattern_def_max];
 	
-	$no_license="<div style='color:red;font-size:18px;'>".$tpl->javascript_parse_text("* * {no_license} * *")."</div>";
+	$no_license="<div style='color:#d32d2d;font-size:18px;'>".$tpl->javascript_parse_text("* * {no_license} * *")."</div>";
 	
 	$href="<a href=\"javascript:blur();\"
 	OnClick=\"javascript:Loadjs('$MyPage?default-js=yes&t=$t&SourceT={$_GET["t"]}');\"

@@ -81,6 +81,10 @@ function start($aspid=false){
 		return;
 	}
 	
+	
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Performance Level:$SquidPerformance\n";}
+	
 
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$sysctl=$unix->find_program("sysctl");

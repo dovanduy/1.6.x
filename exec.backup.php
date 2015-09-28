@@ -1,4 +1,5 @@
 <?php
+ini_set('memory_limit','1000M');
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');

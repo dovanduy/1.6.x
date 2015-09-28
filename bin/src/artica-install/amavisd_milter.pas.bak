@@ -1093,7 +1093,7 @@ if fileExists(dspam.BIN_PATH()) then begin
       if EnableMysql=1 then begin
          AMAVISD_SETCONFIG('dspam',SYS.LOCATE_DSPAM());
          spamassassin.DSPAM_PATCH();
-         spamassassin.RAZOR_INIT();
+
 
          dspam.SET_CONFIG();
          fpsystem('chmod u-s,a+rx ' + SYS.LOCATE_DSPAM());
@@ -1672,7 +1672,7 @@ end;
 function tamavis.AMAVISD_MILTER_STATUS():string;
 var pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_AMAVISD_MILTER');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --amavis-milter >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

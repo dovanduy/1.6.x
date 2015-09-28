@@ -165,6 +165,15 @@ function purge(){
 	$BackupSquidStatsUseNas=intval($sock->GET_INFO("BackupSquidStatsUseNas"));
 	
 	if($BackupSquidStatsUseNas==0){
+		$BackupSquidLogsUseNas=intval($sock->GET_INFO("BackupSquidLogsUseNas"));
+		if($BackupSquidLogsUseNas==1){$BackupSquidStatsUseNas=1;}
+		
+	}
+
+	
+	
+	
+	if($BackupSquidStatsUseNas==0){
 		$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
 		if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
 		$percent=$unix->DIRECTORY_USEPERCENT($ArticaProxyStatisticsBackupFolder);
@@ -193,7 +202,7 @@ function purge(){
 	
 	$sql="SELECT tablename,zDate FROM tables_day WHERE zDate<DATE_SUB(NOW(),INTERVAL $ArticaProxyStatisticsBackupDays DAY)";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){squid_admin_purge(0, "Fatal Error: $this->mysql_error",__FILE__,__LINE__,"backup");return;}
+	if(!$q->ok){squid_admin_purge(0, "Fatal Error: $q->mysql_error",__FILE__,__LINE__,"backup");return;}
 	ufdbguard_admin_events("Items: ".mysql_num_rows($results),__FUNCTION__,__FILE__,__LINE__,"backup");
 	if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 	
@@ -359,9 +368,9 @@ function purge(){
 	
 	
 	$container="$ArticaProxyStatisticsBackupFolder/squidlogs.FULL.sql";
-	$cmd="$mysqldump_prefix >$container";
 	$resultsZ=array();
-	exec($cmdline,$resultsZ);
+	$cmd="$mysqldump_prefix >$container";
+	exec($cmd,$resultsZ);
 	chdir($ArticaProxyStatisticsBackupFolder);
 	$cmdline="$tar cfz $container.tar.gz $container 2>&1";
 	exec($cmdline);
@@ -484,6 +493,23 @@ function GetMountPoint(){
 	$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidStatsNASPassword");
 	$BackupSquidStatsNASRetry=$sock->GET_INFO("BackupSquidStatsNASRetry");
 	
+	
+	
+	if($BackupSquidStatsUseNas==0){
+		$BackupSquidLogsUseNas=intval($sock->GET_INFO("BackupSquidLogsUseNas"));
+		if($BackupSquidLogsUseNas==1){$BackupSquidStatsUseNas=1;}
+		$BackupSquidStatsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+		$BackupSquidStatsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+		$BackupSquidStatsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+		$BackupSquidStatsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	
+	}
+	
+	
+
+	
+	
+	
 	if(!is_numeric($BackupSquidStatsNASRetry)){$BackupSquidStatsNASRetry=0;}
 
 	$GLOBALS["MountedNAS"]=false;
@@ -592,23 +618,9 @@ function ScanDays($onlyTable=false){
 	
 	$q=new mysql_squid_builder(true);
 	$ARRAY_DAYS=array();
-	$tables=$q->LIST_TABLES_dansguardian_events();
-	while (list ($tablename, $line) = each ($tables)){
-		$dayTime=$q->TIME_FROM_DANSGUARDIAN_EVENTS_TABLE($tablename);
-		$day=date("Y-m-d",$dayTime);
-		$ARRAY_DAYS[$day]=$dayTime;
-		$TABLES[$tablename]=true;
-		
-	}
 	
-	$tables=$q->LIST_TABLES_HOURS();
-	while (list ($tablename, $line) = each ($tables)){
-		$dayTime=$q->TIME_FROM_HOUR_TABLE($tablename);
-		$day=date("Y-m-d",$dayTime);
-		$ARRAY_DAYS[$day]=$dayTime;
-		$TABLES[$tablename]=true;
 	
-	}	
+
 	$tables=$q->LIST_TABLES_YOUTUBE_DAYS(); //youtubeday_
 	while (list ($tablename, $line) = each ($tables)){
 		$dayTime=$q->TIME_FROM_YOUTUBE_DAY_TABLE($tablename);
@@ -758,11 +770,7 @@ function remove_numeric_members(){
 		
 	}
 	
-	$tables=$q->LIST_TABLES_HOURS();
-	while (list ($tablename, $ligne) = each ($tables) ){
-		$q->QUERY_SQL("DELETE FROM $tablename WHERE uid REGEXP '^[0-9]+$'");
-	
-	}	
+
 	
 	$tables=$q->LIST_TABLES_WEEKS();
 	while (list ($tablename, $ligne) = each ($tables) ){

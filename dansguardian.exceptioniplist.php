@@ -187,7 +187,7 @@ echo $html;
 function popup(){
 $tpl=new templates();	
 $html="
-<div class=text-info>{white_ip_group_text}</div>
+<div class=explain>{white_ip_group_text}</div>
 
 
 

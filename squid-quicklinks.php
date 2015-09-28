@@ -241,7 +241,7 @@ function traffic_statistics(){
 	$html="<div id='squid_traffic_stats'></div>
 	
 	<script>
-		LoadAjax('squid_traffic_stats','squid.traffic.statistics.php');
+		
 		QuickLinkShow('quicklinks-traffic_statistics');
 	</script>
 	
@@ -437,7 +437,7 @@ if(!isset($_SESSION["DISTRI"])){
 	$distri=$sys->ditribution_name;
 	$kernel=$sys->kernel_version;
 	$LIBC=$sys->libc_version;
-	$temp=$sys->GetCpuTemp();
+
 	$users=new usersMenus();
 	$os=new os_system();
 	$arraycpu=$os->cpu_info();
@@ -473,7 +473,7 @@ if(is_file("img/$users->LinuxDistriCode.gif")){$distri_logo="img/$users->LinuxDi
 				</tr>							
 					<td valign='top' style='font-size:12px'><img src='$distri_logo'></td>
 					<td valign='top' style='font-size:12px'><strong>$distri<br>kernel $kernel
-					<br>libc $LIBC<br>Temp $temp&nbsp;C</strong>
+					<br>libc $LIBC</strong>
 					</td>
 				</tr>
 				$chassis_serial
@@ -914,7 +914,7 @@ function icon_memory(){
 	$GLOBALS["ICON_FAMILY"]="SYSTEM";
 	if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();$users=$GLOBALS["CLASS_USERS"];}else{$users=$GLOBALS["CLASS_USERS"];}
 	if(!$users->AsAnAdministratorGeneric){return null;}
-	$js="Loadjs('system.memory.php?js=yes')";
+	$js="GotoSystemMemory()";
 	$img="bg_memory-64.png";
 	return Paragraphe($img,"{system_memory}","{system_memory_text}","javascript:$js");
 	}

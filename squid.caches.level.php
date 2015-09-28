@@ -34,6 +34,7 @@ function page(){
 	$need_to_reload_proxy=$tpl->javascript_parse_text("{need_to_reload_proxy}");
 	$SquidReloadIntoIMS=$sock->GET_INFO("SquidReloadIntoIMS");
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	$EnableRangeOffset=intval($sock->GET_INFO("EnableRangeOffset"));
 	$UseSimplifiedCachePattern=$sock->GET_INFO("UseSimplifiedCachePattern");
 	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	if(!is_numeric($UseSimplifiedCachePattern)){$UseSimplifiedCachePattern=1;}
@@ -47,7 +48,7 @@ function page(){
 	
 	if(!is_numeric($refresh_pattern_def_min)){$refresh_pattern_def_min=0;}
 	if(!is_numeric($refresh_pattern_def_max)){$refresh_pattern_def_max=43200;}
-	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=80;}
+	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=75;}
 	
 	for($i=0;$i<101;$i++){
 		$precents[$i]="{$i}%";
@@ -55,7 +56,7 @@ function page(){
 	
 	$refresh_pattern_def_min_field=Field_array_Hash($q->CACHE_AGES,"refresh_pattern_def_min-$t",$refresh_pattern_def_min,"style:font-size:18px");
 	
-	$button_reconfigure=button("{apply}","Save$t()",32);
+	$button_reconfigure=button("{apply}","Save$t()",40);
 	
 	$f["override-expire"]=true;
 	$f["override-lastmod"]=true;
@@ -78,7 +79,11 @@ function page(){
 	reset($f);
 	$reload_into_ims_p=Paragraphe_switch_img("{reload_into_ims}", "{reload_into_ims_explain}",
 			"SquidReloadIntoIMS-$t",$SquidReloadIntoIMS,
-			null,850);
+			null,1300);
+	
+	$EnableRangeOffset_p=Paragraphe_switch_img("{enforce_partial_content}", "{enforce_partial_content_explain}",
+			"EnableRangeOffset-$t",$EnableRangeOffset,
+			null,1300);
 	
 	while (list ($key, $val) = each ($f) ){
 		$valueX=0;
@@ -86,9 +91,9 @@ function page(){
 		if(!isset($refresh_pattern_def_opts[$key])){$valueX=0;}
 		$tr[]="
 			<tr>
-				<td class=legend style='font-size:18px'>$key:</td>
-				<td>". Field_checkbox("$key-$t",1,$valueX)."</td>
-				<td width=1%>". help_icon("{{$key}}")."</td>
+				<td class=legend style='font-size:22px'>".texttooltip($key,"{{$key}}").":</td>
+				<td>". Field_checkbox_design("$key-$t",1,$valueX)."</td>
+				
 			</tr>";
 		
 		$js[]="if( document.getElementById('$key-$t').checked ){
@@ -107,29 +112,37 @@ $html="
 <tr>	
 <td style='vertical-align:top;width:50px'><div id=\"slider-vertical\" style=\"height:300px;width:45px;margin:30px\"></div></td>
 <td style='vertical-align:top;width:99%;padding-left:30px'>
-	<div style='font-size:26px;margin-bottom:20px'>{cache_level}:<span id='level-info-$t'>$SquidCacheLevel</span></div>
-	<div style='font-size:16px;;margin-bottom:20px'>{cache_level_explain}</div>
-	<div style='font-size:18px' class=text-info id='text-$t'></div>
-	". Paragraphe_switch_img("{simple_cache_configuration}", "{simple_cache_configuration_explain}","UseSimplifiedCachePattern",$UseSimplifiedCachePattern,null,750)."
+	<div style='font-size:50px;margin-bottom:20px'>{cache_level}:<span id='level-info-$t'>$SquidCacheLevel</span></div>
+	<div style='font-size:18px;;margin-bottom:20px' class=explain>{cache_level_explain}</div>
+	<div style='font-size:18px' class=explain id='text-$t'></div>
+	<div style='margin:20px;margin-top:20px;text-align:right'>$button_reconfigure</div>
+	". Paragraphe_switch_img("{simple_cache_configuration}", "{simple_cache_configuration_explain}",
+			"UseSimplifiedCachePattern",$UseSimplifiedCachePattern,null,1300)."
 	$reload_into_ims_p
+	$EnableRangeOffset_p
+	
+	
+	
+	
 	<table style='width:100%'>
 	<tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{minimal_time}:</td>
-			<td>". Field_array_Hash($q->CACHE_AGES,"refresh_pattern_def_min-$t",$refresh_pattern_def_min,"style:font-size:18px")."</td>
-			<td width=1%>". help_icon("{caches_rules_min}")."</td>
+			<td class=legend style='font-size:22px'>".texttooltip("{minimal_time}","{caches_rules_min}").":</td>
+			<td>". Field_array_Hash($q->CACHE_AGES,"refresh_pattern_def_min-$t",$refresh_pattern_def_min,
+					"style:font-size:22px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{max_time}:</td>
-			<td>". Field_array_Hash($q->CACHE_AGES,"refresh_pattern_def_max-$t",$refresh_pattern_def_max,"style:font-size:18px")."</td>
-			<td width=1%>". help_icon("{caches_rules_max}")."</td>
+			<td class=legend style='font-size:22px'>".texttooltip("{max_time}","{caches_rules_max}").":</td>
+			<td>". Field_array_Hash($q->CACHE_AGES,"refresh_pattern_def_max-$t",$refresh_pattern_def_max,
+					"style:font-size:22px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{refresh_percent}:</td>
-			<td>". Field_array_Hash($precents,"refresh_pattern_def_perc-$t",$refresh_pattern_def_perc,"style:font-size:18px",null,null,null,false,"SaveCheck$t(event)")."</td>
-			<td width=1%>". help_icon("{caches_rules_percent}")."</td>
+			<td class=legend style='font-size:22px'>".texttooltip("{refresh_percent}","{caches_rules_percent}").":</td>
+			<td>". Field_array_Hash($precents,"refresh_pattern_def_perc-$t",$refresh_pattern_def_perc,
+					"style:font-size:22px",null,null,null,false,"SaveCheck$t(event)")."</td>
 		</tr>
-		<tr><td colspan=2 style='font-size:22px'>{default_behavior}</td>
+		<tr style='height:70px'>
+		<td colspan=2 style='font-size:30px'>{default_behavior}</td>
 		".@implode("\n", $tr)."
 	</table>
 	<div style='margin:20px;margin-top:60px;text-align:right'>$button_reconfigure</div>
@@ -167,14 +180,13 @@ var xSave$t= function (obj) {
 	if(results.length>3){alert(results);return;}
 	if(confirm('$need_to_reload_proxy')){
 		Loadjs('squid.compile.progress.php');
-		AnimateDiv('BodyContent');
-		LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes');
 	}
 }
 	
 function Save$t(){
 	var XHR = new XHRConnection();
 		XHR.appendData('UseSimplifiedCachePattern', document.getElementById('UseSimplifiedCachePattern').value);
+		XHR.appendData('EnableRangeOffset', document.getElementById('EnableRangeOffset-$t').value);
 		XHR.appendData('SquidReloadIntoIMS', document.getElementById('SquidReloadIntoIMS-$t').value);
 		XHR.appendData('refresh_pattern_def_min', encodeURIComponent(document.getElementById('refresh_pattern_def_min-$t').value));
 		XHR.appendData('refresh_pattern_def_max', encodeURIComponent(document.getElementById('refresh_pattern_def_max-$t').value));

@@ -401,7 +401,7 @@ function AddNewSchedule_explain(){
 	$tasks=new system_tasks();
 	if(!isset($tasks->tasks_explain_array[$_GET["explainthis"]])){return;}
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{$tasks->tasks_explain_array[$_GET["explainthis"]]}</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{$tasks->tasks_explain_array[$_GET["explainthis"]]}</div>");
 }
 
 function AddNewSchedule_enable(){
@@ -469,9 +469,7 @@ function page(){
 	}
 	
 	$html="
-	<div style='margin-left:-15px'>
-		<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	</div>
+<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 <script>
 var rowSquidTask='';
 $(document).ready(function(){
@@ -500,7 +498,7 @@ buttons : [
 	sortname: 'ID',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,

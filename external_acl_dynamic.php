@@ -240,6 +240,7 @@ function categories_match($gpid,$sitname){
 	
 	if($categoriF==null){
 		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("squid_familysite()");}
+		if(!class_exists("squid_familysite")){include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");}
 		$qF=new squid_familysite();
 		$familysite=$qF->GetFamilySites($sitname);
 		if($familysite<>$sitname){

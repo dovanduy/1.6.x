@@ -502,7 +502,7 @@ CheckEnabled$t();
 function howto(){
 $tpl=new templates();	
 $html="	
-	<div class=text-info>{remote_users_databases_howto}</div>
+	<div class=explain>{remote_users_databases_howto}</div>
 	<div style='height:350px;width:100%;overflow:auto'>
 	<table style='width:100%'>
 		<tr>

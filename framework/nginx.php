@@ -30,6 +30,7 @@ if(isset($_GET["access-real"])){access_real();exit;}
 if(isset($_GET["clean-websites"])){clean_websites();exit;}
 if(isset($_GET["backup"])){backup();exit;}
 if(isset($_GET["restore"])){restore();exit;}
+if(isset($_GET["build-main"])){build_main();exit;}
 
 
 
@@ -60,6 +61,15 @@ function remove_website(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.single.php --remove \"$website\" --output=yes >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
+
+function build_main(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --main >/dev/null 2>&1 &";
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }

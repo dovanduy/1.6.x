@@ -35,7 +35,7 @@ function page(){
 
 	
 	$form="<div style='font-size:30px'>{relayhost}</div>
-	<div class=text-info style='font-size:18px'>{relayhost_text}</div>
+	<div class=explain style='font-size:18px'>{relayhost_text}</div>
 	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		</tr>

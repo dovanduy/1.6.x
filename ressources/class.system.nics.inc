@@ -43,10 +43,14 @@ class system_nic{
 	var $SourceBasedRouting=0;
 	var $isFW=0;
 	var $isFWAcceptNet=1;
+	var $isFWAcceptArtica=1;
 	var $isFWLogBlocked=0;
 	var $QOSMAX=100;
 	var $QOS=1;
 	var $mysql_error;
+	var $firewall_policy="accept";
+	var $firewall_behavior=0;
+	var $firewall_masquerade=0;
 	
 	var $ShoreWallServices=array();
 	function system_nic($eth=null){
@@ -100,14 +104,20 @@ class system_nic{
 			if(!$q->ok){echo $q->mysql_error;return;}
 		}	
 
-		
-				
-
-		
-		
-		
 		$q->QUERY_SQL("UPDATE `nics` SET ipv6=$this->ipv6 WHERE `Interface`='$this->eth'");
 		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	public function SetMiittools($data){
+		$q=new mysql();
+		if(!$q->FIELD_EXISTS("nics","miitool","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `miitool` VARCHAR( 90 ) NULL",'artica_backup');
+		}
+		
+		
+		$q->QUERY_SQL("UPDATE nics SET `miitool`='$data' WHERE `Interface`='$this->eth'" ,'artica_backup');
+		
+		if(!$q->ok){echo $q->mysql_error;}
 	}
 	
 	public function CheckMySQLFields(){
@@ -167,8 +177,26 @@ class system_nic{
 			$sql="ALTER TABLE `nics` ADD `SourceBasedRouting` smallint(1) ,ADD INDEX ( `SourceBasedRouting` )";
 			$q->QUERY_SQL($sql,'artica_backup');
 		}		
+		if(!$q->FIELD_EXISTS("nics","isFWAcceptArtica","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `isFWAcceptArtica` smallint(1) ,ADD INDEX ( `isFWAcceptArtica` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		if(!$q->FIELD_EXISTS("nics","firewall_policy","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `firewall_policy` varchar(10) ,ADD INDEX ( `firewall_policy` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		if(!$q->FIELD_EXISTS("nics","firewall_behavior","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `firewall_behavior` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `firewall_behavior` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}	
 		
+		if(!$q->FIELD_EXISTS("nics","firewall_masquerade","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `firewall_masquerade` smallint(1) NOT NULL DEFAULT 0,ADD INDEX ( `firewall_behavior` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
 
+		
+		
 		if(!$q->FIELD_EXISTS("nics","MTU","artica_backup")){
 			$sql="ALTER TABLE `nics` ADD `MTU` smallint( 3 ) ,ADD INDEX ( `MTU` )";
 			$q->QUERY_SQL($sql,'artica_backup');
@@ -198,7 +226,7 @@ class system_nic{
 			$ligne["netzone"]=$this->eth;
 		}
 		if($ligne["netzone"]==null){$ligne["netzone"]=$this->eth;}
-		
+		$this->firewall_policy=$ligne["firewall_policy"];
 		$this->netzone=$ligne["netzone"];
 		$this->ipv6=$ligne["ipv6"];
 		$this->NETMASK=$ligne["netmask"];
@@ -212,9 +240,13 @@ class system_nic{
 		$this->ipv6gw=$ligne["ipv6gw"];
 		$this->metric=$ligne["metric"];
 		$this->NICNAME=$ligne["NICNAME"];
+		$this->enabled=intval($ligne["enabled"]);
 		$this->isFW=$ligne["isFW"];
 		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
+		$this->isFWAcceptArtica=$ligne["isFWAcceptArtica"];
 		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
+		$this->firewall_behavior=$ligne["firewall_behavior"];
+		$this->firewall_masquerade=$ligne["firewall_masquerade"];
 		$this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"]));
 		if($this->NICNAME==null){$this->NICNAME="Interface $this->eth";}
 		if($this->NETWORK==null){$this->NETWORK=$this->GetCDIRNetwork($this->IPADDR,$this->NETMASK);}
@@ -272,7 +304,7 @@ class system_nic{
 		$this->DNS1=trim($ligne["DNS1"]);
 		$this->DNS2=trim($ligne["DNS2"]);
 		$this->NETWORK=$ligne["NETWORK"];
-		$this->enabled=$ligne["enabled"];
+		$this->enabled=intval($ligne["enabled"]);
 		$this->ipv6mask=$ligne["ipv6mask"];
 		$this->ipv6addr=$ligne["ipv6addr"];
 		$this->ipv6gw=$ligne["ipv6gw"];
@@ -281,11 +313,16 @@ class system_nic{
 		$this->ucarp_master=$ligne["ucarp-master"];
 		$this->QOS=intval($ligne["QOS"]);
 		$this->QOSMAX=intval($ligne["QOSMAX"]);
+		$this->firewall_masquerade=intval($ligne["firewall_masquerade"]);
 		if(isset($ligne["ucarp-vid"])){$this->ucarp_vid=$ligne["ucarp-vid"];}
 		if(isset($ligne["ucarp-vip"])){$this->ucarp_vip=$ligne["ucarp-vip"];}
 		if(isset($ligne["ucarp-advskew"])){$this->ucarp_advskew=$ligne["ucarp-advskew"];}
 		if(isset($ligne["ucarp-advbase"])){$this->ucarp_advbase=$ligne["ucarp-advbase"];}
 		if(isset($ligne["Bridged"])){$this->Bridged=$ligne["Bridged"];}
+		if(isset($ligne["firewall_policy"])){$this->firewall_policy=$ligne["firewall_policy"];}
+		if(isset($ligne["firewall_behavior"])){$this->firewall_behavior=$ligne["firewall_behavior"];;}
+		
+		
 		$this->BridgedTo=$ligne["BridgedTo"];
 		if(isset($ligne["defaultroute"])){$this->defaultroute=$ligne["defaultroute"];}
 		$this->NICNAME=$ligne["NICNAME"];
@@ -307,6 +344,7 @@ class system_nic{
 		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
 		if($this->metric==0){$this->metric=$this->lastmetric();}
 		if($this->mtu==0){$this->mtu=1500;}
+		if($this->firewall_policy==null){$this->firewall_policy="accept";}
 		
 		if($this->ipv6addr==null){
 			$ip=new IP();
@@ -357,8 +395,8 @@ class system_nic{
 		
 		$q=new mysql();
 		if(!$q->TABLE_EXISTS("nics", "artica_backup")){
-			$this->writelogs("Fatal table nics doesn't exists $called",__FUNCTION__,__LINE__);
 			$q->BuildNetworkTables();
+			if(!$q->TABLE_EXISTS("nics", "artica_backup")){$this->writelogs("Fatal table nics doesn't exists Aborting function/$called",__FUNCTION__,__LINE__);return;}
 		}
 		
 		
@@ -494,6 +532,7 @@ class system_nic{
 		}
 		if($GLOBALS["AS_ROOT"]){
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/myhostname", $hostname);
+			shell_exec("$nohup $php /usr/share/artica-postfix/exec.virtuals-ip.php --hosts >/dev/null 2>&1 &");
 			$unix->CHANGE_HOSTNAME($hostname);
 			if(is_file($unix->find_program("postconf"))){
 				shell_exec("$nohup $php /usr/share/artica-postfix/exec.postfix.maincf.php --others-values >/dev/null 2>&1 &");
@@ -564,12 +603,12 @@ class system_nic{
 		$sql_add="
 		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
 		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`,`Bridged`,
-		`BridgedTo`,`defaultroute`,`NICNAME`,`netzone`,`isFW`,`isFWAcceptNet`,`isFWLogBlocked`,`MTU`,`QOSMAX`,`QOS`)
+		`BridgedTo`,`defaultroute`,`NICNAME`,`netzone`,`isFW`,`isFWAcceptNet`,`isFWLogBlocked`,`MTU`,`QOSMAX`,`QOS`,`firewall_policy`,`firewall_behavior`,`firewall_masquerade`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
 		'$this->ipv6gw','$this->ipv6addr','$this->metric','$this->Bridged','$this->BridgedTo',
 		'$this->defaultroute','$this->NICNAME','$this->netzone','$this->isFW','$this->isFWAcceptNet',
-		'$this->isFWLogBlocked','$this->mtu','$this->QOSMAX','$this->QOS');
+		'$this->isFWLogBlocked','$this->mtu','$this->QOSMAX','$this->QOS','$this->firewall_policy','$this->firewall_behavior','$this->firewall_masquerade');
 		";
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
@@ -587,6 +626,7 @@ class system_nic{
 		$this->DNS1=$this->CleanIPAddr($this->DNS1);
 		$this->DNS2=$this->CleanIPAddr($this->DNS2);
 		$this->ucarp_vip=$this->CleanIPAddr($this->ucarp_vip);
+		
 		
 		$ip=new IP();
 		if(!$ip->isIPAddress($this->IPADDR)){
@@ -626,11 +666,15 @@ class system_nic{
 		`defaultroute`='$this->defaultroute',
 		`isFW`='$this->isFW',
 		`isFWAcceptNet`='$this->isFWAcceptNet',
+		`isFWAcceptArtica`='$this->isFWAcceptArtica',
 		`isFWLogBlocked`='$this->isFWLogBlocked',
 		`MTU`='$this->mtu',
 		`SourceBasedRouting`='$this->SourceBasedRouting',
 		`QOSMAX`='$this->QOSMAX',
 		`QOS`='$this->QOS',
+		`firewall_policy`='$this->firewall_policy',
+		`firewall_behavior`='$this->firewall_behavior',
+		`firewall_masquerade`='$this->firewall_masquerade',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 
@@ -1198,6 +1242,7 @@ class system_nic{
 		if(!isset($GLOBALS["touchbin"])){$GLOBALS["touchbin"]=$GLOBALS["CLASS_UNIX"]->find_program("touch");}
 		if(!isset($GLOBALS["dhclientbin"])){$GLOBALS["dhclientbin"]=$GLOBALS["CLASS_UNIX"]->find_program("dhclient");}
 		if(!isset($GLOBALS["PHP5BIN"])){$GLOBALS["PHP5BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();}
+		if(!isset($GLOBALS["MIITOOLBIN"])){$GLOBALS["MIITOOLBIN"]=$GLOBALS["CLASS_UNIX"]->find_program("mii-tool");}
 		
 		
 		
@@ -1420,7 +1465,8 @@ class system_nic{
 			
 			if(isset($ASALREADY[$eth])){
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] $eth already set aborting";
-				continue;}
+				continue;
+			}
 			$ASALREADY[$eth]=true;
 			
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
@@ -1482,6 +1528,14 @@ class system_nic{
 // IPV4 Settings ---------------------------------------------------------------------------------------------------			
 			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]}$brodcast_cmd mtu $MTU up";
 			$GLOBALS["SCRIPTS"][]="$ifconfig";
+// MII-TOOL ---------------------------------------------------------------------------------------------------			
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] MII-TOOL {$ligne["miitool"]} Binary: {$GLOBALS["MIITOOLBIN"]}";
+			if($ligne["miitool"]<>null){
+				if($GLOBALS["MIITOOLBIN"]<>null){
+					$GLOBALS["SCRIPTS"][]="{$GLOBALS["MIITOOLBIN"]} --force={$ligne["miitool"]} $eth";
+				}
+			}
+			
 			
 			
 // IPV6 Settings ---------------------------------------------------------------------------------------------------

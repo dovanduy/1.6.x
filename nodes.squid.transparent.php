@@ -44,7 +44,7 @@ function popup(){
 	$html="
 	
 	<div id='squid_transparentdiv$t'>
-		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div><div class=text-info>{transparent_mode_explain}</div>
+		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div><div class=explain>{transparent_mode_explain}</div>
 		<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2>$field</td>

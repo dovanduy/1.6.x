@@ -8,6 +8,7 @@
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.system.network.inc');
+	include_once('ressources/class.system.nics.inc');
 	$usersmenus=new usersMenus();
 	if(!$usersmenus->AsDansGuardianAdministrator){
 		$tpl=new templates();
@@ -150,7 +151,7 @@ function acl_rule_tab(){
 	
 	if($ligne["aclgroup"]==0){
 		$array["acl-rule-settings"]='{settings}';
-		$array["acl-items"]='{items}';
+		$array["acl-items"]='{objects}';
 	}else{
 		$array["acl-rule-group"]='{rules}';
 		$array["acl-rule-settings-group"]='{settings}';
@@ -266,14 +267,26 @@ function acl_rule_settings(){
 	$PortDirectionS[1]="{standard_method}";
 	$PortDirectionS[2]="{transparent_method}";
 	$PortDirectionS[3]="{smartphones_port}";
+	$ip=new networking();
+	$interfaces=$ip->Local_interfaces();
+	unset($interfaces["lo"]);
+	
+	$arrayNICZ[null]="0.0.0.0";
+
+	while (list ($eth, $none) = each ($interfaces) ){
+		if(preg_match("#^gre#", $eth)){continue;}
+		$nic=new system_nic($eth);
+		$arrayNICZ[$eth]="$eth $nic->IPADDR - $nic->NICNAME";
+	}
 	
 	$sql="SELECT * FROM proxy_ports WHERE enabled=1";
 	$resultsPorts = $q->QUERY_SQL($sql);
 	while ($lignePorts = mysql_fetch_assoc($resultsPorts)) {
-		$ipaddr=$lignePorts["ipaddr"];
+		$eth=$lignePorts["nic"];
+		$ipaddr=$arrayNICZ[$eth];
 		$port=$lignePorts["port"];
 		$IDPort=$lignePorts["ID"];
-		$PortDirectionS[$IDPort]="{port} $ipaddr:$port";
+		$PortDirectionS[$IDPort]="{port} $port [$ipaddr]";
 	}
 	
 
@@ -333,11 +346,10 @@ function acl_rule_settings(){
 	if(!is_numeric($tcp_outgoing_tos)){$tcp_outgoing_tos=0;}	
 	if($tcp_outgoing_tos_value==null){$tcp_outgoing_tos_value="0x20";}
 
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='reply_body_max_size'"));
-	$reply_body_max_size=$ligne["httpaccess_value"];
-	$reply_body_max_size_value=$ligne["httpaccess_data"];
-	if(!is_numeric($reply_body_max_size)){$reply_body_max_size=0;}
-	if(!is_numeric($reply_body_max_size_value)){$reply_body_max_size_value="0";}	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='reply_body_max_size'"));
+	$reply_body_max_size=intval($ligne["httpaccess_value"]);
+	$reply_body_max_size_value=intval($ligne["httpaccess_data"]);
+		
 	
 	
 	$q=new mysql_squid_builder();
@@ -910,6 +922,8 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"cache_deny",$_POST["cache_deny"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_access_except",$_POST["deny_access_except"])){return;}
 		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_tos",$_POST["tcp_outgoing_tos"],$_POST["tcp_outgoing_tos_value"])){return;}
+		
+		
 		if(!$acl->aclrule_edittype($ID,"reply_body_max_size",$_POST["reply_body_max_size"],$_POST["reply_body_max_size_value"])){return;}
 		
 		
@@ -1156,8 +1170,8 @@ function page(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$tpl=new templates();
-	$q=new mysql_squid_builder();	
-	$q->CheckTables();
+	$q=new mysql_squid_builder();
+	$SquidDebugAcls=intval($sock->GET_INFO("SquidDebugAcls"));
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
 	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
@@ -1171,24 +1185,21 @@ function page(){
 	$bandwith=$tpl->javascript_parse_text("{bandwith}");
 	$session_manager=$tpl->javascript_parse_text("{session_manager}");
 	$new_group=$tpl->javascript_parse_text("{new_group}");
-	$squid=new squidbee();
+
 	$session_manager="{name: '$session_manager', bclass: 'clock', onpress : SessionManager$t},";
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	$create_a_snapshot=$tpl->javascript_parse_text("{create_a_snapshot}");
 	$delete_all_acls=$tpl->javascript_parse_text("{delete_all_acls}");
-	$Table_title=null;
-	if($EnableWebProxyStatsAppliance==0){
-		if(!$squid->IS_33){$session_manager=null;}
-	}
+	$Table_title=$tpl->javascript_parse_text("{ACLS}");
 	
 	
 	$table_width=905;
-	$newgroup_bt="{name: '$new_group', bclass: 'add', onpress : AddAclGroup},";
-	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},";
-	$optionsbt="{name: '$options', bclass: 'Settings', onpress : AclOptions$t},";
+	$newgroup_bt="{name: '<strong style=font-size:18px>$new_group</strong>', bclass: 'add', onpress : AddAclGroup},";
+	$apply_paramsbt="{separator: true},{name: '<strong style=font-size:18px>$apply_params</strong>', bclass: 'apply', onpress : SquidBuildNow$t},";
+	$optionsbt="{name: '<strong style=font-size:18px>$options</strong>', bclass: 'Settings', onpress : AclOptions$t},";
 	
-	$bandwithbt="{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t},";
+	
 	
 	if(!is_numeric($_GET["aclgroup-id"])){$_GET["aclgroup-id"]=0;}
 	if($_GET["aclgroup-id"]>0){
@@ -1203,6 +1214,26 @@ function page(){
 	
 	// removed {name: '$squid_templates_error', bclass: 'Script', onpress : SquidTemplatesErrors$t},
 	
+	if($SquidDebugAcls==1){echo FATAL_ERROR_SHOW_128_DESIGN("{debug_acls}", "{debug_acls_explain}","Loadjs('squid.acls.options.php')");}
+	
+	$fields_size=22;
+	$aclname_size=363;
+	$items_size=682;
+	$icon_size=70;
+	if(isset($_GET["aclgroup-id"])){
+		if(is_numeric($_GET["aclgroup-id"])){
+			if($_GET["aclgroup-id"]>0){
+				$fields_size=18;
+				$aclname_size=200;
+				$items_size=438;
+				$icon_size=40;
+			}
+		}
+		
+	}
+	
+	
+	
 	$html="
 	<input type='hidden' name='ACL_ID_MAIN_TABLE' id='ACL_ID_MAIN_TABLE' value='table-$t'>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
@@ -1213,26 +1244,25 @@ $('#table-$t').flexigrid({
 	url: '$page?acls-list=yes&t=$t&toexplainorg=table-$t&t=$t&aclgroup-id={$_GET["aclgroup-id"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$rule', name : 'aclname', width : 249, sortable : true, align: 'left'},
-		{display: '$description', name : 'items', width : 457, sortable : false, align: 'left'},
-		{display: '', name : 'up', width : 40, sortable : false, align: 'center'},
-		{display: '', name : 'xORDER', width : 40, sortable : true, align: 'center'},
-		{display: '', name : 'none2', width : 40, sortable : true, align: 'center'},
-		{display: '', name : 'none3', width : 40, sortable : false, align: 'center'},
-		{display: '', name : 'none4', width : 40, sortable : false, align: 'center'},
+		{display: '<span style=font-size:{$fields_size}px>$rule', name : 'aclname', width : $aclname_size, sortable : true, align: 'left'},
+		{display: '<span style=font-size:{$fields_size}px>$description</span>', name : 'items', width : $items_size, sortable : false, align: 'left'},
+		{display: '', name : 'up', width : $icon_size, sortable : false, align: 'center'},
+		{display: '', name : 'xORDER', width : $icon_size, sortable : true, align: 'center'},
+		{display: '', name : 'none2', width : $icon_size, sortable : true, align: 'center'},
+		{display: '', name : 'none3', width : $icon_size, sortable : false, align: 'center'},
+		{display: '', name : 'none4', width : $icon_size, sortable : false, align: 'center'},
 		
 	],
 buttons : [
-	{name: '$new_rule', bclass: 'add', onpress : AddAcl},
+	{name: '<strong style=font-size:18px>$new_rule</strong>', bclass: 'add', onpress : AddAcl},
 	$newgroup_bt
-	$bandwithbt
 	{separator: true},
 	
 	$optionsbt
 	$apply_paramsbt
 	{separator: true},
-	{name: '$create_a_snapshot', bclass: 'apply', onpress : SnapShot$t},
-	{name: '$delete_all_acls', bclass: 'Delz', onpress : DeleteAll$t},
+	{name: '<strong style=font-size:18px>$create_a_snapshot</strong>', bclass: 'apply', onpress : SnapShot$t},
+	{name: '<strong style=font-size:18px>$delete_all_acls</strong>', bclass: 'Delz', onpress : DeleteAll$t},
 	
 		],	
 	searchitems : [
@@ -1241,12 +1271,12 @@ buttons : [
 	sortname: 'xORDER',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$Table_title',
+	title: '<strpng style=font-size:30px>$Table_title</strong>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
 	width: '99%',
-	height: 550,
+	height: 620,
 	singleSelect: true
 	
 	});   
@@ -1442,14 +1472,16 @@ function acl_list(){
 		$explain=$tpl->_ENGINE_parse_body("{urlrewriteaccessdeny_explain} <strong>$items {items}</strong>");
 		$explain2=$tpl->_ENGINE_parse_body("{blocked_sites_acl_explain} <strong>$items2 {items}</strong>");
 		
+		$font_size=20;
+		
 		
 		$data['rows'][] = array(
 				'id' => "aclNone1",
 				'cell' => array("<a href=\"javascript:blur();\"  
 				OnClick=\"javascript:Loadjs('squid.urlrewriteaccessdeny.php?t={$_GET["t"]}');\"
-				style='font-size:16px;text-decoration:underline;color:black'>$default</span></A>
+				style='font-size:20px;text-decoration:underline;color:black'>$default</span></A>
 				",
-				"<span style='font-size:12px;color:black'>$explain</span>",
+				"<span style='font-size:18px;color:black'>$explain</span>",
 				"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
 		);
 		
@@ -1457,33 +1489,15 @@ function acl_list(){
 				'id' => "aclNone2",
 				'cell' => array("<a href=\"javascript:blur();\"
 						OnClick=\"javascript:Loadjs('squid.www-blacklist.php?t={$_GET["t"]}');\"
-						style='font-size:16px;text-decoration:underline;color:black'>$default2</span></A>
+						style='font-size:20px;text-decoration:underline;color:black'>$default2</span></A>
 						",
-		"<span style='font-size:12px;color:black'>$explain2</span>",
+		"<span style='font-size:18px;color:black'>$explain2</span>",
 		"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
 		);		
 
 		$color="black";
 		$colored="#0AAB3D";
-		$SquidAllowSmartPhones=$sock->GET_INFO("SquidAllowSmartPhones");
-		$smartphones_port=$sock->GET_INFO("smartphones_port");
-		if(!is_numeric($SquidAllowSmartPhones)){$SquidAllowSmartPhones=0;}
-		
-		if($SquidAllowSmartPhones==0){$color="#8a8a8a";$colored=$color;}
-		$AllowSmartphonesRuleText=$tpl->javascript_parse_text("{AllowSmartphonesRuleText}");
-		$AllowSmartphonesRuleExplain=$tpl->_ENGINE_parse_body("{AllowSmartphonesRuleExplain}");
-		
-		$EnableSMartphone=Field_checkbox("SquidAllowSmartPhones", 1,$SquidAllowSmartPhones,"SquidAllowSmartPhones()");
-		if($smartphones_port==0){
-			$data['rows'][] = array(
-					'id' => "aclNone3",
-					'cell' => array("<span
-							style='font-size:16px;text-decoration:underline;color:$color'>$AllowSmartphonesRuleText</span></A>
-							",
-							"<span style='font-size:12px;color:$colored;font-weight:bold'>$AllowSmartphonesRuleExplain</span>",
-							"&nbsp;","&nbsp;","$EnableSMartphone","&nbsp;","&nbsp;")
-			);		
-		}
+
 		
 
 		$ports=unserialize(base64_decode($sock->GET_INFO("SquidSafePortsSSLList")));
@@ -1504,9 +1518,9 @@ function acl_list(){
 				'id' => "aclNone2",
 				'cell' => array("<a href=\"javascript:blur();\"
 						OnClick=\"javascript:Loadjs('squid.advParameters.php?t={$_GET["t"]}&OnLyPorts=yes');\"
-						style='font-size:16px;text-decoration:underline;color:$color'>$ports_restrictions</span></A>
+						style='font-size:20px;text-decoration:underline;color:$color'>$ports_restrictions</span></A>
 						",
-		"<span style='font-size:12px;color:$colored;font-weight:bold'><div>$sslp</div><div>$http</div></span>",
+		"<span style='font-size:18px;color:$colored;font-weight:bold'><div>$sslp</div><div>$http</div></span>",
 		"&nbsp;","&nbsp;","$enableSSL","&nbsp;","&nbsp;")
 		);		
 		
@@ -1523,11 +1537,24 @@ function acl_list(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	
+	
+	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
 	
 	
+	$font_size=18;
+	
+	if(isset($_GET["aclgroup-id"])){
+		if(is_numeric($_GET["aclgroup-id"])){
+			if($_GET["aclgroup-id"]>0){
+			$font_size=15;
+			}
+		}
+	
+	}
 	
 	$data['page'] = $page;
 	$data['total'] = $total;
@@ -1542,14 +1569,14 @@ function acl_list(){
 		$color="black";
 		$disable=Field_checkbox("aclid_{$ligne['ID']}", 1,$ligne["enabled"],"EnableDisableAclRule$t('{$ligne['ID']}')");
 		$ligne['aclname']=utf8_encode($ligne['aclname']);
-		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
+		$delete=imgsimple("delete-42.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
 		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"]));
 		
-		$up=imgsimple("arrow-up-16.png","","AclUpDown('{$ligne['ID']}',1)");
-		$down=imgsimple("arrow-down-18.png","","AclUpDown('{$ligne['ID']}',0)");
-		$export=imgsimple("24-export.png","","Loadjs('squid.acls.export.php?single-id={$ligne['ID']}')");
+		$up=imgsimple("arrow-up-42.png","","AclUpDown('{$ligne['ID']}',1)");
+		$down=imgsimple("arrow-down-42.png","","AclUpDown('{$ligne['ID']}',0)");
+		$export=imgsimple("42-export.png","","Loadjs('squid.acls.export.php?single-id={$ligne['ID']}')");
 		
 		if($GROUPE_RULE_ID>0){
 			
@@ -1558,12 +1585,16 @@ function acl_list(){
 	$data['rows'][] = array(
 		'id' => "acl{$ligne['ID']}",
 		'cell' => array("<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('$MyPage?Addacl-js=yes&ID={$ligne['ID']}&t={$_GET["t"]}');\" 
-		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['aclname']}</span></A>
-		<div style='font-size:11px'><i>$order&laquo;<a href=\"javascript:blur();\"
+		style='font-size:{$font_size}px;text-decoration:underline;color:$color'>{$ligne['aclname']}</span></A>
+		<div style='font-size:14px'><i>$order&laquo;<a href=\"javascript:blur();\"
 		Onclick=\"javascript:ChangeRuleOrder({$ligne['ID']},{$ligne["xORDER"]});\"
 		style=\"text-decoration:underline\">{$ligne["xORDER"]}</a>&raquo;</i></div>",
-		"<span style='font-size:12px;color:$color'>$explain</span>",
-		$up,$down,$disable,$export,$delete)
+		"<span style='font-size:{$font_size}px;color:$color'>$explain</span>",
+		"<center>$up</center>",
+		"<center>$down</center>",
+		"<center>$disable</center>",
+		"<center>$export</center>",
+		"<center>$delete</center>")
 		);
 	}
 	

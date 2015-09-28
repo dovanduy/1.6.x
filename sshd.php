@@ -156,12 +156,13 @@ function js(){
 	}
 	
 	$html="
+	<script>
 	function OPENSSH_LOAD(){
 			YahooWin2('600','$page?popup=yes$tabsize','$title');
 		}
 		
 		function OPENSSH_LOAD2(){
-			$('#BodyContent').load('$page?popup=yes$tabsize');
+			$('#system-sshd').load('$page?popup=yes$tabsize');
 		}		
 	
 		function BACKUP_TASKS_LISTS(){
@@ -262,7 +263,8 @@ var x_DELETE_BACKUP_SOURCES= function (obj) {
 		}
 		
 	
-	$start";
+	$start
+	</script>";
 	
 	
 	echo $html;
@@ -881,10 +883,10 @@ function popup_keys(){
 	
 	
 	$html="
-	<div class=text-info id='idtofill' style='font-size:18px'>{SSH_KEYS_WHY}</div>
+	<div class=explain id='idtofill' style='font-size:18px'>{SSH_KEYS_WHY}</div>
 	
 	<div style='font-size:18px'>{SSH_KEYS_CLIENT}</div>
-	<div class=text-info style='font-size:18px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
+	<div class=explain style='font-size:18px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
 		<td class=legend style='font-size:18px' nowrap style'=font-size:18px'>{ArticaProxyServerUsername}:</td>
@@ -901,7 +903,7 @@ function popup_keys(){
 	
 	<hr>
 	<div style='font-size:18px'>{SSHD_KEYS_SERVER}</div>
-	<div class=text-info style='font-size:18px'>{SSHD_KEYS_SERVER_TEXT}</div>
+	<div class=explain style='font-size:18px'>{SSHD_KEYS_SERVER_TEXT}</div>
 	
 	<iframe style='width:100%;height:250px;border:0px' src='$page?SSHD_KEYS_SERVER=yes'></iframe>
 	
@@ -1004,7 +1006,7 @@ function GetSSHDFingerprint(){
 	$datas=base64_decode($sock->getFrameWork("cmd.php?ssh-keygen-fingerprint=$homepath_encoded&uid=$uid"));
 	
 	if(trim($datas)==null){
-		echo $tpl->_ENGINE_parse_body("<div class=text-info>{SSHD_NOFINGER_NEED_GENERATE}</div>");return ;
+		echo $tpl->_ENGINE_parse_body("<div class=explain>{SSHD_NOFINGER_NEED_GENERATE}</div>");return ;
 	}
 	
 	echo $tpl->_ENGINE_parse_body("
@@ -1065,7 +1067,7 @@ function SSHD_KEYS_SERVER_FORM($error=null){
 	ksort($users);	
 		$userF=Field_array_Hash($users,"uid",$_POST["uid"],null,null,0,"font-size:16px;padding:3px");
 	$html="
-	<div style='color:red;font-size:18px;font-weight:bold'>$error</div>
+	<div style='color:#d32d2d;font-size:18px;font-weight:bold'>$error</div>
 	<form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 	<table style='width:98%' class=form>
 	<tr>

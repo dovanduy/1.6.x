@@ -130,6 +130,34 @@ function popup(){
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	
+	$sock=new sockets();
+	$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+	$SquidSSLUrgency=intval($sock->GET_INFO("SquidSSLUrgency"));
+	
+	if($SquidSSLUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_ssl_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_ssl_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?ssl=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+	
+	
+	}
+	
+	if($SquidUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+		return;
+	
+	}
+	
+	
+	
 	$fontsize=20;
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -235,7 +263,7 @@ function certificate(){
 	$page=CurrentPageName();
 	
 $html="
-<div style='font-size:16px' class=text-info>{squid_ssl_certificate_explain}</div>
+<div style='font-size:16px' class=explain>{squid_ssl_certificate_explain}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>		
 <tr>
@@ -336,6 +364,20 @@ function parameters_main(){
 	
 	if(!is_numeric($EnableSquidSSLCRTD)){$EnableSquidSSLCRTD=1;}
 	$DefaultSSLParams=unserialize(base64_decode($sock->GET_INFO("DefaultSSLParams")));
+	
+	$SquidSSLUrgency=intval($sock->GET_INFO("SquidSSLUrgency"));
+	
+	if($SquidSSLUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_ssl_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_ssl_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:Loadjs('squid.urgency.php?ssl=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+	
+	
+	}
 	
 	$squid=new squidbee();
 	$page=CurrentPageName();
@@ -457,7 +499,7 @@ function parameters_main(){
 	
 	
 	<tr>
-		<td colspan=2 align=right><hr>".button("{apply}","SaveEnableSSLDump$t()",16)."</td>
+		<td colspan=2 align=right><hr>".button("{apply}","SaveEnableSSLDump$t()",42)."</td>
 	</tr>
 
 	</table>
@@ -593,6 +635,8 @@ function whitelist_popup(){
 	$website_name=$tpl->javascript_parse_text("{websites}");
 	$apply=$tpl->javascript_parse_text("{apply}");
 	$squid=new squidbee();
+	$title=$tpl->javascript_parse_text("{ssl_whitelist}");
+	
 	if($squid->hasProxyTransparent==1){
 		$explain=$tpl->_ENGINE_parse_body("<div style='font-weight:bold;color:#BD0000'>{sslbum_wl_not_supported_transp}</div>");
 	}
@@ -602,15 +646,12 @@ function whitelist_popup(){
 	
 	$buttons="
 	buttons : [
-	{name: '<b>$new_webiste</b>', bclass: 'Add', onpress : sslBumbAddwl},
-	{name: '<b>$apply</b>', bclass: 'Apply', onpress : Apply$t}
+	{name: '<strong style=font-size:18px>$new_webiste</strong>', bclass: 'Add', onpress : sslBumbAddwl},
+	{name: '<strong style=font-size:18px>$apply</strong>', bclass: 'Apply', onpress : Apply$t}
 	],";	
 	
 $html="
-<div class=text-info style='font-size:13px'>$SSL_BUMP_WL</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-
-	
 <script>
 row_id='';
 $(document).ready(function(){
@@ -618,7 +659,7 @@ $('#flexRT$t').flexigrid({
 	url: '$page?whitelist-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$website_name', name : 'website_name', width : 606, sortable : false, align: 'left'},	
+		{display: '$website_name', name : 'website_name', width : 862, sortable : false, align: 'left'},	
 		{display: '$enabled', name : 'enabled', width : 68, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 68, sortable : false, align: 'center'},
 		],
@@ -629,12 +670,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'website_name',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: '95%',
-	height: 310,
+	width: '98%',
+	height: 510,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -801,7 +842,7 @@ function whitelist_list(){
 	
 	$data['rows'][] = array(
 		'id' => 0,
-		'cell' => array("<span style='font-size:16px;color:$color'>$no_ssl_bump_dropbox</span>"
+		'cell' => array("<span style='font-size:20px;color:$color'>$no_ssl_bump_dropbox</span>"
 		,$enable,"&nbsp;" )
 		);
 	
@@ -810,7 +851,7 @@ function whitelist_list(){
 	if($AllowSquidSSLSkype==0){$color="#AFAFAF";}
 	$data['rows'][] = array(
 			'id' => 0,
-			'cell' => array("<span style='font-size:16px;color:$color'>$no_ssl_bump_skype</span>"
+			'cell' => array("<span style='font-size:20px;color:$color'>$no_ssl_bump_skype</span>"
 					,$enable,"&nbsp;" )
 	);
 	
@@ -818,7 +859,7 @@ function whitelist_list(){
 		
 	
 	if(mysql_num_rows($results)>0){
-		$data = array();
+		
 		$data['page'] = $page;
 		$data['total'] = $total;
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -833,7 +874,7 @@ function whitelist_list(){
 		
 		$data['rows'][] = array(
 			'id' => $id,
-			'cell' => array("<span style='font-size:16px;color:$color'>{$ligne["website_name"]}</span>"
+			'cell' => array("<span style='font-size:20px;color:$color'>{$ligne["website_name"]}</span>"
 			,$enable,$delete )
 			);
 		}

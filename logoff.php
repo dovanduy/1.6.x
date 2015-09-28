@@ -163,7 +163,7 @@ function menus(){
 	if(!$users->AsSystemAdministrator){
 		$html="
 		<input type='hidden' id='isanuser' name ='isanuser' value='1'>
-		<center><H2 style='color:red'>{logoff}</H2></center>
+		<center><H2 style='color:#d32d2d'>{logoff}</H2></center>
 		";
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body($html);
@@ -247,7 +247,7 @@ if($logo==null){$logo="ressources/templates/{$_COOKIE["artica-template"]}/i/fond
 
 
 
-
+unset($_SESSION["FORCED_TEMPLATE"]);
 unset($_SESSION["MINIADM"]);
 unset($_SESSION["uid"]);
 unset($_SESSION["privileges"]);

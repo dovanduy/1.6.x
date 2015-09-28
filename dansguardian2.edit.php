@@ -9,6 +9,7 @@
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.ActiveDirectory.inc');
+	include_once("ressources/class.ldap-extern.inc");
 	
 	
 $usersmenus=new usersMenus();
@@ -43,7 +44,11 @@ if(isset($_GET["whitelist"])){whitelist();exit;}
 if(isset($_POST["groupname"])){rule_edit_save();exit;}
 if(isset($_POST["blacklist"])){blacklist_save();exit;}
 
+if(isset($_GET["disable-all-js"])){disabled_all_js();exit;}
+if(isset($_POST["disableAll"])){disabled_all();exit;}
 
+if(isset($_GET["enable-all-js"])){enable_all_js();exit;}
+if(isset($_POST["enableAll"])){enable_all();exit;}
 
 if(isset($_GET["js-groups"])){groups_js();exit;}
 if(isset($_GET["groups"])){groups();exit;}
@@ -116,6 +121,132 @@ AddNewFreeWeb$t();
 echo $html;
 
 }
+
+function enable_all_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ID=$_GET["RULEID"];
+	$modeblk=$_GET["modeblk"];
+	$table_id=$_GET["table-id"];
+	$disable_all=$tpl->javascript_parse_text("{enable_all}");
+	$t=time();
+	$html="
+var x_AddNewFreeWeb$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	if(document.getElementById('WebFilteringMainTableID') ){
+		var WebFilteringMainTableID=document.getElementById('WebFilteringMainTableID').value;
+		$('#'+WebFilteringMainTableID).flexReload();
+	}
+	
+	$('#$table_id').flexReload();
+}
+	
+function AddNewFreeWeb$t(){
+	var servername=confirm('$ID:$modeblk $disable_all ?');
+	if(!servername){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('enableAll','yes');
+	XHR.appendData('ID','$ID');
+	XHR.appendData('modeblk','$modeblk');
+	XHR.sendAndLoad('$page', 'POST',x_AddNewFreeWeb$t);
+}
+AddNewFreeWeb$t();
+	";
+	echo $html;	
+}
+
+function disabled_all_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ID=$_GET["RULEID"];
+	$modeblk=$_GET["modeblk"];
+	$table_id=$_GET["table-id"];
+	$disable_all=$tpl->javascript_parse_text("{disable_all}");	
+	$t=time();
+	$html="
+var x_AddNewFreeWeb$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	if(document.getElementById('WebFilteringMainTableID') ){ 
+		var WebFilteringMainTableID=document.getElementById('WebFilteringMainTableID').value;
+		$('#'+WebFilteringMainTableID).flexReload(); 
+	}
+	
+	$('#$table_id').flexReload();
+}
+	
+function AddNewFreeWeb$t(){
+	var servername=confirm('$ID:$modeblk $disable_all ?');
+	if(!servername){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('disableAll','yes');
+	XHR.appendData('ID','$ID');
+	XHR.appendData('modeblk','$modeblk');
+	XHR.sendAndLoad('$page', 'POST',x_AddNewFreeWeb$t);
+	}
+AddNewFreeWeb$t();
+";
+echo $html;
+	
+}
+
+function disabled_all(){
+	$ID=intval($_POST["ID"]);
+	$modeblk=intval($_POST["modeblk"]);
+	
+	
+/*	if($ligne["ID"]==0){
+		$sql="INSERT IGNORE INTO $table (webfilter_id,category,modeblk)
+		VALUES ('{$_POST["RULEID"]}','{$_POST["categorykey"]}','{$_POST["modeblk"]}')";
+		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;return;}
+		}
+*/	
+	
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("DELETE FROM `webfilter_blks` WHERE webfilter_id=$ID AND modeblk=$modeblk");
+	if(!$q->ok){echo $q->mysql_error;return;}
+}
+
+
+function enable_all(){
+	$ID=intval($_POST["ID"]);
+	$modeblk=intval($_POST["modeblk"]);
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("DELETE FROM `webfilter_blks` WHERE webfilter_id=$ID AND modeblk=$modeblk");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	$count_webfilters_categories_caches=$q->COUNT_ROWS("webfilters_categories_caches");
+	
+	if($count_webfilters_categories_caches==0){
+		$ss=new dansguardian_rules();
+		$ss->CategoriesTableCache();
+	}
+	
+	$sql="SELECT categorykey  FROM `webfilters_categories_caches`";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$categorykey=$ligne["categorykey"];
+		$sql="INSERT IGNORE INTO `webfilter_blks` (webfilter_id,category,modeblk) VALUES ('$ID','$categorykey','$modeblk')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;return;}
+		
+		
+	}
+	
+	
+	
+	
+}
+
+
+
 
 function blacklist_js_load(){
 	header("content-type: application/x-javascript");
@@ -283,7 +414,7 @@ function blacklist_form(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td valign='middle'><div class=text-info>{dansguardian2_blacklist_explain}</div></td>
+		<td valign='middle'><div class=explain>{dansguardian2_blacklist_explain}</div></td>
 		<td valign='middle'>
 			<table style='width:99%' class=form>
 			<tbody>
@@ -336,7 +467,7 @@ function blacklist_list_group(){
 	}		
 	$t=time();
 	$butts[null]="{all}";	
-	$field=Field_array_Hash($butts, "CatzByGroup-$t",null,"RefreshBlackListTable$t()",null,0,"font-size:14px");
+	$field=Field_array_Hash($butts, "CatzByGroup-$t",null,"RefreshBlackListTable$t()",null,0,"font-size:26px");
 	$html="<center style='width:95%;' class=form><br><br>$field<br><br></center>
 	<script>
 		function RefreshBlackListTable$t(){
@@ -345,7 +476,7 @@ function blacklist_list_group(){
 			var uriplus='';
 			var CatzByEnable={$_GET["CatzByEnable"]};
 			if(CatzByEnable==1){uriplus='&CatzByEnabled=yes';}
-			$('#'+iditem).flexOptions({url: '$page?blacklist-list=yes&RULEID={$_GET["RULEID"]}&modeblk={$_GET["modeblk"]}&group='+group+uriplus+'&TimeID={$_GET["TimeID"]}'}).flexReload(); ExecuteByClassName('SearchFunction');
+			$('#'+iditem).flexOptions({url: '$page?blacklist-list=yes&RULEID={$_GET["RULEID"]}&modeblk={$_GET["modeblk"]}&group='+group+uriplus+'&TimeID={$_GET["TimeID"]}&QuotaID={$_GET["QuotaID"]}'}).flexReload(); ExecuteByClassName('SearchFunction');
 			YahooSearchUserHide();
 		}
 	
@@ -402,7 +533,7 @@ function blacklist(){
 			var CatzByEnabled='';
 			$('#blacklist-table-1').remove();
 			$('#blacklist-table-2').remove();
-			LoadAjax('blacklist-js-generator-$t','$page?blacklist-js=yes&t=$t$main_filter_rule_edit&RULEID={$_GET["RULEID"]}&TimeID={$_GET["TimeID"]}&ID={$_GET["RULEID"]}&modeblk={$_GET["modeblk"]}');
+			LoadAjax('blacklist-js-generator-$t','$page?blacklist-js=yes&t=$t$main_filter_rule_edit&RULEID={$_GET["RULEID"]}&TimeID={$_GET["TimeID"]}&ID={$_GET["RULEID"]}&modeblk={$_GET["modeblk"]}&QuotaID={$_GET["QuotaID"]}');
 			}
 			
 	var x_EnableDisableCategoryRule$t= function (obj) {
@@ -410,9 +541,7 @@ function blacklist(){
 		if (res.length>3){alert(res);}
 		if(document.getElementById('WebFilteringMainTableID') ){ $('#'+document.getElementById('WebFilteringMainTableID').value).flexReload(); }
 		if(document.getElementById('blacklist-table-by-rule') ){ $('#'+document.getElementById('blacklist-table-by-rule').value).flexReload(); }
-		
-		
-		
+		if(document.getElementById('SQUID_ARTICA_QUOTA_RULES') ){ $('#'+document.getElementById('SQUID_ARTICA_QUOTA_RULES').value).flexReload(); }
 	}			
 	
 	
@@ -424,6 +553,7 @@ function blacklist(){
 		XHR.appendData('modeblk',modeblk);
 		XHR.appendData('RULEID',RULEID);
 		XHR.appendData('TimeID','{$_GET["TimeID"]}');
+		XHR.appendData('QuotaID','{$_GET["QuotaID"]}');
 		if(document.getElementById(idname).checked){
 		XHR.appendData('enabled',1);}else{XHR.appendData('enabled',0);}
 		XHR.sendAndLoad('$page', 'POST',x_EnableDisableCategoryRule$t);	
@@ -444,8 +574,11 @@ function blacklist_js(){
 	$array["blacklist-start-table"]='{categories}';
 	$array["categories-groups"]='{categories_groups}';
 	
+	if($_GET["QuotaID"]>0){
+		unset($array["categories-groups"]);
+	}
 		
-	$prefix="&RULEID={$_GET["RULEID"]}&ID={$_GET["ID"]}&modeblk={$_GET["modeblk"]}&t={$_GET["t"]}&tSource={$_GET["t"]}";
+	$prefix="&RULEID={$_GET["RULEID"]}&ID={$_GET["ID"]}&QuotaID={$_GET["QuotaID"]}&modeblk={$_GET["modeblk"]}&t={$_GET["t"]}&tSource={$_GET["t"]}";
 	
 	$size="table-size=870&group-size=645";
 	$size2="table-size=870&group-size=639";
@@ -458,7 +591,8 @@ function blacklist_js(){
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="categories-groups"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.categories.group.php?categories-table=yes&$size&RULEID={$_GET["RULEID"]}&tSource={$_GET["t"]}&t=$t&modeblk={$_GET["modeblk"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"dansguardian2.categories.group.php?categories-table=yes&$size&QuotaID={$_GET["QuotaID"]}&RULEID={$_GET["RULEID"]}&tSource={$_GET["t"]}&t=$t&modeblk={$_GET["modeblk"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 
@@ -493,6 +627,8 @@ function blacklist_start_table(){
 	$OnlyActive=$tpl->_ENGINE_parse_body("{OnlyActive}");
 	$Group=$tpl->_ENGINE_parse_body("{group}");
 	$All=$tpl->_ENGINE_parse_body("{all}");
+	$disable_allt=$tpl->javascript_parse_text("{disable_all}");
+	$enable_all=$tpl->javascript_parse_text("{enable_all}");
 	$TB_WIDTH=897;
 	$disable_all=Field_checkbox("disable_{$ligne["zmd5"]}", 1,$ligne["enabled"],"bannedextensionlist_enable('{$ligne["zmd5"]}')");
 	$group=$_GET["group"];
@@ -515,7 +651,7 @@ function blacklist_start_table(){
 var CatzByEnable$t=0;
 $(document).ready(function(){
 $('#blacklist-table-$t-$d').flexigrid({
-	url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group$CatzByEnabled&TimeID={$_GET["TimeID"]}',
+	url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group$CatzByEnabled&TimeID={$_GET["TimeID"]}&QuotaID={$_GET["QuotaID"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'none', width :28, sortable : false, align: 'center'},
@@ -526,6 +662,8 @@ $('#blacklist-table-$t-$d').flexigrid({
 	],
 buttons : [
 	{name: '$new_category', bclass: 'add', onpress : AddCatz},
+	{name: '$disable_allt', bclass: 'Reload', onpress : DisableAll$t},
+	{name: '$enable_all', bclass: 'Reload', onpress : EnableAll$t},
 	{name: '$OnlyActive', bclass: 'Search', onpress : OnlyActive$t},
 	{name: '$All', bclass: 'Search', onpress : OnlyAll$t},
 	{name: '$Group', bclass: 'Search', onpress : GroupBy$t},
@@ -554,16 +692,24 @@ function ChooseGroup(group) {
 }
 
 function GroupBy$t(){
-	YahooSearchUser(300,'$page?blacklist-list-group=yes&iditem=blacklist-table-$t-$d&RULEID=$ID&modeblk={$_GET["modeblk"]}&TimeID={$_GET["TimeID"]}&CatzByEnable='+CatzByEnable$t,'$Group');
+	YahooSearchUser(650,'$page?blacklist-list-group=yes&iditem=blacklist-table-$t-$d&RULEID=$ID&modeblk={$_GET["modeblk"]}&TimeID={$_GET["TimeID"]}&QuotaID={$_GET["QuotaID"]}&CatzByEnable='+CatzByEnable$t,'$Group');
 }
+
+function DisableAll$t(){
+	Loadjs('$page?disable-all-js=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&table-id=blacklist-table-$t-$d');
+}
+function EnableAll$t(){
+	Loadjs('$page?enable-all-js=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&table-id=blacklist-table-$t-$d');
+}
+
 
 function OnlyActive$t(){
 	CatzByEnable$t=1;
-	$('#blacklist-table-$t-$d').flexOptions({url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group&CatzByEnabled=yes&TimeID={$_GET["TimeID"]}'}).flexReload(); ExecuteByClassName('SearchFunction'); 
+	$('#blacklist-table-$t-$d').flexOptions({url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group&CatzByEnabled=yes&TimeID={$_GET["TimeID"]}&QuotaID={$_GET["QuotaID"]}'}).flexReload(); ExecuteByClassName('SearchFunction'); 
 }
 function OnlyAll$t(){
 	CatzByEnable$t=0;
-	$('#blacklist-table-$t-$d').flexOptions({url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group&TimeID={$_GET["TimeID"]}'}).flexReload(); ExecuteByClassName('SearchFunction');
+	$('#blacklist-table-$t-$d').flexOptions({url: '$page?blacklist-list=yes&RULEID=$ID&modeblk={$_GET["modeblk"]}&group=$group&TimeID={$_GET["TimeID"]}&QuotaID={$_GET["QuotaID"]}'}).flexReload(); ExecuteByClassName('SearchFunction');
 }
 
 	var x_bannedextensionlist_AddDefault=function(obj){
@@ -659,11 +805,11 @@ function rule_time(){
 	
 	$html="
 	<div id='anim-$t'></div>
-	<div id='TimeSpaceSaveID'>
+	<div id='TimeSpaceSaveID' class=form style='width:99%'>
 	
-	<table class=form style='width:99%'>
+	<table style='width:100%'>
 		<tr>
-			<td><div class=text-info style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div></td>
+			<td><div class=explain style='font-size:14px'>{ufdbguardTimeSpaceExplain}</div></td>
 			<td>
 			<table style='width:99%'>
 				<tbody>
@@ -887,6 +1033,7 @@ function rule_time_edit(){
 	include_once('ressources/class.cron.inc');
 	$ID=$_GET["ID"];
 	$TIMEID=$_GET["TIMEID"];
+	$QuotaID=$_GET["QuotaID"];
 	$tpl=new templates();
 	$page=CurrentPageName();
 	
@@ -1081,7 +1228,12 @@ function blacklist_save(){
 
 	$table="webfilter_blks";
 	if(!is_numeric($_POST["TimeID"])){$_POST["TimeID"]=0;}
+	if(!is_numeric($_POST["QuotaID"])){$_POST["QuotaID"]=0;}
+	
+	
+	
 	if($_POST["TimeID"]>0){$table="webfilters_dtimes_blks";$_POST["RULEID"]=$_POST["TimeID"];}
+	if($_POST["QuotaID"]>0){$table="webfilters_quotas_blks";$_POST["RULEID"]=$_POST["QuotaID"];}
 	
 	
 	$q=new mysql_squid_builder();	
@@ -1106,17 +1258,12 @@ function blacklist_save(){
 	}
 	
 	if($ligne["ID"]>0){
-		$q->QUERY_SQL("DELETE FROM $table WHERE ID={$ligne["ID"]}");
-		writelogs("DELETE FROM $table WHERE ID={$ligne["ID"]}",__FUNCTION__,__FILE__,__LINE__);
+		$q->QUERY_SQL("DELETE FROM `webfilter_blks` WHERE ID={$ligne["ID"]}");
+		writelogs("DELETE FROM `webfilter_blks` WHERE ID={$ligne["ID"]}",__FUNCTION__,__FILE__,__LINE__);
 		if(!$q->ok){echo $q->mysql_error;return;} 
 	}
 	
-	$order="COMPILEDB:{$_POST["categorykey"]}";
-	$md5=md5($order);
-	$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");	
 
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");
 	
 }
 
@@ -1191,7 +1338,7 @@ function rule_edit(){
 	
 	
 	if($ligne["AllSystems"]==1){
-		$explainAllSystems="<div class=text-info style='font-size:18px'>{AllSystemsDansExpl}</div>";
+		$explainAllSystems="<div class=explain style='font-size:18px'>{AllSystemsDansExpl}</div>";
 	}
 	
 	
@@ -1217,9 +1364,9 @@ function rule_edit(){
 	if($ID<0){$bypass=null;}
 	
 	$HTTP_CODE[0]="{default}";
-	$HTTP_CODE["301"]="{Moved_Permanently}";
-	$HTTP_CODE["302"]="{Moved_Temporarily}";
-	$HTTP_CODE["303"]="{http_code_see_other}";
+	$HTTP_CODE["301"]="{Moved_Permanently} (301)";
+	$HTTP_CODE["302"]="{Moved_Temporarily} (302)";
+	$HTTP_CODE["303"]="{http_code_see_other} (303)";
 	
 	
 /*
@@ -1376,10 +1523,10 @@ function rule_edit(){
 		}
 	}
 	
-		function SaveDansGUardianMainRule(){
-		      var XHR = new XHRConnection();
-		      XHR.appendData('groupname', document.getElementById('groupname').value);
-		      XHR.appendData('http_code', document.getElementById('http_code-$t').value);
+function SaveDansGUardianMainRule(){
+	var XHR = new XHRConnection();
+	XHR.appendData('groupname', document.getElementById('groupname').value);
+	XHR.appendData('http_code', document.getElementById('http_code-$t').value);
 		      
 		      
 		      
@@ -1464,7 +1611,7 @@ function rule_edit_save(){
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
 	$sock=new sockets();
-	$_POST["groupname"]=trim(strtolower($_POST["groupname"]));
+	
 	
 	
 	writelogs("Save ruleid `$ID`",__FUNCTION__,__FILE__,__LINE__);
@@ -1504,7 +1651,7 @@ function rule_edit_save(){
 	$_POST["groupname"]=str_replace('}', "", $_POST["groupname"]);
 	$_POST["groupname"]=str_replace('|', "", $_POST["groupname"]);
 	
-	$sql="SELECT ID FROM webfilter_rules WHERE `groupname`='{$_POST["groupname"]}'";
+	$sql="SELECT ID FROM webfilter_rules WHERE `groupname`='{$_POST["groupname"]}' AND ID != $ID";
 	$results=$q->QUERY_SQL($sql);
 	$mysql_num_rows=intval(mysql_num_rows($results));
 	
@@ -1580,23 +1727,23 @@ function groups(){
 	
 	$buttons="
 	buttons : [
-	{name: '$link_group', bclass: 'add', onpress : DansGuardianAddSavedGroup},
+	{name: '<strong style=font-size:18px>$link_group</strong>', bclass: 'add', onpress : DansGuardianAddSavedGroup},
 	],";		
 	
 $html="
+<input type='hidden' id='DANSGUARDIAN_EDIT_GROUP_LIST' value='flexRT$t'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 <script>
 var rowid=0;
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?groups-search=yes&t=$t&rule-id={$_GET["groups"]}',
+	url: '$page?groups-search=yes&t=$t&rule-id={$_GET["groups"]}&QuotaID={$_GET["QuotaID"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'none', width : 30, sortable : false, align: 'left'},
-		{display: '$group', name : 'groupname', width : 679, sortable : true, align: 'left'},	
-		{display: '$members', name : 'members', width :69, sortable : false, align: 'center'},
-		{display: '$unlink', name : 'delete', width : 48, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$group</span>', name : 'groupname', width : 679, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:18px>$members</span>', name : 'members', width :69, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$unlink</span>', name : 'delete', width : 65, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -1605,7 +1752,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'groupname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$dansguardian2_rules_groups_explain',
+	title: '<span style=font-size:17px>$dansguardian2_rules_groups_explain</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -1618,7 +1765,7 @@ $('#flexRT$t').flexigrid({
 });
 
 function DansGuardianAddSavedGroup(){
-	YahooWin4('590','$page?choose-group={$_GET["groups"]}&t=$t','$link_group');
+	YahooWin4('590','$page?choose-group={$_GET["groups"]}&QuotaID={$_GET["QuotaID"]}&t=$t','$link_group');
 }
 
 var x_UnlinkFilterGroup$t= function (obj) {
@@ -1664,11 +1811,6 @@ return false;
 
 function groups_list(){
 	
-	$search=$_POST["query"];
-	$search="*$search*";
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("*", "%", $search);	
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();	
@@ -1677,20 +1819,53 @@ function groups_list(){
 	$page=1;
 	$t=$_GET["t"];
 	
-	$sqlCount="SELECT COUNT(*) as tcount,webfilter_assoc_groups.ID,webfilter_assoc_groups.webfilter_id,
+
+	
+	$table="(SELECT webfilter_assoc_groups.ID,webfilter_assoc_groups.webfilter_id,
 	webfilter_group.groupname,
 	webfilter_group.description,
 	webfilter_group.gpid,
 	webfilter_group.localldap,
 	webfilter_group.ID as webfilter_group_ID,
 	webfilter_group.dn as webfilter_group_dn,
-	webfilter_group.enabled 
-	FROM webfilter_group,webfilter_assoc_groups WHERE ((webfilter_group.groupname LIKE '$search' AND webfilter_assoc_groups.webfilter_id={$_GET["rule-id"]}) 
-	OR (webfilter_group.description LIKE '$search' AND webfilter_assoc_groups.webfilter_id={$_GET["rule-id"]}))
-	AND webfilter_assoc_groups.group_id=webfilter_group.ID";	
+	webfilter_group.enabled
+	FROM webfilter_group,webfilter_assoc_groups 
+	WHERE webfilter_assoc_groups.webfilter_id={$_GET["rule-id"]}
+	AND webfilter_assoc_groups.group_id=webfilter_group.ID
+	ORDER BY webfilter_group.groupname) as t";
 	
-	$COUNLIGNE=mysql_fetch_array($q->QUERY_SQL($sqlCount,"artica_backup"));
-	if(!$q->ok){writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);}
+	if($_GET["QuotaID"]>0){
+		if(!$q->TABLE_EXISTS("webfilter_assoc_quota_groups")){$q->CheckTables(null,true);}
+		$table="(SELECT webfilter_assoc_quota_groups.ID,webfilter_assoc_quota_groups.webfilter_id,
+		webfilter_group.groupname,
+		webfilter_group.description,
+		webfilter_group.gpid,
+		webfilter_group.localldap,
+		webfilter_group.ID as webfilter_group_ID,
+		webfilter_group.dn as webfilter_group_dn,
+		webfilter_group.enabled
+		FROM webfilter_group,webfilter_assoc_quota_groups
+		WHERE webfilter_assoc_quota_groups.webfilter_id={$_GET["QuotaID"]}
+		AND webfilter_assoc_quota_groups.group_id=webfilter_group.ID
+		ORDER BY webfilter_group.groupname) as t";
+		
+		
+	}
+	
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){json_error_show($q->mysql_error,1);}
+		$total = $ligne["TCOUNT"];
+	
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){json_error_show($q->mysql_error,1);}
+		$total = $ligne["TCOUNT"];
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -1701,6 +1876,7 @@ function groups_list(){
 	$localldap[0]="{ldap_group}";
 	$localldap[1]="{virtual_group}";
 	$localldap[2]="{active_directory_group}";
+	$localldap[3]="{remote_ladp_group}";
 	
 	$isDynamic=isDynamic($_GET["rule-id"]);
 	
@@ -1710,36 +1886,37 @@ function groups_list(){
 	if(!is_numeric($rp)){$rp=50;}
 	$limitSql = "LIMIT $pageStart, $rp";	
 	
-	$sql="SELECT webfilter_assoc_groups.ID,webfilter_assoc_groups.webfilter_id,
-	webfilter_group.groupname,
-	webfilter_group.description,
-	webfilter_group.gpid,
-	webfilter_group.localldap,
-	webfilter_group.ID as webfilter_group_ID,
-	webfilter_group.dn as webfilter_group_dn,
-	webfilter_group.enabled 
-	FROM webfilter_group,webfilter_assoc_groups WHERE ((webfilter_group.groupname LIKE '$search' AND webfilter_assoc_groups.webfilter_id={$_GET["rule-id"]}) 
-	OR (webfilter_group.description LIKE '$search' AND webfilter_assoc_groups.webfilter_id={$_GET["rule-id"]}))
-	AND webfilter_assoc_groups.group_id=webfilter_group.ID	
-	ORDER BY webfilter_group.groupname {$_POST["sortorder"]} $limitSql";
+
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><code style='font-size:11px'>$sql</code>";}
-	writelogs("search:$search webfilter_id={$_GET["rule-id"]} countline:{$COUNLIGNE["tcount"]}",__FUNCTION__,__FILE__,__LINE__);
+	if(!$q->ok){json_error_show($q->mysql_error,1);}
+	
 	
 	
 	$data = array();
 	$data['page'] = $page;
-	$data['total'] = $COUNLIGNE["tcount"];
+	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){json_error_show("no data");}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	$results = $q->QUERY_SQL($sql);
+	if($GLOBALS["VERBOSE"]){echo "<strong>".__LINE__." </strong><br>\n";}
+	
+	if(mysql_num_rows($results)==0){json_error_show("no data",1);}
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$textExplainGroup=null;
 		$KEY_ID_GROUP=$ligne["webfilter_group_ID"];
-		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:UnlinkFilterGroup('{$ligne["ID"]}')\"><img src='img/delete-24.png' style='border:0px'></a>";
+		$delete="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:UnlinkFilterGroup('{$ligne["ID"]}')\"><img src='img/delete-32.png' style='border:0px'></a>";
 		$color="black";
 		$CountDeMembers="??";
 		$Textdynamic=null;
+		
+		if($GLOBALS["VERBOSE"]){echo "<strong>".__LINE__." localldap:{$ligne["localldap"]}</strong><br>\n";}
 		
 		if($ligne["localldap"]==0){
 			$gp=new groups($ligne["gpid"]);
@@ -1762,34 +1939,40 @@ function groups_list(){
 		
 		if($ligne["enabled"]==0){$color="#9A9A9A";}
 		if($ligne["localldap"]==2){
-		if(preg_match("#AD:(.*?):(.+)#", $ligne["webfilter_group_dn"],$re)){
-				$dnEnc=$re[2];
-				$LDAPID=$re[1];
-				$ad=new ActiveDirectory($LDAPID);
-				if($ad->UseDynamicGroupsAcls==1){
-					if(preg_match("#^CN=(.+?),.*#i", base64_decode($dnEnc),$re)){
-					$groupname=_ActiveDirectoryToName($re[1]);
-					$CountDeMembers='-';
-					$Debug="&nbsp;<a href=\"javascript:Loadjs('dansguardian2.explodeadgroup.php?rule-id={$_GET["rule-id"]}');\"
-					style=\"text-decoration:underline\">$dump_group_text</a>";
-					}
-				}else{
-					$tty=$ad->ObjectProperty(base64_decode($dnEnc));
-					$CountDeMembers=$tty["MEMBERS"];
-				}	
-
-				$description=htmlentities($tty["description"]);
-				$description=str_replace("'", "`", $description);	
-				if(trim($ligne["description"])==null){$ligne["description"]=$description;}
-			}
+			if(preg_match("#AD:(.*?):(.+)#", $ligne["webfilter_group_dn"],$re)){
+					$dnEnc=$re[2];
+					$LDAPID=$re[1];
+					$ad=new ActiveDirectory($LDAPID);
+					if($ad->UseDynamicGroupsAcls==1){
+						if(preg_match("#^CN=(.+?),.*#i", base64_decode($dnEnc),$re)){
+						$groupname=_ActiveDirectoryToName($re[1]);
+						$CountDeMembers='-';
+						$Debug="&nbsp;<a href=\"javascript:Loadjs('dansguardian2.explodeadgroup.php?rule-id=$KEY_ID_GROUP&groupid=$KEY_ID_GROUP');\"
+						style=\"text-decoration:underline\">$dump_group_text</a>";
+						}
+					}else{
+						$tty=$ad->ObjectProperty(base64_decode($dnEnc));
+						$CountDeMembers=$tty["MEMBERS"];
+					}	
+	
+					$description=htmlentities($tty["description"]);
+					$description=str_replace("'", "`", $description);	
+					if(trim($ligne["description"])==null){$ligne["description"]=$description;}
+				}
 		}
 
 		if($ligne["localldap"]==0){
 			if(preg_match("#^ExtLdap:(.+)#", $ligne["webfilter_group_dn"],$re)){
 				$CountDeMembers='-';
-				
 				$groupadd_text="&nbsp;{$re[1]}";
 			}	
+		}
+		
+		if($ligne["localldap"]==3){
+			if(preg_match("#ExtLDAP:(.+?):(.+)#", $ligne["groupname"],$re)){$ligne["groupname"]=$re[1];}
+			$DN=base64_decode($re[2]);
+			$ldap_ext=new ldap_extern();
+			$CountDeMembers=$ldap_ext->CountDeUsersByGroupDN($DN);
 		}
 		
 		$imgGP="win7groups-32.png";
@@ -1801,16 +1984,17 @@ function groups_list(){
 		$TextGroupType=$tpl->_ENGINE_parse_body($localldap[$ligne["localldap"]]);
 		
 		
-		$jsSelect="YahooWin4('712','dansguardian2.edit.group.php?ID=$KEY_ID_GROUP&t=$t&YahooWin=4','$KEY_ID_GROUP::{$ligne['groupname']}');";
+		$jsSelect="Loadjs('dansguardian2.edit.group.php?ID-js=$KEY_ID_GROUP&t=$t&YahooWin=4');";
 		
 		$data['rows'][] = array(
 				'id' => "group{$ligne["ID"]}",
 				'cell' => array(
-				"<img src='img/$imgGP'>",
 				"<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:$jsSelect\" 
-				style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['groupname']}</span></a>$groupadd_text$Textdynamic<div style='font-size:10px'>$textExplainGroup<i>&laquo;{$ligne["description"]} <i>$TextGroupType</i>&raquo;</i>$Debug",
-				"<span style='font-size:16px;color:$color'>$CountDeMembers</span>",$delete
+				style='font-size:22px;text-decoration:underline;color:$color'>{$ligne['groupname']}</span></a>
+				<span style='font-size:22px'>$groupadd_text$Textdynamic</span><br>
+				<span style='font-size:18px'>$textExplainGroup<i>&laquo;{$ligne["description"]} <i>$TextGroupType</i>&raquo;</i>$Debug</span>",
+				"<span style='font-size:22px;color:$color'>$CountDeMembers</span>","<center>$delete</center>"
 				)
 		);		
 		
@@ -1865,24 +2049,20 @@ function groups_choose(){
 
 	$buttons="
 	buttons : [
-	{name: '$new_group', bclass: 'add', onpress : AddNewDansGuardianGroup$t},
+	{name: '<strong style=font-size:18px>$new_group</strong>', bclass: 'add', onpress : AddNewDansGuardianGroup$t},
 	],";	
 	
 	
 	$html="
-	<div style='margin-right:-10px;margin-left:-10px'>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
-	
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?choose-groups-search=yes&t=$t&ID=$ID',
+	url: '$page?choose-groups-search=yes&t=$t&ID=$ID&QuotaID={$_GET["QuotaID"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'icon', width :31, sortable : false, align: 'left'},
-		{display: '$group', name : 'groupname', width : 440, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'icon', width :31, sortable : false, align: 'left'},
+		{display: '<span style=font-size:18px>$group</span>', name : 'groupname', width : 463, sortable : true, align: 'left'},
+		{display: '<span style=font-size:18px>&nbsp;</span>', name : 'icon', width :65, sortable : false, align: 'left'},
 		],
 	$buttons
 	searchitems : [
@@ -1895,7 +2075,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 585,
+	width: '99%',
 	height: 340,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1916,6 +2096,7 @@ var x_SaveDansGUardianMainRule$t= function (obj) {
 		      var XHR = new XHRConnection();
 		      XHR.appendData('choose-groupe-save', ID);
 		      XHR.appendData('ruleid', '$ID');
+		      XHR.appendData('QuotaID', '{$_GET["QuotaID"]}');
 		      XHR.sendAndLoad('$page', 'POST',x_SaveDansGUardianMainRule$t);  		
 		}
 		
@@ -1925,8 +2106,7 @@ var x_SaveDansGUardianMainRule$t= function (obj) {
 		}
 		
 		function DansGuardianEditGroup$t(ID,rname){
-			LoadWinORG('712','dansguardian2.edit.group.php?ID='+ID+'&t=$t&tt=$tt&yahoo=LoadWinORG','$group::$ID::');
-		
+			Loadjs('dansguardian2.edit.group.php?ID-js='+ID+'&t=$t&tt=$tt&yahoo=LoadWinORG');
 		}		
 		
 </script>
@@ -1954,14 +2134,9 @@ function groups_choose_search(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND ((groupname LIKE '$search') OR (description LIKE '$search'))";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -1992,25 +2167,27 @@ function groups_choose_search(){
 		
 		$localldap[0]="{ldap_group}";
 		$localldap[1]="{virtual_group}";
-		$localldap[2]="{active_directory_group}";	
+		$localldap[2]="{active_directory_group}";
+		$localldap[4]="{remote_ladp_group}";
 
 	
 while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		//win7groups-32.png
-		$add=imgsimple("arrow-right-24.png","{select} {group}","DansGuardianAddSavedGroup({$ligne["ID"]})");
+		$add=imgsimple("arrow-right-32.png","{select} {group}","DansGuardianAddSavedGroup({$ligne["ID"]})");
 		$imgGP="win7groups-32.png";
 		if($ligne["localldap"]<2){$imgGP="group-32.png";}
 		$typeexplain=$tpl->_ENGINE_parse_body($localldap[$ligne["localldap"]]);
+		if(preg_match("#ExtLDAP:(.+?):#", $ligne["groupname"],$re)){$ligne["groupname"]=$re[1];}
+		
 	
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-			"<img src='img/$imgGP'>",
-			"<span style='font-size:16px'>{$ligne["groupname"]}&nbsp;<span style='font-size:13px'>&laquo;$typeexplain&raquo;</span></div>
-			<div style='font-size:10px'><i>{$ligne["description"]}</i></div>",
-			$add
+			"<span style='font-size:20px'>{$ligne["groupname"]}&nbsp;<span style='font-size:16px'>&laquo;$typeexplain&raquo;</span></div>
+			<br><span style='font-size:16px'><i>{$ligne["description"]}</i></span>",
+			"<center>$add</center>"
 			)
 		);
 	}
@@ -2024,15 +2201,25 @@ function groups_choose_add(){
 	$ruleid=$_POST["ruleid"];
 	$groupid=$_POST["choose-groupe-save"];
 	$md5=md5("$ruleid$groupid");
+	$QuotaID=intval($_POST["QuotaID"]);
+	$main_table="webfilter_assoc_groups";
+	if($QuotaID>0){
+		$ruleid=$QuotaID;
+		$main_table="webfilter_assoc_quota_groups";
+		$md5=md5("$ruleid$groupid");
+	}
 	
-	$sql="INSERT INTO webfilter_assoc_groups (zMD5,webfilter_id,group_id) VALUES('$md5',$ruleid,$groupid)";
+	$sql="INSERT INTO `$main_table` (zMD5,webfilter_id,group_id) VALUES('$md5',$ruleid,$groupid)";
+	
+	
+	
 	$q=new mysql_squid_builder();
 	$q->CheckTables(null);
 	$q->QUERY_SQL($sql);
 	
 	if(!$q->ok){
 		if(preg_match("#Data too long for column#", $q->mysql_error)){
-			$q->QUERY_SQL("ALTER TABLE `webfilter_assoc_groups` CHANGE `zMD5` `zMD5` VARCHAR( 90 ) NOT NULL");
+			$q->QUERY_SQL("ALTER TABLE `$main_table` CHANGE `zMD5` `zMD5` VARCHAR( 90 ) NOT NULL");
 			$q->QUERY_SQL($sql);
 		}
 		
@@ -2042,11 +2229,9 @@ function groups_choose_add(){
 	
 	if(!$q->ok){echo 
 		"Function:".__FUNCTION__."\nLine:".__LINE__."\nFile:".__FILE__."\n".
-		$q->mysql_error;
+		$q->mysql_error."\nQuery:$sql";
 	}
-	
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?rebuild-filters=yes");	
+
 	
 }
 
@@ -2067,7 +2252,7 @@ function bannedextensionlist_popup(){
 	$tpl=new templates();	
 $html="
 <div id='bannedextensionlist-div'></div>
-<div class=text-info>{bannedextensionlist_explain}</div>
+<div class=explain>{bannedextensionlist_explain}</div>
 <script>
 	function RefreshBannedextensionlist(){
 		$('#bannedextensionlist-table').remove();
@@ -2203,6 +2388,10 @@ function blacklist_list(){
 	$tableProd="webfilter_blks";
 	
 	if($_GET["TimeID"]>0){$tableProd="webfilters_dtimes_blks";}
+	if($_GET["QuotaID"]>0){
+		$_GET["RULEID"]=$_GET["QuotaID"];
+		$tableProd="webfilters_quotas_blks";
+	}
 	
 	$page=1;
 	$ORDER="ORDER BY categorykey ASC";
@@ -2225,7 +2414,7 @@ function blacklist_list(){
 	if(!$q->TABLE_EXISTS($tableProd)){$q->CheckTables();}
 	$sql="SELECT `category` FROM $tableProd WHERE `webfilter_id`={$_GET["RULEID"]} AND modeblk={$_GET["modeblk"]}";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){json_error_show("$q->mysql_error",1);}
+	if(!$q->ok){json_error_show("$q->mysql_error<br>$sql",2);}
 	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$cats[$ligne["category"]]=true;}
@@ -2279,42 +2468,13 @@ function blacklist_list(){
 		$category_table_elements=$q->COUNT_ROWS($category_table);
 		$DBTXT=array();
 		$database_items=null;
-		if($category_table_elements>0){
-			$category_table_elements=FormatNumber($category_table_elements);
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."',true)\" 
-			style='font-size:11px;font-weight:bold;text-decoration:underline'>$category_table_elements</a> $items";
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."',true)\" 
-			style='font-size:11px;font-weight:bold;text-decoration:underline'>$compile</a>";
-			
-		}
-
-		
-		$ligneTLS=mysql_fetch_array($q->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='{$ligne['categorykey']}'"));
-		$category_table_elements_tlse=$ligneTLS["websitesnum"];
-		if($category_table_elements_tlse>0){
-			$category_table_elements_tlse=FormatNumber($category_table_elements_tlse);
-			$DBTXT[]="$category_table_elements_tlse Toulouse University $items";
-		}		
-		
-		$catz=new mysql_catz();
-		$category_table_elements_artica=$catz->COUNT_ROWS($category_table);
-		if($category_table_elements_artica>0){
-			$category_table_elements_artica=FormatNumber($category_table_elements_artica);
-			$DBTXT[]="$category_table_elements_artica Artica $items <i style='font-size:10px;font-weight:normal'>$text_license</i>";
-		}
-		
-		
-		
-		if(count($DBTXT)>0){
-			$database_items="<span style='font-size:11px;font-weight:bold'>".@implode("&nbsp;|&nbsp;", $DBTXT)."</span>";
-		}
 		
 		$img="img/{$ligne["picture"]}";
 		$val=0;
 		if($cats[$ligne['categorykey']]){$val=1;}
 		if($OnlyEnabled){if($val==0){continue;}}
 		
-		$disable=Field_checkbox("cats_{$_GET['RULEID']}_{$_GET['modeblk']}_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryRule('{$ligne['categorykey']}','{$_GET["RULEID"]}','{$_GET["modeblk"]}')");
+		$disable=Field_checkbox("cats_{$_GET['RULEID']}_{$_GET['modeblk']}_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryRule('{$ligne['categorykey']}','{$_GET["RULEID"]}','{$_GET["modeblk"]}','{$_GET["TimeID"]}')");
 		$ligne['description']=utf8_encode($ligne['description']);
 		
 	$data['rows'][] = array(

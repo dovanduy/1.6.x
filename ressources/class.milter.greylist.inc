@@ -3,7 +3,7 @@ include_once(dirname(__FILE__)."/class.ldap.inc");
 include_once(dirname(__FILE__)."/class.maincf.multi.inc");
 include_once(dirname(__FILE__)."/class.mysql.inc");
 include_once(dirname(__FILE__)."/class.tcpip.inc");
-
+include_once(dirname(__FILE__)."/class.main_cf.inc");
 class milter_greylist{
 	var $hostname;
 	var $ou;
@@ -428,11 +428,16 @@ private function isaregex($pattern){
 
 private function acl_from_emailToPattern($from){
 	$IP=new IP();
+	if(strpos($from, ",")>0){
+		$tbl=explode(",",$from);
+		$from=$tbl[0];
+	}
+	
 	if(!preg_match("#(.*?)@(.+)#", $from,$re)){ $re[1]=".*?"; $re[2]=$from; }
 	$prefix_email=$re[1];
 	$suffix_email=$re[2];
 	$orginal_suffix=$re[2];
-	if(preg_match("#(.+?),(.+)#", $prefix_email,$rz)){$prefix_email=$rz[2];}
+	
 	$orginal_suffix=str_replace("\\", "", $orginal_suffix);
 	if($IP->isIPAddress($suffix_email)){
 		return "addr $suffix_email";
@@ -462,20 +467,66 @@ function BuildConfig(){
 			if(preg_match('#([0-9]+)#',$this->main_array["timeout"],$re)){$this->main_array["timeout"]=$re[1];}
 			if(preg_match('#([0-9]+)#',$this->main_array["autowhite"],$re)){$this->main_array["autowhite"]=$re[1];}
 			$this->BuildDefault();
-			$this->__Build_DNSBL();
-			$sql="SELECT * FROM miltergreylist_acls WHERE instance='$this->hostname'";			
-			$q=new mysql();
-			$results=$q->QUERY_SQL($sql,"artica_backup");
-			if(mysql_num_rows($results)==0){$this->DefaultAcls();}
 			$this->acl[]=array();
+			$Ipclass=new IP();
+			$main=new main_cf();
+			$array=$main->array_mynetworks;
+			while (list ($num, $net) = each ($main->array_mynetworks) ){
+				if(!$Ipclass->isIPAddressOrRange($net)){
+					$this->acl[]="# acl whitelist addr $net # isIPAddressOrRange ! FALSE";
+					continue;
+				}
+				$this->acl[]="acl whitelist addr $net # From MyNetwork";
+			}
+			
+			
+			$this->__Build_DNSBL();
+			
+			
 			$array_acl=array();
 			$objects=$this->buildObjects();
 			if(!isset($this->dnsrbl)){$this->dnsrbl=null;}
 			
 			$c=0;
+			
+			
+			
+			
+			
+			
+			$sql="SELECT *  FROM contacts_whitelist where `enabled`=1";
+			$q=new mysql();
+			$results = $q->QUERY_SQL($sql,"artica_backup");
+			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+				if(trim($ligne["sender"])==null){continue;}
+				$ligne["sender"]=strtolower($ligne["sender"]);
+				if(isset($already[$ligne["sender"]])){continue;}
+				$already[$ligne["sender"]]=true;
+				$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($ligne["sender"]);
+			
+			}
+			
+			$IP=new IP();
+			$ldap=new clladp();
+			$hash=$ldap->WhitelistsFromDomain("*");
+			while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
+				while (list ($index, $from) = each ($MAIN_HASH)){
+					$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($from);
+				}
+			}
+				
+			$sql="SELECT * FROM miltergreylist_acls WHERE instance='$this->hostname'";
+			$q=new mysql();
+			$results=$q->QUERY_SQL($sql,"artica_backup");
+			if(mysql_num_rows($results)==0){$this->DefaultAcls();}
+			
+			
 			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname ". mysql_num_rows($results)." rules\n";}
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				$continue=false;
+				$ligne["description"]=trim($ligne["description"]);
+				$ligne["description"]=str_replace("\n", " ", $ligne["description"]);
+				$ligne["description"]=str_replace("\r", "", $ligne["description"]);
 				$c++;
 				
 				
@@ -490,7 +541,7 @@ function BuildConfig(){
 							}
 							if(isset($this->AVAILABLE_OBJECTS[$gpid])){
 								if($ligne["method"]=="blacklist"){$pattern=null;}
-								$this->acl[]="acl {$ligne["method"]} list \"{$this->AVAILABLE_OBJECTS[$gpid]}\" $pattern #ID:{$ligne["ID"]} {$ligne["pattern"]} {$ligne["description"]}";
+								$MAIN_ACLS[$ligne["method"]][]="acl {$ligne["method"]} list \"{$this->AVAILABLE_OBJECTS[$gpid]}\" $pattern #ID:{$ligne["ID"]} {$ligne["pattern"]} {$ligne["description"]}";
 							}
 						}
 						$continue=true;						
@@ -500,9 +551,9 @@ function BuildConfig(){
 				
 				if(!$continue){
 					if($ligne["type"]=="addr"){
-						if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["pattern"])){
-								if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}
-								continue;
+						if(!$Ipclass->isIPAddressOrRange($ligne["pattern"])){
+							if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}
+							continue;
 						}
 					}
 					
@@ -538,9 +589,14 @@ function BuildConfig(){
 					if($ligne["type"]=="rcpt"){
 						if(strpos($ligne["pattern"], "@")==0){
 							$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
-							$this->acl[]="acl {$ligne["method"]} rcpt /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from wrong rcpt {$ligne["pattern"]}";
+							$MAIN_ACLS[$ligne["method"]][]="acl {$ligne["method"]} rcpt /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from wrong rcpt {$ligne["pattern"]}";
 							continue;
 						}
+					}
+					
+					if($ligne["type"]=="body"){
+						$MAIN_ACLS[$ligne["method"]][]="dacl {$ligne["method"]} body /{$ligne["pattern"]}/ #ID:{$ligne["ID"]}";
+						continue;
 					}
 					
 						
@@ -549,36 +605,23 @@ function BuildConfig(){
 					if($ligne["type"]=="domain"){
 						if(strpos(" {$ligne["pattern"]}", "/")==0){
 							$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
-							$this->acl[]="acl {$ligne["method"]} from /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from domain {$ligne["pattern"]}";
+							$MAIN_ACLS[$ligne["method"]][]="acl {$ligne["method"]} from /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from domain {$ligne["pattern"]}";
 						}
 					}
 					
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}
-					$this->acl[]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]}/".__LINE__." {$ligne["description"]}";
+					$MAIN_ACLS[$ligne["method"]][]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]}/".__LINE__." {$ligne["description"]}";
 				}
 				
 			}
 		
 			
-			$sql="SELECT *  FROM contacts_whitelist where `enabled`=1";
-			$q=new mysql();
-			$results = $q->QUERY_SQL($sql,"artica_backup");	
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				if(trim($ligne["sender"])==null){continue;}
-				$ligne["sender"]=strtolower($ligne["sender"]);
-				if(isset($already[$ligne["sender"]])){continue;}
-				$already[$ligne["sender"]]=true;
-				$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($ligne["sender"]);
-				
+			while (list ($index, $acl) = each ($MAIN_ACLS["whitelist"])){
+				$this->acl[]=$acl;
 			}
-
-			$IP=new IP();
-			$ldap=new clladp();
-			$hash=$ldap->WhitelistsFromDomain("*");
-				while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
-					while (list ($index, $from) = each ($MAIN_HASH)){
-						$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($from);
-					}
+			
+			while (list ($index, $acl) = each ($MAIN_ACLS["blacklist"])){
+				$this->acl[]=$acl;
 			}
 			
 			$hash=$ldap->BlackListFromDomain("*");
@@ -586,8 +629,7 @@ function BuildConfig(){
 				while (list ($index, $from) = each ($MAIN_HASH)){
 					$this->acl[]="acl blacklist ".$this->acl_from_emailToPattern($from);
 				}
-			}			
-			
+			}
 			
 			
 			$sock=new sockets();
@@ -644,7 +686,7 @@ function BuildConfig(){
 						if(strpos($ligne,"@")>0){$array_acl2[$num]=str_replace("@","",$ligne);}
 					}
 					
-					if(preg_match("#^dacl#",$ligne)){$ligne=str_replace("dacl", "acl", $ligne); $array_acl2[$num]=$ligne;}
+					
 					if(preg_match("#^acl whitelist\s+(.+?)\s+(.+?)#",$ligne,$re)){
 						if(strtolower($re[1])=="header"){
 							if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname whitelist domain -> {$re[2]}\n";}
@@ -655,7 +697,7 @@ function BuildConfig(){
 				
 				}	
 			}
-
+		
 			$conf=null;	
 			$conf=$conf ."# Greylisting config file with a lot of options explained\n";
 			$conf=$conf ."#\n";
@@ -891,21 +933,18 @@ function BuildConfig(){
 			}*/
 			$conf=$conf ."\n";
 			$conf=$conf ."\n";
-			$conf=$conf ."#ACLS Rules\n\n";
+			$conf=$conf ."#ACLS Rules [".__FUNCTION__."/".__LINE__."]\n\n";
 			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname adding array_acl2=". count($array_acl2)." rules\n";}
 			@file_put_contents("/etc/milteracls.txt",  implode("\n",$array_acl2));
 			
 			$conf=$conf . implode("\n",$array_acl2);
-			$conf=$conf."\n";
-			if($GLOBALS["ROOT"]){
-				$unix=new unix();
-				$php5=$unix->LOCATE_PHP5_BIN();
-				@mkdir("/var/log/milter-greylist",0777,true);
-				$conf=$conf."stat \"|/usr/share/artica-postfix/exec.milter-greylist.logger.php\" \"$this->hostname,%i,%f,%r,%a,%A,%S,%C\"";
-				$conf=$conf ."\n";
+			$sock=new sockets();
+			$EnableMilterGreylistExternalDB=intval($sock->GET_INFO("EnableMilterGreylistExternalDB"));
+			
+			if($EnableMilterGreylistExternalDB==1){
+				$conf=$conf ."\n".@file_get_contents("/etc/mail/milter-greylist-database.conf")."\n";
 			}
-	      	
-		    
+			$conf=$conf."\n";
 			return $conf;
 }
 

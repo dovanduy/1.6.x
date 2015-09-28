@@ -367,7 +367,7 @@ function settings(){
 	<td valign='top' width=1%><span id='kerbchkconf'></span>
 		<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshAll()")."</div></td>
 	<td valign='top' width=99%'>
-		<div class=text-info>$intro</div>
+		<div class=explain>$intro</div>
 	</td>
 	</table>
 	
@@ -454,9 +454,9 @@ function settings(){
 		
 	var x_SaveKERBProxy= function (obj) {
 		var results=obj.responseText;
-		if(results.length>3){alert(results);document.getElementById('serverkerb-animated').innerHTML='';return;}
+		if(results.length>3){alert(results);return;}
 		RefreshServerKerb();
-		document.getElementById('serverkerb-animated').innerHTML='';
+		
 		if(document.getElementById('AdSquidStatusLeft')){RefreshDansguardianMainService();}
 	}		
 	
@@ -471,7 +471,6 @@ function settings(){
 			XHR.appendData('WINDOWS_SERVER_PASS',pp);
 			XHR.appendData('ADNETBIOSDOMAIN',document.getElementById('ADNETBIOSDOMAIN').value);
 			XHR.appendData('ADNETIPADDR',document.getElementById('ADNETIPADDR').value);
-			AnimateDiv('serverkerb-animated');
 			XHR.sendAndLoad('$page', 'POST',x_SaveKERBProxy);
 		
 		}

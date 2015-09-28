@@ -22,7 +22,7 @@ function page(){
 	$t=time();
 	$html="
 	<div style='font-size:26px;margin-bottom:20px'>{persistent_connections}</div>
-	<div class=text-info style='font-size:18px'>{persistent_connections_explain}</div>			
+	<div class=explain style='font-size:18px'>{persistent_connections_explain}</div>			
 	<p>&nbsp;</p>
 	". Paragraphe_switch_img("{server_persistent_connections}", "{server_persistent_connections_explain}"
 	,"SquidServerPersistentConnections",$SquidServerPersistentConnections,null,750		

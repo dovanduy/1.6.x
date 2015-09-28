@@ -130,14 +130,28 @@ if(function_exists("apc_clear_cache")){
 			unset($_SESSION["SETTINGS_FILES"]);
 			unset($_SESSION["FONT_CSS"]);
 			
+			
+			unset($_SESSION["translation_en"]);
+			unset($_SESSION["translation_fr"]);
+			unset($_SESSION["translation_br"]);
+			unset($_SESSION["translation_it"]);
+			unset($_SESSION["translation_po"]);
+			unset($_SESSION["translation_pol"]);
+			unset($_SESSION["translation_es"]);
+			unset($_SESSION["translation_de"]);
+			
 			unset($_SESSION[md5("statusPostfix_satus")]);
 			unset($_SESSION["EnableWebPageDebugging"]);
 			unset($_SESSION["quicklinks_proxy_action"]);
 			unset($_SESSION["webfilters_sqgroups_iptables"]);
 			@unlink("ressources/logs/postfix.status.html");
-			
+			@unlink("/etc/artica-postfix/CPU_NUMBER");
 
 			$workdir="/usr/share/artica-postfix/ressources/logs/web";
+			
+			
+			
+			
 			$ToDelete["admin.index.tabs.html"]=true;
 			$ToDelete["admin.index.memory.html"]=true;
 			$ToDelete["admin.index.notify.html"]=true;
@@ -146,12 +160,74 @@ if(function_exists("apc_clear_cache")){
 			$ToDelete["admin.index.status-infos.php.left_menus_services"]=true;
 			$ToDelete["admin.index.status-infos.php.page"]=true;
 			$ToDelete["admin.index.status-infos.php.left_menus_actions"]=true;
-			@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");
+			if(is_file("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS")){@unlink("/usr/share/artica-postfix/ressources/databases/ALL_SQUID_STATUS");}
 			@unlink("/usr/share/artica-postfix/ressources/logs/web/ufdb.rules_toolbox_left.html");
 			
 			$ToDelete["logon.html"]=true;
 			$ToDelete["traffic.statistics.html"]=true;
 			while (list ($filename, $val) = each ($ToDelete) ){@unlink("$workdir/$filename");}
+			
+			$BaseWorkDir=$workdir;
+			
+			if ($handle = opendir($BaseWorkDir)) {
+				
+				while (false !== ($filename = readdir($handle))) {
+					if($filename=="."){continue;}
+					if($filename==".."){continue;}
+					$targetFile="$BaseWorkDir/$filename";
+					if(is_dir($targetFile)){continue;}
+					if(preg_match("#\.html$#", $filename)){@unlink($targetFile);}
+				}
+				
+				
+			}
+			
+			
+			$BaseWorkDir="/usr/share/artica-postfix/ressources/logs/web/cache";
+				
+			if ($handle = opendir($BaseWorkDir)) {
+			
+				while (false !== ($filename = readdir($handle))) {
+					if($filename=="."){continue;}
+					if($filename==".."){continue;}
+					$targetFile="$BaseWorkDir/$filename";
+					if(is_dir($targetFile)){continue;}
+					@unlink($targetFile);
+				}
+			
+			
+			}
+			
+			
+			$BaseWorkDir="/usr/share/artica-postfix/ressources/logs/web/help";
+			if ($handle = opendir($BaseWorkDir)) {
+					
+				while (false !== ($filename = readdir($handle))) {
+					if($filename=="."){continue;}
+					if($filename==".."){continue;}
+					$targetFile="$BaseWorkDir/$filename";
+					if(is_dir($targetFile)){continue;}
+					@unlink($targetFile);
+				}
+					
+					
+			}
+
+			
+			$BaseWorkDir="/usr/share/artica-postfix/ressources/interface-cache";
+			if ($handle = opendir($BaseWorkDir)) {
+					
+				while (false !== ($filename = readdir($handle))) {
+					if($filename=="."){continue;}
+					if($filename==".."){continue;}
+					$targetFile="$BaseWorkDir/$filename";
+					if(is_dir($targetFile)){continue;}
+					@unlink($targetFile);
+				}
+					
+					
+			}
+			
 
 			include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 			$q=new mysql_squid_builder();
@@ -164,7 +240,7 @@ if(function_exists("apc_clear_cache")){
 			$tpl=new templates();
 			$html=$tpl->javascript_parse_text($text,1);
 			$html=str_replace("\n", "<br>", $html);
-			echo "<div class=text-info style='font-size:14px'>".$html."</div>";
+			echo "<div class=explain style='font-size:14px'>".$html."</div>";
 			$sock=new sockets();
 			$sock->getFrameWork("services.php?cache-pages=yes");
 			

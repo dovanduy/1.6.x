@@ -1,7 +1,6 @@
-<ABOUT_NETATALK>Netatalk is a freely-available Open Source AFP fileserver.[br]
- It also provides a kernel level implementation of the AppleTalk Protocol Suite[br]
-Your system will be able to serve many Macintosh clients simultaneously as an AppleShare file server (AFP).
-</ABOUT_NETATALK>
+<ABOUT_NETATALK>Netatalk &eacute; um servidor de arquivos AFP de C%C3%B3digo Aberto distribu%C3%ADdo livremente.[br]
+Ele tamb&eacute;m oferece uma implementa%C3&sect;%C3&pound;o em n%C3%ADvel de kernel do AppleTalk Protocol Suite[br]
+Seu sistema conseguir%C3&iexcl; servir v%C3&iexcl;rios clientes Macintosh simultaneamente assim como o AppleSahre file server (AFP).</ABOUT_NETATALK>
 <aboveeq>&eacute; superior</aboveeq>
 <abovenot>n&atilde;o &eacute; superior</abovenot>
 <access_events>Eventos de Acesso</access_events>
@@ -74,7 +73,7 @@ Escolha o dom&iacute;nio principal e definir o subdom&iacute;nio que voc&ecirc; 
 <add_website>Adicionar um site</add_website>
 <add_websites>Adicionar sites</add_websites>
 <ADMINISTRATION_THEME>tema de administra&ccedil;&atilde;o</ADMINISTRATION_THEME>
-<ADNETBIOSDOMAIN>Netbios AD Domain</ADNETBIOSDOMAIN>
+<ADNETBIOSDOMAIN>Netbios Dom%C3%ADnio AD</ADNETBIOSDOMAIN>
 <advanced_artica_options_text>Definir as configura&ccedil;&otilde;es globais Artica como notifica&ccedil;&otilde;es, configura&ccedil;&otilde;es espec&iacute;ficas de interface Web, o uso de Proxy, par&acirc;metros LDAP, admin e senha mestre ...</advanced_artica_options_text>
 <AD_CONNECTION_ERROR>Erro de liga&ccedil;&atilde;o para o Active Directory</AD_CONNECTION_ERROR>
 <AD_CONNECTION_OK>Ligada ao Active Directory</AD_CONNECTION_OK>
@@ -161,16 +160,16 @@ Em alguns casos, esta tem sido mostrado para resultar em um aumento de velocidad
 Uma vez que um pedido foi recebido, o valor de tempo limite especificado pela diretiva Timeout aplica. [br]
 Para um valor alto pode causar problemas de desempenho em servidores muito carregados. [br]
 Quanto maior o tempo de espera, os processos mais servidores ser&atilde;o mantidos ocupados &agrave; espera de conex&otilde;es com os clientes inativos</ApacheKeepAliveTimeout>
-<ApacheMaxClients>sets the limit on the number of simultaneous requests that will be served.</ApacheMaxClients>
-<ApacheMaxKeepAliveRequests>limits the number of requests allowed per connection when KeepAlive is on. If it is set to 0, unlimited requests will be allowed. We recommend that this setting be kept to a high value for maximum server performance</ApacheMaxKeepAliveRequests>
-<ApacheMaxRequestsPerChild>sets the limit on the number of requests that an individual child server process will handle.</ApacheMaxRequestsPerChild>
+<ApacheMaxClients>Configura o limite do n%C3%BAmero de requisi%C3&sect;%C3&micro;es simult&acirc;neas que ser%C3&pound;o disponibilizadas.</ApacheMaxClients>
+<ApacheMaxKeepAliveRequests>Limita o n%C3%BAmero de requisi%C3&sect;%C3&micro;es permitidas por conex%C3&pound;o quando o KeepAlive est%C3&iexcl; ativo. Se estiver configurado para 0, ilimitadas requisi%C3&sect;%C3&micro;es ser%C3&pound;o permitidas. Recomendamos que estas configura%C3&sect;%C3&micro;es sejam mantidas em um valor alto para garantir o m%C3&iexcl;ximo de desempenho do servidor.</ApacheMaxKeepAliveRequests>
+<ApacheMaxRequestsPerChild>Configura o limite do n%C3%BAmero de requisi%C3&sect;%C3&micro;es que um %C3%BAnico processo filho vai processar.</ApacheMaxRequestsPerChild>
 <ApacheMinSpareServers>Sets the desired minimum number of idle child server processes.[br]
 An idle process is one which is not handling a request.
 The Max Spare Servers directive sets the desired maximum number of idle child server processes.[br]
 An idle process is one which is not handling a request. 
 </ApacheMinSpareServers>
 <ApacheServerSignature>Activate Footer web page information</ApacheServerSignature>
-<ApacheServerTokens>Server Header response</ApacheServerTokens>
+<ApacheServerTokens>Resposta do Cabe%C3&sect;alho do Servidor</ApacheServerTokens>
 <ApacheStartServers>sets the number of child server processes created on startup. As the number of processes is dynamically controlled depending on the load, there is usually little reason to adjust this parameter</ApacheStartServers>
 <ApacheTimeout>The TimeOut directive currently defines the amount of time Apache will wait for three things:[br]
 1. The total amount of time it takes to receive a GET request.[br]
@@ -218,7 +217,7 @@ Artica is in charge to get status of all websites periodically.[br]In some cases
 In this case you need to allow the proxy IP adress.
 each website can be requested trough this uri : http://servername/server-status.
 </apache_mod_status_allow_explain>
-<apply_config>Apply settings</apply_config>
+<apply_config>Aplicar configura%C3&sect;%C3&micro;es</apply_config>
 <apply_config_postfix>Stop Postfix main system, recompile all parameters and start postfix in order to make parameters in production mode</apply_config_postfix>
 <apply_network_configuration>Apply network configuration</apply_network_configuration>
 <apply_network_configuration_warn>The network parameters will be rebuilded in background.[br]During the task the server will be not available.[br]
@@ -236,20 +235,20 @@ Wait few seconds and refresh this web page</apply_network_configuration_warn>
 <APP_DRUSH7>Drush for Drupal7</APP_DRUSH7>
 <APP_EYEOS>eyeOS the Cloud Desktop</APP_EYEOS>
 <APP_EYEOS_TEXT>eyeOS is an open source web desktop following the cloud computing concept that seeks to enable collaboration and communication among users</APP_EYEOS_TEXT>
-<APP_GREENSQL>GreenSQL Firewall</APP_GREENSQL>
+<APP_GREENSQL>Firewall GreenSQL</APP_GREENSQL>
 <APP_GREENSQL_ABOUT>GreenSQL is an Open Source database firewall used to protect databases from SQL injection attacks.[br]
 GreenSQL works as a proxy and has built in support for MySQL.[br]
 The logic is based on evaluation of SQL commands using a risk scoring matrix as well as blocking known db administrative commands 
 (DROP, CREATE, etc)...</APP_GREENSQL_ABOUT>
-<APP_GREYHOLE>Realtime Backup (greyhole)</APP_GREYHOLE>
+<APP_GREYHOLE>Backup em tempo real (greyhole)</APP_GREYHOLE>
 <APP_GREYHOLE_TEXT>Greyhole is an application that uses Samba to create a storage pool of all your available hard drives (whatever their size, however they're connected), and allows you to create redundant copies of the files you store, in order to prevent data loss when part of your hardware fails</APP_GREYHOLE_TEXT>
-<APP_HAMACHI>LogMeIn Hamachi client</APP_HAMACHI>
+<APP_HAMACHI>Cliente LogMeIn Hamachi</APP_HAMACHI>
 <APP_HAMACHI_ABOUT>LogMeIn Hamachi is a hosted VPN service that securely connects devices and networks,
 extending LAN-like network connectivity to mobile users, distributed teams and business applications.[br]
 You can easily create secure virtual networks on demand, across public and private networks.[br]
 Hamachi is managed and maintained from anywhere via the web, securely. 
 </APP_HAMACHI_ABOUT>
-<APP_IETD>iSCSI service</APP_IETD>
+<APP_IETD>Servi%C3&sect;o iSCSI</APP_IETD>
 <APP_IPTACCOUNT>TCP/IP Accounting</APP_IPTACCOUNT>
 <APP_IPTACOUNT_EXPLAIN>TCP/IP Accounting allow you to obtain informations about traffic received,passed,transfered according rules</APP_IPTACOUNT_EXPLAIN>
 <APP_JOOMLA17>Joomla 1.7x</APP_JOOMLA17>
@@ -260,9 +259,9 @@ Hamachi is managed and maintained from anywhere via the web, securely.
 <APP_MOD_PAGESPEED>optimizing web pages module</APP_MOD_PAGESPEED>
 <APP_MSKTUTIL>keytab client for MS Active Directory</APP_MSKTUTIL>
 <APP_MSKTUTIL_NOT_INSTALLED>msktutil is not installed, use the setup center in order to install this tool</APP_MSKTUTIL_NOT_INSTALLED>
-<APP_MYSQL1>Mysql service</APP_MYSQL1>
+<APP_MYSQL1>Servi%C3&sect;o Mysql</APP_MYSQL1>
 <APP_NETATALK>Networking Apple Macintosh</APP_NETATALK>
-<APP_NOIP>No-IP DNS service</APP_NOIP>
+<APP_NOIP>Servi%C3&sect;o DNS No-IP</APP_NOIP>
 <APP_NOIP_TEXT>Check/Submit DNS Update periodically trough the No-IP dynamic DNS service</APP_NOIP_TEXT>
 <APP_NSCD>Name Service cache Daemon</APP_NSCD>
 <APP_OCSI2>OCS Engine server 2</APP_OCSI2>
@@ -270,13 +269,13 @@ Hamachi is managed and maintained from anywhere via the web, securely.
 <APP_OPENEMM>OpenEMM service</APP_OPENEMM>
 <APP_OPENEMM_SENDMAIL>SendMail for OpenEMM</APP_OPENEMM_SENDMAIL>
 <APP_PDNS_INSTANCE>PowerDNS (Instance)</APP_PDNS_INSTANCE>
-<APP_PHPFCGI>FastCGI module</APP_PHPFCGI>
+<APP_PHPFCGI>Modulo FastCGI</APP_PHPFCGI>
 <APP_PIWIK>Piwik</APP_PIWIK>
 <APP_PIWIK_TEXT>Piwik is a real time web analytics software program.[br]
 It provides you with detailed reports on your website visitors:[br]
 the search engines and keywords they used, the language they speak, your popular pages...[br] and so much more</APP_PIWIK_TEXT>
-<APP_POSTFWD2>Policy Delegation</APP_POSTFWD2>
-<APP_POSTFWD2_ICON_TEXT>Manage your SMTP rules like a FireWall with PostFwd</APP_POSTFWD2_ICON_TEXT>
+<APP_POSTFWD2>Delega%C3&sect;%C3&pound;o de Pol%C3%ADtica</APP_POSTFWD2>
+<APP_POSTFWD2_ICON_TEXT>Gerencie suas regras de SMTP igual um Firewall com PostFwd</APP_POSTFWD2_ICON_TEXT>
 <APP_POSTFWD2_TEXT>Policy delegation is a kind of Firewall that allow you to define a set of rules to restrict messaging</APP_POSTFWD2_TEXT>
 <APP_POWERADMIN>PowerAdmin</APP_POWERADMIN>
 <APP_POWERADMIN_NO_MCRYPT_ENCRYPT>It seems that the module mcrypt is correctly loaded/installed. Try to reboot the computer or contact Artica support team.</APP_POWERADMIN_NO_MCRYPT_ENCRYPT>
@@ -374,6 +373,7 @@ For example, if you using Artica has an SMTP outgoing engine or to perform mass-
  This is why the update progress should take time to updated to 100%</artica_update_categories_howto>
 <AsComplexPassword>Must use complex password</AsComplexPassword>
 <AsDansGuardianAdministrator>Can Manage Web filtering categories and categories repository</AsDansGuardianAdministrator>
+<AsSquidPersonalCategories>Can Manage Personal categories</AsSquidPersonalCategories>
 <AsWebFilterRepository>Can manage Proxy categories repository service</AsWebFilterRepository>
 <AsWebMaster>Can manage Web services such has Websites and Web applications</AsWebMaster>
 <AsWebStatisticsAdministrator>Can View all Web statistics (Proxy & url filtering)</AsWebStatisticsAdministrator>
@@ -1958,6 +1958,11 @@ You have to define task the period in minutes.
 <persistante_connection>Persistante connection</persistante_connection>
 <personal_category>Personal category</personal_category>
 <phishing_uris>Phishing URIs</phishing_uris>
+<PhishTank_about>PhishTank is a community anti-phishing Web site where anyone can go to submit suspected 
+phishes, track the status of their submissions and help verify others submissions.[br]
+Unlike other anti-phishing efforts that may come to mind, PhishTank is totally free to use and open to access.
+</PhishTank_about>
+<PhishTank_enable>Activate PhishTank database</PhishTank_enable>
 <php5MemoryLimit>Max PHP memory</php5MemoryLimit>
 <php5PostMaxSize>Max POST size</php5PostMaxSize>
 <php5UploadMaxFileSize>Max upload file size</php5UploadMaxFileSize>

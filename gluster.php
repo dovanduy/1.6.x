@@ -249,7 +249,7 @@ function add_cluster_list(){
 			if(isset($gl->STATUS_CLIENTS[$num]["running"])){
 				if($gl->STATUS_CLIENTS[$num]["running"]==0){
 					$img="status_service_removed.png";
-					 $text2="&nbsp;|<strong style=color:red>{stopped}</strong>";
+					 $text2="&nbsp;|<strong style=color:#d32d2d>{stopped}</strong>";
 				}
 			}
 		}
@@ -316,7 +316,7 @@ function clusters_list(){
 				
 				if($gl->STATUS_CLIENTS[$num]["running"]==0){
 					$img="server-error-64.png";
-					 $text2="&nbsp;|<strong style=color:red>{stopped}</strong>";
+					 $text2="&nbsp;|<strong style=color:#d32d2d>{stopped}</strong>";
 				}
 			}
 		}

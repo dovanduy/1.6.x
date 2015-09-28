@@ -78,7 +78,7 @@ function ChangeSuffix(){
 		$filesize=$unix->file_size($filebackup);
 		echo "$filebackup $filesize Bytes\n";
 		if($filesize<100){
-			echo "<strong style='color:red'>Corrupted backup file, aborting</strong>\n";
+			echo "<strong style='color:#d32d2d'>Corrupted backup file, aborting</strong>\n";
 			@unlink($filebackup);
 			return;
 		}

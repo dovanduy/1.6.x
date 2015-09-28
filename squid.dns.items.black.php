@@ -50,6 +50,17 @@ function table(){
 	$blacklist=$tpl->_ENGINE_parse_body("{blacklist}");
 	$aliases=$tpl->_ENGINE_parse_body("{aliases}");
 	$appy=$tpl->_ENGINE_parse_body("{apply}");
+	
+	$q=new mysql_squid_builder();
+	$sql="CREATE TABLE IF NOT EXISTS `dnsmasq_blacklist` (
+				`ID` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+				`hostname` VARCHAR( 256 ) NOT NULL,
+				 KEY `hostname` (`hostname`)
+				 )  ENGINE = MYISAM;
+			";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo FATAL_ERROR_SHOW_128($q->mysql_error);return;}
+	
 	$buttons="
 	buttons : [
 	{name: '$new_computer', bclass: 'add', onpress : AddHost$t},

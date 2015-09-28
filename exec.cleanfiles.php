@@ -86,6 +86,7 @@ function CleanTempDirs(){
 	if(!is_array($dirs)){return null;}
 	while (list ($num, $ligne) = each ($dirs) ){
 		if(trim($num)==null){continue;}
+		if(preg_match("#\/krb5#", $num)){continue;}
 		$time=$unix->file_time_min($num);
 		if($time<380){continue;}
 		if(is_dir($num)){
@@ -117,6 +118,8 @@ function CleanTimedFiles($directory,$maxtime){
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="$directory/$filename";
+		if(preg_match("#^krb5#", $filename)){continue;}
+		if(preg_match("#\.winbindd#", $filename)){continue;}
 		if(!is_file($targetFile)){continue;}
 		$file_time_min=file_time_min($filename);
 		if(file_time_min($filename)<$maxtime){continue;}

@@ -116,7 +116,7 @@ function popup(){
 	<tbody>
 	<tr>
 	<td valign='top' width=1%>". Paragraphe("database-restore-64.png", "{launch_optimize}", "{launch_optimize_text}","javascript:Loadjs('$page?launch-opimize-js=yes')")."</td>
-	<td valign='top'><div class=text-info>{mysql_defrag_explain}</div></td>
+	<td valign='top'><div class=explain>{mysql_defrag_explain}</div></td>
 	</tr>
 	</tbody>
 	</table>

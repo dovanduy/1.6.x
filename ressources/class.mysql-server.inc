@@ -415,7 +415,7 @@ class mysqlserver{
 		$conf=$conf ."\n";
 		$conf=$conf ."[mysqldump]\n";	
 		$conf=$conf ."quick\n";	
-		$conf=$conf ."max_allowed_packet = 16K\n";	
+		$conf=$conf ."max_allowed_packet = 16M\n";	
 		$conf=$conf ."[isamchk]\n";
 		$conf=$conf ."key_buffer = 16K\n";
 		$conf=$conf ."sort_buffer_size = 16K\n";
@@ -789,7 +789,7 @@ class mysqlserver{
 		$conf=$conf ."[mysqldump]\n";
 		$conf=$conf ."quick\n";
 		$conf=$conf ."quote-names\n";
-		$conf=$conf ."max_allowed_packet=16M\n";		
+		$conf=$conf ."max_allowed_packet=256M\n";		
 
 		$conf=$conf ."[mysql]\n";
 		if($this->main_array["default-character-set"]<>null){

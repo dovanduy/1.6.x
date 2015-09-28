@@ -29,11 +29,7 @@ function js(){
 	header("content-type: application/javascript");
 	$title=$tpl->javascript_parse_text("{import_rules}");
 	$t=time();
-	$html="YahooWin4('550','$page?popup=yes','$title');
-		
-				
-			
-	Export$t();";
+	$html="YahooWin4('550','$page?popup=yes','$title');";
 	echo $html;
 }
 
@@ -44,7 +40,7 @@ function popup(){
 	$confirm=$tpl->javascript_parse_text("{confirm_import_rules_text}");
 	$html="
 			
-	<div id='text-$t' style='font-size:16px' class=text-info>{import_acl_rules_explain}</div>
+	<div id='text-$t' style='font-size:16px' class=explain>{import_acl_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
 	<div style='width:98%' class=form>
 	<table>

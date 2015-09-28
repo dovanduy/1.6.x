@@ -227,7 +227,7 @@ function processes_popup(){
 		}	
 	
 	$html="	
-	<div class=text-info style='font-size:14px'>{amavis_max_server_explain}</div>
+	<div class=explain style='font-size:14px'>{amavis_max_server_explain}</div>
 	<div id='$t'>
 	<table style='width:100%' class=form>
 			<tr>
@@ -362,7 +362,7 @@ function status(){
 			<br>
 			<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('main_config_amavis');")."</div>
 			<br>
-			<div class=text-info id='mmmdiv'>{}</div>
+			<div class=explain id='mmmdiv'>{}</div>
 			
 	</tr>
 	</table>

@@ -9,7 +9,7 @@
 <cls>Could not bind to the Active Directory server.</cls>
 <connected>Connection success</connected>
 <err_unkown>Warning unable to logon with following</err_unkown>
-<failed>Connection Failed</failed>
+<failed>Operation Failed</failed>
 <iar>Insufficient access rights.</iar>
 <importation_completed>Importation task completed</importation_completed>
 <import_ad_title>Active Directory Members Importation</import_ad_title>

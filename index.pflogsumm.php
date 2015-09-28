@@ -190,7 +190,7 @@ function pflogsumm_popup(){
 		<input type='button' OnClick=\"javascript:Loadjs('artica.settings.php?ajax-notif=yes');\" value='{parameters}&nbsp;&raquo;'>
 		</div>
 		
-		<p style='font-weight:bold;color:red;font-size:12px'>{ERROR_NOTIFICATION_NOT_ENABLED}</p>";
+		<p style='font-weight:bold;color:#d32d2d;font-size:12px'>{ERROR_NOTIFICATION_NOT_ENABLED}</p>";
 		
 	}
 	

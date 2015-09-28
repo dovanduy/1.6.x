@@ -417,7 +417,7 @@ $path=$_GET["path"];
 $tpl=new templates();
 
 if(!is_file(dirname(__FILE__).'/ressources/scan.printers.drivers.inc')){
-	echo $tpl->_ENGINE_parse_body("<p style='font-size:13px;font-weight:bold;color:red'>{no_cups_drivers_scanned}</p>");
+	echo $tpl->_ENGINE_parse_body("<p style='font-size:13px;font-weight:bold;color:#d32d2d'>{no_cups_drivers_scanned}</p>");
 	exit;
 }
 include_once(dirname(__FILE__).'/ressources/scan.printers.drivers.inc');
@@ -762,7 +762,7 @@ function cups_add_printer_share(){
 function cups_add_nic_printer(){
 	
 	if(!is_file(dirname(__FILE__).'/ressources/scan.printers.drivers.inc')){
-		echo $tpl->_ENGINE_parse_body("<p style='font-size:13px;font-weight:bold;color:red'>{no_cups_drivers_scanned}</p>");
+		echo $tpl->_ENGINE_parse_body("<p style='font-size:13px;font-weight:bold;color:#d32d2d'>{no_cups_drivers_scanned}</p>");
 		exit;
 	}
 	include_once(dirname(__FILE__).'/ressources/scan.printers.drivers.inc');

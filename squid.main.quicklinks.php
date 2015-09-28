@@ -2,11 +2,24 @@
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($_GET["byminiadm"]<>null){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"<p class='text-error'>");ini_set('error_append_string',"</p>");}
 
+$GLOBALS["AS_ROOT"]=false;
+if(function_exists("posix_getuid")){
+	if(posix_getuid()==0){
+		$GLOBALS["AS_ROOT"]=true;
+		include_once(dirname(__FILE__).'/framework/class.unix.inc');
+		include_once(dirname(__FILE__)."/framework/frame.class.inc");
+		include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+		include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
+		include_once(dirname(__FILE__)."/framework/class.settings.inc");
+	}}
+
 
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
+
+
 
 if(isset($argv[1])){
 	if($argv[1]=="--squid-status"){ 
@@ -259,7 +272,7 @@ function section_members(){
 		<tr>
 			<td style='width:1%' valign='top'><div id='members-status'></div></td>
 			<td style='width:99%;padding-left:10px' valign='top'>
-			<div class=text-info>{squid_members_explain}</div>
+			<div class=explain>{squid_members_explain}</div>
 			<div id='members-content' class=form style='width:99%'></div></td>
 		</tr>
 	</tbody>
@@ -280,7 +293,7 @@ function section_architecture_filters(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=text-info>{squid_basic_filters_explain}</div>
+	<div class=explain>{squid_basic_filters_explain}</div>
 	<div id='basic_filters-content'></div>	
 	<script>
 		LoadAjax('basic_filters-content','$page?basic_filters-tabs=yes');
@@ -310,7 +323,7 @@ function section_architecture_start(){
 	$tpl=new templates();
 	
 	$html="
-	<div class=text-info>{squid_architecture_explain}</div>
+	<div class=explain>{squid_architecture_explain}</div>
 	
 	<table style='width:100%'>
 	<tbody>
@@ -531,6 +544,7 @@ function section_architecture_advanced(){
     
     $syslog=Paragraphe("syslog-64.png", "Syslog", "{squid_syslog_text}","javascript:Loadjs('squid.syslog.php')");
     $syslogMAC=Paragraphe("syslog-64.png", "{ComputerMacAddress}", "{squid_ComputerMacAddress_text}","javascript:Loadjs('squid.macaddr.php')");
+    $syslogFQDN=Paragraphe("syslog-64.png", "{log_hostnames}", "{log_hostnames_text}","javascript:Loadjs('squid.loghostname.php')");
     
     $sarg=Paragraphe('sarg-logo.png','{APP_SARG}','{APP_SARG_TXT}',"javascript:Loadjs('sarg.php')","{APP_SARG_TXT}");
     
@@ -598,6 +612,7 @@ function section_architecture_advanced(){
     $tr[]=$anonym;
     $tr[]=$syslog;
     $tr[]=$syslogMAC;
+    $tr[]=$syslogFQDN;
     $tr[]=$snmp;
     $tr[]=$disable_stats;
     $tr[]=$sarg;
@@ -788,6 +803,8 @@ $squid=new squidbee();
 	
 	$syslog=Paragraphe("syslog-64.png", "Syslog", "{squid_syslog_text}","javascript:Loadjs('squid.syslog.php')");
 	$syslogMAC=Paragraphe("syslog-64.png", "{ComputerMacAddress}", "{squid_ComputerMacAddress_text}","javascript:Loadjs('squid.macaddr.php')");
+	$syslogFQDN=Paragraphe("syslog-64.png", "{log_hostnames}", "{log_hostnames_text}","javascript:Loadjs('squid.loghostname.php')");
+	
 	
 	$sarg=Paragraphe('sarg-logo.png','{APP_SARG}','{APP_SARG_TXT}',"javascript:Loadjs('sarg.php')","{APP_SARG_TXT}");
 	
@@ -848,7 +865,7 @@ $squid=new squidbee();
 	$tr[]=$log_location;
 	$tr[]=$syslog;
 	$tr[]=$syslogMAC;
-	
+	$tr[]=$syslogFQDN;
 	
 	$tr[]=$booster;
 	$tr[]=$stat_appliance;
@@ -859,9 +876,7 @@ $squid=new squidbee();
 	$tr[]=$enable_squid_service;
 	
 	$tr[]=$file_descriptors;
-	$tr[]=$timeouts;
 	$tr[]=$forwarded_for;
-	//$tr[]=$dns_servers;
 	$tr[]=$performances_tuning;
 	$tr[]=$AsSquidLoadBalancerIcon;
 	$tr[]=$loadbalancing;
@@ -1001,7 +1016,16 @@ function status_squid_left($asroot=false){
 	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
 	$KavICAPRemotePort=$sock->GET_INFO("KavICAPRemotePort");	
 	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
-	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+	
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER")){
+		$sock=new sockets();
+		$cpunum=intval($sock->getFrameWork("services.php?CPU-NUMBER=yes"));
+	}else{
+		$cpunum=intval(@file_get_contents("/usr/share/artica-postfix/ressources/interface-cache/CPU_NUMBER"));
+	}
+	
+	$CPU_NUMBER=$cpunum;
 	
 	if($EnableKavICAPRemote==1){
 		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);
@@ -1328,7 +1352,7 @@ function status_squid_left($asroot=false){
 	
 	
 	<script>
-		LoadAjax('squid-status-stats','squid.traffic.statistics.php?squid-status-stats=yes');	
+		
 		LoadAjax('squid-services','$page?squid-services=yes');
 		LoadAjax('squid-plugins-activated','dansguardian2.php?dansguardian-status=yes');
 	</script>
@@ -1584,9 +1608,8 @@ function section_status($asroot=false){
 	$fontsize=14;
 	$array["status"]="{services_status}";
 	
-	$array["listen-ports"]='{listen_ports}';
-	$array["squid-dns"]='DNS';
-	$array["squid-timeout"]='{timeouts}';
+	
+	
 	$array["architecture-content"]='{main_parameters}';
 	$array["architecture-users"]='{users_interactions}';
 	
@@ -1599,22 +1622,9 @@ function section_status($asroot=false){
 	if($users->WEBSTATS_APPLIANCE){unset($array["events-squidcache"]);}
 	
 	//$array["graphs"]="{statistics}";
-	$array["software-update"]='{softwares_update}';
 	
-	if($users->PROXYTINY_APPLIANCE){
-		unset($array["software-update"]);
-		$fontsize=16;
-	}
 	
-	$debian_version=$sock->getFrameWork("system.php?debian_version=yes");
-	if(is_numeric($debian_version)){
-		if($debian_version>6){
-			unset($array["software-update"]);
-			$fontsize=16;
-			
-			
-		}
-	}
+	$fontsize=18;
 	
 	
 	
@@ -1765,6 +1775,23 @@ function all_status($asroot=false){
 	if($asroot){$GLOBALS["AS_ROOT"]=true;}
 	
 	if(!$GLOBALS["AS_ROOT"]){
+		
+		$sock=new sockets();
+		$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+		
+		if($SquidUrgency==1){
+			echo FATAL_ERROR_SHOW_128(
+					"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+		
+		
+		}
+		
+		
+		
 		if(is_file("/usr/share/artica-postfix/ressources/logs/web/squid.services.html")){
 			$tpl=new templates();
 			echo $tpl->_ENGINE_parse_body(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/squid.services.html"));
@@ -1953,7 +1980,16 @@ function all_status($asroot=false){
 		$squid_status=null;
 		
 		$ini=new Bs_IniHandler();
-		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
+		if($GLOBALS["AS_ROOT"]){
+			$unix=new unix();
+			$php5=$unix->LOCATE_PHP5_BIN();
+			exec("$php5 /usr/share/artica-postfix/exec.squid.smp.php --status 2>&1",$res);
+			$ini->loadString(@implode("\n", $res));
+			
+		}else{
+			$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
+		}
+		
 		
 		if(is_array($ini->_params)){
 			while (list ($index, $line) = each ($ini->_params) ){
@@ -2011,7 +2047,7 @@ function all_status($asroot=false){
 		return;
 		
 	}
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!$users->APP_UFDBGUARD_INSTALLED){$EnableUfdbGuard=0;}
 	
@@ -2115,24 +2151,9 @@ $dns_query="
 		</tr>	
 	";
 
-$squid_rotate="
-			<tr>
-		<td width=1%><img src='img/events-rotate-32.png' id='events-rotate-32-squid'></td>
-		<td nowrap><a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('squid.perf.logrotate.php?img=events-rotate-32-squid&src=events-rotate-32.png');\"
-		style='font-size:12px;text-decoration:underline'>{squid_logrotate_perform}</a></td>
-		</tr>
-	";
 
 
-$reconfigure="
-			<tr>
-		<td width=1%><img src='img/reconfigure-32.png'></td>
-		<td nowrap><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
-		style='font-size:12px;text-decoration:underline'>{reconfigure}</a></td>
-		</tr>	
-	";	
+
 $debug_compile="
 			<tr>
 		<td width=1%><img src='img/32-logs.png'></td>
@@ -2180,21 +2201,7 @@ $restart_all_services="	<tr>
 	</tr>
 	";
 
-$restart_service_only="
-	<tr>
-		<td width=1%><img src='img/service-restart-32.png'></td>
-		<td nowrap><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.restart.php?onlySquid=yes');\" 
-		style='font-size:12px;text-decoration:underline'>{restart_onlysquid}</a></td>
-	</tr>	";
 
-$reloadservice="
-	<tr>
-		<td width=1%><img src='img/reload-32.png'></td>
-		<td nowrap><a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('squid.restart.php?onlyreload=yes');\"
-		style='font-size:12px;text-decoration:underline'>{reload_service}</a></td>
-	</tr>	";
 
 $checkCaches="
 	<tr>
@@ -2233,11 +2240,6 @@ if($DisableAnyCache==1){
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
 	$squidconf
-	$reconfigure
-	$restart_all_services
-	$restart_service_only
-	$SquidBoosterMemText
-	$squid_rotate
 	$winbind
 	$UseDynamicGroupsAclsTR
 	$dns_query
@@ -2245,8 +2247,8 @@ if($DisableAnyCache==1){
 	</td>
 	<td valign='top' width='50%'>
 		<table style='width:100%'>
-			$reloadservice
-			$checkCaches
+			
+			
 			$ufdbbutt
 			$debug_compile
 			$supportpckg		
@@ -2387,6 +2389,10 @@ function squid_stores_status(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$page=CurrentPageName();
+	
+
+	
+	
 	$off="<script>
 			UnlockPage();
 			LoadAjaxTiny('squid-info-status','$page?squid-info-status=yes');

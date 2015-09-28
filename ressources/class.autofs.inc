@@ -26,8 +26,6 @@ class autofs{
 	$mustrestart=false;
 	if(!$ldap->ExistsDN($ldap->suffix)){
 		echo "<H3>Something strange... &laquo;$ldap->suffix&raquo; does not exists in LDAP database...</H3>";
-		$sock=new sockets();
-		$sock->getFrameWork("services.php?restart-ldap=yes");
 		return;
 	}
 	
@@ -39,6 +37,9 @@ class autofs{
 			$upd["objectClass"][]="organizationalUnit";
 			$upd["ou"][]="mounts";
 			$ldap->ldap_add($dn,$upd);
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "$dn OK\n";}
+			
 		}
 		unset($upd);
 
@@ -51,6 +52,8 @@ class autofs{
 			$ldap->ldap_add($dn,$upd);
 			$mustrestart=true;
 			$upd=array();
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "$dn OK\n";}
 		}
 		
 		
@@ -63,6 +66,8 @@ class autofs{
 			$ldap->ldap_add($dn,$upd);
 			$mustrestart=true;
 			$upd=array();
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "$dn OK\n";}
 		}
 
 		$dn="ou=auto.automounts,ou=mounts,$ldap->suffix";
@@ -76,6 +81,8 @@ class autofs{
 				$mustrestart=true;
 			}
 			$upd=array();
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "$dn OK\n";}
 		}
 
 		if($mustrestart){

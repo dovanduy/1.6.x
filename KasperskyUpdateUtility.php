@@ -87,7 +87,7 @@ function index(){
 	
 	$html="<table style='width:100%'>
 	<tr>
-		<td valign='top'><div class=text-info>{APP_KASPERSKY_UPDATE_UTILITY_EXPLAIN}</div></td>
+		<td valign='top'><div class=explain>{APP_KASPERSKY_UPDATE_UTILITY_EXPLAIN}</div></td>
 		<td valign='top'><div id='kupdsets'>
 		". Paragraphe_switch_img("{ENABLE_KUPDUTILITY}","{ENABLE_KUPDUTILITY_TEXT}","EnableKUpdateUtility",$EnableKUpdateUtility).
 		"<hr>

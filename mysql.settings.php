@@ -112,7 +112,7 @@ function popup(){
 				if(!is_numeric($zarafa_innodb_buffer_pool_size)){$zarafa_innodb_buffer_pool_size=round($memory/2.8);}
 				if(!is_numeric($zarafa_innodb_log_file_size)){$zarafa_innodb_log_file_size=round($zarafa_innodb_buffer_pool_size*0.25);}
 				if(!is_numeric($zarafa_innodb_log_buffer_size)){$zarafa_innodb_log_buffer_size=32;}
-				if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=16;}
+				if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=256;}
 				if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}
 
 				

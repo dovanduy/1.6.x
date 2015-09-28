@@ -2,6 +2,7 @@
 $GLOBALS["MAXTTL"]=15;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["PROGRESS"]=false;
+$GLOBALS["ENABLE"]=false;
 include(dirname(__FILE__).'/ressources/class.qos.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
@@ -12,10 +13,11 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 
 	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;$GLOBALS["OUTPUT"]=true;}
 	if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 	if(preg_match("#--progress#",implode(" ",$argv))){$GLOBALS["PROGRESS"]=true;}
+	if(preg_match("#--enable#",implode(" ",$argv))){$GLOBALS["ENABLE"]=true;}
 	
 
 	if($argv[1]=="--ping"){ping();exit;}
@@ -162,18 +164,32 @@ function ping(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/var/run/artica-meta-client.run";
 	$unix=new unix();
+	$sock=new sockets();
+	$ArticaMetaKillProcess=intval($sock->GET_INFO("ArticaMetaKillProcess"));
+	if($ArticaMetaKillProcess==0){$ArticaMetaKillProcess=60;}
+	
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		client_progress("A Meta client process already running pid: $pid",110);
-		$articameta->events("A Meta client process already running pid: $pid", __FUNCTION__,__FILE__,__LINE__);
-		die();
+		$timePid=$unix->PROCCESS_TIME_MIN($pid);
+		if($timePid<$ArticaMetaKillProcess){
+			client_progress("A Meta client process already running pid: $pid since {$timePid}Mn",110);
+			$articameta->events("A Meta client process already running pid: $pid since {$timePid}Mn", __FUNCTION__,__FILE__,__LINE__);
+			die();
+		}else{
+			$articameta->events("Killing running pid: $pid since {$timePid}Mn", __FUNCTION__,__FILE__,__LINE__);
+			$unix->KILL_PROCESS($pid);
+		}
 	}
-	$sock=new sockets();
+	
+	if($GLOBALS["ENABLE"]){$sock->SET_INFO("EnableArticaMetaClient",1);}
+	
 	$T1=time();
 	$EnableArticaMetaClient=intval($sock->GET_INFO("EnableArticaMetaClient"));
+	
 	$ArticaMetaPooling=intval($sock->GET_INFO("ArticaMetaPooling"));
 	$MetaClientAutoUpdate=intval($sock->GET_INFO("MetaClientAutoUpdate"));
 	if($ArticaMetaPooling==0){$ArticaMetaPooling=15;}
+	
 	$pidTimeEx=$unix->file_time_min($pidTime);
 	
 	if($GLOBALS["OUTPUT"]){echo "EnableArticaMetaClient = $EnableArticaMetaClient\n"; }
@@ -201,7 +217,8 @@ function ping(){
 	}
 	$ionice=$unix->EXEC_NICE();
 	
-	client_progress("Creating tasks...",10);
+	$articameta->events("Creating tasks...",__FUNCTION__,__FILE__,__LINE__);
+	client_progress("Creating tasks Pooling={$ArticaMetaPooling}Mn...",10);
 	
 	if($ArticaMetaPooling==240){
 		$f[]="MAILTO=\"\"";
@@ -218,7 +235,6 @@ function ping(){
 		$f[]="0 2,4,6,8,10,12,14,16,18,20,22 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
-		
 		@chmod("/etc/cron.d/artica-meta-c",0644);
 		unset($f);
 	}	
@@ -226,7 +242,7 @@ function ping(){
 	
 	if($ArticaMetaPooling==60){
 		$f[]="MAILTO=\"\"";
-		$f[]="0 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="0 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		@chmod("/etc/cron.d/artica-meta-c",0644);
@@ -236,7 +252,7 @@ function ping(){
 	
 	if($ArticaMetaPooling==30){
 		$f[]="MAILTO=\"\"";
-		$f[]="30,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="30,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		
@@ -247,7 +263,7 @@ function ping(){
 	
 	if($ArticaMetaPooling==20){
 		$f[]="MAILTO=\"\"";
-		$f[]="20,40,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="20,40,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		
@@ -257,16 +273,15 @@ function ping(){
 	
 	if($ArticaMetaPooling==15){
 		$f[]="MAILTO=\"\"";
-		$f[]="10,15,30,45,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="10,15,30,45,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
-		
 		@chmod("/etc/cron.d/artica-meta-c",0644);
 		unset($f);
 	}
 	if($ArticaMetaPooling==10){
 		$f[]="MAILTO=\"\"";
-		$f[]="10,20,30,40,50,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="10,20,30,40,50,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 
@@ -275,7 +290,7 @@ function ping(){
 	}	
 	if($ArticaMetaPooling==5){
 		$f[]="MAILTO=\"\"";
-		$f[]="5,10,15,20,25,30,35,40,45,50,55,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="5,10,15,20,25,30,35,40,45,50,55,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		
@@ -284,7 +299,7 @@ function ping(){
 	}	
 	if($ArticaMetaPooling==2){
 		$f[]="MAILTO=\"\"";
-		$f[]="0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		@chmod("/etc/cron.d/artica-meta-c",0644);
@@ -292,7 +307,7 @@ function ping(){
 	}	
 	if($ArticaMetaPooling==3){
 		$f[]="MAILTO=\"\"";
-		$f[]="3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
+		$f[]="3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * *  root $ionice  $php ".__FILE__." --ping >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/artica-meta-c", @implode("\n", $f));
 		@chmod("/etc/cron.d/artica-meta-c",0644);
@@ -313,11 +328,13 @@ function ping(){
 	
 	
 	$articaMeta=new artica_meta();
-	client_progress("Ping the Meta server...",20);
+	$articaMeta->events("Ping the Meta server [$articaMeta->ArticaMetaHostname]...",__FUNCTION__,__FILE__,__LINE__);
+	client_progress("Ping the Meta server [$articaMeta->ArticaMetaHostname]...",20);
 	
 	if(!$articaMeta->ping()){
 		if($GLOBALS["OUTPUT"]){echo "PING FAILED\n";}
-		writelogs_meta("Ping Failed", __FUNCTION__, __FILE__, __LINE__);
+		$articaMeta->events("Ping Failed $articaMeta->ping_error",__FUNCTION__,__FILE__,__LINE__);
+		writelogs_meta("Ping Failed $articaMeta->ping_error", __FUNCTION__, __FILE__, __LINE__);
 		client_progress("Ping the Meta server {failed}...",110);
 		return;
 		}
@@ -328,6 +345,7 @@ function ping(){
 	shell_exec("$php ".__FILE__." --logrotate >/dev/null 2>&1 &");
 	smtp_to_meta();
 	if($MetaClientAutoUpdate==1){
+		$articaMeta->events("Check updates from Meta server...",__FUNCTION__,__FILE__,__LINE__);
 		client_progress("Check updates from Meta server...",95);
 		artica_updates_scheduled(true);
 	}

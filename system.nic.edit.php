@@ -23,6 +23,8 @@
 	if(isset($_GET["ifconfig-route-add-js"])){ipconfig_routes_add_js();exit;}
 	if(isset($_GET["ifconfig-route-add-popup"])){ipconfig_routes_add_popup();exit;}
 	if(isset($_GET["ipconfig-routage"])){ipconfig_routage();exit;}
+	if(isset($_GET["nic-delete-js"])){delete_nic_js();exit;}
+	if(isset($_POST["delete-nic"])){delete_nic();exit;}
 	
 	if(isset($_GET["ipconfig-qos"])){ipconfig_qos();exit;}
 	
@@ -45,6 +47,57 @@ function js(){
 	
 	
 }	
+function delete_nic_js(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$nic=$_GET["servername"];
+	header("content-type: application/x-javascript");
+	$explain=$tpl->javascript_parse_text("{delete} {interface} {$_GET["nic-delete-js"]}");
+	
+	$t=time();
+	$html="
+var xDeleteNic$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	LoadAjaxRound('system-main-status','admin.dashboard.system.php');
+	Loadjs('network.restart.php');
+}
+	
+function DeleteNic$t(){
+	if(!confirm('$explain')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('delete-nic','{$_GET["nic-delete-js"]}');
+	XHR.sendAndLoad('$page', 'POST',xDeleteNic$t);
+}
+DeleteNic$t();
+";
+	echo $html;
+}
+
+
+function delete_nic(){
+	
+	$q=new mysql();
+	$q->QUERY_SQL("DELETE FROM nics WHERE Interface='{$_POST["delete-nic"]}'","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	$q->QUERY_SQL("DELETE FROM nic_routes WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	if($q->TABLE_EXISTS("dhcpd_routes", "artica_backup")){
+		$q->QUERY_SQL("DELETE FROM dhcpd_routes WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	}
+	if(!$q->ok){echo $q->mysql_error;}	 
+	$q->QUERY_SQL("DELETE FROM nics_vlan WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	$q->QUERY_SQL("DELETE FROM nics_virtuals WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	$q->QUERY_SQL("DELETE FROM nics_vde WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	$q->QUERY_SQL("DELETE FROM nics_roles WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	$q->QUERY_SQL("DELETE FROM nics_switch WHERE nic='{$_POST["delete-nic"]}'","artica_backup");
+	$q->QUERY_SQL("DELETE FROM qos_eth WHERE NIC='{$_POST["delete-nic"]}'","artica_backup");
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("DELETE FROM transparent_networks where `eth`='{$_POST["delete-nic"]}'");
+	$q->QUERY_SQL("DELETE FROM proxy_ports where `nic`='{$_POST["delete-nic"]}'");
+	
+}
 
 function flus_arp_cache_js(){
 	
@@ -117,12 +170,18 @@ function tabs(){
 	if(!is_numeric($EnableipV6)){$EnableipV6=0;}		
 	$page=CurrentPageName();
 	$array["ipconfig-nic"]='{parameters}';
+	$nics_config=new system_nic($nic);
+	
+	
 	if($EnableipV6==1){
 		$array["ipconfig-v6"]='ipV6';
 	}
 	//$array["ipconfig-routes"]='{routes}';
 	$array["ipconfig-routage"]='{routing}';
-	$array["ipconfig-qos"]='{Q.O.S}';
+	
+
+	
+	//$array["ipconfig-qos"]='{Q.O.S}';
 	$array["ipconfig-tools"]='{tools}';
 	
 	//ip neigh flush dev eth0
@@ -134,6 +193,12 @@ function tabs(){
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="ipconfig-services"){
+			$html[]= "<li><a href=\"firehol.nic.services.php?nic=$nic\"><span style='font-size:20px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
 		$html[]= "<li><a href=\"$page?$num=yes&nic=$nic&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}\"><span style='font-size:20px'>$ligne</span></a></li>\n";
 	}
 	
@@ -166,13 +231,13 @@ function ipconfig_qos(){
 	<hr>".button("{apply}","Save$t()",32)."</div>
 	<script>
 	var xSave$t= function (obj) {
-	var results=obj.responseText;
-	if(results.length>3){alert(results);}
-	if(document.getElementById('main_config_{$_GET["nic"]}')){RefreshTab('main_config_{$_GET["nic"]}');}
-	if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
-	if(document.getElementById('tabs_listnics2')){RefreshTab('tabs_listnics2');}
-	if(document.getElementById('TABLEAU_MAIN_QOS_INTERFACES')){ $('#TABLEAU_MAIN_QOS_INTERFACES').flexReload();}
-	
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		if(document.getElementById('main_config_{$_GET["nic"]}')){RefreshTab('main_config_{$_GET["nic"]}');}
+		if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
+		if(document.getElementById('tabs_listnics2')){RefreshTab('tabs_listnics2');}
+		if(document.getElementById('TABLEAU_MAIN_QOS_INTERFACES')){ $('#TABLEAU_MAIN_QOS_INTERFACES').flexReload();}
+		LoadAjaxRound('nics-infos-system','admin.dashboard.system.php?nics-infos=yes');
 	}
 	
 	function Save$t(){
@@ -314,6 +379,7 @@ $html="
 			if(results.length>3){alert(results);}
 			if(document.getElementById('main_config_$eth')){RefreshTab('main_config_$eth');}
 			if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
+			LoadAjaxRound('nics-infos-system','admin.dashboard.system.php?nics-infos=yes');
 			}
 
 		function SaveNicSettings$t(){
@@ -401,7 +467,7 @@ function ipconfig_nic(){
 		
 		if($MIITOOLS["FLOWC"]==1){$explflw=" {flow_control}";}
 		$form_miitols="
-		<p class=text-info style='font-size:18px;font-weight:bold'>{$MIITOOLS["INFOS"]} $explflw</p>
+		<p class=explain style='font-size:18px;font-weight:bold'>{$MIITOOLS["INFOS"]} $explflw</p>
 		<table style='width:100%'>			
 		<tr>
 			<td class=legend style='font-size:18px'>Autonegotiation:</td>
@@ -503,6 +569,8 @@ function ipconfig_nic(){
 			if(results.length>3){alert(results);}
 			if(document.getElementById('main_config_$eth')){RefreshTab('main_config_$eth');}
 			if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
+			if(document.getElementById('FIREHOLE_INTERFACES_TABLES')){ $('#FIREHOLE_INTERFACES_TABLES').flexReload();}
+			LoadAjaxRound('nics-infos-system','admin.dashboard.system.php?nics-infos=yes');
 			}
 
 		function logofff(){
@@ -574,6 +642,16 @@ function ipconfig_nic(){
 			XHR.sendAndLoad('$page', 'POST',X_SaveNicSettings)
 		}
 		
+		function CheckMII$t(){
+			if(document.getElementById('flow-control-$t')){
+				document.getElementById('flow-control-$t').disabled=true;
+			}
+			
+			if(document.getElementById('autonegotiation-$t')){
+				document.getElementById('autonegotiation-$t').disabled=true;
+			}
+		}
+		
 		
 		function LockNic(){
 			var DisableNetworksManagement=$DisableNetworksManagement;
@@ -628,6 +706,7 @@ function ipconfig_nic(){
 		
 	$jsSnort	
 	LockNic();
+	CheckMII$t();
 	</script>	
 	";
 	
@@ -672,6 +751,12 @@ function save_nic(){
 		$NICNAME=trim(url_decode_special_tool($_GET["NICNAME"]));
 	}
 	
+	$nic=trim($_GET["save_nic"]);
+	$sql="UPDATE `nics` SET `enabled`='{$_GET["enabled"]}' WHERE `Interface`='$nic'";
+	$q=new mysql();
+	$q->QUERY_SQL($sql,"artica_backup"); 
+	if(!$q->ok){echo $q->mysql_error;}
+	
 	if($_GET["netzone"]==null){
 		echo "Network Zone must be defined\n";
 		return;
@@ -694,6 +779,10 @@ function save_nic(){
 	$arrayNic=$ip->GetNicInfos($nic);
 	
 	
+	
+	
+	
+	
 	$q=new mysql();
 	$sql="SELECT ipaddr FROM nic_virtuals WHERE ipaddr='$IPADDR'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -711,13 +800,15 @@ function save_nic(){
 	
 	$ROUTES=base64_encode(serialize($arrayNic["ROUTES"]));
 	
-	if($_GET["dhcp"]<>1){
-		if(!$ip->checkIP($IPADDR)){echo "CheckIP: Address: $IPADDR = False;\n";return;}
-		if(!$ip->checkIP($NETMASK)){echo "CheckIP: NetMask $NETMASK = False;\n";return;}
-		if($GATEWAY<>"0.0.0.0"){
-			if(!$ip->checkIP($GATEWAY)){echo "CheckIP: Gateway $GATEWAY = False;\n";return;}
+	
+	if(intval($_GET["enabled"])==1){
+		if($_GET["dhcp"]<>1){
+			if(!$ip->checkIP($IPADDR)){echo "CheckIP: Address: $IPADDR = False;\n";return;}
+			if(!$ip->checkIP($NETMASK)){echo "CheckIP: NetMask $NETMASK = False;\n";return;}
+			if($GATEWAY<>"0.0.0.0"){
+				if(!$ip->checkIP($GATEWAY)){echo "CheckIP: Gateway $GATEWAY = False;\n";return;}
+			}
 		}
-	}
 		if($DNS_1<>null){
 			if(!$ip->checkIP($DNS_1)){echo "CheckIP: DNS 1 $DNS_1 = False;\nOr set null value to remove this message";return;}	
 		}
@@ -725,8 +816,11 @@ function save_nic(){
 		if($DNS_2<>null){
 			if(!$ip->checkIP($DNS_2)){echo "CheckIP: DNS 2 $DNS_2 = False;\nOr set null value to remove this message";return;}	
 		}
+		
+	}
 
-	
+	$htmltools=new htmltools_inc();
+	$_GET["netzone"]=$htmltools->StripSpecialsChars($_GET["netzone"]);
 	
 	$tpl=new templates();
 	$nics=new system_nic($nic);
@@ -741,7 +835,7 @@ function save_nic(){
 	if($DNS_2<>null){ $nics->DNS2=$DNS_2; }
 	$nics->dhcp=$_GET["dhcp"];
 	$nics->metric=$_GET["metric"];
-	$nics->enabled=$_GET["enabled"];
+	$nics->enabled=intval($_GET["enabled"]);
 	$nics->netzone=$_GET["netzone"];
 	$nics->mtu=$_GET["mtu"];
 	
@@ -1032,6 +1126,11 @@ function MII_TOOLS(){
 		
 	}
 	
+	$duptype=$_POST["duptype"];
+	$eth=$_POST["MII-TOOL"];
+	
+	$nicClass=new system_nic($eth);
+	$nicClass->SetMiittools($duptype);
 	$data=trim(base64_decode($sock->getFrameWork("system.php?mii-tool-save=yes&".@implode("&", $f))));
 	if($data<>null){echo $data;}
 	

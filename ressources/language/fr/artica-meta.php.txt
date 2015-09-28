@@ -342,10 +342,10 @@ Par cons&eacute;quent, les exp&eacute;diteurs ne sont pas autoris&eacute;s &agra
 <sarg_site_user_time_date>Sites, dates, heures, poids</sarg_site_user_time_date>
 <sarg_title>Titre du rapport</sarg_title>
 <sarg_topsites>Site, connexions et rapport de poids</sarg_topsites>
-<sarg_topsites_num>nombre du Top des sites web</sarg_topsites_num>
+<sarg_topsites_num>Nombre du Palmar&egrave;s des sites Internet</sarg_topsites_num>
 <sarg_topusers>Utilisateurs, sites, temps, poids, connexions</sarg_topusers>
 <sarg_topuser_exp>0 = Sans limite</sarg_topuser_exp>
-<sarg_topuser_num>Combien d'utilisateurs dans le top des sites web</sarg_topuser_num>
+<sarg_topuser_num>Combien d'utilisateurs dans le Palmar&egrave;s des sites Internet</sarg_topuser_num>
 <sarg_users_sites>Sites utilisateurs</sarg_users_sites>
 <sarg_user_ip>Utiliser que l\'adresse IP</sarg_user_ip>
 <security_packages>Paquets de s&eacute;curit&eacute;</security_packages>
@@ -388,20 +388,20 @@ Indiquez les param&egrave;tres...[br]Une fois soumis, la console d'administratio
 <TempFolder>Dossier temporaire</TempFolder>
 <THIS_USER_DOES_NOT_EXISTS>Cet utilisateur n'existe pas</THIS_USER_DOES_NOT_EXISTS>
 <threshold>seuil</threshold>
-<topcpu_explain>Lorsque le serveur &eacute;met son rapport &agrave; la console de supervision, il ajoute le top 10  des processus qui consomment de la puissance CPU. [br]
+<topcpu_explain>Lorsque le serveur &eacute;met son rapport &agrave; la console de supervision, il ajoute le palmar&egrave;s  des processus qui consomment de la puissance CPU. [br]
 Vous pouvez visualiser ici les processus rapport&eacute;s par les serveurs distants.[br]
 Tr&egrave;s utile lorsqu'il s'agit de v&eacute;rifier si un processus prend trop de CPU.[br]
 Il est &agrave; noter que le serveur distant &eacute;met un &eacute;tat ponctuel des t&acirc;ches syst&egrave;mes. Il faut v&eacute;rifier que le processus reste longtemps en m&eacute;moire avant de s'y attacher.</topcpu_explain>
-<topmem_explain>Lorsque le serveur &eacute;met son rapport &agrave; la console de supervision, il ajoute le top 10  des processus qui consomment de la m&eacute;moire. [br]
+<topmem_explain>Lorsque le serveur &eacute;met son rapport &agrave; la console de supervision, il ajoute le palmar&egrave;s  des processus qui consomment de la m&eacute;moire. [br]
 Vous pouvez visualiser ici les processus rapport&eacute;s par les serveurs distants.[br]
 Tr&egrave;s utile lorsqu'il s'agit de v&eacute;rifier si un processus prend trop de m&eacute;moire syst&egrave;me.[br]
 VSZ comprend la m&eacute;moire virtuelle comme le ficher de pagination quand &agrave; RSS s'attache &agrave; la m&eacute;moire physique utilis&eacute; par le processus.
 Il est &agrave; noter que le serveur distant &eacute;met un &eacute;tat ponctuel des t&acirc;ches syst&egrave;mes. Il faut v&eacute;rifier que le processus reste suffisamment longtemps en m&eacute;moire avant de s'y attacher.</topmem_explain>
-<topsites_num>Combien de sites dans le top des sites web</topsites_num>
-<topsites_sort_order>Tri du rapport top des sites web</topsites_sort_order>
+<topsites_num>Combien de sites dans le palmar&egrave;s des sites web</topsites_num>
+<topsites_sort_order>Tri du rapport palmar&egrave;s des sites web</topsites_sort_order>
 <topsites_sort_order_BYTES>Tri par poids</topsites_sort_order_BYTES>
 <topsites_sort_order_CONNECT>Tri par connexion</topsites_sort_order_CONNECT>
-<top_processes>TOP des Processus</top_processes>
+<top_processes>Palmar&egrave;s des Processus</top_processes>
 <trash>corbeille</trash>
 <UpdatesFolder>Dossier de mise &agrave; jour</UpdatesFolder>
 <update_packages>Mettre &agrave; jour les paquets</update_packages>

@@ -40,6 +40,33 @@ function popup(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
+	
+	
+	
+	$manual_update=$tpl->javascript_parse_text("{manual_update}");
+	$ARRAY=unserialize(base64_decode($sock->getFrameWork("system.php?mylinux=yes")));
+	
+	$ARRAY["LINUX_CODE_NAME"]=trim($ARRAY["LINUX_CODE_NAME"]);
+	$ARRAY["LINUX_DISTRIBUTION"]=trim($ARRAY["LINUX_DISTRIBUTION"]);
+	$ARRAY["LINUX_VERS"][0]=trim($ARRAY["LINUX_VERS"][0]);
+	$ARRAY["LINUX_ARCHITECTURE"][0]=trim($ARRAY["LINUX_ARCHITECTURE"][0]);
+	
+	$title="{$ARRAY["LINUX_CODE_NAME"]}: {$ARRAY["LINUX_DISTRIBUTION"]} v.{$ARRAY["LINUX_VERS"][0]} {$ARRAY["LINUX_ARCHITECTURE"]}Bits";
+	
+	
+	$html="<div style='font-size:48px;margin-bottom:50px'>$title</div>
+	<center style='margin:30px'>". button("$manual_update","Loadjs('update.upload.php')",36)."</center>
+	</div>
+	
+	
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	return;
+	
+	
+	
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$os=$tpl->_ENGINE_parse_body("{os}");
 	$architecture=$tpl->_ENGINE_parse_body("{architecture}");

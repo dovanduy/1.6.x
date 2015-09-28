@@ -37,18 +37,25 @@ function certificate_edit_csr(){
 	$page=CurrentPageName();
 	$q=new mysql();
 	$tpl=new templates();
-	$sql="SELECT `csr`,`UsePrivKeyCrt` FROM sslcertificates WHERE CommonName='$commonName'";
+	$sql="SELECT `csr`,`UsePrivKeyCrt`,`UseGodaddy` FROM sslcertificates WHERE CommonName='$commonName'";
 	$upload_text=$tpl->_ENGINE_parse_body("{upload_content}");
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if(!$q->ok){senderror($q->mysql_error);}
 	$tt=time();
-	if(strlen($ligne["csr"])<50){
-		$sock=new sockets();
-		$CommonName=urlencode($CommonName);
-		echo base64_decode($sock->getFrameWork("system.php?BuildCSR=$commonName"));
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	
+	$NOT_BUILD=false;
+	if($ligne["UsePrivKeyCrt"]==1){$NOT_BUILD=true;}
+	if($ligne["UseGodaddy"]==1){$NOT_BUILD=true;}
+	
+	if(!$NOT_BUILD){
+		if(strlen($ligne["csr"])<50){
+			$sock=new sockets();
+			$CommonName=urlencode($CommonName);
+			echo base64_decode($sock->getFrameWork("system.php?BuildCSR=$commonName"));
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		}
 	}
 	
 	$CommonNameURL=urlencode("$commonName");
@@ -58,7 +65,7 @@ function certificate_edit_csr(){
 	
 	$csr_ssl_explain=$tpl->_ENGINE_parse_body("{csr_ssl_explain}");
 	$html="
-<div class=text-info style='font-size:18px'>$csr_ssl_explain</div>
+<div class=explain style='font-size:18px'>$csr_ssl_explain</div>
 	<div id='verify-$tt'></div>
 		<center>$button_upload</center>
 		<center style='margin:10px'>
@@ -80,17 +87,24 @@ function certificate_edit_csr_verify(){
 	
 	$CommonName=$_GET["CommonName"];
 	$q=new mysql();
-	$sql="SELECT `csr` FROM sslcertificates WHERE CommonName='$CommonName'";
+	$sql="SELECT `csr` ,`UsePrivKeyCrt`,`UseGodaddy` FROM sslcertificates WHERE CommonName='$CommonName'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$t=$_GET["t"];
+	
+	$NOT_BUILD=false;
+	if($ligne["UsePrivKeyCrt"]==1){$NOT_BUILD=true;}
+	if($ligne["UseGodaddy"]==1){$NOT_BUILD=true;}
+	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if(!$q->ok){senderror($q->mysql_error);return;}
 	$tt=time();
 	
-	if(strlen($ligne["csr"])<50){
-		$sock=new sockets();
-		$CommonName=urlencode($CommonName);
-		echo base64_decode($sock->getFrameWork("system.php?BuildCSR=$CommonName"));
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!$NOT_BUILD){
+		if(strlen($ligne["csr"])<50){
+			$sock=new sockets();
+			$CommonName=urlencode($CommonName);
+			echo base64_decode($sock->getFrameWork("system.php?BuildCSR=$CommonName"));
+			}
 		}
 	
 	
@@ -100,7 +114,7 @@ function certificate_edit_csr_verify(){
 	exec("/usr/bin/openssl req -text -noout -verify -verbose -in $filepath 2>&1",$results);
 	$INFO=array();
 	$class="text-info";
-	$f[]="File: $filepath ".strlen($ligne["csr"])." bytes";
+	$f[]="$CommonName: $filepath ".strlen($ligne["csr"])." bytes";
 	while (list ($num, $ligne) = each ($results) ){
 		if(preg_match("#[0-9]+:error:[0-9A-Z]+:PEM routines:#",$ligne)){$class="text-error";}
 		if(preg_match("#unable to load#",$ligne)){$class="text-error";}

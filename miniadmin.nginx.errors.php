@@ -150,7 +150,7 @@ function page_body(){
 	$tiny=TinyMce("body-$t",$ligne["body"],true);
 	
 	
-	$tokens=$tpl->_ENGINE_parse_body("<div class=text-info><strong>{tokens}:")."</strong>{TITLE},{ARTICA_VERSION},{uid},
+	$tokens=$tpl->_ENGINE_parse_body("<div class=explain><strong>{tokens}:")."</strong>{TITLE},{ARTICA_VERSION},{uid},
 	{error_code},{error_desc},{uri}</div>";
 	
 $html="$tokens

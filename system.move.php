@@ -32,7 +32,7 @@ function popup(){
 	$html="
 	<div style='width:98%' class=form>
 		<div style='font-size:22px'>{move_filesystem}: $size</div>
-		<div class=text-info style='font-size:14px'>{move_filesystem_explain}</div>	
+		<div class=explain style='font-size:14px'>{move_filesystem_explain}</div>	
 		<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:16px'>{directory}:</td>

@@ -11,10 +11,12 @@ include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.dhcpd.inc');
 include_once(dirname(__FILE__) . '/ressources/class.computers.inc');
 include_once(dirname(__FILE__) . '/ressources/class.tcpip.inc');
+include_once(dirname(__FILE__) . '/ressources/class.influx.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 
 if($argv[1]=="--parse-leases"){parseLeases();die();}
+if($argv[1]=="--empty-leases-progress"){empty_leases_progress();exit;}
 
 if($argv[1]=="commit"){
 	dhcpd_logs("commit: {$argv[2]} {$argv[3]} {$argv[4]}");
@@ -24,6 +26,7 @@ if($argv[1]=="commit"){
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$cache_file="/etc/artica-postfix/dhcpd.leases.dmp";
 $unix=new unix();
 	
 if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
@@ -31,6 +34,28 @@ if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
 	die();
 }
 @file_put_contents($pidfile, getmypid());
+
+if(!$GLOBALS["FORCE"]){
+	$TimeFile=$unix->file_time_min($cache_file);
+	if($TimeFile<30){
+		if($GLOBALS["VERBOSE"]){echo " {$TimeFile}Mn, require 30mn\n";}
+		die();
+	}
+}
+
+$pid=dhcpd_pid();
+if(!$unix->process_exists($pid)){
+	if($GLOBALS["VERBOSE"]){echo " --> DHCPD service not running...\n";}
+	return;
+}
+
+$ptime=$unix->PROCCESS_TIME_MIN($pid);
+if($ptime<2){
+	if($GLOBALS["VERBOSE"]){echo " --> DHCPD service running before 2mn...\n";}
+	return;
+}
+
+
 
 $GLOBALS["nmblookup"]=$unix->find_program("nmblookup");
 if($argv[1]=="lookup"){echo "{$argv[2]}:".nmblookup($argv[2],$argv[3])."\n";die();}
@@ -54,17 +79,11 @@ if($ComputersAllowDHCPLeases==0){
 }
 
 
-$cache_file="/etc/artica-postfix/dhcpd.leases.dmp";
 
 
 
-if(!$GLOBALS["FORCE"]){
-	$TimeFile=$unix->file_time_min($cache_file);
-	if($TimeFile<30){
-		if($GLOBALS["VERBOSE"]){echo " {$TimeFile}Mn, require 30mn\n";}
-		die();
-	}
-}
+
+
 
 
 
@@ -407,12 +426,10 @@ function localsyslog($text){
 }
 
 function update_commit($ip,$mac,$hostname){
-	if(!preg_match("#([0-9]+)\.([0-9]+).([0-9]+)\.([0-9]+)#",$ip,$re)){
-		localsyslog("Commit: IP:`$ip` invalid...");
-		return;
-	}
 	
+	$ipClass=new IP();
 	
+	if(!$ipClass->isValid($ip)){return;}
 	
 	$macZ=explode(":",$mac);
 	while (list ($num, $ligne) = each ($macZ) ){
@@ -420,26 +437,53 @@ function update_commit($ip,$mac,$hostname){
 		
 	}
 	$mac=@implode(":", $macZ);
+	
 	if(preg_match("#^(.+?)\.#", $hostname,$re)){$hostname=$re[1];}
 	localsyslog("Commit: IP:$ip,$mac,$hostname");
-	$md5=md5(time()."ip,$mac,$hostname");
-	@mkdir("/var/log/artica-postfix/DHCP-LEASES");
-	$array["IP"]=$ip;
-	$array["MAC"]=$mac;
-	$array["hostname"]=$hostname;
-	@file_put_contents("/var/log/artica-postfix/DHCP-LEASES/$md5", serialize($array));
-	$unix=new unix();
-	$nohup=$unix->find_program("nohup");
-	$php5=$unix->LOCATE_PHP5_BIN();
 	
-	shell_exec("$nohup $php5 ".__FILE__." --parse-leases >/dev/null 2>&1 &");
-	
-	
-	
-	
-	
+	$influx=new influx();
+	$array["tags"]["ACTION"]="COMMIT";
+	$array["tags"]["HOSTNAME"]="$hostname";
+	$array["tags"]["IPADDR"]="$ip";
+	$array["tags"]["MAC"]="$mac";
+	$array["fields"]["RQS"]=1;
+	$influx->insert("dhcpd", $array);
 }
 function parseLeases(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".parseLeases.pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".parseLeases.time";
+	
+	
+	if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
+		die();
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	if(!$GLOBALS["FORCE"]){
+		$TimeFile=$unix->file_time_min($pidTime);
+		if($TimeFile<5){
+			if($GLOBALS["VERBOSE"]){echo " {$TimeFile}Mn, require 5mn\n";}
+			die();
+		}
+	}
+	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
+	
+	$pid=dhcpd_pid();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["VERBOSE"]){echo " --> DHCPD service not running...\n";}
+		return;
+	}
+	
+	$ptime=$unix->PROCCESS_TIME_MIN($pid);
+	if($ptime<2){
+		if($GLOBALS["VERBOSE"]){echo " --> DHCPD service running before 2mn...\n";}
+		return;
+	}
 	
 	
 	$BaseWorkDir="/var/log/artica-postfix/DHCP-LEASES";
@@ -454,6 +498,8 @@ function parseLeases(){
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="$BaseWorkDir/$filename";
+		$TimeFile=$unix->file_time_min($targetFile);
+		if($TimeFile>240){@unlink($TimeFile);continue;}
 		$array=unserialize(@file_get_contents($targetFile));
 		@unlink($targetFile);
 		if(!is_array($array)){continue;}
@@ -508,6 +554,33 @@ function CreateComputerLogs($ip,$mac,$hostname){
 	
 }
 
+function empty_leases_progress(){
+	
+	
+	build_progress_empty("{stopping_service}",20);
+	shell_exec("/etc/init.d/isc-dhcp-server stop");
+	build_progress_empty("{removing_caches}",50);
+	@unlink("/var/lib/dhcp3/dhcpd.leases");
+	@unlink("/var/lib/dhcp3/dhcpd.leases~");
+	$q=new mysql();
+	$q->QUERY_SQL("TRUNCATE TABLE `dhcpd_leases`","artica_backup");
+	build_progress_empty("{starting_service}",90);
+	shell_exec("/etc/init.d/isc-dhcp-server start");
+	build_progress_empty("{done}",100);
+	
+}
+function build_progress_empty($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/dhcdp.leases.empty.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents($GLOBALS["CACHEFILE"], serialize($array));
+	@chmod($GLOBALS["CACHEFILE"],0755);
+	sleep(1);
+
+}
+
+
 function dhcpd_logs($text){
 	
 	if(!function_exists("syslog")){return;}
@@ -515,6 +588,13 @@ function dhcpd_logs($text){
 	openlog("dhcpd-leases", LOG_PID , LOG_SYSLOG);
 	syslog($LOG_SEV, $text);
 	closelog();
+}
+function dhcpd_pid(){
+	$unix=new unix();
+	$filename="/var/run/dhcpd.pid";
+	$pid=$unix->get_pid_from_file($filename);
+	if($unix->process_exists($pid)){return $pid;}
+	return $unix->PIDOF($unix->DHCPD_BIN_PATH());
 }
 
 

@@ -177,7 +177,7 @@ function do_export_single_id(){
 	if(!is_file($dir)){
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body(
-				"<div style='font-size:18px;color:red;margin-top:15px;margin-bottom:15px'>{failed}</div>");
+				"<div style='font-size:18px;color:#d32d2d;margin-top:15px;margin-bottom:15px'>{failed}</div>");
 		return;
 	}
 
@@ -239,7 +239,7 @@ function do_export(){
 	if(!is_file($dir)){
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body(
-				"<div style='font-size:18px;color:red;margin-top:15px;margin-bottom:15px'>{failed}</div>");
+				"<div style='font-size:18px;color:#d32d2d;margin-top:15px;margin-bottom:15px'>{failed}</div>");
 		return;
 	}
 	

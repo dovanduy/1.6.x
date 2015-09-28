@@ -310,7 +310,8 @@ En effet, si vous utilisez Artica comme un serveur de messagerie uniquement pour
 <artica_update_categories_howto>Artica met &agrave; jour les sites web cat&eacute;goris&eacute;s r&eacute;guli&egrave;rement.[br]Artica t&eacute;l&eacute;charge les signatures de la base de donn&eacute;es et les enregistre dans votre base de donn&eacute;es.[br]
 Afin de ne pas surcharger votre serveur, lorsque Artica injecte les donn&eacute;es, il v&eacute;rifie avant la charge du serveur.[br]C'est la raison pour laquelle la progression de la mise &agrave; jour peut prendre du temps avant d'atteindre les 100%</artica_update_categories_howto>
 <AsComplexPassword>Doit utiliser un mot de passe complexe</AsComplexPassword>
-<AsDansGuardianAdministrator>Peut administrer les cat&eacute;gories du filtrage web et le service d&eacute;p&ocirc;t/mise &agrave; jour des cat&eacute;gories</AsDansGuardianAdministrator>
+<AsDansGuardianAdministrator>Peut administrer les r&egrave;gles filtrage web</AsDansGuardianAdministrator>
+<AsSquidPersonalCategories>Peut Administrer les cat&eacute;gories Proxy personnelles</AsSquidPersonalCategories>
 <AsWebFilterRepository>Peut administrer le service d&eacute;p&ocirc;t des cat&eacute;gories.</AsWebFilterRepository>
 <AsWebMaster>Peut g&eacute;rer des services Internet comme des sites Web et applications Web</AsWebMaster>
 <AsWebStatisticsAdministrator>Peut visualiser les statistiques d'acc&egrave;s &agrave; Internet</AsWebStatisticsAdministrator>
@@ -890,7 +891,7 @@ Indiquez le nom d'utilisateur, le mot de passe ainsi que le nom du serveur ajout
 <ERROR_HAMACHI_NET_PATTERN>Erreur, le r&eacute;seau &agrave; joindre doit &ecirc;tre sous la forme 1234-1234-1234.
 V&eacute;rifiez l'identifiant R&eacute;seau.</ERROR_HAMACHI_NET_PATTERN>
 <error_max_database_name_no_more_than>Erreur, le nom de la base de donn&eacute;es ne doit pas exc&eacute;der une taille de</error_max_database_name_no_more_than>
-<error_missing_kerbauth>Erreur, le Proxy Squid Cache n'est pas compil&eacute; avec le mode d'authentification Kerberos</error_missing_kerbauth>
+<error_missing_kerbauth>Erreur, le service Proxy n'est pas compil&eacute; avec le mode d'authentification Kerberos</error_missing_kerbauth>
 <error_missing_mskutil>Erreur, impossible de trouver le binaire &quot;mskutil&quot;</error_missing_mskutil>
 <error_no_data>Aucune donn&eacute;e enregistr&eacute;e</error_no_data>
 <error_no_website_selected>Erreur, pas de site web s&eacute;lectionn&eacute;</error_no_website_selected>
@@ -959,7 +960,7 @@ Vous pouvez d&eacute;finir un ou plusieurs ports[br]Si vous indiquez plusieurs p
 Cette section va fixer votre environnement r&eacute;seau.[br]
 Notez que l'utilisation DHCP n'est pas conseill&eacute;e lorsqu'il s'agit d'un serveur...[br]
 V&eacute;rifiez la liste ci-dessous et cliquez sur chaque carte r&eacute;seau afin de confirmer ou de modifier les param&egrave;tres automatiquement d&eacute;tect&eacute;s par Artica.[br]</FIRST_WIZARD_NIC1>
-<FIRST_WIZARD_NIC2>Tous les param&egrave;tres des cartes r&eacute;seau sont enregistr&eacute;s.[br]Si vous d&eacute;sirez appliquer la configuration, cliquez sur le bouton ci-dessous red&eacute;marrez l'ordinateur.</FIRST_WIZARD_NIC2>
+<FIRST_WIZARD_NIC2>Tous les param&egrave;tres des cartes r&eacute;seaux sont enregistr&eacute;s.[br]Si vous d&eacute;sirez appliquer la configuration, cliquez sur le bouton ci-dessous red&eacute;marrez l\'ordinateur.</FIRST_WIZARD_NIC2>
 <fixed_ip_addr>Adresse IP fixe</fixed_ip_addr>
 <flags>Drapeaux</flags>
 <ForceGateway>Forcer la passerelle</ForceGateway>
@@ -1000,7 +1001,7 @@ Un mandataire direct standard est un serveur interm&eacute;diaire qui s'intercal
 <free_catgorized_explain>Placez ici du texte qui contient des liens Web.[br]Les liens doivent format&eacute;s comme ceci : http://domain.tld.com/something ou http://domain.tld.com.[br]
 Le moteur sera en charge de retrouver les liens dans le texte.Vous n'avez donc pas besoin de formater explicitement les adresses. Simplement, collez le texte avec des adresses...</free_catgorized_explain>
 <Friday>Vendredi</Friday>
-<from_date>Depuis</from_date>
+<from_date>Date de d&eacute;but</from_date>
 <frontend_disables_options_explain>Cette section vous permet de piloter l'affichage de la page de garde administrateur</frontend_disables_options_explain>
 <ftp_directory>R&eacute;pertoire FTP</ftp_directory>
 <function>Fonction</function>
@@ -1651,6 +1652,9 @@ Vous avez juste &agrave; d&eacute;finir la p&eacute;riode entre deux analyse en 
 <persistante_connection>Connexion persistante</persistante_connection>
 <personal_category>Cat&eacute;gorie personnelle</personal_category>
 <phishing_uris>Urls de Phishing</phishing_uris>
+<PhishTank_about>PhishTank est une communaut&eacute; Internet qui a pour objectif de traquer les liens Internet de phishing  (Hame%C3&sect;onnage). [br]PhishTank Produit une base de donn&eacute;es r&eacute;guli&egrave;rement &agrave; jour et disponible gratuitement.[br]
+Uniquement un enregistrement sur le site Web PhishTank assure &agrave; Artica la possibilit&eacute; de se mettre &agrave; jour et d'utiliser cette base de donn&eacute;es.</PhishTank_about>
+<PhishTank_enable>Activer l'utilisation de la base de donn&eacute;es PhishTank</PhishTank_enable>
 <php5MemoryLimit>Taille MAX de la m&eacute;moire PHP</php5MemoryLimit>
 <php5PostMaxSize>Taille MAX du POST</php5PostMaxSize>
 <php5UploadMaxFileSize>Taille MAX de chargement d'un fichier</php5UploadMaxFileSize>
@@ -1663,7 +1667,7 @@ Vous avez juste &agrave; d&eacute;finir la p&eacute;riode entre deux analyse en 
 <phrase_the_most_website_represent>XXWWWS repr&eacute;sente XXWWWSPRC de la bande passante totale t&eacute;l&eacute;charg&eacute;e et &agrave; &eacute;t&eacute; mis en cache pour XXWWWSCHE</phrase_the_most_website_represent>
 <phrase_thisisthegraph1>Ici, la courbe des acc&egrave;s par jour</phrase_thisisthegraph1>
 <phrase_thisisthegraph2>Ici la tendance du nombre d'acc&egrave;s par heure</phrase_thisisthegraph2>
-<phrase_topwebsize_bysize>Top des sites Internet par poids de bande passante</phrase_topwebsize_bysize>
+<phrase_topwebsize_bysize>Palmar&egrave;s des sites Internet par volum&eacute;trie</phrase_topwebsize_bysize>
 <phrase_your_users_categories>Habituellement, vos utilisateurs parcours les sites r&eacute;f&eacute;renc&eacute;s dans les cat&eacute;gories UXCATZ.[br]Le groupe de cat&eacute;gories principal est CATZGRP.</phrase_your_users_categories>
 <picture>Image</picture>
 <please_choose_an_official_domain>Veuillez choisir un domaine officiel</please_choose_an_official_domain>
@@ -1927,7 +1931,7 @@ Config Tr&egrave;s basse: vous lib&egrave;rera 320Mb.[br]</Reduce_mysql_explain>
 <register_date>Date d'enregistrement</register_date>
 <register_form>Formulaire d'enregistrement</register_form>
 <registration_complete>Fin de l'enregistrement</registration_complete>
-<rejected>rejet&eacute;(s)</rejected>
+<rejected>Rejet&eacute;(s)</rejected>
 <rejected_mails>Messages rejet&eacute;s</rejected_mails>
 <reject_rhsbl_helo>Rejeter RHSBL via HELO</reject_rhsbl_helo>
 <reject_rhsbl_helo_text>[b]rbl_domain=d.d.d.d[/b]Rejette la requ&ecirc;te lorsque le nom d'h&ocirc;te est list&eacute; avec l'enregistrement A &quot;d.d.d.d&quot; du domaine rbl_domain</reject_rhsbl_helo_text>
@@ -2420,18 +2424,18 @@ Indiquez le temps maximal de contournement. Apr&egrave;s le d&eacute;lai imparti
 <today_downloaded_flow>Aujourd'hui: Flux t&eacute;l&eacute;charg&eacute;.</today_downloaded_flow>
 <today_squid_instant_update>Aujourd'hui, vos bases de cat&eacute;gories ont &eacute;t&eacute;s am&eacute;lior&eacute;es de XX sites Internet et la derni&egrave;re mise &agrave; jour &agrave; &eacute;t&eacute; effectu&eacute;e &agrave; YY</today_squid_instant_update>
 <tomcat_admin_interface>Console d'administration Tomcat</tomcat_admin_interface>
-<top10>TOP 10</top10>
-<top10_users>TOP 10 utilisateurs</top10_users>
+<top10>Palmar&egrave;s: 10</top10>
+<top10_users>Palmar&egrave;s des utilisateurs</top10_users>
 <top_visited_categories>Cat&eacute;gories les plus visit&eacute;es</top_visited_categories>
 <top_visited_categories_mostwieght>La cat&eacute;gorie la plus consomm&eacute;e par cet utilisateur fut X avec Y de bande passante consomm&eacute;e.</top_visited_categories_mostwieght>
-<top_visited_websites>TOP des sites visit&eacute;s</top_visited_websites>
+<top_visited_websites>Palmar&egrave;s des sites visit&eacute;s</top_visited_websites>
 <totalsize>Taille totale</totalsize>
 <total_memory>M&eacute;moire totale</total_memory>
 <total_requests>Requ&ecirc;tes total</total_requests>
 <total_threshold>Seuil total</total_threshold>
 <total_traffic>Trafic total</total_traffic>
 <toulouse_university>Universit&eacute; de Toulouse</toulouse_university>
-<to_date>Vers</to_date>
+<to_date>Date de fin</to_date>
 <traffic_request>Trafic/Requ&ecirc;te</traffic_request>
 <traffic_second>Trafic/Seconde</traffic_second>
 <traffic_statistics>Statistiques du trafic</traffic_statistics>
@@ -2455,7 +2459,7 @@ Indiquez le temps maximal de contournement. Apr&egrave;s le d&eacute;lai imparti
 <TrustMyNetwork_text>Si en vert, le serveur va autoriser toutes les adresses IP (dans les r&eacute;seaux autoris&eacute;s) &agrave; &eacute;mettre des messages sur Internet.[br]
 Activer cette fonctionnalit&eacute; est dangereux en mode serveur Publique ou avec un r&eacute;partiteur de charge faisant parti des r&eacute;seaux de confiance.[br]
 Si votre serveur est en mode publique, vous devriez mettre en rouge cette fonction et mettre en vert l'authentification des utilisateurs.</TrustMyNetwork_text>
-<tsize>taille</tsize>
+<tsize>Taille</tsize>
 <Tuesday>Mardi</Tuesday>
 <UDMA_CRC_Error_Count>erreurs de CRC UltraDMA</UDMA_CRC_Error_Count>
 <UDMA_CRC_Error_Count_text>Nombre d'erreurs de CRC pendant un acc&egrave;s Ultra DMA</UDMA_CRC_Error_Count_text>

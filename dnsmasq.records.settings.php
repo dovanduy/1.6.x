@@ -57,7 +57,7 @@ $html="
 </center>	
 
 
-<div class=text-info>{dnsmasq_DNS_records_text}<br>{mxexamples}</div>
+<div class=explain>{dnsmasq_DNS_records_text}<br>{mxexamples}</div>
 
 <form name='$time'>
 <center>

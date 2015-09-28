@@ -110,13 +110,13 @@ function dhcp_form(){
 				<div style='margin:10px;border:1px solid #CCCCCC;padding:10px'>
 				<table style='width:100%'>
 				<tr>
-					<td class=legend style='font-size:22px;font-weight:bold;width:607px'>{range} {from}:</td>
+					<td class=legend style='font-size:22px;font-weight:bold;width:607px'>{ipfrom}:</td>
 					<td>".field_ipv4("range1-$t",$dhcp->range1,'font-size:22px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:22px;font-weight:bold'>{range} {to}:</td>
+					<td class=legend style='font-size:22px;font-weight:bold'>{ipto}:</td>
 					<td>".field_ipv4("range2-$t",$dhcp->range2,'font-size:22px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>

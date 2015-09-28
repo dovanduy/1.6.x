@@ -133,7 +133,7 @@ function maintenance_settings(){
 		
 		</td>
 		<td valign='top'>
-			<div class=text-info style='font-size:14px'>{ARTICA_DATABASE_SQUID_MAINTENANCE_WHY}</div>
+			<div class=explain style='font-size:14px'>{ARTICA_DATABASE_SQUID_MAINTENANCE_WHY}</div>
 			
 		</td>
 	</tr>
@@ -155,7 +155,7 @@ function maintenance_settings(){
 	</tr>
 	<tr>
 		<td colspan=2>
-		<div class=text-info style='font-size:16px'><strong>{external_artica_mysql_statistics_generator}</strong><br>{external_artica_mysql_statistics_generator_explain}</div></td>
+		<div class=explain style='font-size:16px'><strong>{external_artica_mysql_statistics_generator}</strong><br>{external_artica_mysql_statistics_generator_explain}</div></td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:16px'>{use_external_mysql_server}:</td>

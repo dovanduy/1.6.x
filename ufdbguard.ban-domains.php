@@ -32,7 +32,7 @@ popup();
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-$html="<div class=text-info>{bannedextensionlistdomain_explain}</div>
+$html="<div class=explain>{bannedextensionlistdomain_explain}</div>
 <div id='bannedextensionlistDoms-div'></div>
 <script>
 	function RefreshBannedextensionlist(){

@@ -323,7 +323,7 @@ class htmlblocker{
 			$this->BigMailHTMLEnabled=$hash[0][strtolower('BigMailHTMLEnabled')][0];
 			$this->BigMailHtmlConfig=$hash[0][strtolower('BigMailHtmlConfig')][0];
 			if(!isset($hash[0][strtolower('BigMailHtmlBody')])){
-				$upd["BigMailHtmlBody"][]="<b style='color:red'>original Attached files of this message are stored 
+				$upd["BigMailHtmlBody"][]="<b style='color:#d32d2d'>original Attached files of this message are stored 
 											on our server<br>You can download them by clicking on link at the bottom of this email</b>";
 				$ldap->Ldap_add_mod($this->dn,$upd);
 				unset($upd);

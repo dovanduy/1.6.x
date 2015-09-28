@@ -303,23 +303,7 @@ class nginx_stats{
 	
 		}	
 	
-	public function LIST_TABLES_HOURS_TEMP(){
-		if(isset($GLOBALS["{$this->database}LIST_TABLES_HOURS_TEMP"])){return $GLOBALS["{$this->database}LIST_TABLES_HOURS_TEMP"];}
-		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' 
-		AND table_name LIKE 'hour_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 	
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#hour_[0-9]+$#", $ligne["c"])){
-				$GLOBALS["{$this->database}LIST_TABLES_HOURS_TEMP"][$ligne["c"]]=$ligne["c"];
-				$array[$ligne["c"]]=$ligne["c"];
-			}
-		}
-		return $array;
-	}	
 	public function LIST_TABLES_DAY(){
 		if(isset($GLOBALS["{$this->database}LIST_TABLES_DAY"])){return $GLOBALS["{$this->database}LIST_TABLES_DAY"];}
 		$array=array();

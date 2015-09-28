@@ -526,7 +526,7 @@ function ldap_config(){
 	$ldap_group_unique_attribute = "gidNumber";
 	$ldap_group_unique_attribute_type="text";
 	$ldap_groupname_attribute="cn";	
-	$ldap_addresslist_search_filter = "(objectClass=zarafaAddressList)";
+	$ldap_addresslist_search_filter = "(objectClass=zarafa-addresslist)";
 	$ldap_contact_type_attribute_value="zarafa-contact";
 	$ldap_groupmembers_attribute="memberUid";
 	$ldap_groupmembers_attribute_type="text";
@@ -683,12 +683,16 @@ if(!$Is713Sup){
 $f[]="ldap_last_modification_attribute = modifyTimestamp";
 $f[]="ldap_object_search_filter =(|(mail=%s*)(uid=%s*)(cn=*%s*)(sAMAccountName=*%s*)(fullname=*%s*)(givenname=*%s*)(lastname=*%s*)(sn=*%s*)) ";
 $f[]="ldap_filter_cutoff_elements = 1000";
-$f[]="ldap_addresslist_search_base = $prefixAddresses$ldap->suffix";
-$f[]="ldap_addresslist_scope = sub";
-$f[]="ldap_addresslist_search_filter = $ldap_addresslist_search_filter";
+$f[]="";
+
+#$f[]="ldap_addresslist_search_base = $prefixAddresses$ldap->suffix";
+#$f[]="ldap_addresslist_scope = sub";
+#$f[]="ldap_addresslist_search_filter = $ldap_addresslist_search_filter";
+$f[]="ldap_addresslist_search_filter =";
 $f[]="ldap_addresslist_unique_attribute = cn";
 $f[]="ldap_addresslist_unique_attribute_type = text";
 $f[]="ldap_addresslist_filter_attribute = zarafaFilter";
+$f[]="ldap_addresslist_type_attribute_value = zarafa-addresslist";
 $f[]="ldap_addresslist_name_attribute = cn";
 
 

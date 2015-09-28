@@ -109,10 +109,19 @@ function popup(){
 			if(document.getElementById('main_config_mgreylist')){RefreshTab('main_config_mgreylist');}
 			if(document.getElementById('main_failover_tabs')){RefreshTab('main_failover_tabs');}
 			if(document.getElementById('tabs_networktrack')){RefreshTab('tabs_networktrack');}
-			
-			
-			
+			if(document.getElementById('freshclam-status')){ LoadAjax('freshclam-status','clamav.updates.php?freshclam-status=yes'); }
+			if(document.getElementById('admin_perso_tabs-ID')){
+				var id=document.getElementById('admin_perso_tabs-ID').value;
+				RefreshTab(id);
+			}
 			document.getElementById('title-$t').innerHTML='$finish_text';
+			
+			if(document.getElementById('sequence-proxy')){
+				LoadAjaxSilent('sequence-proxy','admin.dashboard.proxy.php?sequence-proxy=yes&nofw=yes&sequence=yes&ForceCache=yes');
+				
+			}
+			
+			
 		}
 		
 	var X_refreshidStatus$t= function (obj) {
@@ -206,6 +215,10 @@ function ifStopped(){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
 			}
+			if(preg_match("#Process was started#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
 			
 			if(preg_match("#success with pid#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
@@ -245,7 +258,12 @@ function ifStopped(){
 			if(preg_match("#Starting.*?failed#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
-			}			
+			}	
+
+			if(preg_match("#Starting.*?Daemon Success#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}	
 			
 			if(preg_match("#Already Artica task running#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";

@@ -57,7 +57,7 @@ function tabs(){
 		unset($array["client"]);
 	}
 	
-	$fontsize=22;
+	$fontsize=28;
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="hosts"){
@@ -75,7 +75,7 @@ function tabs(){
 	$t=time();
 	//
 	
-	echo build_artica_tabs($tab, "main_artica_meta",915)."<script>LeftDesign('management-console-256.png');</script>";
+	echo build_artica_tabs($tab, "main_artica_meta",1400)."<script>LeftDesign('management-console-256.png');</script>";
 	
 	
 	
@@ -91,16 +91,25 @@ function parameters(){
 	$ArticaMetaServerPassword=$sock->GET_INFO("ArticaMetaServerPassword");
 	$ArticaMetaPooling=intval($sock->GET_INFO("ArticaMetaPooling"));
 	$ArticaMetaUseLocalProxy=intval($sock->GET_INFO("ArticaMetaUseLocalProxy"));
+	$ArticaMetaKillProcess=intval($sock->GET_INFO("ArticaMetaKillProcess"));
 	$ArticaMetaStorage=$sock->GET_INFO("ArticaMetaStorage");
 	if($ArticaMetaStorage==null){$ArticaMetaStorage="/home/artica-meta";}
 	$ArticaMetaTimeOut=intval($sock->GET_INFO("ArticaMetaTimeOut"));
+	$ArticaLinkAutoconnect=intval($sock->GET_INFO("ArticaLinkAutoconnect"));
+	$ArticaMaxPackages=intval($sock->GET_INFO("ArticaMaxPackages"));
+	$ArticaMaxSnapshots=intval($sock->GET_INFO("ArticaMaxSnapshots"));
+	
+	
+	if($ArticaMaxPackages==0){$ArticaMaxPackages=5;}
 	if($ArticaMetaTimeOut==0){$ArticaMetaTimeOut=300;}
+	if($ArticaMaxSnapshots==0){$ArticaMaxSnapshots=10;}
 	$ldap=new clladp();
 	if($ArticaMetaServerUsername==null){$ArticaMetaServerUsername=$ldap->ldap_admin;}
 	if($ArticaMetaServerPassword==null){$ArticaMetaServerPassword=$ldap->ldap_password;}
 	
 	$ArticaMetaUseSendClient=intval($sock->GET_INFO("ArticaMetaUseSendClient"));
 	if($ArticaMetaPooling==0){$ArticaMetaPooling=15;}
+	if($ArticaMetaKillProcess==0){$ArticaMetaKillProcess=60;}
 	$AsMetaServer=intval($sock->GET_INFO("AsMetaServer"));
 	
 	
@@ -117,41 +126,57 @@ function parameters(){
 	
 	$html="	<div style='width:98%' class=form>
 	<div style='width:70%;margin:10px;text-align:right;float:right'>". button("{repair_tables}","Loadjs('artica-meta.repairtables.php')",18)."</div>		
-	". Paragraphe_switch_img("{enable_artica_meta}", "{artica_meta_howto}","EnableArticaMetaServer-$t",$EnableArticaMetaServer,null,650)."		
+	". Paragraphe_switch_img("{enable_artica_meta}", "{artica_meta_howto}","EnableArticaMetaServer-$t",$EnableArticaMetaServer,null,1390)."		
 			
 	
 		<table style='width:100%'>
 			
 		<tr>
-			<td class=legend style='font-size:18px'>{use_local_proxy}:</td>
-			<td style='font-size:18px'>". Field_checkbox("ArticaMetaUseLocalProxy-$t",1,$ArticaMetaUseLocalProxy)."</td>		
+			<td class=legend style='font-size:24px'>{use_local_proxy}:</td>
+			<td style='font-size:24px'>". Field_checkbox_design("ArticaMetaUseLocalProxy-$t",1,$ArticaMetaUseLocalProxy)."</td>		
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:18px'>{timeout2} HTTP:</td>
-			<td style='font-size:18px'>". Field_text("ArticaMetaTimeOut-$t",$ArticaMetaTimeOut,"font-size:18px;width:110px")."&nbsp;{minutes}</td>		
+			<td class=legend style='font-size:24px'>{timeout2} HTTP:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMetaTimeOut-$t",$ArticaMetaTimeOut,"font-size:24px;width:110px")."&nbsp;{minutes}</td>		
 		</tr>							
 		<tr>
-			<td class=legend style='font-size:18px'>{send_orders}:</td>
-			<td style='font-size:18px'>". Field_checkbox("ArticaMetaUseSendClient-$t",1,$ArticaMetaUseSendClient)."</td>		
-		</tr>				
-		<tr>
-			<td class=legend style='font-size:18px'>{username}:</td>
-			<td style='font-size:18px'>". Field_text("username-$t",$ArticaMetaServerUsername,"font-size:18px;width:240px")."</td>		
+			<td class=legend style='font-size:24px'>{send_orders}:</td>
+			<td style='font-size:24px'>". Field_checkbox_design("ArticaMetaUseSendClient-$t",1,$ArticaMetaUseSendClient)."</td>		
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:18px'>{password}:</td>
-			<td style='font-size:18px'>". Field_password("password-$t",$ArticaMetaServerPassword,"font-size:18px;width:240px")."</td>		
+			<td class=legend style='font-size:24px'>{autoconnection}:</td>
+			<td style='font-size:24px'>". Field_checkbox_design("ArticaLinkAutoconnect-$t",1,$ArticaLinkAutoconnect)."</td>		
+		</tr>								
+		<tr>
+			<td class=legend style='font-size:24px'>{username}:</td>
+			<td style='font-size:24px'>". Field_text("username-$t",$ArticaMetaServerUsername,"font-size:24px;width:240px")."</td>		
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:24px'>{password}:</td>
+			<td style='font-size:24px'>". Field_password("password-$t",$ArticaMetaServerPassword,"font-size:24px;width:240px")."</td>		
 		</tr>			
 		<tr>
-			<td class=legend style='font-size:18px'>{popminpoll}:</td>
-			<td style='font-size:18px'>". Field_array_Hash($HashTime, "ArticaMetaPooling-$t",$ArticaMetaPooling,"style:font-size:18px")."&nbsp;{minutes}</td>		
+			<td class=legend style='font-size:24px'>{popminpoll}:</td>
+			<td style='font-size:24px'>". Field_array_Hash($HashTime, "ArticaMetaPooling-$t",$ArticaMetaPooling,"style:font-size:24px")."</td>		
 		</tr>	
 		<tr>
-			<td class=legend style='font-size:18px'>{local_storage}:</td>
-			<td style='font-size:18px'>". Field_text("ArticaMetaStorage-$t",$ArticaMetaStorage,"font-size:18px;width:310px")."</td>		
+			<td class=legend style='font-size:24px'>{MaxExecutionTime}:</td>
+			<td style='font-size:24px'>". Field_array_Hash($HashTime, "ArticaMetaKillProcess-$t",$ArticaMetaKillProcess,"style:font-size:24px")."</td>		
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:24px'>{MaxPackages}:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMaxPackages-$t",$ArticaMaxPackages,"font-size:24px;width:110px")."</td>		
+		</tr>	
+		<tr>
+			<td class=legend style='font-size:24px'>{MaxSnapshots}:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMaxSnapshots-$t",$ArticaMaxSnapshots,"font-size:24px;width:110px")."</td>		
+		</tr>													
+		<tr>
+			<td class=legend style='font-size:24px'>{local_storage}:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMetaStorage-$t",$ArticaMetaStorage,"font-size:24px;width:310px")."</td>		
 		</tr>					
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",36)."</td>
 		</tr>
 		</table>
 	<script>
@@ -184,6 +209,13 @@ function parameters(){
 		XHR.appendData('ArticaMetaServerUsername',document.getElementById('username-$t').value);
 		XHR.appendData('ArticaMetaServerPassword',encodeURIComponent(document.getElementById('password-$t').value));
 		XHR.appendData('ArticaMetaStorage',document.getElementById('ArticaMetaStorage-$t').value);
+		XHR.appendData('ArticaMetaKillProcess',document.getElementById('ArticaMetaKillProcess-$t').value);
+		XHR.appendData('ArticaLinkAutoconnect',document.getElementById('ArticaLinkAutoconnect-$t').value);
+		XHR.appendData('ArticaMaxPackages',document.getElementById('ArticaMaxPackages-$t').value);
+		XHR.appendData('ArticaMaxSnapshots',document.getElementById('ArticaMaxSnapshots-$t').value);
+		
+		
+		
 		XHR.sendAndLoad('$page', 'POST',xSave$t);	
 	}
 								
@@ -225,34 +257,35 @@ function clientmode(){
 	
 	$html="	<div style='width:98%' class=form>
 		
-	". Paragraphe_switch_img("{enable_artica_meta}", "{artica_meta_client_howto}","EnableArticaMetaClient-$t",$EnableArticaMetaClient,null,650)."
+	". Paragraphe_switch_img("{enable_artica_meta}", 
+			"{artica_meta_client_howto}","EnableArticaMetaClient-$t",$EnableArticaMetaClient,null,1390,"Check$t()")."
 		
 	
 		<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:18px'>{timeout2} HTTP:</td>
-			<td style='font-size:18px'>". Field_text("ArticaMetaTimeOut-$t",$ArticaMetaTimeOut,"font-size:18px;width:110px")."&nbsp;{minutes}</td>		
+			<td class=legend style='font-size:24px'>{timeout2} HTTP:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMetaTimeOut-$t",$ArticaMetaTimeOut,"font-size:24px;width:110px")."&nbsp;{minutes}</td>		
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:18px'>{hostname}:</td>
-			<td style='font-size:18px'>". Field_text("ArticaMetaHost-$t",$ArticaMetaHost,"font-size:18px;width:240px")."</td>
+			<td class=legend style='font-size:24px'>{hostname}:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMetaHost-$t",$ArticaMetaHost,"font-size:24px;width:240px")."</td>
 		</tr>			
 		<tr>
-			<td class=legend style='font-size:18px'>{port}:</td>
-			<td style='font-size:18px'>". Field_text("ArticaMetaPort-$t",$ArticaMetaPort,"font-size:18px;width:110px")."</td>
+			<td class=legend style='font-size:24px'>{port}:</td>
+			<td style='font-size:24px'>". Field_text("ArticaMetaPort-$t",$ArticaMetaPort,"font-size:24px;width:110px")."</td>
 		</tr>				
 			
 		<tr>
-			<td class=legend style='font-size:18px'>{username}:</td>
-			<td style='font-size:18px'>". Field_text("username-$t",$ArticaMetaUsername,"font-size:18px;width:240px")."</td>
+			<td class=legend style='font-size:24px'>{username}:</td>
+			<td style='font-size:24px'>". Field_text("username-$t",$ArticaMetaUsername,"font-size:24px;width:240px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px'>{password}:</td>
-			<td style='font-size:18px'>". Field_password("password-$t",$ArticaMetaPassword,"font-size:18px;width:240px")."</td>
+			<td class=legend style='font-size:24px'>{password}:</td>
+			<td style='font-size:24px'>". Field_password("password-$t",$ArticaMetaPassword,"font-size:24px;width:240px")."</td>
 		</tr>
 
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
+			<td colspan=2 align='right'><hr>". button("{connect}","Save$t()",32)."</td>
 		</tr>
 		</table>
 				<script>
@@ -276,6 +309,21 @@ function clientmode(){
 	XHR.appendData('ArticaMetaPassword',encodeURIComponent(document.getElementById('password-$t').value));
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
+	
+function Check$t(){
+	document.getElementById('ArticaMetaHost-$t').disabled=true;
+	document.getElementById('ArticaMetaPort-$t').disabled=true;
+	document.getElementById('ArticaMetaTimeOut-$t').disabled=true;
+	document.getElementById('username-$t').disabled=true;
+	document.getElementById('password-$t').disabled=true;
+	if(document.getElementById('EnableArticaMetaClient-$t').value==1){
+		document.getElementById('ArticaMetaHost-$t').disabled=false;
+		document.getElementById('ArticaMetaPort-$t').disabled=false;
+		document.getElementById('ArticaMetaTimeOut-$t').disabled=false;
+		document.getElementById('username-$t').disabled=false;
+		document.getElementById('password-$t').disabled=false;
+	}
+}
 	
 	</script>
 	";
@@ -309,46 +357,46 @@ function SMTP_PAGE(){
 	$html="<div style='width:98%' class=form>
 			
 ". Paragraphe_switch_img("{tls_enabled}", "{tls_enabled_explain}",
-						"tls_enabled-$t",$ArticaMetaSMTPNotifs["tls_enabled"],null,600)."
+						"tls_enabled-$t",$ArticaMetaSMTPNotifs["tls_enabled"],null,1390)."
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_server_name}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_server_name-$t",$ArticaMetaSMTPNotifs["smtp_server_name"],
-				"font-size:18px;width:350px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_server_name}:</td>
+		<td	style='font-size:24px'>". Field_text("smtp_server_name-$t",$ArticaMetaSMTPNotifs["smtp_server_name"],
+				"font-size:24px;width:350px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_server_port}:</td>
-<td	style='font-size:18px'>". Field_text("smtp_server_port-$t",$ArticaMetaSMTPNotifs["smtp_server_port"],
-		"font-size:18px;width:110px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_server_port}:</td>
+<td	style='font-size:24px'>". Field_text("smtp_server_port-$t",$ArticaMetaSMTPNotifs["smtp_server_port"],
+		"font-size:24px;width:110px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_sender}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_sender-$t",$ArticaMetaSMTPNotifs["smtp_sender"],
-				"font-size:18px;width:290px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_sender}:</td>
+		<td	style='font-size:24px'>". Field_text("smtp_sender-$t",$ArticaMetaSMTPNotifs["smtp_sender"],
+				"font-size:24px;width:290px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_dest}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_dest-$t",$ArticaMetaSMTPNotifs["smtp_dest"],
-				"font-size:18px;width:290px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_dest}:</td>
+		<td	style='font-size:24px'>". Field_text("smtp_dest-$t",$ArticaMetaSMTPNotifs["smtp_dest"],
+				"font-size:24px;width:290px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_auth_user}:</td>
-		<td	style='font-size:18px'>". Field_text("smtp_auth_user-$t",$ArticaMetaSMTPNotifs["smtp_auth_user"],
-				"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_auth_user}:</td>
+		<td	style='font-size:24px'>". Field_text("smtp_auth_user-$t",$ArticaMetaSMTPNotifs["smtp_auth_user"],
+				"font-size:24px;width:190px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_auth_passwd}:</td>
-		<td	style='font-size:18px'>". Field_password("smtp_auth_passwd-$t",$ArticaMetaSMTPNotifs["smtp_auth_passwd"],
-				"font-size:18px;width:190px")."&nbsp;</td>
+		<td class=legend style='font-size:24px'>{smtp_auth_passwd}:</td>
+		<td	style='font-size:24px'>". Field_password("smtp_auth_passwd-$t",$ArticaMetaSMTPNotifs["smtp_auth_passwd"],
+				"font-size:24px;width:190px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-<td colspan=3 align='right'><hr>". button("{test}","Save$t(true)",24)."&nbsp;|&nbsp;". button("{apply}","Save$t(false)",24)."</td>
+<td colspan=3 align='right'><hr>". button("{test}","Save$t(true)",32)."&nbsp;|&nbsp;". button("{apply}","Save$t(false)",32)."</td>
 </div>
 <script>
 var xSave$t= function (obj) {

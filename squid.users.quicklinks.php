@@ -330,14 +330,12 @@ function section_myhost_config(){
 	
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-webinterface=yes');");
-		$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
-	"javascript:Loadjs('artica.settings.php?js=yes&func-NotificationsInterface=yes');");
 		
 	$tr[]=$frontend_settings;
 	$tr[]=$web_interface_settings;
 	$tr[]=$proxy;
 
-	$tr[]=$SMTP_NOTIFICATIONS_PAGE;
+	
 	$tr[]=$artica_settings;
 	
 	
@@ -373,7 +371,7 @@ function section_computers_infos(){
 	
 		$array["section_computers_infos_OS"]='{server}';
 		$array["section_security"]='{security}';
-		$array["section_myhost_config"]='{general_settings}';
+		
 		
 		if($q->COUNT_ROWS("repquota", "artica_events")){
 			$array["section_quotas"]='{quotas}';
@@ -525,7 +523,6 @@ if(!isset($_SESSION["DISTRI"])){
 	$distri=$sys->ditribution_name;
 	$kernel=$sys->kernel_version;
 	$LIBC=$sys->libc_version;
-	$temp=$sys->GetCpuTemp();
 	$users=new usersMenus();
 	$os=new os_system();
 	$arraycpu=$os->cpu_info();
@@ -568,7 +565,7 @@ if(preg_match("#Broken pipevmware#i", $CHASSIS)){$CHASSIS="VMWare";}
 				</tr>							
 					<td valign='top' style='font-size:12px'><img src='$distri_logo'></td>
 					<td valign='top' style='font-size:12px'><strong>$distri<br>kernel $kernel
-					<br>libc $LIBC<br>Temp $temp&nbsp;C</strong>
+					<br>libc $LIBC</strong>
 					</td>
 				</tr>
 				$chassis_serial
@@ -986,7 +983,7 @@ function icon_memory(){
 	$GLOBALS["ICON_FAMILY"]="SYSTEM";
 	if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();$users=$GLOBALS["CLASS_USERS"];}else{$users=$GLOBALS["CLASS_USERS"];}
 	if(!$users->AsAnAdministratorGeneric){return null;}
-	$js="Loadjs('system.memory.php?js=yes')";
+	$js="GotoSystemMemory()";
 	$img="bg_memory-64.png";
 	return Paragraphe($img,"{system_memory}","{system_memory_text}","javascript:$js");
 	

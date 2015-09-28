@@ -503,6 +503,9 @@ class settings_inc {
 	public $SYNCTHING_INSTALLED=false;
 	public $SENSORS_INSTALLED=false;
 	public $SS5_INSTALLED=false;
+	public $HYPERCACHE_STOREID=false;
+	public $XEN_HOST=false;
+	public $HYPERV_HOST=false;
 	
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
@@ -713,6 +716,10 @@ class settings_inc {
 			if(isset($_GLOBAL["SYNCTHING_INSTALLED"])){$this->SYNCTHING_INSTALLED=$_GLOBAL["SYNCTHING_INSTALLED"];;}
 			if(isset($_GLOBAL["SENSORS_INSTALLED"])){$this->SENSORS_INSTALLED=$_GLOBAL["SENSORS_INSTALLED"];;}
 			if(isset($_GLOBAL["SS5_INSTALLED"])){$this->SS5_INSTALLED=$_GLOBAL["SS5_INSTALLED"];}
+			if(isset($_GLOBAL["HYPERCACHE_STOREID"])){$this->HYPERCACHE_STOREID=$_GLOBAL["HYPERCACHE_STOREID"];}
+			if(isset($_GLOBAL["XEN_HOST"])){$this->XEN_HOST=$_GLOBAL["XEN_HOST"];}
+			if(isset($_GLOBAL["HYPERV_HOST"])){$this->HYPERV_HOST=$_GLOBAL["HYPERV_HOST"];}
+			
 			
 			
 			

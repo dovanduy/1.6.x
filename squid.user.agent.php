@@ -45,7 +45,7 @@ function js(){
 function popup(){
 	$page=CurrentPageName();
 	$html="
-	<div class=text-info>{useragent_database_explain}</div>
+	<div class=explain>{useragent_database_explain}</div>
 	
 
 	<table style='width:100%'>

@@ -119,7 +119,7 @@ function query(){
 		try {
 			$result = $rs->query($query, "A");
 		} catch(Net_DNS2_Exception $e) {
-			echo "<div style='font-size:16px;color:red'>Failed to query: " . $e->getMessage() . "</div>";
+			echo "<div style='font-size:16px;color:#d32d2d'>Failed to query: " . $e->getMessage() . "</div>";
 			continue;
 		}
 		

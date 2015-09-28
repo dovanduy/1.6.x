@@ -48,7 +48,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'><img src='img/pagepeeker-204.png'></div>
-	<div class=text-info style='font-size:14px'>{pagepeeker_icon_text}
+	<div class=explain style='font-size:14px'>{pagepeeker_icon_text}
 	</div>
 	
 	<table style='width:99%' class=form>

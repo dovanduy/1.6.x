@@ -288,7 +288,7 @@ if($users->EnableManageUsersTroughActiveDirectory){
 	if($users->EnableManageUsersTroughActiveDirectory){$button=null;}
 	
 	$html="
-	<div class=text-info style='font-size:13px'>{ORG_SETTINGS_TEXT}</div>
+	<div class=explain style='font-size:13px'>{ORG_SETTINGS_TEXT}</div>
 	$fav
 	
 	
@@ -502,7 +502,7 @@ $html="<p>&nbsp;</p>
 <td valign='top'>
 <h3>{edit_photo_title_org}</h3>
 <p>{edit_photo_title_org_text}</p>
-<div style='color:red'>$error</div>
+<div style='color:#d32d2d'>$error</div>
 <div style='font-size:11px'><code>$error</code></div>
 <form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 <input type='hidden' name='ou' value='$ou'>

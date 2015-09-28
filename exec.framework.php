@@ -394,25 +394,25 @@ function buildConfig(){
 	if(!is_numeric($LighttpdArticaMaxChildren)){$LighttpdArticaMaxChildren=0;}
 	if(!is_numeric($PHP_FCGI_MAX_REQUESTS)){$PHP_FCGI_MAX_REQUESTS=200;}
 	
-	$PHP_FCGI_CHILDREN=3;
-	$max_procs=3;
+	$PHP_FCGI_CHILDREN=1;
+	$max_procs=5;
 	
 	
 	if($LighttpdArticaMaxProcs>0){$max_procs=$LighttpdArticaMaxProcs;}
 	if($LighttpdArticaMaxChildren>0){$PHP_FCGI_CHILDREN=$LighttpdArticaMaxChildren;}
 	
 	if(!$unix->ISMemoryHiger1G()){
-		$PHP_FCGI_CHILDREN=3;
-		$max_procs=3;
-		$PHP_FCGI_MAX_REQUESTS=1500;
+		$PHP_FCGI_CHILDREN=2;
+		$max_procs=2;
+		$PHP_FCGI_MAX_REQUESTS=200;
 	}
 	
 	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
 	if($MEMORY<624288){$LighttpdRunAsminimal=1;}
 	
 	if($LighttpdRunAsminimal==1){
-		$max_procs=1;
-		$PHP_FCGI_CHILDREN=2;
+		$max_procs=2;
+		$PHP_FCGI_CHILDREN=1;
 		$PHP_FCGI_MAX_REQUESTS=500;
 	}
 	

@@ -243,7 +243,7 @@ function _youtube_days($tablesource){
 	return true;
 }
 
-function youtube_events($text,$line){
+function youtube_events($text,$line=0){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	if($GLOBALS["VERBOSE"]){echo $text."\n";}
 	$common="/var/log/artica-postfix/youtube.inject.log";

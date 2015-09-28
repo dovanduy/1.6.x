@@ -214,6 +214,7 @@ if($prc==100){
 		LayersTabsAllAfter();
 		RTMMailHide();
 		CacheOff();
+		LoadAjaxRound('main-ufdb-frontend','ufdbguard.status.php');
 		}
 	setTimeout(\"Start$time()\",1000);
 	";	
@@ -236,7 +237,9 @@ function Launch(){
 	if(isset($_GET["ApplyConfToo"])){
 		$ApplyConfToo="&ApplyConfToo=yes";
 	}	
-	
+	$sock=new sockets();
+	$sock->SET_INFO("EnableUfdbGuard",1);
+	$sock->SET_INFO("EnableUfdbGuard2",1);
 	
 	$cmd="squid.php?ufdbguard_enable_progress=yes$ApplyConfToo";
 	writelogs("launch $cmd",__FUNCTION__,__FILE__,__LINE__);

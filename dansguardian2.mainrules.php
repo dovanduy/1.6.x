@@ -6,17 +6,13 @@ header("Cache-Control: no-cache, must-revalidate");
 $dirname=dirname(__FILE__);
 if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}
 
-include_once($dirname.'ressources/class.templates.inc');
+include_once($dirname.'/ressources/class.templates.inc');
 include_once($dirname.'/ressources/class.ldap.inc');
 include_once($dirname.'/ressources/class.users.menus.inc');
 include_once($dirname.'/ressources/class.squid.inc');
 include_once($dirname.'/ressources/class.ActiveDirectory.inc');
 
-if(isset($argv[1])){
-	if($GLOBALS["AS_ROOT"]){
-		if($argv[1]=="rules-toolbox-left"){rules_toolbox_left();die();}
-	}
-}
+if($GLOBALS["AS_ROOT"]){die();}
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 
@@ -46,7 +42,7 @@ if(isset($_GET["CompileUfdbGuardRules-perform"])){CompileUfdbGuardRules_perform(
 if(isset($_GET["CompileUfdbGuardRules-check"])){CompileUfdbGuardRules_check();exit;}
 if(isset($_GET["UfdbguardEvents"])){UfdbguardEvents_js();exit;}
 if(isset($_GET["UfdbguardEvents-popup"])){UfdbguardEvents_popup();exit;}
-if(isset($_GET["section_ufdbguard_advanced_options"])){section_ufdbguard_advanced_options();exit;}
+
 
 
 tabs();
@@ -178,54 +174,7 @@ function CompileUfdbGuardRules_check(){
 	
 }
 
-function section_ufdbguard_advanced_options(){
-	$array["rewrite-rules"]='{rewrite_rules}';
-	$array["section_basic_filters-terms"]='{terms_groups}';
-	$array["others"]='{others}';
-	
-	if(GET_CACHED(__FILE__, __FUNCTION__)){return;}
-	$squid=new squidbee();
-	$tpl=new templates();
-	$users=new usersMenus();
-	$page=CurrentPageName();
-	$sock=new sockets();
-	
 
-	
-	$fontsize=16;
-	if(count($array)>6){$fontsize=11.5;}
-	$t=time();
-	while (list ($num, $ligne) = each ($array) ){
-	
-		if($num=="rewrite-rules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"ufdbguard.rewrite.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
-			continue;
-		}
-	
-		if($num=="others"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"dansguardian2.php?ufdbguard-options=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
-			continue;
-		}
-	
-		if($num=="section_basic_filters-terms"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.terms.groups.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
-			continue;
-				
-		}
-	
-
-	
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
-	}
-	
-	
-	
-	$html= build_artica_tabs($html,'main_ufdbguard_advanced');
-	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
-	echo $html;
-	
-	
-}
 
 
 function tabs(){
@@ -235,11 +184,13 @@ function tabs(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$sock=new sockets();
+	$SquidPerformance=intval($sock->GET_INFO("SquidPerformance"));
 	
 	$array["ufdbguard-status"]="{service_status}";
 	$array["main-rules"]='{rules}';
-	$array["section_ufdbguard_advanced_options"]='{advanced_options}';
-	$array["your_categories"]='{your_categories}';
+	$array["quotas"]='{quotas}';
+	
+	
 	$array["databases"]='{all_categories}';
 	//$array["ufdbguard"]='{service_parameters}';
 	$array["error-page"]='{error_page}';
@@ -248,7 +199,7 @@ function tabs(){
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){
 		unset($array["section_basic_filters-terms"]);
-		unset($array["section_ufdbguard_advanced_options"]);
+		
 		unset($array["databases"]);
 		unset($array["ufdbguard"]);
 		unset($array["ufdbguard-status"]);
@@ -258,6 +209,11 @@ function tabs(){
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	if($UseRemoteUfdbguardService==1){
+		$array=array();
+		$array["client_parameters"]="{client_parameters}";
+	}
+	
+	if($SquidPerformance>2){
 		$array=array();
 		$array["client_parameters"]="{client_parameters}";
 	}
@@ -282,7 +238,10 @@ function tabs(){
 			continue;
 		}
 
-		
+		if($num=="quotas"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.artica-quotas.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="error-page"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squidguardweb.php?tabs=yes&_=1410377344863\" style='font-size:{$fontsize}px;font-weight:normal'><span>$ligne</span></a></li>\n");
@@ -407,8 +366,10 @@ function rules(){
 	
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){rules_ufdb_not_installed();return;}
-	
-	$html="<div id='rules-table'></div>
+	$WEBFILTERING_TOP_MENU=WEBFILTERING_TOP_MENU();
+	$html="
+	<div style='font-size:30px;margin-bottom:20px'>$WEBFILTERING_TOP_MENU</div>		
+	<div id='rules-table'></div>
 	<script>
 		LoadAjax('rules-table','$page?rules-table=yes');
 	</script>
@@ -421,26 +382,7 @@ function rules(){
 
 function rules_toolbox_left(){
 	if(!isset($_GET["t"])){$_GET["t"]=time();}
-	$cachefile="/usr/share/artica-postfix/ressources/logs/web/ufdb.rules_toolbox_left.html";
-	if(isset($_GET["RemoveCache"])){@unlink($cachefile);}
-/*	ini_set('display_errors', 1);
-	ini_set('error_reporting', E_ALL);
-	ini_set('error_prepend_string',"<p class=text-error>");
-	ini_set('error_append_string',"</p>");
 	
-*/	
-	if(!$GLOBALS["AS_ROOT"]){
-		if(is_file($cachefile)){
-			$tpl=new templates();
-			echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
-			return;
-		}
-	}else{
-		include_once(dirname(__FILE__).'/framework/class.unix.inc');
-		include_once(dirname(__FILE__).'/framework/frame.class.inc');
-		$unix=new unix();
-		if($unix->file_time_min($cachefile)<5){return;}
-	}
 	
 	
 	
@@ -459,7 +401,7 @@ function rules_toolbox_left(){
 	
 	$Computers=numberFormat($Computers,0,""," ");
 	$sock=new sockets();
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	
 
 	
@@ -467,9 +409,8 @@ function rules_toolbox_left(){
 	$tablescat=$q->LIST_TABLES_CATEGORIES();
 	$CountDeCategories=numberFormat(count($tablescat),0,""," ");
 	
-	$todayblocked=date("Ymd")."_blocked";
-	$CountDeBlocked=$sql=$q->COUNT_ROWS($todayblocked);
-	$CountDeBlocked=numberFormat($CountDeBlocked,0,""," ");
+	
+	
 	
 	$disable_service=$tpl->_ENGINE_parse_body("{disable_service}");
 	
@@ -478,6 +419,7 @@ function rules_toolbox_left(){
 	$update_parameters=$tpl->_ENGINE_parse_body("{update_parameters}");
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+	$SquidDatabasesUtlseEnable=$sock->GET_INFO("SquidDatabasesUtlseEnable");
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	$UFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -486,6 +428,9 @@ function rules_toolbox_left(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}
+	$SquidDatabasesArticaEnable=$sock->GET_INFO("SquidDatabasesArticaEnable");
+	if(!is_numeric($SquidDatabasesArticaEnable)){$SquidDatabasesArticaEnable=1;}
 	if($EnableWebProxyStatsAppliance==1){$EnableUfdbGuard=1;}
 	
 	if($UseRemoteUfdbguardService==0){
@@ -526,6 +471,98 @@ function rules_toolbox_left(){
 	}
 	
 	
+	if($SquidDatabasesUtlseEnable==1){
+		
+		$SquidDatabasesUtlseEnable_P="<tr>
+		<td valign='middle' width=1%><img src='img/ok32.png'></td>
+		<td valign='middle' width=99%>
+			<table style='width:100%'>
+			<tr>
+				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+				<td valign='middle' $mouse style='font-size:13px;text-decoration:underline' 
+				OnClick=\"javascript:Loadjs('squid.toulouse-university.disable.php')\" nowrap>
+				<b><span style='font-size:13px;text-decoration:underline'>{toulouse_university} {enabled}</td>
+			</tr>
+			</table>
+		</td>
+		</tr>		
+		";
+		
+		
+	}else{
+		
+		$SquidDatabasesUtlseEnable_P="<tr>
+		<td valign='middle' width=1%><img src='img/ok32-grey.png'></td>
+		<td valign='middle' width=99%>
+		<table style='width:100%'>
+		<tr>
+		<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='middle' $mouse style='font-size:13px;text-decoration:underline'
+		OnClick=\"javascript:Loadjs('squid.toulouse-university.disable.php')\" nowrap>
+		<b><span style='font-size:13px;text-decoration:underline'>{toulouse_university} {disabled}</td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+		";		
+	}
+	
+	
+	if($SquidDatabasesArticaEnable==1){
+		
+		
+		$SquidDatabasesArticaEnable_P="<tr>
+		<td valign='middle' width=1%><img src='img/ok32.png'></td>
+		<td valign='middle' width=99%>
+		<table style='width:100%'>
+		<tr>
+		<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='middle' $mouse style='font-size:13px;text-decoration:underline'
+		OnClick=\"javascript:Loadjs('squid.artica-databases.disable.php')\" nowrap>
+		<b><span style='font-size:13px;text-decoration:underline'>{artica_databases} {enabled}</td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+		";
+		
+		
+	}else{
+		$SquidDatabasesArticaEnable_P="<tr>
+		<td valign='middle' width=1%><img src='img/ok32-grey.png'></td>
+		<td valign='middle' width=99%>
+		<table style='width:100%'>
+		<tr>
+		<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='middle' $mouse style='font-size:13px;text-decoration:underline'
+		OnClick=\"javascript:Loadjs('squid.artica-databases.disable.php')\" nowrap>
+		<b><span style='font-size:13px;text-decoration:underline'>{artica_databases} {disabled}</td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+		";		
+	}
+	
+	if(!$users->CORP_LICENSE){
+		$SquidDatabasesArticaEnable_P="<tr>
+		<td valign='middle' width=1%><img src='img/ok32-grey.png'></td>
+		<td valign='middle' width=99%>
+		<table style='width:100%'>
+		<tr>
+		<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
+		<td valign='middle' $mouse style='font-size:13px;text-decoration:underline'
+		OnClick=\"javascript:blur()\" nowrap>
+		<b><span style='font-size:13px;text-decoration:underline'>{artica_databases} {no_license}</td>
+		</tr>
+		</table>
+		</td>
+		</tr>
+		";
+		
+	}
+	
+	
 	if($EnableUfdbGuard==1){
 		$DisableUfdbGuard="
 			<tr>
@@ -539,7 +576,9 @@ function rules_toolbox_left(){
 			</tr>
 			</table>
 		</td>
-		</tr>		
+		</tr>
+		$SquidDatabasesArticaEnable_P
+		$SquidDatabasesUtlseEnable_P	
 		";
 		
 	}
@@ -599,23 +638,7 @@ function rules_toolbox_left(){
 	
 	
 ";
-if($SquidPerformance<3){
-$html=$html."
-	
-<tr>
-	<td valign='middle' width=1%><img src='img/group-red-32.png'></td>
-		<td valign='middle' width=99%>
-			<table style='width:100%'>
-			<tr>
-				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
-				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.blocked.events.php?js=yes')\" nowrap><b><span style='font-size:13px;text-decoration:underline'>$CountDeBlocked</span></b><span style='font-size:13px'> {blocked_requests}</td>
-			</tr>
-			</table>
-		</td>
-	</tr>	
-";	
-}
+
 	
 if($UseRemoteUfdbguardService==0){
 	$html=$html."<tr>
@@ -669,20 +692,7 @@ if($UseRemoteUfdbguardService==0){
 	</tr>
 	";
 }
-$html=$html."	
-	<tr>
-		<td valign='middle' width=1%><img src='img/32-categories.png'></td>
-		<td valign='middle' width=99%>
-			<table style='width:100%'>
-			<tr>
-				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
-				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('squid.categories.php')\" nowrap><strong style='font-size:13px;text-decoration:underline'>$CountDeCategories&nbsp;{categories}</strong></td>
-			</tr>
-			</table>
-		</td>
-	</tr>	
-";
+$html=$html."";
 
 if($UseRemoteUfdbguardService==0){
 	
@@ -694,7 +704,8 @@ $html=$html."
 			<tr>
 				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
 				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.conf.php');\" nowrap><span style='font-size:13px;text-decoration:underline'>{config_status}</td>
+				OnClick=\"javascript:Loadjs('ufdbguard.conf.php');\" nowrap>
+					<span style='font-size:13px;text-decoration:underline'>{config_status}</td>
 			</tr>
 			</table>
 		</td>
@@ -709,36 +720,19 @@ $html=$html."
 	
 	";
 	
-
+	$shield=null;
 	
 	if($EnableUfdbGuard==1){
 		if($UseRemoteUfdbguardService==0){
 			if(!$users->CORP_LICENSE){
-				echo $tpl->_ENGINE_parse_body("
-				<div id='$t' style='width:90%;margin-bottom:20px' class=form>
-					<table style='width:100%;'>
-					<tr>
-					<td valign='top' width=99%>
-						<div style='font-size:14px;color:#CC0A0A'>
-						<img src='img/info-48.png' style='float:left;margin:3px'>
-						<span style='font-size:11px'>{warn_ufdbguard_no_license}</span>
-						<table style='width:100%'>
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png'></td>
-							<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('artica.license.php');\" 
-							style='text-decoration:underline;color:black'>{artica_license}</a></td>
-							</tr>
-							</table>
-						</div>
-					</td>
-					</tr>
-					</table>
-					</div>");			
-				}
+				$shield="shield-warn-64.png";
+				$warn["{warn_ufdbguard_no_license}"]=null;
+			}
 			
 			$ini=new Bs_IniHandler();
 			$sock=new sockets();
-			$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?ufdb-ini-status=yes')));
+			$sock->getFrameWork('squid2.php?ufdb-ini-status-write=yes');
+			$ini->loadFile("/usr/share/artica-postfix/ressources/interface-cache/UFDB_STATUS");
 			$restartlocalservice="Loadjs('system.services.cmd.php?APPNAME=APP_UFDBGUARD&action=restart&cmd=%2Fetc%2Finit.d%2Fufdb&id=ed8cebc50034e96ed26a4d3cb953403f&appcode=APP_UFDBGUARD');";
 			
 			$redirector_file="/usr/share/artica-postfix/ressources/logs/web/squid_redirectors_status.db";
@@ -746,70 +740,34 @@ $html=$html."
 			if(count($redirectors_array)>1){
 				$redirectors_count=count($redirectors_array);
 				if(strlen($redirectors_count)==1){$redirectors_count="0$redirectors_count";}
-				$redirectors_text="
-				<tr>
-					<td width=1%><strong style='font-size:14px;color:#04A910'>$redirectors_count</strong></td>
-					<td width=99%><a href=\"javascript:blur();\" 
-						OnClick=\"javascript:Loadjs('squid.redirectors.php');\"
-						style='text-decoration:underline;color:black;font-size:14px'>{redirectors}</a>
-					</td>
-				</tr>";
+				
+				$OBS["{redirectors}:$redirectors_count"]="Loadjs('squid.redirectors.php');"; 
+
+
 			}
 			
 			
 			if($ini->_params["APP_UFDBGUARD"]["running"]==0){
 				
-				$echo1=$tpl->_ENGINE_parse_body(toolp("<span style='font-size:14px;color:#ED0D0D'>{warn_ufdbguard_stopped}</span>", "
-						<span style='font-size:14px;color:#ED0D0D'>{warn_ufdbguard_stopped}</span>
-									<table style='width:100%'>
-										<tr>
-											<td width=1%><img src='img/arrow-right-16.png'></td>
-											<td width=99%><a href=\"javascript:blur();\" 
-								OnClick=\"javascript:$restartlocalservice\"
-								style='text-decoration:underline;color:black;font-size:14px'>{start_service}</a></td>
-										</tr>
-						$redirectors_text
-											<tr>
-											<td width=1%><img src='img/16-refresh.png'></td>
-											<td width=99%><a href=\"javascript:blur();\" 
-								OnClick=\"javascript:LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes&RemoveCache=yes');\"
-								style='text-decoration:underline;color:black;font-size:14px'>{refresh}</a></td>
-										</tr>
-									</table>",null,
-						"error-48.png"));
-		
+				
+				$shield="shield-red-64.png";
+				$err["{warn_ufdbguard_stopped}"]=$restartlocalservice;
+
 		
 			}else{
+				if($shield==null){
+					
+					$shield="shield-ok-64.png";
+				}
 				
-				
-				$echo1= $tpl->_ENGINE_parse_body(toolp("<span style='font-size:14px;color:#04A910;'>{service_running}</span>", "
-						<p style='font-size:14px'>
-						{running_since}:&nbsp;{$ini->_params["APP_UFDBGUARD"]["uptime"]}<br>
-						{memory}:&nbsp;".FormatBytes($ini->_params["APP_UFDBGUARD"]["master_memory"])."</strong>
-						
-						
-						</p>
-						<table style='width:100%'>
-						<tr>
-						<td width=1%><img src='img/arrow-right-16.png'></td>
-						<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:$restartlocalservice\"
-						style='text-decoration:underline;color:black;font-size:14px'>{restart_service}</a></td>
-						</tr>
-						$redirectors_text
-											<tr>
-											<td width=1%><img src='img/16-refresh.png'></td>
-											<td width=99%><a href=\"javascript:blur();\" 
-								OnClick=\"javascript:LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes&RemoveCache=yes');\"
-								style='text-decoration:underline;color:black;font-size:14px'>{refresh}</a></td>
-										</tr>						
-						</table>",null,
-						"ok-42.png"));
-
-				
-				
+				$OBS["{running_since}:&nbsp;{$ini->_params["APP_UFDBGUARD"]["uptime"]}"]=null;
+				$OBS["{memory}:&nbsp;".FormatBytes($ini->_params["APP_UFDBGUARD"]["master_memory"])]=null;
 			}
 			
 		}
+		
+		
+
 		
 		
 		if($UseRemoteUfdbguardService==1){
@@ -817,57 +775,11 @@ $html=$html."
 			$server=$UFDB["remote_server"];
 			$port=$UFDB["remote_port"]=3977;
 			if(!@fsockopen($server, $port, $errno, $errstr, 1)){
-				$echo1=$echo1. $tpl->_ENGINE_parse_body("
-						<div id='$t' style='width:90%;margin-bottom:20px' class=form>
-						<table style='width:100%'>
-						<tr>
-						<td valign='top' width=99%>
-						<div style='font-size:14px;color:#CC0A0A'>
-							<img src='img/error-48.png' style='float:left;margin:3px'>
-							<strong style='font-size:11px'>{warn_ufdbguard_remote_error}</strong>
-							<p style='font-size:11px'>{server}:&laquo;$server&raquo;:$port<br>{error} $errno $errstr</p>
-						<table style='width:100%'>
-						<tr>
-						<td width=1%><img src='img/arrow-right-16.png'></td>
-						<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.php?client-js=yes');\"
-						style='text-decoration:underline;color:black'>{client_parameters}</a></td>
-						</tr>
-						</table>
-						</div>
-						</td>
-						</tr>
-						</table>
-						</div>");
+				$shield="shield-red-64.png";
+				$err["{server}:&laquo;$server&raquo;:$port<br>{error} $errno $errstr"]="Loadjs('ufdbguard.php?client-js=yes');";			
 			}else{
-				$echo1=$echo1. $tpl->_ENGINE_parse_body("
-						<div id='$t' style='width:90%;margin-bottom:20px' class=form>
-						<table style='width:100%'>
-						<tr>
-						<td valign='top' width=99%>
-						<div style='font-size:14px;color:black'>
-						<img src='img/48-network-server-star.png' style='float:left;margin:3px'>
-						<strong style='font-size:11px'>{warn_ufdbguard_remote_use}</strong>
-						<p style='font-size:11px'>{server}:&laquo;$server&raquo;:$port</p>
-						<table style='width:100%'>
-						<tr>
-						<td width=1%><img src='img/arrow-right-16.png'></td>
-						<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.php?client-js=yes');\"
-						style='text-decoration:underline;color:black'>{client_parameters}</a></td>
-						</tr>
-						</table>
-						</div>
-						</td>
-						</tr>
-						</table>
-						</div>");
-				
+				$OBS["{warn_ufdbguard_remote_use}"]="Loadjs('ufdbguard.php?client-js=yes')";
 			}
-			
-		}else{
-			
-			
-				
-			
 			
 		}
 		
@@ -878,40 +790,90 @@ $html=$html."
 		
 		if($EnableWebProxyStatsAppliance==0){
 			if(trim($sock->getFrameWork("squid.php?isufdbguard-squidconf=yes"))<>"OK"){
-				$echo1=$echo1. $tpl->_ENGINE_parse_body("
-						<div id='$t-2' style='width:90%;margin-bottom:20px' class=form>
-						<table style='width:100%'>						
-						<tr>
-						<td valign='top' width=99%>
-						<div style='font-size:14px;color:#CC0A0A'>
-						<img src='img/info-48.png' style='float:left;margin:3px'>
-						<span style='font-size:11px'>{warn_ufdbguard_not_squidconf}</span>
-						<table style='width:100%'>
-						<tr>
-						<td width=1%><img src='img/arrow-right-16.png'></td>
-						<td width=99%><a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.compile.progress.php');\"
-			style='font-size:12px;text-decoration:underline'>{APP_SQUID}:{reconfigure}</a></td>
-						</tr>
-						</table>
-						</div>
-						</td>
-						</tr>
-						</table>
-						</div>");			
-				
+				$shield="shield-warn-64.png";
+				$warn["{warn_ufdbguard_not_squidconf}"]="Loadjs('squid.compile.progress.php')";
 				}
 		
 		}
 		
 		
+		$OBS["{refresh}"]="LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes&RemoveCache=yes');";
 		
+	  $html2[]="
+	  <table style='width:100%'>
+	  <tr>
+	  	<td valign='top' style='width:64px'><img src='img/$shield'></td>
+	  	<td>		
+	  		<table style='width:100%'>
+	  ";
+	  
+	  
+	  	while (list ($num, $js) = each ($warn)){
+	  		if($js==null){$js="blur();";}
+	  		$html2[]="
+	  		<tr>
+	  		<td width=16px style='vertical-align:top'><img src='img/arrow-right-yellow-16.png'></td>
+			<td>
+	  		<a href=\"javascript:blur();\" 
+	  		OnClick=\"javascript:$js\" 
+	  		style='color:#black !important;font-weight:normal !important;font-size:12px;text-decoration:underline'>$num</a>
+	  		<hr style='border:1px'>
+	  		</td>
+	  		</tr>
+	  		";
+	  	
+	  }
+	  
+	  while (list ($num, $js) = each ($err)){
+	  	if($js==null){$js="blur();";}
+	  	$html2[]="
+	  	<tr>
+	  	<td width=16px style='vertical-align:top'><img src='img/arrow-right-red-16.png'></td>
+	  	<td >
+	  		<a href=\"javascript:blur();\" 
+	  		OnClick=\"javascript:$js\" 
+	  		style='color:#d32d2d !important;text-decoration:underline;font-weight:bold !important;font-size:12px'>$num</a>
+	  		<hr style='border:1px'>
+	  	</td>
+	  	</tr>
+	  	";
+	  
+	  }		
 		
+	  while (list ($num, $js) = each ($OBS)){
+	  	if($js==null){$js="blur();";}
+	  	$html2[]="
+	  	<tr>
+	  	<td width=16px style='vertical-align:top'><img src='img/arrow-right-16.png'></td>
+	  	<td >
+	  		<a href=\"javascript:blur();\" 
+	  		OnClick=\"javascript:$js\" 
+	  		style='color:#46a346 !important;font-weight:bold !important;font-size:12px;text-decoration:underline'>$num</a>
+	  		
+	  	</td>
+	  	
+	  	</td>
+	  	</tr>
+	  	";
+	  	 
+	  }
+	  
+	  $html2[]="</table>
+	  </td>
+	  </tr>
+	  </table>
+	  <p>&nbsp;</p>
+	  ";
+	  
+	  echo $tpl->_ENGINE_parse_body(@implode("\n",$html2));
+	  
+	  
+	  
 	}
 
 	
 	
-	$echo1=$echo1. $tpl->_ENGINE_parse_body($artica_databases);
+	
 	
 	$t=time();
 	
@@ -941,75 +903,10 @@ $html=$html."
 	}
 	$t=time()+1;
 	
-	
-	$CICAPEnableSquidGuard=intval($sock->GET_INFO("CICAPEnableSquidGuard"));
-	
-	if($CICAPEnableSquidGuard==0){
-		if($EnableUfdbGuard==0){
-			$echo1=$echo1. $tpl->_ENGINE_parse_body("
-			<div id='$t' style='width:90%;margin-bottom:20px' class=form>
-		<table style='width:100%'>
-		<tr>
-		<td valign='top' width=99%>
-			<div style='font-size:14px;color:#CC0A0A'>
-			<img src='img/warning-panneau-42.png' style='float:left;margin:3px'>
-			<span style='font-size:11px'>{warn_ufdbguard_not_activated_explain}</span>
-			<table style='width:100%'>
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'></td>
-				<td width=99%><a href=\"javascript:blur();\" OnClick=\"javascript:EnableUFDB2();\" 
-				style='text-decoration:underline;color:black'>{activate_webfilter_engine}</a></td>
-				</tr>
-				</table>
-			</div>
-		</td>
-		</tr>
-		</table>
-		</div>
-		<script>
-		function EnableUFDB2(){
-		  Loadjs('squid.EnableUfdb.php');
-		 }	
-		
-		</script>
-		
-		");
-			
-		}
-	}
+
 	
 	
-	if($CICAPEnableSquidGuard==1){
-		$q=new mysql_squid_builder();
-		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `status` FROM c_icap_services WHERE ID=12"));
-		$status=$ligne["status"];
-		$STATUS_ARRAY[0]="32-green-grey.png";
-		$STATUS_ARRAY[1]="32-green.png";
-		$STATUS_ARRAY[2]="32-red.png";
-		$STATUS_ARRAY[3]="warning32.png";
-		$echo1=$echo1. $tpl->_ENGINE_parse_body("
-				<div id='$t' style='width:90%;margin-bottom:20px' class=form>
-					<table style='width:100%'>
-						<tr>
-							<td valign='middle' width=1%>
-							<img src='img/{$STATUS_ARRAY[$ligne["status"]]}' style='float:left;margin:3px'>
-							</td>
-							<td valign='middle' width=98%>
-							<div style='font-size:14px;color:black'>
-									<span style='font-size:11px'>{icap_webfiltering_status}</span>
-							
-							</div>
-							</td>
-						</tr>
-					</table>
-				</div>
-		");
-	}
-	
-	
-	
-	@file_put_contents($cachefile, $echo1.$html);
-	@chmod($cachefile,0755);
+
 	echo $tpl->_ENGINE_parse_body($echo1.$html);
 	
 }
@@ -1056,28 +953,40 @@ function rules_table(){
 	$action_delete_rule=$tpl->javascript_parse_text("{action_delete_rule}");
 	$compile_rules=$tpl->_ENGINE_parse_body("{compile_rules}");
 	$service_events=$tpl->_ENGINE_parse_body("{service_events}");
-	$global_parameters=$tpl->_ENGINE_parse_body("{global_parameters}");
+	$webfiltering_groups=$tpl->_ENGINE_parse_body("{webfiltering_groups}");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
 	$categories_group=$tpl->_ENGINE_parse_body("{categories_groups}");
-	$main_title="<span style=font-size:18px>".$tpl->javascript_parse_text("{main_webfiltering_rules}")."</span>";
-	
+	$config_status=$tpl->javascript_parse_text("{config_status}");
+	$apply_restart=$tpl->javascript_parse_text("{apply_restart}");
+	$verify_rules=$tpl->javascript_parse_text("{verify_rules}");
+	$main_title="<span style=font-size:30px>".$tpl->javascript_parse_text("{main_webfiltering_rules}")."</span>";
+	$paranoid_mode=$tpl->javascript_parse_text("{paranoid_mode}");
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
-	$compile_bt="{name: '<strong style=font-size:16px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
+	$compile_bt="{name: '<strong style=font-size:18px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
+	$restart_bt="{name: '<strong style=font-size:18px;font-weight:bold>$apply_restart</strong>', bclass: 'Reconf', onpress : ApplyAndRestartWebf},";
+	$verify_rules="{name: '<strong style=font-size:18px;font-weight:bold>$verify_rules</strong>', bclass: 'Search', onpress : VerifyRulesWebf},";
+	
 	
 	if($UseRemoteUfdbguardService==1){$compile_bt=null;}
 	
 	$error_ldap=null;
 	$buttons="
 	buttons : [
-	{name: '<strong style=font-size:16px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
-	{name: '<strong style=font-size:16px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
-	{name: '<strong style=font-size:16px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
-	$compile_bt	
+	{name: '<strong style=font-size:18px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
+	{name: '<strong style=font-size:18px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
+	{name: '<strong style=font-size:18px;font-weight:bold>$webfiltering_groups</strong>', bclass: 'Groups', onpress : UfdbGuardConfigs},
+	{name: '<strong style=font-size:18px;font-weight:bold>$config_status</strong>', bclass: 'Search', onpress : DansGuardianConfStatus},
 	
+	
+	
+	
+	$verify_rules
+	$compile_bt	
+	$restart_bt
 	
 	
 	],";
@@ -1089,32 +998,8 @@ function rules_table(){
 		$ad=new ActiveDirectory();
 		if($ad->ldapFailed){
 			$ad->ldap_last_error=nl2br($ad->ldap_last_error);
-			$error_ldap=$tpl->_ENGINE_parse_body("
-		<div id='$t'>
-	<table style='width:98%' class=form>
-	<tr>
-	<td valign='top' width=95%>
-		<div style='font-size:14px;color:#CC0A0A'>
-		<img src='img/error-64.png' style='float:left;margin:3px'>
-		<strong style='font-size:14px'>{error}:LDAP&nbsp;&raquo;&nbsp;Active Directory ($ad->ldap_host:$ad->ldap_port)</strong><hr>
-		<span style='font-size:11px'>$ad->ldap_last_error</span>
-		</div>
-		<div style='text-align:right;width:100%'>
-		<table style='width:5%' align='right'>
-			<tr>
-			<td width=1%><img src='img/arrow-right-24.png'></td>
-			<td nowrap>		
-				<a href=\"javascript:blur();\" 
-					OnClick=\"javascript:YahooSearchUser('800','squid.adker.php?ldap-params=yes','$ldap_parameters');\" 
-					style='font-size:14px;text-decoration:underline;font-weight:bold'>$ldap_parameters</a>
-				</td>
-		</tr>
-		</table>
-		</div>
-	</td>
-	</tr>
-	</table>
-	</div>");}
+			echo FATAL_ERROR_SHOW_128_DESIGN("{error_ad_ldap}","{error}:LDAP&nbsp;&raquo;&nbsp;Active Directory ($ad->ldap_host:$ad->ldap_port)</strong><hr>$ad->ldap_last_error","GotoActiveDirectoryLDAPParams()");
+			}
 	}	
 	
 $TBSIZE=350;
@@ -1135,13 +1020,13 @@ $('#flexRT$t').flexigrid({
 	url: '$page?rules-table-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$rule_text', name : 'groupname', width : 411, sortable : true, align: 'left'},	
-		{display: '$groups', name : 'topattern', width :123, sortable : false, align: 'center'},
-		{display: '$blacklists', name : 'enabled', width : 123, sortable : false, align: 'center'},
-		{display: '$whitelists', name : 'delete', width : 123, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'zOrder', width :90, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'dup', width :65, sortable : false, align: 'center'},
-		{display: '$delete', name : 'delete', width : 90, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$rule_text</span>', name : 'groupname', width : 659, sortable : true, align: 'left'},	
+		{display: '<span style=font-size:18px>$groups</span>', name : 'topattern', width :123, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$blacklists</span>', name : 'enabled', width : 162, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$whitelists</span>', name : 'delete', width : 162, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>&nbsp;</span>', name : 'zOrder', width :90, sortable : true, align: 'center'},
+		{display: '<span style=font-size:18px>&nbsp;</span>', name : 'dup', width :65, sortable : false, align: 'center'},
+		{display: '<span style=font-size:18px>$delete</span>', name : 'delete', width : 119, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -1150,7 +1035,7 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$main_title',
+	title: '',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -1163,9 +1048,23 @@ $('#flexRT$t').flexigrid({
 	
 	
 }
-	function DansGuardianNewRule(){
-		DansGuardianEditRule(-1)
-	}
+function DansGuardianConfStatus(){
+	Loadjs('ufdbguard.conf.php');
+
+}
+function DansGuardianNewRule(){
+	DansGuardianEditRule(-1)
+}
+
+function ApplyAndRestartWebf(){
+	Loadjs('ufdb.restart.progress.php');
+
+}
+
+function VerifyRulesWebf(){
+	Loadjs('ufdbguard.tests.php');
+}
+
 
 	function DansGuardianEditRule(ID,rname){
 		YahooWin3('1100','dansguardian2.edit.php?ID='+ID+'&t=$t','$rule_text::'+ID+'::'+rname);
@@ -1180,7 +1079,7 @@ $('#flexRT$t').flexigrid({
 	}
 	
 	function UfdbGuardConfigs(){
-		Loadjs('ufdbguard.php');
+		GotoUfdbGroups();
 	}
 	
 	function UfdbguardEvents(){
@@ -1237,8 +1136,10 @@ function rules_table_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$webfilter=new webfilter_rules();
-	if(!$q->FIELD_EXISTS("webfilter_rules", "zOrder")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `zOrder` SMALLINT(2) NOT NULL,ADD INDEX ( `zOrder` )");}
-	if(!$q->ok){json_error_show("$q->mysql_error");}	
+	if(!$q->FIELD_EXISTS("webfilter_rules", "zOrder")){
+		$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `zOrder` SMALLINT(2) NOT NULL,ADD INDEX ( `zOrder` )");
+	}
+		
 	
 	if(!$q->FIELD_EXISTS("webfilter_rules", "AllSystems")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `AllSystems` smallint(1),ADD INDEX ( `AllSystems` )");}	
 	if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -1300,7 +1201,11 @@ function rules_table_list(){
 	if($DefaultPosition==0){
 		$data['rows'][]=DefaultRule();
 	}
-
+	
+	$no_category_has_been_added=$tpl->_ENGINE_parse_body("{no_category_has_been_added}");
+	$endofrule_TEXTS["any"]="<i style='color:#000000;margin-top:8px;font-weight:bold;font-size:16px'>".$tpl->_ENGINE_parse_body("{ufdb_explain_any}")."</i>";
+	$endofrule_TEXTS["none"]="<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>".$tpl->_ENGINE_parse_body("{ufdb_explain_none}")."</i>";
+	
 	
 while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
@@ -1308,21 +1213,37 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		$endofrule_text=null;
 		$EnableGoogleSafeSearch_text=null;
 		$ligne["groupname"]=utf8_encode($ligne["groupname"]);
+		$endofrule=$ligne["endofrule"];
+		if($endofrule==null){$endofrule="any";}
+		
+		$MAIN_EXPLAIN_TR=array();
+		
 		$delete=imgtootltip("delete-32.png","{delete}","DansGuardianDeleteMainRule('{$ligne["ID"]}')");
 		
 		$js="DansGuardianEditRule('{$ligne["ID"]}','{$ligne["groupname"]}');";
 		if($GLOBALS["VERBOSE"]){echo "<HR>webfilter->rule_time_list_from_ruleid({$ligne["ID"]})<HR><br>\n";}
 		
+		$CountDeBlack=intval($webfilter->COUNTDEGBLKS($ligne["ID"]));
+		$CountDeWhite=intval($webfilter->COUNTDEGBWLS($ligne["ID"]));
 		
+		$CountDeAll=intval($CountDeBlack+$CountDeWhite);
+		if($CountDeAll==0){
+			$color="#d32d2d";
+			$MAIN_EXPLAIN_TR[]="<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>$no_category_has_been_added</i>";
+		}
 		
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
-		
+
 		if($ligne["groupmode"]==0){
-			$color="#E91212";
-			$warn="<div style='float:right'><img src='img/stop-24.png'></div>";
+			$MAIN_EXPLAIN_TR[]="<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>{all_websites_are_banned}</span>";
+		}
+		if($ligne["groupmode"]==2){
+			$MAIN_EXPLAIN_TR[]="<i style='color:#46a346;margin-top:8px;font-weight:bold;font-size:16px'>{everything_is_allowed}</span>";
 		}		
+		
+		
 		$duplicate=imgsimple("duplicate-32.png",null,"Loadjs('dansguardian2.duplicate.php?from={$ligne['ID']}&t=$t')");
 		$jsGroups="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:document.getElementById('anim-img-{$ligne["ID"]}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-groups={$ligne["ID"]}&ID={$ligne["ID"]}&t=$t');\"
@@ -1354,31 +1275,29 @@ while ($ligne = mysql_fetch_assoc($results)) {
 			$CountDeGroups="*";
 		}
 		
-		$endofrule=$ligne["endofrule"];
-		if($endofrule=="none"){
-			$endofrule_text="<br><i style='color:#DB0000;margin-top:8px;font-weight:bold'>".$tpl->javascript_parse_text("{block_unknown_websites}")."</i>";
-		}
+		$MAIN_EXPLAIN_TR[]=$endofrule_TEXTS[$endofrule];
+		if($TimeSpace<>null){$MAIN_EXPLAIN_TR[]=$TimeSpace;}
+		
 		
 		if($EnableGoogleSafeSearch==0){
 			if($ligne["GoogleSafeSearch"]==1){
-				$EnableGoogleSafeSearch_text="<br><i style='color:#00A940;margin-top:8px;font-weight:bold'>".$tpl->javascript_parse_text("{EnableGoogleSafeSearch}")."</i>";
+				$MAIN_EXPLAIN_TR[]="<i style='color:#00A940;font-weight:bold;font-size:16px'>".$tpl->javascript_parse_text("{EnableGoogleSafeSearch}")."</i>";
 			}
 			
 		}
 		
-		
-	
+		$MAIN_EXPLAIN_TEXT=$tpl->_ENGINE_parse_body("<br>".@implode("<br>", $MAIN_EXPLAIN_TR));
+		if($ligne["enabled"]==0){$MAIN_EXPLAIN_TEXT=null;}
 
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<span id='anim-img-{$ligne["ID"]}'></span>
 				<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" 
-				style='font-size:24px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
-			$TimeSpace$endofrule_text$EnableGoogleSafeSearch_text",
+				style='font-size:24px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>$MAIN_EXPLAIN_TEXT",
 			"<span style='font-size:24px;color:$color;'>$CountDeGroups</span>",
-			"<span style='font-size:24px;color:$color;'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
-			"<span style='font-size:24px;color:$color;'>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:24px;color:$color;'>&laquo;&nbsp;$jsblack$CountDeBlack</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:24px;color:$color;'>&laquo;&nbsp;$jswhite$CountDeWhite</a>&nbsp;&raquo;</span>",
 			"<center>$zorder</center>",
 			"<center>$duplicate</center>",
 			"<center>$delete</center>", )
@@ -1404,21 +1323,42 @@ function DefaultRule(){
 	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 	$EnableGoogleSafeSearch=$sock->GET_INFO("EnableGoogleSafeSearch");
 	if(!is_numeric($EnableGoogleSafeSearch)){$EnableGoogleSafeSearch=1;}
+	if(!is_numeric($ligne["groupmode"])){$ligne["groupmode"]=1;}
+	
+	$endofrule_TEXTS["any"]="<i style='color:#000000;margin-top:8px;font-weight:bold;font-size:16px'>".$tpl->_ENGINE_parse_body("{ufdb_explain_any}")."</i>";
+	$endofrule_TEXTS["none"]="<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>".$tpl->_ENGINE_parse_body("{ufdb_explain_none}")."</i>";
+	
+	if($ligne["endofrule"]==null){$ligne["endofrule"]="any";}
 	$endofrule_text=null;
-	//$color="#E91212";
+
+	$CountDeBlack=intval($webfilter->COUNTDEGBLKS(0));
+	$CountDewhite=intval($webfilter->COUNTDEGBWLS(0));
+	$CountDeAll=intval($CountDeBlack+$CountDewhite);
+	
+	if($CountDeAll==0){
+		$color="#d32d2d";
+		$MAINTR[]=$tpl->_ENGINE_parse_body("<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>{no_category_has_been_added}</i>");
+	}
+	
+	$MAINTR[]="<i style='color:$color;margin-top:8px;font-weight:bold;font-size:16px'>{ufdb_explain_default_rule}</i>";
 	
 	
 	if($EnableGoogleSafeSearch==0){
 		if($ligne["GoogleSafeSearch"]==1){
-			$EnableGoogleSafeSearch_text=$tpl->javascript_parse_text("<br><i style='color:#00A940;margin-top:8px;font-weight:bold'>{EnableGoogleSafeSearch}</i>");
+			$EnableGoogleSafeSearch_text=$tpl->javascript_parse_text(
+			"<i style='color:#00A940;margin-top:8px;font-weight:bold;font-size:16px'>{EnableGoogleSafeSearch}</i>");
 		}
 			
 	}
 	
 	if($ligne["groupmode"]==0){
-		$color="#E91212";
-		$warn="<div style='float:right'><img src='img/stop-24.png'></div>";
+		$MAINTR[]="<i style='color:#d32d2d;margin-top:8px;font-weight:bold;font-size:16px'>{all_websites_are_banned}</span>";
 	}
+	if($ligne["groupmode"]==2){
+		$MAINTR[]="<i style='color:#46a346;margin-top:8px;font-weight:bold;font-size:16px'>{everything_is_allowed}</span>";
+	}	
+	
+	
 	
 	$js="DansGuardianEditRule('0','default')";
 	$jsblack="<a href=\"javascript:blur();\"
@@ -1430,6 +1370,9 @@ function DefaultRule(){
 	OnClick=\"javascript:document.getElementById('anim-img-0').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-blacklist-list=yes&RULEID=0&modeblk=1&group=&TimeID=&t=$t');\"
 	style='text-decoration:underline;font-weight:bold;color:$color'>";
 	
+	
+
+	
 	$delete="&nbsp;";
 	$duplicate=imgsimple("duplicate-32.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
 	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
@@ -1439,10 +1382,11 @@ function DefaultRule(){
 	
 	if($GLOBALS["VERBOSE"]){echo "<HR>$TimeSpace<HR><br>\n";}
 	
-	$endofrule=$ligne["endofrule"];
-	if($endofrule=="none"){
-		$endofrule_text="<br><i style='color:#DB0000;margin-top:8px;font-weight:bold'>{block_unknown_websites}</i>";
-	}
+	$MAINTR[]=$endofrule_TEXTS[$ligne["endofrule"]];
+	if($EnableGoogleSafeSearch_text<>null){$MAINTR[]=$EnableGoogleSafeSearch_text;}
+	if($TimeSpace<>null){$MAINTR[]=$TimeSpace;}
+	
+	$MAINTRTEXT=$tpl->_ENGINE_parse_body(@implode("<br>", $MAINTR));
 
 	
 	return array(
@@ -1450,15 +1394,15 @@ function DefaultRule(){
 		'cell' => array(
 						"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\"
 						style='font-size:22px;text-decoration:underline;color:$color'>Default</a>
-						$TimeSpace$endofrule_text$EnableGoogleSafeSearch_text
+						<br>$MAINTRTEXT
 	
 						",
-						"<span style='font-size:22px;color:$color'>*</span>",
-						"<span style='font-size:22px;color:$color'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
-						"<span style='font-size:22px';color:$color>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
+						"<center style='font-size:22px;color:$color'>*</center>",
+						"<span style='font-size:22px;color:$color'>&laquo;&nbsp;$jsblack$CountDeBlack</a>&nbsp;&raquo;</span>",
+						"<span style='font-size:22px';color:$color>&laquo;&nbsp;$jswhite$CountDewhite</a>&nbsp;&raquo;</span>",
 								"",
-								"$duplicate",
-								$delete )
+								"<center>$duplicate</center>",
+								"<center>$delete</center>" )
 				);	
 	
 }
@@ -1531,70 +1475,11 @@ function delete_rule(){
 		$q->QUERY_SQL("DELETE FROM ufdb_design WHERE ruleid='$ID'");
 	}
 	if(!$q->ok){echo $q->mysql_error;return;}	
-	
-	
-	$sock=new sockets();
-	$sock->getFrameWork("webfilter.php?compile-rules=yes");
+	$q->QUERY_SQL("DELETE FROM ufdb_page_rules WHERE webruleid='$ID'");
 	
 }
 
 function rules_toolbox(){
-	
-	$tpl=new templates();
-
-	$q=new mysql_squid_builder();
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=0"));
-	$countblk=$ligne["tcount"];
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=1"));
-	$countwhl=$ligne["tcount"];
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=2"));
-	$countWwhl=$ligne["tcount"];	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=3"));
-	$countBwhl=$ligne["tcount"];
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=4"));
-	$countCacheWl=$ligne["tcount"];
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=5"));
-	$countUserAgentWL=$ligne["tcount"];	
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(pattern) as tcount FROM webfilters_blkwhlts WHERE blockType=6"));
-	$countMimeType=$ligne["tcount"];		
-	
-	
-	
-	
-	$html="<table style='width:5%' class=form>
-	<tbody>
-	<tr>
-		<td width=1% style='font-size:22px'>$countblk</td>
-		<td width=1% style='font-size:22px'>". imgtootltip("32-black-computer.png","{black_ip_group_text}","Loadjs('squid.hosts.blks.php?blk=0')")."</td>	
-		<td width=1% style='font-size:22px'>&nbsp;|&nbsp;</td>
-		<td width=1% style='font-size:22px'>$countwhl</td>
-		<td width=1% style='font-size:22px'>". imgtootltip("32-white-computer.png","{white_ip_group_text}","Loadjs('squid.hosts.blks.php?blk=1')")."</td>
-		<td width=1% style='font-size:22px'>&nbsp;|&nbsp;</td>
-		<td width=1% style='font-size:22px'>$countWwhl</td>	
-		<td width=1% style='font-size:22px'>". imgtootltip("domain-whitelist-w32.png","{dansguardian_exception_site_list}","Loadjs('squid.hosts.blks.php?blk=2')")."</td>	
-		<td width=1% style='font-size:22px'>&nbsp;|&nbsp;</td>
-		<td width=1% style='font-size:22px'>$countCacheWl</td>	
-		<td width=1% style='font-size:22px'>". imgtootltip("database-32-delete.png","{notcaching_websites}","Loadjs('squid.hosts.blks.php?blk=4')")."</td>	
-		<td width=1% style='font-size:22px'>&nbsp;|&nbsp;</td>
-		<td width=1% style='font-size:22px'>$countUserAgentWL</td>	
-		<td width=1% style='font-size:22px'>". imgtootltip("user-agent-ok-32.png","{ban_browsers_text}","Loadjs('squid.hosts.blks.php?blk=5')")."</td>				
-		<td width=1% style='font-size:22px'>&nbsp;|&nbsp;</td>
-		<td width=1% style='font-size:22px'>$countMimeType</td>	
-		<td width=1% style='font-size:22px'>". imgtootltip("32-mime.png","{white_mime_type}","Loadjs('squid.hosts.blks.php?blk=6')")."</td>				
-				
-		
-	</tr>
-	
-	</tbody>
-	</table>
-		
-		
-	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-	
-	
 }
 
 

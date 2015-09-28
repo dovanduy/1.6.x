@@ -4,7 +4,7 @@ include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
 include_once('ressources/class.users.menus.inc');
 $usersmenus=new usersMenus();
-if($usersmenus->AsWebMaster==false){echo "alert('No privs');";die();}
+if(!$usersmenus->AsSambaAdministrator==false){echo "alert('ERROR_NO_PRIVS');";die();}
 
 
 if(isset($_GET["verbose"])){

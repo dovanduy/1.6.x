@@ -29,6 +29,7 @@ js();
 function status(){
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$script=null;
 	if(is_file("ressources/logs/global.status.ini")){
 		
 		$ini=new Bs_IniHandler("ressources/logs/global.status.ini");
@@ -42,12 +43,20 @@ function status(){
 	$sock=new sockets();
 	$datas=$sock->getFrameWork('cmd.php?refresh-status=yes');	
 	$status=DAEMON_STATUS_ROUND("CLAMAV",$ini,null,1);
+	
+	$q=new mysql();
+	if($q->TABLE_EXISTS("clamd_mem","artica_events")){
+		if($q->COUNT_ROWS("clamd_mem", "artica_events")>1){
+			$script="LoadAjax('clamd-graphs','$page?clamd-graphs=yes');";
+		}
+	}
+	
 	$html="
 	<div style='width:100%'>$status</div>
 	<center style='margin-top:10px' id='clamd-graphs'></center>
 	
 	<script>
-		LoadAjax('clamd-graphs','$page?clamd-graphs=yes');
+		$script
 	</script>
 	
 	";
@@ -268,16 +277,16 @@ function tabs(){
 		$array["status"]='{status}';
 	}
 	$array["popup"]='{parameters}';
-	$array["clamav_unofficial"]='{clamav_unofficial}';
+	
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="clamav_unofficial"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"clamav.unofficial.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"clamav.unofficial.php?popup=yes\"><span style='font-size:22px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:24px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -296,10 +305,10 @@ function scan_engine_settings(){
 	$ClamavMaxFileSize=$sock->GET_INFO("ClamavMaxFileSize");
 	$PhishingScanURLs=$sock->GET_INFO("PhishingScanURLs");
 	$ClamavMaxScanSize=$sock->GET_INFO("ClamavMaxScanSize");
-	$ClamavRefreshDaemonTime=$sock->GET_INFO("ClamavRefreshDaemonTime");
-	$ClamavRefreshDaemonMemory=$sock->GET_INFO("ClamavRefreshDaemonMemory");
-	if(!is_numeric($ClamavRefreshDaemonTime)){$ClamavRefreshDaemonTime=60;}
-	if(!is_numeric($ClamavRefreshDaemonMemory)){$ClamavRefreshDaemonMemory=350;}
+	$ClamavRefreshDaemonTime=intval($sock->GET_INFO("ClamavRefreshDaemonTime"));
+	$ClamavRefreshDaemonMemory=intval($sock->GET_INFO("ClamavRefreshDaemonMemory"));
+
+	
 	if($ClamavStreamMaxLength==null){$ClamavStreamMaxLength="12";}
 	if(!is_numeric($ClamavMaxRecursion)){$ClamavMaxRecursion="5";}
 	if(!is_numeric($ClamavMaxFiles)){$ClamavMaxFiles="10000";}
@@ -321,63 +330,60 @@ function scan_engine_settings(){
 	
 	
 	<div id='ffmcc3' class=form style='width:95%'>
+	<div style='text-align:right;font-size:18px;margin-top:22px'><a href=\"javascript:blur();\" 
+				OnClick=\"javascript:GotoClamavUpdates();\" 
+				style='font-size:22px;text-decoration:underline'>{also_see_update_databases}</div>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.RefreshDaemon}:</td>
-		<td style=';font-size:18px'>" . Field_array_Hash($hoursEX,"ClamavRefreshDaemonTime",$ClamavRefreshDaemonTime,'style:font-size:18px;padding:3px')."</td>
-		<td>" . help_icon('{srv_clamav.RefreshDaemon_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.RefreshDaemon}","{srv_clamav.RefreshDaemon_text}").":</td>
+		<td style=';font-size:22px'>" . Field_array_Hash($hoursEX,"ClamavRefreshDaemonTime",$ClamavRefreshDaemonTime,'style:font-size:22px;padding:3px')."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{refresh_daemon_MB}:</td>
-		<td style=';font-size:18px'>" . Field_text("ClamavRefreshDaemonMemory",$ClamavRefreshDaemonMemory,'font-size:18px;padding:3px;width:110px')."&nbsp;MB</td>
-		<td>" . help_icon('{srv_clamav.ClamavRefreshDaemonMemory}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{refresh_daemon_MB}","{srv_clamav.ClamavRefreshDaemonMemory}").":</td>
+		<td style=';font-size:22px'>" . Field_text("ClamavRefreshDaemonMemory",$ClamavRefreshDaemonMemory,'font-size:22px;padding:3px;width:110px')."&nbsp;MB</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.StreamMaxLength}:</td>
-		<td style=';font-size:18px'>" . Field_text('ClamavStreamMaxLength',$ClamavStreamMaxLength,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.StreamMaxLength_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.StreamMaxLength}","{srv_clamav.StreamMaxLength_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('ClamavStreamMaxLength',$ClamavStreamMaxLength,'width:110px;font-size:22px;padding:3px')."&nbsp;M</td>
+		
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.MaxObjectSize}:</td>
-		<td style=';font-size:18px'>" . Field_text('ClamavMaxFileSize',$ClamavMaxFileSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.MaxObjectSize_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.MaxObjectSize}","{srv_clamav.MaxObjectSize_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('ClamavMaxFileSize',$ClamavMaxFileSize,'width:110px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>
 	
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.MaxScanSize}:</td>
-		<td style=';font-size:18px'>" . Field_text('ClamavMaxScanSize',$ClamavMaxScanSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.MaxScanSize_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.MaxScanSize}","{srv_clamav.MaxScanSize_text}").":</td>
+		<td style=';font-size:22px'>" . Field_text('ClamavMaxScanSize',$ClamavMaxScanSize,'width:110px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>	
 	
 	
 
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.ClamAvMaxFilesInArchive}:</td>
-		<td style=';font-size:18px'>" . Field_text('ClamavMaxFiles',$ClamavMaxFiles,'width:150px;font-size:18px;padding:3px')."&nbsp;{files}</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxFilesInArchive}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.ClamAvMaxFilesInArchive}","{srv_clamav.ClamAvMaxFilesInArchive}").":</td>
+		<td style=';font-size:22px'>" . Field_text('ClamavMaxFiles',$ClamavMaxFiles,'width:150px;font-size:22px;padding:3px')."&nbsp;{files}</td>
+		
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.MaxFileSize}:</td>
-		<td style=';font-size:18px'>" . Field_text('MaxFileSize',$ClamavMaxFileSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxFileSizeInArchive}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.MaxFileSize}","{srv_clamav.ClamAvMaxFileSizeInArchive}").":</td>
+		<td style=';font-size:22px'>" . Field_text('MaxFileSize',$ClamavMaxFileSize,
+				'width:110px;font-size:22px;padding:3px')."&nbsp;M</td>
 	</tr>
 
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.ClamAvMaxRecLevel}:</td>
-		<td style=';font-size:18px'>" . Field_text('ClamavMaxRecursion',$ClamavMaxRecursion,'width:110px;font-size:18px;padding:3px')."</td>
-		<td>" . help_icon('{srv_clamav.ClamAvMaxRecLevel}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.ClamAvMaxRecLevel}","{srv_clamav.ClamAvMaxRecLevel}").":</td>
+		<td style=';font-size:22px'>" . Field_text('ClamavMaxRecursion',$ClamavMaxRecursion,'width:110px;font-size:22px;padding:3px')."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{srv_clamav.PhishingScanURLs}:</td>
-		<td style=';font-size:18px'>" . Field_checkbox('PhishingScanURLs',1,$PhishingScanURLs)."</td>
-		<td>" . help_icon('{srv_clamav.PhishingScanURLs_text}')."</td>
+		<td class=legend style='font-size:22px'>".texttooltip("{srv_clamav.PhishingScanURLs}","{srv_clamav.PhishingScanURLs_text}").":</td>
+		<td style=';font-size:22px'>" . Field_checkbox_design('PhishingScanURLs',1,$PhishingScanURLs)."</td>
 	</tr>
 	
 	
 	<tr>
-		<td colspan=3 align='right'><hr>
-		". button("{apply}","SaveClamdInfos()",24)."
+		<td colspan=2 align='right'><hr>
+		". button("{apply}","SaveClamdInfos()",26)."
 			
 		</td>
 	</tr>

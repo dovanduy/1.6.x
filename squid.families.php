@@ -176,7 +176,7 @@ function page(){
 	
 	$html="
 	<span id='analyze-img-$t'></span>
-	<div class=text-info style='font-size:12px' id='tableau-test-categories'>$squid_test_categories_explain</div>
+	<div class=explain style='font-size:12px' id='tableau-test-categories'>$squid_test_categories_explain</div>
 <table class='$t' style='display: none' id='$t' style='width:100%'></table>
 <script>
 var xsite='';

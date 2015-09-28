@@ -24,7 +24,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{SMTP_BANNER}");
-	$html="YahooWin5('550','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title')";
+	$html="YahooWin5('890','$page?popup=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$title')";
 	echo $html;
 }
 
@@ -44,15 +44,15 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<div class=text-info style='font-size:14px'>{SMTP_BANNER_TEXT}</div>
+	<div class=explain style='font-size:18px'>{SMTP_BANNER_TEXT}</div>
 	
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px'>{SMTP_BANNER}:</td>
-		<td class=legend style='font-size:16px'>". Field_text("SMTP_BANNER-$t",$smtpd_banner,"font-size:16px;width:300px;font-weight:bold")."</td>
+		<td class=legend style='font-size:22px'>{SMTP_BANNER}:</td>
+		<td class=legend style='font-size:22px'>". Field_text("SMTP_BANNER-$t",$smtpd_banner,"font-size:22;width:95%x;font-weight:bold")."</td>
 	</tr>
 	<tr>
-		<td align='right' colspan=2><hr>". button("{apply}","Save$t()","18px")."</td>
+		<td align='right' colspan=2><hr>". button("{apply}","Save$t()","30px")."</td>
 	</tr>
 	</table>
 	</div>
@@ -61,15 +61,14 @@ function popup(){
 	var X_Save$t= function (obj) {
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}
-		document.getElementById('$t').innerHTML='';
-		}		
+		Loadjs('postfix.othervalues.progress.php?hostname={$_POST["hostname"]}');	
+	}		
 	
 	function Save$t(){
 		var XHR = new XHRConnection();
 		XHR.appendData('hostname','$hostname');
 		XHR.appendData('ou','{$_GET["ou"]}');
-		XHR.appendData('SMTP_BANNER',document.getElementById('SMTP_BANNER-$t').value);
-		AnimateDiv('$t');
+		XHR.appendData('SMTP_BANNER',encodeURIComponent(document.getElementById('SMTP_BANNER-$t').value));
 		XHR.sendAndLoad('$page', 'POST',X_Save$t);
 	}
 	
@@ -86,9 +85,8 @@ function popup(){
 
 function save(){
 	$main=new maincf_multi($_POST["hostname"],$_POST["ou"]);
-	$main->SET_VALUE("smtpd_banner",$_POST["SMTP_BANNER"]);
-	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?postfix-others-values=yes&hostname={$_POST["hostname"]}");
+	$main->SET_VALUE("smtpd_banner",url_decode_special_tool($_POST["SMTP_BANNER"]));
+	
 }
 
 

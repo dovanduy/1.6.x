@@ -94,56 +94,14 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 	$nice=EXEC_NICE();
 	
 	events("Executed pid $mypid");
-	events("Execute ParseSquidLogBrut()");
-	ParseSquidLogBrut(false);
-	events("Execute ParseSquidLogMain()");
-	ParseSquidLogMain();
-	events("Execute ParseSquidLogMainError()");
-	ParseSquidLogMainError();
-	events("Execute ParseUserAuth()");
-	ParseUserAuth();
 	events("Execute youtube()");
 	youtube();
-	events("Execute useragents()");
-	useragents();
-	events("Execute ParseUsersSize()");
-	ParseUsersSize();
 	events("Execute nudityScan()");
 	nudityScan();
 	events("Execute WordScanners()");
 	WordScanners();
 	
-	
-	
-	$CategoriesDatabasesByCron=@file_get_contents("/etc/artica-postfix/settings/Daemons/CategoriesDatabasesByCron");
-	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}else{$CategoriesDatabasesByCron=0;}
-	
-	
-	
-	
-	
-	
-	$RTTSizeTime=$unix->file_time_min($RTTSizeTimeFile);
-	if($RTTSizeTime>5){
-		if(!system_is_overloaded()){
-			$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid-users-rttsize.php --now schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
-			events("$cmd");
-			shell_exec($cmd);
-			@unlink($RTTSizeTimeFile);
-			@file_put_contents($RTTSizeTimeFile, time());	
-		}	
-	}
-	
-	if($CategoriesDatabasesByCron==0){
-		$UpdateCategoriesArticaTime=$unix->file_time_min($UpdateCategoriesArticaTimeFile);
-		if($UpdateCategoriesArticaTime>720){
-			$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.blacklists.php --ufdb --force --nologs --schedule-id={$GLOBALS["SCHEDULE_ID"]} --".__FUNCTION__."-".__LINE__." >/dev/null 2>&1 &");
-			events("$cmd");
-			shell_exec($cmd);
-			@unlink($UpdateCategoriesArticaTimeFile);
-			@file_put_contents($UpdateCategoriesArticaTimeFile, time());
-		}	
-	}
+
 	$CachePerfs=$unix->file_time_min($CachePerfsFile);
 	if($CachePerfs>800){
 		$cmd=trim("$nohup $nice $php ".dirname(__FILE__)."/exec.squid.stats.days.cached.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
@@ -157,83 +115,7 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 	
 	
 
-function ParseUsersSize(){
-	return;
-	$f=array();
-	$unix=new unix();
-	$hostname=$unix->hostname_g();		
-	$php5=$unix->LOCATE_PHP5_BIN();
-	if(function_exists("system_is_overloaded")){
-		if(system_is_overloaded()){
-			return;
-		}	
-	}
 
-	$q=new mysql_squid_builder();
-	$q->CreateUserSizeRTTTable();
-	if(!$q->TABLE_EXISTS("UserSizeRTT")){
-		ufdbguard_admin_events("Fatal:$hostname UserSizeRTT no such table, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
-		return;
-	}
-	
-	if (!$handle = opendir("/var/log/artica-postfix/squid-usersize")) { @mkdir("/var/log/artica-postfix/squid-usersize",0755,true);}
-	if (!$handle = opendir("/var/log/artica-postfix/squid-usersize")) { 
-		ufdbguard_admin_events("Fatal:$hostname /var/log/artica-postfix/squid-usersize no such directory",__FUNCTION__,__FILE__,__LINE__,"stats");
-		return;
-	}
-	
-
-	$prefix="INSERT IGNORE INTO UserSizeRTT (`zMD5`,`uid`,`zdate`,`ipaddr`,`hostname`,`account`,`MAC`,`UserAgent`,`size`) VALUES";
-	$countDeFiles=0;
-	while (false !== ($filename = readdir($handle))) {
-				if($filename=="."){continue;}
-				if($filename==".."){continue;}
-				$targetFile="/var/log/artica-postfix/squid-usersize/$filename";
-				$countDeFiles++;	
-				$account=0;
-				$array=unserialize(@file_get_contents($targetFile));
-				if(!is_array($array)){@unlink($targetFile);continue;}
-				
-				$time=$array["TIME"];
-				$md5=$array["MD5"];
-				if($md5==null){@unlink($targetFile);continue;}
-				if(!is_numeric($time)){@unlink($targetFile);continue;}
-				if($time==0){@unlink($targetFile);continue;}
-				$zdate=date("Y-m-d H:i:s",$time);
-				
-				$md5=md5($md5.$time);
-				$uid=$array["uid"];
-				if($uid=="-"){$uid=null;}
-				$ipaddr=$array["IP"];
-				$MAC=$array["MAC"];
-				if(!__IsPhysicalAddress($MAC)){$MAC=null;}
-				$hostname=$array["HOSTNAME"];
-				$UserAgent=$array["UGNT"];
-				if(strlen($UserAgent)<2){$UserAgent=null;}
-				$size=$array["SIZE"];
-				if($size==0){@unlink($targetFile);continue;}
-				if($hostname==null){$hostname=GetComputerName($ipaddr);}
-				if(!is_numeric($account)){$account=0;}
-				if($MAC<>null){if($uid==null){$uid=$q->UID_FROM_MAC($MAC);}}
-				if($ipaddr<>null){if($uid==null){$uid=$q->UID_FROM_IP($ipaddr);}}
-				
-				if(strlen($UserAgent)<3){$UserAgent=null;}
-				if(strlen($uid)<3){$uid=null;}
-				if($GLOBALS["VERBOSE"]){echo "('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')\n";}
-				$f[]="('$md5','$uid','$zdate','$ipaddr','$hostname','$account','$MAC','$UserAgent','$size')";
-				@unlink($targetFile);
-		}
-		if(count($f)>0){
-			$q->QUERY_SQL("$prefix ".@implode(",", $f));
-			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.quotasbuild.php");
-			if(!$q->ok){
-				events("Fatal:$hostname $q->mysql_error");
-				ufdbguard_admin_events("Fatal:$hostname $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"stats");
-			}		
-		}
-				
-	events("Closing... /var/log/artica-postfix/squid-usersize/ ($countDeFiles files scanned)");
-}
 
 function GetComputerName($ip){
 		if(isset($GLOBALS["resvip"][$ip])){
@@ -314,12 +196,7 @@ function nudityScan(){
 }
 
 function WordScanners_v2(){
-	$unix=new unix();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup $php5 ". dirname(__FILE__)."/exec.squid.words.parsers.php >/dev/null 2>&1 &");
-	
-	
+
 }
 
 function WordScanners(){
@@ -394,19 +271,7 @@ function WordScanners(){
 }
 	
 function ParseUserAuthNew(){
-	$unix=new unix();
-	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
-	while (list ($directory,$array) = each ($dirs) ){
-		$dirs2=$unix->dirdir($directory);if(count($dirs2)==0){@rmdir($directory);continue;}
-		if(is_dir("$directory/SearchWords")){
-			$php=$unix->LOCATE_PHP5_BIN();
-			$nohup=$unix->find_program("nohup");
-			shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
-		}		
-		
-		if(is_dir("$directory/Members")){ParseUserAuthNewDir("$directory/Members");}
-	
-	}
+
 }
 function ParseUserAuthNewDir($directory){return;}
 
@@ -840,28 +705,6 @@ function ParseSquidLogBrut($nopid=false){
 
 
 function CleanSquidQueues(){
-	$unix=new unix();
-	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
-	while (list ($directory, $none) = each ($dirs) ){
-		if(basename($directory)==date("Y-m-d-h")){continue;}
-		
-		$dirs2=$unix->dirdir($directory);
-		if(count($dirs2)==0){@rmdir($directory);continue;}
-		while (list ($directory2, $none) = each ($dirs2) ){
-			$countDeFiles=$unix->COUNT_FILES($directory2);
-			if($countDeFiles==0){@rmdir($directory2);}
-			if(is_dir("$directory2/SearchWords")){
-				$php=$unix->LOCATE_PHP5_BIN();
-				$nohup=$unix->find_program("nohup");
-				shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
-			}
-		}
-		
-		
-	}
-	
-	
-	
 }
 
 
@@ -1075,30 +918,7 @@ function youtube_array_to_sql($array){
 
 
 function youtube_next(){
-	$unix=new unix();
-	$mypid=getmypid();
-	
-	$dirs=$unix->dirdir("/var/log/artica-postfix/squid/queues");
-	while (list ($directory,$array) = each ($dirs) ){
-		$dirs2=$unix->dirdir($directory);
-		if(count($dirs2)==0){
-			youtube_events("$dirs2 0 elements, remove...",__LINE__);
-			@rmdir($directory);
-			continue;
-		}
-		
-		if(is_dir("$directory/SearchWords")){
-			$php=$unix->LOCATE_PHP5_BIN();
-			$nohup=$unix->find_program("nohup");
-			shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.words.parsers.php >/dev/null 2>&1 &");
-		}		
-		
-		if(is_dir("$directory/Youtube")){
-			youtube_events("Scanning $directory/Youtube",__LINE__);
-			youtube_next_dir("$directory/Youtube");
-		}
-	
-	}	
+
 	
 }
 
@@ -1223,7 +1043,7 @@ function youtube($Aspid=false){
 	events("youtube():: Done... ($c files)");
 }
 
-function youtube_events($text,$line){
+function youtube_events($text,$line=0){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	if($GLOBALS["VERBOSE"]){echo $text."\n";}
 	$common="/var/log/artica-postfix/youtube.inject.log";

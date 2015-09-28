@@ -3,58 +3,19 @@ function load_stats(){
 	events("************************ SCHEDULE ****************************",__FUNCTION__,__LINE__);
 	
 	if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
+	if(!isset($GLOBALS["CLASS_UNIX"])){$unix=new unix();}else{$unix=$GLOBALS["CLASS_UNIX"];}
 	
-	if(!isset($GLOBALS["CLASS_UNIX"])){
-		$unix=new unix();
-	}else{
-		$unix=$GLOBALS["CLASS_UNIX"];
-	}
-	$array_load=sys_getloadavg();
-	$internal_load=$array_load[0];
 	$time=time();
 	$BASEDIR="/usr/share/artica-postfix";
 	$hash_mem=array();
-	$files=$unix->DirFiles("/usr/share/artica-postfix/bin");
-	while (list ($filename,$line) = each ($files)){
-		@chmod("/usr/share/artica-postfix/bin/$filename",0755);
-		@chown("/usr/share/artica-postfix/bin/$filename","root");
-	}
-	
-	
-	@chmod("/usr/share/artica-postfix/ressources/mem.pl",0755);
-	$datas=shell_exec(dirname(__FILE__)."/mem.pl");
-	if(preg_match('#T=([0-9]+) U=([0-9]+)#',$datas,$re)){$ram_used=$re[2];}
-
-	@mkdir("/var/log/artica-postfix/sys_loadavg",0755,true);
-	@mkdir("/var/log/artica-postfix/sys_mem",0755,true);
 	@mkdir("/var/log/artica-postfix/sys_alerts",0755,true);
-	@mkdir("/etc/artica-postfix/croned.1",0755,true);
-	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
-	events("Internal Load: $internal_load Ram used: $ram_used",__FUNCTION__,__LINE__);
 	
-	@file_put_contents("/var/log/artica-postfix/sys_loadavg/$time", $internal_load);
-	@file_put_contents("/var/log/artica-postfix/sys_mem/$time", $ram_used);
 	$NtpdateAD=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("NtpdateAD"));
 	$NTPDClientEnabled=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("NTPDClientEnabled"));
+	$SquidPerformance=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidPerformance"));
 	if($NtpdateAD==1){$NTPDClientEnabled=1;}
 	
-	
-
-	if(system_is_overloaded(basename(__FILE__))){
-		$date=time();
-		if(!is_file("/var/log/artica-postfix/sys_alerts/$date")){
-			$ps=$unix->find_program("ps");
-			$load=$GLOBALS["SYSTEM_INTERNAL_LOAD"];
-			if(!$unix->process_exists($GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("$ps"))){
-				$cmd=trim($GLOBALS["nohup"]." {$GLOBALS["NICE"]} $ps auxww >/var/log/artica-postfix/sys_alerts/$date-$load 2>&1");
-				shell_exec($cmd);
-			}
-		}
-	}else{
-		if(is_file("/etc/artica-postfix/WEBSTATS_APPLIANCE")){shell_exec_time("exec.squid.php --ping-clients-proxy",5); }
-
-	}
 	
 	
 // NTP CLIENT *****************************************************************************
@@ -67,25 +28,18 @@ if($NTPDClientEnabled==1){
 	}
 }
 // ****************************************************************************************
-	
-	
-	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.syslog-engine.php.load_stats.time");
+	events("exec.syslog-engine.php --load-stats = {$time_file}/5mn");
 	if($time_file>5){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.syslog-engine.php --load-stats >/dev/null 2>&1 &");
 	}
-
-	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mpstat.php.time");
-	if($time_file>1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.mpstat.php >/dev/null 2>&1 &");
-	}
 	
-	
+	// ****************************************************************************************
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.philesight.php.scan_directories.time");
 	if($time_file>60){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.philesight.php --directories >/dev/null 2>&1 &");
 	}
-	
+	// ****************************************************************************************
 	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.seeker.php.xtart.time");
 	events("seeker: {$time_file}mn/30mn");
@@ -117,11 +71,7 @@ if($NTPDClientEnabled==1){
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.watchdog.php.CHECK_DNS_SYSTEMS.time");
 	events("CHECK_DNS_SYSTEMS: {$time_file}mn",__FUNCTION__,__LINE__);
 
-	if($time_file>4){
-		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.watchdog.php --dns >/dev/null 2>&1 &";
-		events($cmd,__FUNCTION__,__LINE__);
-		shell_exec2("$cmd");
-	}
+	
 	
 	
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.clean.logs.php.clean_space.time");

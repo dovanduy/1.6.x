@@ -52,31 +52,19 @@ function KasperskyPromo022014_text(){
 function KasperskyPromo022014_fr_text(){
 	$t=time();
 	$page=CurrentPageName();
-	$button=button("Je suis intéressé(e), j'installe la solution","InstallPub$t()",22);
+	$button=button("Je suis intéressé(e), j'installe la solution","InstallPub$t()",40);
 	$users=new usersMenus();
-	if($users->KAV4PROXY_INSTALLED){
-		$button=button("Je suis intéressé(e), je demande une quotation","ClosePub$t();Loadjs('Kav4Proxy.license-manager.php');",22);
-	}
 	
 	$html="
-	<div id='div-$t'>
-	<center style='font-size:38px'>KASPERSKY FOR ARTICA</center>
+	<div id='div-$t' style='margin:50px'>
+	<center style='font-size:50px'>KASPERSKY FOR ARTICA</center>
 	
 	<center style='margin:30px'><img src='img/kaspersky-logo-250.png'></center>		
 	<center style='font-size:22px;'>PROTEGEZ LE SURF DE TOUS VOS UTILISATEURS AVEC KASPERSKY</center>
-	<center style='font-size:26px;font-weight:bold;margin:14px'>POUR 700 EUROS !*</center>
+	
 	<center style='font-size:18px'>Intégrez Kaspersky dans votre Artica Proxy maintenant !</center>
 			
 	<center style='margin:30px'>$button</center>
-	<center style='margin:30px'>". button("Non merci","ClosePub$t()",22)."</center>
-	
-			
-			
-	<div style='font-size:14px' class=text-info><strong>*Offre soumise à conditions :</strong><br>
-	Prix pour un an par serveur Artica proxy protégé.<br>
-	Prix de la licence Kaspersky valable uniquement via l'opération &laquo;Kaspersky for Artica&raquo;.<br>
-	A activer au travers de l'interface Artica Proxy. Durée de la licence Kaspersky d'une année à compter de la date d’achat.
-	</div>
 	</div>		
 	<script>
 	var xClosePub$t= function (obj) {
@@ -92,22 +80,17 @@ function KasperskyPromo022014_fr_text(){
 	}
 	
 	var xInstallPub$t = function (obj) {
-		document.getElementById('div-$t').innerHTML='';
-		YahooSetupControlHide();
+		LoadMainDashProxy();
 		Loadjs('Kav4Proxy.install.php');
 	}	
 	
 	function InstallPub$t(){
 		var XHR = new XHRConnection();
 		XHR.appendData('ClosePub',1);
-		document.getElementById('div-$t').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
 		XHR.sendAndLoad('$page', 'POST',xInstallPub$t);	
 	
 	}
-	
-	
-	$(\".ui-dialog-titlebar-close\").hide();
-	</script>
+</script>
 	";
 
 	echo $html;
@@ -117,30 +100,20 @@ function KasperskyPromo022014_us_text(){
 	$t=time();
 	$page=CurrentPageName();
 	
-	$button=button("I am interested, install the solution","InstallPub$t()",22);
+	$button=button("I am interested, install the solution","InstallPub$t()",40);
 	$users=new usersMenus();
-	if($users->KAV4PROXY_INSTALLED){
-		$button=button("I am interested, i request a quote","ClosePub$t();Loadjs('Kav4Proxy.license-manager.php');",22);
-	}
+	
 	
 	$html="
-	<div id='div-$t'>
-	<center style='font-size:38px'>KASPERSKY FOR ARTICA</center>
+	<div id='div-$t' style='margin:50px'>
+	<center style='font-size:50px'>KASPERSKY FOR ARTICA</center>
 	<center style='margin:30px'><img src='img/kaspersky-logo-250.png'></center>
 
 	<center style='font-size:22px;'>PROTECT WEB SURFING USING KASPERSKY</center>
-	<center style='font-size:26px;font-weight:bold;margin:14px'>FOR 700 EUROS!*</center>
 	<center style='font-size:18px'>Integrate Kaspersky into Artica Proxy now! </center>
-		
 	<center style='margin:30px'>$button</center>
-	<center style='margin:30px'>". button("No, thank you","ClosePub$t()",22)."</center>
+	
 
-<div style='font-size:14px' class=text-info><strong>*Offer subject to conditions :</strong><br>
-700€ (Price for 1 year and for 1 protected Artica proxy server).<br>
-Kaspersky license price only valid for ‘Kaspersky for Artica’ operation.<br>
-To be activated through Artica proxy Web Interface.<br>
-Duration of the Kaspersky license : 1 year from date of purchase.
-</div>
 </div>
 <script>
 	var xClosePub$t= function (obj) {
@@ -156,19 +129,15 @@ Duration of the Kaspersky license : 1 year from date of purchase.
 	}
 	
 	var xInstallPub$t = function (obj) {
-		document.getElementById('div-$t').innerHTML='';
-		YahooSetupControlHide();
+		LoadMainDashProxy();
 		Loadjs('Kav4Proxy.install.php');
 	}
 	
 	function InstallPub$t(){
 		var XHR = new XHRConnection();
 		XHR.appendData('ClosePub',1);
-		document.getElementById('div-$t').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
 		XHR.sendAndLoad('$page', 'POST',xInstallPub$t);
 	}
-	
-	$(\".ui-dialog-titlebar-close\").hide();
 </script>
 ";
 echo $html;

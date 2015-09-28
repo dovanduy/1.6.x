@@ -42,9 +42,12 @@ function dump(){
 	$t=time();
 	$sock=new sockets();
 	$tpl=new templates();
+	
+	$_GET["rule-id"]=intval($_GET["rule-id"]);
 	$please_wait=$tpl->javascript_parse_text("{please_wait}...");
 	$page=CurrentPageName();
 	$sock->getFrameWork("ufdbguard.php?ad-dump={$_GET["rule-id"]}");
+	
 	$html="
 	<center id='title-$t' style='font-size:22px'>$please_wait</center>
 	<div id='wait-$t'></div>		

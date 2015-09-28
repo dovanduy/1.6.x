@@ -1307,6 +1307,7 @@ z.add('xmlrpc.so');
 z.add('session.so');
 z.add('gettext.so');
 z.add('mbstring.so');
+z.add('snmp.so');
 if LighttpdMinimalLibraries=0 then z.add('ssh2.so');
 if LighttpdMinimalLibraries=0 then z.add('pspell.so');
 if LighttpdMinimalLibraries=0 then z.add('rrd.so');

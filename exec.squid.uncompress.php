@@ -9,8 +9,95 @@ include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+
+if($argv[1]=="--key"){download_install($argv[2]);exit;}
+
+
 install($argv[2]);exit;
 
+
+
+function download_install($key){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/squid.install.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/squid.install.progress.txt";
+	$sock=new sockets();
+	$ArticaTechNetSquidRepo=unserialize(base64_decode($sock->GET_INFO("ArticaTechNetSquidRepo")));
+	$array=$ArticaTechNetSquidRepo[$key];
+	
+	
+	
+	$URL=$array["URL"];
+	$VERSION=$array["VERSION"];
+	$FILESIZE=$array["FILESIZE"];
+	$FILENAME=$array["FILENAME"];
+	$MD5=$array["MD5"];
+	$tarballs_file="/usr/share/artica-postfix/ressources/conf/upload/$FILENAME";
+	
+	echo "Url......................: $URL\n";
+	echo "Version..................: $VERSION\n";
+	echo "File size................: $FILESIZE\n";
+	echo "Filename.................: $FILENAME\n";
+	echo "MD5......................: $MD5\n";
+	
+	if($URL==null){
+		build_progress("{downloading} $FILENAME {failed}...",110);
+		die();
+	}
+	build_progress("{downloading} $FILENAME {please_wait}...",5);
+	$curl=new ccurl($URL);
+	$curl->WriteProgress=true;
+	$curl->ProgressFunction="download_progress";
+	if(!$curl->GetFile($tarballs_file)){
+		build_progress("{downloading} $FILENAME {failed}...",110);
+		@unlink($tarballs_file);
+		echo $curl->error;
+		die();
+	}
+	build_progress("{checking} $FILENAME {please_wait}...",9);
+	
+	$filesize=@filesize($tarballs_file);
+	
+	$md5file=md5_file($tarballs_file);
+	
+	echo "File size................: $filesize\n";
+	echo "MD5......................: $md5file\n";
+	
+	if($filesize<50){
+		print_r($curl->CURL_ALL_INFOS);
+		echo @file_get_contents($tarballs_file);
+		
+	}
+	
+	
+	if($md5file<>$MD5){
+		@unlink($tarballs_file);
+		echo "Md5 failed, corrupted file...\n";
+		build_progress("{checking} $FILENAME {failed}...",110);
+		die();
+		
+	}
+	install($FILENAME);
+	
+	
+}
+
+function download_progress( $download_size, $downloaded_size, $upload_size, $uploaded_size ){
+	if(!isset($GLOBALS["previousProgress"])){$GLOBALS["previousProgress"]= 0;}
+
+	if ( $download_size == 0 ){
+		$progress = 0;
+	}else{
+		$progress = round( $downloaded_size * 100 / $download_size );
+	}
+	 
+	if ( $progress > $GLOBALS["previousProgress"]){
+		echo "Downloading: ". $progress."%, please wait...\n";
+		$GLOBALS["previousProgress"]=$progress;
+		if($progress<95){
+			build_progress("{downloading}  $progress%",5);
+		}
+	}
+}
 
 
 function install($filename){

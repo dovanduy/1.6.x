@@ -182,7 +182,7 @@ function TIME_QUOTA($url){
 	
 	if(preg_match("#(.+?):[0-9]+#", $WWW,$re)){$WWW=$re[1];}
 	if(preg_match("#^www\.(.+)#", $WWW,$re)){$WWW=$re[1];}
-	
+	if(!class_exists("squid_familysite")){include_once(dirname(__FILE__)."/ressources/class.squid.familysites.inc");}
 	$fam=new squid_familysite();
 	$WWW=$fam->GetFamilySites($WWW);
 	

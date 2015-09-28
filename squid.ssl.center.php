@@ -20,10 +20,22 @@ if(isset($_GET["verbose"])){
 		exit;
 	}
 	
+	if(isset($_GET["js"])){js();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
-	if(isset($_POST["SSL_BUMP_WHITE_LIST"])){Save();exit;}
+	if(isset($_POST["sslproxy_version"])){Save();exit;}
 	if(isset($_GET["SSL_CERTIF_DOWN"])){SSL_CERTIF_DOWN();exit;}
 tabs();
+
+
+function js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->javascript_parse_text("{UseSSL}");
+	echo "YahooWin2('950','$page?popup=yes','$title');";
+	
+	
+}
 
 function tabs(){
 
@@ -35,6 +47,32 @@ function tabs(){
 	$fontsize=20;
 	
 	$sock=new sockets();
+	$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+	$SquidSSLUrgency=intval($sock->GET_INFO("SquidSSLUrgency"));
+	
+	if($SquidSSLUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+			"<div style='font-size:22px'>{proxy_in_ssl_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_ssl_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?ssl=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+		
+	
+	}
+	
+	if($SquidUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+		return;
+	
+	}
+	
+	
 	$compilefile="ressources/logs/squid.compilation.params";
 	if(!is_file($compilefile)){$sock->getFrameWork("squid.php?compil-params=yes");}
 	$COMPILATION_PARAMS=unserialize(base64_decode(file_get_contents($compilefile)));
@@ -93,25 +131,41 @@ function popup(){
 	$squid=new squidbee();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
+	
+	$sock=new sockets();
+	$SquidUrgency=intval($sock->GET_INFO("SquidUrgency"));
+	$SquidSSLUrgency=intval($sock->GET_INFO("SquidSSLUrgency"));
+	
+	if($SquidSSLUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_ssl_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_ssl_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?ssl=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+	
+	
+	}
+	
+	if($SquidUrgency==1){
+		echo FATAL_ERROR_SHOW_128(
+				"<div style='font-size:22px'>{proxy_in_emergency_mode}</div>
+			<div style='font-size:18px'>{proxy_in_emergency_mode_explain}</div>
+			<div style='text-align:right;margin-top:20px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php?justbutton=yes');\"
+			style='text-decoration:underline;font-size:26px'>{disable_emergency_mode}</a></div>
+			");
+		return;
+	
+	}
 	
 	$t=time();
 	
 	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
-	
 	$ini->loadString($ArticaSquidParameters);
-	
-	
 	$DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
 	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=1;}
-	
 	if($DisableSSLStandardPort==0){$StandardPortSSL=1;}else{$StandardPortSSL=0;}
-	
-	$FIELD_StandardPortSSL=Paragraphe_switch_img("{activate_ssl_bump}",
-	"{activate_ssl_only_standard_ports_text}","StandardPortSSL-$t",$StandardPortSSL,null,650);
-	
-	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
-	$squid_reverse=new squid_reverse();
-	$sslcertificates=$squid_reverse->ssl_certificates_list();
 	
 	
 	$sslproxy_versions[1]="{default}";
@@ -123,35 +177,22 @@ function popup(){
 	$sslproxy_version=intval($sock->GET_INFO("sslproxy_version"));
 	if($sslproxy_version==0){$sslproxy_version=1;}
 	
-	$SSL_BUMP_WHITE_LIST=Paragraphe_switch_img("{whitelist_all_domains}",
-	"{sslbump_whitelist_all_domains_explain}","SSL_BUMP_WHITE_LIST-$t",$squid->SSL_BUMP_WHITE_LIST,null,650);
+	//$SSL_BUMP_WHITE_LIST=Paragraphe_switch_img("{whitelist_all_domains}",
+	//"{sslbump_whitelist_all_domains_explain}<br>{SSL_BUMP_CONNECTED_EXPLAIN}","SSL_BUMP_WHITE_LIST-$t",$squid->SSL_BUMP_WHITE_LIST,null,650);
 	
-
+	
 	
 	$html="
 			
 	<div style='width:98%' class=form>		
-	<div class=text-info style='font-size:18px'>{SSL_BUMP_CONNECTED_EXPLAIN}</div>
 	<div id='SSL_CERTIF_DOWN'></div>
 	<table style='width:100%'>
-	<tr>
-			<td colspan=2>$FIELD_StandardPortSSL</td>
-	</tr>
-	<tr>
-			<td colspan=2>$SSL_BUMP_WHITE_LIST</td>
-	</tr>	
-	
-	
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{sslproxy_version}:</td>
 		<td>". Field_array_Hash($sslproxy_versions,"sslproxy_version-$t",$sslproxy_version,"style:font-size:22px")."</td>
 	</tr>
 	<tr>
-		<td class=legend nowrap style='font-size:22px'>{use_certificate_from_certificate_center}:</td>
-		<td>". Field_array_Hash($sslcertificates, "certificate-$t",$ini->_params["NETWORK"]["certificate_center"],null,null,0,"font-size:22px")."</td>
-	</tr>	
-	<tr>
-		<td colspan=2 align=right><hr>".button("{apply}","Save$t()",36)."</td>
+		<td colspan=2 align=right style='font-size:22px'><hr>".button("{rebuild_ssl_cache}","Loadjs('squid.sslcrtd.flush.progress.php')",36)."&nbsp;|&nbsp;".button("{apply}","Save$t()",36)."</td>
 	</tr>
 	</table>
 	</div>	
@@ -160,21 +201,18 @@ var xSave$t=function(obj){
     var tempvalue=obj.responseText;
     if(tempvalue.length>3){alert(tempvalue);}
 	Loadjs('squid.compile.progress.php?restart=yes&ask=yes');
-    AnimateDiv('BodyContent');
-    LoadAjax('BodyContent','squid.ssl.center.php');
+
 	
 }	
 
 function Save$t(){
 	var XHR = new XHRConnection();
-	XHR.appendData('certificate',document.getElementById('certificate-$t').value);
-	XHR.appendData('SSL_BUMP_WHITE_LIST',document.getElementById('SSL_BUMP_WHITE_LIST-$t').value);
-	XHR.appendData('StandardPortSSL',document.getElementById('StandardPortSSL-$t').value);
+	
 	XHR.appendData('sslproxy_version',document.getElementById('sslproxy_version-$t').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);		
 }
 
-LoadAjax('SSL_CERTIF_DOWN','$page?SSL_CERTIF_DOWN=yes');
+
 </script>						
 	";
 	
@@ -189,25 +227,8 @@ echo $tpl->_ENGINE_parse_body($html);
 function Save(){
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
-	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
-	$ini->loadString($ArticaSquidParameters);
-	
-	if($_POST["StandardPortSSL"]==1){
-		$sock->SET_INFO("DisableSSLStandardPort",0);
-		$sock->SET_INFO("EnableSSLOnStandardPort", 1);
-		$ini->_params["NETWORK"]["SSL_BUMP"]=1;
-		
-	}else{
-		$sock->SET_INFO("DisableSSLStandardPort",1);
-		$sock->SET_INFO("EnableSSLOnStandardPort", 0);
-	}
 	$sock->SET_INFO("sslproxy_version", $_POST["sslproxy_version"]);
-	
-	
-	$ini->_params["NETWORK"]["certificate_center"]=$_POST["certificate"];
-	$ini->_params["NETWORK"]["SSL_BUMP_WHITE_LIST"]=$_POST["SSL_BUMP_WHITE_LIST"];
-	
-	$sock->SaveConfigFile($ini->toString(), "ArticaSquidParameters");
+
 	
 }
 

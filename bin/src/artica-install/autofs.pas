@@ -22,15 +22,15 @@ private
      bin_path_memory:string;
      EnableAutoFSDebug:integer;
      function mount_count():integer;
-     function nss_initgroups_ignoreusers():string;
-     procedure ldap_conf();
+
+
      procedure set_curfltpfs();
 public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
     procedure   ETC_DEFAULT();
     procedure   ETC_SYSCONFIG_DEFAULT();
-    procedure   autofs_ldap_auth_conf();
+
     function    VERSION():string;
     function    BIN_PATH():string;
     function    PID_NUM():string;
@@ -147,9 +147,9 @@ begin
     nss_switch();
     set_curfltpfs();
     ETC_DEFAULT();
-    ldap_conf();
+
     ETC_SYSCONFIG_DEFAULT();
-    autofs_ldap_auth_conf();
+
 
 
 
@@ -338,101 +338,10 @@ end;
 
 
 
-function tautofs.nss_initgroups_ignoreusers():string;
-var
-l:TstringList;
-RegExpr:TRegExpr;
-r:string;
-i:integer;
-begin
-
-l:=TstringList.create;
-RegExpr:=TRegExpr.create;
-RegExpr.Expression:='^(.+?):';
-try
-   l.LoadFromFile('/etc/passwd');
-except
-   logs.Syslogs('nss_initgroups_ignoreusers:: fatal error !');
-   exit;
-end;
 
 
-for i:=0 to l.Count-1 do begin
-    if RegExpr.Exec(l.Strings[i]) then begin
-          r:=r+ RegExpr.Match[1]+',';
-    end;
-end;
 
 
-l.free;
-RegExpr.free;
-r:=r+'postfix,cyrus,mail';
-if Copy(r,length(r),1)=',' then r:=Copy(r,0,length(r)-1);
-result:=r;
-end;
-//##############################################################################
-
-procedure tautofs.ldap_conf();
-var
-  ldap_conf:TstringList;
-  server,port,admin,password:string;
-  initgroups_ignoreusers:string;
-begin
-
-  server:=zldap.ldap_settings.servername;
-  port:=zldap.ldap_settings.Port;
-  admin:='cn='+zldap.ldap_settings.admin+','+zldap.ldap_settings.suffix;
-  password:=zldap.ldap_settings.password;
-
-  ldap_conf:=Tstringlist.Create;
-  ldap_conf.Add('host '+server);
-  ldap_conf.Add('port '+port);
-  ldap_conf.Add('uri ldap://'+server+':'+port);
-  ldap_conf.Add('ldap_version 3');
-  ldap_conf.Add('binddn '+admin);
-  ldap_conf.Add('rootbinddn '+admin);
-  ldap_conf.Add('bindpw '+zldap.ldap_settings.password);
-  ldap_conf.Add('bind_policy soft');
-  ldap_conf.Add('scope sub');
-  ldap_conf.Add('base '+zldap.ldap_settings.suffix);
-  ldap_conf.Add('pam_password clear');
-  ldap_conf.Add('pam_lookup_policy yes');
-  ldap_conf.Add('pam_filter objectclass=posixAccount');
-  ldap_conf.Add('pam_login_attribute uid');
-  ldap_conf.Add('nss_reconnect_maxconntries 5');
-  ldap_conf.Add('idle_timelimit 3600');
-  ldap_conf.Add('nss_base_group '+zldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_passwd '+zldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_shadow '+zldap.ldap_settings.suffix+'?sub');
-
-  initgroups_ignoreusers:=nss_initgroups_ignoreusers();
-  if length(initgroups_ignoreusers)>0 then ldap_conf.Add('nss_initgroups_ignoreusers '+initgroups_ignoreusers);
-
-  logs.WriteToFile(ldap_conf.Text,'/etc/ldap.conf');
-  logs.Debuglogs('Starting......: AutoFS /etc/ldap.conf done');
-  logs.WriteToFile(password,'/etc/ldap.secret');
-  logs.Debuglogs('Starting......: AutoFS /etc/ldap.secret done');
-
-end;
-
-procedure tautofs.autofs_ldap_auth_conf();
-var l:Tstringlist;
-begin
-
-l:=Tstringlist.Create;
-l.Add('<autofs_ldap_sasl_conf');
-l.Add('	usetls="no"');
-l.Add('	tlsrequired="no"');
-l.Add('	authrequired="yes"');
-l.Add('	authtype="PLAIN"');
-l.Add('	user="dn:cn='+zldap.ldap_settings.admin+','+zldap.ldap_settings.suffix+'"');
-l.Add(' secret="'+zldap.ldap_settings.password+'"');
-l.Add('/>');
-logs.WriteToFile(l.Text,'/etc/autofs_ldap_auth.conf');
-logs.DebugLogs('Starting......: AutoFS updating /etc/autofs_ldap_auth.conf done...');
-l.free;
-end;
-//#############################################################################
 procedure tautofs.nss_switch();
 var
    l:Tstringlist;

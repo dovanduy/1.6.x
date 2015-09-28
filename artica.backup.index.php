@@ -387,7 +387,7 @@ function Backuplist(){
 		preg_match('#file:(.+?);#',$val,$ri);
 		
 		if($currdate=="{$re[1]}/{$re[2]}/{$re[3]}"){
-			$style="style='color:red;font-weight:bold'";
+			$style="style='color:#d32d2d;font-weight:bold'";
 		}else{$style=null;}
 		
 		$html=$html . "

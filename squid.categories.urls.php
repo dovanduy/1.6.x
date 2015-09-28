@@ -121,7 +121,7 @@ function add_uris_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$html="
-	<div class=text-info style='font-size:16px !important'>{webfiltering_add_uris_explain}</div>		
+	<div class=explain style='font-size:16px !important'>{webfiltering_add_uris_explain}</div>		
 	<textarea 
 		style='margin-top:5px;font-family:Courier New;
 		font-weight:bold;width:95%;height:150px;border:5px solid #8E8E8E;

@@ -67,7 +67,7 @@ function section_services(){
 	$page=CurrentPageName();	
 	$sock=new sockets();
 	$plugins=Paragraphe('folder-lego.png','{activate_plugins}','{activate_plugins_text}',"javascript:Loadjs('squid.popups.php?script=plugins')");
-	$enable_squid_service=Paragraphe('shutdown-green-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?reactivate-squid=yes')");
+	
 	
 	$your_network=Paragraphe('folder-realyrules-64.png','{your_network}','{your_network_text}',"javascript:Loadjs('squid.popups.php?script=network')");
 	$listen_port=Paragraphe('folder-network-64.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')");
@@ -88,7 +88,7 @@ function section_services(){
 	}
 	
 	
-	$tr[]=$enable_squid_service;
+
 	$tr[]=$plugins;
 	$tr[]=$your_network;
 	$tr[]=$listen_port;

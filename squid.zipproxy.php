@@ -30,7 +30,7 @@ $sock=new sockets();
 
 $results=base64_decode($sock->getFrameWork("squid.php?ziproxy-isinstalled=yes"));
 if($results<>"TRUE"){
-	echo FATAL_WARNING_SHOW_128("{the_specified_module_is_not_installed}");
+	echo FATAL_ERROR_SHOW_128("{the_specified_module_is_not_installed}");
 	return;
 }
 $tpl=new templates();

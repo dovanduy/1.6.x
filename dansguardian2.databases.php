@@ -158,7 +158,7 @@ function statusDB_not_installed(){
 	$SIZE=round($arrayinfos["SIZE"]/1024);
 	
 	if($SIZE<$REQUIRE){
-		$error="<center style='color:red;font-weight:bold;font-size:16px;margin:20px'><span >".
+		$error="<center style='color:#d32d2d;font-weight:bold;font-size:16px;margin:20px'><span >".
 				$tpl->_ENGINE_parse_body("{no_enough_free_space_on_target}<br>&laquo;$ArticaDBPath&raquo;<br>({$SIZE}MB {require} {$REQUIRE}MB)</center>");
 	}
 	
@@ -241,6 +241,7 @@ function statusDB(){
 	$APP_UFDBCAT=DAEMON_STATUS_ROUND("APP_UFDBCAT",$ini,null,1);
 	
 	$DisableCategoriesDatabasesUpdates=intval($sock->GET_INFO("DisableCategoriesDatabasesUpdates"));
+	$CategoriesDatabasesUpdatesAllTimes=intval($sock->GET_INFO("CategoriesDatabasesUpdatesAllTimes"));
 	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabasesByCron");
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=1;}
 	
@@ -260,16 +261,21 @@ function statusDB(){
 	$DisableCategoriesDatabasesUpdates,null,700);	
 			
 	
+	$p3=Paragraphe_switch_img("{free_update_during_the_day}",
+			"{free_update_during_the_day_explain}","CategoriesDatabasesUpdatesAllTimes",
+			$CategoriesDatabasesUpdatesAllTimes,null,700);
+	
 	
 	$p=Paragraphe_switch_img("{update_only_by_schedule}", 
 	"{articadb_update_only_by_schedule}","CategoriesDatabasesByCron",
 	$CategoriesDatabasesByCron,null,700);
 	
+	$tt0[]="<tr><td colspan=2>$p3</td></tr>";
 	$tt0[]="<tr><td colspan=2>$p2</td></tr>";
 	$tt0[]="<tr><td colspan=2>$p</td></tr>";	
 	
 	$tt0[]="<tr>
-			<td width=1%>". Field_checkbox("CategoriesDatabasesShowIndex", 1,$CategoriesDatabasesShowIndex,"CategoriesDatabasesByCron()")."</td>
+			<td width=1%>". Field_checkbox_design("CategoriesDatabasesShowIndex", 1,$CategoriesDatabasesShowIndex,"CategoriesDatabasesByCron()")."</td>
 			<td nowrap style='font-size:14px;'>:{display_update_info_index}</a></td>
 		</tr>
 		<tr><td colspan=2 align='right'>".button("{apply}","CategoriesDatabasesByCron()",22)."</td></tr>			
@@ -394,7 +400,7 @@ function CategoriesDatabasesByCron(){
 	var XHR = new XHRConnection();
 	XHR.appendData('CategoriesDatabasesByCron',document.getElementById('CategoriesDatabasesByCron').value);
 	XHR.appendData('DisableCategoriesDatabasesUpdates',document.getElementById('DisableCategoriesDatabasesUpdates').value);
-	
+	XHR.appendData('CategoriesDatabasesUpdatesAllTimes',document.getElementById('CategoriesDatabasesUpdatesAllTimes').value);
 	if(document.getElementById('CategoriesDatabasesShowIndex').checked){XHR.appendData('CategoriesDatabasesShowIndex','1');}else{XHR.appendData('CategoriesDatabasesShowIndex','0');}
 	XHR.sendAndLoad('$page', 'POST',xCategoriesDatabasesByCron);
 }
@@ -889,16 +895,32 @@ function categories_search($forceArtica=false){
 		if($GLOBALS["VERBOSE"]){echo "Scanning table $table<br>\n";}
 		$UnivToulouseItems=null;
 		
+		$ligne_databases=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM UPDATE_DBWF_INFOS WHERE category='$categoryname'"));
+		$size_artica=$ligne_databases["size_artica"];
+		$date_artica=$ligne_databases["date_artica"];
+		$count_artica=$ligne_databases["count_artica"];
+		$size_tlse=$ligne_databases["size_tlse"];
+		$date_tlse=$ligne_databases["date_tlse"];
+		$count_tlse=$ligne_databases["count_tlse"];
+		$size_perso=$ligne_databases["size_perso"];
+		$date_perso=$ligne_databases["date_perso"];
+		$count_perso=$ligne_databases["count_perso"];
 		
-		$items=$q->COUNT_ROWS($table);
-		$itemsEnc=$ARTICA_ARRAY[$categoryname]["ITEMS"];
+		
+		$items=$count_perso;
+		$itemsEnc=$count_artica;
 		$ZZCOUNT=$ZZCOUNT+$items;
 		$ZZCOUNT=$ZZCOUNT+$itemsEnc;
 		
-		$Time[]="-";
-		$sizeArtica=$ARTICA_ARRAY[$categoryname]["SIZE"];
-		if($ARTICA_ARRAY[$categoryname]["TIME"]>0){
-			$Time[]=date("m-d H:i",$ARTICA_ARRAY[$categoryname]["TIME"]);
+		if($date_perso>0){
+			$Time[]=date("m-d H:i",$date_perso);
+		}else{
+			$Time[]="-";
+		}
+		
+		$sizeArtica=$size_artica;
+		if($date_artica>0){
+			$Time[]=date("m-d H:i",$date_artica);
 		}else{
 			$Time[]="-";
 		}
@@ -916,10 +938,14 @@ function categories_search($forceArtica=false){
 		}
 		if($dans->array_pics[$categoryname]<>null){$pic="<img src='img/{$dans->array_pics[$categoryname]}'>";}else{$pic="&nbsp;";}
 	
-		$sizedb_org=$q->TABLE_SIZE($table);
+
 		
-		$sizedb[]=FormatBytes($sizedb_org/1024);
-		$sizedb[]=FormatBytes($sizeArtica/1024);
+		
+		
+		
+		
+		$sizedb[]=FormatBytes($size_perso/1024);
+		$sizedb[]=FormatBytes($size_artica/1024);
 		
 		
 		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t',true)\"
@@ -952,7 +978,7 @@ function categories_search($forceArtica=false){
 		</a><br><span style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</span>");
 		
 
-
+		
 		
 		
 		if($OnlyPersonal==1){
@@ -964,13 +990,13 @@ function categories_search($forceArtica=false){
 		if($_GET["minisize"]=="yes"){$delete=null;}
 		
 		if($OnlyPersonal==0){
-			$UnivToulouse_websitesnum=$TLSE_ARRAY[$categoryname]["ITEMS"];
+			$UnivToulouse_websitesnum=$count_tlse;
 			$ZZCOUNT=$ZZCOUNT+$UnivToulouse_websitesnum;
-			$UnivToulouse_size=$TLSE_ARRAY[$categoryname]["SIZE"];
+			$UnivToulouse_size=$size_tlse;
 			$sizedb[]=FormatBytes($UnivToulouse_size/1024);
 			$ITEMS_COLONE[]="University:&nbsp;".numberFormat($UnivToulouse_websitesnum,0,""," ");
-			if($TLSE_ARRAY[$categoryname]["TIME"]>0){
-			$Time[]=date("m-d H:i",$TLSE_ARRAY[$categoryname]["TIME"]);
+			if($date_tlse>0){
+			$Time[]=date("m-d H:i",$date_tlse);
 			}else{
 				$Time[]="-";
 			}
@@ -1282,7 +1308,7 @@ if($_GET["cat"]==null){$actions=null;}
 	
 	if(isset($blacklists[$_GET["cat"]])){
 		$description="<input type='hidden' id='category_text-$t' value=''>
-		<div class=text-info style='font-size:16px'>{$blacklists[$_GET["cat"]]}</div>";
+		<div class=explain style='font-size:16px'>{$blacklists[$_GET["cat"]]}</div>";
 	}
 	
 	$html="
@@ -1640,7 +1666,7 @@ function global_status(){
 	$q=new mysql_squid_builder();	
 	$t=time();
 $html="
-<div class=text-info style='font-size:14px'>{webfilter_status_text}</div>
+<div class=explain style='font-size:14px'>{webfilter_status_text}</div>
 <table style='width:100%'>
 <tbody>
 <tr>
@@ -2075,7 +2101,7 @@ function global_status_tlse_db(){
 		if($SquidDatabasesUtlseEnable==1){
 			$sock=new sockets();
 			$sock->getFrameWork("squid.php?tlse-checks=yes");
-			$running="<br><strong style='color:red;font-weight:normal'>{please_refresh_again_this_pannel}</strong>";	
+			$running="<br><strong style='color:#d32d2d;font-weight:normal'>{please_refresh_again_this_pannel}</strong>";	
 		}
 	}
 	

@@ -159,6 +159,7 @@ function StartUpdate(){
 	$sock=new sockets();
 	@mkdir("{$GLOBALS["RUN_DIR"]}",0777,true);
 	$chmod=$unix->find_program("chmod");
+	$chown=$unix->find_program("chown");
 	shell_exec("$chmod 777 {$GLOBALS["RUN_DIR"]}");
 	
 	$pidFile="{$GLOBALS["RUN_DIR"]}/keepup2date.pid";
@@ -179,6 +180,9 @@ function StartUpdate(){
 	@mkdir("/var/log/artica-postfix/kaspersky/kav4proxy",0755,true);
 	shell_exec("$chmod 777 /opt/tmp");
 	shell_exec("$chmod 777 $Kav4ProxyDatabasePath");
+	shell_exec("$chmod 777 ".dirname($Kav4ProxyDatabasePath));
+	shell_exec("$chown -R kluser:klusers ".dirname($Kav4ProxyDatabasePath));
+	
 	buildConf();
 	$logfile="/var/log/artica-postfix/kaspersky/kav4proxy/".date("Y-m-d_H-i-s");
 	$tmpFileName="/etc/artica-postfix/kav4proxy-keepup2date.conf";

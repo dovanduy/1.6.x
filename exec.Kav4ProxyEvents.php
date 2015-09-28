@@ -12,6 +12,7 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.artica.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
+include_once(dirname(__FILE__)."/ressources/class.influx.inc");
 //server-syncronize-64.png
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
@@ -58,32 +59,18 @@ events("command-lines=".implode(" ;",$argv),__FUNCTION__,__FILE__,__LINE__);
 		if(trim($InfectedFileName)==null){$InfectedFileName=$InfectedPath;}
 		$MAC=$unix->IpToMac($ipaddr);
 		$public_ip=$unix->IpToHostname($www);
-		$array["uid"]=null;
-		$array["MAC"]=$MAC;
-		$array["TIME"]=time();
-		$array["category"]="Infected";
-		$array["rulename"]="Kaspersky-Antivirus";
-		$array["public_ip"]=$public_ip;
-		$array["blocktype"]="$VirusName in $InfectedFileName";
-		$array["why"]="Infected domain";
-		$array["hostname"]=$ComputerName;
-		$array["website"]=$www;
-		$array["client"]=$ipaddr;
-		$serialize=serialize($array);
-		while (list ($num, $dir) = each ($array) ){
-			events("$num: \"$dir\"",__FUNCTION__,__FILE__,__LINE__);
-		}
-		while (list ($num, $dir) = each ($URLAR) ){
-			events("$num: \"$dir\"",__FUNCTION__,__FILE__,__LINE__);
-		}
+
+		$user=$ipaddr;
+		
+		$ipaddr=gethostbyaddr($ipaddr);
+		$time=time();
+		$q=new influx();
+		$line="$time:::$user:::Infected:::Kaspersky-Antivirus:::$public_ip:::Security issue:::THREAT $VirusName DETECTED:::$Clienthostname:::$www:::$local_ip";
+		$q->insert_ufdb($line);
 
 		
-		$md5=md5($serialize);
-		$targetFile="/var/log/artica-postfix/ufdbguard-blocks/$md5.sql";
-		events("$targetFile -> save",__FUNCTION__,__FILE__,__LINE__);
-		@file_put_contents($targetFile,$serialize);
-		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}
-		if(!is_file($targetFile)){events("Fatal ERROR  $targetFile permission denied",__FUNCTION__,__FILE__,__LINE__);}
+		
+		
 }else{
 		events("$InfectedPath -> no match",__FUNCTION__,__FILE__,__LINE__);
 }

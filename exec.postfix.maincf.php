@@ -77,7 +77,20 @@ if($argv[1]=='--loadbalance'){haproxy_compliance();ReloadPostfix(true);die();}
 if($argv[1]=='--ScanLibexec'){ScanLibexec();die();}
 
 
-if($argv[1]=='--smtpd-client-restrictions'){smtpd_client_restrictions();;ReloadPostfix(true);die();}
+if($argv[1]=='--smtpd-client-restrictions'){
+	smtpd_client_restrictions_progress("{starting}",5);
+	if(smtpd_client_restrictions()){
+		smtpd_client_restrictions_progress("{smtpd_recipient_restrictions}",50);
+		smtpd_recipient_restrictions();
+		smtpd_client_restrictions_progress("{reloading}",95);
+		ReloadPostfix(true);
+		smtpd_client_restrictions_progress("{done}",100);
+	}
+	die();
+}
+
+
+
 if($argv[1]=='--networks'){mynetworks();MailBoxTransport();ReloadPostfix(true);HashTables();die();}
 if($argv[1]=='--headers-check'){headers_check();die();}
 if($argv[1]=='--headers-checks'){headers_check();die();}
@@ -90,7 +103,11 @@ if($argv[1]=='--ssl-off'){MasterCFBuilder(true);die();}
 if($argv[1]=='--imap-sockets'){imap_sockets();MailBoxTransport();ReloadPostfix(true);die();}
 if($argv[1]=='--policyd-reconfigure'){policyd_weight_reconfigure();die();}
 if($argv[1]=='--restricted'){RestrictedForInternet(true);die();}
-if($argv[1]=='--others-values'){OthersValues();CleanMyHostname();perso_settings();ReloadPostfix(true);die();}
+if($argv[1]=='--banner'){smtp_banner(true);die();}
+
+
+if($argv[1]=='--myhostname'){ CleanMyHostname();ReloadPostfix(true);}
+if($argv[1]=='--others-values'){OthersValues_start();}
 if($argv[1]=='--mime-header-checks'){mime_header_checks_progress();}
 if($argv[1]=='--interfaces'){inet_interfaces();MailBoxTransport();exec("{$GLOBALS["postfix"]} stop");exec("{$GLOBALS["postfix"]} start");ReloadPostfix(true);die();}
 if($argv[1]=='--mailbox-transport'){MailBoxTransport();ReloadPostfix(true);die();}
@@ -114,7 +131,7 @@ if($argv[1]=='--badnettr'){badnettr($argv[2],$argv[3],$argv[4]);ReloadPostfix(tr
 if($argv[1]=='--milters'){smtpd_milters();RestartPostix();die();}
 if($argv[1]=='--cleanup'){CleanUpMainCf();die();}
 if($argv[1]=='--restrictions'){smtpd_recipient_restrictions();ReloadPostfix(true);die();}
-
+if($argv[1]=='--milters-progress'){milters();}
 
 
 function SEND_PROGRESS($POURC,$text,$error=null){
@@ -140,7 +157,15 @@ function build_progress_mime_header($text,$pourc){
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
 }
-
+function build_progress_othervalues($text,$pourc){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/postfix.othervalues.progress";
+	echo "{$pourc}% $text\n";
+	$cachefile=$GLOBALS["CACHEFILE"];
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}
 function mime_header_checks_progress(){
 	
 	build_progress_mime_header("{starting} Mime Header",15);
@@ -157,6 +182,70 @@ function mime_header_checks_progress(){
 	
 }
 
+function OthersValues_start(){
+	build_progress_othervalues("{starting} OthersValues()...",15);
+	OthersValues();
+	build_progress_othervalues("Clean my Hostname",80);
+	CleanMyHostname();
+	build_progress_othervalues("{reloading}",90);
+	ReloadPostfix(true);
+	build_progress_othervalues("{done}",100);
+	die();
+}
+
+
+function milters(){
+	$sock=new sockets();
+	$unix=new unix();
+	milters_progress("{starting} {filtering_modules}",15);
+	
+	milters_progress("{starting} {smtpd_client_restrictions}",20);
+	
+	smtpd_client_restrictions();
+	
+	milters_progress("{checking} {APP_AMAVIS}",25);
+	amavis_internal();
+	milters_progress("{checking} {milters_plugins}",30);
+	smtpd_milters();
+	milters_progress("{checking} MASTER CF",40);
+	MasterCFBuilder(true);
+	
+	$SpamAssMilterEnabled=intval($sock->GET_INFO("SpamAssMilterEnabled"));
+	$EnableMilterRegex=intval($sock->GET_INFO("EnableMilterRegex"));
+	$MilterGreyListEnabled=intval($sock->GET_INFO("MilterGreyListEnabled"));
+	echo "SpamAssassin Milter: $SpamAssMilterEnabled\n";
+	echo "Regex Milter.......: $EnableMilterRegex\n";
+	echo "Greylist Milter....: $MilterGreyListEnabled\n";
+	
+	if($SpamAssMilterEnabled==1){
+		$php=$unix->LOCATE_PHP5_BIN();
+		milters_progress("{checking} {APP_SPAMASS_MILTER}",41);
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --milter-spamass");
+		milters_progress("{starting} {APP_SPAMASS_MILTER}",42);
+		system("/etc/init.d/spamass-milter restart");
+		milters_progress("{starting} {APP_SPAMASS_MILTER}",43);
+		system("/etc/init.d/spamassassin restart");
+		
+	}
+	
+	if($EnableMilterRegex==1){
+		$php=$unix->LOCATE_PHP5_BIN();
+		milters_progress("{checking} {milter_regex}",45);
+		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --milter-regex");
+		milters_progress("{starting} {milter_regex}",46);
+		system("/etc/init.d/milter-regex restart");
+	}
+	
+	if($MilterGreyListEnabled==1){
+		$php=$unix->LOCATE_PHP5_BIN();
+		milters_progress("{restarting} GreyList",47);
+		system("/etc/init.d/milter-greylist restart");
+	}
+	milters_progress("{reloading}",90);
+	ReloadPostfix(true);
+	milters_progress("{done}",100);
+	
+}
 
 if($argv[1]=='--reconfigure'){
 	
@@ -428,6 +517,9 @@ function SetSALS(){
 	$main=new main_cf();
 	if($main->main_array["smtpd_tls_session_cache_timeout"]==null){$main->main_array["smtpd_tls_session_cache_timeout"]='3600s';}
 	if($PostFixSmtpSaslEnable==1){
+		@mkdir("/var/lib/postfix",0755,true);
+		chown("/var/lib/postfix","postfix");
+		chgrp("/var/lib/postfix", "postfix");
 		echo "Starting......: ".date("H:i:s")." SASL authentication is enabled\n";
 		echo "Starting......: ".date("H:i:s")." Certificate $PostFixMasterCertificate\n";
 		$sock=new sockets();
@@ -438,7 +530,7 @@ function SetSALS(){
 		$cmd["smtpd_use_tls"]="yes";
 		$cmd["smtpd_sasl_path"]="smtpd";
 		$cmd["smtpd_sasl_authenticated_header"]="yes";
-		$cmd["smtpd_tls_session_cache_database"]="btree:\\\$data_directory/smtpd_tls_cache";
+		$cmd["smtpd_tls_session_cache_database"]="btree:/var/lib/postfix/smtpd_tls_cache";
 		$cert->build();
 		$cmd["smtpd_delay_reject"]="yes";
 		$cmd["cyrus_sasl_config_path"]="/etc/postfix/sasl";
@@ -903,12 +995,39 @@ function smtpd_client_restrictions_clean(){
 	
 }
 
+function smtpd_client_restrictions_progress($text,$pourc){
+	$echotext=$text;
+	$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+	echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/smtpd_client_restrictions_progress";
+
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}
+function milters_progress($text,$pourc){
+	$echotext=$text;
+	$echotext=str_replace("{reconfigure}", "Reconfigure", $echotext);
+	echo "Starting......: ".date("H:i:s")." {$pourc}% $echotext\n";
+	$cachefile="/usr/share/artica-postfix/ressources/logs/smtpd_milters";
+
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+}
 
 function smtpd_client_restrictions(){
+	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
+	
 	exec("{$GLOBALS["postconf"]} -h smtpd_client_restrictions",$datas);
 	$tbl=explode(",",implode(" ",$datas));
 	
-if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
+	
+	echo "Old values = $datas\n";
+	
+	
 	$EnablePostfixAntispamPack=$sock->GET_INFO("EnablePostfixAntispamPack");
 	$EnableArticaPolicyFilter=$sock->GET_INFO("EnableArticaPolicyFilter");
 	$EnableArticaPolicyFilter=0;
@@ -916,6 +1035,8 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');		
 	$amavis_internal=null;
 	$newHash=array();
+	smtpd_client_restrictions_progress("{cleaning_data}",10);
+	
 	if(is_array($tbl)){
 		while (list ($num, $ligne) = each ($tbl) ){
 		$ligne=trim($ligne);
@@ -928,6 +1049,11 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	$hashToDelete[]="check_client_access hash:/etc/postfix/check_client_access";
 	$hashToDelete[]="check_client_access \"hash:/etc/postfix/postfix_allowed_connections\"";
 	$hashToDelete[]="check_client_access hash:/etc/postfix/postfix_allowed_connections";
+	$hashToDelete[]="check_client_access pcre:/etc/postfix/fqrdns.pcre";
+	$hashToDelete[]="check_reverse_client_hostname_access pcre:/etc/postfix/fqrdns.pcre";
+	
+	$hashToDelete[]="reject_unknown_reverse_client_hostname";
+	$hashToDelete[]="reject_unknown_client_hostname";
 	$hashToDelete[]="reject_non_fqdn_hostname";
 	$hashToDelete[]="reject_unknown_sender_domain";
 	$hashToDelete[]="reject_non_fqdn_sender";
@@ -1002,7 +1128,17 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	}
 	
 	
-if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
+
+	
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/reject_unknown_client_hostname")){
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/reject_unknown_client_hostname", 1);	
+	}
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/reject_unknown_reverse_client_hostname")){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/reject_unknown_reverse_client_hostname", 1);
+	}
+
 	$reject_unknown_client_hostname=$sock->GET_INFO('reject_unknown_client_hostname');
 	$reject_unknown_reverse_client_hostname=$sock->GET_INFO('reject_unknown_reverse_client_hostname');
 	
@@ -1015,7 +1151,9 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: reject_unknown_reverse_client_hostname: $reject_unknown_reverse_client_hostname\n";
 	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: reject_unknown_client_hostname........: $reject_unknown_client_hostname\n";
 	
+	smtpd_client_restrictions_progress("{construct_settings}",15);
 
+	$main_dnsbl=$main->main_dnsbl();
 	
 	if($EnablePostfixAntispamPack==1){
 		echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions:Anti-spam Pack is enabled\n";
@@ -1023,16 +1161,37 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		$smtpd_client_restrictions[]="check_client_access \"hash:/etc/postfix/postfix_allowed_connections\"";
 		$smtpd_client_restrictions[]="reject_non_fqdn_hostname";
 		$smtpd_client_restrictions[]="reject_invalid_hostname";
-		$smtpd_client_restrictions[]="reject_rbl_client zen.spamhaus.org";
-		$smtpd_client_restrictions[]="reject_rbl_client sbl.spamhaus.org";
-		$smtpd_client_restrictions[]="reject_rbl_client cbl.abuseat.org";		
+		$main_dnsbl["zen.spamhaus.org"]=true;
+		$main_dnsbl["sbl.spamhaus.org"]=true;
+		$main_dnsbl["cbl.abuseat.org"]=true;
+			
 	}	
 	
-	
-	
-	if($EnableArticaPolicyFilter==1){
-		array_unshift($smtpd_client_restrictions,"check_policy_service inet:127.0.0.1:54423");
+	if(!is_file("/etc/artica-postfix/settings/Daemons/EnableGenericrDNSClients")){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableGenericrDNSClients", 1);
 	}
+	
+	$EnableGenericrDNSClients=$sock->GET_INFO("EnableGenericrDNSClients");
+	if($EnableGenericrDNSClients==1){
+		$users=new usersMenus();
+		if(!$users->POSTFIX_PCRE_COMPLIANCE){$EnableGenericrDNSClients=0;}
+	}
+	
+	if($EnableGenericrDNSClients==1){
+		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns enabled\n";
+		$smtpd_client_restrictions[]="check_reverse_client_hostname_access pcre:/etc/postfix/fqrdns.pcre";
+		shell_exec("/bin/cp /usr/share/artica-postfix/bin/install/postfix/fqrdns.pcre /etc/postfix/fqrdns.pcre");
+	}else{
+		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns disabled\n";
+	}
+	
+	
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions:". count($main_dnsbl)." DNSBL Services\n";
+	
+
+	
+	smtpd_client_restrictions_progress("{construct_settings}",20);
+
 
 	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: ". count($smtpd_client_restrictions)." rule(s)\n";
 	
@@ -1046,7 +1205,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 			}
 		}
 	}	
-	
+	smtpd_client_restrictions_progress("{construct_settings}",25);
 	if(is_array($smtpd_client_restrictions)){
 		
 		
@@ -1067,6 +1226,8 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		unset($smtpd_client_restrictions);
 		$smtpd_client_restrictions=array();
 		
+		
+		smtpd_client_restrictions_progress("{construct_settings}",25);		
 		
 		if(is_array($array_cleaned)){
 			while (list ($num, $ligne) = each ($array_cleaned) ){
@@ -1093,9 +1254,15 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		}
 	}
 	
+	
+	smtpd_client_restrictions_progress("{construct_settings}",30);
 	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: $newval\n";
+	
+	smtpd_client_restrictions_progress("{apply_settings}",80);
+	
 	postconf("smtpd_client_restrictions",$newval);
 	
+	return true;
 	
 	
 }
@@ -1122,6 +1289,7 @@ function smtpd_recipient_restrictions(){
 	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');	
 	$TrustMyNetwork=$sock->GET_INFO("TrustMyNetwork");
+	$main=new maincf_multi("master");
 	if(!is_numeric($TrustMyNetwork)){$TrustMyNetwork=1;}
 	exec("{$GLOBALS["postconf"]} -h smtpd_recipient_restrictions",$datas);
 	$tbl=explode(",",implode(" ",$datas));
@@ -1130,6 +1298,7 @@ function smtpd_recipient_restrictions(){
 	if(is_array($tbl)){
 		while (list ($num, $ligne) = each ($tbl) ){
 		if(trim($ligne)==null){continue;}
+		if(preg_match("#_rhsbl_#", $ligne)){continue;}
 		$newHash[trim($ligne)]=trim($ligne);
 		}
 	}
@@ -1150,6 +1319,9 @@ function smtpd_recipient_restrictions(){
 	
 	if(is_array($newHash)){	
 		while (list ($num, $ligne) = each ($newHash) ){
+			
+			
+			
 		if(preg_match("#hash:(.+)$#",$ligne,$re)){
 				$path=trim($re[1]);
 				if(!is_file($path)){
@@ -1181,13 +1353,15 @@ function smtpd_recipient_restrictions(){
 		echo "Starting......: ".date("H:i:s")." **** TrustMyNetwork is disabled, outgoing messages should be not allowed... **** \n";
 		
 	}
+	$smtpd_recipient_restrictions[]="permit_mynetworks";
 	$smtpd_recipient_restrictions[]="permit_sasl_authenticated";
 	$smtpd_recipient_restrictions[]="check_recipient_access hash:/etc/postfix/relay_domains_restricted";
 	$smtpd_recipient_restrictions[]="check_recipient_access hash:/etc/postfix/amavis_bypass_rcpt";
 	$smtpd_recipient_restrictions[]="permit_auth_destination";
-	
+	$smtpd_recipient_restrictions[]="permit_dnswl_client list.dnswl.org";
 	
 	amavis_bypass_byrecipients();
+	
 	restrict_relay_domains();
 	
 	
@@ -1209,22 +1383,20 @@ function smtpd_recipient_restrictions(){
 		echo "Starting......: ".date("H:i:s")." Reject Forged mails disabled\n"; 			
 	}
 	
-	$EnableGenericrDNSClients=$sock->GET_INFO("EnableGenericrDNSClients");
-	if(!$users->POSTFIX_PCRE_COMPLIANCE){$EnableGenericrDNSClients=0;}
+
+	$main_rhsbl=$main->main_rhsbl();
 	
-	if($EnableGenericrDNSClients==1){
-		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns enabled\n"; 
-		$smtpd_recipient_restrictions[]="check_client_access pcre:/etc/postfix/fqrdns.pcre";
-		shell_exec("/bin/cp /usr/share/artica-postfix/bin/install/postfix/fqrdns.pcre /etc/postfix/fqrdns.pcre");
-	}else{
-		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns disabled\n";
+	
+	if(count($main_rhsbl)>0){
+		while (list ($domain, $ID) = each ($main_rhsbl) ){
+			if(trim($domain)==null){continue;}
+			$smtpd_recipient_restrictions[]="reject_rhsbl_client $domain";
+			$smtpd_recipient_restrictions[]="reject_rhsbl_sender $domain";
+		}
+	
 	}
 	
 	
-	
-	if($EnableArticaPolicyFilter==1){
-		array_unshift($smtpd_recipient_restrictions,"check_policy_service inet:127.0.0.1:54423");
-	}
 	
 
 	
@@ -1244,7 +1416,7 @@ function smtpd_recipient_restrictions(){
 	
 	
 	if(is_file("/opt/iRedAPD/iredapd.py")){
-		array_unshift($smtpd_recipient_restrictions,"check_policy_service inet:127.0.0.1:7777");
+		//array_unshift($smtpd_recipient_restrictions,"check_policy_service inet:127.0.0.1:7777");
 	}
 	
 	
@@ -1514,6 +1686,12 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	
 }
 
+function smtp_banner(){
+	$mainmulti=new maincf_multi("master","master");
+	$smtpd_banner=$mainmulti->GET('smtpd_banner');
+	echo 	"$smtpd_banner\n";
+}
+
 function OthersValues(){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	if($sock->GET_INFO("EnablePostfixMultiInstance")==1){return;}	
@@ -1733,7 +1911,7 @@ function OthersValues(){
 		}
 	}
 
-	
+	build_progress_mime_header("{configuring}",50);
 	$address_verify_negative_cache=$mainmulti->YesNo($address_verify_negative_cache);
 	echo "Starting......: ".date("H:i:s")." Apply all settings..\n";
 	postconf("smtpd_reject_unlisted_sender","$smtpd_reject_unlisted_sender");
@@ -1802,7 +1980,7 @@ function OthersValues(){
 	postconf("smtpd_discard_ehlo_keywords","$smtpd_discard_ehlo_keywords");
 	
 
-	
+	build_progress_mime_header("{configuring} {done}",60);
 	
 	
 	if(!isset($GLOBALS["POSTFIX_HEADERS_CHECK_BUILDED"])){headers_check(1);}
@@ -1817,9 +1995,12 @@ function OthersValues(){
 	
 	$hashT=new main_hash_table();
 	echo "Starting......: ".date("H:i:s")." Apply mydestination\n";
+	build_progress_mime_header("My Destination...",65);
 	$hashT->mydestination();	
 	echo "Starting......: ".date("H:i:s")." Apply perso_settings\n";
+	build_progress_mime_header("Perso settings...",70);
 	perso_settings();
+	build_progress_mime_header("Perso settings...",75);
 }
 
 function LoadIpAddresses($nic){
@@ -1912,7 +2093,7 @@ function inet_interfaces(){
 	
 	
 	postconf("inet_interfaces",$finale);
-	postconf("artica-filter_destination_recipient_limit",1);
+	
 	postconf("inet_protocols","ipv4");
 	postconf("smtp_bind_address6","");
 	
@@ -1952,6 +2133,13 @@ function MailBoxTransport(){
 	
 
 	$default=$main->getMailBoxTransport();
+	
+	if($default==null){
+		postconf_X("mailbox_transport");
+		postconf_X("virtual_transport");
+		return;
+	}
+	
 	postconf("zarafa_destination_recipient_limit",1);
 	echo "Starting......: ".date("H:i:s")." Postfix mailbox_transport=`$default`\n";
 	postconf("mailbox_transport",$default);
@@ -2025,11 +2213,18 @@ function smtpd_sender_restrictions(){
 	$main=new maincf_multi("master","master");
 	$smtpd_sender_restrictions_black=$main->Blacklist_generic();
 	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/reject_unknown_sender_domain")){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/reject_unknown_sender_domain", 1);
+	}
 	
 	$RestrictToInternalDomains=$sock->GET_INFO("RestrictToInternalDomains");
 	$EnablePostfixInternalDomainsCheck=$sock->GET_INFO("EnablePostfixInternalDomainsCheck");
 	$reject_non_fqdn_sender=$sock->GET_INFO('reject_non_fqdn_sender');	
 	$reject_unknown_sender_domain=$sock->GET_INFO('reject_unknown_sender_domain');
+	
+	$smtpd_sender_restrictions[]="permit_mynetworks";
+	$smtpd_sender_restrictions[]="cidr:/etc/postfix/check_client_access.cidr";
+	$smtpd_sender_restrictions[]="hash:/etc/postfix/check_client_access";
 	
 	if($EnablePostfixInternalDomainsCheck==1){
 			$smtpd_sender_restrictions[]="reject_unknown_sender_domain";
@@ -2545,8 +2740,8 @@ function MasterCFBuilder($restart_service=false){
 	if(!is_object($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$EnableArticaSMTPFilter=$sock->GET_INFO("EnableArticaSMTPFilter");
 	$EnableArticaSMTPFilter=0;
-	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
-	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');
+	$EnableAmavisInMasterCF=intval($sock->GET_INFO('EnableAmavisInMasterCF'));
+	$EnableAmavisDaemon=intval($sock->GET_INFO('EnableAmavisDaemon'));
 	$PostfixEnableMasterCfSSL=$sock->GET_INFO("PostfixEnableMasterCfSSL");
 	$ArticaFilterMaxProc=$sock->GET_INFO("ArticaFilterMaxProc");
 	$PostfixEnableSubmission=$sock->GET_INFO("PostfixEnableSubmission");
@@ -2596,17 +2791,14 @@ function MasterCFBuilder($restart_service=false){
 	}
 	
 	if(!is_numeric($PostfixBindInterfacePort)){	$PostfixBindInterfacePort=25;}
-	if(!is_numeric($EnableAmavisInMasterCF)){$EnableAmavisInMasterCF=0;}
+	if($EnableAmavisDaemon==0){$EnableAmavisInMasterCF=0;}
 	if(!is_numeric($PostfixEnableSubmission)){$PostfixEnableSubmission=0;}
-	if(!is_numeric($EnableAmavisInMasterCF)){$EnableAmavisInMasterCF=0;}
-	if(!is_numeric($ArticaFilterMaxProc)){$ArticaFilterMaxProc=20;}
 	if(!is_numeric($EnableASSP)){$EnableASSP=0;}
 	
 	
-	shell_exec("{$GLOBALS["postconf"]} -e \"artica-filter_destination_recipient_limit = 1\" >/dev/null 2>&1");
 	shell_exec("{$GLOBALS["postconf"]} -X \"content_filter\" >/dev/null 2>&1");
 	
-	if($EnableArticaSMTPFilter==0){shell_exec("{$GLOBALS["postconf"]} -X \"content_filter\" >/dev/null 2>&1");}
+	
 		
 	build_progress_sender_routing("{building} Master.cf",35);
 
@@ -2618,14 +2810,10 @@ function MasterCFBuilder($restart_service=false){
 		if($MasterCFAmavisInstancesCount<0){$MasterCFAmavisInstancesCount="-";}
 		$ADD_PRECLEANUP=true;
 		echo "Starting......: ".date("H:i:s")." Amavis is enabled using post-queue mode\n";
-		echo "Starting......: ".date("H:i:s")." artica-filter enable=$EnableArticaSMTPFilter\n";
+		
 		shell_exec("{$GLOBALS["postconf"]} -e \"content_filter = amavis:[127.0.0.1]:10024\" >/dev/null 2>&1");
-		if($EnableArticaSMTPFilter==1){
-			$artica_filter_amavis_option=" -o content_filter=artica-filter:";
-			$amavis_cleanup_infos  =" -o cleanup_service_name=pre-cleanup";
-			echo "Starting......: ".date("H:i:s")." Artica-filter max process: $ArticaFilterMaxProc\n";	
-		}
-		if($EnableArticaSMTPFilter==0){$artica_filter_amavis_option=" -o content_filter=";}
+	
+		
 		
 		
 		echo "Starting......: ".date("H:i:s")." Amavis max process: $MasterCFAmavisInstancesCount\n";	
@@ -2633,7 +2821,6 @@ function MasterCFBuilder($restart_service=false){
 		if(isset($MASTER_CF_DEFINED["amavis"])){unset($MASTER_CF_DEFINED["amavis"]);}
 		
 		$amavis[]="amavis\tunix\t-\t-\t-\t-\t$MasterCFAmavisInstancesCount\tsmtp";
-		if($amavis_cleanup_infos<>null){$amavis[]=$amavis_cleanup_infos;}
 		$amavis[]=" -o smtp_data_done_timeout=1200";
 		$amavis[]=" -o smtp_send_xforward_command=yes";
 		$amavis[]=" -o disable_dns_lookups=yes";
@@ -2646,8 +2833,6 @@ function MasterCFBuilder($restart_service=false){
 		
 		if(isset($MASTER_CF_DEFINED["127.0.0.1:10025"])){unset($MASTER_CF_DEFINED["127.0.0.1:10025"]);}
 		$amavis[]="127.0.0.1:10025\tinet\tn\t-\tn\t-\t-\tsmtpd";
-		if($amavis_cleanup_infos<>null){$amavis[]=$amavis_cleanup_infos;}
-		if($artica_filter_amavis_option<>null){$amavis[]=$artica_filter_amavis_option;}
 		$amavis[]=" -o local_recipient_maps=";
 		$amavis[]=" -o relay_recipient_maps=";
 		$amavis[]=" -o smtpd_restriction_classes=";
@@ -2672,17 +2857,7 @@ function MasterCFBuilder($restart_service=false){
 		$amavis[]="	-o smtpd_use_tls=no";
 		$master_amavis=@implode("\n",$amavis);
 
-	}ELSE{
-		$master_amavis="";
-		if($EnableArticaSMTPFilter==1){
-			$ADD_PRECLEANUP=true;
-			echo "Starting......: ".date("H:i:s")." Enable Artica-filter globaly\n"; 
-			echo "Starting......: ".date("H:i:s")." Artica-filter max process: $ArticaFilterMaxProc\n";	
-			shell_exec("{$GLOBALS["postconf"]} -e \"content_filter = artica-filter:\" >/dev/null 2>&1");
-		}else{
-			shell_exec("{$GLOBALS["postconf"]} -X \"content_filter\" >/dev/null 2>&1");
-		}
-	}		
+	}	
 	
 	if($ADD_PRECLEANUP){
 		echo "Starting......: ".date("H:i:s")." Enable pre-cleanup service...\n";
@@ -2871,7 +3046,7 @@ $conf[]="artica-reportwbl\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/us
 $conf[]="artica-reportquar\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --quarantines";
 $conf[]="artica-spam\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --spam";
 $conf[]="zarafa\tunix\t-\tn\tn\t-\t-\tpipe	user=mail argv=/usr/bin/zarafa-dagent \${user}";
-$conf[]="artica-filter\tunix\t-\tn\tn\t-\t$ArticaFilterMaxProc\tpipe flags=FOh  user=www-data argv=/usr/share/artica-postfix/exec.artica-filter.php -f \${sender} --  -s \${sender} -r \${recipient} -c \${client_address}";
+
 
 $unix=new unix();
 $cyrdeliver=$unix->find_program("cyrdeliver");
@@ -3153,11 +3328,16 @@ function postconf($key,$value=null){
 		shell_exec("{$GLOBALS["postconf"]} -X \"$key\" >/dev/null 2>&1");
 		return;
 	}
-	if($GLOBALS["VERBOSE"]){echo "set {$GLOBALS["postconf"]} key $key = $value\n";}
+	$value=str_ireplace('$', '\$', $value);
+	echo "Starting......: ".date("H:i:s");
+	echo " Set {$GLOBALS["postconf"]} key $key = '$value'\n";
 	shell_exec("{$GLOBALS["postconf"]} -e \"$key = $value\" >/dev/null 2>&1");
 	
 }
+function postconf_X($key){
+	shell_exec("{$GLOBALS["postconf"]} -X \"$key\" >/dev/null 2>&1");
 
+}
 function postconf_strip_key(){
 	$t=array();
 	$f=file("/etc/postfix/main.cf");

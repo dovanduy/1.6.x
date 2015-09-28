@@ -6,10 +6,12 @@ class nginx_certificate{
 	private $ssl_path="/etc/nginx/certificates";
 	private $certificate=null;
 	private $UsePrivKeyCrt=0;
+	private $UseGodaddy=0;
 	private $crt_content=null;
 	private $csr_content=null;
 	private $srca_content=null;
 	private $privkey_content=null;
+	private $bundle=null;
 	private $SquidCert=null;
 	private $Squidkey=null;
 	private $clientkey=null;
@@ -82,7 +84,8 @@ class nginx_certificate{
 	
 	private function load_certificate(){
 		$q=new mysql();
-		$sql="SELECT `UsePrivKeyCrt`,`crt`,`csr`,`srca`,`clientkey`,`clientcert`,`DynamicCert`,`privkey`,`SquidCert`,`Squidkey`,`bundle` 
+		$sql="SELECT `UsePrivKeyCrt`,`crt`,`csr`,`srca`,`clientkey`,`clientcert`,`privkey`,`SquidCert`,`Squidkey`,
+		`bundle`,`UseGodaddy`
 		FROM sslcertificates WHERE CommonName='$this->certificate'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$this->UsePrivKeyCrt=$ligne["UsePrivKeyCrt"];
@@ -94,7 +97,10 @@ class nginx_certificate{
 		$this->Squidkey=$ligne["Squidkey"];
 		$this->clientkey=$ligne["clientkey"];
 		$this->clientcert=$ligne["clientkey"];
+		$this->bundle=$ligne["bundle"];
 		$this->RootCa=$ligne["srca"];
+		$this->UseGodaddy=intval($ligne["UseGodaddy"]);
+		
 
 		//ssl_client_certificate
 		
@@ -122,8 +128,6 @@ class nginx_certificate{
 		@mkdir($Directory,0755,true);
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [$this->certificate]: Use Private Key: $this->UsePrivKeyCrt\n";}
-		
-		
 		@file_put_contents("$Directory/certificate.csr", $this->csr_content);
 		@file_put_contents("$Directory/CAkey.pem", $this->srca_content);
 		//https://gist.github.com/mtigas/952344
@@ -139,6 +143,7 @@ class nginx_certificate{
 				@file_put_contents("$Directory/ca.crt", $this->RootCa);
 				$ssl_client_certificate[]="\tssl_client_certificate $Directory/ca.crt;";
 				$ssl_client_certificate[]="\tssl_verify_client\ton;";
+				//$ssl_client_certificate[]="\tssl_verify_depth 3;";
 			}else{
 				$ssl_client_certificate[]="# Root certificate no saved [".__CLASS__."/".__LINE__."]";
 			}
@@ -148,9 +153,36 @@ class nginx_certificate{
 		}
 		
 		
+		$f[]="# Use Godaddy: $this->UseGodaddy";
+		
+		if($this->UseGodaddy==1){
+			$Directory="$Directory/Godaddy";
+			@mkdir($Directory,0755,true);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [$this->certificate]: Use Godaddy Certificate\n";}
+			$chain=$this->crt_content."\n".$this->bundle;
+			$unix=new unix();
+			$openssl=$unix->find_program("openssl");
+			if(!is_file("/etc/openssl/private-key/privkey.key")){
+				@mkdir("/etc/openssl/private-key",0755,true);
+				shell_exec("$openssl genrsa -out /etc/openssl/private-key/privkey.key 2048");
+			}
+			
+			@copy("/etc/openssl/private-key/privkey.key","$Directory/private_key.key");
+			@file_put_contents("$Directory/certificate.pem", $chain);
+			$f[]="# Use Godaddy key [".__CLASS__."/".__LINE__."]";
+			$f[]="\tssl_certificate $Directory/certificate.pem;";
+			$f[]="\tssl_certificate_key $Directory/private_key.key;";
+			return @implode("\n", $f);
+		}
+		
+		
 		if($this->UsePrivKeyCrt==1){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [$this->certificate]: Use crt_content\n";}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [$this->certificate]: Use privkey_content\n";}
+			if(strlen($this->bundle)>20){
+				$this->crt_content="$this->crt_content\n$this->bundle";
+			}
+			
 			@file_put_contents("$Directory/certificate.pem", $this->crt_content);
 			
 			@file_put_contents("$Directory/private_key.key", $this->privkey_content);
@@ -168,6 +200,7 @@ class nginx_certificate{
 		$f[]="# Use certificate center key [".__CLASS__."/".__LINE__."]";
 		$f[]="\tssl_certificate $Directory/certificate.pem;";
 		$f[]="\tssl_certificate_key $Directory/private_key.key;";
+		$f[]="# ssl_client_certificate = ". count($ssl_client_certificate)." lines [".__LINE__."]";
 		$f[]=@implode("\n", $ssl_client_certificate);
 		return @implode("\n", $f);
 		

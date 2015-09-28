@@ -86,7 +86,7 @@ function popup(){
 	$smb=new samba();
 	
 	$html="
-	<div class=text-info>{ACLS_SUPPORT_EXPLAIN}</div>
+	<div class=explain>{ACLS_SUPPORT_EXPLAIN}</div>
 	<hr>
 	<div id='aclgeneral'>
 	<table style='width:100%'>

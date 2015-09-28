@@ -99,6 +99,43 @@ bjam install
 svn co https://iscsitarget.svn.sourceforge.net/svnroot/iscsitarget iscsitarget 
  
  
+C-ICAP
+./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --enable-large-files --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"
+
+CI-ICAP MODULES
+./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap" --with-clamav
+ 
+ 
+ntopng
+
+libonig2
+libhiredis0.10
+
+https://packages.debian.org/wheezy/libhiredis0.10
+
+svn co https://svn.ntop.org/svn/ntop/trunk/ntopng/
+cd ntopng
+./autogen.sh
+./configure
+make geoip
+make
+make install
+
+
+git clone https://github.com/ntop/nDPI.git
+
+git clone https://github.com/ntop/ntopng.git
+
+cd ntopng
+./autogen.sh
+
+./configure
+
+make
+
+make install
+ 
+ 
  */
 
 
@@ -114,6 +151,8 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--repos#", @implode(" ", $argv))){$GLOBALS["REPOS"]=true;}
 if(preg_match("#--force#", @implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 
+if($argv[1]=="--configure-squid"){CONFIGURE_SQUID();exit;}
+if($argv[1]=="--patch-squid"){PATCH_SQUID($argv[2]);exit;}
 if($argv[1]=="--cross-packages"){crossroads_package();exit;}
 if($argv[1]=="--factorize"){factorize($argv[2]);exit;}
 if($argv[1]=="--serialize"){serialize_tests();exit;}
@@ -130,10 +169,15 @@ if($argv[1]=="--nginx"){package_nginx();exit;}
 if($argv[1]=="--nginx-compile"){nginx_compile();exit;}
 
 
+if($argv[1]=="--ntopng"){ntopng();exit;}
 if($argv[1]=="--dnsmasqver"){dnsmasq_lastver();exit;}
 if($argv[1]=="--dnsmasq"){dnsmasq_compile();exit;}
 if($argv[1]=="--rdpproxy"){package_redemption();exit;}
 if($argv[1]=="--iscsi"){iscsi_target();exit;}
+if($argv[1]=="--firehol"){firehol();exit;}
+
+
+
 
 
 
@@ -206,94 +250,18 @@ if(!$GLOBALS["NO_COMPILE"]){
 	
 }
 
+
+PATCH_SQUID($SOURCE_DIRECTORY);
+
+
+$Debian=DebianVersion();
+
 $Architecture=Architecture();
-$CFLAGS[]="#!/bin/sh";
-$CFLAGS[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
-$CFLAGS[]="CFLAGS=\"-g -O2 -fPIE -fstack-protector -DNUMTHREADS=128 --param=ssp-buffer-size=4 -Wformat -Werror=format-security -Wall\"";
-$CFLAGS[]="CXXFLAGS=\"-g -O2 -fPIE -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security\"";
-$CFLAGS[]="CPPFLAGS=\"-D_FORTIFY_SOURCE=2\" LDFLAGS=\"-fPIE -pie -Wl,-z,relro -Wl,-z,now\"";
-$CFLAGS[]="echo \$CFLAGS";
-$CFLAGS[]="echo \$CXXFLAGS";
-$CFLAGS[]="echo \$CPPFLAGS";
-$CFLAGS[]="";
-@file_put_contents("/tmp/flags.sh", @implode("\n", $CFLAGS));
-$CFLAGS=array();
-@chmod("/tmp/flags.sh",0755);
-system("/tmp/flags.sh");
 
 
-$cmds[]="--prefix=/usr";
-if($Architecture==64){
-	$cmds[]="--build=x86_64-linux-gnu";
-}
+$configure=CONFIGURE_SQUID();
 
-$cmds[]="--includedir=\${prefix}/include";
-$cmds[]="--mandir=\${prefix}/share/man";
-$cmds[]="--infodir=\${prefix}/share/info";
-$cmds[]="--localstatedir=/var";
-$cmds[]="--libexecdir=\${prefix}/lib/squid3";
-$cmds[]="--disable-maintainer-mode";
-$cmds[]="--disable-dependency-tracking";
-$cmds[]="--srcdir=.";
-$cmds[]="--datadir=/usr/share/squid3"; 
-$cmds[]="--sysconfdir=/etc/squid3";
-$cmds[]="--enable-gnuregex";
-$cmds[]="--enable-removal-policy=heap"; 
-$cmds[]="--enable-follow-x-forwarded-for"; 
-$cmds[]="--enable-cache-digests"; 
-$cmds[]="--enable-http-violations"; 
-$cmds[]="--enable-removal-policies=lru,heap"; 
-$cmds[]="--enable-arp-acl";
-$cmds[]="--enable-truncate";
-$cmds[]="--with-large-files";
-$cmds[]="--with-pthreads";
-$cmds[]="--enable-esi"; 
-$cmds[]="--enable-storeio=aufs,diskd,ufs,rock"; 
-$cmds[]="--enable-x-accelerator-vary";
-$cmds[]="--with-dl";
-$cmds[]="--enable-linux-netfilter"; 
-$cmds[]="--with-netfilter-conntrack";
-$cmds[]="--enable-wccpv2"; 
-$cmds[]="--enable-eui"; 
-$cmds[]="--enable-auth";
-$cmds[]="--enable-auth-basic"; 
-$cmds[]="--enable-snmp";
-$cmds[]="--enable-icmp"; 
-$cmds[]="--enable-auth-digest"; 
-$cmds[]="--enable-log-daemon-helpers";
-$cmds[]="--enable-url-rewrite-helpers";
-$cmds[]="--enable-auth-ntlm";
-$cmds[]="--with-default-user=squid";
-$cmds[]="--enable-icap-client"; 
-$cmds[]="--enable-cache-digests"; 
-$cmds[]="--enable-poll";
-$cmds[]="--enable-epoll";
-$cmds[]="--enable-async-io=128";
-$cmds[]="--enable-zph-qos";
-$cmds[]="--enable-delay-pools";
-$cmds[]="--enable-http-violations";
-$cmds[]="--enable-url-maps";
-//$cmds[]="--enable-ecap";
-$cmds[]="--enable-ssl"; 
-$cmds[]="--enable-ssl-crtd";
-$cmds[]="--with-openssl";
-$cmds[]="--enable-xmalloc-statistics";
-$cmds[]="--enable-ident-lookups";
-$cmds[]="--with-filedescriptors=32768";
-$cmds[]="--disable-arch-native";
-
-
-//$cmds[]="--disable-ipv6";
-
-
-//CPPFLAGS="-I../libltdl"
-
-
-
-$configure="./configure ". @implode(" ", $cmds);
-if($GLOBALS["VERBOSE"]){echo "\n\n$configure\n\n";}
-
-if($GLOBALS["SHOW_COMPILE_ONLY"]){echo $configure."\n";die();}
+if($GLOBALS["SHOW_COMPILE_ONLY"]){echo "Debian:\"$Debian\"\n\n$configure\n";die();}
 if(!$GLOBALS["NO_COMPILE"]){
 	
 	echo "configuring...\n";
@@ -1110,11 +1078,18 @@ make install
 cp -rfv /modsecurity-apache_2.7.1/nginx/modsecurity /root/ngx_openresty-1.4.3.9/bundle/
 mv modsecurity ngx_http_modsecurity-1.0
 //
+ * 
+ * 
+ // NAXIS:
+  * 
+  * git clone git://github.com/nbs-system/naxsi.git
+  * mv naxsi ngx_http_naxsi-1.0
 
  *****
 dans configure
 [http_substitutions_filter_module=>'ngx_http_substitutions_filter_module'],
 [http_auth_ldap_module=>'ngx_http_auth_ldap_module'],
+[http_naxsi_module=>'ngx_http_naxsi_module'],
 
 
 // marche pas pour l'instant [http_modsecurity=>'ngx_http_modsecurity'],
@@ -1198,6 +1173,122 @@ function package_nginx_version(){
 	}	
 }
 
+
+function ntopng_version(){
+
+
+	$masterbin="/usr/local/bin/ntopng";
+	if(!is_file($masterbin)){return "0.0.0";}
+	exec("$masterbin -h 2>&1",$results);
+	while (list ($num, $val) = each ($results)){
+		if(preg_match("#ntopng.*?v\.([0-9\.]+)#", $val,$re)){
+			$GLOBALS["ntopng_version"]=trim($re[1]);
+			return $GLOBALS["ntopng_version"];
+		}
+	}
+}
+
+function ntopng(){
+	$base="/root/ntopng-compiled";
+	
+	$Debian=DebianVersion();
+	$Architecture=Architecture();
+	$version=ntopng_version();
+	
+	
+	$f[]="/usr/local/share/ntopng";
+	$f[]="/usr/local/bin/ntopng";
+	$f[]="/usr/local/man/man8/ntopng.8";
+	$f[]="/usr/local/lib/libndpi.a";
+	$f[]="/usr/local/lib/libndpi.la";
+	$f[]="/usr/local/lib/libndpi.so";  
+	$f[]="/usr/local/lib/libndpi.so.1";  
+	$f[]="/usr/local/lib/libndpi.so.1.0.0";
+	
+	while (list ($num, $filename) = each ($f)){
+	
+		if(is_dir($filename)){
+			@mkdir("$base/$filename",0755,true);
+			echo "/bin/cp -rfd $filename/* $base$filename/\n";
+			shell_exec("/bin/cp -rfd $filename/* $base$filename/");
+			continue;
+		}
+	
+	
+	if(is_file($filename)){
+		$dirname=dirname($filename);
+		if(!is_dir("$base/$dirname")){@mkdir("$base/$dirname",0755,true);}
+		echo "/bin/cp -fd $filename $base$dirname/\n";
+		shell_exec("/bin/cp -fd $filename $base/$dirname/");
+	}
+	
+	}
+	
+	chdir($base);
+	if(is_file("$base/ntopng-$Architecture-$version.tar.gz")){
+		@unlink("$base/ntopng-$Architecture-$version.tar.gz");
+	}
+	
+	
+	$filename="ntopng-debian{$Debian}-$Architecture-$version.tar.gz";
+	if(is_file("$base/$filename")){@unlink("$base/$filename");}
+	system("tar -czvf $filename *");
+	shell_exec("/bin/cp $filename /root/");
+	echo "/root/$filename done\n";	
+	
+
+
+}
+
+function package_firehol_version(){
+	
+	exec("/usr/local/sbin/firehol 2>&1",$f);
+	while (list ($num, $filename) = each ($f)){
+		if(preg_match("#FireHOL\s+([0-9\.]+)#", $filename,$re)){
+			return $re[1];
+		}
+	}
+}
+
+function firehol(){
+	
+	$Debian=DebianVersion();
+	$Architecture=Architecture();
+	$version=package_firehol_version();
+	if($version==null){
+		echo "*** Unable to stat version ****\n";
+		return;
+	}
+	$f[]="/usr/local/etc/firehol";
+	$f[]="/usr/local/share/doc/firehol";
+	$f[]="/usr/local/sbin/firehol";
+	$f[]="/usr/local/sbin/fireqos";
+	$f[]="/etc/firehol";
+	$base="/root/firehol";
+	shell_exec("rm -rf $base");
+	
+	
+	
+	@mkdir("$base/usr/local/etc",0755,true);
+	@mkdir("$base/usr/local/share/doc/firehol",0755,true);
+	@mkdir("$base/usr/local/sbin",0755,true);
+	
+	
+	shell_exec("/bin/cp -rfd /usr/local/etc/firehol $base/usr/local/etc/");
+	shell_exec("/bin/cp -rfd /usr/local/share/doc/firehol $base/usr/local/share/doc/");
+	shell_exec("/bin/cp -rf /usr/local/sbin/firehol $base/usr/local/sbin/firehol");
+	shell_exec("/bin/cp -rf /usr/local/sbin/fireqos $base/usr/local/sbin/fireqos");
+	
+	chdir($base);
+	$filename="firehol-debian{$Debian}-$Architecture-$version.tar.gz";
+	@unlink("$base/$filename");
+	shell_exec("tar -czf $filename *");
+	@unlink("/root/$filename");
+	shell_exec("/bin/cp $filename /root/");
+	
+	echo "/root/$filename done\n";
+}
+
 function iscsi_target(){
 	
 	$Debian=DebianVersion();
@@ -1239,3 +1330,203 @@ function iscsi_target(){
 		echo "/root/$filename done\n";	
 }
 
+
+function PATCH_SQUID($SOURCE_DIRECTORY){
+	
+	
+	$replace='if (!Config.onoff.original_dst) {
+		debugs(85, 3, HERE << "validate IP " << clientConn->local << " possible from Host:");
+		http->request->flags.hostVerified = true;
+		http->doCallouts();
+		return;
+	}
+	else if (ia != NULL && ia->count > 0) {';
+	
+	
+	if(!is_file("$SOURCE_DIRECTORY/src/client_side_request.cc")){
+		echo "$SOURCE_DIRECTORY/src/client_side_request.cc No such file die()\n";
+		die();
+		
+	}
+	if(!is_file("$SOURCE_DIRECTORY/src/cf.data.pre")){
+		echo "$SOURCE_DIRECTORY/src/cf.data.pre No such file die()\n";
+		die();
+	
+	}
+	if(!is_file("$SOURCE_DIRECTORY/src/SquidConfig.h")){
+		echo "$SOURCE_DIRECTORY/src/SquidConfig.h No such file die()\n";
+		die();
+	
+	}	
+	
+	
+	
+	$FOUND=false;
+	$PATCHED=false;
+	$linetofind="if (ia != NULL && ia->count > 0) {";
+	$f=explode("\n",@file_get_contents("$SOURCE_DIRECTORY/src/client_side_request.cc"));
+	while (list ($num, $ligne) = each ($f) ){
+		
+		if(strpos($ligne, "Config.onoff.original_dst")>0){
+			echo "client_side_request.cc Already patched SKIP\n";
+			$PATCHED=true;
+			break;
+		}
+		
+		if(strpos($ligne, $linetofind)>0){
+			echo "Found $ligne Line $num\n";
+			$FOUND=true;
+			$f[$num]=$replace;
+		}
+		
+		
+	}
+	
+	if(!$PATCHED){
+		if(!$FOUND){echo "FATAL, unable to patch client_side_request.cc\n";die();}
+		@file_put_contents("$SOURCE_DIRECTORY/src/client_side_request.cc", @implode("\n", $f));
+		echo "PATCHED  client_side_request.cc\n";
+	}
+	
+	$replace="NAME: original_dst\nTYPE: onoff\nDEFAULT: off\nLOC: Config.onoff.original_dst\nDOC_START\nDOC_END\n\nNAME: client_dst_passthru\n";
+	$f=explode("\n",@file_get_contents("$SOURCE_DIRECTORY/src/cf.data.pre"));
+	
+	$FOUND=false;
+	$linetofind="NAME: client_dst_passthru";
+	while (list ($num, $ligne) = each ($f) ){
+		if(strpos($ligne, "Config.onoff.original_dst")>0){
+			echo "Already patched!! please restart with a new freshed source package\n";
+			die();
+		}
+		if(strpos(" $ligne", $linetofind)>0){
+			echo "Found $ligne Line $num\n";
+			$FOUND=true;
+			$f[$num]=$replace;
+		}
+		
+	}
+	if(!$FOUND){echo "FATAL, unable to patch cf.data.pre\n";die();}
+	@file_put_contents("$SOURCE_DIRECTORY/src/cf.data.pre", @implode("\n", $f));
+	echo "PATCHED cf.data.pre\n";
+	
+	
+	$replace="int original_dst;\n\tint client_dst_passthru;";
+	$linetofind="int client_dst_passthru;";
+
+	$f=explode("\n",@file_get_contents("$SOURCE_DIRECTORY/src/SquidConfig.h"));
+	
+	$FOUND=false;
+
+	while (list ($num, $ligne) = each ($f) ){
+		if(strpos(" $ligne", "int original_dst")>0){
+			echo "Already patched!! please restart with a new freshed source package\n";
+			die();
+		}
+		if(strpos(" $ligne", $linetofind)>0){
+			echo "Found $ligne Line $num\n";
+			$FOUND=true;
+			$f[$num]=$replace;
+		}
+	
+		}
+		if(!$FOUND){echo "FATAL, unable to patch SquidConfig.h\n";die();}
+		@file_put_contents("$SOURCE_DIRECTORY/src/SquidConfig.h", @implode("\n", $f));
+		echo "PATCHED  SquidConfig.h\n";
+	
+}
+function CONFIGURE_SQUID(){
+	$Debian=DebianVersion();
+	
+	$Architecture=Architecture();
+	
+	
+	$CFLAGS[]="#!/bin/sh";
+	$CFLAGS[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
+	$CFLAGS[]="CFLAGS=\"-g -O2 -fPIE -fstack-protector -DNUMTHREADS=128 --param=ssp-buffer-size=4 -Wformat -Werror=format-security -Wall\"";
+	$CFLAGS[]="CXXFLAGS=\"-g -O2 -fPIE -DNUMTHREADS=128 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security\"";
+	$CFLAGS[]="CPPFLAGS=\"-D_FORTIFY_SOURCE=2\" LDFLAGS=\"-fPIE -pie -Wl,-z,relro -Wl,-z,now\"";
+	$CFLAGS[]="echo \$CFLAGS";
+	$CFLAGS[]="echo \$CXXFLAGS";
+	$CFLAGS[]="echo \$CPPFLAGS";
+	$CFLAGS[]="";
+	@file_put_contents("/tmp/flags.sh", @implode("\n", $CFLAGS));
+	$CFLAGS=array();
+	@chmod("/tmp/flags.sh",0755);
+	system("/tmp/flags.sh");
+	
+	
+	$cmds[]="--prefix=/usr";
+	if($Architecture==64){
+		$cmds[]="--build=x86_64-linux-gnu";
+	}
+	
+	$cmds[]="--includedir=\${prefix}/include";
+	$cmds[]="--mandir=\${prefix}/share/man";
+	$cmds[]="--infodir=\${prefix}/share/info";
+	$cmds[]="--localstatedir=/var";
+	$cmds[]="--libexecdir=\${prefix}/lib/squid3";
+	$cmds[]="--disable-maintainer-mode";
+	$cmds[]="--disable-dependency-tracking";
+	$cmds[]="--srcdir=.";
+	$cmds[]="--datadir=/usr/share/squid3";
+	$cmds[]="--sysconfdir=/etc/squid3";
+	$cmds[]="--enable-gnuregex";
+	$cmds[]="--enable-removal-policy=heap";
+	$cmds[]="--enable-follow-x-forwarded-for";
+	$cmds[]="--enable-cache-digests";
+	$cmds[]="--enable-http-violations";
+	$cmds[]="--enable-removal-policies=lru,heap";
+	$cmds[]="--enable-arp-acl";
+	$cmds[]="--enable-truncate";
+	$cmds[]="--with-large-files";
+	$cmds[]="--with-pthreads";
+	$cmds[]="--enable-esi";
+	$cmds[]="--enable-storeio=aufs,diskd,ufs,rock";
+	$cmds[]="--enable-x-accelerator-vary";
+	$cmds[]="--with-dl";
+	$cmds[]="--enable-linux-netfilter";
+	if($Debian>6){
+		$cmds[]="--with-netfilter-conntrack";
+	}
+	$cmds[]="--enable-wccpv2";
+	$cmds[]="--enable-eui";
+	$cmds[]="--enable-auth";
+	$cmds[]="--enable-auth-basic";
+	$cmds[]="--enable-snmp";
+	$cmds[]="--enable-icmp";
+	$cmds[]="--enable-auth-digest";
+	$cmds[]="--enable-log-daemon-helpers";
+	$cmds[]="--enable-url-rewrite-helpers";
+	$cmds[]="--enable-auth-ntlm";
+	$cmds[]="--with-default-user=squid";
+	$cmds[]="--enable-icap-client";
+	$cmds[]="--enable-cache-digests";
+	$cmds[]="--enable-poll";
+	$cmds[]="--enable-epoll";
+	$cmds[]="--enable-async-io=128";
+	$cmds[]="--enable-zph-qos";
+	$cmds[]="--enable-delay-pools";
+	$cmds[]="--enable-http-violations";
+	$cmds[]="--enable-url-maps";
+	$cmds[]="--enable-ecap";
+	$cmds[]="--enable-ssl";
+	$cmds[]="--with-openssl";
+	$cmds[]="--enable-ssl-crtd";
+	$cmds[]="--enable-xmalloc-statistics";
+	$cmds[]="--enable-ident-lookups";
+	$cmds[]="--with-filedescriptors=65536";
+	$cmds[]="--with-aufs-threads=128";
+	$cmds[]="--disable-arch-native";
+	
+	
+	//$cmds[]="--disable-ipv6";
+	
+	
+	//CPPFLAGS="-I../libltdl"
+	
+	
+	
+	$configure="./configure ". @implode(" ", $cmds);
+	echo "***************************************************************\n\n\n$configure\n\n***************************************************************\n";
+	return $configure;
+}

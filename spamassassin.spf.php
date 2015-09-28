@@ -53,30 +53,13 @@ function popup(){
 	$page=CurrentPageName();
 	$array["settings"]='{global_settings}';
 	$array["whitelist"]='{whitelist_text}';
-	
+	$font="style='font-size:20px'";
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&section=$num\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li $font><a href=\"$page?$num=yes&section=$num\"><span>$ligne</span></a></li>\n");
 	}
+
 	
-	
-	echo "
-	<div id=main_config_spamass_spf style='width:100%;height:600px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_spamass_spf').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_spamass_spf");
 	
 	
 }
@@ -85,10 +68,11 @@ function settings(){
 	
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$EnableSPF=$sock->GET_INFO("EnableSPF");
-	if($EnableSPF==null){$EnableSPF=1;}
+	$EnableSPF=intval($sock->GET_INFO("EnableSPF"));
+	
 	$Config=unserialize(base64_decode($sock->GET_INFO("SpamAssassinSPFConfig")));
-	$global_enable=Paragraphe_switch_img("{ACTIVATE_SPF}","{ACTIVATE_SPF_TEXT}<br>{APP_SPF_TEXT}","EnableSPF",$EnableSPF,null,550);
+	$global_enable=Paragraphe_switch_img("{ACTIVATE_SPF}",
+			"{ACTIVATE_SPF_TEXT}<br>{APP_SPF_TEXT}","EnableSPF",$EnableSPF,null,1430);
 	
 	if(!is_array($Config)){$Config=array();}
 	
@@ -146,80 +130,80 @@ function settings(){
 	
 	<div>$global_enable</div>
 	<HR>
-	<div class=text-info>{SPAMASS_SCORES_EXPLAIN}</div>
+	<div class=explain style='font-size:18px'>{SPAMASS_SCORES_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_PASS}:</td>
-		<td>". Field_text("SPF_PASS_1",$Config["SPF_PASS_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_PASS_2",$Config["SPF_PASS_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_PASS_3",$Config["SPF_PASS_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_PASS_4",$Config["SPF_PASS_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_PASS}:</td>
+		<td>". Field_text("SPF_PASS_1",$Config["SPF_PASS_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_PASS_2",$Config["SPF_PASS_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_PASS_3",$Config["SPF_PASS_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_PASS_4",$Config["SPF_PASS_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("SPF_PASS_HELP")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_HELO_PASS}:</td>
-		<td>". Field_text("SPF_HELO_PASS_1",$Config["SPF_HELO_PASS_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_PASS_2",$Config["SPF_HELO_PASS_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_PASS_3",$Config["SPF_HELO_PASS_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_PASS_4",$Config["SPF_HELO_PASS_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_HELO_PASS}:</td>
+		<td>". Field_text("SPF_HELO_PASS_1",$Config["SPF_HELO_PASS_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_PASS_2",$Config["SPF_HELO_PASS_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_PASS_3",$Config["SPF_HELO_PASS_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_PASS_4",$Config["SPF_HELO_PASS_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("SPF_PASS_HELP")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_FAIL}:</td>
-		<td>". Field_text("SPF_FAIL_1",$Config["SPF_FAIL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_FAIL_2",$Config["SPF_FAIL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_FAIL_3",$Config["SPF_FAIL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_FAIL_4",$Config["SPF_FAIL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_FAIL}:</td>
+		<td>". Field_text("SPF_FAIL_1",$Config["SPF_FAIL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_FAIL_2",$Config["SPF_FAIL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_FAIL_3",$Config["SPF_FAIL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_FAIL_4",$Config["SPF_FAIL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_FAIL_HELP}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_HELO_FAIL}:</td>
-		<td>". Field_text("SPF_HELO_FAIL_1",$Config["SPF_HELO_FAIL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_FAIL_2",$Config["SPF_HELO_FAIL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_FAIL_3",$Config["SPF_HELO_FAIL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_FAIL_4",$Config["SPF_HELO_FAIL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_HELO_FAIL}:</td>
+		<td>". Field_text("SPF_HELO_FAIL_1",$Config["SPF_HELO_FAIL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_FAIL_2",$Config["SPF_HELO_FAIL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_FAIL_3",$Config["SPF_HELO_FAIL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_FAIL_4",$Config["SPF_HELO_FAIL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_FAIL_HELP}")."</td>
 	</tr>
 	
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_NEUTRAL}:</td>
-		<td>". Field_text("SPF_NEUTRAL_1",$Config["SPF_NEUTRAL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_NEUTRAL_2",$Config["SPF_NEUTRAL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_NEUTRAL_3",$Config["SPF_NEUTRAL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_NEUTRAL_4",$Config["SPF_NEUTRAL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_NEUTRAL}:</td>
+		<td>". Field_text("SPF_NEUTRAL_1",$Config["SPF_NEUTRAL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_NEUTRAL_2",$Config["SPF_NEUTRAL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_NEUTRAL_3",$Config["SPF_NEUTRAL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_NEUTRAL_4",$Config["SPF_NEUTRAL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_NEUTRAL_HELP}")."</td>
 	</tr>		
 
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_HELO_NEUTRAL}:</td>
-		<td>". Field_text("SPF_HELO_NEUTRAL_1",$Config["SPF_HELO_NEUTRAL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_NEUTRAL_2",$Config["SPF_HELO_NEUTRAL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_NEUTRAL_3",$Config["SPF_HELO_NEUTRAL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_NEUTRAL_4",$Config["SPF_HELO_NEUTRAL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_HELO_NEUTRAL}:</td>
+		<td>". Field_text("SPF_HELO_NEUTRAL_1",$Config["SPF_HELO_NEUTRAL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_NEUTRAL_2",$Config["SPF_HELO_NEUTRAL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_NEUTRAL_3",$Config["SPF_HELO_NEUTRAL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_NEUTRAL_4",$Config["SPF_HELO_NEUTRAL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_NEUTRAL_HELP}")."</td>
 	</tr>	
 	
 	
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_SOFTFAIL}:</td>
-		<td>". Field_text("SPF_SOFTFAIL_1",$Config["SPF_SOFTFAIL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_SOFTFAIL_2",$Config["SPF_SOFTFAIL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_SOFTFAIL_3",$Config["SPF_SOFTFAIL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_SOFTFAIL_4",$Config["SPF_SOFTFAIL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_SOFTFAIL}:</td>
+		<td>". Field_text("SPF_SOFTFAIL_1",$Config["SPF_SOFTFAIL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_SOFTFAIL_2",$Config["SPF_SOFTFAIL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_SOFTFAIL_3",$Config["SPF_SOFTFAIL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_SOFTFAIL_4",$Config["SPF_SOFTFAIL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_SOFTFAIL_HELP}")."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend style='font-size:13px'>{SPF_HELO_SOFTFAIL}:</td>
-		<td>". Field_text("SPF_HELO_SOFTFAIL_1",$Config["SPF_HELO_SOFTFAIL_1"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_SOFTFAIL_2",$Config["SPF_HELO_SOFTFAIL_2"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_SOFTFAIL_3",$Config["SPF_HELO_SOFTFAIL_3"],'width:40px;font-size:13px')."</td>
-		<td>". Field_text("SPF_HELO_SOFTFAIL_4",$Config["SPF_HELO_SOFTFAIL_4"],'width:40px;font-size:13px')."</td>
+		<td class=legend style='font-size:22px'>{SPF_HELO_SOFTFAIL}:</td>
+		<td>". Field_text("SPF_HELO_SOFTFAIL_1",$Config["SPF_HELO_SOFTFAIL_1"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_SOFTFAIL_2",$Config["SPF_HELO_SOFTFAIL_2"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_SOFTFAIL_3",$Config["SPF_HELO_SOFTFAIL_3"],'width:110px;font-size:22px')."</td>
+		<td>". Field_text("SPF_HELO_SOFTFAIL_4",$Config["SPF_HELO_SOFTFAIL_4"],'width:110px;font-size:22px')."</td>
 		<td>". help_icon("{SPF_SOFTFAIL_HELP}")."</td>
 	</tr>	
 	
 	<tr>
-		<td colspan=6 align='right'><hr>". button("{apply}","saveSpamAssassinSPF()")."</td>
+		<td colspan=6 align='right'><hr>". button("{apply}","saveSpamAssassinSPF()",40)."</td>
 	</tr>
 	
 	</table>
@@ -237,6 +221,7 @@ function settings(){
 	function saveSpamAssassinSPF(){
 
 	var XHR = new XHRConnection();
+		XHR.appendData('EnableSPF',document.getElementById('EnableSPF').value);
 		XHR.appendData('SPF_PASS_1',document.getElementById('SPF_PASS_1').value);
 		XHR.appendData('SPF_PASS_2',document.getElementById('SPF_PASS_2').value);
 		XHR.appendData('SPF_PASS_3',document.getElementById('SPF_PASS_3').value);
@@ -276,7 +261,6 @@ function settings(){
 		XHR.appendData('SPF_HELO_SOFTFAIL_2',document.getElementById('SPF_HELO_SOFTFAIL_2').value);
 		XHR.appendData('SPF_HELO_SOFTFAIL_3',document.getElementById('SPF_HELO_SOFTFAIL_3').value);
 		XHR.appendData('SPF_HELO_SOFTFAIL_4',document.getElementById('SPF_HELO_SOFTFAIL_4').value);	
-		document.getElementById('spamass_spf_config').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 		XHR.sendAndLoad('$page', 'GET',x_saveSpamAssassinSPF);	
 		
 	}
@@ -379,7 +363,7 @@ function whitelist_del(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?amavis-restart=yes");
+	
 }
 
 function whitelist_add(){
@@ -389,7 +373,6 @@ function whitelist_add(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?amavis-restart=yes");
 	
 	
 }

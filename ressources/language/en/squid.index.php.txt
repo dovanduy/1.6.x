@@ -44,8 +44,12 @@ This refers to the requests, which are coming from the browsers who have "MOZILL
 <acl_dstdom_regex>Web Server Regexp</acl_dstdom_regex>
 <acl_dstdom_regex_text>Matching done on destination domain based on regular expression[br]
 [b]Example:[/b]
-[br][blk] redhat[/blk][br]
-This looks for the word redhat from the client's reqest</acl_dstdom_regex_text>
+[br][b]redhat[/b] This looks for the word redhat from the client's request.[br]
+By default artica is able to transform your value into a regex value.[br]
+Using redhat.* is allowed.[br]
+If you want to create a real regex use regex: prefix.[br]
+Example: regex:redhat\.[a-z]+ allows you to define a full regex pattern.
+</acl_dstdom_regex_text>
 <acl_dstdom_regex_title>Provides match against destination domain</acl_dstdom_regex_title>
 <acl_dst_as>Dest AS Number</acl_dst_as>
 <acl_dst_as_text>The autonomous system number ACL types are generally only used in Cache Peer, or ICP, access restrictions.[br]
@@ -60,7 +64,6 @@ cache_peer_access mycache_mydomain.net deny all[/b]</acl_dst_as_text>
 <acl_dst_text>[ul]
 [li]172.16.1.0/24 - refers to the whole Network with address 172.16.1.0[/li]
 [li]172.16.1.25/32 - refers to a single source[/li]
-[li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
 [/ul]</acl_dst_text>
 <acl_dst_title>Same as "Client Address" but looks for destination IP Address</acl_dst_title>
 <acl_external>External Program</acl_external>
@@ -226,7 +229,6 @@ Routing decisions are then based on knowledge of the AS in addition to other pos
 [ul]
 [li]172.16.1.0/24 - refers to the whole Network with address 172.16.1.0[/li]
 [li]172.16.1.25/32 - refers to a single source[/li]
-[li]172.16.1.25-172.16.1.35/32 - refers range of IP Addresses from 172.16.1.25-172.16.1.35[/li]
 [/ul]</acl_src_text>
 <acl_src_title>The IP address of the requesting client, or the clients IP Address</acl_src_title>
 <acl_time>Date and Time</acl_time>

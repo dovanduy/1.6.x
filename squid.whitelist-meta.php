@@ -44,7 +44,7 @@ function popup(){
 	
 	$t=time();
 	$html="<div style='font-size:22px'>{whitelist} (Meta)</div>
-	<div class=text-info style='font-size:18px'>
+	<div class=explain style='font-size:18px'>
 			{squid_whitelist_meta_explain}
 	</div>	
 	<textarea style='margin-top:5px;font-family:Courier New;

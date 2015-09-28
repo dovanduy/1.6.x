@@ -35,7 +35,7 @@ function popup(){
 	<div style='width:98%' class=form>	
 	<div style='font-size:26px'>{macro_build_bigpart}</td>
 			
-	<div style='font-size:18px' class=text-info>{macro_build_bigpart_explain}</div>
+	<div style='font-size:18px' class=explain>{macro_build_bigpart_explain}</div>
 			
 	<table style='width:100%'>
 	<tr>

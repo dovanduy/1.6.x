@@ -49,12 +49,12 @@ $html="
 	<table>
 	<tr>
 		<td width=1% valign='top'><img src='img/bg_kav4proxy.jpg'></td>
-		</tr>
+	</tr>
 	</table>
 </td>
-<td valign='top'>
-<div id='servinfos'></div>
-<script>LoadAjax('servinfos','$page?Status=yes');</script>
+<td valign='top' style='width:900px'>
+	<div id='servinfos'></div>
+	<script>LoadAjax('servinfos','$page?Status=yes');</script>
 </td>
 </tr>
 <tr>
@@ -140,18 +140,18 @@ $status=RoundedLightGreen("
 </tr>
 <tr>
 	<td valign='top' align='center'><img src='img/$img1'></td>
-	<td align=right valign='top'><strong>{memory}:</strong></td>
+	<td align=right valign='top' style='font-size:18px' class=legend>{memory}:</strong></td>
 	<td valign='top'>$users->KAV4PROXY_MEMORY mb</td>
 </tr>
 
 <tr>
 	<td valign='top' align='center'><img src='img/16-infos.png'></td>
-	<td align=right valign='top'><strong>{version}:</strong></td>
+	<td align=right valign='top' style='font-size:18px' class=legend>{version}:</strong></td>
 	<td valign='top'>$users->KAV4PROXY_VERSION</td>
 </tr>
 <tr>
 <td valign='top' align='center'><img src='img/16-infos.png'></td>
-<td nowrap align=left valign='top'><strong>{pattern_ver}:</strong></td><td></td>
+<td nowrap align=left valign='top' style='font-size:18px' class=legend>{pattern_ver}:</strong></td><td></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
@@ -610,24 +610,24 @@ $main=RoundedLightGrey("
 			
 			<table style=width:100%'>
 				<tr>
-					<td valign='top'><strong>{BasesErrorAction}</strong></td>
+					<td valign='top' style='font-size:18px' class=legend>{BasesErrorAction}</strong></td>
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('BasesErrorAction',$hash["BasesErrorAction"])."</td>
 					
 				</tr>
 				<tr>
-					<td valign='top'><strong>{CorruptedAction}</strong></td>
+					<td valign='top' style='font-size:18px' class=legend>{CorruptedAction}</strong></td>
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('CorruptedAction',$hash["CorruptedAction"])."</td>
 				</tr>
 				<tr>
-					<td valign='top'><strong>{CuredAction}</strong></td>
+					<td valign='top' style='font-size:18px' class=legend>{CuredAction}</strong></td>
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('CuredAction',$hash["CuredAction"])."</td>
 				</tr>	
 				<tr>
-					<td valign='top'><strong>{ErrorAction}</strong></td>
+					<td valign='top' style='font-size:18px' class=legend>{ErrorAction}</strong></td>
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('ErrorAction',$hash["ErrorAction"])."</td>
 				</tr>	
 				<tr>
-					<td valign='top'><strong>{InfectedAction}</strong></td>
+					<td valign='top' style='font-size:18px' class=legend>{InfectedAction}</strong></td>
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('InfectedAction',$hash["InfectedAction"])."</td>
 				</tr>
 				<tr>
@@ -1075,7 +1075,7 @@ if(file_exists( $content_dir . "/" .$name_file)){@unlink( $content_dir . "/" .$n
     $socket=new sockets();
  	$res=$socket->getfile("kav4proxy_licencemanager:$content_dir/$name_file");
 	 $res=str_replace("\r","",$res);
-	 $res=str_replace("Error registering keyfile","<strong style='color:red'>Error registering keyfile</strong>",$res);
+	 $res=str_replace("Error registering keyfile","<strong style='color:#d32d2d'>Error registering keyfile</strong>",$res);
 	 
  	 $res=wordwrap($res,40,"\n",true);
  	 $res=nl2br($res);
@@ -1124,7 +1124,7 @@ function main_license(){
 	$license_data=str_replace("<br />\n<br />","<br />",$license_data);
 	$license_data=str_replace("License info:","<strong style='font-size:12px'>License info:</strong>",$license_data);
 	$license_data=str_replace("Active key info:","<strong style='font-size:12px'>Active key info:</strong>",$license_data);
-	$license_data=str_replace("Expiration date","<strong style='color:red'>Expiration date</strong>",$license_data);
+	$license_data=str_replace("Expiration date","<strong style='color:#d32d2d'>Expiration date</strong>",$license_data);
 	$license_data=str_replace("Kaspersky license manager for Linux","<H6 style='margin-top:0px'>Kaspersky license manager for Linux</H6>",$license_data);
 	
 	

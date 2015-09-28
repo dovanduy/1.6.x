@@ -66,6 +66,8 @@ class ccurl{
 			$this->OutPutlogs("******************************");
 			$this->OutPutlogs("*");
 			$sock=new sockets();
+			if($interface<>null){$GLOBALS["WgetBindIpAddress"]=$interface;}
+			
 			if(!isset($GLOBALS["WgetBindIpAddress"])){
 				$GLOBALS["WgetBindIpAddress"]=$sock->GET_INFO("WgetBindIpAddress");
 			}
@@ -103,18 +105,23 @@ class ccurl{
 			$this->ArticaProxyServerPort=null;
 			return;
 		}
+		
+		$this->OutPutlogs("noproxyload: $this->noproxyload");
+		
 		if(!$this->noproxyload){
 			$ini=new Bs_IniHandler();
 			$sock=new sockets();
 			$datas=$sock->GET_INFO("ArticaProxySettings");
 			if(trim($datas)<>null){
 				$ini->loadString($datas);
+				if(!isset($ini->_params["PROXY"]["ArticaProxyServerEnabled"])){$ini->_params["PROXY"]["ArticaProxyServerEnabled"]="no";}
 				$this->OutPutlogs("ArticaProxyServerEnabled: {$ini->_params["PROXY"]["ArticaProxyServerEnabled"]}");
 				$this->ArticaProxyServerEnabled=$ini->_params["PROXY"]["ArticaProxyServerEnabled"];
 				$this->ArticaProxyServerName=$ini->_params["PROXY"]["ArticaProxyServerName"];
 				$this->ArticaProxyServerPort=$ini->_params["PROXY"]["ArticaProxyServerPort"];
 				$this->ArticaProxyServerUsername=trim($ini->_params["PROXY"]["ArticaProxyServerUsername"]);
 				$this->ArticaProxyServerUserPassword=$ini->_params["PROXY"]["ArticaProxyServerUserPassword"];
+				if($this->ArticaProxyServerEnabled==1){$this->ArticaProxyServerEnabled="yes";}
 			}
 		}
 		
@@ -195,7 +202,7 @@ class ccurl{
 		$HourTable=date("YmdH");
 		
 		$HR=parse_url($url);
-		
+		if(!class_exists("squid_familysite")){include_once(dirname(__FILE__)."/class.squid.familysites.inc");}
 		$squid=new squid_familysite();
 		$www=$squid->GetFamilySites($HR["host"]);
 		$time = intval($array['total_time'])
@@ -228,6 +235,8 @@ class ccurl{
 	}
 	
 	private function OutPutlogs($text){
+		
+		
 		
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
@@ -453,8 +462,10 @@ class ccurl{
 		
 		
 		if($this->interface<>null){
-			$this->OutPutlogs("CURLOPT_INTERFACE \"$this->interface\" Line ".__LINE__);
-			curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
+			if($this->interface<>"none"){
+				$this->OutPutlogs("CURLOPT_INTERFACE \"$this->interface\" Line ".__LINE__);
+				curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
+			}
 		}
 		
 		if($this->UserAgent<>null){curl_setopt($this->ch, CURLOPT_USERAGENT, $this->UserAgent);}else{curl_setopt($this->ch, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0");}
@@ -467,6 +478,7 @@ class ccurl{
 		curl_setopt($this->ch, CURLOPT_FILETIME, true);
 		curl_setopt($this->ch, CURLOPT_NOBODY, true);
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($this->ch, CURLOPT_HEADER, 1);
 		
 		if($this->authname<>null){curl_setopt($this->ch, CURLOPT_USERPWD, "$this->authname:$this->authpass");}
 		curl_setopt ($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
@@ -475,18 +487,37 @@ class ccurl{
 		
 		$this->header = curl_exec($this->ch);
 		$Infos= curl_getinfo($this->ch);
+		
+	
+		
+		
+		$f=explode("\n",$this->header);
+		while (list ($num, $ligne) = each ($f)){
+			$tr=explode(":",$ligne);
+			if(count($tr)<1){continue;}
+			$Infos[trim($tr[0])]=trim($tr[1]);
+		}
+		
+		
+		
+	
 		curl_close($this->ch);
 		return $Infos;
 	}
 	
 	
 	private function TestProxy(){
-		if($this->NoCheckSquid){$GLOBALS["CCURL_TEST_PROXY"]=false;return $this->buildErrors();;}
+		if($this->NoCheckSquid){
+			$this->OutPutlogs("TestProxy() NoCheckSquid -> TRUE -> RETURN FALSE \" Line ".__LINE__);
+			$GLOBALS["CCURL_TEST_PROXY"]=false;
+			return $this->buildErrors();;
+		}
 		if(isset($GLOBALS["CCURL_TEST_PROXY"])){return $GLOBALS["CCURL_TEST_PROXY"];}
+		$this->OutPutlogs("TestProxy() \"$this->ArticaProxyServerName:$this->ArticaProxyServerPort\" Line ".__LINE__);
 		$f=@fsockopen ($this->ArticaProxyServerName, $this->ArticaProxyServerPort, $errno, $errstr, 2);
 
 		if(!$f){
-			$this->OutPutlogs("$this->ArticaProxyServerName:$this->ArticaProxyServerPort failed");
+			$this->OutPutlogs("$this->ArticaProxyServerName:$this->ArticaProxyServerPort failed $errno $errstr");
 			$GLOBALS["CCURL_TEST_PROXY"]=false;
 			return $this->buildErrors();;
 		}
@@ -566,7 +597,9 @@ class ccurl{
 			
 			if($GLOBALS["VERBOSE"]){curl_setopt($this->ch, CURLINFO_HEADER_OUT, 1);}
 			
-			if($curlPost<>null){$this->OutPutlogs("Add posts datas....");curl_setopt($this->ch, CURLOPT_POSTFIELDS, $curlPost);}	
+			if($curlPost<>null){$this->OutPutlogs("Add posts datas....");
+				curl_setopt($this->ch, CURLOPT_POSTFIELDS, $curlPost);
+			}	
 			curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('Expect:'));
 			$this->data=curl_exec($this->ch);
 			$this->orginal_data=$this->data;
@@ -670,6 +703,14 @@ class ccurl{
 					writelogs("404 Not found !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->data=null;
 					$this->error_num=404;
+					return $this->buildErrors();;
+				}
+				
+			if(strpos(strtolower($this->data), strtolower("<title><title>413 Request Entity Too Large</title>"))>0){
+					$this->error="413 Request Entity Too Large ".strlen($this->data)." bytes length";
+					writelogs("413 Request Entity Too Large !!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+					$this->data=null;
+					$this->error_num=413;
 					return $this->buildErrors();;
 				}
 				
@@ -817,6 +858,7 @@ class ccurl{
 	}
 	
 	private function EXEC_NO_PROXY(){
+		$this->OutPutlogs("EXEC_NO_PROXY()");
 		$this->ArticaProxyServerEnabled="no";
 		$this->ArticaProxyServerName=null;
 		$this->ArticaProxyServerPort=null;
@@ -827,6 +869,7 @@ class ccurl{
 	}
 	
 	private function EXEC_INTERFACE_NOLOCAL(){
+		if($this->interface=="none"){return;}
 		if($this->interface<>"127.0.0.1"){return;}
 		$this->interface=$this->ChooseInterface();
 		if(trim($this->interface==null)){return;}
@@ -878,7 +921,7 @@ class ccurl{
 		}
 		
 		if(!$this->TestProxy()){
-			$this->OutPutlogs("CURLOPT_PROXY_ENABLED = FALSE -> UNAVAILABLE");
+			$this->OutPutlogs("CURLOPT_PROXY_ENABLED = FALSE -> * * * * * UNAVAILABLE * * * * *");
 			$this->EXEC_NO_PROXY();
 			return;
 		}
@@ -894,12 +937,16 @@ class ccurl{
 		if($this->WgetBindIpAddress<>null){$this->interface=$this->WgetBindIpAddress;}
 		
 		if($this->interface==null){
-			$this->interface=$this->ChooseInterface();
-			$this->OutPutlogs("CURLOPT_INTERFACE: \"$this->interface\"");
-			
+			$this->interface="127.0.0.1";
 		}
 		
-		if($this->interface=="127.0.0.1"){$this->EXEC_INTERFACE_NOLOCAL();}
+		if($this->interface=="127.0.0.1"){
+			$this->OutPutlogs("CURLOPT_INTERFACE: \"LOOPBACK\"");
+			curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
+			return;
+		}
+		if($this->interface=="none"){return;}
+		
 		if(trim($this->interface)==null){
 			$this->OutPutlogs("CURLOPT_INTERFACE: \"NONE\"");
 			$GLOBALS["CURLDEBUG"][]="CURLOPT_INTERFACE: \"NONE\" Line ". __LINE__;
@@ -1037,6 +1084,16 @@ class ccurl{
 		}
 		
 		
+		if($this->CURLINFO_HTTP_CODE==400){
+			$this->OutPutlogs("* * * 404 ERROR * * * ");
+			@unlink($targetpath);
+			$this->error_num=400;
+			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** [".__LINE__."]\n";}
+			writelogs("*** FAILED *** datas: $this->uri 400 not Found error: $error",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			return $this->buildErrors();;
+		}
+		
+		
 		if($this->CURLINFO_HTTP_CODE==404){
 			$this->OutPutlogs("* * * 404 not found * * * ");
 			@unlink($targetpath);
@@ -1106,12 +1163,17 @@ class ccurl{
 		curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
 		
 		if($this->interface<>null){
-			if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: \"$this->interface\" Line ".__LINE__."\n";}
-			curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);}
+			if($this->interface<>"none"){
+				if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: \"$this->interface\" Line ".__LINE__."\n";}
+				curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
+			}
+		}
 		else{
 			if($this->WgetBindIpAddress<>null){
-				if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: \"$this->WgetBindIpAddress\" Line ".__LINE__."\n";}
-				curl_setopt($this->ch, CURLOPT_INTERFACE,$this->WgetBindIpAddress);
+				if($this->WgetBindIpAddress<>"none"){
+					if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: \"$this->WgetBindIpAddress\" Line ".__LINE__."\n";}
+					curl_setopt($this->ch, CURLOPT_INTERFACE,$this->WgetBindIpAddress);
+				}
 			}
 		}
 		
@@ -1145,8 +1207,7 @@ class ccurl{
 	    if($size>1000){$UNIT="MB";$size=$size/1024;}
 	    $size=round($size,2);
 	    if($GLOBALS["VERBOSE"]){echo "CURLOPT_TIMEOUT: {$this->Timeout}s\n";}
-	    
-	    writelogs("$this->uri: Executing posting _FILE(S)[$fieldname] $filepath ($size $UNIT)",__CLASS__.'/'.__FUNCTION__,__FILE__);
+	    if($GLOBALS["VERBOSE"]){echo "$this->uri: Executing posting _FILE(S)[$fieldname] $filepath ($size $UNIT)\n";}
 	    $this->data = curl_exec($this->ch);
 	    $this->CURL_ALL_INFOS=curl_getinfo($this->ch);
 	    $this->sql_logs($this->CURL_ALL_INFOS);
@@ -1155,7 +1216,7 @@ class ccurl{
 	    	print_r(curl_getinfo($this->ch));
 	    }
 		$error=curl_errno($this->ch);	
-		writelogs("Returned datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		
 		if(!$this->ParseError($error)){
 			writelogs("Returned datas: $this->uri (". strlen($this->data)." bytes) error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			curl_close($this->ch);

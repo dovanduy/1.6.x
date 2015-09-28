@@ -268,7 +268,7 @@ class squidnodes{
 			$conf[]=$this->http_access();
 			$conf[]="# --------- ICAP Services.(0 service(s))";
 			
-			$conf[]="hierarchy_stoplist cgi-bin ?";
+			
 			$conf[]="# --------- General settings ";
 			$conf[]=$this->visible_hostname();
 			$conf[]=$this->timeout();
@@ -316,6 +316,8 @@ class squidnodes{
 	
 	private function ufdbguard(){
 		$EnableUfdbGuard=$this->GET("EnableUfdbGuard");
+		$caches_center=new SquidCacheCenter();
+		$CPU_NUMBER=$caches_center->WORKERS_NUMBER();
 		if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 		if($EnableUfdbGuard==0){
 			writelogs("Ufdbguard is not enabled...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -362,8 +364,25 @@ class squidnodes{
 		
 		
 		if($this->$EnableUfdbGuard==1){$RedirectorsArray["url_rewrite_concurrency"]=0;}
+		
+		$url_rewrite_children=$RedirectorsArray["url_rewrite_children"];
+		$url_rewrite_startup=$RedirectorsArray["url_rewrite_startup"];
+		$url_rewrite_idle=$RedirectorsArray["url_rewrite_idle"];
+		
+		if($CPU_NUMBER>1){
+			$url_rewrite_children=round($url_rewrite_children/$CPU_NUMBER);
+			$url_rewrite_startup=round($url_rewrite_startup/$CPU_NUMBER);
+			$url_rewrite_idle=round($url_rewrite_idle/$CPU_NUMBER);
+			if($url_rewrite_children==0){$url_rewrite_children=2;}
+			if($url_rewrite_startup==0){$url_rewrite_startup=1;}
+			if($url_rewrite_idle==0){$url_rewrite_idle=1;}
+			if($url_rewrite_startup>$url_rewrite_children){$url_rewrite_startup=$url_rewrite_children;}
+			if($url_rewrite_idle>$url_rewrite_children){$url_rewrite_idle=1;}
+			
+		}
+		$url_rewrite_children[]="# Max Childs={$RedirectorsArray["url_rewrite_children"]} CPU MAX=$CPU_NUMBER = $url_rewrite_children Per CPU";
 		$url_rewrite_children[]="url_rewrite_program /usr/bin/ufdbgclient -S $listen_addr -p $listen_port  -l /var/log/squid";
-		$url_rewrite_children[]="url_rewrite_children {$RedirectorsArray["url_rewrite_children"]} startup={$RedirectorsArray["url_rewrite_startup"]} idle={$RedirectorsArray["url_rewrite_idle"]} concurrency={$RedirectorsArray["url_rewrite_concurrency"]}";
+		$url_rewrite_children[]="url_rewrite_children $url_rewrite_children startup=$url_rewrite_startup idle={$RedirectorsArray["url_rewrite_idle"]} concurrency={$RedirectorsArray["url_rewrite_concurrency"]}";
 		$GLOBALS["squimem_url_rewrite_children"]=@implode("\n", $url_rewrite_children);		
 		return $GLOBALS["squimem_url_rewrite_children"];
 		}	
@@ -453,15 +472,7 @@ class squidnodes{
 			if(!is_numeric($reply_header_max_size)){$reply_header_max_size=64;}			
 		}
 		
-		
-		if(preg_match("#([0-9]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){
-			$maximum_object_size_in_memory=$re[1];
-			if(preg_match("#([A-Z]+)#",$squid->global_conf_array["maximum_object_size_in_memory"],$re)){$maximum_object_size_in_memory_unit=$re[1];}
-			if($maximum_object_size_in_memory_unit==null){$maximum_object_size_in_memory_unit="KB";}
-			if($maximum_object_size_in_memory_unit=="KB"){
-				if($maximum_object_size_in_memory<512){$maximum_object_size_in_memory=1024;}
-			}
-		}
+	
 		
 		if(preg_match("#([0-9]+)#",$squid->global_conf_array["minimum_object_size"],$re)){
 			$minimum_object_size=$re[1];
@@ -497,7 +508,7 @@ class squidnodes{
 		
 		if($maximum_object_size>0){$conf[]="maximum_object_size $maximum_object_size $maximum_object_size_unit";}
 		if($minimum_object_size>0){$conf[]="minimum_object_size $minimum_object_size $minimum_object_size_unit";}
-		if($maximum_object_size_in_memory>0){$conf[]="maximum_object_size_in_memory $maximum_object_size_in_memory $maximum_object_size_in_memory_unit";}
+		$conf[]="maximum_object_size_in_memory 32KB";
 	
 	}
 	
@@ -519,13 +530,18 @@ class squidnodes{
 		reset($squid->dns_array);
 		
 		$conf[]="\n# --------- SPECIFIC DNS SERVERS";
+		$ClassTCPIP=new IP();
 		while (list ($num, $val) = each ($squid->dns_array) ){
 			if(preg_match("#resolv#", $val)){
 				$dns_nameservers_from_resolv=$squid->dns_nameservers_from_resolv();
 				if($dns_nameservers_from_resolv<>null){$conf[]=$dns_nameservers_from_resolv;}
 				continue;
 			}
-			$conf[]="dns_nameservers $val";
+			
+		
+			if($ClassTCPIP->isValid($val)){
+				$conf[]="dns_nameservers $val";
+			}
 					
 		}
 			
@@ -633,6 +649,9 @@ class squidnodes{
 
 			$sock=new sockets();
 			$SquidEnableIdentdServiceOnly=intval($sock->GET_INFO("SquidEnableIdentdServiceOnly"));
+			
+			
+			
 			if(!isset($GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"])){$GLOBALS["HTTP_ACCESS"]["WHITE_COMPUTERS_REDIRECTOR"]=array();}
 			//if($this->allow_squid_localhost<>1){$conf[]="http_access deny to_localhost";}else{$conf[]="http_access allow to_localhost";}
 			$conf[]="http_access allow to_localhost";

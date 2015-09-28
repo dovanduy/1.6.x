@@ -101,7 +101,7 @@ function item_js(){
 		$pattern=$tpl->javascript_parse_text("{new_network}");
 	}
 	
-	$html="YahooWin3('650','$page?item-popup=yes&ID=$linkid&t={$_GET["t"]}','$pattern',true);";
+	$html="YahooWin3('890','$page?item-popup=yes&ID=$linkid&t={$_GET["t"]}','$pattern',true);";
 	echo $html;
 
 }
@@ -177,48 +177,48 @@ function item_popup(){
 	$protocol["icmp"]="icmp";
 	
 	
-	$direction[0]="{outgoing}";
-	$direction[1]="{incoming2}";
+	$direction[0]="{from_guest_network_to_internet}";
+	$direction[1]="{from_internet_to_guest_network}";
 	
 	$t=time();
 	$html="<div class=form style='width:95%'>
-	<div class=text-info style='font-size:14px'>{hostpot2_pattern_explain}</div>
+	<div class=explain style='font-size:18px'>{hostpot2_pattern_explain}</div>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:18px'>{network2} ({outgoing}):</td>
-		<td>". Field_text("pattern-$t",$ligne["pattern"],"font-size:18px;font-weight:bold;width:300px")."</td>
+		<td class=legend style='font-size:22px'>{destination}:</td>
+		<td>". Field_text("pattern-$t",$ligne["pattern"],"font-size:22px;font-weight:bold;width:300px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{direction}:</td>
-		<td>". Field_array_Hash($direction,"direction-$t",$ligne["direction"],"SwichDir$t()",'',0,"font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{direction}:</td>
+		<td>". Field_array_Hash($direction,"direction-$t",$ligne["direction"],"SwichDir$t()",'',0,"font-size:22px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{network2} ({incoming2}):</td>
-		<td>". Field_text("destination-$t",$ligne["destination"],"font-size:18px;font-weight:bold;width:300px")."</td>
+		<td class=legend style='font-size:22px'>{source}:</td>
+		<td>". Field_text("destination-$t",$ligne["destination"],"font-size:22px;font-weight:bold;width:300px")."</td>
 	</tr>							
 	<tr>
-		<td class=legend style='font-size:18px'>{order}:</td>
-		<td>". Field_text("zorder-$t",$ligne["zorder"],"font-size:18px;font-weight:bold;width:90px")."</td>
+		<td class=legend style='font-size:22px'>{order}:</td>
+		<td>". Field_text("zorder-$t",$ligne["zorder"],"font-size:22px;font-weight:bold;width:110px")."</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:18px'>{type}:</td>
-		<td>". Field_array_Hash($array,"hotspoted-$t",$ligne["hotspoted"],"style:font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{type}:</td>
+		<td>". Field_array_Hash($array,"hotspoted-$t",$ligne["hotspoted"],"style:font-size:22px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{port}:</td>
-		<td>". Field_text("port-$t",$ligne["port"],"font-size:18px;font-weight:bold;width:90px")."</td>
+		<td class=legend style='font-size:22px'>{port}:</td>
+		<td>". Field_text("port-$t",$ligne["port"],"font-size:22px;font-weight:bold;width:110px")."</td>
 	</tr>							
 				
 	<tr>
-		<td class=legend style='font-size:18px'>{protocol}:</td>
-		<td>". Field_array_Hash($protocol,"proto-$t",$ligne["proto"],"style:font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{protocol}:</td>
+		<td>". Field_array_Hash($protocol,"proto-$t",$ligne["proto"],"style:font-size:22px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:18px'>{action}:</td>
-		<td>". Field_array_Hash($action,"action-$t",$ligne["action"],"style:font-size:18px")."</td>
+		<td class=legend style='font-size:22px'>{action}:</td>
+		<td>". Field_array_Hash($action,"action-$t",$ligne["action"],"style:font-size:22px")."</td>
 	</tr>				
 <tr>
-	<td colspan=2 align='right'><hr>". button($button,"Save$t();",22)."</td>
+	<td colspan=2 align='right'><hr>". button($button,"Save$t();",28)."</td>
 </tr>
 				
 	</table></div>	
@@ -246,6 +246,8 @@ function SwichDir$t(){
 	var direction=document.getElementById('direction-$t').value;
 	if(direction==0){
 		document.getElementById('destination-$t').disabled=true;
+		
+	}else{
 		document.getElementById('hotspoted-$t').disabled=true;
 	}
 }
@@ -264,7 +266,7 @@ function Save$t(){
 	XHR.appendData('direction',  document.getElementById('direction-$t').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
-SwichDir$t()
+SwichDir$t();
 </script>	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -334,10 +336,10 @@ function table(){
 	
 	$buttons="
 	buttons : [
-	{name: '$new_network', bclass: 'add', onpress : NewRule$tt},
-	{name: '$trusted_MAC', bclass: 'Settings', onpress : rports},
-	{name: '$trusted_sslwebsites', bclass: 'Settings', onpress : rssls},
-	{name: '$apply', bclass: 'Reconf', onpress : Apply$tt},
+	{name: '<strong style=font-size:20px>$new_network</strong>', bclass: 'add', onpress : NewRule$tt},
+	{name: '<strong style=font-size:20px>$trusted_MAC</strong>', bclass: 'Settings', onpress : rports},
+	{name: '<strong style=font-size:20px>$trusted_sslwebsites</strong>', bclass: 'Settings', onpress : rssls},
+	{name: '<strong style=font-size:20px>$apply</strong>', bclass: 'Reconf', onpress : Apply$tt},
 	],";
 
 	$html="
@@ -348,14 +350,14 @@ function table(){
 	url: '$page?items=yes&t=$tt&tt=$tt&t-rule={$_GET["t"]}&ruleid={$_GET["ruleid"]}',
 	dataType: 'json',
 	colModel : [
-	{display: '$order', name : 'zorder', width :55, sortable : true, align: 'center'},
-	{display: '$protocol', name : 'proto', width :55, sortable : true, align: 'center'},
-	{display: '$networks', name : 'pattern', width :448, sortable : true, align: 'left'},
-	{display: '$type', name : 'hotspoted', width :100, sortable : false, align: 'center'},
-	{display: '$action', name : 'action', width :100, sortable : true, align: 'center'},
-	{display: 'up', name : 'up', width :55, sortable : false, align: 'center'},
-	{display: 'down', name : 'down', width :55, sortable : false, align: 'center'},
-	{display: '&nbsp;', name : 'delete', width : 100, sortable : false, align: 'center'},
+	{display: '<span style=font-size:22px>$order</span>', name : 'zorder', width :78, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>$protocol</span>', name : 'proto', width :138, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>$networks</span>', name : 'pattern', width :612, sortable : true, align: 'left'},
+	{display: '<span style=font-size:22px>$type</span>', name : 'hotspoted', width :100, sortable : false, align: 'center'},
+	{display: '<span style=font-size:22px>$action</span>', name : 'action', width :100, sortable : true, align: 'center'},
+	{display: '<span style=font-size:22px>up</span>', name : 'up', width :81, sortable : false, align: 'center'},
+	{display: '<span style=font-size:22px>down</span>', name : 'down', width :81, sortable : false, align: 'center'},
+	{display: '&nbsp;', name : 'delete', width : 81, sortable : false, align: 'center'},
 	],
 	$buttons
 	searchitems : [
@@ -365,7 +367,7 @@ function table(){
 	sortname: 'zorder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:30px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -530,7 +532,7 @@ function items(){
 	$to_text=$tpl->javascript_parse_text("{to} $hostpot_net");
 	$from_text=$tpl->javascript_parse_text("{from}");
 
-	$fontsize="18";
+	$fontsize="22";
 	$check32="<img src='img/check-32.png'>";
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
@@ -571,18 +573,20 @@ function items(){
 		
 		if($proto==null){$proto=$all_text;}
 		
+		$explain=$tpl->javascript_parse_text("$direction_text $entrant_text $pattern");
+		
 		
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$order</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$proto</a></span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$direction_text $entrant_text $pattern</a></span>",
+						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$link$explain</a></span>",
 						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$hostpoted_text</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". imgsimple($icon_action)."</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $up."</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $down."</span>",
-						"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</span>",)
+						"<center style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". imgsimple($icon_action)."</center>",
+						"<center style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $up."</center>",
+						"<center style='font-size:{$fontsize}px;font-weight:normal;color:$color'>". $down."</center>",
+						"<center style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</center>",)
 		);
 	}
 

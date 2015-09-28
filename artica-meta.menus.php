@@ -1,5 +1,6 @@
 <?php
 //ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
 include_once('ressources/class.users.menus.inc');
@@ -10,7 +11,7 @@ include_once('ressources/class.ini.inc');
 if(isset($_GET["js"])){js();exit;}
 
 $users=new usersMenus();
-if(!$users->AsArticaMetaAdmin){$tpl=new templates();echo FATAL_WARNING_SHOW_128("{ERROR_NO_PRIVS}");die();}
+if(!$users->AsArticaMetaAdmin){$tpl=new templates();echo FATAL_ERROR_SHOW_128("{ERROR_NO_PRIVS}");die();}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["system"])){menu_system();exit;}
 if(isset($_GET["change-hostname-js"])){change_hostname_js();exit;}
@@ -27,6 +28,9 @@ if(isset($_GET["snapshot-js"])){snapshot_js();exit;}
 if(isset($_GET["snapshot-restore-js"])){snapshot_restore_js();exit;}
 if(isset($_GET["send-ping-js"])){send_ping_js();exit;}
 if(isset($_GET["activedirectory-reconnect-js"])){reconnect_ad_js();}
+if(isset($_GET["activedirectory-emergency-enable-js"])){emergency_enable_ad_js();}
+if(isset($_GET["activedirectory-emergency-disable-js"])){emergency_disable_ad_js();}
+
 if(isset($_GET["reconfigure-proxy-js"])){reconfigure_proxy_js();exit;}
 
 
@@ -54,7 +58,13 @@ if(isset($_POST["clean-proxy-caches"])){clean_proxy_cache_save();exit;}
 if(isset($_POST["reindex-proxy-caches"])){reindex_proxy_cache_save();exit;}
 if(isset($_POST["reload-proxy"])){reload_proxy_cache_save();exit;}
 if(isset($_POST["tag"])){add_tag_save();exit;}
+
 if(isset($_POST["activedirectory-reconnect"])){reconnect_ad_save();exit;}
+if(isset($_POST["activedirectory-emergency-enable"])){emergency_enable_ad();exit;}
+if(isset($_POST["activedirectory-emergency-disable"])){emergency_disable_ad();exit;}
+
+
+
 if(isset($_POST["reconfigure-proxy"])){reconfigure_proxy();exit;}
 
 
@@ -300,11 +310,82 @@ xFunct$t();
 	
 }
 
+function emergency_enable_ad_js(){
+	header("content-type: application/x-javascript");
+	$artica_meta=new mysql_meta();
+	$tpl=new templates();
+	if(intval($_GET["gpid"])==0){
+		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	}else{
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
+	$text=$tpl->javascript_parse_text("{enable_emergency_mode} (Active directory)");
+	$text=str_replace("%s", $hostname, $text);
+	$page=CurrentPageName();
+	$t=time();
+	$html="
+	var xcall$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	$('#ARTICA_META_MAIN_TABLE').flexReload();
+	}
+	
+	function xFunct$t(){
+	if(!confirm('$text')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('activedirectory-emergency-enable','yes');
+	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xcall$t);
+	}
+	xFunct$t();
+	";
+	echo $html;	
+}
+function emergency_disable_ad_js(){
+	header("content-type: application/x-javascript");
+	$artica_meta=new mysql_meta();
+	$tpl=new templates();
+	if(intval($_GET["gpid"])==0){
+		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	}else{
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
+	$text=$tpl->javascript_parse_text("{disable_emergency_mode} (Active directory)");
+	$text=str_replace("%s", $hostname, $text);
+	$page=CurrentPageName();
+	$t=time();
+	$html="
+var xcall$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	$('#ARTICA_META_MAIN_TABLE').flexReload();
+}
+	
+function xFunct$t(){
+	if(!confirm('$text')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('activedirectory-emergency-disable','yes');
+	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xcall$t);
+}
+xFunct$t();
+";
+echo $html;	
+}
+
 function reload_proxy_js(){
 	header("content-type: application/x-javascript");
 	$artica_meta=new mysql_meta();
 	$tpl=new templates();
-	$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	if(intval($_GET["gpid"])==0){
+		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	}else{
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
 	$text=$tpl->javascript_parse_text("{reload_proxy_service_ask}");
 	$text=str_replace("%s", $hostname, $text);
 	$page=CurrentPageName();
@@ -321,6 +402,7 @@ function xFunct$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('reload-proxy','yes');
 	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
 	LockPage();
 	XHR.sendAndLoad('$page', 'POST',xcall$t);
 }
@@ -335,7 +417,11 @@ function reboot_proxy_js(){
 	header("content-type: application/x-javascript");
 	$artica_meta=new mysql_meta();
 	$tpl=new templates();
-	$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	if(intval($_GET["gpid"])==0){
+		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	}else{
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
 	$text=$tpl->javascript_parse_text("$hostname:: {APP_SQUID}::{restart_service} ?");
 	$text=str_replace("%s", $hostname, $text);
 	$page=CurrentPageName();
@@ -353,6 +439,7 @@ function reboot_proxy_js(){
 	var XHR = new XHRConnection();
 	XHR.appendData('reboot-squid','yes');
 	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
 	LockPage();
 	XHR.sendAndLoad('$page', 'POST',xcall$t);
 	}
@@ -367,7 +454,12 @@ function clean_proxy_cache_js(){
 	header("content-type: application/x-javascript");
 	$artica_meta=new mysql_meta();
 	$tpl=new templates();
+	
 	$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	if(intval($_GET["gpid"])>0){
+		$hostname=$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
+	
 	$text=$tpl->javascript_parse_text("$hostname:: {APP_SQUID}::{clean_proxy_cache_explain} ?");
 	$text=str_replace("%s", $hostname, $text);
 	$page=CurrentPageName();
@@ -385,6 +477,7 @@ function clean_proxy_cache_js(){
 	var XHR = new XHRConnection();
 	XHR.appendData('clean-proxy-caches','yes');
 	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
 	LockPage();
 	XHR.sendAndLoad('$page', 'POST',xcall$t);
 	}
@@ -399,7 +492,11 @@ function reindex_proxy_cache_js(){
 	header("content-type: application/x-javascript");
 	$artica_meta=new mysql_meta();
 	$tpl=new templates();
-	$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	if(intval($_GET["gpid"])==0){
+		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+	}else{
+		$hostname=$tpl->javascript_parse_text("{computers}: ").$artica_meta->gpid_to_name($_GET["gpid"]);
+	}
 	$text=$tpl->javascript_parse_text("$hostname:: {APP_SQUID}::{reindex_caches_warn} ?");
 	$text=str_replace("%s", $hostname, $text);
 	$page=CurrentPageName();
@@ -417,6 +514,7 @@ function reindex_proxy_cache_js(){
 	var XHR = new XHRConnection();
 	XHR.appendData('reindex-proxy-caches','yes');
 	XHR.appendData('uuid','{$_GET["uuid"]}');
+	XHR.appendData('gpid','{$_GET["gpid"]}');
 	LockPage();
 	XHR.sendAndLoad('$page', 'POST',xcall$t);
 	}
@@ -740,13 +838,30 @@ function send_ping(){
 
 function clean_proxy_cache_save(){
 	$uuid=$_POST["uuid"];
+	$gpid=intval($_POST["gpid"]);
 	$meta=new mysql_meta();
+	
+	if($gpid>0){
+		if(!$meta->CreateOrder_group($gpid, "CLEAN_PROXY_CACHES")){
+			echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
+		}
+		return;
+	}	
+	
+	
 	if(!$meta->CreateOrder($uuid, "CLEAN_PROXY_CACHES")){
 		echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
 	}	
 }
 function reindex_proxy_cache_save(){
 	$uuid=$_POST["uuid"];
+	$gpid=intval($_POST["gpid"]);
+	if($gpid>0){
+		$meta=new mysql_meta();
+		if(!$meta->CreateOrder_group($gpid, "REINDEX_PROXY_CACHES")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}
+		return;
+	}
+	
 	$meta=new mysql_meta();
 	if(!$meta->CreateOrder($uuid, "REINDEX_PROXY_CACHES")){
 		echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
@@ -755,6 +870,15 @@ function reindex_proxy_cache_save(){
 
 function reload_proxy_cache_save(){
 	$uuid=$_POST["uuid"];
+	
+	$gpid=intval($_POST["gpid"]);
+	if($gpid>0){
+		$meta=new mysql_meta();
+		if(!$meta->CreateOrder_group($gpid, "RELOAD_PROXY")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}
+		return;
+	}
+	
+	
 	$meta=new mysql_meta();
 	if(!$meta->CreateOrder($uuid, "RELOAD_PROXY")){
 		echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
@@ -765,21 +889,25 @@ function reconnect_ad_save(){
 	$uuid=$_POST["uuid"];
 	$gpid=intval($_POST["gpid"]);
 	$meta=new mysql_meta();
-	
-	if($gpid>0){
-		if(!$meta->CreateOrder_group($gpid, "RECONNECT_AD")){
-			echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
-		}
-		return;
-	}
-	
-	
-	if(!$meta->CreateOrder($uuid, "RECONNECT_AD")){
-		echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
-	}	
+	if($gpid>0){if(!$meta->CreateOrder_group($gpid, "RECONNECT_AD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}return;}
+	if(!$meta->CreateOrder($uuid, "RECONNECT_AD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}	
 	
 }
 
+function emergency_enable_ad(){
+	$uuid=$_POST["uuid"];
+	$gpid=intval($_POST["gpid"]);
+	$meta=new mysql_meta();
+	if($gpid>0){if(!$meta->CreateOrder_group($gpid, "URGENCY_AD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}return;}
+	if(!$meta->CreateOrder($uuid, "URGENCY_AD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}
+}
+function emergency_disable_ad(){
+	$uuid=$_POST["uuid"];
+	$gpid=intval($_POST["gpid"]);
+	$meta=new mysql_meta();
+	if($gpid>0){if(!$meta->CreateOrder_group($gpid, "URGENCY_NOAD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}return;}
+	if(!$meta->CreateOrder($uuid, "URGENCY_NOAD")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}
+}
 function reconfigure_proxy(){
 	$uuid=$_POST["uuid"];
 	$gpid=intval($_POST["gpid"]);
@@ -803,6 +931,15 @@ function reconfigure_proxy(){
 
 function reboot_proxy_save(){
 	$uuid=$_POST["uuid"];
+	
+	$gpid=intval($_POST["gpid"]);
+	if($gpid>0){
+		$meta=new mysql_meta();
+		if(!$meta->CreateOrder_group($gpid, "RESTART_PROXY")){echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);}
+		return;
+	}
+	
+	
 	$meta=new mysql_meta();
 	if(!$meta->CreateOrder($uuid, "RESTART_PROXY")){
 		echo "Failed\nFunction:".__FUNCTION__."\nLine:".__LINE__."\nFile:".basename(__FILE__);
@@ -863,6 +1000,12 @@ function tabs(){
 		if($isProxy){ $array["proxy-service"]='{proxy_service}'; }
 		$array["services"]='{services}';
 		$array["snapshots"]='{snapshots}';
+		$array["cloning"]='{cloning}';
+		$array["snapshots-schedule"]='{schedules}';
+	}else{
+		$isProxy=$artica_meta->isProxyGroup($_GET["gpid"]);
+		if($isProxy){ $array["proxy-service"]='{proxy_service}'; }
+		
 	}
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -876,6 +1019,16 @@ function tabs(){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica-meta.snapshots.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="cloning"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica-meta.cloning.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		if($num=="snapshots-schedule"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica-meta.schedules.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
@@ -892,9 +1045,21 @@ function menu_system(){
 	$sock=new sockets();
 	$ArticaMetaUseSendClient=intval($sock->GET_INFO("ArticaMetaUseSendClient"));
 	$gpid=$_GET["gpid"];
+	$LicenseText=null;
 	if($gpid==0){
 		$hostname=$artica_meta->uuid_to_host($_GET["uuid"]);
+		$ArticaVersion=$artica_meta->ArticaVersion($_GET["uuid"]);
 		$tag=$artica_meta->uuid_to_tag($_GET["uuid"]);
+		$LicenseInfos=$artica_meta->LicenseInfos($_GET["uuid"]);
+		$LicenseJs="OnClick=\"javascript:Loadjs('artica-meta.host.license.php?uuid={$_GET["uuid"]}')\"";
+		$LICT=" Community Edition";
+		if($LicenseInfos["CORP_LICENSE"]){$LICT=" Entreprise Edition";}
+		if($LicenseInfos["ExpiresSoon"]>0){if($LicenseInfos["ExpiresSoon"]<31){$LICT="<span style='color:red'>{trial_mode}</span>";}}
+		
+		
+		$LicenseText="<div style='text-align:right;margin-top:-30px;margin-bottom:30px'><i><a href=\"javascript:blur();\" $LicenseJs style='font-size:14px;text-decoration:underline'>v$ArticaVersion - $LICT - {company}:{$LicenseInfos["COMPANY"]}</a></i></div>";
+		
+		
 	}else{
 		$hostname=$artica_meta->gpid_to_name($_GET["gpid"]);
 		$tag=$artica_meta->group_count($_GET["gpid"]) ." ".$tpl->javascript_parse_text("{computers}");		
@@ -907,13 +1072,19 @@ function menu_system(){
 	if($gpid==0){$tr[]=paragrapheFleche("{change_hostname}", "Loadjs('$page?change-hostname-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");}
 	if($gpid==0){$tr[]=paragrapheFleche("{add_tag}", "Loadjs('$page?add-tag-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");}
 	if($gpid==0){
-		if(intval($artica_meta->GET_CONFIG("EnableKerbAuth", $_GET["uuid"]))){
+		if(intval($artica_meta->IsAD($_GET["uuid"]))){
 			$tr[]=paragrapheFleche("{activedirectroy_reconnection}", "Loadjs('$page?activedirectory-reconnect-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+			$tr[]=paragrapheFleche("{enable_emergency_mode} (Active directory)", "Loadjs('$page?activedirectory-emergency-enable-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+			$tr[]=paragrapheFleche("{disable_emergency_mode} (Active directory)", "Loadjs('$page?activedirectory-emergency-disable-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
 		}
 	}
 	if($gpid>0){
 		if($artica_meta->group_is_ad_inside($gpid)){
 			$tr[]=paragrapheFleche("{activedirectroy_reconnection}", "Loadjs('$page?activedirectory-reconnect-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+			$tr[]=paragrapheFleche("{enable_emergency_mode} (Active directory)", "Loadjs('$page?activedirectory-emergency-enable-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+			$tr[]=paragrapheFleche("{disable_emergency_mode} (Active directory)", "Loadjs('$page?activedirectory-emergency-disable-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "<H1>AD = FALSE</H1>";}
 		}
 	}
 	$tr[]=paragrapheFleche("{reboot}", "Loadjs('$page?reboot-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
@@ -931,7 +1102,7 @@ function menu_system(){
 	$tr[]=paragrapheFleche("{restore_a_snapshot}", "Loadjs('artica-meta.snapshots.browse.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
 	if($gpid==0){$tr[]=paragrapheFleche("{delete}", "Loadjs('$page?delete-js=yes&uuid=".urlencode($_GET["uuid"])."')");}
 	$html=
-	"<div style='font-size:18px;margin-bottom:20px'>$hostname - $tag - {$_GET["uuid"]}</div>".
+	"<div style='font-size:26px;margin-bottom:20px'>$hostname - $tag - {$_GET["uuid"]}</div>$LicenseText".
 	
 	CompileTr3($tr);
 	
@@ -982,6 +1153,16 @@ function menu_proxy_service(){
 	$tr[]=paragrapheFleche("{restart_service}", "Loadjs('$page?reboot-proxy-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
 	$tr[]=paragrapheFleche("{clean_all_caches}", "Loadjs('$page?clean-proxy-caches-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
 	$tr[]=paragrapheFleche("{reindex_caches}", "Loadjs('$page?reindex-proxy-caches-js=yes&uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+	$tr[]=paragrapheFleche("{disable_emergency_mode}", "Loadjs('artica-meta.urgency.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+	$tr[]=paragrapheFleche("{enable_emergency_mode}", "Loadjs('artica-meta.urgency-enable.php?uuid=".urlencode($_GET["uuid"])."&gpid={$_GET["gpid"]}')");
+	
+	if(intval($_GET["gpid"])>0){
+		$tr[]=paragrapheFleche("{transparent_whitelist}", "Loadjs('artica-meta.squidtransparent-white.php?gpid={$_GET["gpid"]}')");
+		
+	}
+	
+	
+	
 	$html=CompileTr3($tr);
 	
 	echo $tpl->_ENGINE_parse_body($html);

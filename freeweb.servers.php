@@ -136,7 +136,7 @@ function page(){
 		if($squid->isNGnx()){$SquidActHasReverse=1;}
 		
 		if($SquidActHasReverse==1){
-			$explainSquidActHasReverse=$tpl->_ENGINE_parse_body("<div class=text-info style='font-size:14px'>{explain_freewebs_reverse}</div>");
+			$explainSquidActHasReverse=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{explain_freewebs_reverse}</div>");
 		}
 	}
 	
@@ -454,6 +454,7 @@ function servers_list(){
 	
 	if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
 	$vgservices=unserialize(base64_decode($sock->GET_INFO("vgservices")));
+	$duplicate=$tpl->javascript_parse_text("{duplicate}");
 	$pdns=new pdns();
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -616,7 +617,7 @@ function servers_list(){
 		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"Loadjs('freeweb.servers.php?enable-site-js=yes&t={$_GET["t"]}&servername=$servername_enc&enabled={$ligne["enabled"]}');");
 		
 		if($ligne["groupware_duplicate"]<>null){
-			$groupware_duplicate="<br><span style='color:red'>{duplicate} :{$ligne["groupware_duplicate"]}</span>";
+			$groupware_duplicate="<br><span style='color:#d32d2d'>{$duplicate} :{$ligne["groupware_duplicate"]}</span>";
 		}
 		
 		if($ligne["enabled"]==0){

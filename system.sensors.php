@@ -39,7 +39,7 @@ function tabs(){
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_sensors",1050)."<script>LeftDesign('temperature-256-white.png');</script>";	
+	echo build_artica_tabs($html, "main_config_sensors",1490)."<script>LeftDesign('temperature-256-white.png');</script>";	
 	
 }
 function parameters(){
@@ -58,9 +58,9 @@ function parameters(){
 		</td>
 		<td valign='top' style='width:98%'>
 			".Paragraphe_switch_img("{LMSensorsEnable}", "{LMSensorsEnable_text}","LMSensorsEnable",
-					$LMSensorsEnable,null,600)."
+					$LMSensorsEnable,null,1300)."
 					
-		<div style='text-align:right;margin-top:50px'><hr>". button("{apply}","Save$t()",36)."</div>
+		<div style='text-align:right;margin-top:50px'><hr>". button("{apply}","Save$t()",42)."</div>
 		
 		</td>
 	</tr>

@@ -24,10 +24,22 @@
 		die();exit();
 	}	
 	
-	if(isset($_POST["SquidWCCPL3Enabled"])){SquidWCCPL3Enabled();exit;}
+	if(isset($_POST["SquidWCCPL3Addr"])){SquidWCCPL3Enabled();exit;}
 	if(isset($_GET["wccp50"])){wccp50();exit;}
+	
+	if(isset($_GET["js"])){js();exit;}
+	
+	
 popup();	
-
+function js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ID=intval($_GET["ID"]);
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$title=$tpl->javascript_parse_text("{wccp_options}");
+	echo "YahooWin3('935','$page','$title')";
+}
 
 
 function popup(){
@@ -35,14 +47,9 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$q=new mysql_squid_builder();
 	$WCCP=1;
-	$arrayParams=unserialize(base64_decode($sock->getFrameWork("squid.php?compile-list=yes")));
 	$t=time();
-	$ip=new networking();
-	for($i=0;$i<255;$i++){
-	$ipsH["gre$i"]="gre$i";
-	}
-	$SquidWCCPL3Enabled=intval($sock->GET_INFO("SquidWCCPL3Enabled"));
 	$SquidWCCPL3Addr=$sock->GET_INFO("SquidWCCPL3Addr");
 	$SquidWCCPL3Inter=$sock->GET_INFO("SquidWCCPL3Inter");
 	$SquidWCCPL3Eth=$sock->GET_INFO("SquidWCCPL3Eth");
@@ -52,92 +59,49 @@ function popup(){
 	$SquidWCCPL3SSServiceID=intval($sock->GET_INFO("SquidWCCPL3SSServiceID"));
 	$SquidWCCPL3SSCertificate=intval($sock->GET_INFO("SquidWCCPL3SSCertificate"));
 	if($SquidWCCPL3SSServiceID==0){$SquidWCCPL3SSServiceID=70;}
-	
-	$sslproxy_version=intval($sock->GET_INFO("sslproxy_version"));
-	if($sslproxy_version==0){$sslproxy_version=1;}
-	
-	if($SquidWCCPL3ProxPort==0){
-		$SquidWCCPL3ProxPort=rand(35000,62680);
-		$sock->SET_INFO("SquidWCCPL3ProxPort", $SquidWCCPL3ProxPort);
-	}
-	
-	$ip=new networking();
-	$ipsH=$ip->Local_interfaces();
+	$ID=$_GET["port-id"];
+
 	
 
 	
-	$q=new mysql();
-	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
-	$squid_reverse=new squid_reverse();
-	$sslcertificates=$squid_reverse->ssl_certificates_list();
+
+
 	
-	$sslproxy_versions[1]="{default}";
-	$sslproxy_versions[2]="SSLv2 {only}";
-	$sslproxy_versions[3]="SSLv3 {only}";
-	$sslproxy_versions[4]="TLSv1.0 {only}";
-	$sslproxy_versions[5]="TLSv1.1 {only}";
-	$sslproxy_versions[6]="TLSv1.2 {only}";
-	
+	if(!$q->FIELD_EXISTS("proxy_ports", "SquidWCCPL3Addr")){
+		$q->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `SquidWCCPL3Addr` VARCHAR(60)");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	if(!$q->FIELD_EXISTS("proxy_ports", "SquidWCCPL3Route")){
+		$q->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `SquidWCCPL3Route` VARCHAR(60)");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+
+	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * FROM proxy_ports WHERE ID=$ID"));
 	
 
 $html="
-<table style='width:100%'>
-<tr>
-	<td style='width:350px;vertical-align:top'  nowrap align='top'><div id='wccp50'></div></td>
-	<td style='width:99%' style='vertical-align:top'>
 <div style='font-size:36px'>{WCCP_LAYER3}</div>
-<div class=text-info style='font-size:14px'>{WCCP_LAYER3_EXPLAIN}</div>
+<div class=explain style='font-size:14px'>{WCCP_LAYER3_EXPLAIN}</div>
 <div id='SquidAVParamWCCP' style='width:98%' class=form>
 <table style='width:100%'>
-	<tr>
-		<td colspan=3>". Paragraphe_switch_img("{wccp2_enabled}", "{wccp2_gre_enabled_explain}","SquidWCCPL3Enabled-$t","$SquidWCCPL3Enabled",null,650)."</td>
-	<tr>
-	
-
 	<tr>
 		<td style='font-size:22px' class=legend nowrap>{wccp_asa_addr}:</td>
 		<td>". field_ipv4("SquidWCCPL3Addr-$t",$SquidWCCPL3Addr,"font-size:22px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td style='font-size:22px' class=legend nowrap>{wccp_asa_int}:</td>
-		<td>". field_ipv4("SquidWCCPL3Inter-$t",$SquidWCCPL3Inter,"font-size:22px")."</td>
-		<td>&nbsp;</td>
-	</tr>				
-	<tr>
-		<td style='font-size:22px' class=legend nowrap>{wccp_local_gre_interface}:</td>
-		<td>". Field_array_Hash($ipsH,"SquidWCCPL3Eth-$t",
-		$SquidWCCPL3Eth,"style:font-size:22px")."</td>
-		<td></td>
-	</tr>
-	<tr>
-		<td style='font-size:22px' class=legend nowrap>Route:</td>
+		<td style='font-size:22px' class=legend nowrap>".texttooltip("Route ({optional})","{gre_route_explain}").":</td>
 		<td>". field_ipv4("SquidWCCPL3Route-$t",$SquidWCCPL3Route,"font-size:22px")."</td>
-		<td>". help_icon("{gre_route_explain}")."</td>
+		<td>&nbsp;</td>
 	</tr>
 				
+				
 	<tr>
-		<td colspan=3>". Paragraphe_switch_img("{wccp2_enabled_ssl}", "{wccp2_gre_enabled_explain_ssl}","SquidWCCPL3SSLEnabled-$t","$SquidWCCPL3SSLEnabled",null,650)."</td>
-	<tr>				
-	<tr>
-		<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{service_id}:</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{service_id} (SSL):</td>
 		<td>". Field_text("SquidWCCPL3SSServiceID-$t",$SquidWCCPL3SSServiceID,"font-size:22px;width:110px")."</td>
 		<td></td>
 	</tr>	
-	<tr>
-		<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{certificate}:</td>
-		<td>". Field_array_Hash($sslcertificates,"SquidWCCPL3SSCertificate-$t",$SquidWCCPL3SSCertificate,"style:font-size:22px")."</td>
-		<td></td>
-	</tr>	
-	<tr>
-		<td style='font-size:22px;vertical-align:middle' class=legend nowrap>{sslproxy_version}:</td>
-		<td>". Field_array_Hash($sslproxy_versions,"sslproxy_version-$t",$sslproxy_version,"style:font-size:22px")."</td>
-		<td></td>
-	</tr>
-				
-			
-				
-				
+		
 	<tr>
 		<td colspan=3 align='right'>
 			<hr>
@@ -146,68 +110,54 @@ $html="
 	</tr>
 	</table>
 </div>
-</td>
-</tr>
-</table>
 <script>
 var xSave$t= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){alert(results);}
-	Loadjs('squid.reconfigure.php?restart=yes&wccp=yes');
-	
 }
 
 function Save$t(){
 	var XHR = new XHRConnection();
-	
-	XHR.appendData('SquidWCCPL3Enabled',
-	document.getElementById('SquidWCCPL3Enabled-$t').value);
+	XHR.appendData('ID','$ID');
 
 	XHR.appendData('SquidWCCPL3Addr',
 	document.getElementById('SquidWCCPL3Addr-$t').value);
 
-	XHR.appendData('SquidWCCPL3Inter',
-	document.getElementById('SquidWCCPL3Inter-$t').value);
-	
-	XHR.appendData('SquidWCCPL3Eth',
-	document.getElementById('SquidWCCPL3Eth-$t').value);
-
-	XHR.appendData('SquidWCCPL3SSLEnabled',
-	document.getElementById('SquidWCCPL3SSLEnabled-$t').value);
-	
 	XHR.appendData('SquidWCCPL3SSServiceID',
 	document.getElementById('SquidWCCPL3SSServiceID-$t').value);	
 	
-	XHR.appendData('SquidWCCPL3SSCertificate',
-	document.getElementById('SquidWCCPL3SSCertificate-$t').value);	
 	
-	XHR.appendData('sslproxy_version',
-	document.getElementById('sslproxy_version-$t').value);	
-
 	XHR.appendData('SquidWCCPL3Route',
 	document.getElementById('SquidWCCPL3Route-$t').value);
 	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
-
-LoadAjax('wccp50','$page?wccp50=yes');
-
 </script>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
 function SquidWCCPL3Enabled(){
 	$sock=new sockets();
-	$sock->SET_INFO("SquidWCCPL3Enabled", $_POST["SquidWCCPL3Enabled"]);
-	$sock->SET_INFO("SquidWCCPL3Addr", $_POST["SquidWCCPL3Addr"]);
-	$sock->SET_INFO("SquidWCCPL3Inter", $_POST["SquidWCCPL3Inter"]);
-	$sock->SET_INFO("SquidWCCPL3Eth", $_POST["SquidWCCPL3Eth"]);
-	$sock->SET_INFO("SquidWCCPL3Route", $_POST["SquidWCCPL3Route"]);
+	$q=new mysql_squid_builder();
 	
-	$sock->SET_INFO("SquidWCCPL3SSLEnabled", $_POST["SquidWCCPL3SSLEnabled"]);
+	$sql="UPDATE proxy_ports SET 
+		SquidWCCPL3Addr='{$_POST["SquidWCCPL3Addr"]}',
+		SquidWCCPL3Route='{$_POST["SquidWCCPL3Route"]}'
+		WHERE ID='{$_POST["ID"]}'";
+	
+	if(!$q->FIELD_EXISTS("proxy_ports", "SquidWCCPL3Addr")){
+		$q->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `SquidWCCPL3Addr` VARCHAR(60)");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	if(!$q->FIELD_EXISTS("proxy_ports", "SquidWCCPL3Route")){
+		$q->QUERY_SQL("ALTER TABLE `proxy_ports` ADD `SquidWCCPL3Route` VARCHAR(60)");
+		if(!$q->ok){echo $q->mysql_error."\n";}
+	}
+	
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error."\n$sql";}
+		
 	$sock->SET_INFO("SquidWCCPL3SSServiceID", $_POST["SquidWCCPL3SSServiceID"]);
-	$sock->SET_INFO("SquidWCCPL3SSCertificate", $_POST["SquidWCCPL3SSCertificate"]);
-	$sock->SET_INFO("sslproxy_version", $_POST["sslproxy_version"]);
 	
 }
 function wccp50(){

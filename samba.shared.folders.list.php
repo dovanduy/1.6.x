@@ -220,7 +220,7 @@ function AclAbout(){
 	LoadHelp('". urlencode(base64_encode($tpl->_ENGINE_parse_body("{acl_feature_about}")))."','',false);
 	}
 function SambaWarnACL(){
-	LoadHelp('". urlencode(base64_encode($tpl->_ENGINE_parse_body("<strong style=color:red>{acl_samba_not}</strong>")))."','',false);
+	LoadHelp('". urlencode(base64_encode($tpl->_ENGINE_parse_body("<strong style=color:#d32d2d>{acl_samba_not}</strong>")))."','',false);
 	}
 	
 function AclsFoldersSwitch(){

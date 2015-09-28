@@ -2817,12 +2817,7 @@ begin
 
 
 
-    ldap:=topenldap.Create;
-    try
-       ArrayList.Add('[APP_OPENLDAP] "'+ldap.LDAP_VERSION()+'"');
-    except
-          logs.Syslogs('FATAL ERROR on CGI_ALL_APPLIS_INSTALLED after ldap.LDAP_VERSION()');
-    end;
+
 
 
     openvpn:=topenvpn.Create(SYS);
@@ -3062,14 +3057,7 @@ begin
     end;
     auditd.free;
 
-    //milter-greylist
-    mgreylist:=tmilter_greylist.Create(SYS);
-    try
-       ArrayList.Add('[APP_MILTERGREYLIST] "'+mgreylist.VERSION()+'"');
-    except
-          logs.Syslogs('FATAL ERROR on CGI_ALL_APPLIS_INSTALLED after mgreylist.VERSION()');
-    end;
-    mgreylist.free;
+
 
 
 
@@ -3388,7 +3376,7 @@ begin
 
 
     if debug then logs.Debuglogs('-> ldap.LDAP_VERSION');
-    ArrayList.Add('[APP_LDAP] "' + ldap.LDAP_VERSION() + '"');
+
     if debug then logs.Debuglogs('-> RENATTACH_VERSION');
     ArrayList.Add('[APP_RENATTACH] "' + RENATTACH_VERSION() + '"');
     if debug then logs.Debuglogs('-> GEOIP_VERSION');
@@ -6257,10 +6245,6 @@ begin
         articapolicy.START();
         articapolicy.Free;
 
-        logs.Debuglogs('############ policyd-weight ##################');
-        policydw:=tpolicyd_weight.Create(SYS);
-        policydw.START();
-        policydw.Free;
 
         cluebringer:=tcluebringer.Create(SYS);
         cluebringer.START();
@@ -6388,7 +6372,7 @@ end;
 
 
           if FileExists(dansguardian.BIN_PATH()) then dansguardian.DANSGUARDIAN_TAIL_START();
-          squid.PROXY_PAC_START();
+
           logs.Debuglogs('#####################################');
 
      end;

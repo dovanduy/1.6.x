@@ -132,8 +132,12 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$restart=null;
-	if($_GET["restart"]=="yes"){$restart="&restart=yes"; }
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes$restart");
+	if($_GET["restart"]=="yes"){
+		$sock->getFrameWork("squid2.php?rebuild-and-restart=yes");
+		
+	}else{
+		$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	}
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...");

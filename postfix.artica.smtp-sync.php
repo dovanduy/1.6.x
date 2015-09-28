@@ -90,7 +90,7 @@ function popup(){
 $html="
 <input type='hidden' id='ou' value='$ou'>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-<div class=text-info>$smtp_sync_artica_explain</div>
+<div class=explain>$smtp_sync_artica_explain</div>
 	
 <script>
 var memid='';

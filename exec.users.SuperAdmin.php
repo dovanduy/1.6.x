@@ -11,11 +11,51 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 
-menu();
+
+MAIN_MENU();
+
+function MAIN_MENU(){
+$unix=new unix();
+$clear=$unix->find_program("clear");
+if(is_file($clear)){system("$clear");}
+
+echo "Credentials Menu\n";
+echo "---------------------------------------------\n";
+echo "Display SuperAdmin credentials...: [1]\n";
+echo "Modify SuperAdmin credentials....: [2]\n";
+echo "Exit menu........................: [q]\n";
+echo "\n";
+
+$answer=trim(strtolower(fgets(STDIN)));
+
+switch ($answer) {
+	case "1":ShowPassword();break;
+	case "2":ChangePassword();break;
+	case "q":die();break;
+	default:
+		;
+	break;
+	
+	MAIN_MENU();
+	return;
+	
+}
+
+
+}
+
+
+function ShowPassword(){
+	system("clear");
+	$ldap=new clladp();
+	echo "\nUse the Account $ldap->ldap_admin\nAnd the password $ldap->ldap_password\nIn order to connect trough the Web administration console\as SuperAdmin\n\nPress Enter Key to exit...\n";
+	$answer=trim(strtolower(fgets(STDIN)));
+	system("clear");
+}
 
 
 
-function menu(){
+function ChangePassword(){
 	system("clear");
 	echo "This operation will change the SuperAdmin account and\n";
 	echo "password.\n";
@@ -51,7 +91,7 @@ function menu(){
 	system("/etc/init.d/slapd restart --force");
 	echo "Synchronize Artica settings\n";
 	system("/usr/share/artica-postfix/bin/process1 --force");
-	echo "Restarting Artica Web console\n";
+	echo "Restarting Web console\n";
 	system("/etc/init.d/artica-webconsole restart");
 	echo "Press Q to exit or Enter\n";
 	$answer=trim(strtolower(fgets(STDIN)));

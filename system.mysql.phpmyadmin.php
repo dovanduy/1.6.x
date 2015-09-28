@@ -27,7 +27,7 @@ function page(){
 	
 	if($IsInstalled<>"TRUE"){
 		$button=button("{reinstall_software}","Loadjs('system.mysql.phpmyadmin.install.php')",36);
-		echo FATAL_WARNING_SHOW_128("<span style='font-size:26px'>{ERROR_SERVICE_NOT_INSTALLED}</span><center style='margin:20px'>$button</center>");
+		echo FATAL_ERROR_SHOW_128("<span style='font-size:26px'>{ERROR_SERVICE_NOT_INSTALLED}</span><center style='margin:20px'>$button</center>");
 		
 	}
 	

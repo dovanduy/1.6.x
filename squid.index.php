@@ -121,7 +121,7 @@ function main_status_failed(){
 	}
 	if(is_array($err)){	
 		
-		$errors="<div style='padding:5px;color:red;font-weight:bold'><code>".implode("\n",$err)."</code></div>";
+		$errors="<div style='padding:5px;color:#d32d2d;font-weight:bold'><code>".implode("\n",$err)."</code></div>";
 	
 	}
 	
@@ -240,7 +240,7 @@ function kavicap_license_error(){
 				<td width=1% valign='top'>" . imgtootltip("42-red.png",'{av_pattern_database}',"Loadjs('Kav4Proxy.License.php')")."</td>
 				<td valign='top'>". RoundedLightWhite("
 						<strong>
-							<span style='font-size:14px;color:red'>{av_pattern_database_obsolete_or_missing}</span><hr>
+							<span style='font-size:14px;color:#d32d2d'>{av_pattern_database_obsolete_or_missing}</span><hr>
 							
 							")."
 				</td>
@@ -256,8 +256,8 @@ function kavicap_license_error(){
 <td width=1% valign='top'>" . imgtootltip("42-red.png",'{license}',"Loadjs('Kav4Proxy.License.php')")."</td>
 <td valign='top'>". RoundedLightWhite("
 		<strong>
-			<span style='font-size:14px;color:red'>{license_error} {APP_KAV4PROXY} !!</span><hr>
-			<span style='font-size:11px;color:red'>$users->KAV4PROXY_LICENSE_ERROR_TEXT</span></strong>
+			<span style='font-size:14px;color:#d32d2d'>{license_error} {APP_KAV4PROXY} !!</span><hr>
+			<span style='font-size:11px;color:#d32d2d'>$users->KAV4PROXY_LICENSE_ERROR_TEXT</span></strong>
 			")."
 </td>
 </tr>
@@ -1880,11 +1880,7 @@ $cache_settings="<table style='width:100%'>
 		<td>" . Field_text('minimum_object_size',$squid->global_conf_array["minimum_object_size"],'width:70px')."</td>
 		<td>" . help_icon('{minimum_object_size_text}')."</td>
 		</tr>
-<tr>
-		<td align='right'><strong>{maximum_object_size_in_memory}</strong></td>
-		<td>" . Field_text('maximum_object_size_in_memory',$squid->global_conf_array["maximum_object_size_in_memory"],'width:70px')."</td>
-		<td>" . help_icon('{maximum_object_size_in_memory_text}')."</td>
-		</tr>			
+		
 <tr>
 		<td align='right'><strong>{ipcache_size}</strong></td>
 		<td>" . Field_text('ipcache_size',$squid->global_conf_array["ipcache_size"],'width:70px')."</td>
@@ -2078,7 +2074,7 @@ function main_status_analyse_logs(){
 	if($error<>null){
 		return "<tr ". CellRollOver('SquidViewStartError()','{view}').">
 		<td align='right' valign='top'><img src='img/$img'></td>
-		<td valign='top'><strong style='color:red'>$error:</strong><br><span style='color:red'>$error_text</span></td>
+		<td valign='top'><strong style='color:#d32d2d'>$error:</strong><br><span style='color:#d32d2d'>$error_text</span></td>
 		</tr>";
 		
 	}

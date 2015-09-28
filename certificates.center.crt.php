@@ -44,6 +44,8 @@
 	
 	function certificate_edit_crt_save(){
 		$data=url_decode_special_tool($_POST["save-crt"]);
+		$data=str_replace("\r\n", "\n", $data);
+		$data=str_replace("\n\n", "\n", $data);
 		$CommonName=$_POST["CommonName"];
 		$sql="UPDATE sslcertificates SET `crt`='$data' WHERE `CommonName`='$CommonName'";
 		$q=new mysql();
@@ -66,7 +68,7 @@ function certificate_edit_crt(){
 	$apply=$tpl->_ENGINE_parse_body("{apply}");
 	$tt=time();
 	$upload_text=$tpl->_ENGINE_parse_body("{upload_content}");
-	$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`  FROM sslcertificates WHERE CommonName='$CommonName'";
+	$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`,`UseGodaddy`  FROM sslcertificates WHERE CommonName='$CommonName'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
 	$CommonNameURL=urlencode($CommonName);
@@ -84,9 +86,13 @@ function certificate_edit_crt(){
 		
 	}
 	
+	if($ligne["UseGodaddy"]==1){
+		$field="crt";
+	}
+	
 	
 	$html="
-		<div class=text-info style='font-size:18px' id='$tt-adddis'>{public_key_ssl_explain}</div>
+		<div class=explain style='font-size:18px' id='$tt-adddis'>{public_key_ssl_explain}</div>
 		<div id='verify-$tt'></div>
 		<center>$button_upload&nbsp;$button_extract</center>
 		<textarea
@@ -100,22 +106,21 @@ function certificate_edit_crt(){
 		document.getElementById('$tt-adddis').innerHTML='';
 		if (results.length>3){alert(results);return;}
 	}
-	function SaveCRT$tt(){
-	if(confirm('$warn_gen_x50')){
+function SaveCRT$tt(){
+	if(!confirm('$warn_gen_x50')){return;}
 	var XHR = new XHRConnection();
 	var pp=encodeURIComponent(document.getElementById('crt$tt').value);
 	XHR.appendData('save-crt',pp);
 	XHR.appendData('CommonName','$CommonName');
 	AnimateDiv('$tt-adddis');
 	XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
-	}
-	}
+}
 	
-	function VerifyCertificate$tt(){
+function VerifyCertificate$tt(){
 	LoadAjax('verify-$tt','$page?verify-crt=yes&CommonName=$CommonNameURL',true);
-	}
-	VerifyCertificate$tt();
-	</script>
+}
+VerifyCertificate$tt();
+</script>
 	";
 		echo $tpl->_ENGINE_parse_body($html);
 	
@@ -124,15 +129,12 @@ function certificate_edit_crt(){
 	function certificate_edit_crt_verify(){
 		$CommonName=$_GET["CommonName"];
 		$q=new mysql();
-		$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`  FROM sslcertificates WHERE CommonName='$CommonName'";
+		$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`,`UseGodaddy`  FROM sslcertificates WHERE CommonName='$CommonName'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		
 		$field="crt";
-		if($ligne["UsePrivKeyCrt"]==0){
-			$field="SquidCert";
-			$button_upload=null;
-		
-		}
+		if($ligne["UsePrivKeyCrt"]==0){$field="SquidCert";}
+		if($ligne["UseGodaddy"]==1){$field="crt";}
 		
 		$filepath=dirname(__FILE__)."/ressources/conf/upload/Cert.pem";
 		@file_put_contents($filepath, $ligne[$field]);
@@ -152,18 +154,17 @@ function certificate_edit_crt(){
 		echo "<p class='$class' style='font-size:18px'>".@implode("<br>", $f)."</p><script>UnlockPage();</script>";
 	}
 	
-	function certificate_info_crt_popup(){
+function certificate_info_crt_popup(){
 		$CommonName=$_GET["CommonName"];
 		$q=new mysql();
-		$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`  FROM sslcertificates WHERE CommonName='$CommonName'";
+		$sql="SELECT `crt`,`SquidCert`,`UsePrivKeyCrt`,`UseGodaddy`  FROM sslcertificates WHERE CommonName='$CommonName'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		
 		$field="crt";
-		if($ligne["UsePrivKeyCrt"]==0){
-			$field="SquidCert";
-			
+		if($ligne["UsePrivKeyCrt"]==0){$field="SquidCert";}
+		if($ligne["UseGodaddy"]==1){$field="crt";}
 		
-		}
+		
 		$filepath=dirname(__FILE__)."/ressources/conf/upload/Cert.pem";
 		@file_put_contents($filepath, $ligne[$field]);
 		exec("/usr/bin/openssl x509 -text -in $filepath 2>&1",$results);

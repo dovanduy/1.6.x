@@ -106,7 +106,7 @@ function popup($noecho=0){
 	
 $html="
 	<input type='hidden' name='rule_main' value='$rule_main'>
-	<div class=text-info>{{$explain}}</div>
+	<div class=explain>{{$explain}}</div>
 	<div id='main_rules_categories_list' style='width:100%;height:650px;overflow:auto'></div>
 	<script>
 		DansGuardianRefreshCategories();

@@ -33,16 +33,16 @@ class proxypacrules{
 			if(preg_match("#dnsDomainIs:(.+?)$#",trim($servername),$re)){
 					
 					if(strpos($re[1], "*")>0){
-						$isInNet[]="\tif( shExpMatch(host ,\"{$re[1]}\") { return 'DIRECT';}";
+						$isInNet[]="\tif( shExpMatch(host ,\"{$re[1]}\") ){ return 'DIRECT';}";
 						continue;
 					}
 				
 				
-					$isInNet[]="\tif(dnsDomainIs(host,\"{$re[1]}\")){return \"DIRECT\";}";
+					$isInNet[]="\tif(dnsDomainIs(host,\"{$re[1]}\") ){return \"DIRECT\";}";
 					continue;
 				}
 				
-				$isInNet[]="\tif(localHostOrDomainIs(host,\"$servername\")){return \"DIRECT\";}";
+				$isInNet[]="\tif(localHostOrDomainIs(host,\"$servername\") ){return \"DIRECT\";}";
 			}	
 		}
 		//patch g_delmas 22/04/2011 (see http://www.articatech.net/forum/viewtopic.php?f=39&t=3429&p=16444#p16444)
@@ -100,7 +100,7 @@ class proxypacrules{
 
 		if($condition["dnsDomainIs"]<>null){
 			if(strpos($condition["dnsDomainIs"], "*")>0){
-				$final[]="\tif( shExpMatch(host ,\"{$condition["dnsDomainIs"]}\") { return 'DIRECT';}";
+				$final[]="\tif( shExpMatch(host ,\"{$condition["dnsDomainIs"]}\") ){ return 'DIRECT';}";
 				continue;
 			}
 			

@@ -342,7 +342,7 @@ function repquota(){
 	
 	
 	$html=$html."
-<div class=text-info>{repquota_explain}</div>
+<div class=explain>{repquota_explain}</div>
 <div style='text-align:right;margin-bottom:5px'>
 <table>
 <tr>

@@ -639,7 +639,7 @@ class phpGSB{
 			if($canit==$value)
 				$this->outputmsg("<span style='color:green'>PASSED: $key</span>");
 			else
-				$this->outputmsg("<span style='color:red'>INVALID: <br>ORIGINAL: $key<br>EXPECTED: $value<br>RECIEVED: $canit<br> </span>");
+				$this->outputmsg("<span style='color:#d32d2d'>INVALID: <br>ORIGINAL: $key<br>EXPECTED: $value<br>RECIEVED: $canit<br> </span>");
 				
 			}
 		}

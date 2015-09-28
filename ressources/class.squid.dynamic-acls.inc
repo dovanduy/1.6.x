@@ -66,7 +66,7 @@ class dynamic_acls_auth{
 	private function CheckUserINAD($DN){
 		$LOG_PREFIX=__CLASS__."/".__FUNCTION__;
 		if($this->ADenabled==0){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>{$LOG_PREFIX}: FAILED:squid_load_dynamic_acls::AD not enabled</span><br>\n";}
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:#d32d2d'>{$LOG_PREFIX}: FAILED:squid_load_dynamic_acls::AD not enabled</span><br>\n";}
 			return false;}
 		$this->LoadGroupOfUsers();
 		if(!isset($this->groupsofuser[$DN])){
