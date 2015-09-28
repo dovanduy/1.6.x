@@ -1763,6 +1763,7 @@ if CurrentUser='root' then dir:='/root' else dir:='/home/'+CurrentUser;
     fpsystem('git rm --cached exec.squid.checkscatz.php');
     fpsystem('git rm --cached exec.squid.cloud.compile.php');
     fpsystem('git rm --cached ressources/class.categorize.externals.bright.inc');
+    fpsystem('git rm --cached exec.dshield.php');
     fpsystem('git commit -m "'+version+'"');
     fpsystem('git push origin master');
 

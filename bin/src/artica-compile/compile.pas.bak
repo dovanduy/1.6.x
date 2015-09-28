@@ -102,7 +102,7 @@ fpsystem('date +%m%d%H >'+dir+'/date.txt');
 J:=TStringList.Create;
 J.LoadFromFile(dir+'/date.txt');
 txt:=trim(J.Strings[0]);
-result:='2.20.'+txt;
+result:='2.21.'+txt;
 fpsystem('/bin/rm '+dir+'/date.txt');
 
 end;
