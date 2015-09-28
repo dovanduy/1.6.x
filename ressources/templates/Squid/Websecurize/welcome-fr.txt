@@ -1,0 +1,13 @@
+<p>Artica Proxy est disponible en deux versions : l’une communautaire et l’autre sous licence.</p>
+<p>Par défaut, la version communautaire que vous téléchargez est simplifiée.</p>
+<p>La version sous licence vous permettra de disposer des fonctionnalités suivantes :</p>
+
+<ul>
+<li>Le failover (grâce à la licence de secours inclus dans la souscription annuelle)</li>
+<li>La possibilité d’augmenter la taille du cache qui est limitée à 2Go en version communautaire</li>
+<li>La possibilité de créer des règles de mise en cache </li>
+<li>L’activation du mode multi processeurs</li>
+<li>La possibilité d’utiliser le DNS filter  (filtrage des sites web par requêtes DNS)</li>
+<li>Le filtrage web avec plus 29 millions de sites web catégorisés</li>
+</ul>
+<p>Une clé d’évaluation du produit de 30 jours est disponible auprès de Valérie Chapel à qui vous pouvez adresser votre demande à l’adresse suivante : valerie@articatech.com.</p>

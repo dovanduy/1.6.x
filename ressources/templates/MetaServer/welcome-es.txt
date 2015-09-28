@@ -1,0 +1,16 @@
+<p>Artica Proxy es disponible en dos versiones : una version gratuita y una version de pago.</p>
+<p>La version descargada que tienes es simplificada.</p>
+<p>La licencia pagada a Artica Proxy aporta :</p>
+<ul>
+<li>La posibilidad de aumentar el tamano de cache (limitado a 2Gb en la version comunitaria)</li>
+<li>La posibilidad de crear reglas de almacenamiento en cache</li>
+<li>La posibilidad de activar el modo multiprocesador</li>
+<li>La posibilidad de activar el DNS filter (es desir poder filtrar los lugares web para solicitar DNS).</li>
+<li>La posibilidad de guardar los logs.</li>
+<li>Los 29 millones de lugares web categorizados</li>
+</ul>
+<p>
+Es importante recordarles que un proxy es un intermediario. 
+</p><p>Ustedes saben que cuando entran en une pagina web por medio de su navegador, este ultimo se conecta directamente sobre el servidor web para ir a recuperar la pagina pedida. Si ustedes agregan una maquina (el proxy) entre su computador e Internet, esta maquina va a enregistrar las paginas web localmente y va a darselas sin pasar por Internet.</p>
+<p>En pocas palabras, esto va a permitirles de acelerar el web, de asegurar el aceso al web (por el filtraje) y de estar conforme a la legislacion conservando los logs durante el tiempo legal (que es valido segun los paises).</p>
+<p>Una clave de licencia de prueba de 30 dias esta disponible a peticion (valerie@articatech.com).</p>

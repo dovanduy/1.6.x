@@ -1,0 +1,17 @@
+<p>Artica Proxy is available in two releases : free version and business version.</p>
+<p>You have downloaded by default the free release which is reduced (the full version is commercial).</p>
+<p>The commercial full version provides the following features :</p>
+<ul>
+<li>Failover</li>
+<li>Potential to increase the cache size which is limited to 2Go with the free version</li>
+<li>Potential to create caching rules</li>
+<li>Potential to activate the multiprocessors mode</li>
+<li>Potential to activate the DNS</li>
+<li>Potential to activate the statistics backup</li>
+<li>The web filtering with 29 millions websites categorized</li> 
+<p>
+</ul>
+A 30 days evaluation key of the full product is available upon request 
+</p>
+<p>
+(please contact François Darmont : fd@networksparis.com)</p>
